@@ -100,11 +100,23 @@ export default class MicrosoftTeamsAPI {
             "resourceSpecific": [
                 {
                     "type": "Application",
-                    "name": "ChannelSettings.Read.Group"
+                    "name": "ChannelMessage.Send"
                 },
                 {
-                    "type": "Delegated",
-                    "name": "ChannelMeetingParticipant.Read.Group"
+                    "type": "Application", 
+                    "name": "Channel.Create"
+                },
+                {
+                    "type": "Application",
+                    "name": "ChannelMember.ReadWrite.Group"
+                },
+                {
+                    "type": "Application",
+                    "name": "TeamMember.ReadWrite.Group"
+                },
+                {
+                    "type": "Application",
+                    "name": "ChannelSettings.ReadWrite.Group"
                 }
             ]
         }
