@@ -496,15 +496,6 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
-      {isAdminConsentCompleted && (
-        <div>
-          <Card
-            title={cardTitle}
-            description={cardDescription}
-            buttons={cardButtons}
-          />
-        </div>
-      )}
 
       <div className="mt-6">
         <Card
@@ -537,6 +528,19 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           }
         />
       </div>
+
+
+      {isAdminConsentCompleted && (
+        <div>
+          <Card
+            title={cardTitle}
+            description={cardDescription}
+            buttons={cardButtons}
+          />
+        </div>
+      )}
+
+
       {(
         <div className="mt-6">
           <Card
