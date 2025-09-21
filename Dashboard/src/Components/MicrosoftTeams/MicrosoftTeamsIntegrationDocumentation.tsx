@@ -69,6 +69,8 @@ Azure Account - You can create one by going to https://azure.com.
      - TeamMember.Read.All
    - **For user information:**
      - User.Read.All (to get user details)
+   - **For reading groups:**
+      - Group.Read.All
 
 3. Click "Grant admin consent" for your organization
 

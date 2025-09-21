@@ -751,10 +751,10 @@ export default class MicrosoftTeamsAPI {
 
           if (!existingAuth?.workspaceProjectId) {
             try {
-              // Get available teams using app token
+              // Get available teams using app token - use Teams API instead of Groups API
               const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
                 await API.get<JSONObject>({
-                  url: URL.fromString("https://graph.microsoft.com/v1.0/groups?$filter=resourceProvisioningOptions/Any(x:x eq 'Team')&$select=id,displayName"),
+                  url: URL.fromString("https://graph.microsoft.com/v1.0/teams?$select=id,displayName"),
                   headers: {
                     Authorization: `Bearer ${appAccessToken}`,
                   },
