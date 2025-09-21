@@ -508,7 +508,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
       <div className="mt-6">
         <Card
-          title={isAdminConsentCompleted ? "Admin Consent Completed ✓" : "Grant Admin Consent (Tenant-wide)"}
+          title={isAdminConsentCompleted ? "Admin Consent Completed ✓" : "Grant Admin Consent"}
           description={
             isAdminConsentCompleted
               ? "Admin consent has been successfully granted for the OneUptime Microsoft Teams app. You can now proceed to connect your account."
@@ -528,9 +528,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                 ]
               : [
                   {
-                    title: "Open Admin Consent",
+                    title: "Grant Admin Consent",
                     buttonStyle: SharedButtonStyle.PRIMARY,
-                    icon: IconProp.Download,
+                    icon: IconProp.ShieldCheck,
                     onClick: () => startAdminConsent(),
                   },
                 ]
