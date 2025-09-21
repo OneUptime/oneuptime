@@ -419,206 +419,6 @@ export default class MicrosoftTeamsAPI {
       },
     );
 
-    // Deprecated (legacy) route that had projectId and userId in path params. Kept for backward compatibility.
-    router.get(
-      "/microsoft-teams/auth/:projectId/:userId",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        if (!MicrosoftTeamsAppClientId) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Microsoft Teams App Client ID is not set"),
-          );
-        }
-
-        if (!MicrosoftTeamsAppClientSecret) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException(
-              "Microsoft Teams App Client Secret is not set",
-            ),
-          );
-        }
-
-        const projectId: string | undefined =
-          req.params["projectId"]?.toString();
-        const userId: string | undefined = req.params["userId"]?.toString();
-
-        if (!projectId) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid ProjectID in request"),
-          );
-        }
-
-        if (!userId) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid UserID in request"),
-          );
-        }
-
-        const error: string | undefined = req.query["error"]?.toString();
-
-        const teamsIntegrationPageUrl: URL = URL.fromString(
-          DashboardClientUrl.toString() +
-            `/${projectId.toString()}/settings/microsoft-teams-integration`,
-        );
-
-        if (error) {
-          return Response.redirect(
-            req,
-            res,
-            teamsIntegrationPageUrl.addQueryParam("error", error),
-          );
-        }
-
-        const code: string | undefined = req.query["code"]?.toString();
-
-        if (!code) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException("Invalid request - no authorization code"),
-          );
-        }
-
-        // Exchange code for access token
-        const redirectUri: URL = URL.fromString(
-          `${AppApiClientUrl.toString()}/microsoft-teams/auth/${projectId}/${userId}`,
-        );
-
-        const tokenRequestBody: JSONObject = {
-          grant_type: "authorization_code",
-          code: code,
-          client_id: MicrosoftTeamsAppClientId,
-          client_secret: MicrosoftTeamsAppClientSecret,
-          redirect_uri: redirectUri.toString(),
-          scope:
-            "https://graph.microsoft.com/User.Read https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Send",
-        };
-
-        logger.debug("Microsoft Teams Token Request Body: ");
-        logger.debug(tokenRequestBody);
-
-        const tokenResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.post<JSONObject>({
-            url: URL.fromString(
-              "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-            ),
-            data: tokenRequestBody,
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-          });
-
-        if (tokenResponse instanceof HTTPErrorResponse) {
-          logger.error("Error getting Teams token:");
-          logger.error(tokenResponse);
-          throw tokenResponse;
-        }
-
-        const tokenData: JSONObject = tokenResponse.data;
-        logger.debug("Microsoft Teams Token Response: ");
-        logger.debug(tokenData);
-
-        if (!tokenData["access_token"]) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException(
-              "Failed to get access token from Microsoft Teams",
-            ),
-          );
-        }
-
-        const accessToken: string = tokenData["access_token"] as string;
-
-        // Get user profile and team information
-        const userProfileResponse:
-          | HTTPErrorResponse
-          | HTTPResponse<JSONObject> = await API.get<JSONObject>({
-          url: URL.fromString("https://graph.microsoft.com/v1.0/me"),
-          headers: {
-            Authorization: `Bearer ${accessToken}`},
-        });
-
-        if (userProfileResponse instanceof HTTPErrorResponse) {
-          logger.error("Error getting user profile:");
-          logger.error(userProfileResponse);
-          throw userProfileResponse;
-        }
-
-        const userProfile: JSONObject = userProfileResponse.data;
-        logger.debug("User Profile: ");
-        logger.debug(userProfile);
-
-        // Get user's teams
-        const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.get<JSONObject>({
-            url: URL.fromString(
-              "https://graph.microsoft.com/v1.0/me/joinedTeams",
-            ),
-            headers: { Authorization: `Bearer ${accessToken}` },
-          });
-
-        if (teamsResponse instanceof HTTPErrorResponse) {
-          logger.error("Error getting teams:");
-          logger.error(teamsResponse);
-          throw teamsResponse;
-        }
-
-        const teamsData: JSONObject = teamsResponse.data;
-        const teams: Array<JSONObject> =
-          (teamsData["value"] as Array<JSONObject>) || [];
-
-        if (teams.length === 0) {
-          return Response.redirect(
-            req,
-            res,
-            teamsIntegrationPageUrl.addQueryParam(
-              "error",
-              "You are not a member of any Microsoft Teams. Please join a team first.",
-            ),
-          );
-        }
-
-        const availableTeams: Array<MicrosoftTeamsTeam> = teams.map(
-          (t: JSONObject): MicrosoftTeamsTeam => {
-            return {
-              id: t["id"] as string,
-              displayName: (t["displayName"] as string) || "Unnamed Team",
-            };
-          },
-        );
-
-        await WorkspaceUserAuthTokenService.refreshAuthToken({
-          projectId: new ObjectID(projectId),
-          userId: new ObjectID(userId),
-          workspaceType: WorkspaceType.MicrosoftTeams,
-          authToken: accessToken,
-          workspaceUserId: userProfile["id"] as string,
-          miscData: {
-            userId: userProfile["id"] as string,
-            displayName: userProfile["displayName"] as string,
-            email:
-              (userProfile["mail"] as string) ||
-              (userProfile["userPrincipalName"] as string),
-            availableTeams: availableTeams,
-          },
-        });
-
-        Response.redirect(
-          req,
-          res,
-          teamsIntegrationPageUrl.addQueryParam("selectTeam", "true"),
-        );
-      },
-    );
-
     // Endpoint to finalize team selection when multiple teams are available.
     router.post(
       "/microsoft-teams/select-team",
@@ -723,7 +523,7 @@ export default class MicrosoftTeamsAPI {
             projectId: projectId,
             workspaceType: WorkspaceType.MicrosoftTeams,
             authToken: projectAuthTokenToPersist,
-            workspaceProjectId: teamId,
+            workspaceProjectId: teamId, // Use the actual team ID instead of placeholder
             miscData: mergedProjectMiscData,
           });
 
@@ -942,11 +742,71 @@ export default class MicrosoftTeamsAPI {
             Date.now() + Math.max(0, (expiresInSec - 60) * 1000),
           ).toISOString();
 
-
           logger.debug("App Access Token acquired via admin consent: ");
           logger.debug(tokenData);
 
-          // Merge and persist project auth with tenantId and app token
+          // Try to get teams using the app token to auto-select the first team
+          let selectedTeamId: string = existingAuth?.workspaceProjectId || "";
+          let selectedTeamName: string = "";
+
+          if (!existingAuth?.workspaceProjectId) {
+            try {
+              // Get available teams using app token
+              const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+                await API.get<JSONObject>({
+                  url: URL.fromString("https://graph.microsoft.com/v1.0/groups?$filter=resourceProvisioningOptions/Any(x:x eq 'Team')&$select=id,displayName"),
+                  headers: {
+                    Authorization: `Bearer ${appAccessToken}`,
+                  },
+                });
+
+              if (teamsResponse instanceof HTTPErrorResponse) {
+                logger.error("Failed to get teams for auto-selection:");
+                logger.error(teamsResponse);
+                return Response.redirect(
+                  req,
+                  res,
+                  teamsIntegrationPageUrl.addQueryParam(
+                    "error",
+                    "Failed to retrieve teams from Microsoft Graph API after admin consent",
+                  ),
+                );
+              }
+
+              const teamsData: JSONObject = teamsResponse.data;
+              const teams: Array<JSONObject> = (teamsData["value"] as Array<JSONObject>) || [];
+              
+              if (teams.length === 0) {
+                return Response.redirect(
+                  req,
+                  res,
+                  teamsIntegrationPageUrl.addQueryParam(
+                    "error",
+                    "No teams available in your Microsoft 365 tenant. Please create a team first.",
+                  ),
+                );
+              }
+
+              // Select the first team
+              selectedTeamId = teams[0]!["id"] as string;
+              selectedTeamName = (teams[0]!["displayName"] as string) || "Unnamed Team";
+              logger.debug(`Auto-selected first team: ${selectedTeamName} (${selectedTeamId})`);
+
+            } catch (error) {
+              logger.error("Error getting teams for auto-selection:");
+              logger.error(error);
+              return Response.redirect(
+                req,
+                res,
+                teamsIntegrationPageUrl.addQueryParam(
+                  "error",
+                  "Failed to retrieve teams from Microsoft Graph API",
+                ),
+              );
+            }
+          }
+
+          // Merge and persist project auth with tenantId, app token, and selected team
           const mergedMiscData = {
             ...(existingAuth?.miscData as any),
             tenantId: tenantId,
@@ -954,14 +814,16 @@ export default class MicrosoftTeamsAPI {
             appAccessTokenExpiresAt: expiresAtIso,
             adminConsentGranted: true,
             adminConsentGrantedAt: new Date().toISOString(),
+            teamId: selectedTeamId,
+            teamName: selectedTeamName,
+            botId: MicrosoftTeamsAppClientId || "",
           };
 
           await WorkspaceProjectAuthTokenService.refreshAuthToken({
             projectId: new ObjectID(projectId),
             workspaceType: WorkspaceType.MicrosoftTeams,
             authToken: appAccessToken,
-            // Preserve the selected team if already set; otherwise empty string.
-            workspaceProjectId: existingAuth?.workspaceProjectId || "",
+            workspaceProjectId: selectedTeamId,
             miscData: mergedMiscData,
           });
 

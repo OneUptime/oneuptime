@@ -163,6 +163,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           select: {
             _id: true,
             miscData: true,
+            workspaceProjectId: true,
           },
           limit: 1,
           skip: 0,
@@ -172,13 +173,20 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         });
 
       if (projectAuth.data.length > 0) {
-        setIsProjectAccountConnected(true);
-        setIsAdminConsentCompleted(true); // Admin consent is granted if WorkspaceProjectAuthToken exists
-        const teamsTeamName: string | undefined = (
-          projectAuth.data[0]!.miscData! as MicrosoftTeamsMiscData
-        ).teamName;
+        const miscData = projectAuth.data[0]!.miscData! as MicrosoftTeamsMiscData;
+        const teamsTeamName: string | undefined = miscData.teamName;
+        
         setWorkspaceProjectAuthTokenId(projectAuth.data[0]!.id);
         setTeamsTeamName(teamsTeamName);
+        
+        // Check if admin consent is granted
+        const adminConsentGranted = miscData.adminConsentGranted || false;
+        setIsAdminConsentCompleted(adminConsentGranted);
+        
+        // Only consider the project as "connected" if a real team is selected
+        const workspaceProjectId = projectAuth.data[0]!.workspaceProjectId;
+        const isRealTeamSelected: boolean = Boolean(workspaceProjectId && teamsTeamName);
+        setIsProjectAccountConnected(isRealTeamSelected);
       }
 
       // fetch user auth token.
@@ -480,7 +488,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     ];
   }
 
-  if (!isProjectAccountConnected) {
+  // if admin consent is completed but no team is selected yet
+  if (isAdminConsentCompleted && !isProjectAccountConnected && !isUserAccountConnected) {
+    cardTitle = `Admin Consent Granted - Connect Your Account`;
+    cardDescription = `Admin consent has been granted for the OneUptime Microsoft Teams app. Now connect your account to select a team and complete the setup.`;
+    cardButtons = [getConnectWithTeamsButton(`Connect with Microsoft Teams`)];
+  }
+
+  if (!isProjectAccountConnected && !isAdminConsentCompleted) {
     cardTitle = `Connect with Microsoft Teams`;
     cardDescription = `Connect your account with Microsoft Teams to make the most out of OneUptime.`;
     cardButtons = [getConnectWithTeamsButton(`Connect with Microsoft Teams`)];
