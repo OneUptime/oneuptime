@@ -722,7 +722,9 @@ export default class CodeRepositoryUtil {
     );
 
     const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.get(url);
+      await API.get({
+        url: url,
+      });
 
     if (codeRepositoryResult instanceof HTTPErrorResponse) {
       throw codeRepositoryResult;

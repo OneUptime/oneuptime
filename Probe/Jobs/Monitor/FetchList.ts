@@ -93,17 +93,16 @@ class FetchListAndProbe {
       ).addRoute("/monitor/list");
 
       const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
-        await API.fetch<JSONArray>(
-          HTTPMethod.POST,
-          monitorListUrl,
-          {
+        await API.fetch<JSONArray>({
+          method: HTTPMethod.POST,
+          url: monitorListUrl,
+          data: {
             ...ProbeAPIRequest.getDefaultRequestBody(),
             limit: PROBE_MONITOR_FETCH_LIMIT || 100,
           },
-          {},
-          {},
-          { ...ProxyConfig.getRequestProxyAgents() },
-        );
+          headers: {},
+          options: { ...ProxyConfig.getRequestProxyAgents() },
+        });
 
       logger.debug("Fetched monitor list");
       logger.debug(result);

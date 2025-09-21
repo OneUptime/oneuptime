@@ -74,6 +74,8 @@ const Settings: FunctionComponent<ComponentProps> = (
 
   const [resellerPlan, setResellerPlan] = useState<ResellerPlan | null>(null);
 
+  const [balance, setBalance] = useState<number>(0);
+
   const formRef: any = useRef<any>(null);
 
   useAsyncEffect(async () => {
@@ -113,6 +115,22 @@ const Settings: FunctionComponent<ComponentProps> = (
       if (project?.resellerPlan) {
         setResellerPlan(project.resellerPlan);
       }
+
+      // Fetch customer balance
+      try {
+        const balanceResponse: HTTPResponse<JSONObject> =
+          await BaseAPI.get<JSONObject>({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              `/billing/customer-balance`,
+            ),
+            headers: ModelAPI.getCommonHeaders(), // headers
+          });
+        const balanceData: JSONObject = balanceResponse.data;
+        setBalance(balanceData["balance"] as number);
+      } catch {
+        // Balance might not be available, set to 0
+        setBalance(0);
+      }
     } catch (err) {
       setError(BaseAPI.getFriendlyMessage(err));
     }
@@ -125,11 +143,13 @@ const Settings: FunctionComponent<ComponentProps> = (
       setIsModalLoading(true);
 
       const response: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>(
-        URL.fromString(APP_API_URL.toString()).addRoute(
-          `/billing-payment-methods/setup`,
-        ),
-        {},
-        ModelAPI.getCommonHeaders(),
+        {
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/billing-payment-methods/setup`,
+          ),
+          data: {},
+          headers: ModelAPI.getCommonHeaders(),
+        },
       );
       const data: JSONObject = response.data;
 
@@ -606,6 +626,13 @@ const Settings: FunctionComponent<ComponentProps> = (
               modelId: ProjectUtil.getCurrentProjectId()!,
             }}
           />
+
+          {balance < 0 && (
+            <Card
+              title="Customer Balance"
+              description={`Your current customer balance is $${balance * -1}. This balance will be applied to your next invoice.`}
+            />
+          )}
 
           {!reseller && (
             <Card

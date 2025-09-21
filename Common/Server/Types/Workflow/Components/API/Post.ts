@@ -62,11 +62,11 @@ export default class ApiPost extends ComponentCode {
     logger.debug(`Request Headers: ${JSON.stringify(requestHeaders)}`);
 
     try {
-      apiResult = await API.post(
-        args["url"] as URL,
-        args["request-body"] as JSONObject,
-        args["request-headers"] as Dictionary<string>,
-      );
+      apiResult = await API.post({
+        url: args["url"] as URL,
+        data: args["request-body"] as JSONObject,
+        headers: args["request-headers"] as Dictionary<string>,
+      });
 
       logger.debug("API Post Component is done.");
 

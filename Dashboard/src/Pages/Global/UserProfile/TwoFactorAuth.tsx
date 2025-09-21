@@ -191,18 +191,17 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 setVerificationLoading(true);
                 setVerificationError("");
 
-                // test CallSMS config
                 const response:
                   | HTTPResponse<EmptyResponseData>
-                  | HTTPErrorResponse = await API.post(
-                  URL.fromString(APP_API_URL.toString()).addRoute(
+                  | HTTPErrorResponse = await API.post({
+                  url: URL.fromString(APP_API_URL.toString()).addRoute(
                     `/user-two-factor-auth/validate`,
                   ),
-                  {
+                  data: {
                     code: values["code"],
                     id: selectedTwoFactorAuth.id?.toString(),
                   },
-                );
+                });
                 if (response.isSuccess()) {
                   setShowVerificationModal(false);
                   setVerificationError(null);

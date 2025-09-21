@@ -311,15 +311,15 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             setIsRechargeBalanceLoading(true);
             try {
               const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-                await API.post(
-                  URL.fromString(APP_API_URL.toString()).addRoute(
+                await API.post({
+                  url: URL.fromString(APP_API_URL.toString()).addRoute(
                     "/notification/recharge",
                   ),
-                  {
+                  data: {
                     amount: item["amount"],
                     projectId: ProjectUtil.getCurrentProjectId()!,
                   },
-                );
+                });
 
               if (response.isFailure()) {
                 setRechargeBalanceError(API.getFriendlyMessage(response));

@@ -76,11 +76,11 @@ export default class User {
   }
 
   public static async logout(statusPageId: ObjectID): Promise<void> {
-    await API.post(
-      URL.fromString(IDENTITY_URL.toString())
+    await API.post({
+      url: URL.fromString(IDENTITY_URL.toString())
         .addRoute("/status-page/logout")
         .addRoute("/" + statusPageId.toString()),
-    );
+    });
     this.removeUser(statusPageId);
   }
 }

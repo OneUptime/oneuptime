@@ -95,7 +95,7 @@ class BaseAPI extends API {
     return User.logout();
   }
 
-  protected static override handleError(
+  public static override handleError(
     error: HTTPErrorResponse | APIException,
   ): HTTPErrorResponse | APIException {
     // 405 Status - Tenant not found. If Project was deleted.

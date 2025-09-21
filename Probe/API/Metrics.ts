@@ -38,14 +38,13 @@ router.get(
       const requestBody: JSONObject = ProbeAPIRequest.getDefaultRequestBody();
 
       const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.fetch<JSONObject>(
-          HTTPMethod.POST,
-          queueSizeUrl,
-          requestBody,
-          {},
-          undefined,
-          { ...ProxyConfig.getRequestProxyAgents() },
-        );
+        await API.fetch<JSONObject>({
+          method: HTTPMethod.POST,
+          url: queueSizeUrl,
+          data: requestBody,
+          headers: {},
+          options: { ...ProxyConfig.getRequestProxyAgents() },
+        });
 
       if (result instanceof HTTPErrorResponse) {
         logger.error("Error fetching queue size from ProbeIngest API");

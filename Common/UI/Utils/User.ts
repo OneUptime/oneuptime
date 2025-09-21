@@ -176,12 +176,12 @@ export default class UserUtil {
     SessionStorage.clear();
     Cookie.clearAllCookies();
 
-    API.post(URL.fromString(IDENTITY_URL.toString()).addRoute("/logout")).catch(
-      (err: Error) => {
-        Logger.error("Error during logout:");
-        Logger.error(err.message);
-      },
-    );
+    API.post({
+      url: URL.fromString(IDENTITY_URL.toString()).addRoute("/logout"),
+    }).catch((err: Error) => {
+      Logger.error("Error during logout:");
+      Logger.error(err.message);
+    });
   }
 
   public static getUtmParams(): Dictionary<string> {

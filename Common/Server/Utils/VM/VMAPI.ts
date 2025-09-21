@@ -22,19 +22,19 @@ export default class VMUtil {
   }): Promise<ReturnResult> {
     const returnResultHttpResponse:
       | HTTPErrorResponse
-      | HTTPResponse<JSONObject> = await API.post<JSONObject>(
-      new URL(
+      | HTTPResponse<JSONObject> = await API.post<JSONObject>({
+      url: new URL(
         Protocol.HTTP,
         IsolatedVMHostname,
         new Route("/isolated-vm/run-code"),
       ),
-      {
+      data: {
         ...data,
       },
-      {
+      headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
       },
-    );
+    });
 
     if (returnResultHttpResponse instanceof HTTPErrorResponse) {
       throw returnResultHttpResponse;

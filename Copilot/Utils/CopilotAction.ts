@@ -50,10 +50,13 @@ export default class CopilotActionUtil {
     );
 
     const copilotActionResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.get(url, {
-        serviceCatalogId: data.serviceCatalogId.toString(),
-        actionType: data.actionType,
-        actionProps: JSON.stringify(data.actionProps),
+      await API.get({
+        url: url,
+        params: {
+          serviceCatalogId: data.serviceCatalogId.toString(),
+          actionType: data.actionType,
+          actionProps: JSON.stringify(data.actionProps),
+        },
       });
 
     if (copilotActionResult instanceof HTTPErrorResponse) {
@@ -82,7 +85,9 @@ export default class CopilotActionUtil {
     );
 
     const actionTypesResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.get(url);
+      await API.get({
+        url: url,
+      });
 
     if (actionTypesResult instanceof HTTPErrorResponse) {
       throw actionTypesResult;
@@ -249,8 +254,11 @@ export default class CopilotActionUtil {
     );
 
     const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post(url, {
-        ...data,
+      await API.post({
+        url: url,
+        data: {
+          ...data,
+        },
       });
 
     if (codeRepositoryResult instanceof HTTPErrorResponse) {
@@ -288,8 +296,11 @@ export default class CopilotActionUtil {
     );
 
     const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post(url, {
-        copilotAction: CopilotAction.toJSON(action, CopilotAction),
+      await API.post({
+        url: url,
+        data: {
+          copilotAction: CopilotAction.toJSON(action, CopilotAction),
+        },
       });
 
     if (codeRepositoryResult instanceof HTTPErrorResponse) {
@@ -334,8 +345,11 @@ export default class CopilotActionUtil {
     );
 
     const copilotActionsResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.get(url, {
-        serviceCatalogId: data.serviceCatalogId.toString(),
+      await API.get({
+        url: url,
+        params: {
+          serviceCatalogId: data.serviceCatalogId.toString(),
+        },
       });
 
     if (copilotActionsResult instanceof HTTPErrorResponse) {

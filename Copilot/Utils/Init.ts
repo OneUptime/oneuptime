@@ -23,7 +23,9 @@ export default class InitUtil {
       const llmServerUrl: URL = GetLlmServerUrl();
       // check status of ll, server
       const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.get(URL.fromString(llmServerUrl.toString()));
+        await API.get({
+          url: URL.fromString(llmServerUrl.toString()),
+        });
 
       if (result instanceof HTTPErrorResponse) {
         throw new BadDataException(
@@ -34,9 +36,9 @@ export default class InitUtil {
 
     // check if oneuptime server is up.
     const oneuptimeServerUrl: URL = GetOneUptimeURL();
-    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get(
-      URL.fromString(oneuptimeServerUrl.toString() + "/status"),
-    );
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get({
+      url: URL.fromString(oneuptimeServerUrl.toString() + "/status"),
+    });
 
     if (result instanceof HTTPErrorResponse) {
       throw new BadDataException(

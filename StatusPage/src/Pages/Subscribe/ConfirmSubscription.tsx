@@ -53,11 +53,11 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
 
       // hit the confirm subscription endpoint
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.get(
-          URL.fromString(STATUS_PAGE_API_URL.toString())
+        await API.get({
+          url: URL.fromString(STATUS_PAGE_API_URL.toString())
             .addRoute(`/confirm-subscription/${statusPageSubscriberId}`)
             .addQueryParam("verification-token", token),
-        );
+        });
 
       if (response instanceof HTTPErrorResponse) {
         throw response;

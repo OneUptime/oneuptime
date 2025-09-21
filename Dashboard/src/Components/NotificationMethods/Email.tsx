@@ -170,16 +170,16 @@ const Email: () => JSX.Element = (): ReactElement => {
             setIsLoading(true);
             try {
               const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-                await API.post(
-                  URL.fromString(APP_API_URL.toString()).addRoute(
+                await API.post({
+                  url: URL.fromString(APP_API_URL.toString()).addRoute(
                     "/user-email/verify",
                   ),
-                  {
+                  data: {
                     code: item["code"],
                     projectId: ProjectUtil.getCurrentProjectId()!,
                     itemId: currentItem["_id"],
                   },
-                );
+                });
 
               if (response.isFailure()) {
                 setError(API.getFriendlyMessage(response));
@@ -233,15 +233,15 @@ const Email: () => JSX.Element = (): ReactElement => {
           onSubmit={async () => {
             try {
               const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-                await API.post(
-                  URL.fromString(APP_API_URL.toString()).addRoute(
+                await API.post({
+                  url: URL.fromString(APP_API_URL.toString()).addRoute(
                     "/user-email/resend-verification-code",
                   ),
-                  {
+                  data: {
                     projectId: ProjectUtil.getCurrentProjectId()!,
                     itemId: currentItem["_id"],
                   },
-                );
+                });
 
               if (response.isFailure()) {
                 setError(API.getFriendlyMessage(response));
