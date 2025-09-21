@@ -84,16 +84,16 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         throw new Error("Missing project or user context");
       }
       const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post(
-          URL.fromString(
+        await API.post({
+          url: URL.fromString(
             `${HOME_URL.toString()}/api/microsoft-teams/select-team`,
           ),
-          {
+          data: {
             projectId: projectId.toString(),
             userId: userId.toString(),
             teamId: selectedTeamId,
           } as JSONObject,
-        );
+        });
       if (result instanceof HTTPErrorResponse) {
         throw result;
       }
