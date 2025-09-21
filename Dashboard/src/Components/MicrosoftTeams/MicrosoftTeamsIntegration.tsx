@@ -525,7 +525,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       {(
         <div className="mt-6">
           <Card
-            title="Manual App Installation"
+            title="Manual App Installation on Microsoft Teams"
             description="If you prefer to install the OneUptime app manually in Microsoft Teams, download the app manifest zip file and follow the instructions below."
             buttons={[
               {
