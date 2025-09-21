@@ -701,17 +701,30 @@ export default class MicrosoftTeamsAPI {
           }
 
           // Persist project auth now that team is selected.
+          // IMPORTANT: Do NOT overwrite project-level auth token (admin-consent app token)
+          // with the user delegated token. Preserve existing project auth token if present.
+          const existingProjectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
+            projectId: projectId,
+            workspaceType: WorkspaceType.MicrosoftTeams,
+          });
+
+          const projectAuthTokenToPersist = existingProjectAuth?.authToken || "";
+
+          // Merge miscData while updating team selection details
+          const mergedProjectMiscData = {
+            ...(existingProjectAuth?.miscData as any),
+            tenantId: tenantId,
+            teamId: teamId,
+            teamName: matchedTeam.displayName,
+            botId: MicrosoftTeamsAppClientId || "",
+          };
+
           await WorkspaceProjectAuthTokenService.refreshAuthToken({
             projectId: projectId,
             workspaceType: WorkspaceType.MicrosoftTeams,
-            authToken: accessToken,
+            authToken: projectAuthTokenToPersist,
             workspaceProjectId: teamId,
-            miscData: {
-              tenantId: tenantId,
-              teamId: teamId,
-              teamName: matchedTeam.displayName,
-              botId: MicrosoftTeamsAppClientId || "",
-            } as any,
+            miscData: mergedProjectMiscData,
           });
 
           // Update user token to remove availableTeams (cleanup) and store selected team info
@@ -929,19 +942,26 @@ export default class MicrosoftTeamsAPI {
             Date.now() + Math.max(0, (expiresInSec - 60) * 1000),
           ).toISOString();
 
+
+          logger.debug("App Access Token acquired via admin consent: ");
+          logger.debug(tokenData);
+
           // Merge and persist project auth with tenantId and app token
-          const mergedMiscData: any = {
+          const mergedMiscData = {
             ...(existingAuth?.miscData as any),
             tenantId: tenantId,
             appAccessToken: appAccessToken,
             appAccessTokenExpiresAt: expiresAtIso,
+            adminConsentGranted: true,
+            adminConsentGrantedAt: new Date().toISOString(),
           };
 
           await WorkspaceProjectAuthTokenService.refreshAuthToken({
             projectId: new ObjectID(projectId),
             workspaceType: WorkspaceType.MicrosoftTeams,
-            authToken: existingAuth?.authToken || "",
-            workspaceProjectId: existingAuth?.workspaceProjectId || (existingAuth?.miscData as any)?.teamId || "",
+            authToken: appAccessToken,
+            // Preserve the selected team if already set; otherwise empty string.
+            workspaceProjectId: existingAuth?.workspaceProjectId || "",
             miscData: mergedMiscData,
           });
 
