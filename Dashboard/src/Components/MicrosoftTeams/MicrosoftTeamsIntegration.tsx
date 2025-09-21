@@ -505,15 +505,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           />
         </div>
       )}
-      {!isAdminConsentCompleted && (
-        <div>
-          <Card
-            title="Complete Admin Consent First"
-            description="Before you can connect your account with Microsoft Teams, an admin must grant tenant-wide consent for the OneUptime app. Please complete the admin consent step below first."
-            buttons={[]}
-          />
-        </div>
-      )}
+
       <div className="mt-6">
         <Card
           title={isAdminConsentCompleted ? "Admin Consent Completed ✓" : "Grant Admin Consent (Tenant-wide)"}
