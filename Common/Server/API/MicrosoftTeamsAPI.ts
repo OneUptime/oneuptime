@@ -801,6 +801,8 @@ export default class MicrosoftTeamsAPI {
             tenantForConsent,
           )}/v2.0/adminconsent?client_id=${encodeURIComponent(
             MicrosoftTeamsAppClientId,
+          )}&scope=${encodeURIComponent(
+            "https://graph.microsoft.com/.default",
           )}&redirect_uri=${encodeURIComponent(redirectUri.toString())}&state=${encodeURIComponent(
             stateParam,
           )}`;
