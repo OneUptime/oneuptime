@@ -100,19 +100,15 @@ export default class MicrosoftTeamsAPI {
             "resourceSpecific": [
                 {
                     "type": "Application",
-                    "name": "ChannelMessage.Send"
+                    "name": "ChannelMessage.Send.Group"
+                },
+                {
+                    "type": "Application",
+                    "name": "ChannelMessage.Read.Group"
                 },
                 {
                     "type": "Application", 
-                    "name": "Channel.Create"
-                },
-                {
-                    "type": "Application",
-                    "name": "ChannelMember.ReadWrite.Group"
-                },
-                {
-                    "type": "Application",
-                    "name": "TeamMember.ReadWrite.Group"
+                    "name": "Channel.Create.Group"
                 },
                 {
                     "type": "Application",
