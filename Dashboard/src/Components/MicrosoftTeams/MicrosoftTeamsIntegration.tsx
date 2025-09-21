@@ -541,7 +541,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       )}
 
 
-      {(
+      {isAdminConsentCompleted && isUserAccountConnected && (
         <div className="mt-6">
           <Card
             title="Manual App Installation on Microsoft Teams"
@@ -563,6 +563,10 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             <MarkdownViewer
               text={`
 ##### Installation Steps:
+
+Pre-requisite: 
+- If you or anyone else in your organization has already installed the OneUptime app in Microsoft Teams, you can skip the installation steps. In this case, you do not need to do anything here.
+
 
 1. **Download the zip file** using the button above
 2. **Upload to Microsoft Teams:**
