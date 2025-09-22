@@ -36,6 +36,9 @@
                 <a href="/legal/privacy" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'privacy' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'privacy' ? 'page' : 'false' %>">Privacy Policy</a>
               </li>
               <li>
+                <a href="/legal/code-of-conduct" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'code-of-conduct' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'code-of-conduct' ? 'page' : 'false' %>">Code of Conduct</a>
+              </li>
+              <li>
                 <a href="/legal/sla" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'sla' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'sla' ? 'page' : 'false' %>">Service Level Agreement</a>
               </li>
               <li>
@@ -92,6 +95,10 @@
 
           <% if(section === "privacy") { %>
           <%- include('privacy') -%>
+          <% } %>
+
+          <% if(section === "code-of-conduct") { %>
+          <%- include('code-of-conduct') -%>
           <% } %>
 
           <% if(section === "gdpr") { %>

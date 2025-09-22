@@ -1126,6 +1126,21 @@ const HomeFeatureSet: FeatureSet = {
       });
     });
 
+    app.get(
+      "/legal/code-of-conduct",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/legal.ejs`, {
+          support: false,
+          enableGoogleTagManager: IsBillingEnabled,
+          footerCards: true,
+          cta: true,
+          blackLogo: false,
+          section: "code-of-conduct",
+          requestDemoCta: false,
+        });
+      },
+    );
+
     app.get("/legal/contact", (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
