@@ -110,11 +110,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       // Check if token is expired
       if (miscData.appAccessTokenExpiresAt) {
         const expiryDate = OneUptimeDate.fromString(miscData.appAccessTokenExpiresAt);
+        const now = OneUptimeDate.getCurrentDate();
+        const isExpired = OneUptimeDate.isAfter(now, expiryDate);
         const secondsToExpiry = OneUptimeDate.getSecondsTo(expiryDate);
         logger.debug(`Token expires in ${secondsToExpiry} seconds`);
+        logger.debug(`Token is expired: ${isExpired}`);
         
-        // If token expires within the next 5 minutes, refresh it
-        if (secondsToExpiry <= 300) {
+        // If token is already expired or expires within the next 5 minutes, refresh it
+        if (isExpired || secondsToExpiry <= 300) {
           logger.debug("Access token is expired or expiring soon, attempting to refresh");
           const newToken = await this.refreshAccessToken({
             projectId: data.projectId,
@@ -222,7 +225,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       // Calculate expiry time
       const now = OneUptimeDate.getCurrentDate();
-      const expiryDate = OneUptimeDate.addRemoveSeconds(now, expiresIn - 300); // Subtract 5 minutes buffer
+      const expiryDate = OneUptimeDate.addRemoveSeconds(now, expiresIn - 300); // Subtrutes buffer
       
       logger.debug(`Token expiry calculated: ${OneUptimeDate.toString(expiryDate)}`);
 
