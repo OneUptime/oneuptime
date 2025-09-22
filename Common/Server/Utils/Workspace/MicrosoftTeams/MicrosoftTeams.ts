@@ -37,7 +37,7 @@ import { MicrosoftTeamsAppClientId, MicrosoftTeamsAppClientSecret } from "../../
 const MICROSOFT_TEAMS_APP_TYPE = "MultiTenant";
 
 // Bot Framework SDK imports
-import { CloudAdapter, ConfigurationBotFrameworkAuthentication, TeamsActivityHandler, TurnContext } from 'botbuilder';
+import { CloudAdapter, ConfigurationBotFrameworkAuthentication, TeamsActivityHandler, TurnContext, ConversationReference, MessageFactory } from 'botbuilder';
 import { ExpressRequest, ExpressResponse } from "../../Express";
 
 
@@ -842,63 +842,96 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     adaptiveCard: JSONObject;
     projectId: ObjectID;
   }): Promise<WorkspaceThread> {
-    logger.debug(`Sending adaptive card to channel: ${data.workspaceChannel.name} (${data.workspaceChannel.id})`);
+    logger.debug(`Sending adaptive card to channel via Bot Framework: ${data.workspaceChannel.name} (${data.workspaceChannel.id})`);
     logger.debug(`Team ID: ${data.teamId}`);
     logger.debug(`Adaptive card: ${JSON.stringify(data.adaptiveCard)}`);
 
-    // Get valid access token
-    const accessToken = await this.getValidAccessToken({
-      authToken: data.authToken,
-      projectId: data.projectId,
-    });
-
-    logger.debug("Access token obtained, preparing message");
-
-    const chatMessage: JSONObject = {
-      body: {
-        contentType: "html",
-        content: this.convertAdaptiveCardToHtml(data.adaptiveCard),
-      },
-      attachments: [
-        {
-          contentType: "application/vnd.microsoft.card.adaptive",
-          content: data.adaptiveCard,
-        },
-      ],
-    };
-
-    logger.debug(`Chat message payload: ${JSON.stringify(chatMessage)}`);
-
-    const apiUrl = `https://graph.microsoft.com/v1.0/teams/${data.teamId}/channels/${data.workspaceChannel.id}/messages`;
-    logger.debug(`Posting to URL: ${apiUrl}`);
-
-    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post({
-        url: URL.fromString(apiUrl),
-        data: chatMessage,
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
+    try {
+      // Get project auth to retrieve bot ID
+      const projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
       });
 
-    if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Microsoft Graph API when sending message:");
-      logger.error(response);
-      throw response;
+      if (!projectAuth || !projectAuth.miscData) {
+        throw new BadDataException(
+          "Microsoft Teams integration not found for this project"
+        );
+      }
+
+      const miscData = projectAuth.miscData as MicrosoftTeamsMiscData;
+      if (!miscData.botId) {
+        throw new BadDataException(
+          "Bot ID not found in Microsoft Teams integration"
+        );
+      }
+
+      // Check if app client ID is configured
+      if (!MicrosoftTeamsAppClientId) {
+        throw new BadDataException("Microsoft Teams App Client ID not configured");
+      }
+
+      logger.debug(`Using bot ID: ${miscData.botId}`);
+
+      // Get Bot Framework adapter
+      const adapter = this.getBotAdapter();
+
+      // Create conversation reference for the channel
+      const conversationReference: ConversationReference = {
+        bot: {
+          id: MicrosoftTeamsAppClientId,
+          name: "OneUptime Bot"
+        },
+        conversation: {
+          id: data.workspaceChannel.id,
+          name: data.workspaceChannel.name,
+          isGroup: true,
+          conversationType: "channel",
+          tenantId: miscData.tenantId
+        },
+        channelId: "msteams",
+        serviceUrl: "https://smba.trafficmanager.net/teams/"
+      };
+
+      logger.debug(`Conversation reference: ${JSON.stringify(conversationReference)}`);
+
+      // Send proactive message using Bot Framework
+      let messageId: string = "";
+      
+      await adapter.continueConversationAsync(
+        MicrosoftTeamsAppClientId,
+        conversationReference,
+        async (context: TurnContext) => {
+          logger.debug("Sending adaptive card as proactive message");
+          
+          // Create message with adaptive card attachment
+          const message = MessageFactory.attachment({
+            contentType: "application/vnd.microsoft.card.adaptive",
+            content: data.adaptiveCard
+          });
+
+          // Add fallback text for better accessibility
+          message.text = this.convertAdaptiveCardToHtml(data.adaptiveCard);
+
+          const response = await context.sendActivity(message);
+          messageId = response?.id || "";
+          logger.debug(`Message sent with ID: ${messageId}`);
+        }
+      );
+
+      const thread = {
+        channel: data.workspaceChannel,
+        threadId: messageId,
+      };
+
+      logger.debug(`Created thread via Bot Framework: ${JSON.stringify(thread)}`);
+      return thread;
+
+    } catch (error) {
+      logger.error("Error sending adaptive card via Bot Framework:");
+      logger.error(error);
+      throw error;
     }
-
-    logger.debug("Message sent successfully, response:");
-    logger.debug(response);
-
-    const messageData: JSONObject = response.data;
-    const thread = {
-      channel: data.workspaceChannel,
-      threadId: messageData["id"] as string,
-    };
-
-    logger.debug(`Created thread: ${JSON.stringify(thread)}`);
-    return thread;
   }
 
   @CaptureSpan()
