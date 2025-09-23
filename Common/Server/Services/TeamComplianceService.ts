@@ -147,7 +147,7 @@ export default class TeamComplianceService {
       );
       userComplianceStatuses.push({
         userId: user.id!,
-        userName: user.name?.toString() || "Unknown User",
+        userName: user.name?.toString() || user.email?.toString()|| "Unknown User",
         userEmail: user.email?.toString() || "",
         userProfilePictureId: user.profilePictureId,
         ...complianceStatus,
