@@ -554,7 +554,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       />
 
       {/* Team Compliance Status Table */}
-      {/* @ts-ignore: ref is valid for forwardRef components */}
       <TeamComplianceStatusTable
         ref={complianceStatusTableRef}
         teamId={modelId}

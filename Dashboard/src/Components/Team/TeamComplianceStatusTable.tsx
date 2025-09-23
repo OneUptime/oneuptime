@@ -15,7 +15,6 @@ import UserElement from "../User/User";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
 import React, {
-  FunctionComponent,
   ReactElement,
   useEffect,
   useState,
@@ -53,7 +52,7 @@ export interface TeamComplianceStatusTableRef {
   refresh: () => void;
 }
 
-const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = forwardRef<
+const TeamComplianceStatusTable = forwardRef<
   TeamComplianceStatusTableRef,
   ComponentProps
 >(
