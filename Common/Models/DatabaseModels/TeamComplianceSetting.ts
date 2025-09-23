@@ -55,6 +55,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/team-compliance-setting"))
+@Index(["teamId", "ruleType"], { unique: true })
 @Entity({
   name: "TeamComplianceSetting",
 })
