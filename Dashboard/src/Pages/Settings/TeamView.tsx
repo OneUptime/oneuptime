@@ -48,7 +48,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
-  const complianceStatusTableRef = React.useRef<TeamComplianceStatusTableRef>(null);
+  const complianceStatusTableRef =
+    React.useRef<TeamComplianceStatusTableRef>(null);
 
   type GetTeamPermissionTable = (data: {
     permissionType: PermissionType;
@@ -430,7 +431,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
           item.projectId = new ObjectID(props.currentProject._id);
           return Promise.resolve(item);
         }}
-        onCreateSuccess={async (item: TeamComplianceSetting): Promise<TeamComplianceSetting> => {
+        onCreateSuccess={async (
+          item: TeamComplianceSetting,
+        ): Promise<TeamComplianceSetting> => {
           complianceStatusTableRef.current?.refresh();
           return item;
         }}
@@ -552,7 +555,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
 
       {/* Team Compliance Status Table */}
       {/* @ts-ignore: ref is valid for forwardRef components */}
-      <TeamComplianceStatusTable ref={complianceStatusTableRef} teamId={modelId} />
+      <TeamComplianceStatusTable
+        ref={complianceStatusTableRef}
+        teamId={modelId}
+      />
 
       <Banner
         openInNewTab={true}

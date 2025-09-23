@@ -91,9 +91,11 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = forwardRef<
       }
     };
 
-  useImperativeHandle(ref, () => ({
-    refresh: fetchComplianceStatus,
-  }));
+  useImperativeHandle(ref, () => {
+    return {
+      refresh: fetchComplianceStatus,
+    };
+  });
 
   const getRuleTypeLabel: (ruleType: string) => string = (
     ruleType: string,
