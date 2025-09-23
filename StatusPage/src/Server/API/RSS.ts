@@ -11,6 +11,13 @@ import { JSONObject, JSONArray } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 import { getStatusPageData, StatusPageData } from "../Utils/StatusPage";
 
+type RSSItem = {
+  title: string;
+  description: string;
+  link: string;
+  pubDate: string;
+};
+
 export const handleRSS: (
   req: ExpressRequest,
   res: ExpressResponse,
@@ -65,12 +72,7 @@ export const handleRSS: (
         },
       });
 
-    const items: Array<{
-      title: string;
-      description: string;
-      link: string;
-      pubDate: string;
-    }> = [];
+    const items: RSSItem[] = [];
 
     const isPreview: boolean = req.path.includes("/status-page/");
     const baseUrl: string = isPreview
@@ -132,7 +134,7 @@ export const handleRSS: (
     }
 
     // Sort items by pubDate descending
-    items.sort((a: (typeof items)[0], b: (typeof items)[0]) => {
+    items.sort((a: RSSItem, b: RSSItem) => {
       return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
     });
 
@@ -148,7 +150,7 @@ export const handleRSS: (
 <atom:link href="${feedUrl}" rel="self" type="application/rss+xml" />
 `;
 
-    items.forEach((item: (typeof items)[0]) => {
+    items.forEach((item: RSSItem) => {
       rssXml += `
 <item>
 <title><![CDATA[${item.title}]]></title>
