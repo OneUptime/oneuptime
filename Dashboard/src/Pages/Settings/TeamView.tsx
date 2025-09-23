@@ -444,19 +444,19 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             required: true,
             dropdownOptions: [
               {
-                value: ComplianceRuleType.HasNotificationEmail,
+                value: ComplianceRuleType.HasNotificationEmailMethod,
                 label: "Email Notification Required",
               },
               {
-                value: ComplianceRuleType.HasNotificationSMS,
+                value: ComplianceRuleType.HasNotificationSMSMethod,
                 label: "SMS Notification Required",
               },
               {
-                value: ComplianceRuleType.HasNotificationCall,
+                value: ComplianceRuleType.HasNotificationCallMethod,
                 label: "Call Notification Required",
               },
               {
-                value: ComplianceRuleType.HasNotificationPush,
+                value: ComplianceRuleType.HasNotificationPushMethod,
                 label: "Push Notification Required",
               },
               {
@@ -507,13 +507,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             type: FieldType.Text,
             getElement: (item: TeamComplianceSetting): ReactElement => {
               const ruleTypeLabels: Record<string, string> = {
-                [ComplianceRuleType.HasNotificationEmail]:
+                [ComplianceRuleType.HasNotificationEmailMethod]:
                   "Email Notification Method Required for Users",
-                [ComplianceRuleType.HasNotificationSMS]:
+                [ComplianceRuleType.HasNotificationSMSMethod]:
                   "SMS Notification Method Required for Users",
-                [ComplianceRuleType.HasNotificationCall]:
+                [ComplianceRuleType.HasNotificationCallMethod]:
                   "Call Notification Method Required for Users",
-                [ComplianceRuleType.HasNotificationPush]:
+                [ComplianceRuleType.HasNotificationPushMethod]:
                   "Push Notification Method Required for Users",
                 [ComplianceRuleType.HasIncidentOnCallRules]:
                   "Incident On-Call Rules Required for Users",

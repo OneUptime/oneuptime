@@ -86,10 +86,10 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
     ruleType: string,
   ): string => {
     const labels: Record<string, string> = {
-      HasNotificationEmail: "Email Notification",
-      HasNotificationSMS: "SMS Notification",
-      HasNotificationCall: "Call Notification",
-      HasNotificationPush: "Push Notification",
+      HasNotificationEmailMethod: "Email Notification",
+      HasNotificationSMSMethod: "SMS Notification",
+      HasNotificationCallMethod: "Call Notification",
+      HasNotificationPushMethod: "Push Notification",
       HasIncidentOnCallRules: "Incident On-Call Rules",
       HasAlertOnCallRules: "Alert On-Call Rules",
     };

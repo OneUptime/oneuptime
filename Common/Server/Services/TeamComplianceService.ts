@@ -214,16 +214,16 @@ export default class TeamComplianceService {
     ruleType: ComplianceRuleType,
   ): Promise<{ compliant: boolean; reason: string }> {
     switch (ruleType) {
-      case ComplianceRuleType.HasNotificationEmail:
+      case ComplianceRuleType.HasNotificationEmailMethod:
         return await this.checkHasNotificationEmail(userId, projectId);
 
-      case ComplianceRuleType.HasNotificationSMS:
+      case ComplianceRuleType.HasNotificationSMSMethod:
         return await this.checkHasNotificationSMS(userId, projectId);
 
-      case ComplianceRuleType.HasNotificationCall:
+      case ComplianceRuleType.HasNotificationCallMethod:
         return await this.checkHasNotificationCall(userId, projectId);
 
-      case ComplianceRuleType.HasNotificationPush:
+      case ComplianceRuleType.HasNotificationPushMethod:
         return await this.checkHasNotificationPush(userId, projectId);
 
       case ComplianceRuleType.HasIncidentOnCallRules:
