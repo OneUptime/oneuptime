@@ -19,6 +19,7 @@ export interface UserComplianceStatus {
   userId: ObjectID;
   userName: string;
   userEmail: string;
+  userProfilePictureId?: ObjectID | undefined;
   isCompliant: boolean;
   nonCompliantRules: Array<{
     ruleType: ComplianceRuleType;
@@ -102,6 +103,7 @@ export default class TeamComplianceService {
         name: true,
         email: true,
         _id: true,
+        profilePictureId: true,
       },
       limit: 100,
       skip: 0,
@@ -126,6 +128,7 @@ export default class TeamComplianceService {
         userId: user.id!,
         userName: user.name?.toString() || "Unknown User",
         userEmail: user.email?.toString() || "",
+        userProfilePictureId: user.profilePictureId,
         ...complianceStatus,
       });
     }

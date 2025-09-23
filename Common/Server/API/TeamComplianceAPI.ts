@@ -66,6 +66,7 @@ export default class TeamComplianceAPI extends BaseAPI<
               userId: user.userId.toString(),
               userName: user.userName,
               userEmail: user.userEmail,
+              userProfilePictureId: user.userProfilePictureId?.toString(),
               isCompliant: user.isCompliant,
               nonCompliantRules: user.nonCompliantRules,
             })),

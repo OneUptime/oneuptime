@@ -11,12 +11,14 @@ import LocalTable from "Common/UI/Components/Table/LocalTable";
 import Columns from "Common/UI/Components/Table/Types/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import UserElement from "../User/User";
 import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
 
 export interface UserComplianceStatus {
   userId: string;
   userName: string;
   userEmail: string;
+  userProfilePictureId?: string;
   isCompliant: boolean;
   nonCompliantRules: Array<{
     ruleType: string;
@@ -92,14 +94,13 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
       key: "userName",
       getElement: (item: UserComplianceStatus): ReactElement => {
         return (
-          <div className="flex items-center">
-            <div className="text-sm font-medium text-gray-900">
-              {item.userName}
-            </div>
-            <div className="text-sm text-gray-500 ml-2">
-              {item.userEmail}
-            </div>
-          </div>
+          <UserElement
+            user={{
+              name: item.userName,
+              email: item.userEmail,
+              profilePictureId: item.userProfilePictureId,
+            }}
+          />
         );
       },
     },
