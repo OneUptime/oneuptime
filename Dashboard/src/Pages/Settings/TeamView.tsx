@@ -48,7 +48,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
-  const complianceStatusTableRef =
+  const complianceStatusTableRef: React.Ref<TeamComplianceStatusTableRef> =
     React.useRef<TeamComplianceStatusTableRef>(null);
 
   type GetTeamPermissionTable = (data: {

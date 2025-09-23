@@ -56,163 +56,168 @@ export interface TeamComplianceStatusTableRef {
 const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = forwardRef<
   TeamComplianceStatusTableRef,
   ComponentProps
->((props: ComponentProps, ref): ReactElement => {
-  const [complianceStatus, setComplianceStatus] =
-    useState<TeamComplianceStatus | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+>(
+  (
+    props: ComponentProps,
+    ref: React.Ref<TeamComplianceStatusTableRef>,
+  ): ReactElement => {
+    const [complianceStatus, setComplianceStatus] =
+      useState<TeamComplianceStatus | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchComplianceStatus();
-  }, [props.teamId]);
+    useEffect(() => {
+      fetchComplianceStatus();
+    }, [props.teamId]);
 
-  const fetchComplianceStatus: () => Promise<void> =
-    async (): Promise<void> => {
-      try {
-        setIsLoading(true);
-        setError(null);
+    const fetchComplianceStatus: () => Promise<void> =
+      async (): Promise<void> => {
+        try {
+          setIsLoading(true);
+          setError(null);
 
-        const response: any = await API.get<any>({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            `/team/compliance-status/${props.teamId.toString()}`,
-          ),
-          headers: ModelAPI.getCommonHeaders(),
-        });
+          const response: any = await API.get<any>({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              `/team/compliance-status/${props.teamId.toString()}`,
+            ),
+            headers: ModelAPI.getCommonHeaders(),
+          });
 
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
+          if (response instanceof HTTPErrorResponse) {
+            throw response;
+          }
+
+          setComplianceStatus(response.data as TeamComplianceStatus);
+        } catch (err) {
+          setError(API.getFriendlyMessage(err as any));
+        } finally {
+          setIsLoading(false);
         }
+      };
 
-        setComplianceStatus(response.data as TeamComplianceStatus);
-      } catch (err) {
-        setError(API.getFriendlyMessage(err as any));
-      } finally {
-        setIsLoading(false);
-      }
+    useImperativeHandle(ref, () => {
+      return {
+        refresh: fetchComplianceStatus,
+      };
+    });
+
+    const getRuleTypeLabel: (ruleType: string) => string = (
+      ruleType: string,
+    ): string => {
+      const labels: Record<string, string> = {
+        HasNotificationEmailMethod: "Email Notification",
+        HasNotificationSMSMethod: "SMS Notification",
+        HasNotificationCallMethod: "Call Notification",
+        HasNotificationPushMethod: "Push Notification",
+        HasIncidentOnCallRules: "Incident On-Call Rules",
+        HasAlertOnCallRules: "Alert On-Call Rules",
+      };
+      return labels[ruleType] || ruleType;
     };
 
-  useImperativeHandle(ref, () => {
-    return {
-      refresh: fetchComplianceStatus,
-    };
-  });
-
-  const getRuleTypeLabel: (ruleType: string) => string = (
-    ruleType: string,
-  ): string => {
-    const labels: Record<string, string> = {
-      HasNotificationEmailMethod: "Email Notification",
-      HasNotificationSMSMethod: "SMS Notification",
-      HasNotificationCallMethod: "Call Notification",
-      HasNotificationPushMethod: "Push Notification",
-      HasIncidentOnCallRules: "Incident On-Call Rules",
-      HasAlertOnCallRules: "Alert On-Call Rules",
-    };
-    return labels[ruleType] || ruleType;
-  };
-
-  const columns: Columns<UserComplianceStatus> = [
-    {
-      title: "User",
-      type: FieldType.Text,
-      key: "userName",
-      getElement: (item: UserComplianceStatus): ReactElement => {
-        return (
-          <UserElement
-            user={{
-              name: item.userName,
-              email: item.userEmail,
-              profilePictureId: item.userProfilePictureId,
-            }}
-          />
-        );
-      },
-    },
-    {
-      title: "Compliance Status",
-      type: FieldType.Text,
-      key: "isCompliant",
-      getElement: (item: UserComplianceStatus): ReactElement => {
-        return item.isCompliant ? (
-          <Pill text="Compliant" color={Green} />
-        ) : (
-          <Pill text="Non-Compliant" color={Red} />
-        );
-      },
-    },
-    {
-      title: "Issues",
-      type: FieldType.Text,
-      key: "nonCompliantRules",
-      getElement: (item: UserComplianceStatus): ReactElement => {
-        if (item.nonCompliantRules.length > 0) {
+    const columns: Columns<UserComplianceStatus> = [
+      {
+        title: "User",
+        type: FieldType.Text,
+        key: "userName",
+        getElement: (item: UserComplianceStatus): ReactElement => {
           return (
-            <ul className="text-sm text-gray-900">
-              {item.nonCompliantRules.map(
-                (
-                  rule: { ruleType: string; reason: string },
-                  ruleIndex: number,
-                ) => {
-                  return (
-                    <li key={ruleIndex} className="mb-1">
-                      <span className="font-medium">
-                        {getRuleTypeLabel(rule.ruleType)}:
-                      </span>{" "}
-                      {rule.reason}
-                    </li>
-                  );
-                },
-              )}
-            </ul>
+            <UserElement
+              user={{
+                name: item.userName,
+                email: item.userEmail,
+                profilePictureId: item.userProfilePictureId,
+              }}
+            />
           );
-        }
-        return <span className="text-sm text-gray-500">No issues</span>;
+        },
       },
-    },
-  ];
+      {
+        title: "Compliance Status",
+        type: FieldType.Text,
+        key: "isCompliant",
+        getElement: (item: UserComplianceStatus): ReactElement => {
+          return item.isCompliant ? (
+            <Pill text="Compliant" color={Green} />
+          ) : (
+            <Pill text="Non-Compliant" color={Red} />
+          );
+        },
+      },
+      {
+        title: "Issues",
+        type: FieldType.Text,
+        key: "nonCompliantRules",
+        getElement: (item: UserComplianceStatus): ReactElement => {
+          if (item.nonCompliantRules.length > 0) {
+            return (
+              <ul className="text-sm text-gray-900">
+                {item.nonCompliantRules.map(
+                  (
+                    rule: { ruleType: string; reason: string },
+                    ruleIndex: number,
+                  ) => {
+                    return (
+                      <li key={ruleIndex} className="mb-1">
+                        <span className="font-medium">
+                          {getRuleTypeLabel(rule.ruleType)}:
+                        </span>{" "}
+                        {rule.reason}
+                      </li>
+                    );
+                  },
+                )}
+              </ul>
+            );
+          }
+          return <span className="text-sm text-gray-500">No issues</span>;
+        },
+      },
+    ];
 
-  if (complianceStatus?.complianceSettings.length === 0) {
-    return <></>; // Do not show the table if no compliance rules are configured
-  }
+    if (complianceStatus?.complianceSettings.length === 0) {
+      return <></>; // Do not show the table if no compliance rules are configured
+    }
 
-  let content: ReactElement;
+    let content: ReactElement;
 
-  if (isLoading || !complianceStatus) {
-    content = <Loader />;
-  } else if (error) {
-    content = <ErrorMessage message={error} />;
-  } else if (complianceStatus.userComplianceStatuses.length === 0) {
-    content = (
-      <div className="text-center text-gray-500 py-8">
-        No team members to check compliance for.
-      </div>
+    if (isLoading || !complianceStatus) {
+      content = <Loader />;
+    } else if (error) {
+      content = <ErrorMessage message={error} />;
+    } else if (complianceStatus.userComplianceStatuses.length === 0) {
+      content = (
+        <div className="text-center text-gray-500 py-8">
+          No team members to check compliance for.
+        </div>
+      );
+    } else {
+      content = (
+        <LocalTable
+          data={complianceStatus.userComplianceStatuses}
+          columns={columns}
+          id="team-compliance-status-table"
+          singularLabel="Team Member"
+          pluralLabel="Team Members"
+        />
+      );
+    }
+
+    const refreshButton: CardButtonSchema = getRefreshButton();
+    refreshButton.onClick = fetchComplianceStatus;
+    refreshButton.title = "Refresh";
+
+    return (
+      <Card
+        title="Team Compliance Status"
+        description="Monitor team member compliance with notification and on-call rules"
+        buttons={[refreshButton]}
+      >
+        {content}
+      </Card>
     );
-  } else {
-    content = (
-      <LocalTable
-        data={complianceStatus.userComplianceStatuses}
-        columns={columns}
-        id="team-compliance-status-table"
-        singularLabel="Team Member"
-        pluralLabel="Team Members"
-      />
-    );
-  }
-
-  const refreshButton: CardButtonSchema = getRefreshButton();
-  refreshButton.onClick = fetchComplianceStatus;
-  refreshButton.title = "Refresh";
-
-  return (
-    <Card
-      title="Team Compliance Status"
-      description="Monitor team member compliance with notification and on-call rules"
-      buttons={[refreshButton]}
-    >
-      {content}
-    </Card>
-  );
-});
+  },
+);
 
 TeamComplianceStatusTable.displayName = "TeamComplianceStatusTable";
 
