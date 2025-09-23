@@ -4,13 +4,16 @@ import UserEmailService from "./UserEmailService";
 import UserSmsService from "./UserSmsService";
 import UserCallService from "./UserCallService";
 import UserPushService from "./UserPushService";
-import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
+import IncidentSeverityService from "./IncidentSeverityService";
+import AlertSeverityService from "./AlertSeverityService";
+import UserNotificationRuleService from "./UserNotificationRuleService";
 import UserService from "./UserService";
 import TeamService from "./TeamService";
 import ObjectID from "../../Types/ObjectID";
 import ComplianceRuleType from "../../Types/Team/ComplianceRuleType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 
 export interface UserComplianceStatus {
   userId: ObjectID;
@@ -315,26 +318,68 @@ export default class TeamComplianceService {
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<{ compliant: boolean; reason: string }> {
-    // Check if user has any on-call duty policy overrides
-    const userOverrides = await OnCallDutyPolicyUserOverrideService.findBy({
+    // Get all incident severities for the project
+    const incidentSeverities = await IncidentSeverityService.findBy({
       query: {
-        overrideUserId: userId,
         projectId: projectId,
       },
       select: {
         _id: true,
+        name: true,
       },
       props: {
         isRoot: true,
       },
-      limit: 1,
+      limit: LIMIT_PER_PROJECT,
       skip: 0,
     });
 
-    const hasIncidentOnCallRules = userOverrides.length > 0;
+    if (incidentSeverities.length === 0) {
+      return { compliant: true, reason: "" }; // No incident severities configured
+    }
+
+    // Check if user has notification rules for all incident severities
+    const severityIds = incidentSeverities.map(severity => severity._id!);
+
+    for (const severityId of severityIds) {
+      const notificationRules = await UserNotificationRuleService.findBy({
+        query: {
+          userId: userId,
+          projectId: projectId,
+          incidentSeverityId: severityId,
+        },
+        select: {
+          _id: true,
+          userCallId: true,
+          userSmsId: true,
+          userEmailId: true,
+          userPushId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: 1,
+        skip: 0,
+      });
+
+      // Check if user has at least one notification method configured for this severity
+      const hasNotificationMethod = notificationRules.some(rule =>
+        rule.userCallId || rule.userSmsId || rule.userEmailId || rule.userPushId
+      );
+
+      if (!hasNotificationMethod) {
+        const severity = incidentSeverities.find(s => s._id?.toString() === severityId.toString());
+        const severityName = severity?.name || severityId.toString();
+        return {
+          compliant: false,
+          reason: `Missing notification rules for incident severity: ${severityName}`,
+        };
+      }
+    }
+
     return {
-      compliant: hasIncidentOnCallRules,
-      reason: hasIncidentOnCallRules ? "" : "Not configured for incident on-call duties",
+      compliant: true,
+      reason: "",
     };
   }
 
@@ -342,26 +387,68 @@ export default class TeamComplianceService {
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<{ compliant: boolean; reason: string }> {
-    // Check if user has any on-call duty policy overrides
-    const userOverrides = await OnCallDutyPolicyUserOverrideService.findBy({
+    // Get all alert severities for the project
+    const alertSeverities = await AlertSeverityService.findBy({
       query: {
-        overrideUserId: userId,
         projectId: projectId,
       },
       select: {
         _id: true,
+        name: true,
       },
       props: {
         isRoot: true,
       },
-      limit: 1,
+      limit: 100, // Assuming reasonable limit for severities
       skip: 0,
     });
 
-    const hasAlertOnCallRules = userOverrides.length > 0;
+    if (alertSeverities.length === 0) {
+      return { compliant: true, reason: "" }; // No alert severities configured
+    }
+
+    // Check if user has notification rules for all alert severities
+    const severityIds = alertSeverities.map(severity => severity._id!);
+
+    for (const severityId of severityIds) {
+      const notificationRules = await UserNotificationRuleService.findBy({
+        query: {
+          userId: userId,
+          projectId: projectId,
+          alertSeverityId: severityId,
+        },
+        select: {
+          _id: true,
+          userCallId: true,
+          userSmsId: true,
+          userEmailId: true,
+          userPushId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: 1,
+        skip: 0,
+      });
+
+      // Check if user has at least one notification method configured for this severity
+      const hasNotificationMethod = notificationRules.some(rule =>
+        rule.userCallId || rule.userSmsId || rule.userEmailId || rule.userPushId
+      );
+
+      if (!hasNotificationMethod) {
+        const severity = alertSeverities.find(s => s._id?.toString() === severityId.toString());
+        const severityName = severity?.name || severityId.toString();
+        return {
+          compliant: false,
+          reason: `Missing notification rules for alert severity: ${severityName}`,
+        };
+      }
+    }
+
     return {
-      compliant: hasAlertOnCallRules,
-      reason: hasAlertOnCallRules ? "" : "Not configured for alert on-call duties",
+      compliant: true,
+      reason: "",
     };
   }
 }
