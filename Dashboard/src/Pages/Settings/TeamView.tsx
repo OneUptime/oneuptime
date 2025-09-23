@@ -19,6 +19,7 @@ import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
+import Card from "Common/UI/Components/Card/Card";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
@@ -26,6 +27,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
+import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import User from "Common/Models/DatabaseModels/User";
 import React, {
   Fragment,
@@ -33,6 +35,8 @@ import React, {
   MutableRefObject,
   ReactElement,
 } from "react";
+import TeamComplianceStatusTable from "../../Components/Team/TeamComplianceStatusTable";
+import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
@@ -399,6 +403,139 @@ const TeamView: FunctionComponent<PageComponentProps> = (
           },
         ]}
       />
+
+      {/* Team Compliance Settings Table */}
+      <ModelTable<TeamComplianceSetting>
+        modelType={TeamComplianceSetting}
+        id="table-team-compliance-setting"
+        userPreferencesKey="team-compliance-setting-table"
+        isDeleteable={true}
+        name="Settings > Team > Compliance Settings"
+        isCreateable={true}
+        isEditable={true}
+        isViewable={false}
+        query={{
+          teamId: modelId,
+          projectId: ProjectUtil.getCurrentProjectId()!,
+        }}
+        onBeforeCreate={(item: TeamComplianceSetting): Promise<TeamComplianceSetting> => {
+          if (!props.currentProject || !props.currentProject._id) {
+            throw new BadDataException("Project ID cannot be null");
+          }
+          item.teamId = modelId;
+          item.projectId = new ObjectID(props.currentProject._id);
+          return Promise.resolve(item);
+        }}
+        cardProps={{
+          title: "Compliance Settings",
+          description: "Configure compliance rules for this team. These rules ensure team members have the required notification methods and on-call configurations.",
+        }}
+        noItemsMessage={"No compliance settings configured for this team."}
+        formFields={[
+          {
+            field: {
+              ruleType: true,
+            },
+            title: "Rule Type",
+            fieldType: FormFieldSchemaType.Dropdown,
+            required: true,
+            dropdownOptions: [
+              {
+                value: ComplianceRuleType.HasNotificationEmail,
+                label: "Email Notification Required",
+              },
+              {
+                value: ComplianceRuleType.HasNotificationSMS,
+                label: "SMS Notification Required",
+              },
+              {
+                value: ComplianceRuleType.HasNotificationCall,
+                label: "Call Notification Required",
+              },
+              {
+                value: ComplianceRuleType.HasNotificationPush,
+                label: "Push Notification Required",
+              },
+              {
+                value: ComplianceRuleType.HasIncidentOnCallRules,
+                label: "Incident On-Call Rules Required",
+              },
+              {
+                value: ComplianceRuleType.HasAlertOnCallRules,
+                label: "Alert On-Call Rules Required",
+              },
+            ],
+            description: "Select the type of compliance rule to enforce for team members.",
+          },
+          {
+            field: {
+              enabled: true,
+            },
+            title: "Enabled",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description: "Enable or disable this compliance rule.",
+          },
+        ]}
+        showRefreshButton={true}
+        filters={[
+          {
+            field: {
+              ruleType: true,
+            },
+            type: FieldType.Text,
+            title: "Rule Type",
+          },
+          {
+            field: {
+              enabled: true,
+            },
+            type: FieldType.Boolean,
+            title: "Enabled",
+          },
+        ]}
+        columns={[
+          {
+            field: {
+              ruleType: true,
+            },
+            title: "Rule Type",
+            type: FieldType.Text,
+            getElement: (item: TeamComplianceSetting): ReactElement => {
+              const ruleTypeLabels: Record<string, string> = {
+                [ComplianceRuleType.HasNotificationEmail]: "Email Notification",
+                [ComplianceRuleType.HasNotificationSMS]: "SMS Notification",
+                [ComplianceRuleType.HasNotificationCall]: "Call Notification",
+                [ComplianceRuleType.HasNotificationPush]: "Push Notification",
+                [ComplianceRuleType.HasIncidentOnCallRules]: "Incident On-Call Rules",
+                [ComplianceRuleType.HasAlertOnCallRules]: "Alert On-Call Rules",
+              };
+              return <span>{ruleTypeLabels[item.ruleType!] || item.ruleType}</span>;
+            },
+          },
+          {
+            field: {
+              enabled: true,
+            },
+            title: "Status",
+            type: FieldType.Boolean,
+            getElement: (item: TeamComplianceSetting): ReactElement => {
+              if (item.enabled) {
+                return <Pill text="Enabled" color={Green} />;
+              }
+              return <Pill text="Disabled" color={Yellow} />;
+            },
+          },
+        ]}
+      />
+
+      {/* Team Compliance Status Table */}
+      <Card
+        title="Compliance Status"
+        description="View the compliance status of team members against the configured rules."
+      >
+        <TeamComplianceStatusTable teamId={modelId} />
+      </Card>
 
       <Banner
         openInNewTab={true}
