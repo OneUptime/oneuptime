@@ -329,14 +329,14 @@ export default class TeamComplianceSetting extends BaseModel {
   })
   @TableColumn({
     required: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     title: "Rule Type",
     description: "Type of compliance rule.",
   })
   @Column({
     nullable: false,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public ruleType?: ComplianceRuleType = undefined;
 
