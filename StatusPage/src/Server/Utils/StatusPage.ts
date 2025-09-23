@@ -14,7 +14,9 @@ export interface StatusPageData {
   faviconUrl: string;
 }
 
-export const getStatusPageData = async (
+export const getStatusPageData: (
+  req: ExpressRequest,
+) => Promise<StatusPageData | null> = async (
   req: ExpressRequest,
 ): Promise<StatusPageData | null> => {
   try {
@@ -36,7 +38,9 @@ export const getStatusPageData = async (
         req.hostname?.toString() || req.headers["host"]?.toString() || "";
       if (host) {
         statusPageIdOrDomain = host;
-        logger.debug(`Found domain in request headers: ${statusPageIdOrDomain}`);
+        logger.debug(
+          `Found domain in request headers: ${statusPageIdOrDomain}`,
+        );
       }
     }
 
@@ -47,7 +51,8 @@ export const getStatusPageData = async (
 
     let statusPageId: string;
     let title: string = "Status Page";
-    let description: string = "Status Page lets you see real-time information about the status of our services.";
+    let description: string =
+      "Status Page lets you see real-time information about the status of our services.";
 
     if (isPreview) {
       // For preview pages, use the extracted ID directly
@@ -55,7 +60,9 @@ export const getStatusPageData = async (
       // For preview, we might not have SEO data, so use defaults
     } else {
       // For live pages, call SEO API
-      logger.debug(`Pinging the API with statusPageIdOrDomain: ${statusPageIdOrDomain}`);
+      logger.debug(
+        `Pinging the API with statusPageIdOrDomain: ${statusPageIdOrDomain}`,
+      );
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get({
           url: URL.fromString(StatusPageApiClientUrl.toString()).addRoute(

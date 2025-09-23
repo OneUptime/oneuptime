@@ -9,7 +9,10 @@ import App from "Common/Server/Utils/StartServer";
 import "ejs";
 import ObjectID from "Common/Types/ObjectID";
 import { handleRSS } from "./src/Server/API/RSS";
-import { getStatusPageData } from "./src/Server/Utils/StatusPage";
+import {
+  getStatusPageData,
+  StatusPageData,
+} from "./src/Server/Utils/StatusPage";
 
 export const APP_NAME: string = "status-page";
 
@@ -34,7 +37,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         req: ExpressRequest,
         _res: ExpressResponse,
       ) => {
-        const statusPageData = await getStatusPageData(req);
+        const statusPageData: StatusPageData | null =
+          await getStatusPageData(req);
 
         if (statusPageData) {
           return {
@@ -42,16 +46,14 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             description: statusPageData.description,
             faviconUrl: statusPageData.faviconUrl,
           };
-        } else {
-          return {
-            title: "Status Page",
-            description:
-              "Status Page lets you see real-time information about the status of our services.",
-            faviconUrl:
-              "/status-page-api/favicon/" +
-              ObjectID.getZeroObjectID().toString(),
-          };
         }
+        return {
+          title: "Status Page",
+          description:
+            "Status Page lets you see real-time information about the status of our services.",
+          faviconUrl:
+            "/status-page-api/favicon/" + ObjectID.getZeroObjectID().toString(),
+        };
       },
     });
 

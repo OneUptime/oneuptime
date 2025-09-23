@@ -1,6 +1,9 @@
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import API from "Common/Utils/API";
-import { HttpProtocol, StatusPageApiClientUrl } from "Common/Server/EnvironmentConfig";
+import {
+  HttpProtocol,
+  StatusPageApiClientUrl,
+} from "Common/Server/EnvironmentConfig";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -8,7 +11,13 @@ import { JSONObject, JSONArray } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 import { getStatusPageData, StatusPageData } from "../Utils/StatusPage";
 
-export const handleRSS = async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+export const handleRSS: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+) => Promise<void> = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+): Promise<void> => {
   try {
     // Get status page data
     const statusPageData: StatusPageData | null = await getStatusPageData(req);
@@ -65,12 +74,17 @@ export const handleRSS = async (req: ExpressRequest, res: ExpressResponse): Prom
 
     const isPreview: boolean = req.path.includes("/status-page/");
     const baseUrl: string = isPreview
-      ? `${req.protocol}://${req.get('host')}/status-page/${statusPageId}`
-      : `${req.protocol}://${req.get('host')}`;
+      ? `${req.protocol}://${req.get("host")}/status-page/${statusPageId}`
+      : `${req.protocol}://${req.get("host")}`;
 
     // Process incidents
-    if (incidentsResponse instanceof HTTPResponse && incidentsResponse.data?.["incidents"]) {
-      const incidents: JSONArray = incidentsResponse.data["incidents"] as JSONArray;
+    if (
+      incidentsResponse instanceof HTTPResponse &&
+      incidentsResponse.data?.["incidents"]
+    ) {
+      const incidents: JSONArray = incidentsResponse.data[
+        "incidents"
+      ] as JSONArray;
       incidents.forEach((incident: JSONObject) => {
         items.push({
           title: `Incident: ${incident["title"]}`,
@@ -82,8 +96,13 @@ export const handleRSS = async (req: ExpressRequest, res: ExpressResponse): Prom
     }
 
     // Process announcements
-    if (announcementsResponse instanceof HTTPResponse && announcementsResponse.data?.["announcements"]) {
-      const announcements: JSONArray = announcementsResponse.data["announcements"] as JSONArray;
+    if (
+      announcementsResponse instanceof HTTPResponse &&
+      announcementsResponse.data?.["announcements"]
+    ) {
+      const announcements: JSONArray = announcementsResponse.data[
+        "announcements"
+      ] as JSONArray;
       announcements.forEach((announcement: JSONObject) => {
         items.push({
           title: `Announcement: ${announcement["title"]}`,
@@ -95,8 +114,13 @@ export const handleRSS = async (req: ExpressRequest, res: ExpressResponse): Prom
     }
 
     // Process scheduled maintenance
-    if (scheduledResponse instanceof HTTPResponse && scheduledResponse.data?.["scheduledMaintenanceEvents"]) {
-      const scheduled: JSONArray = scheduledResponse.data["scheduledMaintenanceEvents"] as JSONArray;
+    if (
+      scheduledResponse instanceof HTTPResponse &&
+      scheduledResponse.data?.["scheduledMaintenanceEvents"]
+    ) {
+      const scheduled: JSONArray = scheduledResponse.data[
+        "scheduledMaintenanceEvents"
+      ] as JSONArray;
       scheduled.forEach((event: JSONObject) => {
         items.push({
           title: `Scheduled Maintenance: ${event["title"]}`,
@@ -108,12 +132,12 @@ export const handleRSS = async (req: ExpressRequest, res: ExpressResponse): Prom
     }
 
     // Sort items by pubDate descending
-    items.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
-
-    
+    items.sort((a: (typeof items)[0], b: (typeof items)[0]) => {
+      return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
+    });
 
     // Generate RSS XML
-    const feedUrl = `${HttpProtocol}${req.get('host')}${req.path}`;
+    const feedUrl: string = `${HttpProtocol}${req.get("host")}${req.path}`;
 
     let rssXml: string = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
@@ -124,7 +148,7 @@ export const handleRSS = async (req: ExpressRequest, res: ExpressResponse): Prom
 <atom:link href="${feedUrl}" rel="self" type="application/rss+xml" />
 `;
 
-    items.forEach((item) => {
+    items.forEach((item: (typeof items)[0]) => {
       rssXml += `
 <item>
 <title><![CDATA[${item.title}]]></title>
@@ -139,7 +163,7 @@ export const handleRSS = async (req: ExpressRequest, res: ExpressResponse): Prom
 </channel>
 </rss>`;
 
-    res.set('Content-Type', 'application/rss+xml');
+    res.set("Content-Type", "application/rss+xml");
     res.send(rssXml);
   } catch (err) {
     logger.error(err);
