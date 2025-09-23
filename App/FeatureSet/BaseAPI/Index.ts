@@ -328,6 +328,9 @@ import TeamMemberService, {
 import TeamPermissionService, {
   Service as TeamPermissionServiceType,
 } from "Common/Server/Services/TeamPermissionService";
+import TeamComplianceSettingService, {
+  TeamComplianceSettingService as TeamComplianceSettingServiceType,
+} from "Common/Server/Services/TeamComplianceSettingService";
 import TeamService, {
   Service as TeamServiceType,
 } from "Common/Server/Services/TeamService";
@@ -470,6 +473,7 @@ import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
+import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import User from "Common/Models/DatabaseModels/User";
@@ -1170,6 +1174,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TeamComplianceSetting, TeamComplianceSettingServiceType>(
+        TeamComplianceSetting,
+        TeamComplianceSettingService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<MonitorStatus, MonitorStatusServiceType>(
         MonitorStatus,
         MonitorStatusService,
@@ -1582,7 +1594,6 @@ const BaseAPIFeatureSet: FeatureSet = {
         MonitorTimelineStatusService,
       ).getRouter(),
     );
-
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ShortLinkAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new MonitorAPI().getRouter());
     app.use(
