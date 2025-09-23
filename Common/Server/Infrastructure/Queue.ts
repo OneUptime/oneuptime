@@ -37,6 +37,27 @@ export default class Queue {
     options: JobsOptions;
   }>> = {};
 
+  private static async setupReconnectListener(queue: BullQueue, queueName: QueueName): Promise<void> {
+    const client = await queue.client;
+    client.on('ready', async () => {
+      logger.debug(`Queue ${queueName} reconnected, re-adding repeatable jobs`);
+      const jobs = Queue.repeatableJobs[queueName];
+      if (jobs) {
+        for (const jobId in jobs) {
+          const job = jobs[jobId];
+          if (job) {
+            try {
+              await queue.add(job.jobName, job.data, job.options);
+            } catch (err) {
+              logger.error('Error re-adding repeatable job');
+              logger.error(err);
+            }
+          }
+        }
+      }
+    });
+  }
+
   @CaptureSpan()
   public static getQueue(queueName: QueueName): BullQueue {
     // check if the queue is already created
@@ -67,26 +88,10 @@ export default class Queue {
     this.queueDict[queueName] = queue;
 
     // Add event listener to re-add repeatable jobs on reconnect
-    (async () => {
-      const client = await queue.client;
-      client.on('ready', async () => {
-        logger.debug(`Queue ${queueName} reconnected, re-adding repeatable jobs`);
-        const jobs = Queue.repeatableJobs[queueName];
-        if (jobs) {
-          for (const jobId in jobs) {
-            const job = jobs[jobId];
-            if (job) {
-              try {
-                await queue.add(job.jobName, job.data, job.options);
-              } catch (err) {
-                logger.error('Error re-adding repeatable job');
-                logger.error(err);
-              }
-            }
-          }
-        }
-      });
-    })();
+    this.setupReconnectListener(queue, queueName).catch((err) => {
+      logger.error('Error setting up reconnect listener for queue');
+      logger.error(err);
+    });
 
     // Fire-and-forget initial cleanup for legacy/old data if not done before
     if (!this.cleanedQueueNames.has(queueName)) {
