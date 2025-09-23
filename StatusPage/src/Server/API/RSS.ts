@@ -1,6 +1,6 @@
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import API from "Common/Utils/API";
-import { StatusPageApiClientUrl } from "Common/Server/EnvironmentConfig";
+import { HttpProtocol, StatusPageApiClientUrl } from "Common/Server/EnvironmentConfig";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -110,8 +110,11 @@ export const handleRSS = async (req: ExpressRequest, res: ExpressResponse): Prom
     // Sort items by pubDate descending
     items.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 
+    
+
     // Generate RSS XML
-    const feedUrl = `${req.protocol}://${req.get('host')}${req.path}`;
+    const feedUrl = `${HttpProtocol}${req.get('host')}${req.path}`;
+
     let rssXml: string = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
