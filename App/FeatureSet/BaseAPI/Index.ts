@@ -555,10 +555,8 @@ import MetricTypeService, {
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
+import TeamComplianceAPI from "Common/Server/API/TeamComplianceAPI";
 
-// OnCallDutyPolicyOwnerTeam
-// OnCallDutyPolicyOwnerUser
-// OnCallDutyPolicyFeed
 
 import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
 import OnCallDutyPolicyFeedService, {
@@ -1605,6 +1603,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new OnCallDutyPolicyAPI().getRouter(),
+    );
+
+    // TeamComplianceAPI
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new TeamComplianceAPI().getRouter(),
     );
 
     app.use(
