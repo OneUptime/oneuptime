@@ -2034,7 +2034,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: latest
-      - run: npm run prerun && bash ./Tests/Scripts/enable-billing-env-var.sh
+      - name: Preinstall and enable billing
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun && bash ./Tests/Scripts/enable-billing-env-var.sh
       - name: Start Server with release tag
         run: npm run start
       - name: Wait for server to start
@@ -2087,7 +2092,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: latest
-      - run: npm run prerun
+      - name: Preinstall
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
       - name: Start Server with release tag
         run: npm run start
       - name: Wait for server to start
