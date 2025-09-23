@@ -164,10 +164,15 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  if (
-    !complianceStatus ||
-    complianceStatus.userComplianceStatuses.length === 0
-  ) {
+  if (!complianceStatus) {
+    return <Loader />;
+  }
+
+  if (complianceStatus.complianceSettings.length === 0) {
+    return <></>; // Do not show the table if no compliance rules are configured
+  }
+
+  if (complianceStatus.userComplianceStatuses.length === 0) {
     return (
       <div className="text-center text-gray-500 py-8">
         No team members to check compliance for.
