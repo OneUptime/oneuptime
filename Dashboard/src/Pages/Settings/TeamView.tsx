@@ -507,13 +507,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             type: FieldType.Text,
             getElement: (item: TeamComplianceSetting): ReactElement => {
               const ruleTypeLabels: Record<string, string> = {
-                [ComplianceRuleType.HasNotificationEmail]: "Email Notification",
-                [ComplianceRuleType.HasNotificationSMS]: "SMS Notification",
-                [ComplianceRuleType.HasNotificationCall]: "Call Notification",
-                [ComplianceRuleType.HasNotificationPush]: "Push Notification",
-                [ComplianceRuleType.HasIncidentOnCallRules]:
-                  "Incident On-Call Rules",
-                [ComplianceRuleType.HasAlertOnCallRules]: "Alert On-Call Rules",
+                [ComplianceRuleType.HasNotificationEmail]: "Email Notification Method Required for Users",
+                [ComplianceRuleType.HasNotificationSMS]: "SMS Notification Method Required for Users",
+                [ComplianceRuleType.HasNotificationCall]: "Call Notification Method Required for Users",
+                [ComplianceRuleType.HasNotificationPush]: "Push Notification Method Required for Users",
+                [ComplianceRuleType.HasIncidentOnCallRules]: "Incident On-Call Rules Required for Users",
+                [ComplianceRuleType.HasAlertOnCallRules]: "Alert On-Call Rules Required for Users",
               };
               return (
                 <span>{ruleTypeLabels[item.ruleType!] || item.ruleType}</span>
