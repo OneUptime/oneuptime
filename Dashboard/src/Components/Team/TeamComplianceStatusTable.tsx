@@ -2,11 +2,13 @@ import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import URL from "Common/Types/API/URL";
+import { APP_API_URL } from "Common/UI/Config";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Loader from "Common/UI/Components/Loader/Loader";
 import { Red, Green } from "Common/Types/BrandColors";
 import Pill from "Common/UI/Components/Pill/Pill";
 import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 
 export interface UserComplianceStatus {
   userId: string;
@@ -50,7 +52,10 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
       setError(null);
 
       const response = await API.get<any>({
-        url: URL.fromString(`/api/team/compliance-status/${props.teamId.toString()}`),
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
+          `/team/compliance-status/${props.teamId.toString()}`,
+        ),
+        headers: ModelAPI.getCommonHeaders()
       });
 
       if (response instanceof HTTPErrorResponse) {
