@@ -18,7 +18,6 @@ import URL from "Common/Types/API/URL";
 import { Green } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -128,12 +127,21 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   StatusPageUtil.checkIfUserHasLoggedIn();
 
-  const loadPage: PromiseVoidFunction = async (): Promise<void> => {
+  const loadPage: (options?: {
+    silent?: boolean;
+    runOnLoadComplete?: boolean;
+  }) => Promise<void> = async (options?: {
+    silent?: boolean;
+    runOnLoadComplete?: boolean;
+  }): Promise<void> => {
     try {
       if (!StatusPageUtil.getStatusPageId()) {
         return;
       }
-      setIsLoading(true);
+
+      if (!options?.silent && !isLoading) {
+        setIsLoading(true);
+      }
 
       const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
       if (!id) {
@@ -266,15 +274,21 @@ const Overview: FunctionComponent<PageComponentProps> = (
       // Parse Data.
       setCurrentStatus(overallStatus);
 
-      setIsLoading(false);
-      props.onLoadComplete();
+      if (!options?.silent) {
+        setIsLoading(false);
+      }
+      if (options?.runOnLoadComplete !== false) {
+        props.onLoadComplete();
+      }
     } catch (err) {
       if (err instanceof HTTPErrorResponse) {
         await StatusPageUtil.checkIfTheUserIsAuthenticated(err);
       }
 
       setError(API.getFriendlyMessage(err));
-      setIsLoading(false);
+      if (!options?.silent) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -288,6 +302,23 @@ const Overview: FunctionComponent<PageComponentProps> = (
     loadPage().catch((err: Error) => {
       setError(err.message);
     });
+  }, [
+    StatusPageUtil.getStatusPageId()?.toString() || "",
+    StatusPageUtil.isPreviewPage(),
+    StatusPageUtil.isPrivateStatusPage(),
+  ]);
+
+  useEffect(() => {
+    const REFRESH_INTERVAL_MS: number = 60000;
+    const intervalId: ReturnType<typeof setInterval> = setInterval(() => {
+      loadPage({ silent: true, runOnLoadComplete: false }).catch(() => {
+        // swallow to avoid breaking interval
+      });
+    }, REFRESH_INTERVAL_MS);
+
+    return () => {
+      clearInterval(intervalId);
+    };
   }, [
     StatusPageUtil.getStatusPageId()?.toString() || "",
     StatusPageUtil.isPreviewPage(),
