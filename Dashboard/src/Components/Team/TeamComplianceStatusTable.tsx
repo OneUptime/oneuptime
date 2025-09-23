@@ -7,8 +7,11 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Loader from "Common/UI/Components/Loader/Loader";
 import { Red, Green } from "Common/Types/BrandColors";
 import Pill from "Common/UI/Components/Pill/Pill";
-import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
+import LocalTable from "Common/UI/Components/Table/LocalTable";
+import Columns from "Common/UI/Components/Table/Types/Columns";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
 
 export interface UserComplianceStatus {
   userId: string;
@@ -82,6 +85,60 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
     return labels[ruleType] || ruleType;
   };
 
+  const columns: Columns<UserComplianceStatus> = [
+    {
+      title: "User",
+      type: FieldType.Text,
+      key: "userName",
+      getElement: (item: UserComplianceStatus): ReactElement => {
+        return (
+          <div className="flex items-center">
+            <div className="text-sm font-medium text-gray-900">
+              {item.userName}
+            </div>
+            <div className="text-sm text-gray-500 ml-2">
+              {item.userEmail}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: "Compliance Status",
+      type: FieldType.Text,
+      key: "isCompliant",
+      getElement: (item: UserComplianceStatus): ReactElement => {
+        return item.isCompliant ? (
+          <Pill text="Compliant" color={Green} />
+        ) : (
+          <Pill text="Non-Compliant" color={Red} />
+        );
+      },
+    },
+    {
+      title: "Issues",
+      type: FieldType.Text,
+      key: "nonCompliantRules",
+      getElement: (item: UserComplianceStatus): ReactElement => {
+        if (item.nonCompliantRules.length > 0) {
+          return (
+            <ul className="text-sm text-gray-900">
+              {item.nonCompliantRules.map((rule, ruleIndex) => (
+                <li key={ruleIndex} className="mb-1">
+                  <span className="font-medium">
+                    {getRuleTypeLabel(rule.ruleType)}:
+                  </span>{" "}
+                  {rule.reason}
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        return <span className="text-sm text-gray-500">No issues</span>;
+      },
+    },
+  ];
+
   if (isLoading) {
     return <Loader />;
   }
@@ -99,62 +156,13 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              User
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Compliance Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Issues
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {complianceStatus.userComplianceStatuses.map((userStatus, index) => (
-            <tr key={index}>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center">
-                  <div className="text-sm font-medium text-gray-900">
-                    {userStatus.userName}
-                  </div>
-                  <div className="text-sm text-gray-500 ml-2">
-                    {userStatus.userEmail}
-                  </div>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {userStatus.isCompliant ? (
-                  <Pill text="Compliant" color={Green} />
-                ) : (
-                  <Pill text="Non-Compliant" color={Red} />
-                )}
-              </td>
-              <td className="px-6 py-4">
-                {userStatus.nonCompliantRules.length > 0 ? (
-                  <ul className="text-sm text-gray-900">
-                    {userStatus.nonCompliantRules.map((rule, ruleIndex) => (
-                      <li key={ruleIndex} className="mb-1">
-                        <span className="font-medium">
-                          {getRuleTypeLabel(rule.ruleType)}:
-                        </span>{" "}
-                        {rule.reason}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <span className="text-sm text-gray-500">No issues</span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <LocalTable
+      data={complianceStatus.userComplianceStatuses}
+      columns={columns}
+      id="team-compliance-status-table"
+      singularLabel="Team Member"
+      pluralLabel="Team Members"
+    />
   );
 };
 
