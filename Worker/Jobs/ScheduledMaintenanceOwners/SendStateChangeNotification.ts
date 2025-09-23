@@ -71,7 +71,6 @@ RunCron(
       const scheduledMaintenanceState: ScheduledMaintenanceState =
         scheduledMaintenanceStateTimeline.scheduledMaintenanceState!;
 
-
       await ScheduledMaintenanceStateTimelineService.updateOneById({
         id: scheduledMaintenanceStateTimeline.id!,
         data: {

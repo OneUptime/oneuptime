@@ -52,10 +52,9 @@ export interface TeamComplianceStatusTableRef {
   refresh: () => void;
 }
 
-const TeamComplianceStatusTable = forwardRef<
-  TeamComplianceStatusTableRef,
-  ComponentProps
->(
+const TeamComplianceStatusTable: React.ForwardRefExoticComponent<
+  ComponentProps & React.RefAttributes<TeamComplianceStatusTableRef>
+> = forwardRef<TeamComplianceStatusTableRef, ComponentProps>(
   (
     props: ComponentProps,
     ref: React.Ref<TeamComplianceStatusTableRef>,
