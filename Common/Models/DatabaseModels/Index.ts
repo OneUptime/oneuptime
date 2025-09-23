@@ -123,6 +123,7 @@ import StatusPageSubscriber from "./StatusPageSubscriber";
 import Team from "./Team";
 import TeamMember from "./TeamMember";
 import TeamPermission from "./TeamPermission";
+import TeamComplianceSetting from "./TeamComplianceSetting";
 import TelemetryService from "./TelemetryService";
 import UsageBilling from "./TelemetryUsageBilling";
 import User from "./User";
@@ -196,6 +197,7 @@ const AllModelTypes: Array<{
   Team,
   TeamMember,
   TeamPermission,
+  TeamComplianceSetting,
   ApiKey,
   Label,
   ApiKeyPermission,

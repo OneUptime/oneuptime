@@ -268,7 +268,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy nginx.
 
@@ -335,7 +339,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy nginx.
 
@@ -402,7 +410,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy e2e.
 
@@ -467,7 +479,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy test-server.
 
@@ -533,7 +549,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy otel-collector.
 
@@ -599,7 +619,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy isolated-vm.
 
@@ -665,7 +689,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy isolated-vm.
 
@@ -733,7 +761,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy status-page.
 
@@ -801,7 +833,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy test.
 
@@ -867,7 +903,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy probe-ingest.
 
@@ -935,7 +975,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy ServerMonitorIngest.
 
@@ -1004,7 +1048,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy incoming-request-ingest.
 
@@ -1071,7 +1119,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy incoming-request-ingest.
 
@@ -1137,7 +1189,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy probe-ingest.
 
@@ -1203,7 +1259,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy probe.
 
@@ -1269,7 +1329,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy dashboard.
 
@@ -1335,7 +1399,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy admin-dashboard.
 
@@ -1401,7 +1469,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy app.
 
@@ -1470,7 +1542,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy app.
 
@@ -1539,7 +1615,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy accounts.
 
@@ -1606,7 +1686,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy accounts.
 
@@ -1672,7 +1756,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy accounts.
 
@@ -1739,7 +1827,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy accounts.
 
@@ -1807,7 +1899,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # Build and deploy accounts.
 
