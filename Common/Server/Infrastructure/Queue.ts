@@ -12,6 +12,7 @@ import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { ExpressRouter } from "../Utils/Express";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import logger from "../Utils/Logger";
 
 export enum QueueName {
   Workflow = "Workflow",
@@ -29,6 +30,12 @@ export default class Queue {
   private static queueDict: Dictionary<BullQueue> = {};
   // track queues we have already run initial cleanup on
   private static cleanedQueueNames: Set<string> = new Set<string>();
+  // store repeatable jobs to re-add on reconnect
+  private static repeatableJobs: Dictionary<Dictionary<{
+    jobName: string;
+    data: JSONObject;
+    options: JobsOptions;
+  }>> = {};
 
   @CaptureSpan()
   public static getQueue(queueName: QueueName): BullQueue {
@@ -58,6 +65,25 @@ export default class Queue {
 
     // save it to the dictionary
     this.queueDict[queueName] = queue;
+
+    // Add event listener to re-add repeatable jobs on reconnect
+    queue.on('ready' as any, async () => {
+      logger.debug(`Queue ${queueName} reconnected, re-adding repeatable jobs`);
+      const jobs = this.repeatableJobs[queueName];
+      if (jobs) {
+        for (const jobId in jobs) {
+          const job = jobs[jobId];
+          if (job) {
+            try {
+              await queue.add(job.jobName, job.data, job.options);
+            } catch (err) {
+              logger.error('Error re-adding repeatable job');
+              logger.error(err);
+            }
+          }
+        }
+      }
+    });
 
     // Fire-and-forget initial cleanup for legacy/old data if not done before
     if (!this.cleanedQueueNames.has(queueName)) {
@@ -156,6 +182,18 @@ export default class Queue {
       await this.getQueue(queueName).removeRepeatableByKey(
         options?.repeatableKey,
       );
+    }
+
+    // Store repeatable jobs for re-adding on reconnect
+    if (options && options.scheduleAt) {
+      if (!this.repeatableJobs[queueName]) {
+        this.repeatableJobs[queueName] = {};
+      }
+      this.repeatableJobs[queueName][jobId] = {
+        jobName,
+        data,
+        options: optionsObject,
+      };
     }
 
     const jobAdded: Job = await this.getQueue(queueName).add(
