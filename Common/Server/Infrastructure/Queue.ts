@@ -31,25 +31,41 @@ export default class Queue {
   // track queues we have already run initial cleanup on
   private static cleanedQueueNames: Set<string> = new Set<string>();
   // store repeatable jobs to re-add on reconnect
-  private static repeatableJobs: Dictionary<Dictionary<{
-    jobName: string;
-    data: JSONObject;
-    options: JobsOptions;
-  }>> = {};
+  private static repeatableJobs: Dictionary<
+    Dictionary<{
+      jobName: string;
+      data: JSONObject;
+      options: JobsOptions;
+    }>
+  > = {};
 
-  private static async setupReconnectListener(queue: BullQueue, queueName: QueueName): Promise<void> {
-    const client = await queue.client;
-    client.on('ready', async () => {
+  private static async setupReconnectListener(
+    queue: BullQueue,
+    queueName: QueueName,
+  ): Promise<void> {
+    const client: Awaited<typeof queue.client> = await queue.client;
+    client.on("ready", async () => {
       logger.debug(`Queue ${queueName} reconnected, re-adding repeatable jobs`);
-      const jobs = Queue.repeatableJobs[queueName];
+      const jobs:
+        | Dictionary<{
+            jobName: string;
+            data: JSONObject;
+            options: JobsOptions;
+          }>
+        | undefined = Queue.repeatableJobs[queueName];
       if (jobs) {
         for (const jobId in jobs) {
-          const job = jobs[jobId];
+          const job:
+            | { jobName: string; data: JSONObject; options: JobsOptions }
+            | undefined = jobs[jobId];
           if (job) {
             try {
+              logger.debug(
+                `Re-adding repeatable job ${job.jobName} to queue ${queueName}`,
+              );
               await queue.add(job.jobName, job.data, job.options);
-            } catch (err) {
-              logger.error('Error re-adding repeatable job');
+            } catch (err: unknown) {
+              logger.error("Error re-adding repeatable job");
               logger.error(err);
             }
           }
@@ -88,8 +104,8 @@ export default class Queue {
     this.queueDict[queueName] = queue;
 
     // Add event listener to re-add repeatable jobs on reconnect
-    this.setupReconnectListener(queue, queueName).catch((err) => {
-      logger.error('Error setting up reconnect listener for queue');
+    this.setupReconnectListener(queue, queueName).catch((err: unknown) => {
+      logger.error("Error setting up reconnect listener for queue");
       logger.error(err);
     });
 
