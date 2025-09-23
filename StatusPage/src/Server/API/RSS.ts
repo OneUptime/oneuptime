@@ -111,12 +111,14 @@ export const handleRSS = async (req: ExpressRequest, res: ExpressResponse): Prom
     items.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 
     // Generate RSS XML
+    const feedUrl = `${req.protocol}://${req.get('host')}${req.path}`;
     let rssXml: string = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
 <title>${title} Updates</title>
 <description>${description}</description>
 <link>${baseUrl}</link>
+<atom:link href="${feedUrl}" rel="self" type="application/rss+xml" />
 `;
 
     items.forEach((item) => {
@@ -125,6 +127,7 @@ export const handleRSS = async (req: ExpressRequest, res: ExpressResponse): Prom
 <title><![CDATA[${item.title}]]></title>
 <description><![CDATA[${item.description}]]></description>
 <link>${item.link}</link>
+<guid>${item.link}</guid>
 <pubDate>${item.pubDate}</pubDate>
 </item>`;
     });
