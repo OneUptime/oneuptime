@@ -557,7 +557,6 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import TeamComplianceAPI from "Common/Server/API/TeamComplianceAPI";
 
-
 import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
 import OnCallDutyPolicyFeedService, {
   Service as OnCallDutyPolicyFeedServiceType,

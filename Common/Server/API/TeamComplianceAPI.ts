@@ -1,5 +1,7 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
-import TeamComplianceService, { TeamComplianceStatus } from "../Services/TeamComplianceService";
+import TeamComplianceService, {
+  TeamComplianceStatus,
+} from "../Services/TeamComplianceService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -16,10 +18,7 @@ import TeamService, {
   Service as TeamServiceType,
 } from "../Services/TeamService";
 
-export default class TeamComplianceAPI extends BaseAPI<
-  Team,
-  TeamServiceType
-> {
+export default class TeamComplianceAPI extends BaseAPI<Team, TeamServiceType> {
   public constructor() {
     super(Team, TeamService);
 
@@ -52,24 +51,29 @@ export default class TeamComplianceAPI extends BaseAPI<
             );
           }
 
-          const complianceStatus: TeamComplianceStatus = await TeamComplianceService.getTeamComplianceStatus(
-            teamId,
-            projectId,
-          );
+          const complianceStatus: TeamComplianceStatus =
+            await TeamComplianceService.getTeamComplianceStatus(
+              teamId,
+              projectId,
+            );
 
           // Convert ObjectIDs to strings for JSON response
           const responseData = {
             teamId: complianceStatus.teamId.toString(),
             teamName: complianceStatus.teamName,
             complianceSettings: complianceStatus.complianceSettings,
-            userComplianceStatuses: complianceStatus.userComplianceStatuses.map(user => ({
-              userId: user.userId.toString(),
-              userName: user.userName,
-              userEmail: user.userEmail,
-              userProfilePictureId: user.userProfilePictureId?.toString(),
-              isCompliant: user.isCompliant,
-              nonCompliantRules: user.nonCompliantRules,
-            })),
+            userComplianceStatuses: complianceStatus.userComplianceStatuses.map(
+              (user) => {
+                return {
+                  userId: user.userId.toString(),
+                  userName: user.userName,
+                  userEmail: user.userEmail,
+                  userProfilePictureId: user.userProfilePictureId?.toString(),
+                  isCompliant: user.isCompliant,
+                  nonCompliantRules: user.nonCompliantRules,
+                };
+              },
+            ),
           };
 
           return Response.sendJsonObjectResponse(req, res, responseData as any);

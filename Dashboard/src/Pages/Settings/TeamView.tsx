@@ -418,7 +418,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
           teamId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
-        onBeforeCreate={(item: TeamComplianceSetting): Promise<TeamComplianceSetting> => {
+        onBeforeCreate={(
+          item: TeamComplianceSetting,
+        ): Promise<TeamComplianceSetting> => {
           if (!props.currentProject || !props.currentProject._id) {
             throw new BadDataException("Project ID cannot be null");
           }
@@ -428,7 +430,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         }}
         cardProps={{
           title: "Compliance Settings",
-          description: "Configure compliance rules for this team. These rules ensure team members have the required notification methods and on-call configurations.",
+          description:
+            "Configure compliance rules for this team. These rules ensure team members have the required notification methods and on-call configurations.",
         }}
         noItemsMessage={"No compliance settings configured for this team."}
         formFields={[
@@ -465,7 +468,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 label: "Alert On-Call Rules Required",
               },
             ],
-            description: "Select the type of compliance rule to enforce for team members.",
+            description:
+              "Select the type of compliance rule to enforce for team members.",
           },
           {
             field: {
@@ -507,10 +511,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 [ComplianceRuleType.HasNotificationSMS]: "SMS Notification",
                 [ComplianceRuleType.HasNotificationCall]: "Call Notification",
                 [ComplianceRuleType.HasNotificationPush]: "Push Notification",
-                [ComplianceRuleType.HasIncidentOnCallRules]: "Incident On-Call Rules",
+                [ComplianceRuleType.HasIncidentOnCallRules]:
+                  "Incident On-Call Rules",
                 [ComplianceRuleType.HasAlertOnCallRules]: "Alert On-Call Rules",
               };
-              return <span>{ruleTypeLabels[item.ruleType!] || item.ruleType}</span>;
+              return (
+                <span>{ruleTypeLabels[item.ruleType!] || item.ruleType}</span>
+              );
             },
           },
           {

@@ -92,7 +92,11 @@ export default class TeamComplianceService {
       },
     });
 
-    const userIds = teamMembers.map((member) => member.userId!).filter(Boolean);
+    const userIds = teamMembers
+      .map((member) => {
+        return member.userId!;
+      })
+      .filter(Boolean);
 
     // Get user details
     const users = await UserService.findBy({
@@ -119,10 +123,12 @@ export default class TeamComplianceService {
       const complianceStatus = await this.checkUserCompliance(
         user.id!,
         projectId,
-        complianceSettings.map((setting) => ({
-          ruleType: setting.ruleType!,
-          enabled: setting.enabled || false,
-        })),
+        complianceSettings.map((setting) => {
+          return {
+            ruleType: setting.ruleType!,
+            enabled: setting.enabled || false,
+          };
+        }),
       );
       userComplianceStatuses.push({
         userId: user.id!,
@@ -136,10 +142,12 @@ export default class TeamComplianceService {
     return {
       teamId: teamId,
       teamName: team.name || "Unknown Team",
-      complianceSettings: complianceSettings.map((setting) => ({
-        ruleType: setting.ruleType!,
-        enabled: setting.enabled || false,
-      })),
+      complianceSettings: complianceSettings.map((setting) => {
+        return {
+          ruleType: setting.ruleType!,
+          enabled: setting.enabled || false,
+        };
+      }),
       userComplianceStatuses,
     };
   }
@@ -151,8 +159,14 @@ export default class TeamComplianceService {
       ruleType: ComplianceRuleType;
       enabled: boolean;
     }>,
-  ): Promise<{ isCompliant: boolean; nonCompliantRules: Array<{ ruleType: ComplianceRuleType; reason: string }> }> {
-    const nonCompliantRules: Array<{ ruleType: ComplianceRuleType; reason: string }> = [];
+  ): Promise<{
+    isCompliant: boolean;
+    nonCompliantRules: Array<{ ruleType: ComplianceRuleType; reason: string }>;
+  }> {
+    const nonCompliantRules: Array<{
+      ruleType: ComplianceRuleType;
+      reason: string;
+    }> = [];
 
     // Check each enabled compliance rule
     for (const setting of complianceSettings) {
@@ -232,7 +246,9 @@ export default class TeamComplianceService {
     const hasEmail = userEmails.length > 0;
     return {
       compliant: hasEmail,
-      reason: hasEmail ? "" : "No verified email address configured for notifications",
+      reason: hasEmail
+        ? ""
+        : "No verified email address configured for notifications",
     };
   }
 
@@ -259,7 +275,9 @@ export default class TeamComplianceService {
     const hasSMS = userSMS.length > 0;
     return {
       compliant: hasSMS,
-      reason: hasSMS ? "" : "No verified phone number configured for SMS notifications",
+      reason: hasSMS
+        ? ""
+        : "No verified phone number configured for SMS notifications",
     };
   }
 
@@ -286,7 +304,9 @@ export default class TeamComplianceService {
     const hasCall = userCalls.length > 0;
     return {
       compliant: hasCall,
-      reason: hasCall ? "" : "No verified phone number configured for call notifications",
+      reason: hasCall
+        ? ""
+        : "No verified phone number configured for call notifications",
     };
   }
 
@@ -342,7 +362,9 @@ export default class TeamComplianceService {
     }
 
     // Check if user has notification rules for all incident severities
-    const severityIds = incidentSeverities.map(severity => severity._id!);
+    const severityIds = incidentSeverities.map((severity) => {
+      return severity._id!;
+    });
     const missingSeverities: Array<string> = [];
 
     for (const severityId of severityIds) {
@@ -367,12 +389,19 @@ export default class TeamComplianceService {
       });
 
       // Check if user has at least one notification method configured for this severity
-      const hasNotificationMethod = notificationRules.some(rule =>
-        rule.userCallId || rule.userSmsId || rule.userEmailId || rule.userPushId
-      );
+      const hasNotificationMethod = notificationRules.some((rule) => {
+        return (
+          rule.userCallId ||
+          rule.userSmsId ||
+          rule.userEmailId ||
+          rule.userPushId
+        );
+      });
 
       if (!hasNotificationMethod) {
-        const severity = incidentSeverities.find(s => s._id?.toString() === severityId.toString());
+        const severity = incidentSeverities.find((s) => {
+          return s._id?.toString() === severityId.toString();
+        });
         const severityName = severity?.name || severityId.toString();
         missingSeverities.push(severityName);
       }
@@ -416,7 +445,9 @@ export default class TeamComplianceService {
     }
 
     // Check if user has notification rules for all alert severities
-    const severityIds = alertSeverities.map(severity => severity._id!);
+    const severityIds = alertSeverities.map((severity) => {
+      return severity._id!;
+    });
     const missingSeverities: Array<string> = [];
 
     for (const severityId of severityIds) {
@@ -441,12 +472,19 @@ export default class TeamComplianceService {
       });
 
       // Check if user has at least one notification method configured for this severity
-      const hasNotificationMethod = notificationRules.some(rule =>
-        rule.userCallId || rule.userSmsId || rule.userEmailId || rule.userPushId
-      );
+      const hasNotificationMethod = notificationRules.some((rule) => {
+        return (
+          rule.userCallId ||
+          rule.userSmsId ||
+          rule.userEmailId ||
+          rule.userPushId
+        );
+      });
 
       if (!hasNotificationMethod) {
-        const severity = alertSeverities.find(s => s._id?.toString() === severityId.toString());
+        const severity = alertSeverities.find((s) => {
+          return s._id?.toString() === severityId.toString();
+        });
         const severityName = severity?.name || severityId.toString();
         missingSeverities.push(severityName);
       }

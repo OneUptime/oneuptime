@@ -12,7 +12,12 @@ import Columns from "Common/UI/Components/Table/Types/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import UserElement from "../User/User";
-import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 export interface UserComplianceStatus {
   userId: string;
@@ -43,7 +48,8 @@ export interface ComponentProps {
 const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [complianceStatus, setComplianceStatus] = useState<TeamComplianceStatus | null>(null);
+  const [complianceStatus, setComplianceStatus] =
+    useState<TeamComplianceStatus | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,7 +66,7 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
         url: URL.fromString(APP_API_URL.toString()).addRoute(
           `/team/compliance-status/${props.teamId.toString()}`,
         ),
-        headers: ModelAPI.getCommonHeaders()
+        headers: ModelAPI.getCommonHeaders(),
       });
 
       if (response instanceof HTTPErrorResponse) {
@@ -124,14 +130,16 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
         if (item.nonCompliantRules.length > 0) {
           return (
             <ul className="text-sm text-gray-900">
-              {item.nonCompliantRules.map((rule, ruleIndex) => (
-                <li key={ruleIndex} className="mb-1">
-                  <span className="font-medium">
-                    {getRuleTypeLabel(rule.ruleType)}:
-                  </span>{" "}
-                  {rule.reason}
-                </li>
-              ))}
+              {item.nonCompliantRules.map((rule, ruleIndex) => {
+                return (
+                  <li key={ruleIndex} className="mb-1">
+                    <span className="font-medium">
+                      {getRuleTypeLabel(rule.ruleType)}:
+                    </span>{" "}
+                    {rule.reason}
+                  </li>
+                );
+              })}
             </ul>
           );
         }
@@ -148,7 +156,10 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  if (!complianceStatus || complianceStatus.userComplianceStatuses.length === 0) {
+  if (
+    !complianceStatus ||
+    complianceStatus.userComplianceStatuses.length === 0
+  ) {
     return (
       <div className="text-center text-gray-500 py-8">
         No team members to check compliance for.
