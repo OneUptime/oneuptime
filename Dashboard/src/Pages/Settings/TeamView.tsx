@@ -19,7 +19,6 @@ import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
-import Card from "Common/UI/Components/Card/Card";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
@@ -542,12 +541,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       />
 
       {/* Team Compliance Status Table */}
-      <Card
-        title="Compliance Status"
-        description="View the compliance status of team members against the configured rules."
-      >
-        <TeamComplianceStatusTable teamId={modelId} />
-      </Card>
+      <TeamComplianceStatusTable teamId={modelId} />
 
       <Banner
         openInNewTab={true}

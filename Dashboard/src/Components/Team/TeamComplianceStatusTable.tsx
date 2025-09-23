@@ -12,6 +12,7 @@ import Columns from "Common/UI/Components/Table/Types/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import UserElement from "../User/User";
+import Card from "Common/UI/Components/Card/Card";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -156,38 +157,41 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
     },
   ];
 
-  if (isLoading) {
-    return <Loader />;
-  }
-
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
-
-  if (!complianceStatus) {
-    return <Loader />;
-  }
-
-  if (complianceStatus.complianceSettings.length === 0) {
+  if (complianceStatus?.complianceSettings.length === 0) {
     return <></>; // Do not show the table if no compliance rules are configured
   }
 
-  if (complianceStatus.userComplianceStatuses.length === 0) {
-    return (
+  let content: ReactElement;
+
+  if (isLoading || !complianceStatus) {
+    content = <Loader />;
+  } else if (error) {
+    content = <ErrorMessage message={error} />;
+  } else if (complianceStatus.userComplianceStatuses.length === 0) {
+    content = (
       <div className="text-center text-gray-500 py-8">
         No team members to check compliance for.
       </div>
     );
+  } else {
+    content = (
+      <LocalTable
+        data={complianceStatus.userComplianceStatuses}
+        columns={columns}
+        id="team-compliance-status-table"
+        singularLabel="Team Member"
+        pluralLabel="Team Members"
+      />
+    );
   }
 
   return (
-    <LocalTable
-      data={complianceStatus.userComplianceStatuses}
-      columns={columns}
-      id="team-compliance-status-table"
-      singularLabel="Team Member"
-      pluralLabel="Team Members"
-    />
+    <Card
+      title="Team Compliance Status"
+      description="Monitor team member compliance with notification and on-call rules"
+    >
+      {content}
+    </Card>
   );
 };
 
