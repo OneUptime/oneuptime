@@ -111,6 +111,7 @@ import StatusPageSsoService from "./StatusPageSsoService";
 import StatusPageSubscriberService from "./StatusPageSubscriberService";
 import TeamMemberService from "./TeamMemberService";
 import TeamPermissionService from "./TeamPermissionService";
+import TeamComplianceSettingService from "./TeamComplianceSettingService";
 // Team
 import TeamService from "./TeamService";
 import TelemetryServiceService from "./TelemetryServiceService";
@@ -268,6 +269,7 @@ const services: Array<BaseService> = [
 
   TeamMemberService,
   TeamPermissionService,
+  TeamComplianceSettingService,
   TeamService,
 
   UserService,
