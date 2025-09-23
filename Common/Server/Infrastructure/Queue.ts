@@ -213,7 +213,7 @@ export default class Queue {
       if (!this.repeatableJobs[queueName]) {
         this.repeatableJobs[queueName] = {};
       }
-      this.repeatableJobs[queueName][jobId] = {
+      this.repeatableJobs[queueName]![jobId] = {
         jobName,
         data,
         options: optionsObject,
