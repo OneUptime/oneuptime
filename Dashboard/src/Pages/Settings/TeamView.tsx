@@ -454,27 +454,27 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             dropdownOptions: [
               {
                 value: ComplianceRuleType.HasNotificationEmailMethod,
-                label: "Email Notification Required",
+                label: "User has Email Notification Method",
               },
               {
                 value: ComplianceRuleType.HasNotificationSMSMethod,
-                label: "SMS Notification Required",
+                label: "User has SMS Notification Method",
               },
               {
                 value: ComplianceRuleType.HasNotificationCallMethod,
-                label: "Call Notification Required",
+                label: "User has Call Notification Method",
               },
               {
                 value: ComplianceRuleType.HasNotificationPushMethod,
-                label: "Push Notification Required",
+                label: "User has Push Notification Method",
               },
               {
                 value: ComplianceRuleType.HasIncidentOnCallRules,
-                label: "Incident On-Call Rules Required",
+                label: "User has Incident On-Call Rules",
               },
               {
                 value: ComplianceRuleType.HasAlertOnCallRules,
-                label: "Alert On-Call Rules Required",
+                label: "User has Alert On-Call Rules",
               },
             ],
             description:
