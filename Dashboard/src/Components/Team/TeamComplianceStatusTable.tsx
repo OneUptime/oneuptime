@@ -12,12 +12,15 @@ import Columns from "Common/UI/Components/Table/Types/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import UserElement from "../User/User";
-import Card from "Common/UI/Components/Card/Card";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
+  forwardRef,
+  useImperativeHandle,
 } from "react";
 
 export interface UserComplianceStatus {
@@ -46,9 +49,14 @@ export interface ComponentProps {
   teamId: ObjectID;
 }
 
-const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
-): ReactElement => {
+export interface TeamComplianceStatusTableRef {
+  refresh: () => void;
+}
+
+const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = forwardRef<
+  TeamComplianceStatusTableRef,
+  ComponentProps
+>((props: ComponentProps, ref): ReactElement => {
   const [complianceStatus, setComplianceStatus] =
     useState<TeamComplianceStatus | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -82,6 +90,10 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
         setIsLoading(false);
       }
     };
+
+  useImperativeHandle(ref, () => ({
+    refresh: fetchComplianceStatus,
+  }));
 
   const getRuleTypeLabel: (ruleType: string) => string = (
     ruleType: string,
@@ -185,14 +197,21 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
     );
   }
 
+  const refreshButton: CardButtonSchema = getRefreshButton();
+  refreshButton.onClick = fetchComplianceStatus;
+  refreshButton.title = "Refresh";
+
   return (
     <Card
       title="Team Compliance Status"
       description="Monitor team member compliance with notification and on-call rules"
+      buttons={[refreshButton]}
     >
       {content}
     </Card>
   );
-};
+});
+
+TeamComplianceStatusTable.displayName = "TeamComplianceStatusTable";
 
 export default TeamComplianceStatusTable;

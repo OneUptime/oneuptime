@@ -34,7 +34,9 @@ import React, {
   MutableRefObject,
   ReactElement,
 } from "react";
-import TeamComplianceStatusTable from "../../Components/Team/TeamComplianceStatusTable";
+import TeamComplianceStatusTable, {
+  TeamComplianceStatusTableRef,
+} from "../../Components/Team/TeamComplianceStatusTable";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 
 export enum PermissionType {
@@ -46,6 +48,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const complianceStatusTableRef = React.useRef<TeamComplianceStatusTableRef>(null);
 
   type GetTeamPermissionTable = (data: {
     permissionType: PermissionType;
@@ -427,6 +430,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
           item.projectId = new ObjectID(props.currentProject._id);
           return Promise.resolve(item);
         }}
+        onCreateSuccess={async (item: TeamComplianceSetting): Promise<TeamComplianceSetting> => {
+          complianceStatusTableRef.current?.refresh();
+          return item;
+        }}
+        onItemDeleted={(_item: TeamComplianceSetting): void => {
+          complianceStatusTableRef.current?.refresh();
+        }}
         cardProps={{
           title: "Compliance Settings",
           description:
@@ -541,7 +551,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       />
 
       {/* Team Compliance Status Table */}
-      <TeamComplianceStatusTable teamId={modelId} />
+      {/* @ts-ignore: ref is valid for forwardRef components */}
+      <TeamComplianceStatusTable ref={complianceStatusTableRef} teamId={modelId} />
 
       <Banner
         openInNewTab={true}
