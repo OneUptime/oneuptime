@@ -1,6 +1,7 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
 import TeamComplianceService, {
   TeamComplianceStatus,
+  UserComplianceStatus,
 } from "../Services/TeamComplianceService";
 import {
   ExpressRequest,
@@ -17,6 +18,7 @@ import Team from "../../Models/DatabaseModels/Team";
 import TeamService, {
   Service as TeamServiceType,
 } from "../Services/TeamService";
+import ComplianceRuleType from "../../Types/Team/ComplianceRuleType";
 
 export default class TeamComplianceAPI extends BaseAPI<Team, TeamServiceType> {
   public constructor() {
@@ -58,12 +60,30 @@ export default class TeamComplianceAPI extends BaseAPI<Team, TeamServiceType> {
             );
 
           // Convert ObjectIDs to strings for JSON response
-          const responseData = {
+          const responseData: {
+            teamId: string;
+            teamName: string;
+            complianceSettings: Array<{
+              ruleType: ComplianceRuleType;
+              enabled: boolean;
+            }>;
+            userComplianceStatuses: Array<{
+              userId: string;
+              userName: string;
+              userEmail: string;
+              userProfilePictureId: string | undefined;
+              isCompliant: boolean;
+              nonCompliantRules: Array<{
+                ruleType: ComplianceRuleType;
+                reason: string;
+              }>;
+            }>;
+          } = {
             teamId: complianceStatus.teamId.toString(),
             teamName: complianceStatus.teamName,
             complianceSettings: complianceStatus.complianceSettings,
             userComplianceStatuses: complianceStatus.userComplianceStatuses.map(
-              (user) => {
+              (user: UserComplianceStatus) => {
                 return {
                   userId: user.userId.toString(),
                   userName: user.userName,
@@ -76,7 +96,7 @@ export default class TeamComplianceAPI extends BaseAPI<Team, TeamServiceType> {
             ),
           };
 
-          return Response.sendJsonObjectResponse(req, res, responseData as any);
+          return Response.sendJsonObjectResponse(req, res, responseData);
         } catch (e) {
           next(e);
         }

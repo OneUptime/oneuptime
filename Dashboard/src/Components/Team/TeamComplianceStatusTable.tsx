@@ -57,31 +57,34 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
     fetchComplianceStatus();
   }, [props.teamId]);
 
-  const fetchComplianceStatus = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  const fetchComplianceStatus: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      const response = await API.get<any>({
-        url: URL.fromString(APP_API_URL.toString()).addRoute(
-          `/team/compliance-status/${props.teamId.toString()}`,
-        ),
-        headers: ModelAPI.getCommonHeaders(),
-      });
+        const response: any = await API.get<any>({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/team/compliance-status/${props.teamId.toString()}`,
+          ),
+          headers: ModelAPI.getCommonHeaders(),
+        });
 
-      if (response instanceof HTTPErrorResponse) {
-        throw response;
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        setComplianceStatus(response.data as TeamComplianceStatus);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err as any));
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      setComplianceStatus(response.data as TeamComplianceStatus);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err as any));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const getRuleTypeLabel = (ruleType: string): string => {
+  const getRuleTypeLabel: (ruleType: string) => string = (
+    ruleType: string,
+  ): string => {
     const labels: Record<string, string> = {
       HasNotificationEmail: "Email Notification",
       HasNotificationSMS: "SMS Notification",
@@ -130,16 +133,21 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
         if (item.nonCompliantRules.length > 0) {
           return (
             <ul className="text-sm text-gray-900">
-              {item.nonCompliantRules.map((rule, ruleIndex) => {
-                return (
-                  <li key={ruleIndex} className="mb-1">
-                    <span className="font-medium">
-                      {getRuleTypeLabel(rule.ruleType)}:
-                    </span>{" "}
-                    {rule.reason}
-                  </li>
-                );
-              })}
+              {item.nonCompliantRules.map(
+                (
+                  rule: { ruleType: string; reason: string },
+                  ruleIndex: number,
+                ) => {
+                  return (
+                    <li key={ruleIndex} className="mb-1">
+                      <span className="font-medium">
+                        {getRuleTypeLabel(rule.ruleType)}:
+                      </span>{" "}
+                      {rule.reason}
+                    </li>
+                  );
+                },
+              )}
             </ul>
           );
         }

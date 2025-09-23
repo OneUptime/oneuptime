@@ -14,6 +14,9 @@ import ComplianceRuleType from "../../Types/Team/ComplianceRuleType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import Team from "../../Models/DatabaseModels/Team";
+import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
+import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 
 export interface UserComplianceStatus {
   userId: ObjectID;
@@ -43,7 +46,7 @@ export default class TeamComplianceService {
     projectId: ObjectID,
   ): Promise<TeamComplianceStatus> {
     // Get team details
-    const team = await TeamService.findOneById({
+    const team: Partial<Team> | null = await TeamService.findOneById({
       id: teamId,
       select: {
         name: true,
@@ -59,7 +62,10 @@ export default class TeamComplianceService {
     }
 
     // Get compliance settings for this team
-    const complianceSettings = await TeamComplianceSettingService.findBy({
+    const complianceSettings: Array<{
+      ruleType?: ComplianceRuleType;
+      enabled?: boolean;
+    }> = await TeamComplianceSettingService.findBy({
       query: {
         teamId: teamId,
         projectId: projectId,
@@ -76,30 +82,31 @@ export default class TeamComplianceService {
     });
 
     // Get team members
-    const teamMembers = await TeamMemberService.findBy({
-      query: {
-        teamId: teamId,
-        projectId: projectId,
-      },
-      select: {
-        userId: true,
-        _id: true,
-      },
-      limit: 100,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    const teamMembers: Array<{ userId?: ObjectID; _id?: string }> =
+      await TeamMemberService.findBy({
+        query: {
+          teamId: teamId,
+          projectId: projectId,
+        },
+        select: {
+          userId: true,
+          _id: true,
+        },
+        limit: 100,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
 
-    const userIds = teamMembers
-      .map((member) => {
+    const userIds: Array<ObjectID> = teamMembers
+      .map((member: { userId?: ObjectID; _id?: string }) => {
         return member.userId!;
       })
       .filter(Boolean);
 
     // Get user details
-    const users = await UserService.findBy({
+    const users: any = await UserService.findBy({
       query: {
         _id: new Includes(userIds),
       },
@@ -120,15 +127,23 @@ export default class TeamComplianceService {
     const userComplianceStatuses: Array<UserComplianceStatus> = [];
 
     for (const user of users) {
-      const complianceStatus = await this.checkUserCompliance(
+      const complianceStatus: {
+        isCompliant: boolean;
+        nonCompliantRules: Array<{
+          ruleType: ComplianceRuleType;
+          reason: string;
+        }>;
+      } = await this.checkUserCompliance(
         user.id!,
         projectId,
-        complianceSettings.map((setting) => {
-          return {
-            ruleType: setting.ruleType!,
-            enabled: setting.enabled || false,
-          };
-        }),
+        complianceSettings.map(
+          (setting: { ruleType?: ComplianceRuleType; enabled?: boolean }) => {
+            return {
+              ruleType: setting.ruleType!,
+              enabled: setting.enabled || false,
+            };
+          },
+        ),
       );
       userComplianceStatuses.push({
         userId: user.id!,
@@ -142,12 +157,14 @@ export default class TeamComplianceService {
     return {
       teamId: teamId,
       teamName: team.name || "Unknown Team",
-      complianceSettings: complianceSettings.map((setting) => {
-        return {
-          ruleType: setting.ruleType!,
-          enabled: setting.enabled || false,
-        };
-      }),
+      complianceSettings: complianceSettings.map(
+        (setting: { ruleType?: ComplianceRuleType; enabled?: boolean }) => {
+          return {
+            ruleType: setting.ruleType!,
+            enabled: setting.enabled || false,
+          };
+        },
+      ),
       userComplianceStatuses,
     };
   }
@@ -174,11 +191,8 @@ export default class TeamComplianceService {
         continue;
       }
 
-      const isCompliant = await this.checkRuleCompliance(
-        userId,
-        projectId,
-        setting.ruleType,
-      );
+      const isCompliant: { compliant: boolean; reason: string } =
+        await this.checkRuleCompliance(userId, projectId, setting.ruleType);
 
       if (!isCompliant.compliant) {
         nonCompliantRules.push({
@@ -227,7 +241,7 @@ export default class TeamComplianceService {
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<{ compliant: boolean; reason: string }> {
-    const userEmails = await UserEmailService.findBy({
+    const userEmails: Array<{ _id?: string }> = await UserEmailService.findBy({
       query: {
         userId: userId,
         projectId: projectId,
@@ -243,7 +257,7 @@ export default class TeamComplianceService {
       skip: 0,
     });
 
-    const hasEmail = userEmails.length > 0;
+    const hasEmail: boolean = userEmails.length > 0;
     return {
       compliant: hasEmail,
       reason: hasEmail
@@ -256,7 +270,7 @@ export default class TeamComplianceService {
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<{ compliant: boolean; reason: string }> {
-    const userSMS = await UserSmsService.findBy({
+    const userSMS: Array<{ _id?: string }> = await UserSmsService.findBy({
       query: {
         userId: userId,
         projectId: projectId,
@@ -272,7 +286,7 @@ export default class TeamComplianceService {
       skip: 0,
     });
 
-    const hasSMS = userSMS.length > 0;
+    const hasSMS: boolean = userSMS.length > 0;
     return {
       compliant: hasSMS,
       reason: hasSMS
@@ -285,7 +299,7 @@ export default class TeamComplianceService {
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<{ compliant: boolean; reason: string }> {
-    const userCalls = await UserCallService.findBy({
+    const userCalls: Array<{ _id?: string }> = await UserCallService.findBy({
       query: {
         userId: userId,
         projectId: projectId,
@@ -301,7 +315,7 @@ export default class TeamComplianceService {
       skip: 0,
     });
 
-    const hasCall = userCalls.length > 0;
+    const hasCall: boolean = userCalls.length > 0;
     return {
       compliant: hasCall,
       reason: hasCall
@@ -314,7 +328,7 @@ export default class TeamComplianceService {
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<{ compliant: boolean; reason: string }> {
-    const userPush = await UserPushService.findBy({
+    const userPush: Array<{ _id?: string }> = await UserPushService.findBy({
       query: {
         userId: userId,
         projectId: projectId,
@@ -330,7 +344,7 @@ export default class TeamComplianceService {
       skip: 0,
     });
 
-    const hasPush = userPush.length > 0;
+    const hasPush: boolean = userPush.length > 0;
     return {
       compliant: hasPush,
       reason: hasPush ? "" : "No verified push notification device configured",
@@ -342,33 +356,42 @@ export default class TeamComplianceService {
     projectId: ObjectID,
   ): Promise<{ compliant: boolean; reason: string }> {
     // Get all incident severities for the project
-    const incidentSeverities = await IncidentSeverityService.findBy({
-      query: {
-        projectId: projectId,
-      },
-      select: {
-        _id: true,
-        name: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
+    const incidentSeverities: Array<Partial<IncidentSeverity>> =
+      await IncidentSeverityService.findBy({
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
 
     if (incidentSeverities.length === 0) {
       return { compliant: true, reason: "" }; // No incident severities configured
     }
 
     // Check if user has notification rules for all incident severities
-    const severityIds = incidentSeverities.map((severity) => {
-      return severity._id!;
-    });
+    const severityIds: Array<string> = incidentSeverities.map(
+      (severity: Partial<IncidentSeverity>) => {
+        return severity._id!;
+      },
+    );
     const missingSeverities: Array<string> = [];
 
     for (const severityId of severityIds) {
-      const notificationRules = await UserNotificationRuleService.findBy({
+      const notificationRules: Array<{
+        _id?: string;
+        userCallId?: ObjectID;
+        userSmsId?: ObjectID;
+        userEmailId?: ObjectID;
+        userPushId?: ObjectID;
+      }> = await UserNotificationRuleService.findBy({
         query: {
           userId: userId,
           projectId: projectId,
@@ -389,20 +412,29 @@ export default class TeamComplianceService {
       });
 
       // Check if user has at least one notification method configured for this severity
-      const hasNotificationMethod = notificationRules.some((rule) => {
-        return (
-          rule.userCallId ||
-          rule.userSmsId ||
-          rule.userEmailId ||
-          rule.userPushId
-        );
-      });
+      const hasNotificationMethod: boolean = notificationRules.some(
+        (rule: {
+          _id?: string;
+          userCallId?: ObjectID;
+          userSmsId?: ObjectID;
+          userEmailId?: ObjectID;
+          userPushId?: ObjectID;
+        }) => {
+          return (
+            rule.userCallId ||
+            rule.userSmsId ||
+            rule.userEmailId ||
+            rule.userPushId
+          );
+        },
+      );
 
       if (!hasNotificationMethod) {
-        const severity = incidentSeverities.find((s) => {
-          return s._id?.toString() === severityId.toString();
-        });
-        const severityName = severity?.name || severityId.toString();
+        const severity: Partial<IncidentSeverity> | undefined =
+          incidentSeverities.find((s: Partial<IncidentSeverity>) => {
+            return s._id?.toString() === severityId.toString();
+          });
+        const severityName: string = severity?.name || severityId.toString();
         missingSeverities.push(severityName);
       }
     }
@@ -425,33 +457,42 @@ export default class TeamComplianceService {
     projectId: ObjectID,
   ): Promise<{ compliant: boolean; reason: string }> {
     // Get all alert severities for the project
-    const alertSeverities = await AlertSeverityService.findBy({
-      query: {
-        projectId: projectId,
-      },
-      select: {
-        _id: true,
-        name: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: 100, // Assuming reasonable limit for severities
-      skip: 0,
-    });
+    const alertSeverities: Array<Partial<AlertSeverity>> =
+      await AlertSeverityService.findBy({
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: 100, // Assuming reasonable limit for severities
+        skip: 0,
+      });
 
     if (alertSeverities.length === 0) {
       return { compliant: true, reason: "" }; // No alert severities configured
     }
 
     // Check if user has notification rules for all alert severities
-    const severityIds = alertSeverities.map((severity) => {
-      return severity._id!;
-    });
+    const severityIds: Array<string> = alertSeverities.map(
+      (severity: Partial<AlertSeverity>) => {
+        return severity._id!;
+      },
+    );
     const missingSeverities: Array<string> = [];
 
     for (const severityId of severityIds) {
-      const notificationRules = await UserNotificationRuleService.findBy({
+      const notificationRules: Array<{
+        _id?: string;
+        userCallId?: ObjectID;
+        userSmsId?: ObjectID;
+        userEmailId?: ObjectID;
+        userPushId?: ObjectID;
+      }> = await UserNotificationRuleService.findBy({
         query: {
           userId: userId,
           projectId: projectId,
@@ -472,20 +513,29 @@ export default class TeamComplianceService {
       });
 
       // Check if user has at least one notification method configured for this severity
-      const hasNotificationMethod = notificationRules.some((rule) => {
-        return (
-          rule.userCallId ||
-          rule.userSmsId ||
-          rule.userEmailId ||
-          rule.userPushId
-        );
-      });
+      const hasNotificationMethod: boolean = notificationRules.some(
+        (rule: {
+          _id?: string;
+          userCallId?: ObjectID;
+          userSmsId?: ObjectID;
+          userEmailId?: ObjectID;
+          userPushId?: ObjectID;
+        }) => {
+          return (
+            rule.userCallId ||
+            rule.userSmsId ||
+            rule.userEmailId ||
+            rule.userPushId
+          );
+        },
+      );
 
       if (!hasNotificationMethod) {
-        const severity = alertSeverities.find((s) => {
-          return s._id?.toString() === severityId.toString();
-        });
-        const severityName = severity?.name || severityId.toString();
+        const severity: Partial<AlertSeverity> | undefined =
+          alertSeverities.find((s: Partial<AlertSeverity>) => {
+            return s._id?.toString() === severityId.toString();
+          });
+        const severityName: string = severity?.name || severityId.toString();
         missingSeverities.push(severityName);
       }
     }
