@@ -343,6 +343,7 @@ export default class TeamComplianceService {
 
     // Check if user has notification rules for all incident severities
     const severityIds = incidentSeverities.map(severity => severity._id!);
+    const missingSeverities: Array<string> = [];
 
     for (const severityId of severityIds) {
       const notificationRules = await UserNotificationRuleService.findBy({
@@ -373,11 +374,15 @@ export default class TeamComplianceService {
       if (!hasNotificationMethod) {
         const severity = incidentSeverities.find(s => s._id?.toString() === severityId.toString());
         const severityName = severity?.name || severityId.toString();
-        return {
-          compliant: false,
-          reason: `Missing notification rules for incident severity: ${severityName}`,
-        };
+        missingSeverities.push(severityName);
       }
+    }
+
+    if (missingSeverities.length > 0) {
+      return {
+        compliant: false,
+        reason: `Missing notification rules for incident severities: ${missingSeverities.join(", ")}`,
+      };
     }
 
     return {
@@ -412,6 +417,7 @@ export default class TeamComplianceService {
 
     // Check if user has notification rules for all alert severities
     const severityIds = alertSeverities.map(severity => severity._id!);
+    const missingSeverities: Array<string> = [];
 
     for (const severityId of severityIds) {
       const notificationRules = await UserNotificationRuleService.findBy({
@@ -442,11 +448,15 @@ export default class TeamComplianceService {
       if (!hasNotificationMethod) {
         const severity = alertSeverities.find(s => s._id?.toString() === severityId.toString());
         const severityName = severity?.name || severityId.toString();
-        return {
-          compliant: false,
-          reason: `Missing notification rules for alert severity: ${severityName}`,
-        };
+        missingSeverities.push(severityName);
       }
+    }
+
+    if (missingSeverities.length > 0) {
+      return {
+        compliant: false,
+        reason: `Missing notification rules for alert severities: ${missingSeverities.join(", ")}`,
+      };
     }
 
     return {
