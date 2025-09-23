@@ -54,6 +54,7 @@ RunCron(
             _id: true,
             title: true,
             description: true,
+            projectId: true,
             scheduledMaintenanceNumber: true,
           },
           scheduledMaintenanceState: {
@@ -69,6 +70,7 @@ RunCron(
         scheduledMaintenanceStateTimeline.scheduledMaintenance!;
       const scheduledMaintenanceState: ScheduledMaintenanceState =
         scheduledMaintenanceStateTimeline.scheduledMaintenanceState!;
+
 
       await ScheduledMaintenanceStateTimelineService.updateOneById({
         id: scheduledMaintenanceStateTimeline.id!,

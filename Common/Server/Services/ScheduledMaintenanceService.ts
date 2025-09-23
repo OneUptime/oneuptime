@@ -905,7 +905,19 @@ ${scheduledMaintenance.description || "No description provided."}
     projectId: ObjectID,
     scheduledMaintenanceId: ObjectID,
   ): Promise<URL> {
+    if (!projectId) {
+      throw new BadDataException("projectId is required");
+    }
+
+    if (!scheduledMaintenanceId) {
+      throw new BadDataException("scheduledMaintenanceId is required");
+    }
+
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    if (!dashboardUrl) {
+      throw new BadDataException("Dashboard URL not found");
+    }
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
       `/${projectId.toString()}/scheduled-maintenance-events/${scheduledMaintenanceId.toString()}`,
