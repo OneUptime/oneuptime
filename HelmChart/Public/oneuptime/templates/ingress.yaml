@@ -14,7 +14,7 @@ metadata:
     {{- with $.Values.oneuptimeIngress.annotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-    {{- if index $.Values "cert-manager" "enabled" }}
+    {{- if index $.Values "certManagerLetsEncrypt" "enabled" }}
     cert-manager.io/cluster-issuer: {{ $.Release.Name }}-letsencrypt
     {{- end }}
 spec:

@@ -124,61 +124,109 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `oneuptimeIngress.className`                      | Ingress class name. Change this to your cloud providers ingress class                                                                                                                  | `nginx`         |                 |
 | `script.workflowScriptTimeoutInMs`                | Timeout for workflow script                                                                                                                                                            | `5000`          |                 |
 | `cert-manager.enabled`                            | Enable Cert-Manager for automatic SSL certificate management                                                                                                                          | `false`         |                 |
-| `certManagerLetsEncrypt.email`                  | Email address for Let's Encrypt notifications                                                                                                                                          | `""`            | 🚨 (if enabled) |
-| `certManagerLetsEncrypt.server`                 | Let's Encrypt ACME server URL                                                                                                                                                          | `https://acme-v02.api.letsencrypt.org/directory` |                 |
+| `certManagerLetsEncrypt.enabled`                 | Enable Let's Encrypt integration with Cert-Manager                                                                                                                                      | `false`         |                 |
+| `certManagerLetsEncrypt.email`                   | Email address for Let's Encrypt notifications                                                                                                                                          | `""`            | 🚨 (if enabled) |
+| `certManagerLetsEncrypt.server`                  | Let's Encrypt ACME server URL                                                                                                                                                          | `https://acme-v02.api.letsencrypt.org/directory` |                 |
 
 
-## Setting up TLS/SSL Certificates
+## Cert-Manager Integration
 
-OneUptime supports TLS/SSL certificates through Cert-Manager for automatic Let's Encrypt certificate provisioning, or you can set up certificates manually using a reverse proxy.
+OneUptime integrates with [Cert-Manager](https://cert-manager.io/) to automatically provision and manage TLS/SSL certificates using Let's Encrypt. This provides automatic certificate renewal and secure HTTPS access to your OneUptime installation.
 
-### Option 1: Using Cert-Manager with Let's Encrypt (Recommended)
+### Prerequisites
 
-Cert-Manager can automatically provision and renew Let's Encrypt certificates for your ingress.
+- Cert-Manager must be installed in your cluster (enabled via `cert-manager.enabled: true`)
+- A publicly accessible domain name pointing to your ingress
+- An ingress controller (like NGINX Ingress Controller) installed and configured
 
-1. Enable Cert-Manager in your `values.yaml`:
+### Configuration
+
+To enable automatic certificate management with Let's Encrypt:
+
+1. **Enable Cert-Manager** in your `values.yaml`:
    ```yaml
    cert-manager:
      enabled: true
-
-   certManagerLetsEncrypt:
-     email: "your-email@example.com"  # Required for Let's Encrypt
-     server: "https://acme-v02.api.letsencrypt.org/directory"  # Use staging for testing: https://acme-staging-v02.api.letsencrypt.org/directory
+     installCRDs: true  # Installs required CRDs
    ```
 
-2. Configure your ingress:
+2. **Configure Let's Encrypt integration**:
+   ```yaml
+   certManagerLetsEncrypt:
+     enabled: true  # Enable Let's Encrypt certificate management
+     email: "your-email@example.com"  # Required for Let's Encrypt notifications
+     server: "https://acme-v02.api.letsencrypt.org/directory"  # Production server
+     # For testing, use: "https://acme-staging-v02.api.letsencrypt.org/directory"
+   ```
+
+3. **Configure your ingress** with TLS:
    ```yaml
    oneuptimeIngress:
      enabled: true
-     className: "nginx"  # Your ingress class
+     className: "nginx"  # Your ingress class name
      hosts:
        - "your-domain.com"
      tls:
        enabled: true
        hosts:
          - host: "your-domain.com"
-           secretName: "oneuptime-tls"  # Cert-Manager will create this secret
+           secretName: "oneuptime-tls"  # Cert-Manager will create and manage this secret
    ```
 
-3. Set the protocol to HTTPS:
+4. **Set HTTPS protocol**:
    ```yaml
    httpProtocol: https
    host: "your-domain.com"
    ```
 
-Cert-Manager will automatically obtain and renew certificates using HTTP-01 challenges through your ingress controller.
+### How It Works
 
-### Option 2: Manual Certificate Setup
+When `certManagerLetsEncrypt.enabled` is set to `true`, the Helm chart will:
 
-If you prefer to manage certificates manually:
+1. **Create a ClusterIssuer**: A Kubernetes resource that defines how to issue certificates from Let's Encrypt
+2. **Annotate the Ingress**: Adds the `cert-manager.io/cluster-issuer` annotation to automatically request certificates
+3. **Automatic Certificate Management**: Cert-Manager will:
+   - Request certificates from Let's Encrypt using HTTP-01 challenges
+   - Store certificates in Kubernetes secrets
+   - Automatically renew certificates before expiration
+   - Handle certificate lifecycle management
 
-1. Use a reverse proxy like Nginx or Caddy.
-2. Obtain certificates from Let's Encrypt or your preferred CA.
-3. Configure the reverse proxy to terminate SSL/TLS.
-4. Point the reverse proxy to the OneUptime server.
-5. Update the following settings:
-   - Set `httpProtocol` to `https`.
-   - Change `host` to the domain name of the server where the reverse proxy is hosted.
+### Certificate Validation
+
+Cert-Manager uses HTTP-01 challenges, which require:
+- Your domain must be publicly accessible
+- HTTP traffic on port 80 must reach your ingress controller
+- The ingress must be configured with the correct host routing
+
+### Troubleshooting
+
+**Certificate not issued**:
+- Check Cert-Manager pod logs: `kubectl logs -n cert-manager deployment/cert-manager`
+- Verify domain DNS resolution and ingress configuration
+- Ensure the ingress class matches your controller
+
+**Certificate stuck in pending**:
+- Check challenge status: `kubectl describe challenge`
+- Verify HTTP-01 challenge accessibility from external sources
+
+**Certificate renewal issues**:
+- Cert-Manager handles renewal automatically 30 days before expiration
+- Check ClusterIssuer status: `kubectl describe clusterissuer`
+
+### Alternative: Manual Certificate Management
+
+If you prefer to manage certificates manually or use a different CA:
+
+1. Disable Cert-Manager integration:
+   ```yaml
+   certManagerLetsEncrypt:
+     enabled: false
+   ```
+
+2. Use a reverse proxy (Nginx, Caddy, etc.) to terminate SSL/TLS
+3. Configure the reverse proxy with your certificates
+4. Point the reverse proxy to your OneUptime ingress
+5. Set `httpProtocol: https` and update the `host` accordingly
 
 ## Using External Databases
 
