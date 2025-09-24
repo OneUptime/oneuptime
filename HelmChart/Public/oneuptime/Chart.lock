@@ -2,5 +2,8 @@ dependencies:
 - name: keda
   repository: https://kedacore.github.io/charts
   version: 2.17.2
-digest: sha256:0487fc2994d58e6a2958a38de76740b0a2a0d6f2a644e89f03097e7f2645f976
-generated: "2025-09-04T17:55:10.534534+01:00"
+- name: cert-manager
+  repository: https://charts.jetstack.io
+  version: v1.14.4
+digest: sha256:1e111017f8501985e66b3b1c328ae25ae0ef8d31fa843042329822be1a80619f
+generated: "2025-09-24T10:39:36.767659+01:00"

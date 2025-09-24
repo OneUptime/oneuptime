@@ -10,7 +10,13 @@ metadata:
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
     appname: oneuptime
-  annotations: {{- $.Values.oneuptimeIngress.annotations | toYaml | nindent 4 }}
+  annotations:
+    {{- with $.Values.oneuptimeIngress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- if $.Values.cert-manager.enabled }}
+    cert-manager.io/cluster-issuer: {{ printf "%s-%s" $.Release.Name "letsencrypt" }}
+    {{- end }}
 spec:
   ingressClassName: {{ $.Values.oneuptimeIngress.className }}
   {{- if $.Values.oneuptimeIngress.tls.enabled }}

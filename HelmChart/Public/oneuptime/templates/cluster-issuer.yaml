@@ -1,0 +1,16 @@
+{{- if .Values.cert-manager.enabled }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Release.Name }}-letsencrypt
+spec:
+  acme:
+    server: {{ .Values.cert-manager.letsEncrypt.server | quote }}
+    email: {{ .Values.cert-manager.letsEncrypt.email | quote }}
+    privateKeySecretRef:
+      name: {{ .Release.Name }}-letsencrypt
+    solvers:
+    - http01:
+        ingress:
+          class: {{ .Values.oneuptimeIngress.className }}
+{{- end }}

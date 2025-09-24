@@ -123,20 +123,62 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `oneuptimeIngress.tls`                            | Ingress TLS. Please refer to values.yaml to set these                                                                                                                                  | `[]`            |                 |
 | `oneuptimeIngress.className`                      | Ingress class name. Change this to your cloud providers ingress class                                                                                                                  | `nginx`         |                 |
 | `script.workflowScriptTimeoutInMs`                | Timeout for workflow script                                                                                                                                                            | `5000`          |                 |
+| `cert-manager.enabled`                            | Enable Cert-Manager for automatic SSL certificate management                                                                                                                          | `false`         |                 |
+| `cert-manager.installCRDs`                        | Install Cert-Manager CRDs                                                                                                                                                              | `true`          |                 |
+| `cert-manager.letsEncrypt.email`                  | Email address for Let's Encrypt notifications                                                                                                                                          | `""`            | 🚨 (if enabled) |
+| `cert-manager.letsEncrypt.server`                 | Let's Encrypt ACME server URL                                                                                                                                                          | `https://acme-v02.api.letsencrypt.org/directory` |                 |
 
 
 ## Setting up TLS/SSL Certificates
 
-OneUptime **does not** support setting up SSL/TLS certificates. You need to set up SSL/TLS certificates on your own.
+OneUptime supports TLS/SSL certificates through Cert-Manager for automatic Let's Encrypt certificate provisioning, or you can set up certificates manually using a reverse proxy.
 
-If you need to use SSL/TLS certificates, follow these steps:
+### Option 1: Using Cert-Manager with Let's Encrypt (Recommended)
+
+Cert-Manager can automatically provision and renew Let's Encrypt certificates for your ingress.
+
+1. Enable Cert-Manager in your `values.yaml`:
+   ```yaml
+   cert-manager:
+     enabled: true
+     letsEncrypt:
+       email: "your-email@example.com"  # Required for Let's Encrypt
+       server: "https://acme-v02.api.letsencrypt.org/directory"  # Use staging for testing: https://acme-staging-v02.api.letsencrypt.org/directory
+   ```
+
+2. Configure your ingress:
+   ```yaml
+   oneuptimeIngress:
+     enabled: true
+     className: "nginx"  # Your ingress class
+     hosts:
+       - "your-domain.com"
+     tls:
+       enabled: true
+       hosts:
+         - host: "your-domain.com"
+           secretName: "oneuptime-tls"  # Cert-Manager will create this secret
+   ```
+
+3. Set the protocol to HTTPS:
+   ```yaml
+   httpProtocol: https
+   host: "your-domain.com"
+   ```
+
+Cert-Manager will automatically obtain and renew certificates using HTTP-01 challenges through your ingress controller.
+
+### Option 2: Manual Certificate Setup
+
+If you prefer to manage certificates manually:
 
 1. Use a reverse proxy like Nginx or Caddy.
-2. Use Let's Encrypt to provision the certificates.
-3. Point the reverse proxy to the OneUptime server.
-4. Update the following settings:
-   - Set `HTTP_PROTOCOL` env var to `https`.
-   - Change `HOST` env var to the domain name of the server where the reverse proxy is hosted.
+2. Obtain certificates from Let's Encrypt or your preferred CA.
+3. Configure the reverse proxy to terminate SSL/TLS.
+4. Point the reverse proxy to the OneUptime server.
+5. Update the following settings:
+   - Set `httpProtocol` to `https`.
+   - Change `host` to the domain name of the server where the reverse proxy is hosted.
 
 ## Using External Databases
 
@@ -442,6 +484,7 @@ We use these charts as dependencies for some components. You dont need to instal
 | Chart | Description | Repository | 
 | ----- | ----------- | ---------- | 
 | `keda` | Kubernetes Event-driven Autoscaling | https://kedacore.github.io/charts |
+| `cert-manager` | Certificate management for Kubernetes | https://charts.jetstack.io |
 
 
 ## Uninstalling OneUptime
