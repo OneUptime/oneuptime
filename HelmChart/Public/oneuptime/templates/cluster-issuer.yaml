@@ -6,8 +6,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   acme:
-    server: {{ index .Values "cert-manager" "letsEncrypt" "server" | quote }}
-    email: {{ index .Values "cert-manager" "letsEncrypt" "email" | quote }}
+    server: {{ index .Values "certManagerLetsEncrypt" "server" | quote }}
+    email: {{ index .Values "certManagerLetsEncrypt" "email" | quote }}
     privateKeySecretRef:
       name: {{ .Release.Name }}-letsencrypt
     solvers:

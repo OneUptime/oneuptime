@@ -761,7 +761,8 @@ keda:
 cert-manager:
   enabled: false
   installCRDs: true
-  # Let's Encrypt configuration
-  letsEncrypt:
-    email: ""  # Set your email for Let's Encrypt notifications
-    server: "https://acme-v02.api.letsencrypt.org/directory"  # Use "https://acme-staging-v02.api.letsencrypt.org/directory" for staging
+
+# Let's Encrypt configuration for Cert-Manager
+certManagerLetsEncrypt:
+  email: ""  # Set your email for Let's Encrypt notifications
+  server: "https://acme-v02.api.letsencrypt.org/directory"  # Use "https://acme-staging-v02.api.letsencrypt.org/directory" for staging

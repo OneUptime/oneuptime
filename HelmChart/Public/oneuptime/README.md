@@ -124,8 +124,8 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `oneuptimeIngress.className`                      | Ingress class name. Change this to your cloud providers ingress class                                                                                                                  | `nginx`         |                 |
 | `script.workflowScriptTimeoutInMs`                | Timeout for workflow script                                                                                                                                                            | `5000`          |                 |
 | `cert-manager.enabled`                            | Enable Cert-Manager for automatic SSL certificate management                                                                                                                          | `false`         |                 |
-| `cert-manager.letsEncrypt.email`                  | Email address for Let's Encrypt notifications                                                                                                                                          | `""`            | 🚨 (if enabled) |
-| `cert-manager.letsEncrypt.server`                 | Let's Encrypt ACME server URL                                                                                                                                                          | `https://acme-v02.api.letsencrypt.org/directory` |                 |
+| `certManagerLetsEncrypt.email`                  | Email address for Let's Encrypt notifications                                                                                                                                          | `""`            | 🚨 (if enabled) |
+| `certManagerLetsEncrypt.server`                 | Let's Encrypt ACME server URL                                                                                                                                                          | `https://acme-v02.api.letsencrypt.org/directory` |                 |
 
 
 ## Setting up TLS/SSL Certificates
@@ -140,9 +140,10 @@ Cert-Manager can automatically provision and renew Let's Encrypt certificates fo
    ```yaml
    cert-manager:
      enabled: true
-     letsEncrypt:
-       email: "your-email@example.com"  # Required for Let's Encrypt
-       server: "https://acme-v02.api.letsencrypt.org/directory"  # Use staging for testing: https://acme-staging-v02.api.letsencrypt.org/directory
+
+   certManagerLetsEncrypt:
+     email: "your-email@example.com"  # Required for Let's Encrypt
+     server: "https://acme-v02.api.letsencrypt.org/directory"  # Use staging for testing: https://acme-staging-v02.api.letsencrypt.org/directory
    ```
 
 2. Configure your ingress:
