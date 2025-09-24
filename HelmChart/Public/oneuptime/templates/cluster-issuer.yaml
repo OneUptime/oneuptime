@@ -16,4 +16,11 @@ spec:
       - http01:
           ingress:
             class: {{ .Values.oneuptimeIngress.className }}
+            ingressTemplate:
+              metadata:
+                annotations:
+                  nginx.ingress.kubernetes.io/ssl-redirect: "false"
+                  nginx.ingress.kubernetes.io/priority: "1000"
+              spec:
+                ingressClassName: {{ .Values.oneuptimeIngress.className }}
 {{- end }}

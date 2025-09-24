@@ -16,6 +16,10 @@ metadata:
     {{- end }}
     {{- if index $.Values "certManagerLetsEncrypt" "enabled" }}
     cert-manager.io/cluster-issuer: {{ $.Release.Name }}-letsencrypt
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      if ($request_uri ~ ^/.well-known/acme-challenge/) {
+        set $ssl_redirect off;
+      }
     {{- end }}
 spec:
   ingressClassName: {{ $.Values.oneuptimeIngress.className }}
