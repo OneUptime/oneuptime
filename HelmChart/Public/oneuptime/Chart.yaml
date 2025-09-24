@@ -39,7 +39,7 @@ dependencies:
   repository: "https://kedacore.github.io/charts"
   condition: keda.enabled
 - name: cert-manager
-  version: "v1.14.4"
+  version: "v1.18.2"
   repository: "https://charts.jetstack.io"
   condition: cert-manager.enabled
 

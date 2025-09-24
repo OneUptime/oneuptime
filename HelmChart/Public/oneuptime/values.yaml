@@ -760,6 +760,7 @@ keda:
 
 cert-manager:
   enabled: false
+  installCRDs: true
   # Let's Encrypt configuration
   letsEncrypt:
     email: ""  # Set your email for Let's Encrypt notifications
