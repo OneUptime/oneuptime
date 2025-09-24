@@ -8,6 +8,8 @@ spec:
   acme:
     server: {{ index .Values "certManagerLetsEncrypt" "server" | quote }}
     email: {{ index .Values "certManagerLetsEncrypt" "email" | quote }}
+    # The ACME certificate profile
+    profile: tlsserver
     privateKeySecretRef:
       name: {{ .Release.Name }}-letsencrypt
     solvers:
