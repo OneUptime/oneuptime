@@ -28,7 +28,11 @@ spec:
     {{- range $key, $val := $.Values.oneuptimeIngress.tls.hosts }}
     - hosts:
         - {{ $val.host | quote }}
+      {{- if index $.Values "certManagerLetsEncrypt" "enabled" }}
+      secretName: {{ printf "%s-%s-tls" $.Release.Name $val.host }}
+      {{- else }}
       secretName: {{ $val.secretName }}
+      {{- end }}
     {{- end }}
   {{- end }}
   rules:
