@@ -31,7 +31,7 @@ import {
   generateUsersListResponse,
   parseSCIMQueryParams,
 } from "../Utils/SCIMUtils";
-import { DocsClientUrl } from "Common/Server/EnvironmentConfig";
+import { AppApiClientUrl, DocsClientUrl } from "Common/Server/EnvironmentConfig";
 
 type SCIMMember = {
   value: string;
@@ -124,12 +124,10 @@ const handleUserTeamOperations: (
 // Helper function to format team as SCIM group
 const formatTeamForSCIM: (
   team: Team,
-  req: ExpressRequest,
   projectScimId: string,
   includeMembers?: boolean,
 ) => Promise<JSONObject> = async (
   team: Team,
-  req: ExpressRequest,
   projectScimId: string,
   includeMembers: boolean = true,
 ): Promise<JSONObject> => {
@@ -160,7 +158,7 @@ const formatTeamForSCIM: (
         return {
           value: member.user!.id!.toString(),
           display: member.user!.email!.toString(),
-          $ref: `${req.protocol}://${req.get("host")}/scim/v2/${projectScimId}/Users/${member.user!.id!.toString()}`,
+          $ref: `${AppApiClientUrl.toString()}scim/v2/${projectScimId}/Users/${member.user!.id!.toString()}`,
         };
       });
   }
@@ -174,7 +172,7 @@ const formatTeamForSCIM: (
       resourceType: "Group",
       created: team.createdAt?.toISOString(),
       lastModified: team.updatedAt?.toISOString(),
-      location: `${req.protocol}://${req.get("host")}/scim/v2/${projectScimId}/Groups/${team.id?.toString()}`,
+      location: `${AppApiClientUrl.toString()}scim/v2/${projectScimId}/Groups/${team.id?.toString()}`,
     },
   };
 };
@@ -684,7 +682,6 @@ router.get(
         (team: Team) => {
           return formatTeamForSCIM(
             team,
-            req,
             req.params["projectScimId"]!,
             false,
           );
@@ -769,7 +766,6 @@ router.get(
 
       const group: JSONObject = await formatTeamForSCIM(
         team,
-        req,
         req.params["projectScimId"]!,
         true, // Include members for individual group request
       );
@@ -898,7 +894,6 @@ router.post(
 
       const createdGroup: JSONObject = await formatTeamForSCIM(
         createdTeam,
-        req,
         req.params["projectScimId"]!,
         true,
       );
@@ -1066,7 +1061,6 @@ router.put(
       if (updatedTeam) {
         const updatedGroup: JSONObject = await formatTeamForSCIM(
           updatedTeam,
-          req,
           req.params["projectScimId"]!,
           true,
         );
@@ -1400,7 +1394,6 @@ router.patch(
       if (updatedTeam) {
         const updatedGroup: JSONObject = await formatTeamForSCIM(
           updatedTeam,
-          req,
           req.params["projectScimId"]!,
           true,
         );
