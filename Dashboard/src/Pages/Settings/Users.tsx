@@ -33,19 +33,19 @@ const Teams: FunctionComponent<PageComponentProps> = (
   const [isScimEnabled, setIsScimEnabled] = React.useState<boolean>(false);
 
   React.useEffect(() => {
-    const checkScim = async () => {
+    const checkScim: () => Promise<void> = async () => {
       if (!props.currentProject || !props.currentProject._id) {
         return;
       }
       try {
-        const scimCount = await ModelAPI.count<ProjectSCIM>({
+        const scimCount: number = await ModelAPI.count<ProjectSCIM>({
           modelType: ProjectSCIM,
           query: {
             projectId: props.currentProject._id,
           },
         });
         setIsScimEnabled(scimCount > 0);
-      } catch (e) {
+      } catch {
         // ignore
       }
     };
