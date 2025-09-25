@@ -33,6 +33,12 @@ import {
 } from "../Utils/SCIMUtils";
 import { DocsClientUrl } from "Common/Server/EnvironmentConfig";
 
+type SCIMMember = {
+  value: string;
+  display: string;
+  $ref: string;
+};
+
 const router: ExpressRouter = Express.getRouter();
 
 const handleUserTeamOperations: (
@@ -127,7 +133,7 @@ const formatTeamForSCIM: (
   projectScimId: string,
   includeMembers: boolean = true,
 ): Promise<JSONObject> => {
-  let members: JSONObject[] = [];
+  let members: Array<SCIMMember> = [];
 
   if (includeMembers) {
     const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
@@ -147,10 +153,10 @@ const formatTeamForSCIM: (
     });
 
     members = teamMembers
-      .filter((member) => {
+      .filter((member: TeamMember) => {
         return member.user;
       })
-      .map((member) => {
+      .map((member: TeamMember) => {
         return {
           value: member.user!.id!.toString(),
           display: member.user!.email!.toString(),
@@ -636,7 +642,7 @@ router.get(
 
       // Format teams as SCIM groups
       const groupsPromises: Array<Promise<JSONObject>> = teams.map(
-        (team) => {
+        (team: Team) => {
           return formatTeamForSCIM(
             team,
             req,
@@ -796,8 +802,8 @@ router.post(
       );
 
       // Handle initial members if provided
-      const members: JSONObject[] =
-        (scimGroup["members"] as JSONObject[]) || [];
+      const members: Array<SCIMMember> =
+        (scimGroup["members"] as Array<SCIMMember>) || [];
       if (members.length > 0) {
         logger.debug(
           `SCIM Create group - adding ${members.length} initial members`,
@@ -925,8 +931,8 @@ router.put(
       }
 
       // Handle members update - replace all members
-      const members: JSONObject[] =
-        (scimGroup["members"] as JSONObject[]) || [];
+      const members: Array<SCIMMember> =
+        (scimGroup["members"] as Array<SCIMMember>) || [];
       logger.debug(
         `SCIM Update group - replacing members with ${members.length} members`,
       );
@@ -1175,7 +1181,7 @@ router.patch(
             });
 
             // Add new members
-            const members: JSONObject[] = value || [];
+            const members: Array<SCIMMember> = value || [];
             for (const member of members) {
               const userId: string = member["value"] as string;
               if (userId) {
@@ -1214,7 +1220,7 @@ router.patch(
           } else if (op === "add") {
             // Add members
             logger.debug(`SCIM Patch group - adding members`);
-            const members: JSONObject[] = value || [];
+            const members: Array<SCIMMember> = value || [];
             for (const member of members) {
               const userId: string = member["value"] as string;
               if (userId) {
@@ -1267,7 +1273,7 @@ router.patch(
           } else if (op === "remove") {
             // Remove members
             logger.debug(`SCIM Patch group - removing members`);
-            const members: JSONObject[] = value || [];
+            const members: Array<SCIMMember> = value || [];
             for (const member of members) {
               const userId: string = member["value"] as string;
               if (userId) {
