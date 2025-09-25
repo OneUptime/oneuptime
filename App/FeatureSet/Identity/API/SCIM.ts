@@ -95,7 +95,6 @@ const handleUserTeamOperations: (
           data: teamMember,
           props: {
             isRoot: true,
-            
           },
         });
 
@@ -879,7 +878,6 @@ router.post(
                   data: newTeamMember,
                   props: {
                     isRoot: true,
-                    
                   },
                 });
                 logger.debug(
@@ -1035,7 +1033,6 @@ router.put(
                 data: newTeamMember,
                 props: {
                   isRoot: true,
-                  
                 },
               });
               logger.debug(`SCIM Update group - added user ${userId} to team`);
@@ -1277,7 +1274,6 @@ router.patch(
                       data: newTeamMember,
                       props: {
                         isRoot: true,
-                        
                       },
                     });
                     logger.debug(
@@ -1328,7 +1324,6 @@ router.patch(
                       data: newTeamMember,
                       props: {
                         isRoot: true,
-                        
                       },
                     });
                     logger.debug(

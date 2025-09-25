@@ -106,7 +106,6 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     }
 
     if (!createBy.props.isRoot) {
-
       createBy.data.hasAcceptedInvitation = false;
     }
 
