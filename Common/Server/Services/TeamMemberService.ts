@@ -61,7 +61,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   ): Promise<OnCreate<TeamMember>> {
     // Check if SCIM is enabled for the project
     if (
-      createBy.props.isRoot &&
+      !createBy.props.isRoot &&
       (await this.isSCIMEnabled(
         createBy.data.projectId! || createBy.props.tenantId,
       ))
@@ -105,7 +105,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       }
     }
 
-    createBy.data.hasAcceptedInvitation = false;
+    if (!createBy.props.isRoot) {
+
+      createBy.data.hasAcceptedInvitation = false;
+    }
 
     if (createBy.miscDataProps && createBy.miscDataProps["email"]) {
       const email: Email = new Email(createBy.miscDataProps["email"] as string);
