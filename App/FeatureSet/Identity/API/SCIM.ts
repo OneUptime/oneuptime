@@ -31,7 +31,10 @@ import {
   generateUsersListResponse,
   parseSCIMQueryParams,
 } from "../Utils/SCIMUtils";
-import { AppApiClientUrl, DocsClientUrl } from "Common/Server/EnvironmentConfig";
+import {
+  AppApiClientUrl,
+  DocsClientUrl,
+} from "Common/Server/EnvironmentConfig";
 
 type SCIMMember = {
   value: string;
@@ -680,11 +683,7 @@ router.get(
       // Format teams as SCIM groups
       const groupsPromises: Array<Promise<JSONObject>> = teams.map(
         (team: Team) => {
-          return formatTeamForSCIM(
-            team,
-            req.params["projectScimId"]!,
-            false,
-          );
+          return formatTeamForSCIM(team, req.params["projectScimId"]!, false);
         }, // Don't include members for list to avoid performance issues
       );
 
