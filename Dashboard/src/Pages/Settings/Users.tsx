@@ -20,11 +20,14 @@ import { Green, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 
 const Teams: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const [showInviteUserModal, setShowInviteUserModal] =
+    React.useState<boolean>(false);
+  const [showScimErrorModal, setShowScimErrorModal] =
     React.useState<boolean>(false);
   const [isFilterApplied, setIsFilterApplied] = React.useState<boolean>(false);
   const [isScimEnabled, setIsScimEnabled] = React.useState<boolean>(false);
@@ -73,13 +76,17 @@ const Teams: FunctionComponent<PageComponentProps> = (
           title: "Users",
           description:
             "Here is a list of all the team members in this project.",
-          buttons: isScimEnabled ? [] : [
+          buttons: [
             {
               title: "Invite User",
               buttonStyle: ButtonStyleType.NORMAL,
               icon: IconProp.Add,
               onClick: () => {
-                setShowInviteUserModal(true);
+                if (isScimEnabled) {
+                  setShowScimErrorModal(true);
+                } else {
+                  setShowInviteUserModal(true);
+                }
               },
             },
           ],
@@ -237,6 +244,19 @@ const Teams: FunctionComponent<PageComponentProps> = (
             ],
             formType: FormType.Create,
           }}
+        />
+      )}
+      {showScimErrorModal && (
+        <ConfirmModal
+          title="SCIM is Enabled"
+          description="Cannot invite users when SCIM is enabled for this project. User management is handled by your identity provider."
+          onClose={() => {
+            setShowScimErrorModal(false);
+          }}
+          onSubmit={() => {
+            setShowScimErrorModal(false);
+          }}
+          submitButtonText="Close"
         />
       )}
     </Fragment>
