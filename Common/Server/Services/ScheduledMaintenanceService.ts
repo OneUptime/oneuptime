@@ -347,7 +347,6 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       (updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent ||
         updateBy.data.startsAt)
     ) {
-
       logger.debug(
         `Calculating nextSubscriberNotificationBeforeTheEventAt for Scheduled Maintenance: ${updateBy.query.id}`,
       );
@@ -380,10 +379,9 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
           .sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>) ||
         (scheduledMaintenance.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>);
 
-        logger.debug(
-          `Using startsAt: ${startsAt} and notificationSettings: ${JSON.stringify(notificationSettings)}`,
-        );
-
+      logger.debug(
+        `Using startsAt: ${startsAt} and notificationSettings: ${JSON.stringify(notificationSettings)}`,
+      );
 
       const nextTimeToNotifyBeforeTheEvent: Date | null =
         this.getNextTimeToNotify({
