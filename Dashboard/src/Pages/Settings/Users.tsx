@@ -248,11 +248,8 @@ const Teams: FunctionComponent<PageComponentProps> = (
       )}
       {showScimErrorModal && (
         <ConfirmModal
-          title="SCIM is Enabled"
+          title="Users are managed by SCIM"
           description="Cannot invite users when SCIM is enabled for this project. User management is handled by your identity provider."
-          onClose={() => {
-            setShowScimErrorModal(false);
-          }}
           onSubmit={() => {
             setShowScimErrorModal(false);
           }}
