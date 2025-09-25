@@ -343,12 +343,17 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (
-      updateBy.query.id &&
+      updateBy.query._id &&
       (updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent ||
         updateBy.data.startsAt)
     ) {
+
+      logger.debug(
+        `Calculating nextSubscriberNotificationBeforeTheEventAt for Scheduled Maintenance: ${updateBy.query.id}`,
+      );
+
       const scheduledMaintenance: Model | null = await this.findOneById({
-        id: updateBy.query.id! as ObjectID,
+        id: updateBy.query._id! as ObjectID,
         select: {
           startsAt: true,
           sendSubscriberNotificationsOnBeforeTheEvent: true,
@@ -357,6 +362,10 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
           isRoot: true,
         },
       });
+
+      logger.debug(
+        `Current Scheduled Maintenance data: ${JSON.stringify(scheduledMaintenance)}`,
+      );
 
       if (!scheduledMaintenance) {
         throw new BadDataException("Scheduled Maintenance Event not found");
@@ -371,6 +380,11 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
           .sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>) ||
         (scheduledMaintenance.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>);
 
+        logger.debug(
+          `Using startsAt: ${startsAt} and notificationSettings: ${JSON.stringify(notificationSettings)}`,
+        );
+
+
       const nextTimeToNotifyBeforeTheEvent: Date | null =
         this.getNextTimeToNotify({
           eventScheduledDate: startsAt,
@@ -379,6 +393,10 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
       updateBy.data.nextSubscriberNotificationBeforeTheEventAt =
         nextTimeToNotifyBeforeTheEvent;
+
+      logger.debug(
+        `nextSubscriberNotificationBeforeTheEventAt set to: ${nextTimeToNotifyBeforeTheEvent}`,
+      );
     }
 
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnEventCreated if it's being updated
