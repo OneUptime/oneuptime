@@ -129,9 +129,40 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `certManagerLetsEncrypt.server`                  | Let's Encrypt ACME server URL                                                                                                                                                          | `https://acme-v02.api.letsencrypt.org/directory` |                 |
 
 
-## Cert-Manager Integration
+## LetsEncrypt Cert-Manager Integration
 
 OneUptime integrates with [Cert-Manager](https://cert-manager.io/) to automatically provision and manage TLS/SSL certificates using Let's Encrypt. This provides automatic certificate renewal and secure HTTPS access to your OneUptime installation.
+
+To enable this, please set the following in your values.yaml file. 
+
+```
+cert-manager:
+  enabled: true
+  installCRDs: true
+```
+
+Deploy helm to enable and install CRD's and then, add these to values.yaml
+
+```
+# Let's Encrypt configuration for Cert-Manager
+certManagerLetsEncrypt:
+  enabled: true
+  email: "test@oneuptime.com"  # Set your email for Let's Encrypt notifications
+  server: "https://acme-v02.api.letsencrypt.org/directory"  # Use "https://acme-staging-v02.api.letsencrypt.org/directory" for staging
+
+oneuptimeIngress:
+  enabled: true
+  tls:
+    enabled: true
+    hosts:
+     - host: "test.oneuptime.com" # Host 1
+     # Please do not provide secretName as it'll be automatically generated. 
+  className: nginx
+  hosts:
+    - test.oneuptime.com
+```
+
+Deploy the chart again and certificates should be provisioned. 
 
 ### Prerequisites
 
