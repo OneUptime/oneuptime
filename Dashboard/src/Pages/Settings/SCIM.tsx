@@ -104,6 +104,9 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
             {
               title: "Teams",
               id: "teams",
+              showIf: (item: FormValues<ProjectSCIM>): boolean => {
+                return !item.enablePushGroups;
+              },
             },
           ]}
           noItemsMessage={"No SCIM configuration found."}
