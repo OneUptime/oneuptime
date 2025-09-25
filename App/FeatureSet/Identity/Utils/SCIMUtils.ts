@@ -228,6 +228,27 @@ export const generateUsersListResponse: (
 };
 
 /**
+ * Generate SCIM ListResponse for groups
+ */
+export const generateGroupsListResponse: (
+  groups: JSONObject[],
+  startIndex: number,
+  totalResults: number,
+) => JSONObject = (
+  groups: JSONObject[],
+  startIndex: number,
+  totalResults: number,
+): JSONObject => {
+  return {
+    schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+    totalResults: totalResults,
+    startIndex: startIndex,
+    itemsPerPage: groups.length,
+    Resources: groups,
+  };
+};
+
+/**
  * Parse query parameters for SCIM list requests
  */
 export const parseSCIMQueryParams: (req: ExpressRequest) => {
