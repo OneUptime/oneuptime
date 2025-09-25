@@ -228,7 +228,8 @@ const LoginPage: () => JSX.Element = () => {
                     selectedTwoFactorAuth.id?.toString() as string;
 
                   const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
-                    await API.post(VERIFY_TWO_FACTOR_AUTH_API_URL, {
+                    await API.post({
+                      url: VERIFY_TWO_FACTOR_AUTH_API_URL,
                       data: {
                         ...initialValues,
                         code: code,

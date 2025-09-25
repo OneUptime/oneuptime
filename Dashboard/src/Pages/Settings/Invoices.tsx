@@ -59,18 +59,18 @@ const Settings: FunctionComponent<ComponentProps> = (
     try {
       setIsLoading(true);
 
-      const result: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>(
-        URL.fromString(APP_API_URL.toString()).addRoute(
+      const result: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
           `/billing-invoices/pay`,
         ),
-        {
+        data: {
           data: {
             paymentProviderInvoiceId: invoiceId,
             paymentProviderCustomerId: customerId,
           },
         },
-        ModelAPI.getCommonHeaders(),
-      );
+        headers: ModelAPI.getCommonHeaders(),
+      });
 
       if (result.isFailure()) {
         throw result;

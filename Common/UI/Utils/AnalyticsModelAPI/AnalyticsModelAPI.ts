@@ -96,18 +96,23 @@ export default class ModelAPI {
 
     apiUrl = apiUrl.addRoute(`/${id.toString()}`);
 
-    const result: HTTPResponse<
+    const result:
+      | HTTPErrorResponse
+      | HTTPResponse<
+          | JSONObject
+          | JSONArray
+          | TAnalyticsBaseModel
+          | Array<TAnalyticsBaseModel>
+        > = await API.fetch<
       JSONObject | JSONArray | TAnalyticsBaseModel | Array<TAnalyticsBaseModel>
-    > = await API.fetch<
-      JSONObject | JSONArray | TAnalyticsBaseModel | Array<TAnalyticsBaseModel>
-    >(
-      HTTPMethod.PUT,
-      apiUrl,
-      {
+    >({
+      method: HTTPMethod.PUT,
+      url: apiUrl,
+      data: {
         data: data,
       },
-      this.getCommonHeaders(requestOptions),
-    );
+      headers: this.getCommonHeaders(requestOptions),
+    });
 
     if (result.isSuccess()) {
       return result;
@@ -150,20 +155,20 @@ export default class ModelAPI {
     }
 
     const apiResult: HTTPErrorResponse | HTTPResponse<TAnalyticsBaseModel> =
-      await API.fetch<TAnalyticsBaseModel>(
-        httpMethod,
-        apiUrl,
-        {
+      await API.fetch<TAnalyticsBaseModel>({
+        method: httpMethod,
+        url: apiUrl,
+        data: {
           data: JSONFunctions.serialize(
             AnalyticsBaseModel.toJSON(model, modelType),
           ),
           miscDataProps: miscDataProps || {},
         },
-        {
+        headers: {
           ...this.getCommonHeaders(requestOptions),
           ...(requestOptions?.requestHeaders || {}),
         },
-      );
+      });
 
     if (apiResult.isSuccess() && apiResult instanceof HTTPResponse) {
       const result: HTTPResponse<TAnalyticsBaseModel> =
@@ -216,14 +221,14 @@ export default class ModelAPI {
     const headers: Dictionary<string> = this.getCommonHeaders(requestOptions);
 
     const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
-      await API.fetch<JSONArray>(
-        HTTPMethod.POST,
-        apiUrl,
-        {
+      await API.fetch<JSONArray>({
+        method: HTTPMethod.POST,
+        url: apiUrl,
+        data: {
           aggregateBy: JSONFunctions.serialize(aggregateBy as any),
         },
         headers,
-      );
+      });
 
     if (result.isSuccess()) {
       const aggregatedResult: AggregatedResult = result.data as any;
@@ -283,21 +288,21 @@ export default class ModelAPI {
     const headers: Dictionary<string> = this.getCommonHeaders(requestOptions);
 
     const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
-      await API.fetch<JSONArray>(
-        HTTPMethod.POST,
-        apiUrl,
-        {
+      await API.fetch<JSONArray>({
+        method: HTTPMethod.POST,
+        url: apiUrl,
+        data: {
           query: JSONFunctions.serialize(query as JSONObject),
           select: JSONFunctions.serialize(select as JSONObject),
           sort: JSONFunctions.serialize(sort as JSONObject),
           groupBy: JSONFunctions.serialize(groupBy as JSONObject),
         },
         headers,
-        {
+        params: {
           limit: limit.toString(),
           skip: skip.toString(),
         },
-      );
+      });
 
     if (result.isSuccess()) {
       const list: Array<TAnalyticsBaseModel> = AnalyticsBaseModel.fromJSONArray(
@@ -348,14 +353,14 @@ export default class ModelAPI {
     const headers: Dictionary<string> = this.getCommonHeaders(requestOptions);
 
     const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
-      await API.fetch<JSONObject>(
-        HTTPMethod.POST,
-        apiUrl,
-        {
+      await API.fetch<JSONObject>({
+        method: HTTPMethod.POST,
+        url: apiUrl,
+        data: {
           query: JSONFunctions.serialize(query as JSONObject),
         },
         headers,
-      );
+      });
 
     if (result.isSuccess()) {
       const count: number = result.data["count"] as number;
@@ -433,14 +438,14 @@ export default class ModelAPI {
     requestOptions?: RequestOptions | undefined,
   ): Promise<TAnalyticsBaseModel | null> {
     const result: HTTPResponse<TAnalyticsBaseModel> | HTTPErrorResponse =
-      await API.fetch<TAnalyticsBaseModel>(
-        HTTPMethod.POST,
-        apiUrl,
-        {
+      await API.fetch<TAnalyticsBaseModel>({
+        method: HTTPMethod.POST,
+        url: apiUrl,
+        data: {
           select: JSONFunctions.serialize(select as JSONObject) || {},
         },
-        this.getCommonHeaders(requestOptions),
-      );
+        headers: this.getCommonHeaders(requestOptions),
+      });
 
     if (result.isSuccess()) {
       return AnalyticsBaseModel.fromJSON(
@@ -481,12 +486,11 @@ export default class ModelAPI {
     }
 
     const result: HTTPResponse<TAnalyticsBaseModel> | HTTPErrorResponse =
-      await API.fetch<TAnalyticsBaseModel>(
-        HTTPMethod.DELETE,
-        apiUrl,
-        undefined,
-        this.getCommonHeaders(requestOptions),
-      );
+      await API.fetch<TAnalyticsBaseModel>({
+        method: HTTPMethod.DELETE,
+        url: apiUrl,
+        headers: this.getCommonHeaders(requestOptions),
+      });
 
     if (result.isSuccess()) {
       return;

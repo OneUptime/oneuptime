@@ -1,5 +1,6 @@
 import BaseAPI from "Common/Server/API/BaseAPI";
 import BaseAnalyticsAPI from "Common/Server/API/BaseAnalyticsAPI";
+import BillingAPI from "Common/Server/API/BillingAPI";
 import BillingInvoiceAPI from "Common/Server/API/BillingInvoiceAPI";
 import BillingPaymentMethodAPI from "Common/Server/API/BillingPaymentMethodAPI";
 import CopilotCodeRepositoryAPI from "Common/Server/API/CopilotCodeRepositoryAPI";
@@ -327,6 +328,9 @@ import TeamMemberService, {
 import TeamPermissionService, {
   Service as TeamPermissionServiceType,
 } from "Common/Server/Services/TeamPermissionService";
+import TeamComplianceSettingService, {
+  TeamComplianceSettingService as TeamComplianceSettingServiceType,
+} from "Common/Server/Services/TeamComplianceSettingService";
 import TeamService, {
   Service as TeamServiceType,
 } from "Common/Server/Services/TeamService";
@@ -469,6 +473,7 @@ import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
+import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import User from "Common/Models/DatabaseModels/User";
@@ -550,10 +555,7 @@ import MetricTypeService, {
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
-
-// OnCallDutyPolicyOwnerTeam
-// OnCallDutyPolicyOwnerUser
-// OnCallDutyPolicyFeed
+import TeamComplianceAPI from "Common/Server/API/TeamComplianceAPI";
 
 import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
 import OnCallDutyPolicyFeedService, {
@@ -1169,6 +1171,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TeamComplianceSetting, TeamComplianceSettingServiceType>(
+        TeamComplianceSetting,
+        TeamComplianceSettingService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<MonitorStatus, MonitorStatusServiceType>(
         MonitorStatus,
         MonitorStatusService,
@@ -1581,7 +1591,6 @@ const BaseAPIFeatureSet: FeatureSet = {
         MonitorTimelineStatusService,
       ).getRouter(),
     );
-
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ShortLinkAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new MonitorAPI().getRouter());
     app.use(
@@ -1593,6 +1602,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new OnCallDutyPolicyAPI().getRouter(),
+    );
+
+    // TeamComplianceAPI
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new TeamComplianceAPI().getRouter(),
     );
 
     app.use(
@@ -1669,6 +1684,8 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BillingInvoiceAPI().getRouter(),
     );
+
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new BillingAPI().getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

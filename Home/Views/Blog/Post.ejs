@@ -263,6 +263,42 @@
                             }
                         });
                     } catch(e) {}
+
+                    // Mermaid diagrams
+                    try {
+                        const mermaidCodeBlocks = document.querySelectorAll('.blog-body pre code.language-mermaid, .blog-body pre code.mermaid, .blog-body pre code[class*="language-mermaid"], .blog-body pre code[class*="mermaid"]');
+                        if(mermaidCodeBlocks.length){
+                            // Dynamically load Mermaid only if needed to avoid extra payload on pages without diagrams
+                            const script = document.createElement('script');
+                            script.src = 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
+                            script.async = true;
+                            script.onload = () => {
+                                if(!window.mermaid){ return; }
+                                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                                window.mermaid.initialize({
+                                    startOnLoad: false,
+                                    securityLevel: 'loose', // Content is trusted (owned blog); allows links & styling
+                                    theme: prefersDark ? 'dark' : 'default'
+                                });
+                                mermaidCodeBlocks.forEach((codeEl, i) => {
+                                    // Avoid double-processing
+                                    if(codeEl.dataset.mermaidProcessed){ return; }
+                                    const pre = codeEl.closest('pre');
+                                    if(!pre){ return; }
+                                    const def = codeEl.textContent.trim(); // Use textContent to ignore highlight.js span wrappers
+                                    const container = document.createElement('div');
+                                    container.className = 'mermaid my-6';
+                                    // Provide a deterministic ID (optional)
+                                    container.id = 'mermaid-diagram-' + (i+1);
+                                    container.textContent = def;
+                                    pre.replaceWith(container);
+                                    codeEl.dataset.mermaidProcessed = 'true';
+                                });
+                                try { window.mermaid.run && window.mermaid.run(); } catch(_) {}
+                            };
+                            document.head.appendChild(script);
+                        }
+                    } catch(e) {}
                 })();
             </script>
 </body>

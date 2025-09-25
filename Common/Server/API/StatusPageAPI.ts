@@ -181,6 +181,7 @@ export default class StatusPageAPI extends BaseAPI<
         return Response.sendJsonObjectResponse(req, res, {
           title: statusPage.pageTitle || statusPage.name,
           description: statusPage.pageDescription,
+          _id: statusPage._id?.toString()
         });
       },
     );
@@ -1100,7 +1101,7 @@ export default class StatusPageAPI extends BaseAPI<
                 },
                 select: select,
                 sort: {
-                  createdAt: SortOrder.Ascending,
+                  createdAt: SortOrder.Descending,
                 },
 
                 skip: 0,

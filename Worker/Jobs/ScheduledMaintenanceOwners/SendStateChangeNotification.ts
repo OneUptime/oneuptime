@@ -54,6 +54,7 @@ RunCron(
             _id: true,
             title: true,
             description: true,
+            projectId: true,
             scheduledMaintenanceNumber: true,
           },
           scheduledMaintenanceState: {

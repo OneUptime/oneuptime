@@ -222,14 +222,14 @@ export class Service extends DatabaseService<StatusPageDomain> {
   ): Promise<boolean> {
     try {
       const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.get(
-          URL.fromString(
+        await API.get({
+          url: URL.fromString(
             "https://" +
               fulldomain +
               "/status-page-api/cname-verification/" +
               token,
           ),
-        );
+        });
 
       if (result.isFailure()) {
         return false;
@@ -306,14 +306,14 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
       try {
         const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.get(
-            URL.fromString(
+          await API.get({
+            url: URL.fromString(
               "http://" +
                 fullDomain +
                 "/status-page-api/cname-verification/" +
                 token,
             ),
-          );
+          });
 
         logger.debug("CNAME verification result");
         logger.debug(result);
@@ -335,14 +335,14 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
       try {
         const resultHttps: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.get(
-            URL.fromString(
+          await API.get({
+            url: URL.fromString(
               "https://" +
                 fullDomain +
                 "/status-page-api/cname-verification/" +
                 token,
             ),
-          );
+          });
 
         logger.debug("CNAME verification result for https");
         logger.debug(resultHttps);

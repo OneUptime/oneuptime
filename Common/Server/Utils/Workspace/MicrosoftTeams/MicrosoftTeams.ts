@@ -116,7 +116,10 @@ export default class MicrosoftTeams extends WorkspaceBase {
     const payload: JSONObject = this.buildMessageCardFromMarkdown(data.text);
 
     const apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null =
-      await API.post(data.url, payload);
+      await API.post({
+        url: data.url,
+        data: payload,
+      });
 
     if (!apiResult) {
       logger.error(

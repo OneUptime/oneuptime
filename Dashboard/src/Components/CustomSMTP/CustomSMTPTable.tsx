@@ -284,12 +284,11 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
               // test SMTP config
               const response:
                 | HTTPResponse<EmptyResponseData>
-                | HTTPErrorResponse = await API.post(
-                URL.fromString(NOTIFICATION_URL.toString()).addRoute(
+                | HTTPErrorResponse = await API.post({
+                url: URL.fromString(NOTIFICATION_URL.toString()).addRoute(
                   `/smtp-config/test`,
                 ),
-
-                {
+                data: {
                   toEmail: values["toEmail"],
                   smtpConfigId: new ObjectID(
                     currentSMTPTestConfig["_id"]
@@ -297,7 +296,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
                       : "",
                   ).toString(),
                 },
-              );
+              });
               if (response.isSuccess()) {
                 setIsSMTPTestLoading(false);
                 setShowSMTPTestModal(false);

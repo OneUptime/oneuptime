@@ -161,13 +161,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
       const announcementId: string | undefined =
         Navigation.getLastParamAsObjectID().toString();
 
-      const response: HTTPResponse<JSONObject> = await API.post<JSONObject>(
-        URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+      const response: HTTPResponse<JSONObject> = await API.post<JSONObject>({
+        url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
           `/announcements/${id.toString()}/${announcementId}`,
         ),
-        {},
-        API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!),
-      );
+        data: {},
+        headers: API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!),
+      });
 
       if (!response.isSuccess()) {
         throw response;

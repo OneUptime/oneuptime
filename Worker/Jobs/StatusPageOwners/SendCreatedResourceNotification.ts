@@ -130,6 +130,7 @@ RunCron(
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
+          statusPageId: statusPage.id!,
           eventType:
             NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION,
         });

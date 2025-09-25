@@ -617,8 +617,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     miscData?: JSONObject | undefined, // miscData is used for passing data to workflow.
   ): Promise<void> {
     if (this.getModel().enableWorkflowOn) {
-      API.post(
-        new URL(
+      API.post({
+        url: new URL(
           Protocol.HTTP,
           WorkflowHostname,
           new Route(
@@ -627,16 +627,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             )}/${triggerType}`,
           ),
         ),
-        {
+        data: {
           data: {
             _id: id.toString(),
             miscData: miscData,
           },
         },
-        {
+        headers: {
           ...ClusterKeyAuthorization.getClusterKeyHeaders(),
         },
-      ).catch((error: Error) => {
+      }).catch((error: Error) => {
         logger.error(error);
       });
     }

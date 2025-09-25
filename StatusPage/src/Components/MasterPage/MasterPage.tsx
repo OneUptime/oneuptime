@@ -141,13 +141,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
       }
     }
     // get status page id by hostname.
-    const response: HTTPResponse<JSONObject> = await API.post<JSONObject>(
-      URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(`/domain`),
-      {
+    const response: HTTPResponse<JSONObject> = await API.post<JSONObject>({
+      url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(`/domain`),
+      data: {
         domain: Navigation.getHostname().toString(),
       },
-      {},
-    );
+      headers: {},
+    });
 
     if (response.data && response.data["statusPageId"]) {
       return new ObjectID(response.data["statusPageId"] as string);
@@ -166,13 +166,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
       StatusPageUtil.setStatusPageId(id);
 
-      const response: HTTPResponse<JSONObject> = await API.post<JSONObject>(
-        URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+      const response: HTTPResponse<JSONObject> = await API.post<JSONObject>({
+        url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
           `/master-page/${id.toString()}`,
         ),
-        {},
-        {},
-      );
+        data: {},
+        headers: {},
+      });
 
       setMasterPageData(response.data);
 

@@ -53,20 +53,20 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(data);
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post<JSONObject>(
-        URL.fromString("https://slack.com/api/users.info"),
-        {
+      await API.post<JSONObject>({
+        url: URL.fromString("https://slack.com/api/users.info"),
+        data: {
           user: data.userId,
         },
-        {
+        headers: {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
         },
-        {
+        options: {
           retries: 3,
           exponentialBackoff: true,
         },
-      );
+      });
 
     logger.debug("Response from Slack API for getting user info:");
     logger.debug(response);
@@ -119,18 +119,20 @@ export default class SlackUtil extends WorkspaceBase {
 
     // use view.open API to show modal
     const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
-      URL.fromString("https://slack.com/api/views.open"),
       {
-        trigger_id: data.triggerId,
-        view: modalJson,
-      },
-      {
-        Authorization: `Bearer ${data.authToken}`,
-        ["Content-Type"]: "application/json",
-      },
-      {
-        retries: 3,
-        exponentialBackoff: true,
+        url: URL.fromString("https://slack.com/api/views.open"),
+        data: {
+          trigger_id: data.triggerId,
+          view: modalJson,
+        },
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/json",
+        },
+        options: {
+          retries: 3,
+          exponentialBackoff: true,
+        },
       },
     );
 
@@ -205,20 +207,20 @@ export default class SlackUtil extends WorkspaceBase {
 
     for (const channelId of data.channelIds) {
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.post(
-          URL.fromString("https://slack.com/api/conversations.archive"),
-          {
+        await API.post({
+          url: URL.fromString("https://slack.com/api/conversations.archive"),
+          data: {
             channel: channelId,
           },
-          {
+          headers: {
             Authorization: `Bearer ${data.authToken}`,
             ["Content-Type"]: "application/x-www-form-urlencoded",
           },
-          {
+          options: {
             retries: 3,
             exponentialBackoff: true,
           },
-        );
+        });
 
       logger.debug("Response from Slack API for archiving channel:");
       logger.debug(response);
@@ -252,20 +254,20 @@ export default class SlackUtil extends WorkspaceBase {
 
     // Join channel
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post(
-        URL.fromString("https://slack.com/api/conversations.join"),
-        {
+      await API.post({
+        url: URL.fromString("https://slack.com/api/conversations.join"),
+        data: {
           channel: data.channelId,
         },
-        {
+        headers: {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
         },
-        {
+        options: {
           retries: 3,
           exponentialBackoff: true,
         },
-      );
+      });
 
     logger.debug("Response from Slack API for joining channel:");
     logger.debug(response);
@@ -311,21 +313,21 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(data);
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post(
-        URL.fromString("https://slack.com/api/conversations.invite"),
-        {
+      await API.post({
+        url: URL.fromString("https://slack.com/api/conversations.invite"),
+        data: {
           channel: data.channelId,
           users: data.workspaceUserId,
         },
-        {
+        headers: {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
         },
-        {
+        options: {
           retries: 3,
           exponentialBackoff: true,
         },
-      );
+      });
 
     logger.debug("Response from Slack API for inviting user:");
     logger.debug(response);
@@ -465,20 +467,20 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(data);
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post<JSONObject>(
-        URL.fromString("https://slack.com/api/conversations.info"),
-        {
+      await API.post<JSONObject>({
+        url: URL.fromString("https://slack.com/api/conversations.info"),
+        data: {
           channel: data.channelId,
         },
-        {
+        headers: {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
         },
-        {
+        options: {
           retries: 3,
           exponentialBackoff: true,
         },
-      );
+      });
 
     logger.debug("Response from Slack API for getting channel info:");
     logger.debug(response);
@@ -546,18 +548,18 @@ export default class SlackUtil extends WorkspaceBase {
       }
 
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.post<JSONObject>(
-          URL.fromString("https://slack.com/api/conversations.list"),
-          requestBody,
-          {
+        await API.post<JSONObject>({
+          url: URL.fromString("https://slack.com/api/conversations.list"),
+          data: requestBody,
+          headers: {
             Authorization: `Bearer ${data.authToken}`,
             ["Content-Type"]: "application/x-www-form-urlencoded",
           },
-          {
+          options: {
             retries: 3,
             exponentialBackoff: true,
           },
-        );
+        });
 
       if (response instanceof HTTPErrorResponse) {
         logger.error("Error response from Slack API:");
@@ -777,13 +779,13 @@ export default class SlackUtil extends WorkspaceBase {
     }
 
     let cursor: string | undefined = undefined;
-    const maxPages: number = 100;
+    const maxPages: number = 500;
     let pageCount: number = 0;
     const localChannelCache: Dictionary<any> = {};
 
     do {
       const requestBody: JSONObject = {
-        limit: 200, // Use smaller limit for faster searches
+        limit: 999, // Use smaller limit for faster searches
         types: "public_channel,private_channel",
         exclude_archived: true,
       };
@@ -793,18 +795,18 @@ export default class SlackUtil extends WorkspaceBase {
       }
 
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.post<JSONObject>(
-          URL.fromString("https://slack.com/api/conversations.list"),
-          requestBody,
-          {
+        await API.post<JSONObject>({
+          url: URL.fromString("https://slack.com/api/conversations.list"),
+          data: requestBody,
+          headers: {
             Authorization: `Bearer ${data.authToken}`,
             ["Content-Type"]: "application/x-www-form-urlencoded",
           },
-          {
+          options: {
             retries: 3,
             exponentialBackoff: true,
           },
-        );
+        });
 
       if (response instanceof HTTPErrorResponse) {
         logger.error("Error response from Slack API:");
@@ -1105,22 +1107,22 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(JSON.stringify(data, null, 2));
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post(
-        URL.fromString("https://slack.com/api/chat.postMessage"),
-        {
+      await API.post({
+        url: URL.fromString("https://slack.com/api/chat.postMessage"),
+        data: {
           channel: data.workspaceChannel.id,
           blocks: data.blocks,
           unfurl_links: false,
         },
-        {
+        headers: {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/json",
         },
-        {
+        options: {
           retries: 3,
           exponentialBackoff: true,
         },
-      );
+      });
 
     logger.debug("Response from Slack API for sending message:");
     logger.debug(response);
@@ -1186,20 +1188,20 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(data);
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-      await API.post(
-        URL.fromString("https://slack.com/api/conversations.create"),
-        {
+      await API.post({
+        url: URL.fromString("https://slack.com/api/conversations.create"),
+        data: {
           name: data.channelName,
         },
-        {
+        headers: {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
         },
-        {
+        options: {
           retries: 3,
           exponentialBackoff: true,
         },
-      );
+      });
 
     logger.debug("Response from Slack API for creating channel:");
     logger.debug(response);
@@ -1590,20 +1592,20 @@ export default class SlackUtil extends WorkspaceBase {
   }): Promise<boolean> {
     // check of the user id is in the direct message channel id
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post(
-        URL.fromString("https://slack.com/api/conversations.info"),
-        {
+      await API.post({
+        url: URL.fromString("https://slack.com/api/conversations.info"),
+        data: {
           channel: data.directMessageChannelId,
         },
-        {
+        headers: {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
         },
-        {
+        options: {
           retries: 3,
           exponentialBackoff: true,
         },
-      );
+      });
 
     if (response instanceof HTTPErrorResponse) {
       logger.error("Error response from Slack API:");
@@ -1660,18 +1662,18 @@ export default class SlackUtil extends WorkspaceBase {
       }
 
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.post<JSONObject>(
-          URL.fromString("https://slack.com/api/conversations.members"),
-          requestBody,
-          {
+        await API.post<JSONObject>({
+          url: URL.fromString("https://slack.com/api/conversations.members"),
+          data: requestBody,
+          headers: {
             Authorization: `Bearer ${data.authToken}`,
             ["Content-Type"]: "application/x-www-form-urlencoded",
           },
-          {
+          options: {
             retries: 3,
             exponentialBackoff: true,
           },
-        );
+        });
 
       logger.debug("Response from Slack API for getting channel members:");
       logger.debug(response);
@@ -1747,9 +1749,9 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(data);
 
     const apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null =
-      await API.post(
-        data.url,
-        {
+      await API.post({
+        url: data.url,
+        data: {
           blocks: [
             {
               type: "section",
@@ -1760,12 +1762,11 @@ export default class SlackUtil extends WorkspaceBase {
             },
           ],
         },
-        undefined,
-        {
+        options: {
           retries: 3,
           exponentialBackoff: true,
         },
-      );
+      });
 
     logger.debug("Response from Slack API for sending message via webhook:");
     logger.debug(apiResult);

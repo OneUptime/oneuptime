@@ -42,12 +42,12 @@ const LoginPage: () => JSX.Element = () => {
       try {
         // get sso config by email.
         const listResult: HTTPErrorResponse | HTTPResponse<JSONArray> =
-          await API.get(
-            URL.fromString(apiUrl.toString()).addQueryParam(
+          await API.get({
+            url: URL.fromString(apiUrl.toString()).addQueryParam(
               "email",
               email.toString(),
             ),
-          );
+          });
 
         if (listResult instanceof HTTPErrorResponse) {
           throw listResult;

@@ -96,15 +96,15 @@ export default class MetricUtil {
 
     const metricAttributesResponse:
       | HTTPResponse<JSONObject>
-      | HTTPErrorResponse = await API.post(
-      URL.fromString(APP_API_URL.toString()).addRoute(
+      | HTTPErrorResponse = await API.post({
+      url: URL.fromString(APP_API_URL.toString()).addRoute(
         "/telemetry/metrics/get-attributes",
       ),
-      {},
-      {
+      data: {},
+      headers: {
         ...AnalyticsModelAPI.getCommonHeaders(),
       },
-    );
+    });
 
     let attributes: Array<string> = [];
 

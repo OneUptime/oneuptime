@@ -764,6 +764,23 @@ export class BillingService extends BaseService {
   }
 
   @CaptureSpan()
+  public async getCustomerBalance(customerId: string): Promise<number> {
+    if (!this.isBillingEnabled()) {
+      throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
+    }
+
+    const customer: Stripe.Response<Stripe.Customer | Stripe.DeletedCustomer> =
+      await this.stripe.customers.retrieve(customerId);
+
+    if (!customer || customer.deleted) {
+      throw new BadDataException(Errors.BillingService.CUSTOMER_NOT_FOUND);
+    }
+
+    // Balance is in cents, convert to dollars
+    return ((customer as Stripe.Customer).balance || 0) / 100;
+  }
+
+  @CaptureSpan()
   public async cancelSubscription(subscriptionId: string): Promise<void> {
     if (!this.isBillingEnabled()) {
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);

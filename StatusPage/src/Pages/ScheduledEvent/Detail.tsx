@@ -301,13 +301,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
       const eventId: string | undefined =
         Navigation.getLastParamAsObjectID().toString();
 
-      const response: HTTPResponse<JSONObject> = await API.post<JSONObject>(
-        URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+      const response: HTTPResponse<JSONObject> = await API.post<JSONObject>({
+        url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
           `/scheduled-maintenance-events/${id.toString()}/${eventId}`,
         ),
-        {},
-        API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!),
-      );
+        data: {},
+        headers: API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!),
+      });
 
       if (!response.isSuccess()) {
         throw response;

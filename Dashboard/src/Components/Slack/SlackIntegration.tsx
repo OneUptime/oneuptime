@@ -32,6 +32,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import SlackIntegrationDocumentation from "./SlackIntegrationDocumentation";
 import Link from "Common/UI/Components/Link/Link";
+import SlackChannelCacheModal from "./SlackChannelCacheModal";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -56,6 +57,8 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
   const [slackTeamName, setSlackTeamName] = React.useState<string | null>(null);
+  const [showChannelsModal, setShowChannelsModal] =
+    React.useState<boolean>(false);
 
   useEffect(() => {
     if (isProjectAccountConnected) {
@@ -127,9 +130,11 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
         // fetch app manifest.
         const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.get<JSONObject>(
-            URL.fromString(`${HOME_URL.toString()}/api/slack/app-manifest`),
-          );
+          await API.get<JSONObject>({
+            url: URL.fromString(
+              `${HOME_URL.toString()}/api/slack/app-manifest`,
+            ),
+          });
 
         if (response instanceof HTTPErrorResponse) {
           throw response;
@@ -179,6 +184,22 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     cardTitle = `You are connected with ${slackTeamName} team on Slack`;
     cardDescription = `Your account is already connected with Slack.`;
     cardButtons = [
+      {
+        title: `View Channels`,
+        isLoading: isButtonLoading,
+        buttonStyle: ButtonStyleType.NORMAL,
+        onClick: async () => {
+          try {
+            setError(null);
+            setShowChannelsModal(true);
+          } catch (error) {
+            setError(
+              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
+            );
+          }
+        },
+        icon: IconProp.Slack,
+      },
       {
         title: `Disconnect`,
         isLoading: isButtonLoading,
@@ -362,6 +383,22 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
       // connect with slack button.
       getConnectWithSlackButton(`Connect my account with Slack`),
       {
+        title: `View Channels`,
+        isLoading: isButtonLoading,
+        buttonStyle: ButtonStyleType.NORMAL,
+        onClick: async () => {
+          try {
+            setError(null);
+            setShowChannelsModal(true);
+          } catch (error) {
+            setError(
+              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
+            );
+          }
+        },
+        icon: IconProp.Slack,
+      },
+      {
         title: `Uninstall OneUptime from Slack`,
         isLoading: isButtonLoading,
         buttonStyle: ButtonStyleType.DANGER,
@@ -416,6 +453,14 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
           buttons={cardButtons}
         />
       </div>
+      {showChannelsModal && projectAuthTokenId ? (
+        <SlackChannelCacheModal
+          projectAuthTokenId={projectAuthTokenId}
+          onClose={() => {
+            return setShowChannelsModal(false);
+          }}
+        />
+      ) : null}
     </Fragment>
   );
 };

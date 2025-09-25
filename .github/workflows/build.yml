@@ -19,7 +19,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
       
       # build image for accounts service
       - name: build docker image
@@ -38,7 +42,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
       
       # build image for accounts service
       - name: build docker image
@@ -57,7 +65,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
       
       # build image for accounts service
       - name: build docker image
@@ -76,7 +88,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
       
       # build image for accounts service
       - name: build docker image
@@ -95,7 +111,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
       
       # build image for accounts service
       - name: build docker image
@@ -114,7 +134,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
       
       # build image for accounts service
       - name: build docker image
@@ -133,7 +157,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
       
       # build image for accounts service
       - name: build docker image
@@ -153,7 +181,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
       
       # build image for accounts service
       - name: build docker image
@@ -172,7 +204,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
         
       # build image for accounts service
@@ -193,7 +229,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # build image for accounts service
       - name: build docker image
@@ -212,7 +252,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
         
       # build image for accounts service
@@ -232,7 +276,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # build image for home
       - name: build docker image
@@ -251,7 +299,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # build image for home
       - name: build docker image
@@ -270,7 +322,11 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
         
       # build image probe api
       - name: build docker image
@@ -289,7 +345,11 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
         
       # build image probe api
       - name: build docker image
@@ -308,7 +368,11 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
         
       # build image probe api
       - name: build docker image
@@ -327,7 +391,11 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
         
       # build image probe api
       - name: build docker image
@@ -346,7 +414,11 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
         
       # build image probe api
       - name: build docker image
@@ -365,7 +437,11 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
         
       # build image probe api
       - name: build docker image
@@ -384,7 +460,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
         
       # build image for home
       - name: build docker image
@@ -403,7 +483,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preinstall 
-        run: npm run prerun
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
 
       # build image for mail service
       - name: build docker image

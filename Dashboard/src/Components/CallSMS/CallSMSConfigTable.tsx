@@ -315,12 +315,11 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
               // test CallSMS config
               const response:
                 | HTTPResponse<EmptyResponseData>
-                | HTTPErrorResponse = await API.post(
-                URL.fromString(NOTIFICATION_URL.toString()).addRoute(
+                | HTTPErrorResponse = await API.post({
+                url: URL.fromString(NOTIFICATION_URL.toString()).addRoute(
                   `/sms/test`,
                 ),
-
-                {
+                data: {
                   toPhone: values["toPhone"],
                   callSMSConfigId: new ObjectID(
                     currentCallSMSTestConfig["_id"]
@@ -328,7 +327,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                       : "",
                   ).toString(),
                 },
-              );
+              });
               if (response.isSuccess()) {
                 setIsCallSMSTestLoading(false);
                 setShowSMSTestModal(false);
@@ -404,12 +403,11 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
               // test CallSMS config
               const response:
                 | HTTPResponse<EmptyResponseData>
-                | HTTPErrorResponse = await API.post(
-                URL.fromString(NOTIFICATION_URL.toString()).addRoute(
+                | HTTPErrorResponse = await API.post({
+                url: URL.fromString(NOTIFICATION_URL.toString()).addRoute(
                   `/call/test`,
                 ),
-
-                {
+                data: {
                   toPhone: values["toPhone"],
                   callSMSConfigId: new ObjectID(
                     currentCallSMSTestConfig["_id"]
@@ -417,7 +415,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                       : "",
                   ).toString(),
                 },
-              );
+              });
               if (response.isSuccess()) {
                 setIsCallSMSTestLoading(false);
                 setShowCallTestModal(false);

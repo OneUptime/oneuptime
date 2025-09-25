@@ -376,15 +376,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 setError("");
 
                 const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-                  await API.get<JSONObject>(
-                    URL.fromString(APP_API_URL.toString()).addRoute(
+                  await API.get<JSONObject>({
+                    url: URL.fromString(APP_API_URL.toString()).addRoute(
                       `/${
                         new StatusPageDomain().crudApiPath
                       }/verify-cname/${selectedStatusPageDomain?.id?.toString()}`,
                     ),
-                    {},
-                    ModelAPI.getCommonHeaders(),
-                  );
+                    data: {},
+                    headers: ModelAPI.getCommonHeaders(),
+                  });
 
                 if (response.isFailure()) {
                   throw response;
@@ -436,15 +436,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 setError("");
 
                 const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-                  await API.get<JSONObject>(
-                    URL.fromString(APP_API_URL.toString()).addRoute(
+                  await API.get<JSONObject>({
+                    url: URL.fromString(APP_API_URL.toString()).addRoute(
                       `/${
                         new StatusPageDomain().crudApiPath
                       }/order-ssl/${selectedStatusPageDomain?.id?.toString()}`,
                     ),
-                    {},
-                    ModelAPI.getCommonHeaders(),
-                  );
+                    data: {},
+                    headers: ModelAPI.getCommonHeaders(),
+                  });
 
                 if (response.isFailure()) {
                   throw response;

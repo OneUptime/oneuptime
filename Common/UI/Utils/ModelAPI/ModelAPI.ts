@@ -94,14 +94,14 @@ export default class ModelAPI {
       JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
     > = await API.fetch<
       JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
-    >(
-      HTTPMethod.PUT,
-      apiUrl,
-      {
+    >({
+      method: HTTPMethod.PUT,
+      url: apiUrl,
+      data: {
         data: data.data,
       },
-      this.getCommonHeaders(data.requestOptions),
-    );
+      headers: this.getCommonHeaders(data.requestOptions),
+    });
 
     if (result.isSuccess()) {
       return result;
@@ -143,20 +143,20 @@ export default class ModelAPI {
     }
 
     const apiResult: HTTPErrorResponse | HTTPResponse<TBaseModel> =
-      await API.fetch<TBaseModel>(
-        httpMethod,
-        apiUrl,
-        {
+      await API.fetch<TBaseModel>({
+        method: httpMethod,
+        url: apiUrl,
+        data: {
           data: JSONFunctions.serialize(
             BaseModel.toJSON(data.model, data.modelType),
           ),
           miscDataProps: data.miscDataProps || {},
         },
-        {
+        headers: {
           ...this.getCommonHeaders(data.requestOptions),
           ...(data.requestOptions?.requestHeaders || {}),
         },
-      );
+      });
 
     if (apiResult.isSuccess() && apiResult instanceof HTTPResponse) {
       const result: ModelAPIHttpResponse<TBaseModel> =
@@ -217,21 +217,21 @@ export default class ModelAPI {
     }
 
     const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
-      await API.fetch<JSONArray>(
-        HTTPMethod.POST,
-        apiUrl,
-        {
+      await API.fetch<JSONArray>({
+        method: HTTPMethod.POST,
+        url: apiUrl,
+        data: {
           query: JSONFunctions.serialize(data.query as JSONObject),
           select: JSONFunctions.serialize(data.select as JSONObject),
           sort: JSONFunctions.serialize(data.sort as JSONObject),
           groupBy: JSONFunctions.serialize(data.groupBy as JSONObject),
         },
         headers,
-        {
+        params: {
           limit: data.limit.toString(),
           skip: data.skip.toString(),
         },
-      );
+      });
 
     if (result.isSuccess()) {
       const list: Array<TBaseModel> = BaseModel.fromJSONArray(
@@ -287,14 +287,14 @@ export default class ModelAPI {
     }
 
     const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
-      await API.fetch<JSONObject>(
-        HTTPMethod.POST,
-        apiUrl,
-        {
+      await API.fetch<JSONObject>({
+        method: HTTPMethod.POST,
+        url: apiUrl,
+        data: {
           query: JSONFunctions.serialize(data.query as JSONObject),
         },
         headers,
-      );
+      });
 
     if (result.isSuccess()) {
       const count: number = result.data["count"] as number;
@@ -376,14 +376,14 @@ export default class ModelAPI {
     requestOptions?: RequestOptions | undefined;
   }): Promise<TBaseModel | null> {
     const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
-      await API.fetch<TBaseModel>(
-        HTTPMethod.POST,
-        data.apiUrl,
-        {
+      await API.fetch<TBaseModel>({
+        method: HTTPMethod.POST,
+        url: data.apiUrl,
+        data: {
           select: JSONFunctions.serialize(data.select as JSONObject) || {},
         },
-        this.getCommonHeaders(data.requestOptions),
-      );
+        headers: this.getCommonHeaders(data.requestOptions),
+      });
 
     if (result.isSuccess()) {
       const baseModel: TBaseModel = BaseModel.fromJSONObject(
@@ -422,12 +422,11 @@ export default class ModelAPI {
     }
 
     const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
-      await API.fetch<TBaseModel>(
-        HTTPMethod.DELETE,
-        apiUrl,
-        undefined,
-        this.getCommonHeaders(data.requestOptions),
-      );
+      await API.fetch<TBaseModel>({
+        method: HTTPMethod.DELETE,
+        url: apiUrl,
+        headers: this.getCommonHeaders(data.requestOptions),
+      });
 
     if (result.isSuccess()) {
       return;
