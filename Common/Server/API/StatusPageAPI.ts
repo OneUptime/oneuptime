@@ -181,7 +181,7 @@ export default class StatusPageAPI extends BaseAPI<
         return Response.sendJsonObjectResponse(req, res, {
           title: statusPage.pageTitle || statusPage.name,
           description: statusPage.pageDescription,
-          _id: statusPage._id?.toString()
+          _id: statusPage._id?.toString(),
         });
       },
     );

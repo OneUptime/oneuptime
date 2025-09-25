@@ -147,12 +147,16 @@ const formatTeamForSCIM: (
     });
 
     members = teamMembers
-      .filter((member) => member.user)
-      .map((member) => ({
-        value: member.user!.id!.toString(),
-        display: member.user!.email!.toString(),
-        $ref: `${req.protocol}://${req.get("host")}/scim/v2/${projectScimId}/Users/${member.user!.id!.toString()}`,
-      }));
+      .filter((member) => {
+        return member.user;
+      })
+      .map((member) => {
+        return {
+          value: member.user!.id!.toString(),
+          display: member.user!.email!.toString(),
+          $ref: `${req.protocol}://${req.get("host")}/scim/v2/${projectScimId}/Users/${member.user!.id!.toString()}`,
+        };
+      });
   }
 
   return {
@@ -632,8 +636,14 @@ router.get(
 
       // Format teams as SCIM groups
       const groupsPromises: Array<Promise<JSONObject>> = teams.map(
-        (team) =>
-          formatTeamForSCIM(team, req, req.params["projectScimId"]!, false), // Don't include members for list to avoid performance issues
+        (team) => {
+          return formatTeamForSCIM(
+            team,
+            req,
+            req.params["projectScimId"]!,
+            false,
+          );
+        }, // Don't include members for list to avoid performance issues
       );
 
       const groups: Array<JSONObject> = await Promise.all(groupsPromises);
