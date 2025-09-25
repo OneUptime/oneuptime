@@ -17,6 +17,9 @@ import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Yellow } from "Common/Types/BrandColors";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 
 const Teams: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -24,6 +27,27 @@ const Teams: FunctionComponent<PageComponentProps> = (
   const [showInviteUserModal, setShowInviteUserModal] =
     React.useState<boolean>(false);
   const [isFilterApplied, setIsFilterApplied] = React.useState<boolean>(false);
+  const [isScimEnabled, setIsScimEnabled] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    const checkScim = async () => {
+      if (!props.currentProject || !props.currentProject._id) {
+        return;
+      }
+      try {
+        const scimCount = await ModelAPI.count<ProjectSCIM>({
+          modelType: ProjectSCIM,
+          query: {
+            projectId: props.currentProject._id,
+          },
+        });
+        setIsScimEnabled(scimCount > 0);
+      } catch (e) {
+        // ignore
+      }
+    };
+    checkScim();
+  }, [props.currentProject]);
 
   return (
     <Fragment>
@@ -32,18 +56,24 @@ const Teams: FunctionComponent<PageComponentProps> = (
         id="teams-table"
         name="Settings > Users"
         userPreferencesKey="users-table"
-        isDeleteable={true}
+        isDeleteable={!isScimEnabled}
         isEditable={false}
         isCreateable={false}
         onFilterApplied={(isApplied: boolean) => {
           setIsFilterApplied(isApplied);
         }}
         isViewable={true}
+        onBeforeDelete={async (item: TeamMember): Promise<TeamMember> => {
+          if (isScimEnabled) {
+            throw new BadDataException("Cannot remove team members when SCIM is enabled for this project.");
+          }
+          return item;
+        }}
         cardProps={{
           title: "Users",
           description:
             "Here is a list of all the team members in this project.",
-          buttons: [
+          buttons: isScimEnabled ? [] : [
             {
               title: "Invite User",
               buttonStyle: ButtonStyleType.NORMAL,
@@ -146,7 +176,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
           },
         ]}
       />
-      {showInviteUserModal && (
+      {showInviteUserModal && !isScimEnabled && (
         <ModelFormModal<TeamMember>
           modelType={TeamMember}
           name="Invite New User"

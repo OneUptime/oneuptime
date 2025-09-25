@@ -38,6 +38,8 @@ import TeamComplianceStatusTable, {
   TeamComplianceStatusTableRef,
 } from "../../Components/Team/TeamComplianceStatusTable";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
@@ -50,6 +52,28 @@ const TeamView: FunctionComponent<PageComponentProps> = (
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const complianceStatusTableRef: React.Ref<TeamComplianceStatusTableRef> =
     React.useRef<TeamComplianceStatusTableRef>(null);
+
+  const [isScimEnabled, setIsScimEnabled] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    const checkScim = async () => {
+      if (!props.currentProject || !props.currentProject._id) {
+        return;
+      }
+      try {
+        const scimCount = await ModelAPI.count<ProjectSCIM>({
+          modelType: ProjectSCIM,
+          query: {
+            projectId: props.currentProject._id,
+          },
+        });
+        setIsScimEnabled(scimCount > 0);
+      } catch (e) {
+        // ignore
+      }
+    };
+    checkScim();
+  }, [props.currentProject]);
 
   type GetTeamPermissionTable = (data: {
     permissionType: PermissionType;
@@ -316,13 +340,22 @@ const TeamView: FunctionComponent<PageComponentProps> = (
           teamId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
-        onBeforeCreate={(item: TeamMember): Promise<TeamPermission> => {
+        onBeforeCreate={(item: TeamMember): Promise<TeamMember> => {
+          if (isScimEnabled) {
+            throw new BadDataException("Cannot invite users when SCIM is enabled for this project.");
+          }
           if (!props.currentProject || !props.currentProject._id) {
             throw new BadDataException("Project ID cannot be null");
           }
           item.teamId = modelId;
           item.projectId = new ObjectID(props.currentProject._id);
           return Promise.resolve(item);
+        }}
+        onBeforeDelete={async (item: TeamMember): Promise<TeamMember> => {
+          if (isScimEnabled) {
+            throw new BadDataException("Cannot remove team members when SCIM is enabled for this project.");
+          }
+          return item;
         }}
         cardProps={{
           title: "Team Members",
