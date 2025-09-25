@@ -59,9 +59,13 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   protected override async onBeforeCreate(
     createBy: CreateBy<TeamMember>,
   ): Promise<OnCreate<TeamMember>> {
-
     // Check if SCIM is enabled for the project
-    if (createBy.props.isRoot && await this.isSCIMEnabled(createBy.data.projectId! || createBy.props.tenantId)) {
+    if (
+      createBy.props.isRoot &&
+      (await this.isSCIMEnabled(
+        createBy.data.projectId! || createBy.props.tenantId,
+      ))
+    ) {
       throw new BadDataException(
         "Cannot invite team members when SCIM is enabled for this project.",
       );
@@ -188,8 +192,6 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       throw new BadDataException(Errors.TeamMemberService.ALREADY_INVITED);
     }
 
-
-
     return { createBy, carryForward: null };
   }
 
@@ -294,7 +296,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
 
     // Check if SCIM is enabled for the project
     if (
-      // check if not root. 
+      // check if not root.
       !deleteBy.props.isRoot &&
       members.length > 0 &&
       members[0]?.projectId &&

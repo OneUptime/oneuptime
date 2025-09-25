@@ -68,7 +68,9 @@ const Teams: FunctionComponent<PageComponentProps> = (
         isViewable={true}
         onBeforeDelete={async (item: TeamMember): Promise<TeamMember> => {
           if (isScimEnabled) {
-            throw new BadDataException("Cannot remove team members when SCIM is enabled for this project.");
+            throw new BadDataException(
+              "Cannot remove team members when SCIM is enabled for this project.",
+            );
           }
           return item;
         }}

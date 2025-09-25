@@ -342,7 +342,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         }}
         onBeforeCreate={(item: TeamMember): Promise<TeamMember> => {
           if (isScimEnabled) {
-            throw new BadDataException("Cannot invite users when SCIM is enabled for this project.");
+            throw new BadDataException(
+              "Cannot invite users when SCIM is enabled for this project.",
+            );
           }
           if (!props.currentProject || !props.currentProject._id) {
             throw new BadDataException("Project ID cannot be null");
@@ -353,7 +355,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         }}
         onBeforeDelete={async (item: TeamMember): Promise<TeamMember> => {
           if (isScimEnabled) {
-            throw new BadDataException("Cannot remove team members when SCIM is enabled for this project.");
+            throw new BadDataException(
+              "Cannot remove team members when SCIM is enabled for this project.",
+            );
           }
           return item;
         }}

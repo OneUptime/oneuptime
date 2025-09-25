@@ -344,7 +344,8 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
   ): Promise<OnUpdate<Model>> {
     if (
       updateBy.query.id &&
-      (updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent || updateBy.data.startsAt)
+      (updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent ||
+        updateBy.data.startsAt)
     ) {
       const scheduledMaintenance: Model | null = await this.findOneById({
         id: updateBy.query.id! as ObjectID,
@@ -365,14 +366,15 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         (updateBy.data.startsAt as Date) ||
         (scheduledMaintenance.startsAt! as Date);
 
-         const notificationSettings: Array<Recurring> =
-          (updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>) ||
-          (scheduledMaintenance.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>);
+      const notificationSettings: Array<Recurring> =
+        (updateBy.data
+          .sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>) ||
+        (scheduledMaintenance.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>);
 
       const nextTimeToNotifyBeforeTheEvent: Date | null =
         this.getNextTimeToNotify({
           eventScheduledDate: startsAt,
-          sendSubscriberNotifiationsOn: notificationSettings
+          sendSubscriberNotifiationsOn: notificationSettings,
         });
 
       updateBy.data.nextSubscriberNotificationBeforeTheEventAt =
