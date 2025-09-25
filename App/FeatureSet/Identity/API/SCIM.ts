@@ -221,6 +221,7 @@ router.get(
       const bearerData: JSONObject =
         oneuptimeRequest.bearerTokenData as JSONObject;
       const projectId: ObjectID = bearerData["projectId"] as ObjectID;
+      const scimConfig: ProjectSCIM = bearerData["scimConfig"] as ProjectSCIM;
 
       // Parse query parameters
       const { startIndex, count } = parseSCIMQueryParams(req);
@@ -262,10 +263,48 @@ router.get(
                 logger.debug(
                   `Project SCIM Users list - scimId: ${req.params["projectScimId"]!}, user not found for email: ${email}`,
                 );
-                return Response.sendJsonObjectResponse(
-                  req,
-                  res,
-                  generateUsersListResponse([], startIndex, 0),
+
+                // Check if auto-provisioning is enabled
+                if (!scimConfig.autoProvisionUsers) {
+                  return Response.sendJsonObjectResponse(
+                    req,
+                    res,
+                    generateUsersListResponse([], startIndex, 0),
+                  );
+                }
+
+                // Create the user
+                logger.debug(
+                  `Project SCIM Users list - creating new user for email: ${email}`,
+                );
+                const newUser: User = await UserService.createByEmail({
+                  email: new Email(email),
+                  name: new Name(email),
+                  isEmailVerified: true,
+                  generateRandomPassword: true,
+                  props: { isRoot: true },
+                });
+
+                // Add user to default teams if configured and push groups is not enabled
+                if (
+                  scimConfig.teams &&
+                  scimConfig.teams.length > 0 &&
+                  !scimConfig.enablePushGroups
+                ) {
+                  logger.debug(
+                    `Project SCIM Users list - adding user to ${scimConfig.teams.length} configured teams`,
+                  );
+                  await handleUserTeamOperations(
+                    "add",
+                    projectId,
+                    newUser.id!,
+                    scimConfig,
+                  );
+                }
+
+                query.userId = newUser.id!;
+                logger.debug(
+                  `Project SCIM Users list - created user with id: ${newUser.id}`,
                 );
               }
             } else {
@@ -848,7 +887,9 @@ router.post(
                     ignoreHooks: true,
                   },
                 });
-                logger.debug(`SCIM Create group - added user ${userId} to team`);
+                logger.debug(
+                  `SCIM Create group - added user ${userId} to team`,
+                );
               }
             }
           }
@@ -894,7 +935,6 @@ router.put(
       logger.debug(
         `SCIM Update group - projectId: ${projectId}, groupId: ${groupId}`,
       );
-
 
       logger.debug(
         `Request body for SCIM Update group: ${JSON.stringify(scimGroup, null, 2)}`,
@@ -949,8 +989,6 @@ router.put(
       const members: Array<SCIMMember> =
         (scimGroup["members"] as Array<SCIMMember>) || [];
 
-
-
       logger.debug(
         `SCIM Update group - replacing members with ${members.length} members`,
       );
@@ -996,7 +1034,8 @@ router.put(
               newTeamMember.userId = new ObjectID(userId);
               newTeamMember.teamId = team.id!;
               newTeamMember.hasAcceptedInvitation = true;
-              newTeamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+              newTeamMember.invitationAcceptedAt =
+                OneUptimeDate.getCurrentDate();
 
               await TeamMemberService.create({
                 data: newTeamMember,
@@ -1213,12 +1252,11 @@ router.patch(
             for (const member of members) {
               const userId: string = member["value"] as string;
               if (userId) {
-                const userExists: User | null =
-                  await UserService.findOneById({
-                    id: new ObjectID(userId),
-                    select: { _id: true },
-                    props: { isRoot: true },
-                  });
+                const userExists: User | null = await UserService.findOneById({
+                  id: new ObjectID(userId),
+                  select: { _id: true },
+                  props: { isRoot: true },
+                });
 
                 if (userExists) {
                   // Check if user is already a member of the team
@@ -1276,12 +1314,13 @@ router.patch(
                   });
 
                 if (!existingMember) {
-                  const userExists: User | null =
-                    await UserService.findOneById({
+                  const userExists: User | null = await UserService.findOneById(
+                    {
                       id: new ObjectID(userId),
                       select: { _id: true },
                       props: { isRoot: true },
-                    });
+                    },
+                  );
 
                   if (userExists) {
                     const newTeamMember: TeamMember = new TeamMember();
