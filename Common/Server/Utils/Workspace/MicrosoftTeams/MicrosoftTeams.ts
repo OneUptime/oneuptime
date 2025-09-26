@@ -43,7 +43,6 @@ import AlertStateService from "../../../Services/AlertStateService";
 // Import database utilities
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 
 // Microsoft Teams apps should always be single-tenant
 const MICROSOFT_TEAMS_APP_TYPE = "SingleTenant";
@@ -1461,7 +1460,7 @@ Just type any of these commands to get the information you need!`;
         sort: {
           createdAt: SortOrder.Descending,
         },
-        limit: LIMIT_PER_PROJECT,
+        limit: 10,
         skip: 0,
         props: {
           isRoot: true,
@@ -1538,7 +1537,7 @@ If you need to report an incident or check historical incidents, please visit th
         sort: {
           startsAt: SortOrder.Ascending,
         },
-        limit: LIMIT_PER_PROJECT,
+        limit: 10,
         skip: 0,
         props: {
           isRoot: true,
@@ -1620,7 +1619,7 @@ Check back later for upcoming maintenance windows.`;
         sort: {
           startsAt: SortOrder.Descending,
         },
-        limit: LIMIT_PER_PROJECT,
+        limit: 10,
         skip: 0,
         props: {
           isRoot: true,
@@ -1711,7 +1710,7 @@ All systems are currently operating normally.`;
         sort: {
           createdAt: SortOrder.Descending,
         },
-        limit: LIMIT_PER_PROJECT,
+        limit: 10,
         skip: 0,
         props: {
           isRoot: true,
