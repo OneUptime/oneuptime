@@ -29,10 +29,17 @@ import {
   ManyToOne,
 } from "typeorm";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 
 @EnableDocumentation()
 @AccessControlColumn("labels")
 @TenantColumn("projectId")
+@EnableWorkflow({
+  create: true,
+  delete: true,
+  update: true,
+  read: true,
+})
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
