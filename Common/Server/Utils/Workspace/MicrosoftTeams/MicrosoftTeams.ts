@@ -33,6 +33,18 @@ import { MicrosoftTeamsMiscData } from "../../../../Models/DatabaseModels/Worksp
 import OneUptimeDate from "../../../../Types/Date";
 import { MicrosoftTeamsAppClientId, MicrosoftTeamsAppClientSecret } from "../../../EnvironmentConfig";
 
+// Import services for bot commands
+import IncidentService from "../../../Services/IncidentService";
+import AlertService from "../../../Services/AlertService";
+import ScheduledMaintenanceService from "../../../Services/ScheduledMaintenanceService";
+import IncidentStateService from "../../../Services/IncidentStateService";
+import AlertStateService from "../../../Services/AlertStateService";
+
+// Import database utilities
+import QueryHelper from "../../../Types/Database/QueryHelper";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
+
 // Microsoft Teams apps should always be single-tenant
 const MICROSOFT_TEAMS_APP_TYPE = "SingleTenant";
 
@@ -1331,27 +1343,426 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`Conversation: ${JSON.stringify(conversation)}`);
     logger.debug(`Channel data: ${JSON.stringify(channelData)}`);
 
-    // Clean the message text by removing bot mentions
-    const cleanText: string = messageText.replace(/<at[^>]*>.*?<\/at>/g, '').trim();
-
-    // Create welcome/help response based on message content
-    let responseText: string = "";
-    
-    if (cleanText.toLowerCase().includes("help") || cleanText === "") {
-      responseText = "Hello! I'm the OneUptime bot. I can help you:\n\n• Get notifications about incidents\n• Acknowledge alerts\n• View system status\n\nType 'status' to see current system status.";
-    } else if (cleanText.toLowerCase().includes("status")) {
-      responseText = "System status is operational. All services are running normally.";
-    } else {
-      responseText = `I received your message: "${cleanText}". Type 'help' to see what I can do for you.`;
+    // Extract tenant ID to get project ID
+    const tenantId: string = (channelData["tenant"] as JSONObject)?.["id"] as string;
+    if (!tenantId) {
+      logger.error("Tenant ID not found in channelData");
+      await data.turnContext.sendActivity("Sorry, I couldn't identify your organization. Please try again later.");
+      return;
     }
 
+    // Get project auth by tenant ID
+    const projectAuth = await WorkspaceProjectAuthTokenService.findOneBy({
+      query: {
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        miscData: {
+          tenantId: tenantId,
+        } as any,
+      },
+      select: {
+        projectId: true,
+        miscData: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!projectAuth || !projectAuth.projectId) {
+      logger.error("Project auth not found for tenant ID: " + tenantId);
+      await data.turnContext.sendActivity("Sorry, I couldn't find your project configuration. Please try again later.");
+      return;
+    }
+
+    const projectId = projectAuth.projectId;
+    logger.debug(`Found project ID: ${projectId.toString()} for tenant ID: ${tenantId}`);
+
+    // Clean the message text by removing bot mentions
+    const cleanText: string = messageText.replace(/<at[^>]*>.*?<\/at>/g, '').trim().toLowerCase();
+
+    let responseText: string = "";
+
     try {
+      if (cleanText.includes("help") || cleanText === "") {
+        responseText = this.getHelpMessage();
+      } else if (cleanText.includes("show active incidents") || cleanText.includes("active incidents")) {
+        responseText = await this.getActiveIncidentsMessage(projectId);
+      } else if (cleanText.includes("show scheduled maintenance") || cleanText.includes("scheduled maintenance")) {
+        responseText = await this.getScheduledMaintenanceMessage(projectId);
+      } else if (cleanText.includes("show ongoing maintenance") || cleanText.includes("ongoing maintenance")) {
+        responseText = await this.getOngoingMaintenanceMessage(projectId);
+      } else if (cleanText.includes("show active alerts") || cleanText.includes("active alerts")) {
+        responseText = await this.getActiveAlertsMessage(projectId);
+      } else if (cleanText.includes("status")) {
+        responseText = "System status is operational. All services are running normally.";
+      } else {
+        responseText = `I received your message: "${cleanText}". Type 'help' to see what I can do for you.`;
+      }
+
       // Send response directly using TurnContext - this is the recommended Bot Framework pattern
       await data.turnContext.sendActivity(responseText);
       logger.debug("Bot message sent successfully using TurnContext");
     } catch (error) {
       logger.error("Error sending bot message via TurnContext: " + error);
+      await data.turnContext.sendActivity("Sorry, I encountered an error processing your request. Please try again later.");
       throw error;
+    }
+  }
+
+  // Helper methods for bot commands
+  private static getHelpMessage(): string {
+    return `Hello! I'm the OneUptime bot. I can help you with the following commands:
+
+**Available Commands:**
+• **help** - Show this help message
+• **show active incidents** - Display all currently active incidents
+• **show scheduled maintenance** - Show upcoming scheduled maintenance events
+• **show ongoing maintenance** - Display currently ongoing maintenance events
+• **show active alerts** - Display all active alerts
+• **status** - Check system status
+
+Just type any of these commands to get the information you need!`;
+  }
+
+  private static async getActiveIncidentsMessage(projectId: ObjectID): Promise<string> {
+    try {
+      logger.debug("Getting active incidents for project: " + projectId.toString());
+      
+      // Get unresolved incident states
+      const unresolvedIncidentStates = await IncidentStateService.getUnresolvedIncidentStates(
+        projectId,
+        { isRoot: true }
+      );
+      
+      const unresolvedIncidentStateIds = unresolvedIncidentStates.map(state => state.id!);
+      
+      // Find active incidents
+      const activeIncidents = await IncidentService.findBy({
+        query: {
+          projectId: projectId,
+          currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
+        },
+        select: {
+          title: true,
+          description: true,
+          currentIncidentState: {
+            name: true,
+            color: true,
+          },
+          incidentSeverity: {
+            name: true,
+            color: true,
+          },
+          createdAt: true,
+          monitors: {
+            name: true,
+          },
+        },
+        sort: {
+          createdAt: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+      
+      if (activeIncidents.length === 0) {
+        return `**Active Incidents**
+
+Currently, there are no active incidents in the system. All services are operating normally.
+
+If you need to report an incident or check historical incidents, please visit the OneUptime dashboard.`;
+      }
+      
+      let message = `**Active Incidents** (${activeIncidents.length})
+
+`;
+      
+      for (const incident of activeIncidents) {
+        const severity = incident.incidentSeverity?.name || "Unknown";
+        const state = incident.currentIncidentState?.name || "Unknown";
+        const createdAt = incident.createdAt ? OneUptimeDate.getDateAsFormattedString(incident.createdAt) : "Unknown";
+        
+        message += `🔴 **${incident.title}**
+• **Severity:** ${severity}
+• **Status:** ${state}
+• **Created:** ${createdAt}
+`;
+        
+        if (incident.monitors && incident.monitors.length > 0) {
+          message += `• **Affected Services:** ${incident.monitors.map(m => m.name).join(", ")}\n`;
+        }
+        
+        if (incident.description) {
+          message += `• **Description:** ${incident.description.substring(0, 100)}${incident.description.length > 100 ? "..." : ""}\n`;
+        }
+        
+        message += `\n`;
+      }
+      
+      return message;
+    } catch (error) {
+      logger.error("Error getting active incidents: " + error);
+      return "Sorry, I couldn't retrieve active incidents information at the moment. Please try again later.";
+    }
+  }
+
+  private static async getScheduledMaintenanceMessage(projectId: ObjectID): Promise<string> {
+    try {
+      logger.debug("Getting scheduled maintenance events for project: " + projectId.toString());
+      
+      // Get scheduled maintenance events
+      const scheduledEvents = await ScheduledMaintenanceService.findBy({
+        query: {
+          projectId: projectId,
+          currentScheduledMaintenanceState: {
+            isScheduledState: true,
+          } as any,
+          isVisibleOnStatusPage: true, // Only show events visible on status page
+        },
+        select: {
+          title: true,
+          description: true,
+          startsAt: true,
+          endsAt: true,
+          currentScheduledMaintenanceState: {
+            name: true,
+          },
+          monitors: {
+            name: true,
+          },
+          scheduledMaintenanceNumber: true,
+        },
+        sort: {
+          startsAt: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+      
+      if (scheduledEvents.length === 0) {
+        return `**Scheduled Maintenance Events**
+
+There are currently no scheduled maintenance events.
+
+When maintenance is scheduled, you'll see details here including:
+• Event title and description
+• Scheduled start and end times
+• Affected services
+• Status updates
+
+Check back later for upcoming maintenance windows.`;
+      }
+      
+      let message = `**Scheduled Maintenance Events** (${scheduledEvents.length})
+
+`;
+      
+      for (const event of scheduledEvents) {
+        const state = event.currentScheduledMaintenanceState?.name || "Scheduled";
+        const startTime = event.startsAt ? OneUptimeDate.getDateAsFormattedString(event.startsAt) : "TBD";
+        const endTime = event.endsAt ? OneUptimeDate.getDateAsFormattedString(event.endsAt) : "TBD";
+        
+        message += `🛠️ **${event.title}** (#${event.scheduledMaintenanceNumber})
+• **Status:** ${state}
+• **Starts:** ${startTime}
+• **Ends:** ${endTime}
+`;
+        
+        if (event.monitors && event.monitors.length > 0) {
+          message += `• **Affected Services:** ${event.monitors.map(m => m.name).join(", ")}\n`;
+        }
+        
+        if (event.description) {
+          message += `• **Description:** ${event.description.substring(0, 100)}${event.description.length > 100 ? "..." : ""}\n`;
+        }
+        
+        message += `\n`;
+      }
+      
+      return message;
+    } catch (error) {
+      logger.error("Error getting scheduled maintenance: " + error);
+      return "Sorry, I couldn't retrieve scheduled maintenance information at the moment. Please try again later.";
+    }
+  }
+
+  private static async getOngoingMaintenanceMessage(projectId: ObjectID): Promise<string> {
+    try {
+      logger.debug("Getting ongoing maintenance events for project: " + projectId.toString());
+      
+      // Get ongoing maintenance events
+      const ongoingEvents = await ScheduledMaintenanceService.findBy({
+        query: {
+          projectId: projectId,
+          currentScheduledMaintenanceState: {
+            isOngoingState: true,
+          } as any,
+        },
+        select: {
+          title: true,
+          description: true,
+          startsAt: true,
+          endsAt: true,
+          currentScheduledMaintenanceState: {
+            name: true,
+          },
+          monitors: {
+            name: true,
+          },
+          scheduledMaintenanceNumber: true,
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+      
+      if (ongoingEvents.length === 0) {
+        return `**Ongoing Maintenance Events**
+
+There are currently no ongoing maintenance events.
+
+When maintenance is in progress, you'll see details here including:
+• Event title and description
+• Current status and progress
+• Affected services
+• Expected completion time
+
+All systems are currently operating normally.`;
+      }
+      
+      let message = `**Ongoing Maintenance Events** (${ongoingEvents.length})
+
+`;
+      
+      for (const event of ongoingEvents) {
+        const state = event.currentScheduledMaintenanceState?.name || "Ongoing";
+        const startTime = event.startsAt ? OneUptimeDate.getDateAsFormattedString(event.startsAt) : "Unknown";
+        const endTime = event.endsAt ? OneUptimeDate.getDateAsFormattedString(event.endsAt) : "TBD";
+        
+        message += `🔧 **${event.title}** (#${event.scheduledMaintenanceNumber})
+• **Status:** ${state}
+• **Started:** ${startTime}
+• **Expected End:** ${endTime}
+`;
+        
+        if (event.monitors && event.monitors.length > 0) {
+          message += `• **Affected Services:** ${event.monitors.map(m => m.name).join(", ")}\n`;
+        }
+        
+        if (event.description) {
+          message += `• **Description:** ${event.description.substring(0, 100)}${event.description.length > 100 ? "..." : ""}\n`;
+        }
+        
+        message += `\n`;
+      }
+      
+      return message;
+    } catch (error) {
+      logger.error("Error getting ongoing maintenance: " + error);
+      return "Sorry, I couldn't retrieve ongoing maintenance information at the moment. Please try again later.";
+    }
+  }
+
+  private static async getActiveAlertsMessage(projectId: ObjectID): Promise<string> {
+    try {
+      logger.debug("Getting active alerts for project: " + projectId.toString());
+      
+      // Get unresolved alert states
+      const unresolvedAlertStates = await AlertStateService.getUnresolvedAlertStates(
+        projectId,
+        { isRoot: true }
+      );
+      
+      const unresolvedAlertStateIds = unresolvedAlertStates.map(state => state.id!);
+      
+      // Find active alerts
+      const activeAlerts = await AlertService.findBy({
+        query: {
+          projectId: projectId,
+          currentAlertStateId: QueryHelper.any(unresolvedAlertStateIds),
+        },
+        select: {
+          title: true,
+          description: true,
+          currentAlertState: {
+            name: true,
+            color: true,
+          },
+          alertSeverity: {
+            name: true,
+            color: true,
+          },
+          createdAt: true,
+          monitor: {
+            name: true,
+          },
+        },
+        sort: {
+          createdAt: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+      
+      if (activeAlerts.length === 0) {
+        return `**Active Alerts**
+
+Currently, there are no active alerts in the system.
+
+When alerts are triggered, you'll see details here including:
+• Alert title and description
+• Severity level
+• Affected services or monitors
+• Time triggered
+• Current status
+
+All monitoring checks are passing normally.`;
+      }
+      
+      let message = `**Active Alerts** (${activeAlerts.length})
+
+`;
+      
+      for (const alert of activeAlerts) {
+        const severity = alert.alertSeverity?.name || "Unknown";
+        const state = alert.currentAlertState?.name || "Unknown";
+        const createdAt = alert.createdAt ? OneUptimeDate.getDateAsFormattedString(alert.createdAt) : "Unknown";
+        
+        message += `⚠️ **${alert.title}**
+• **Severity:** ${severity}
+• **Status:** ${state}
+• **Triggered:** ${createdAt}
+`;
+        
+        if (alert.monitor?.name) {
+          message += `• **Monitor:** ${alert.monitor.name}\n`;
+        }
+        
+        if (alert.description) {
+          message += `• **Description:** ${alert.description.substring(0, 100)}${alert.description.length > 100 ? "..." : ""}\n`;
+        }
+        
+        message += `\n`;
+      }
+      
+      return message;
+    } catch (error) {
+      logger.error("Error getting active alerts: " + error);
+      return "Sorry, I couldn't retrieve active alerts information at the moment. Please try again later.";
     }
   }
 
