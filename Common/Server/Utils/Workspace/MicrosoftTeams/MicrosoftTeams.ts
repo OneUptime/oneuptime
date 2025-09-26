@@ -33,8 +33,8 @@ import { MicrosoftTeamsMiscData } from "../../../../Models/DatabaseModels/Worksp
 import OneUptimeDate from "../../../../Types/Date";
 import { MicrosoftTeamsAppClientId, MicrosoftTeamsAppClientSecret } from "../../../EnvironmentConfig";
 
-// Microsoft Teams apps should always be multi-tenant
-const MICROSOFT_TEAMS_APP_TYPE = "MultiTenant";
+// Microsoft Teams apps should always be single-tenant
+const MICROSOFT_TEAMS_APP_TYPE = "SingleTenant";
 
 // Bot Framework SDK imports
 import { CloudAdapter, ConfigurationBotFrameworkAuthentication, TeamsActivityHandler, TurnContext, ConversationReference, MessageFactory, ConfigurationBotFrameworkAuthenticationOptions } from 'botbuilder';
@@ -42,36 +42,29 @@ import { ExpressRequest, ExpressResponse } from "../../Express";
 
 
 export default class MicrosoftTeamsUtil extends WorkspaceBase {
-  // Bot Framework adapter instance
-  private static botAdapter: CloudAdapter | null = null;
-
-  // Get or create Bot Framework adapter
-  private static getBotAdapter(): CloudAdapter {
-    if (!this.botAdapter) {
-      if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
-        throw new BadDataException("Microsoft Teams App credentials not configured");
-      }
-
-      logger.debug("Creating Bot Framework adapter with authentication configuration");
-      logger.debug(`App ID: ${MicrosoftTeamsAppClientId}`);
-      logger.debug(`App Type: ${MICROSOFT_TEAMS_APP_TYPE}`);
-
-      const authConfig: ConfigurationBotFrameworkAuthenticationOptions = {
-        MicrosoftAppId: MicrosoftTeamsAppClientId,
-        MicrosoftAppPassword: MicrosoftTeamsAppClientSecret,
-        MicrosoftAppType: MICROSOFT_TEAMS_APP_TYPE, // Always MultiTenant for Teams apps
-      };
-
-      // For multi-tenant apps, we omit tenantId to allow the bot to work with any tenant
-      // This is the recommended approach for Teams apps that need to work across organizations
-      logger.debug("Configuring multi-tenant bot - omitting specific tenant ID to work with any tenant");
-
-      const botFrameworkAuthentication = new ConfigurationBotFrameworkAuthentication(authConfig);
-      this.botAdapter = new CloudAdapter(botFrameworkAuthentication);
-
-      logger.debug("Bot Framework adapter created successfully");
+  // Get or create Bot Framework adapter for a specific tenant
+  private static getBotAdapter(microsoftAppTenantId: string): CloudAdapter {
+    if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
+      throw new BadDataException("Microsoft Teams App credentials not configured");
     }
-    return this.botAdapter;
+
+    logger.debug("Creating Bot Framework adapter with authentication configuration");
+    logger.debug(`App ID: ${MicrosoftTeamsAppClientId}`);
+    logger.debug(`App Type: ${MICROSOFT_TEAMS_APP_TYPE}`);
+    logger.debug(`Tenant ID: ${microsoftAppTenantId}`);
+
+    const authConfig: ConfigurationBotFrameworkAuthenticationOptions = {
+      MicrosoftAppId: MicrosoftTeamsAppClientId,
+      MicrosoftAppPassword: MicrosoftTeamsAppClientSecret,
+      MicrosoftAppType: MICROSOFT_TEAMS_APP_TYPE,
+      MicrosoftAppTenantId: microsoftAppTenantId,
+    };
+
+    const botFrameworkAuthentication = new ConfigurationBotFrameworkAuthentication(authConfig);
+    const adapter = new CloudAdapter(botFrameworkAuthentication);
+
+    logger.debug("Bot Framework adapter created successfully");
+    return adapter;
   }
   // Helper method to get a valid access token, refreshing if necessary
   private static async getValidAccessToken(data: {
@@ -874,7 +867,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug(`Using bot ID: ${miscData.botId}`);
 
       // Get Bot Framework adapter
-      const adapter = this.getBotAdapter();
+      const adapter = this.getBotAdapter(miscData.tenantId);
 
       // Create conversation reference for the channel
       const conversationReference: ConversationReference = {
@@ -1448,8 +1441,16 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         return;
       }
 
+      // Extract tenant ID from the activity
+      const tenantId: string = req.body?.channelData?.tenant?.id;
+      if (!tenantId) {
+        logger.error("Tenant ID not found in activity channelData");
+        res.status(400).json({ error: "Invalid activity: missing tenant ID" });
+        return;
+      }
+
       // Get Bot Framework adapter
-      const adapter = this.getBotAdapter();
+      const adapter = this.getBotAdapter(tenantId);
 
       // Create custom activity handler class that extends TeamsActivityHandler
       class OneUptimeTeamsActivityHandler extends TeamsActivityHandler {
