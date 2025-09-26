@@ -37,7 +37,7 @@ import { MicrosoftTeamsAppClientId, MicrosoftTeamsAppClientSecret } from "../../
 const MICROSOFT_TEAMS_APP_TYPE = "MultiTenant";
 
 // Bot Framework SDK imports
-import { CloudAdapter, ConfigurationBotFrameworkAuthentication, TeamsActivityHandler, TurnContext, ConversationReference, MessageFactory } from 'botbuilder';
+import { CloudAdapter, ConfigurationBotFrameworkAuthentication, TeamsActivityHandler, TurnContext, ConversationReference, MessageFactory, ConfigurationBotFrameworkAuthenticationOptions } from 'botbuilder';
 import { ExpressRequest, ExpressResponse } from "../../Express";
 
 
@@ -56,7 +56,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug(`App ID: ${MicrosoftTeamsAppClientId}`);
       logger.debug(`App Type: ${MICROSOFT_TEAMS_APP_TYPE}`);
 
-      const authConfig: any = {
+      const authConfig: ConfigurationBotFrameworkAuthenticationOptions = {
         MicrosoftAppId: MicrosoftTeamsAppClientId,
         MicrosoftAppPassword: MicrosoftTeamsAppClientSecret,
         MicrosoftAppType: MICROSOFT_TEAMS_APP_TYPE, // Always MultiTenant for Teams apps
