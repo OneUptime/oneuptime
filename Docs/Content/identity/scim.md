@@ -115,12 +115,11 @@ Status Page SCIM allows identity providers to manage subscribers to private stat
 
 ### Okta
 
-1. **Add OneUptime Application**
-   - In Okta Admin Console, go to **Applications** > **Add Application**
-   - Create a **Web** application or use **SCIM 2.0 Test App (Header Auth)**
+1. **SSO Application**
+   - You should already have the Okta application from the SSO integration you might have completed. If you do not, then please check out SSO Readme to create a new Okta App.
 
 2. **Configure SCIM Settings**
-   - In the application settings, go to **Provisioning**
+   - In the application settings (General Tab), go to **Provisioning**, select SAML and click on Save. **Proviosning** tab should now be enabled.
    - Set **SCIM connector base URL** to the OneUptime SCIM Base URL
    - Set **Unique identifier field for users** to `userName`
    - Enter the **Bearer Token** in the authentication header

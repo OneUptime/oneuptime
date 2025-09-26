@@ -35,6 +35,7 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import User from "../../Models/DatabaseModels/User";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
+import ProjectSCIMService from "./ProjectSCIMService";
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
   public constructor() {
@@ -42,9 +43,34 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   }
 
   @CaptureSpan()
+  private async isSCIMEnabled(projectId: ObjectID): Promise<boolean> {
+    const count: PositiveNumber = await ProjectSCIMService.countBy({
+      query: {
+        projectId: projectId,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+    return count.toNumber() > 0;
+  }
+
+  @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<TeamMember>,
   ): Promise<OnCreate<TeamMember>> {
+    // Check if SCIM is enabled for the project
+    if (
+      !createBy.props.isRoot &&
+      (await this.isSCIMEnabled(
+        createBy.data.projectId! || createBy.props.tenantId,
+      ))
+    ) {
+      throw new BadDataException(
+        "Cannot invite team members when SCIM is enabled for this project.",
+      );
+    }
+
     // check if this project can have more members.
     if (IsBillingEnabled && createBy.data.projectId) {
       const project: Project | null = await ProjectService.findOneById({
@@ -79,7 +105,9 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       }
     }
 
-    createBy.data.hasAcceptedInvitation = false;
+    if (!createBy.props.isRoot) {
+      createBy.data.hasAcceptedInvitation = false;
+    }
 
     if (createBy.miscDataProps && createBy.miscDataProps["email"]) {
       const email: Email = new Email(createBy.miscDataProps["email"] as string);
@@ -267,6 +295,19 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         isRoot: true,
       },
     });
+
+    // Check if SCIM is enabled for the project
+    if (
+      // check if not root.
+      !deleteBy.props.isRoot &&
+      members.length > 0 &&
+      members[0]?.projectId &&
+      (await this.isSCIMEnabled(members[0].projectId))
+    ) {
+      throw new BadDataException(
+        "Cannot delete team members when SCIM is enabled for this project.",
+      );
+    }
 
     // check if there's one member in the team.
     for (const member of members) {

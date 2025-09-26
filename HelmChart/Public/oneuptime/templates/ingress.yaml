@@ -10,7 +10,17 @@ metadata:
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
     appname: oneuptime
-  annotations: {{- $.Values.oneuptimeIngress.annotations | toYaml | nindent 4 }}
+  annotations:
+    {{- with $.Values.oneuptimeIngress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- if index $.Values "certManagerLetsEncrypt" "enabled" }}
+    cert-manager.io/cluster-issuer: {{ $.Release.Name }}-letsencrypt
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      if ($request_uri ~ ^/.well-known/acme-challenge/) {
+        set $ssl_redirect off;
+      }
+    {{- end }}
 spec:
   ingressClassName: {{ $.Values.oneuptimeIngress.className }}
   {{- if $.Values.oneuptimeIngress.tls.enabled }}
@@ -18,7 +28,11 @@ spec:
     {{- range $key, $val := $.Values.oneuptimeIngress.tls.hosts }}
     - hosts:
         - {{ $val.host | quote }}
+      {{- if index $.Values "certManagerLetsEncrypt" "enabled" }}
+      secretName: {{ printf "%s-%s-tls" $.Release.Name $val.host }}
+      {{- else }}
       secretName: {{ $val.secretName }}
+      {{- end }}
     {{- end }}
   {{- end }}
   rules:

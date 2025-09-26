@@ -3,6 +3,7 @@ import PageComponentProps from "../PageComponentProps";
 import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -103,6 +104,9 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
             {
               title: "Teams",
               id: "teams",
+              showIf: (item: FormValues<ProjectSCIM>): boolean => {
+                return !item.enablePushGroups;
+              },
             },
           ]}
           noItemsMessage={"No SCIM configuration found."}
@@ -159,6 +163,17 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
             },
             {
               field: {
+                enablePushGroups: true,
+              },
+              title: "Enable Push Groups",
+              fieldType: FormFieldSchemaType.Checkbox,
+              required: false,
+              description:
+                "Enable push groups provisioning instead of default teams. When enabled, users will not be added to default teams and team membership will be managed via push groups.",
+              stepId: "configuration",
+            },
+            {
+              field: {
                 teams: true,
               },
               title: "Default Teams",
@@ -172,6 +187,9 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               description:
                 "New users will be automatically added to these teams.",
               stepId: "teams",
+              showIf: (item: FormValues<ProjectSCIM>): boolean => {
+                return !item.enablePushGroups;
+              },
             },
           ]}
           columns={[
@@ -196,11 +214,19 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               title: "Auto Deprovision",
               type: FieldType.Boolean,
             },
+            {
+              field: {
+                enablePushGroups: true,
+              },
+              title: "Push Groups",
+              type: FieldType.Boolean,
+            },
           ]}
           selectMoreFields={{
             bearerToken: true,
             createdAt: true,
             updatedAt: true,
+            enablePushGroups: true,
             teams: {
               name: true,
               _id: true,

@@ -1,16 +1,17 @@
-import Label from "./Label";
 import Project from "./Project";
+import Team from "./Team";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
-import AccessControlColumn from "../../Types/Database/AccessControlColumn";
+import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
-import SlugifyColumn from "../../Types/Database/SlugifyColumn";
+import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -19,79 +20,70 @@ import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  JoinTable,
-  ManyToMany,
-  ManyToOne,
-} from "typeorm";
-import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
-import EnableWorkflow from "../../Types/Database/EnableWorkflow";
+import ComplianceRuleType from "../../Types/Team/ComplianceRuleType";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
-@EnableDocumentation()
-@AccessControlColumn("labels")
-@TenantColumn("projectId")
-@EnableWorkflow({
-  create: true,
-  delete: true,
-  update: true,
-  read: true,
+@TableBillingAccessControl({
+  create: PlanType.Scale,
+  read: PlanType.Free,
+  update: PlanType.Scale,
+  delete: PlanType.Free,
 })
+@EnableDocumentation()
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.CreateProjectOnCallDutyPolicy,
+    Permission.EditProjectTeam,
   ],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ReadProjectOnCallDutyPolicy,
+    Permission.ReadProjectTeam,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.DeleteProjectOnCallDutyPolicy,
+    Permission.EditProjectTeam,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.EditProjectOnCallDutyPolicy,
+    Permission.EditProjectTeam,
   ],
 })
-@CrudApiEndpoint(new Route("/on-call-duty-policy"))
-@SlugifyColumn("name", "slug")
+@TenantColumn("projectId")
+@CrudApiEndpoint(new Route("/team-compliance-setting"))
+@Index(["teamId", "ruleType"], { unique: true })
 @Entity({
-  name: "OnCallDutyPolicy",
+  name: "TeamComplianceSetting",
+})
+@EnableWorkflow({
+  create: false,
+  delete: false,
+  update: false,
+  read: false,
 })
 @TableMetadata({
-  tableName: "OnCallDutyPolicy",
-  singularName: "On-Call Policy",
-  pluralName: "On-Call Duty Policies",
-  icon: IconProp.Call,
-  tableDescription:
-    "Manage on-call duty, schedules and roster for your project",
+  tableName: "TeamComplianceSetting",
+  singularName: "Team Compliance Setting",
+  pluralName: "Team Compliance Settings",
+  icon: IconProp.CheckCircle,
+  tableDescription: "Compliance settings for your OneUptime team",
 })
-export default class OnCallDutyPolicy extends BaseModel {
+export default class TeamComplianceSetting extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectOnCallDutyPolicy,
+      Permission.EditProjectTeam,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadProjectTeam,
     ],
     update: [],
   })
@@ -120,14 +112,13 @@ export default class OnCallDutyPolicy extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectOnCallDutyPolicy,
+      Permission.EditProjectTeam,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadProjectTeam,
     ],
     update: [],
   })
@@ -150,161 +141,76 @@ export default class OnCallDutyPolicy extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectOnCallDutyPolicy,
+      Permission.EditProjectTeam,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectOnCallDutyPolicy,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditProjectOnCallDutyPolicy,
-    ],
-  })
-  @Index()
-  @TableColumn({
-    required: true,
-    type: TableColumnType.ShortText,
-    title: "Name",
-    description: "Any friendly name of this object",
-    canReadOnRelationQuery: true,
-  })
-  @Column({
-    nullable: false,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
-  })
-  public name?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectOnCallDutyPolicy,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectOnCallDutyPolicy,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditProjectOnCallDutyPolicy,
-    ],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.EntityArray,
-    modelType: Label,
-    title: "Labels",
-    description:
-      "Relation to Labels Array where this object is categorized in.",
-  })
-  @ManyToMany(
-    () => {
-      return Label;
-    },
-    { eager: false },
-  )
-  @JoinTable({
-    name: "OnCallDutyPolicyLabel",
-    inverseJoinColumn: {
-      name: "labelId",
-      referencedColumnName: "_id",
-    },
-    joinColumn: {
-      name: "onCallDutyPolicyId",
-      referencedColumnName: "_id",
-    },
-  })
-  public labels?: Array<Label> = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectOnCallDutyPolicy,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectOnCallDutyPolicy,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditProjectOnCallDutyPolicy,
-    ],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.LongText,
-    title: "Description",
-    description: "Friendly description that will help you remember",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
-  })
-  public description?: string = undefined;
-
-  @Index()
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectOnCallDutyPolicy,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadProjectTeam,
     ],
     update: [],
   })
   @TableColumn({
-    required: true,
-    unique: true,
-    type: TableColumnType.Slug,
-    title: "Slug",
-    description: "Friendly globally unique name for your object",
-    computed: true,
+    manyToOneRelationColumn: "teamId",
+    type: TableColumnType.Entity,
+    modelType: Team,
+    title: "Team",
+    description: "Team this compliance setting belongs to.",
   })
-  @Column({
-    nullable: false,
-    type: ColumnType.Slug,
-    length: ColumnLength.Slug,
-    unique: true,
-  })
-  public slug?: string = undefined;
+  @ManyToOne(
+    () => {
+      return Team;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "teamId" })
+  public team?: Team = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectOnCallDutyPolicy,
+      Permission.EditProjectTeam,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadProjectTeam,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: true,
+    title: "Team ID",
+    description: "ID of Team this compliance setting belongs to.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: false,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public teamId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeam,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectTeam,
     ],
     update: [],
   })
@@ -334,14 +240,13 @@ export default class OnCallDutyPolicy extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectOnCallDutyPolicy,
+      Permission.EditProjectTeam,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadProjectTeam,
     ],
     update: [],
   })
@@ -408,123 +313,91 @@ export default class OnCallDutyPolicy extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectOnCallDutyPolicy,
+      Permission.EditProjectTeam,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadProjectTeam,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditProjectOnCallDutyPolicy,
+      Permission.EditProjectTeam,
     ],
   })
   @TableColumn({
     required: true,
+    type: TableColumnType.LongText,
+    title: "Rule Type",
+    description: "Type of compliance rule.",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public ruleType?: ComplianceRuleType = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeam,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectTeam,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectTeam,
+    ],
+  })
+  @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
-    title: "Repeat Policy If No One Acknowledges",
-    description: "Repeat the policy if no one acknowledges the alert",
+    title: "Enabled",
+    description: "Whether this compliance rule is enabled.",
     defaultValue: false,
   })
   @Column({
-    nullable: false,
-    default: false,
     type: ColumnType.Boolean,
+    default: false,
   })
-  public repeatPolicyIfNoOneAcknowledges?: boolean = undefined;
+  public enabled?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectOnCallDutyPolicy,
+      Permission.EditProjectTeam,
     ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectOnCallDutyPolicy,
+      Permission.ReadProjectTeam,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditProjectOnCallDutyPolicy,
+      Permission.EditProjectTeam,
     ],
   })
   @TableColumn({
-    required: true,
-    isDefaultValueColumn: true,
-    type: TableColumnType.Number,
-    canReadOnRelationQuery: true,
-    title: "Repeat Policy Times If No One Acknowledges",
-    description:
-      "Repeat the policy X number of times if no one acknowledges the alert",
-    defaultValue: 0,
-  })
-  @Column({
-    nullable: false,
-    default: 0,
-    type: ColumnType.Number,
-  })
-  public repeatPolicyIfNoOneAcknowledgesNoOfTimes?: number = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectOnCallDutyPolicy,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectOnCallDutyPolicy,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditProjectOnCallDutyPolicy,
-    ],
-  })
-  @TableColumn({
-    isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.JSON,
-    title: "Custom Fields",
-    description: "Custom Fields on this resource.",
+    title: "Options",
+    description: "Additional options for this compliance rule.",
   })
   @Column({
     type: ColumnType.JSON,
     nullable: true,
   })
-  public customFields?: JSONObject = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    isDefaultValueColumn: false,
-    required: false,
-    type: TableColumnType.JSON,
-    title: "Post Updates To Workspace Channel Name",
-    description: "Post Updates To Workspace Channel Name",
-  })
-  @Column({
-    type: ColumnType.JSON,
-    nullable: true,
-  })
-  public postUpdatesToWorkspaceChannels?: Array<NotificationRuleWorkspaceChannel> =
-    undefined;
+  public options?: JSONObject = undefined;
 }

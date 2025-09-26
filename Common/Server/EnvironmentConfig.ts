@@ -328,6 +328,8 @@ export const AccountsClientUrl: URL = new URL(
   AccountsRoute,
 );
 
+export const HomeClientUrl: URL = new URL(HttpProtocol, Host, HomeRoute);
+
 export const DocsClientUrl: URL = new URL(HttpProtocol, Host, DocsRoute);
 
 export const DisableTelemetry: boolean =

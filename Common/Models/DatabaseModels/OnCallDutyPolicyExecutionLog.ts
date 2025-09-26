@@ -25,12 +25,19 @@ import Permission from "../../Types/Permission";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import Alert from "./Alert";
+import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 
 @TableBillingAccessControl({
   create: PlanType.Growth,
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
+})
+@EnableWorkflow({
+  create: true,
+  delete: true,
+  update: true,
+  read: true,
 })
 @EnableDocumentation()
 @TenantColumn("projectId")

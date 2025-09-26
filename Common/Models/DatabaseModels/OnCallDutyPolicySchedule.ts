@@ -29,6 +29,7 @@ import {
   ManyToMany,
   ManyToOne,
 } from "typeorm";
+import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 
 @EnableDocumentation()
 @TableBillingAccessControl({
@@ -36,6 +37,12 @@ import {
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
+})
+@EnableWorkflow({
+  create: true,
+  delete: true,
+  update: true,
+  read: true,
 })
 @AccessControlColumn("labels")
 @TenantColumn("projectId")
