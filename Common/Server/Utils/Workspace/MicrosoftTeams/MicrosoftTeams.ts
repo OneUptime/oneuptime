@@ -286,13 +286,32 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         .replace(/^#+\s*/, "") // remove leading markdown headers like ##
         .replace(/^\*\*|\*\*$/g, "") // remove stray bold markers if any
         .trim();
+  // Remove markdown link syntax from title for cleaner rendering
+  const titleLinkRegex: RegExp = /\[([^\]]+)\]\(([^)]+)\)/g;
+  title = title.replace(titleLinkRegex, "$1");
+      // Sanitize unmatched bold markers if any remain
+      const boldCountTitle = (title.match(/\*\*/g) || []).length;
+      if (boldCountTitle % 2 !== 0) {
+        title = title.replace(/\*\*/g, "");
+      }
       lines.shift();
     }
 
     const linkRegex: RegExp = /\[([^\]]+)\]\(([^)]+)\)/g; // [text](url)
 
+    // Helper to clean up unmatched bold markers that can break rendering
+    const sanitizeMarkdownText = (text: string): string => {
+      const boldCount = (text.match(/\*\*/g) || []).length;
+      // If we have an odd number of **, remove them all to avoid raw markers showing
+      if (boldCount % 2 !== 0) {
+        text = text.replace(/\*\*/g, "");
+      }
+      // Collapse multiple spaces introduced by replacements
+      return text.replace(/\s{2,}/g, " ");
+    };
+
     for (const line of lines) {
-      // Extract links to actions and strip them from text
+      // Extract links to actions and keep link display text in-place (without markdown)
       let lineWithoutLinks: string = line;
       let match: RegExpExecArray | null = null;
       while ((match = linkRegex.exec(line))) {
@@ -308,7 +327,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             },
           ],
         });
-        lineWithoutLinks = lineWithoutLinks.replace(match[0], "").trim();
+        // Replace markdown link with just the display text to preserve sentence flow
+        lineWithoutLinks = lineWithoutLinks.replace(match[0], name).trim();
       }
 
       // Parse facts of the form **Label:** value
@@ -328,7 +348,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           facts.push({ name: name, value: value });
         }
       } else if (lineWithoutLinks) {
-        bodyTextParts.push(lineWithoutLinks);
+        bodyTextParts.push(sanitizeMarkdownText(lineWithoutLinks));
       }
     }
 
@@ -339,16 +359,16 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       summary: title,
     };
 
+    // Build a single section so we can enable markdown explicitly
+    const section: JSONObject = { markdown: true } as any;
     if (bodyTextParts.length > 0) {
-      payload["text"] = bodyTextParts.join("\n\n");
+      section["text"] = bodyTextParts.join("\n\n");
     }
-
     if (facts.length > 0) {
-      payload["sections"] = [
-        {
-          facts: facts,
-        },
-      ];
+      section["facts"] = facts;
+    }
+    if (section["text"] || section["facts"]) {
+      payload["sections"] = [section];
     }
 
     if (actions.length > 0) {
