@@ -1827,13 +1827,11 @@ All monitoring checks are passing normally.`;
     }
 
     // Normalize variations like "AcknowledgeIncident" to our enum keys
-    const normalized = (actionType || "").toLowerCase().replace(/[_\s]/g, "-");
-    const mappedActionType =
-      normalized === "acknowledgeincident" || normalized === "ack-incident" ? MicrosoftTeamsIncidentActionType.AckIncident :
-      normalized === "resolveincident" || normalized === "resolve-incident" ? MicrosoftTeamsIncidentActionType.ResolveIncident :
-      actionType;
 
-    logger.debug(`Bot invoke activity - Action type: ${actionType} (normalized: ${mappedActionType})`);
+    const mappedActionType = actionType as MicrosoftTeamsIncidentActionType;
+
+
+    logger.debug(`Bot invoke activity - Action type: ${actionType} (mapped: ${mappedActionType})`);
     logger.debug(`Bot invoke value: ${JSON.stringify(value)}`);
 
     try {
@@ -1862,9 +1860,9 @@ All monitoring checks are passing normally.`;
       }
 
       const projectId: ObjectID = projectAuth.projectId;
-  const fromObj: JSONObject = ((data.activity["from"] as JSONObject) || {}) as JSONObject;
-  const teamsUserId: string = (fromObj["id"] as string) || "";
-  const aadObjectId: string | undefined = (fromObj["aadObjectId"] as string) || undefined;
+      const fromObj: JSONObject = ((data.activity["from"] as JSONObject) || {}) as JSONObject;
+      const teamsUserId: string = (fromObj["id"] as string) || "";
+      const aadObjectId: string | undefined = (fromObj["aadObjectId"] as string) || undefined;
 
       // Handle key incident actions for now
       if (mappedActionType === MicrosoftTeamsIncidentActionType.AckIncident) {
