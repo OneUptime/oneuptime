@@ -453,12 +453,12 @@
             },
             "resources": {
               "type": "object"
-            },
-            "commonConfiguration": {
-              "type": "string"
             }
           },
           "additionalProperties": false
+        },
+        "commonConfiguration": {
+          "type": "string"
         }
       },
       "additionalProperties": false
@@ -1780,7 +1780,7 @@
           "type": "boolean"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "cert-manager": {
       "type": "object",
@@ -1792,7 +1792,7 @@
           "type": "boolean"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "certManagerLetsEncrypt": {
       "type": "object",
