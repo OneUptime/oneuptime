@@ -52,7 +52,7 @@ import { CloudAdapter, ConfigurationBotFrameworkAuthentication, TeamsActivityHan
 import { ExpressRequest, ExpressResponse } from "../../Express";
 // Teams action handlers and types
 import MicrosoftTeamsAuthAction from "./Actions/Auth";
-import { MicrosoftTeamsIncidentActionType } from "./Actions/ActionTypes";
+import { MicrosoftTeamsIncidentActionType, MicrosoftTeamsActionType } from "./Actions/ActionTypes";
 
 
 export default class MicrosoftTeamsUtil extends WorkspaceBase {
@@ -263,6 +263,33 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.error(error);
       return null;
     }
+  }
+
+  // Extract action type and value from Teams Adaptive Card submit value
+  private static extractActionFromValue(value: JSONObject): { actionType: MicrosoftTeamsActionType; actionValue: string } {
+    // Support multiple shapes that Teams may send for Adaptive Card submits
+    // 1) { action: "ack-incident", actionValue: "<id>" }
+    // 2) { data: { action: "ack-incident", actionValue: "<id>" } }
+    // 3) { action: { type: "Action.Submit", data: { action: "ack-incident", actionValue: "<id>" } } }
+    let actionType: string = (value["action"] as string) || "";
+    let actionValue: string = (value["actionValue"] as string) || "";
+
+    const valData: JSONObject | undefined = (value["data"] as JSONObject) || undefined;
+    if ((!actionType || !actionValue) && valData) {
+      actionType = (valData["action"] as string) || actionType;
+      actionValue = (valData["actionValue"] as string) || actionValue;
+    }
+
+    const actionObj: JSONObject | undefined = (value["action"] as unknown as JSONObject);
+    if ((!actionType || !actionValue) && actionObj && typeof actionObj === "object") {
+      const embeddedData: JSONObject | undefined = (actionObj["data"] as JSONObject) || undefined;
+      if (embeddedData) {
+        actionType = (embeddedData["action"] as string) || actionType;
+        actionValue = (embeddedData["actionValue"] as string) || actionValue;
+      }
+    }
+
+    return { actionType: actionType as MicrosoftTeamsActionType, actionValue };
   }
 
   private static buildMessageCardFromMarkdown(markdown: string): JSONObject {
@@ -1804,31 +1831,12 @@ All monitoring checks are passing normally.`;
     // Handle adaptive card button clicks via Bot Framework
     const value: JSONObject = (data.activity["value"] as JSONObject) || {};
 
-    // Support multiple shapes that Teams may send for Adaptive Card submits
-    // 1) { action: "ack-incident", actionValue: "<id>" }
-    // 2) { data: { action: "ack-incident", actionValue: "<id>" } }
-    // 3) { action: { type: "Action.Submit", data: { action: "ack-incident", actionValue: "<id>" } } }
-    let actionType: string = (value["action"] as string) || "";
-    let actionValue: string = (value["actionValue"] as string) || "";
-
-    const valData: JSONObject | undefined = (value["data"] as JSONObject) || undefined;
-    if ((!actionType || !actionValue) && valData) {
-      actionType = (valData["action"] as string) || actionType;
-      actionValue = (valData["actionValue"] as string) || actionValue;
-    }
-
-    const actionObj: JSONObject | undefined = (value["action"] as unknown as JSONObject);
-    if ((!actionType || !actionValue) && actionObj && typeof actionObj === "object") {
-      const embeddedData: JSONObject | undefined = (actionObj["data"] as JSONObject) || undefined;
-      if (embeddedData) {
-        actionType = (embeddedData["action"] as string) || actionType;
-        actionValue = (embeddedData["actionValue"] as string) || actionValue;
-      }
-    }
+    // Extract action type and value from the value object
+    const { actionType, actionValue } = this.extractActionFromValue(value);
 
     // Normalize variations like "AcknowledgeIncident" to our enum keys
 
-    const mappedActionType = actionType as MicrosoftTeamsIncidentActionType;
+    const mappedActionType = actionType;
 
 
     logger.debug(`Bot invoke activity - Action type: ${actionType} (mapped: ${mappedActionType})`);
