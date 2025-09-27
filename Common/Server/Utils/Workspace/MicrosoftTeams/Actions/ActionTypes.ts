@@ -4,12 +4,12 @@
 export enum MicrosoftTeamsIncidentActionType {
   AckIncident = "AcknowledgeIncident",
   ResolveIncident = "ResolveIncident",
-  UnresolveIncident = "unresolve-incident",
-  ViewIncident = "view-incident",
-  IncidentCreated = "incident-created",
-  IncidentStateChanged = "incident-state-changed",
-  AddIncidentNote = "add-incident-note",
-  ExecuteIncidentOnCallPolicy = "execute-incident-on-call-policy",
+  UnresolveIncident = "UnresolveIncident",
+  ViewIncident = "ViewIncident",
+  IncidentCreated = "IncidentCreated",
+  IncidentStateChanged = "IncidentStateChanged",
+  AddIncidentNote = "AddIncidentNote",
+  ExecuteIncidentOnCallPolicy = "ExecuteIncidentOnCallPolicy",
 }
 
 // Alert Actions
