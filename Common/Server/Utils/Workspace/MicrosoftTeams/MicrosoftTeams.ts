@@ -1869,19 +1869,24 @@ All monitoring checks are passing normally.`;
 
       const projectId: ObjectID = projectAuth.projectId;
       const fromObj: JSONObject = ((data.activity["from"] as JSONObject) || {}) as JSONObject;
-      const teamsUserId: string = (fromObj["id"] as string) || "";
-      const aadObjectId: string | undefined = (fromObj["aadObjectId"] as string) || undefined;
+      const teamsUserId: string | undefined = (fromObj["aadObjectId"] as string) || undefined;
 
-      // Handle key incident actions for now
-      if (mappedActionType === MicrosoftTeamsIncidentActionType.AckIncident) {
-        const userLookupParamsAck: { teamsUserId: string; projectId: ObjectID; aadObjectId?: string } = {
+      if(!teamsUserId) {
+        logger.error("AAD Object ID (teamsUserId) not found in invoke activity from object");
+        await data.turnContext.sendActivity("Sorry, I couldn't identify you. Please try again later.");
+        return;
+      }
+
+              const userLookupParamsRes: { teamsUserId: string; projectId: ObjectID; aadObjectId?: string } = {
           teamsUserId: teamsUserId,
           projectId: projectId,
         };
-        if (aadObjectId) {
-          userLookupParamsAck.aadObjectId = aadObjectId;
-        }
-        const oneUptimeUserId: ObjectID = await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId(userLookupParamsAck);
+       
+        const oneUptimeUserId: ObjectID = await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId(userLookupParamsRes);
+
+      // Handle key incident actions for now
+      if (mappedActionType === MicrosoftTeamsIncidentActionType.AckIncident) {
+      
 
         if (!actionValue) {
           await data.turnContext.sendActivity("Unable to acknowledge: missing incident id.");
@@ -1894,14 +1899,7 @@ All monitoring checks are passing normally.`;
       }
 
       if (mappedActionType === MicrosoftTeamsIncidentActionType.ResolveIncident) {
-        const userLookupParamsRes: { teamsUserId: string; projectId: ObjectID; aadObjectId?: string } = {
-          teamsUserId: teamsUserId,
-          projectId: projectId,
-        };
-        if (aadObjectId) {
-          userLookupParamsRes.aadObjectId = aadObjectId;
-        }
-        const oneUptimeUserId: ObjectID = await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId(userLookupParamsRes);
+
 
         if (!actionValue) {
           await data.turnContext.sendActivity("Unable to resolve: missing incident id.");
@@ -1914,7 +1912,8 @@ All monitoring checks are passing normally.`;
       }
 
       // Default fallback for unimplemented actions
-      await data.turnContext.sendActivity("Action received: " + actionType);
+      await data.turnContext.sendActivity("Sorry, but the action " + actionType + " you requested is not implemented yet.");
+
     } catch (error) {
       logger.error("Error handling bot invoke activity:");
       logger.error(error);
