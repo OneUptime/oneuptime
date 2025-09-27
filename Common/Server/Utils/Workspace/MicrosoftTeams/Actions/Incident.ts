@@ -25,7 +25,8 @@ export default class MicrosoftTeamsIncidentActions {
       data.actionType === MicrosoftTeamsIncidentActionType.ViewIncident ||
       data.actionType === MicrosoftTeamsIncidentActionType.IncidentCreated ||
       data.actionType === MicrosoftTeamsIncidentActionType.IncidentStateChanged ||
-      data.actionType === MicrosoftTeamsIncidentActionType.AddIncidentNote
+      data.actionType === MicrosoftTeamsIncidentActionType.ViewAddIncidentNote ||
+      data.actionType === MicrosoftTeamsIncidentActionType.SubmitIncidentNote
     );
   }
 
@@ -237,7 +238,19 @@ export default class MicrosoftTeamsIncidentActions {
       return;
     }
 
-    if (actionType === MicrosoftTeamsIncidentActionType.AddIncidentNote) {
+    if (actionType === MicrosoftTeamsIncidentActionType.ViewAddIncidentNote) {
+      if (!actionValue) {
+        await turnContext.sendActivity("Unable to add note: missing incident id.");
+        return;
+      }
+
+      // Send the input card
+      const card = this.buildAddIncidentNoteCard(actionValue);
+      await turnContext.sendActivity({ attachments: [{ contentType: "application/vnd.microsoft.card.adaptive", content: card }] });
+      return;
+    }
+
+    if (actionType === MicrosoftTeamsIncidentActionType.SubmitIncidentNote) {
       if (!actionValue) {
         await turnContext.sendActivity("Unable to add note: missing incident id.");
         return;
@@ -270,9 +283,7 @@ export default class MicrosoftTeamsIncidentActions {
         await turnContext.sendActivity("✅ Note added successfully.");
         return;
       } else {
-        // Send the input card
-        const card = this.buildAddIncidentNoteCard(actionValue);
-        await turnContext.sendActivity({ attachments: [{ contentType: "application/vnd.microsoft.card.adaptive", content: card }] });
+        await turnContext.sendActivity("Unable to add note: missing note data.");
         return;
       }
     }
@@ -323,7 +334,7 @@ export default class MicrosoftTeamsIncidentActions {
           type: "Action.Submit",
           title: "Submit",
           data: {
-            action: MicrosoftTeamsIncidentActionType.AddIncidentNote,
+            action: MicrosoftTeamsIncidentActionType.SubmitIncidentNote,
             actionValue: incidentId,
           },
         },

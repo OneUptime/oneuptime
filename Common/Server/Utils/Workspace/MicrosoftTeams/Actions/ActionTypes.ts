@@ -8,6 +8,8 @@ export enum MicrosoftTeamsIncidentActionType {
   ViewIncident = "ViewIncident",
   IncidentCreated = "IncidentCreated",
   IncidentStateChanged = "IncidentStateChanged",
+  ViewAddIncidentNote = "ViewAddIncidentNote",
+  SubmitIncidentNote = "SubmitIncidentNote",
   AddIncidentNote = "AddIncidentNote",
   ExecuteIncidentOnCallPolicy = "ExecuteIncidentOnCallPolicy",
 }

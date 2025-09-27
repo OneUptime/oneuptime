@@ -101,7 +101,7 @@ export default class MicrosoftTeamsIncidentMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "📄 Add Note",
       value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsIncidentActionType.AddIncidentNote,
+      actionId: MicrosoftTeamsIncidentActionType.ViewAddIncidentNote,
     };
 
     buttons.push(addNoteButton);
