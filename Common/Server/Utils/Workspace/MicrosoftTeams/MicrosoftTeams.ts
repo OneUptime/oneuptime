@@ -52,7 +52,8 @@ import { CloudAdapter, ConfigurationBotFrameworkAuthentication, TeamsActivityHan
 import { ExpressRequest, ExpressResponse } from "../../Express";
 // Teams action handlers and types
 import MicrosoftTeamsAuthAction from "./Actions/Auth";
-import { MicrosoftTeamsIncidentActionType, MicrosoftTeamsActionType } from "./Actions/ActionTypes";
+import MicrosoftTeamsIncidentActions from "./Actions/Incident";
+import { MicrosoftTeamsActionType } from "./Actions/ActionTypes";
 
 
 export default class MicrosoftTeamsUtil extends WorkspaceBase {
@@ -1877,34 +1878,14 @@ All monitoring checks are passing normally.`;
         const oneUptimeUserId: ObjectID = await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId(userLookupParamsRes);
 
       // Handle key incident actions for now
-      if (actionType === MicrosoftTeamsIncidentActionType.AckIncident) {
-      
-
-        if (!actionValue) {
-          await data.turnContext.sendActivity("Unable to acknowledge: missing incident id.");
-          return;
-        }
-
-        await IncidentService.acknowledgeIncident(new ObjectID(actionValue), oneUptimeUserId);
-        await data.turnContext.sendActivity("✅ Incident acknowledged.");
-        return;
-      }
-
-      if (actionType === MicrosoftTeamsIncidentActionType.ResolveIncident) {
-
-
-        if (!actionValue) {
-          await data.turnContext.sendActivity("Unable to resolve: missing incident id.");
-          return;
-        }
-
-        await IncidentService.resolveIncident(new ObjectID(actionValue), oneUptimeUserId);
-        await data.turnContext.sendActivity("✅ Incident resolved.");
-        return;
-      }
-
-      // Default fallback for unimplemented actions
-      await data.turnContext.sendActivity("Sorry, but the action " + actionType + " you requested is not implemented yet.");
+      await MicrosoftTeamsIncidentActions.handleBotIncidentAction({
+        actionType,
+        actionValue,
+        value,
+        projectId,
+        oneUptimeUserId,
+        turnContext: data.turnContext,
+      });
 
     } catch (error) {
       logger.error("Error handling bot invoke activity:");
