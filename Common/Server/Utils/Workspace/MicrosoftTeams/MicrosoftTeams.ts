@@ -50,6 +50,9 @@ const MICROSOFT_TEAMS_APP_TYPE = "SingleTenant";
 // Bot Framework SDK imports
 import { CloudAdapter, ConfigurationBotFrameworkAuthentication, TeamsActivityHandler, TurnContext, ConversationReference, MessageFactory, ConfigurationBotFrameworkAuthenticationOptions } from 'botbuilder';
 import { ExpressRequest, ExpressResponse } from "../../Express";
+// Teams action handlers and types
+import MicrosoftTeamsAuthAction from "./Actions/Auth";
+import { MicrosoftTeamsIncidentActionType } from "./Actions/ActionTypes";
 
 
 export default class MicrosoftTeamsUtil extends WorkspaceBase {
@@ -1044,33 +1047,21 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       if (block._type === "WorkspacePayloadMarkdown") {
         const markdownBlock = block as WorkspacePayloadMarkdown;
         logger.debug(`Markdown text: ${markdownBlock.text}`);
-        body.push({
-          type: "TextBlock",
-          text: markdownBlock.text,
-          wrap: true,
-          markdown: true,
-        });
-      } else if (block._type === "WorkspacePayloadHeader") {
+        const markdownObj = this.getMarkdownBlock({ payloadMarkdownBlock: markdownBlock });
+        body.push(markdownObj);
+            } else if (block._type === "WorkspacePayloadHeader") {
         const headerBlock = block as WorkspacePayloadHeader;
         logger.debug(`Header text: ${headerBlock.text}`);
-        body.push({
-          type: "TextBlock",
-          text: headerBlock.text,
-          size: "Large",
-          weight: "Bolder",
-          wrap: true,
-        });
+        const headerObj = this.getHeaderBlock({ payloadHeaderBlock: headerBlock });
+        body.push(headerObj);
       } else if (block._type === "WorkspacePayloadButtons") {
         const buttonsBlock: WorkspacePayloadButtons =
           block as WorkspacePayloadButtons;
         logger.debug(`Processing ${buttonsBlock.buttons.length} buttons`);
         for (const button of buttonsBlock.buttons) {
-          logger.debug(`Button: ${button.title} -> ${button.url?.toString()}`);
-          actions.push({
-            type: "Action.OpenUrl",
-            title: button.title,
-            url: button.url?.toString(),
-          });
+            logger.debug(`Button: ${button.title} -> ${button.url ? button.url.toString() : "invoke"}`);
+            const actionObj = this.getButtonBlock({ payloadButtonBlock: button });
+            actions.push(actionObj);
         }
       }
     }
@@ -1268,11 +1259,23 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   public static override getButtonBlock(data: {
     payloadButtonBlock: WorkspaceMessagePayloadButton;
   }): JSONObject {
+    // If URL is present, render as link; otherwise use Action.Submit to post back action/value
+    if (data.payloadButtonBlock.url) {
+      return {
+        type: "Action.OpenUrl",
+        title: data.payloadButtonBlock.title,
+        url: data.payloadButtonBlock.url.toString(),
+      };
+    }
+
     return {
-      type: "Action.OpenUrl",
+      type: "Action.Submit",
       title: data.payloadButtonBlock.title,
-      url: data.payloadButtonBlock.url?.toString(),
-    };
+      data: {
+        action: data.payloadButtonBlock.actionId,
+        actionValue: data.payloadButtonBlock.value,
+      },
+    } as any;
   }
 
   // Other block methods - placeholders for now
@@ -1353,6 +1356,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }): Promise<void> {
     // Handle direct messages to bot or @mentions via Bot Framework
     const messageText: string = (data.activity["text"] as string) || "";
+    const possibleActionValue: JSONObject = (data.activity["value"] as JSONObject) || {};
     const from: JSONObject = (data.activity["from"] as JSONObject) || {};
     const conversation: JSONObject = (data.activity["conversation"] as JSONObject) || {};
     const channelData: JSONObject = (data.activity["channelData"] as JSONObject) || {};
@@ -1361,6 +1365,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`Message text: ${messageText}`);
     logger.debug(`Conversation: ${JSON.stringify(conversation)}`);
     logger.debug(`Channel data: ${JSON.stringify(channelData)}`);
+
+    // If this is actually an Adaptive Card submit wrapped as a message, route to invoke handler
+    if ((possibleActionValue["action"] as string) || (possibleActionValue["data"] as any)?.["action"]) {
+      logger.debug("Message activity contains action payload; routing to invoke handler");
+      await this.handleBotInvokeActivity({ activity: data.activity, turnContext: data.turnContext });
+      return;
+    }
 
     // Extract tenant ID to get project ID
     const tenantId: string = (channelData["tenant"] as JSONObject)?.["id"] as string;
@@ -1792,13 +1803,117 @@ All monitoring checks are passing normally.`;
   }): Promise<void> {
     // Handle adaptive card button clicks via Bot Framework
     const value: JSONObject = (data.activity["value"] as JSONObject) || {};
-    const actionType: string = value["action"] as string;
 
-    logger.debug(`Bot invoke activity - Action type: ${actionType}`);
+    // Support multiple shapes that Teams may send for Adaptive Card submits
+    // 1) { action: "ack-incident", actionValue: "<id>" }
+    // 2) { data: { action: "ack-incident", actionValue: "<id>" } }
+    // 3) { action: { type: "Action.Submit", data: { action: "ack-incident", actionValue: "<id>" } } }
+    let actionType: string = (value["action"] as string) || "";
+    let actionValue: string = (value["actionValue"] as string) || "";
+
+    const valData: JSONObject | undefined = (value["data"] as JSONObject) || undefined;
+    if ((!actionType || !actionValue) && valData) {
+      actionType = (valData["action"] as string) || actionType;
+      actionValue = (valData["actionValue"] as string) || actionValue;
+    }
+
+    const actionObj: JSONObject | undefined = (value["action"] as unknown as JSONObject);
+    if ((!actionType || !actionValue) && actionObj && typeof actionObj === "object") {
+      const embeddedData: JSONObject | undefined = (actionObj["data"] as JSONObject) || undefined;
+      if (embeddedData) {
+        actionType = (embeddedData["action"] as string) || actionType;
+        actionValue = (embeddedData["actionValue"] as string) || actionValue;
+      }
+    }
+
+    // Normalize variations like "AcknowledgeIncident" to our enum keys
+    const normalized = (actionType || "").toLowerCase().replace(/[_\s]/g, "-");
+    const mappedActionType =
+      normalized === "acknowledgeincident" || normalized === "ack-incident" ? MicrosoftTeamsIncidentActionType.AckIncident :
+      normalized === "resolveincident" || normalized === "resolve-incident" ? MicrosoftTeamsIncidentActionType.ResolveIncident :
+      actionType;
+
+    logger.debug(`Bot invoke activity - Action type: ${actionType} (normalized: ${mappedActionType})`);
     logger.debug(`Bot invoke value: ${JSON.stringify(value)}`);
 
-    // For now, just log the action - this can be extended to handle specific actions
-    logger.debug(`Bot Framework invoke action processed: ${actionType}`);
+    try {
+      // Resolve project and user context from activity
+      const channelData: JSONObject = (data.activity["channelData"] as JSONObject) || {};
+      const tenantId: string = ((channelData["tenant"] as JSONObject) || {})["id"] as string;
+      if (!tenantId) {
+        logger.error("Tenant ID not found in invoke activity");
+        await data.turnContext.sendActivity("Sorry, I couldn't identify your organization. Please try again later.");
+        return;
+      }
+
+      const projectAuth = await WorkspaceProjectAuthTokenService.findOneBy({
+        query: {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          miscData: { tenantId: tenantId } as any,
+        },
+        select: { projectId: true, authToken: true },
+        props: { isRoot: true },
+      });
+
+      if (!projectAuth || !projectAuth.projectId) {
+        logger.error("Project auth not found for invoke activity tenant: " + tenantId);
+        await data.turnContext.sendActivity("Sorry, I couldn't find your project configuration.");
+        return;
+      }
+
+      const projectId: ObjectID = projectAuth.projectId;
+  const fromObj: JSONObject = ((data.activity["from"] as JSONObject) || {}) as JSONObject;
+  const teamsUserId: string = (fromObj["id"] as string) || "";
+  const aadObjectId: string | undefined = (fromObj["aadObjectId"] as string) || undefined;
+
+      // Handle key incident actions for now
+      if (mappedActionType === MicrosoftTeamsIncidentActionType.AckIncident) {
+        const userLookupParamsAck: { teamsUserId: string; projectId: ObjectID; aadObjectId?: string } = {
+          teamsUserId: teamsUserId,
+          projectId: projectId,
+        };
+        if (aadObjectId) {
+          userLookupParamsAck.aadObjectId = aadObjectId;
+        }
+        const oneUptimeUserId: ObjectID = await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId(userLookupParamsAck);
+
+        if (!actionValue) {
+          await data.turnContext.sendActivity("Unable to acknowledge: missing incident id.");
+          return;
+        }
+
+        await IncidentService.acknowledgeIncident(new ObjectID(actionValue), oneUptimeUserId);
+        await data.turnContext.sendActivity("✅ Incident acknowledged.");
+        return;
+      }
+
+      if (mappedActionType === MicrosoftTeamsIncidentActionType.ResolveIncident) {
+        const userLookupParamsRes: { teamsUserId: string; projectId: ObjectID; aadObjectId?: string } = {
+          teamsUserId: teamsUserId,
+          projectId: projectId,
+        };
+        if (aadObjectId) {
+          userLookupParamsRes.aadObjectId = aadObjectId;
+        }
+        const oneUptimeUserId: ObjectID = await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId(userLookupParamsRes);
+
+        if (!actionValue) {
+          await data.turnContext.sendActivity("Unable to resolve: missing incident id.");
+          return;
+        }
+
+        await IncidentService.resolveIncident(new ObjectID(actionValue), oneUptimeUserId);
+        await data.turnContext.sendActivity("✅ Incident resolved.");
+        return;
+      }
+
+      // Default fallback for unimplemented actions
+      await data.turnContext.sendActivity("Action received: " + actionType);
+    } catch (error) {
+      logger.error("Error handling bot invoke activity:");
+      logger.error(error);
+      await data.turnContext.sendActivity("Sorry, that action failed. Please try again later.");
+    }
   }
 
   @CaptureSpan()
