@@ -964,9 +964,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             content: data.adaptiveCard
           });
 
-          // Add fallback text for better accessibility
-          message.text = this.convertAdaptiveCardToHtml(data.adaptiveCard);
-
           const response = await context.sendActivity(message);
           messageId = response?.id || "";
           logger.debug(`Message sent with ID: ${messageId}`);
