@@ -2,8 +2,8 @@
 
 // Incident Actions
 export enum MicrosoftTeamsIncidentActionType {
-  AckIncident = "ack-incident",
-  ResolveIncident = "resolve-incident",
+  AckIncident = "AcknowledgeIncident",
+  ResolveIncident = "ResolveIncident",
   UnresolveIncident = "unresolve-incident",
   ViewIncident = "view-incident",
   IncidentCreated = "incident-created",
@@ -14,45 +14,45 @@ export enum MicrosoftTeamsIncidentActionType {
 
 // Alert Actions
 export enum MicrosoftTeamsAlertActionType {
-  AckAlert = "ack-alert",
-  ResolveAlert = "resolve-alert",
-  ViewAlert = "view-alert",
-  AlertCreated = "alert-created",
-  AlertStateChanged = "alert-state-changed",
-  AddAlertNote = "add-alert-note",
-  ExecuteAlertOnCallPolicy = "execute-alert-on-call-policy",
+  AckAlert = "AckAlert",
+  ResolveAlert = "ResolveAlert",
+  ViewAlert = "ViewAlert",
+  AlertCreated = "AlertCreated",
+  AlertStateChanged = "AlertStateChanged",
+  AddAlertNote = "AddAlertNote",
+  ExecuteAlertOnCallPolicy = "ExecuteAlertOnCallPolicy",
 }
 
 // Monitor Actions
 export enum MicrosoftTeamsMonitorActionType {
-  ViewMonitor = "view-monitor",
-  EnableMonitor = "enable-monitor",
-  DisableMonitor = "disable-monitor",
-  MonitorStatusChanged = "monitor-status-changed",
+  ViewMonitor = "ViewMonitor",
+  EnableMonitor = "EnableMonitor",
+  DisableMonitor = "DisableMonitor",
+  MonitorStatusChanged = "MonitorStatusChanged",
 }
 
 // Scheduled Maintenance Actions
 export enum MicrosoftTeamsScheduledMaintenanceActionType {
-  ViewScheduledMaintenance = "view-scheduled-maintenance",
-  MarkAsComplete = "mark-scheduled-maintenance-complete",
-  MarkAsOngoing = "mark-scheduled-maintenance-ongoing",
-  ScheduledMaintenanceCreated = "scheduled-maintenance-created",
-  ScheduledMaintenanceStateChanged = "scheduled-maintenance-state-changed",
-  AddScheduledMaintenanceNote = "add-scheduled-maintenance-note",
+  ViewScheduledMaintenance = "ViewScheduledMaintenance",
+  MarkAsComplete = "MarkAsComplete",
+  MarkAsOngoing = "MarkAsOngoing",
+  ScheduledMaintenanceCreated = "ScheduledMaintenanceCreated",
+  ScheduledMaintenanceStateChanged = "ScheduledMaintenanceStateChanged",
+  AddScheduledMaintenanceNote = "AddScheduledMaintenanceNote",
 }
 
 // On-Call Duty Actions
 export enum MicrosoftTeamsOnCallDutyActionType {
-  ViewOnCallDuty = "view-on-call-duty",
-  EscalateOnCall = "escalate-on-call",
-  OnCallDutyPolicyTriggered = "on-call-duty-policy-triggered",
+  ViewOnCallDuty = "ViewOnCallDuty",
+  EscalateOnCall = "EscalateOnCall",
+  OnCallDutyPolicyTriggered = "OnCallDutyPolicyTriggered",
 }
 
 // General Actions
 export enum MicrosoftTeamsGeneralActionType {
-  Help = "help",
-  ViewDashboard = "view-dashboard",
-  ViewProject = "view-project",
+  Help = "Help",
+  ViewDashboard = "ViewDashboard",
+  ViewProject = "ViewProject",
 }
 
 // Activity Types from Microsoft Teams

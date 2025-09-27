@@ -1831,12 +1831,7 @@ All monitoring checks are passing normally.`;
     // Extract action type and value from the value object
     const { actionType, actionValue } = this.extractActionFromValue(value);
 
-    // Normalize variations like "AcknowledgeIncident" to our enum keys
-
-    const mappedActionType = actionType;
-
-
-    logger.debug(`Bot invoke activity - Action type: ${actionType} (mapped: ${mappedActionType})`);
+    logger.debug(`Bot invoke activity - Action type: ${actionType}`);
     logger.debug(`Bot invoke value: ${JSON.stringify(value)}`);
 
     try {
@@ -1882,7 +1877,7 @@ All monitoring checks are passing normally.`;
         const oneUptimeUserId: ObjectID = await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId(userLookupParamsRes);
 
       // Handle key incident actions for now
-      if (mappedActionType === MicrosoftTeamsIncidentActionType.AckIncident) {
+      if (actionType === MicrosoftTeamsIncidentActionType.AckIncident) {
       
 
         if (!actionValue) {
@@ -1895,7 +1890,7 @@ All monitoring checks are passing normally.`;
         return;
       }
 
-      if (mappedActionType === MicrosoftTeamsIncidentActionType.ResolveIncident) {
+      if (actionType === MicrosoftTeamsIncidentActionType.ResolveIncident) {
 
 
         if (!actionValue) {
