@@ -37,10 +37,7 @@ import MicrosoftTeamsIntegrationDocumentation from "./MicrosoftTeamsIntegrationD
 import Link from "Common/UI/Components/Link/Link";
 import { ButtonStyleType as SharedButtonStyle } from "Common/UI/Components/Button/Button";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
-import Modal from "Common/UI/Components/Modal/Modal";
-import List from "Common/UI/Components/List/List";
-import Field from "Common/UI/Components/Detail/Field";
-import Button from "Common/UI/Components/Button/Button";
+import TeamsAvailableModal from "./TeamsAvailableModal";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -88,7 +85,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.get<JSONObject>({
-          url: URL.fromURL(APP_API_URL.toString()).addRoute("/microsoft-teams/teams"),
+          url: URL.fromURL(APP_API_URL).addRoute("/microsoft-teams/teams"),
           headers: ModelAPI.getCommonHeaders(),
         });
 
@@ -566,54 +563,19 @@ The zip file contains the app manifest and required icons for Teams installation
       )}
 
       {isTeamsModalOpen && (
-        <Modal
-          title="Microsoft Teams"
-          description="These are the teams available to connect with OneUptime."
-          onClose={() => {
-            setIsTeamsModalOpen(false);
+        <TeamsAvailableModal
+          isOpen={isTeamsModalOpen}
+          onClose={() => setIsTeamsModalOpen(false)}
+          onRefresh={async () => {
+            await refreshTeams();
+            await loadTeams();
           }}
-          submitButtonText="Close"
-          onSubmit={() => {
-            setIsTeamsModalOpen(false);
-          }}
-          rightElement={
-            <Button
-              title="Refresh Teams"
-              icon={IconProp.Refresh}
-              isLoading={isRefreshTeamsLoading}
-              onClick={async () => {
-                // Refresh on server then reload list
-                await refreshTeams();
-                await loadTeams();
-              }}
-            />
-          }
-        >
-          <List
-            id="teams-list"
-            data={teams}
-            fields={[
-              { key: "name", title: "Team Name" } as Field<TeamItem>,
-              { key: "id", title: "Team ID" } as Field<TeamItem>,
-            ]}
-            onNavigateToPage={(_pageNumber: number, _itemsOnPage: number) => {
-              // no-op: pagination disabled
-            }}
-            currentPageNumber={1}
-            totalItemsCount={teams.length}
-            itemsOnPage={teams.length || 1}
-            disablePagination={true}
-            error={teamsError}
-            isLoading={isTeamsLoading}
-            singularLabel="Team"
-            pluralLabel="Teams"
-            noItemsMessage={
-              isAdminConsentCompleted
-                ? "No teams found. Try refreshing."
-                : "Admin consent is required to list teams."
-            }
-          />
-        </Modal>
+          isRefreshing={isRefreshTeamsLoading}
+          teams={teams}
+          isLoading={isTeamsLoading}
+          error={teamsError}
+          isAdminConsentCompleted={isAdminConsentCompleted}
+        />
       )}
     </Fragment>
   );
