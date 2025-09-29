@@ -1389,11 +1389,28 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const from: JSONObject = (data.activity["from"] as JSONObject) || {};
     const conversation: JSONObject = (data.activity["conversation"] as JSONObject) || {};
     const channelData: JSONObject = (data.activity["channelData"] as JSONObject) || {};
+    const entities: Array<JSONObject> = (data.activity["entities"] as Array<JSONObject>) || [];
 
     logger.debug(`Bot message from: ${JSON.stringify(from)}`);
     logger.debug(`Message text: ${messageText}`);
     logger.debug(`Conversation: ${JSON.stringify(conversation)}`);
     logger.debug(`Channel data: ${JSON.stringify(channelData)}`);
+    logger.debug(`Entities: ${JSON.stringify(entities)}`);
+
+    // Check if the bot was mentioned
+    const recipientId: string = (data.activity["recipient"] as JSONObject)?.["id"] as string;
+    const conversationType: string = (conversation["conversationType"] as string) || "";
+    const isDirectMessage: boolean = conversationType === "personal";
+    const isMentioned: boolean = entities.some((entity: JSONObject) => {
+      return entity["type"] === "mention" && 
+             (entity["mentioned"] as JSONObject)?.["id"] === recipientId;
+    });
+
+    // Only respond if it's a direct message or the bot was mentioned
+    if (!isDirectMessage && !isMentioned) {
+      logger.debug("Bot not mentioned in channel message, ignoring");
+      return;
+    }
 
     // If this is actually an Adaptive Card submit wrapped as a message, route to invoke handler
     if ((possibleActionValue["action"] as string) || (possibleActionValue["data"] as any)?.["action"]) {
