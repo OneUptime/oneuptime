@@ -88,9 +88,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.get<JSONObject>({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            "/microsoft-teams/teams",
-          ),
+          url: URL.fromURL(APP_API_URL).addRoute("/microsoft-teams/teams"),
           headers: ModelAPI.getCommonHeaders(),
         });
 
@@ -379,8 +377,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       setError(null);
 
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
+        await API.post<JSONObject>({
+          url: URL.fromURL(APP_API_URL).addRoute(
             `/microsoft-teams/refresh-teams`,
           ),
           headers: ModelAPI.getCommonHeaders(),
