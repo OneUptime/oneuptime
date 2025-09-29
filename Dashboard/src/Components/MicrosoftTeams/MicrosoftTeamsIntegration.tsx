@@ -37,6 +37,10 @@ import MicrosoftTeamsIntegrationDocumentation from "./MicrosoftTeamsIntegrationD
 import Link from "Common/UI/Components/Link/Link";
 import { ButtonStyleType as SharedButtonStyle } from "Common/UI/Components/Button/Button";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import Modal from "Common/UI/Components/Modal/Modal";
+import List from "Common/UI/Components/List/List";
+import Field from "Common/UI/Components/Detail/Field";
+import Button from "Common/UI/Components/Button/Button";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -63,6 +67,62 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
   const [isRefreshTeamsLoading, setIsRefreshTeamsLoading] =
     React.useState<boolean>(false);
+
+  // Teams Modal state
+  interface TeamItem {
+    id: string;
+    name: string;
+  }
+
+  const [isTeamsModalOpen, setIsTeamsModalOpen] = React.useState<boolean>(
+    false,
+  );
+  const [teams, setTeams] = React.useState<Array<TeamItem>>([]);
+  const [isTeamsLoading, setIsTeamsLoading] = React.useState<boolean>(false);
+  const [teamsError, setTeamsError] = React.useState<string>("");
+
+  const loadTeams: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      setTeamsError("");
+      setIsTeamsLoading(true);
+
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.get<JSONObject>({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            "/microsoft-teams/teams",
+          ),
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      const data: JSONObject = response.data as JSONObject;
+      const list: Array<TeamItem> = ((data["teams"] as Array<JSONObject>) || [])
+        .map((t: JSONObject) => {
+          return {
+            id: (t["id"] as string) || "",
+            name: (t["name"] as string) || "",
+          };
+        })
+        .filter((t: TeamItem) => t.id && t.name);
+
+      setTeams(list);
+    } catch (err) {
+      setTeamsError(API.getFriendlyErrorMessage(err as Exception));
+    } finally {
+      setIsTeamsLoading(false);
+    }
+  };
+
+  const openTeamsModal: VoidFunction = (): void => {
+    setIsTeamsModalOpen(true);
+    // Load teams on open
+    loadTeams().catch((error: Exception) => {
+      setTeamsError(API.getFriendlyErrorMessage(error));
+    });
+  };
 
   useEffect(() => {
     if (isProjectAccountConnected) {
@@ -313,7 +373,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const refreshTeams: VoidFunction = async (): Promise<void> => {
+  const refreshTeams: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsRefreshTeamsLoading(true);
       setError(null);
@@ -430,12 +490,11 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                     },
                   },
                   {
-                    title: "Refresh Teams",
+                    title: "View Teams",
                     buttonStyle: SharedButtonStyle.NORMAL,
-                    icon: IconProp.Refresh,
-                    isLoading: isRefreshTeamsLoading,
+                    icon: IconProp.Team,
                     onClick: () => {
-                      return refreshTeams();
+                      return openTeamsModal();
                     },
                   },
                 ]
@@ -506,6 +565,57 @@ The zip file contains the app manifest and required icons for Teams installation
             />
           </Card>
         </div>
+      )}
+
+      {isTeamsModalOpen && (
+        <Modal
+          title="Microsoft Teams"
+          description="These are the teams available to connect with OneUptime."
+          onClose={() => {
+            setIsTeamsModalOpen(false);
+          }}
+          submitButtonText="Close"
+          onSubmit={() => {
+            setIsTeamsModalOpen(false);
+          }}
+          rightElement={
+            <Button
+              title="Refresh Teams"
+              icon={IconProp.Refresh}
+              isLoading={isRefreshTeamsLoading}
+              onClick={async () => {
+                // Refresh on server then reload list
+                await refreshTeams();
+                await loadTeams();
+              }}
+            />
+          }
+        >
+          <List
+            id="teams-list"
+            data={teams}
+            fields={[
+              { key: "name", title: "Team Name" } as Field<TeamItem>,
+              { key: "id", title: "Team ID" } as Field<TeamItem>,
+            ]}
+            onNavigateToPage={(_pageNumber: number, _itemsOnPage: number) => {
+              // no-op: pagination disabled
+            }}
+            currentPageNumber={1}
+            totalItemsCount={teams.length}
+            itemsOnPage={teams.length || 1}
+            disablePagination={true}
+            error={teamsError}
+            isLoading={isTeamsLoading}
+            singularLabel="Team"
+            pluralLabel="Teams"
+            noItemsMessage={
+              isAdminConsentCompleted
+                ? "No teams found. Try refreshing."
+                : "Admin consent is required to list teams."
+            }
+          />
+        </Modal>
       )}
     </Fragment>
   );
