@@ -40,7 +40,7 @@ export interface ComponentProps {
   monitorStatus: Array<MonitorStatus>;
   workspaceType: WorkspaceType;
   teams: Array<Team>;
-  microsoftTeams?: Array<{ id: string; displayName: string }>;
+  microsoftTeamsTeams?: Array<{ id: string; displayName: string }>;
   users: Array<User>;
 }
 
@@ -126,7 +126,7 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
       },
       getElement: () => {
         if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
-          const selectedTeam = (props.microsoftTeams || []).find((i: { id: string; displayName: string }) => {
+          const selectedTeam = (props.microsoftTeamsTeams || []).find((i: { id: string; displayName: string }) => {
             return props.value.existingTeam?.toString() === i.id;
           });
           return <span>{selectedTeam?.displayName || "Unknown Team"}</span>;
@@ -190,7 +190,7 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
       },
       getElement: () => {
         if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
-          const selectedTeam = (props.microsoftTeams || []).find((i: { id: string; displayName: string }) => {
+          const selectedTeam = (props.microsoftTeamsTeams || []).find((i: { id: string; displayName: string }) => {
             return (props.value as any).teamToCreateChannelIn?.toString() === i.id;
           });
           return <span>{selectedTeam?.displayName || "Unknown Team"}</span>;
