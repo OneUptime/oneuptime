@@ -38,6 +38,8 @@ import TwoFactorAuth from "Common/Server/Utils/TwoFactorAuth";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import User from "Common/Models/DatabaseModels/User";
 import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
+import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
+import UserWebAuthnService from "Common/Server/Services/UserWebAuthnService";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -536,11 +538,17 @@ router.post(
 
 type FetchTwoFactorAuthListFunction = (
   userId: ObjectID,
-) => Promise<Array<UserTwoFactorAuth>>;
+) => Promise<{
+  twoFactorAuthList: Array<UserTwoFactorAuth>;
+  webAuthnList: Array<UserWebAuthn>;
+}>;
 
 const fetchTwoFactorAuthList: FetchTwoFactorAuthListFunction = async (
   userId: ObjectID,
-): Promise<Array<UserTwoFactorAuth>> => {
+): Promise<{
+  twoFactorAuthList: Array<UserTwoFactorAuth>;
+  webAuthnList: Array<UserWebAuthn>;
+}> => {
   const twoFactorAuthList: Array<UserTwoFactorAuth> =
     await UserTwoFactorAuthService.findBy({
       query: {
@@ -559,7 +567,27 @@ const fetchTwoFactorAuthList: FetchTwoFactorAuthListFunction = async (
       },
     });
 
-  return twoFactorAuthList;
+  const webAuthnList: Array<UserWebAuthn> = await UserWebAuthnService.findBy({
+    query: {
+      userId: userId,
+      isVerified: true,
+    },
+    select: {
+      _id: true,
+      userId: true,
+      name: true,
+    },
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  return {
+    twoFactorAuthList,
+    webAuthnList,
+  };
 };
 
 type LoginFunction = (options: {
@@ -641,10 +669,9 @@ const login: LoginFunction = async (options: {
       if (alreadySavedUser.enableTwoFactorAuth && !verifyTwoFactorAuth) {
         // If two factor auth is enabled then we will send the user to the two factor auth page.
 
-        const twoFactorAuthList: Array<UserTwoFactorAuth> =
-          await fetchTwoFactorAuthList(alreadySavedUser.id!);
+        const { twoFactorAuthList, webAuthnList } = await fetchTwoFactorAuthList(alreadySavedUser.id!);
 
-        if (!twoFactorAuthList || twoFactorAuthList.length === 0) {
+        if ((!twoFactorAuthList || twoFactorAuthList.length === 0) && (!webAuthnList || webAuthnList.length === 0)) {
           const errorMessage: string = IsBillingEnabled
             ? "Two Factor Authentication is enabled but no two factor auth is setup. Please contact OneUptime support for help."
             : "Two Factor Authentication is enabled but no two factor auth is setup. Please contact your server admin to disable two factor auth for this account.";
@@ -661,6 +688,10 @@ const login: LoginFunction = async (options: {
             twoFactorAuthList: UserTwoFactorAuth.toJSONArray(
               twoFactorAuthList,
               UserTwoFactorAuth,
+            ),
+            webAuthnList: UserWebAuthn.toJSONArray(
+              webAuthnList,
+              UserWebAuthn,
             ),
             twoFactorAuth: true,
           },
