@@ -9,7 +9,7 @@ import React, {
   ReactElement,
   useEffect,
 } from "react";
-import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import WorkspaceType, { getWorkspaceTypeDisplayName } from "Common/Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -438,8 +438,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         createEditModalWidth={ModalWidth.Large}
         isCreateable={true}
         cardProps={{
-          title: `${props.eventType} - ${props.workspaceType} Notification Rules`,
-          description: `Manage ${props.eventType} notification rules for ${props.workspaceType}.`,
+          title: `${props.eventType} - ${getWorkspaceTypeDisplayName(props.workspaceType)} Notification Rules`,
+          description: `Manage ${props.eventType} notification rules for ${getWorkspaceTypeDisplayName(props.workspaceType)}.`,
         }}
         showAs={ShowAs.List}
         noItemsMessage={"No notification rules found."}
@@ -486,8 +486,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             field: {
               notificationRule: true,
             },
-            title: `Notify ${props.workspaceType} on ${props.eventType} when...`,
-            description: `Set the conditions to notify ${props.workspaceType} on ${props.eventType}. If you do not set any conditions, then this rule will trigger for every ${props.eventType}.`,
+            title: `Notify ${getWorkspaceTypeDisplayName(props.workspaceType)} on ${props.eventType} when...`,
+            description: `Set the conditions to notify ${getWorkspaceTypeDisplayName(props.workspaceType)} on ${props.eventType}. If you do not set any conditions, then this rule will trigger for every ${props.eventType}.`,
             fieldType: FormFieldSchemaType.CustomComponent,
             required: true,
             stepId: "rules",
@@ -607,7 +607,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Test Rule`}
           error={testError}
-          description={`Test the rule ${testNotificationRule.name} by sending a test notification to ${props.workspaceType}.`}
+          description={`Test the rule ${testNotificationRule.name} by sending a test notification to ${getWorkspaceTypeDisplayName(props.workspaceType)}.`}
           submitButtonText={"Test"}
           onClose={() => {
             setShowTestModal(false);
@@ -631,7 +631,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={testError ? `Test Failed` : `Test Executed Successfully`}
           error={testError}
-          description={`Test executed successfully. You should now see a notification in ${props.workspaceType}.`}
+          description={`Test executed successfully. You should now see a notification in ${getWorkspaceTypeDisplayName(props.workspaceType)}.`}
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
           onSubmit={async () => {

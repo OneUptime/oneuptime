@@ -4,7 +4,7 @@ import AlertNotificationRule from "Common/Types/Workspace/NotificationRules/Noti
 import ScheduledMaintenanceNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/ScheduledMaintenanceNotificationRule";
 import MonitorNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/MonitorNotificationRule";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
-import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import WorkspaceType, { getWorkspaceTypeDisplayName } from "Common/Types/Workspace/WorkspaceType";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Field from "Common/UI/Components/Detail/Field";
 import Detail from "Common/UI/Components/Detail/Detail";
@@ -90,14 +90,14 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
     {
       key: "shouldPostToExistingChannel",
-      title: `Post to Existing ${props.workspaceType} Channel`,
-      description: `When above conditions are met, post to an existing ${props.workspaceType} channel.`,
+      title: `Post to Existing ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`,
+      description: `When above conditions are met, post to an existing ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`,
       fieldType: FieldType.Boolean,
     },
     {
       key: "existingChannelNames",
-      title: `Existing ${props.workspaceType} Channel Name to Post To`,
-      description: `Please provide the name of the ${props.workspaceType} channel you want to post to.`,
+      title: `Existing ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Name to Post To`,
+      description: `Please provide the name of the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel you want to post to.`,
       fieldType: FieldType.Text,
       showIf: (
         formValue:
@@ -111,29 +111,29 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
   ];
 
-  let archiveTitle: string = `Archive ${props.workspaceType} Channel`;
-  let archiveDescription: string = `When above conditions are met, archive the ${props.workspaceType} channel.`;
+  let archiveTitle: string = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`;
+  let archiveDescription: string = `When above conditions are met, archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`;
 
   if (props.eventType === NotificationRuleEventType.Monitor) {
-    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
-    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the monitor is deleted.`;
+    archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;
+    archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the monitor is deleted.`;
   }
 
   if (props.eventType === NotificationRuleEventType.ScheduledMaintenance) {
-    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
-    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the scheduled maintenance is completed.`;
+    archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;
+    archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the scheduled maintenance is completed.`;
   }
 
   // incident.
   if (props.eventType === NotificationRuleEventType.Incident) {
-    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
-    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the incident is resolved.`;
+    archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;
+    archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the incident is resolved.`;
   }
 
   // alert
   if (props.eventType === NotificationRuleEventType.Alert) {
-    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
-    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the alert is resolved.`;
+    archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;
+    archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the alert is resolved.`;
   }
 
   const incidentAlertMaintenanceFields: Array<
