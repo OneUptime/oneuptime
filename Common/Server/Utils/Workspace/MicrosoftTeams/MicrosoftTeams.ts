@@ -29,7 +29,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
-import { MicrosoftTeamsMiscData } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import { MicrosoftTeamsMiscData, MicrosoftTeamsTeam } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import OneUptimeDate from "../../../../Types/Date";
 import { MicrosoftTeamsAppClientId, MicrosoftTeamsAppClientSecret } from "../../../EnvironmentConfig";
 
@@ -2222,4 +2222,58 @@ All monitoring checks are passing normally.`;
     }
   }
 
+  // Method to get user's joined teams using user access token
+  @CaptureSpan()
+  public static async getUserJoinedTeams(accessToken: string): Promise<Record<string, { id: string; name: string }>> {
+    logger.debug("=== getUserJoinedTeams called ===");
+
+    try {
+      // Get user's teams
+      const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get<JSONObject>({
+          url: URL.fromString(
+            "https://graph.microsoft.com/v1.0/me/joinedTeams",
+          ),
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+      if (teamsResponse instanceof HTTPErrorResponse) {
+        logger.error("Error getting teams:");
+        logger.error(teamsResponse);
+        throw teamsResponse;
+      }
+
+      const teamsData: JSONObject = teamsResponse.data;
+      const teams: Array<JSONObject> =
+        (teamsData["value"] as Array<JSONObject>) || [];
+
+      if (teams.length === 0) {
+        logger.debug("No joined teams found for user");
+        return {};
+      }
+
+      // Process teams
+      const availableTeams: Record<string, MicrosoftTeamsTeam> = teams.reduce(
+        (acc: Record<string, MicrosoftTeamsTeam>, t: JSONObject) => {
+          const team = {
+            id: t["id"] as string,
+            name: (t["displayName"] as string) || "Unnamed Team",
+          };
+          acc[team.name] = team;
+          return acc;
+        },
+        {} as Record<string, MicrosoftTeamsTeam>
+      );
+
+      logger.debug(`Fetched ${Object.keys(availableTeams).length} joined teams`);
+
+      return availableTeams;
+    } catch (error) {
+      logger.error("Error getting user joined teams:");
+      logger.error(error);
+      throw error;
+    }
+  }
 }

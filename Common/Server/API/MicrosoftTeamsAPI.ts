@@ -369,27 +369,9 @@ export default class MicrosoftTeamsAPI {
           logger.debug(userProfile);
 
           // Get user's teams
-          const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
-            await API.get<JSONObject>({
-              url: URL.fromString(
-                "https://graph.microsoft.com/v1.0/me/joinedTeams",
-              ),
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-              },
-            });
+          const availableTeams: Record<string, MicrosoftTeamsTeam> = await MicrosoftTeamsUtil.getUserJoinedTeams(accessToken);
 
-          if (teamsResponse instanceof HTTPErrorResponse) {
-            logger.error("Error getting teams:");
-            logger.error(teamsResponse);
-            throw teamsResponse;
-          }
-
-          const teamsData: JSONObject = teamsResponse.data;
-          const teams: Array<JSONObject> =
-            (teamsData["value"] as Array<JSONObject>) || [];
-
-          if (teams.length === 0) {
+          if (Object.keys(availableTeams).length === 0) {
             return Response.redirect(
               req,
               res,
@@ -399,18 +381,6 @@ export default class MicrosoftTeamsAPI {
               ),
             );
           }
-          // Unified handling for single vs multiple teams (no if/else block)
-          const availableTeams: Record<string, MicrosoftTeamsTeam> = teams.reduce(
-            (acc: Record<string, MicrosoftTeamsTeam>, t: JSONObject) => {
-              const team: MicrosoftTeamsTeam = {
-                id: t["id"] as string,
-                name: (t["displayName"] as string) || "Unnamed Team",
-              };
-              acc[team.name] = team;
-              return acc;
-            },
-            {} as Record<string, MicrosoftTeamsTeam>
-          );
           await WorkspaceUserAuthTokenService.refreshAuthToken({
             projectId: new ObjectID(projectId),
             userId: new ObjectID(userId),
@@ -1076,21 +1046,13 @@ export default class MicrosoftTeamsAPI {
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
           const projectId: ObjectID = databaseProps.tenantId!;
+          const userId: ObjectID = databaseProps.userId!;
 
-          // Get project auth to access available teams
-          const projectAuth: WorkspaceProjectAuthToken | null =
-            await WorkspaceProjectAuthTokenService.getProjectAuth({
-              projectId: projectId,
-              workspaceType: WorkspaceType.MicrosoftTeams,
-            });
-
-          if (!projectAuth || !projectAuth.miscData?.["availableTeams"]) {
-            return Response.sendJsonObjectResponse(req, res, {
-              teams: [],
-            });
-          }
-
-          const availableTeams: Record<string, MicrosoftTeamsTeam> = projectAuth.miscData["availableTeams"] as Record<string, MicrosoftTeamsTeam>;
+          // Use the refreshTeams method to get fresh teams data
+          const availableTeams = await MicrosoftTeamsUtil.refreshTeams({
+            projectId: projectId,
+            userId: userId,
+          });
 
           return Response.sendJsonObjectResponse(req, res, {
             teams: Object.values(availableTeams).map(team => ({
