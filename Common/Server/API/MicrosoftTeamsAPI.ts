@@ -374,20 +374,6 @@ export default class MicrosoftTeamsAPI {
           logger.debug("User Profile: ");
           logger.debug(userProfile);
 
-          // Get user's teams
-          const availableTeams: Record<string, MicrosoftTeamsTeam> =
-            await MicrosoftTeamsUtil.getUserJoinedTeams(accessToken);
-
-          if (Object.keys(availableTeams).length === 0) {
-            return Response.redirect(
-              req,
-              res,
-              teamsIntegrationPageUrl.addQueryParam(
-                "error",
-                "You are not a member of any Microsoft Teams. Please join a team first.",
-              ),
-            );
-          }
           await WorkspaceUserAuthTokenService.refreshAuthToken({
             projectId: new ObjectID(projectId),
             userId: new ObjectID(userId),
@@ -400,7 +386,6 @@ export default class MicrosoftTeamsAPI {
               email:
                 (userProfile["mail"] as string) ||
                 (userProfile["userPrincipalName"] as string),
-              availableTeams: availableTeams,
             },
           });
 
@@ -415,18 +400,9 @@ export default class MicrosoftTeamsAPI {
             existingProjectAuth &&
             (existingProjectAuth.miscData as any)?.adminConsentGranted
           ) {
-            // Admin consent already granted, finalize connection with all teams
-            const mergedProjectMiscData: MicrosoftTeamsMiscData = {
-              ...(existingProjectAuth.miscData as MicrosoftTeamsMiscData),
-              availableTeams: availableTeams,
-            };
-
-            await WorkspaceProjectAuthTokenService.refreshAuthToken({
+            // Admin consent already granted, refresh teams
+            await MicrosoftTeamsUtil.refreshTeams({
               projectId: new ObjectID(projectId),
-              workspaceType: WorkspaceType.MicrosoftTeams,
-              authToken: existingProjectAuth.authToken || "",
-              workspaceProjectId: existingProjectAuth.workspaceProjectId || "",
-              miscData: mergedProjectMiscData,
             });
 
             return Response.redirect(req, res, teamsIntegrationPageUrl);
@@ -492,8 +468,9 @@ export default class MicrosoftTeamsAPI {
           const accessToken: string = userAuth.authToken || "";
           const miscData: any = userAuth.miscData || {};
           const availableTeams: Record<string, MicrosoftTeamsTeam> =
-            (miscData.availableTeams as Record<string, MicrosoftTeamsTeam>) ||
-            {};
+            await MicrosoftTeamsUtil.refreshTeams({
+              projectId: projectId,
+            });
           const matchedTeam: MicrosoftTeamsTeam | undefined = Object.values(
             availableTeams,
           ).find((t: MicrosoftTeamsTeam) => {
@@ -1081,13 +1058,11 @@ export default class MicrosoftTeamsAPI {
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
           const projectId: ObjectID = databaseProps.tenantId!;
-          const userId: ObjectID = databaseProps.userId!;
 
           // Use the refreshTeams method to get fresh teams data
           const availableTeams: Record<string, MicrosoftTeamsTeam> =
             await MicrosoftTeamsUtil.refreshTeams({
               projectId: projectId,
-              userId: userId,
             });
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -1116,13 +1091,11 @@ export default class MicrosoftTeamsAPI {
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
           const projectId: ObjectID = databaseProps.tenantId!;
-          const userId: ObjectID = databaseProps.userId!;
 
           // Call MicrosoftTeamsUtil to refresh teams
           const availableTeams: Record<string, MicrosoftTeamsTeam> =
             await MicrosoftTeamsUtil.refreshTeams({
               projectId: projectId,
-              userId: userId,
             });
 
           return Response.sendJsonObjectResponse(req, res, {

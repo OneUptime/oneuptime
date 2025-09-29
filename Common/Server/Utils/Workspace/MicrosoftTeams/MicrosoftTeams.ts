@@ -69,6 +69,7 @@ import {
   MessageFactory,
   ConfigurationBotFrameworkAuthenticationOptions,
   Activity,
+  ResourceResponse,
 } from "botbuilder";
 import { ExpressRequest, ExpressResponse } from "../../Express";
 // Teams action handlers and types
@@ -1039,14 +1040,16 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           logger.debug("Sending adaptive card as proactive message");
 
           // Create message with adaptive card attachment
-          const message: Activity = MessageFactory.attachment({
+          const message: Partial<Activity> = MessageFactory.attachment({
             contentType: "application/vnd.microsoft.card.adaptive",
             content: data.adaptiveCard,
           });
 
-          const response: string | undefined =
+          const response: ResourceResponse | undefined=
             await context.sendActivity(message);
-          messageId = response || "";
+
+          messageId = response?.id || "";
+          
           logger.debug(`Message sent with ID: ${messageId}`);
         },
       );
@@ -2416,11 +2419,9 @@ All monitoring checks are passing normally.`;
   @CaptureSpan()
   public static async refreshTeams(data: {
     projectId: ObjectID;
-    userId: ObjectID;
   }): Promise<Record<string, { id: string; name: string }>> {
     logger.debug("=== refreshTeams called ===");
     logger.debug(`Project ID: ${data.projectId.toString()}`);
-    logger.debug(`User ID: ${data.userId.toString()}`);
 
     try {
       // Get project auth to get app access token
