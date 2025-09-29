@@ -822,16 +822,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const channelName: string = data.channelName.toLowerCase();
 
     for (const channelData of channels) {
-      const apiChannelName: string = (
-        channelData["name"] as string
-      ).toLowerCase();
+      const displayName: string | undefined = channelData["displayName"] as string;
+      if (!displayName) {
+        continue;
+      }
+      const apiChannelName: string = displayName.toLowerCase();
       logger.debug(
-        `Comparing channel '${apiChannelName}' with requested '${channelName.toLowerCase()}'`,
+        `Comparing channel '${apiChannelName}' with requested '${channelName}'`,
       );
-      if (apiChannelName === channelName.toLowerCase()) {
+      if (apiChannelName === channelName) {
         const foundChannel: WorkspaceChannel = {
           id: `${channelData["id"]}`,
-          name: `${channelData["displayName"]}`,
+          name: displayName,
           workspaceType: WorkspaceType.MicrosoftTeams,
         };
         logger.debug(`Channel match found: ${JSON.stringify(foundChannel)}`);
@@ -1049,7 +1051,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             await context.sendActivity(message);
 
           messageId = response?.id || "";
-          
+
           logger.debug(`Message sent with ID: ${messageId}`);
         },
       );
