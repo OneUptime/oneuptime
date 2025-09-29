@@ -220,11 +220,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           };
 
           // Add teamId for Microsoft Teams
-          if (
-            rule.workspaceType === WorkspaceType.MicrosoftTeams &&
-            projectAuth.miscData?.["teamId"]
-          ) {
-            doesChannelExistData.teamId = projectAuth.miscData["teamId"];
+          if (rule.workspaceType === WorkspaceType.MicrosoftTeams) {
+            const teamId: string | undefined = notificationRule.existingTeam;
+            if (!teamId) {
+              throw new BadDataException(
+                "Microsoft Teams integration requires a team to be selected for posting to existing channels. Please edit the notification rule and select a team.",
+              );
+            }
+            doesChannelExistData.teamId = teamId;
           }
 
           const channelExists: boolean =
