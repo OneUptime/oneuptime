@@ -1104,6 +1104,36 @@ export default class MicrosoftTeamsAPI {
       },
     );
 
+    // Endpoint to refresh teams list
+    router.post(
+      "/microsoft-teams/refresh-teams",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID = databaseProps.tenantId!;
+          const userId: ObjectID = databaseProps.userId!;
+
+          // Call MicrosoftTeamsUtil to refresh teams
+          const availableTeams = await MicrosoftTeamsUtil.refreshTeams({
+            projectId: projectId,
+            userId: userId,
+          });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            teams: Object.values(availableTeams).map(team => ({
+              id: team.id,
+              name: team.name,
+            })),
+          });
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
     return router;
   }
 
