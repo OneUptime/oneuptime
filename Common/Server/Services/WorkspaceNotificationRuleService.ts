@@ -1344,6 +1344,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     const notificationChannels: Array<{
       channelName: string;
       notificationRuleId: string;
+      teamId?: string;
     }> = this.getnotificationChannelssFromNotificationRules({
       notificationRules: data.notificationRules,
       channelNameSiffix: data.channelNameSiffix,
@@ -1373,14 +1374,25 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       logger.debug(
         `Creating new channel with name: ${notificationChannel.channelName}`,
       );
+      const createChannelData: {
+        authToken: string;
+        channelName: string;
+        projectId: ObjectID;
+        teamId?: string;
+      } = {
+        authToken: data.projectOrUserAuthTokenForWorkspace,
+        channelName: notificationChannel.channelName,
+        projectId: data.projectId,
+      };
+      
+      if (notificationChannel.teamId) {
+        createChannelData.teamId = notificationChannel.teamId;
+      }
+      
       const channel: WorkspaceChannel =
         await WorkspaceUtil.getWorkspaceTypeUtil(
           data.workspaceType,
-        ).createChannel({
-          authToken: data.projectOrUserAuthTokenForWorkspace,
-          channelName: notificationChannel.channelName,
-          projectId: data.projectId,
-        });
+        ).createChannel(createChannelData);
 
       const notificationWorkspaceChannel: NotificationRuleWorkspaceChannel = {
         ...channel,
@@ -1581,6 +1593,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   }): Array<{
     channelName: string;
     notificationRuleId: string;
+    teamId?: string;
   }> {
     logger.debug(
       "getnotificationChannelssFromNotificationRules called with data:",
@@ -1590,6 +1603,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     const channels: Array<{
       channelName: string;
       notificationRuleId: string;
+      teamId?: string;
     }> = [];
 
     for (const notificationRule of data.notificationRules) {
@@ -1616,16 +1630,26 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
         if (
           channels.filter(
-            (name: { channelName: string; notificationRuleId: string }) => {
+            (name: { channelName: string; notificationRuleId: string; teamId?: string }) => {
               return name.channelName === channelName;
             },
           ).length === 0
         ) {
           // if channel name is not already added then add it.
-          channels.push({
+          const channelData: {
+            channelName: string;
+            notificationRuleId: string;
+            teamId?: string;
+          } = {
             channelName: channelName,
             notificationRuleId: notificationRule.id!.toString() || "",
-          });
+          };
+          
+          if (workspaceRules.teamToCreateChannelIn) {
+            channelData.teamId = workspaceRules.teamToCreateChannelIn;
+          }
+          
+          channels.push(channelData);
           logger.debug(`Channel name ${channelName} added to the list.`);
         } else {
           logger.debug(

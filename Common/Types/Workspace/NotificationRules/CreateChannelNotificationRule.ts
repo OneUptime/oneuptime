@@ -7,6 +7,7 @@ export default interface CreateChannelNotificationRule
 
   // if filters match then do:
   shouldCreateNewChannel: boolean;
+  teamToCreateChannelIn?: string; // team to create new channel in (for MS Teams)
   inviteTeamsToNewChannel: Array<ObjectID>;
   inviteUsersToNewChannel: Array<ObjectID>;
   shouldInviteOwnersToNewChannel: boolean;
