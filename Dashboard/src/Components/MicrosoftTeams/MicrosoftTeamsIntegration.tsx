@@ -35,10 +35,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import MicrosoftTeamsIntegrationDocumentation from "./MicrosoftTeamsIntegrationDocumentation";
 import Link from "Common/UI/Components/Link/Link";
-import RadioButtons, {
-  RadioButton as SelectionRadioButton,
-} from "Common/UI/Components/RadioButtons/GroupRadioButtons";
-import Button, {
+import {
   ButtonStyleType as SharedButtonStyle,
 } from "Common/UI/Components/Button/Button";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
@@ -66,78 +63,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
   const [isAdminConsentCompleted, setIsAdminConsentCompleted] =
     React.useState<boolean>(false);
-  const [teamsTeamName, setTeamsTeamName] = React.useState<string | null>(null);
-  const [availableTeams, setAvailableTeams] = React.useState<
-    Array<{ id: string; displayName: string }>
-  >([]);
-  const [isSelectingTeam, setIsSelectingTeam] = React.useState<boolean>(false);
-  const [selectedTeamId, setSelectedTeamId] = React.useState<string>("");
 
-  const confirmTeamSelection: PromiseVoidFunction = async (): Promise<void> => {
-    if (!selectedTeamId || isButtonLoading) {
-      return;
-    }
-    try {
-      setIsButtonLoading(true);
-      setError(null);
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-      const userId: ObjectID | null = UserUtil.getUserId();
-      if (!projectId || !userId) {
-        throw new Error("Missing project or user context");
-      }
-      const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post({
-          url: URL.fromString(
-            `${HOME_URL.toString()}/api/microsoft-teams/select-team`,
-          ),
-          data: {
-            projectId: projectId.toString(),
-            userId: userId.toString(),
-            teamId: selectedTeamId,
-          } as JSONObject,
-        });
-      if (result instanceof HTTPErrorResponse) {
-        throw result;
-      }
-      setIsSelectingTeam(false);
-      setAvailableTeams([]);
-      await loadItems();
-    } catch (err) {
-      setError(<div>{API.getFriendlyErrorMessage(err as Error)}</div>);
-    } finally {
-      setIsButtonLoading(false);
-    }
-  };
 
-  const renderTeamGrid: () => ReactElement = (): ReactElement => {
-    const radioOptions: Array<SelectionRadioButton> = availableTeams.map(
-      (t: { id: string; displayName: string }) => {
-        return {
-          title: t.displayName,
-          description: ``,
-          value: t.id,
-        };
-      },
-    );
-
-    return (
-      <div className="space-y-4">
-        {radioOptions.length > 0 ? (
-          <RadioButtons
-            options={radioOptions}
-            initialValue={selectedTeamId || undefined}
-            onChange={(val: string) => {
-              return setSelectedTeamId(val);
-            }}
-          />
-        ) : (
-          <div className="text-sm text-gray-500 italic py-6 border border-dashed border-gray-300 rounded-md text-center">
-            No teams available.
-          </div>
-        )}
-      </div>
-    );
-  };
 
   useEffect(() => {
     if (isProjectAccountConnected) {
@@ -174,19 +101,15 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
       if (projectAuth.data.length > 0) {
         const miscData = projectAuth.data[0]!.miscData! as MicrosoftTeamsMiscData;
-        const teamsTeamName: string | undefined = miscData.teamName;
         
         setWorkspaceProjectAuthTokenId(projectAuth.data[0]!.id);
-        setTeamsTeamName(teamsTeamName);
         
         // Check if admin consent is granted
         const adminConsentGranted = miscData.adminConsentGranted || false;
         setIsAdminConsentCompleted(adminConsentGranted);
         
-        // Only consider the project as "connected" if a real team is selected
-        const workspaceProjectId = projectAuth.data[0]!.workspaceProjectId;
-        const isRealTeamSelected: boolean = Boolean(workspaceProjectId && teamsTeamName);
-        setIsProjectAccountConnected(isRealTeamSelected);
+        // Project is connected if there's a project auth token
+        setIsProjectAccountConnected(true);
       }
 
       // fetch user auth token.
@@ -212,18 +135,6 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       if (userAuth.data.length > 0) {
         setIsUserAccountConnected(true);
         setWorkspaceUserAuthTokenId(userAuth.data[0]!.id);
-        const miscData: any = userAuth.data[0]!.miscData || {};
-        if (miscData.availableTeams && Array.isArray(miscData.availableTeams)) {
-          setAvailableTeams(
-            miscData.availableTeams.map((t: any) => {
-              return {
-                id: t.id as string,
-                displayName: t.displayName as string,
-              };
-            }),
-          );
-          setIsSelectingTeam(true);
-        }
       }
 
      
@@ -263,46 +174,6 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   if (error) {
     return <ErrorMessage message={error} />;
   }
-  // Show team selection UI if user has multiple teams available and project not yet connected.
-  if (
-    isSelectingTeam &&
-    !isProjectAccountConnected &&
-    availableTeams.length > 0
-  ) {
-    return (
-      <Fragment>
-        <Card
-          title="Select a Microsoft Teams Team"
-          description="Choose which Microsoft Teams team you want to connect. You can only connect one team per project."
-          buttons={[]}
-        >
-          <div className="mt-2">{renderTeamGrid()}</div>
-          <div className="mt-6 flex flex-col sm:flex-row sm:justify-end items-stretch sm:items-center gap-3">
-            <div className="w-full sm:w-auto">
-              <Button
-                title={isButtonLoading ? "Connecting..." : "Confirm Selection"}
-                disabled={!selectedTeamId || isButtonLoading}
-                isLoading={isButtonLoading}
-                onClick={() => {
-                  return confirmTeamSelection().catch(() => {});
-                }}
-                buttonStyle={SharedButtonStyle.PRIMARY}
-              />
-            </div>
-            <div className="w-full sm:w-auto">
-              <Button
-                title="Cancel"
-                onClick={() => {
-                  return setIsSelectingTeam(false);
-                }}
-                buttonStyle={SharedButtonStyle.NORMAL}
-              />
-            </div>
-          </div>
-        </Card>
-      </Fragment>
-    );
-  }
 
   let cardTitle: string = "";
   let cardDescription: string = "";
@@ -310,8 +181,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   // if user and project both connected with Microsoft Teams, then.
   if (isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = `You are connected with ${teamsTeamName} team on Microsoft Teams`;
-    cardDescription = `Your account is already connected with Microsoft Teams.`;
+    cardTitle = `You are connected with Microsoft Teams`;
+    cardDescription = `Your account is already connected with Microsoft Teams. You can now create workspace notification rules to send messages to your teams.`;
     cardButtons = [
       {
         title: `Disconnect`,
@@ -446,7 +317,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   // if user is not connected and the project is connected with Teams.
   if (!isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = `You are disconnected from Microsoft Teams (but OneUptime is already installed in ${teamsTeamName} team)`;
+    cardTitle = `You are disconnected from Microsoft Teams`;
     cardDescription = `Connect your account with Microsoft Teams to make the most out of OneUptime.`;
     cardButtons = [
       // connect with Teams button.
