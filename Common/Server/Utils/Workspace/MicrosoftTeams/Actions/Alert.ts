@@ -306,6 +306,12 @@ export default class MicrosoftTeamsAlertActions {
         });
 
         await turnContext.sendActivity("✅ Note added successfully.");
+
+        // Hide the form card
+        const updatedActivity = { ...turnContext.activity };
+        updatedActivity.attachments = [];
+        await turnContext.updateActivity(updatedActivity);
+
         return;
       } else {
         await turnContext.sendActivity("Unable to add note: missing note data.");
@@ -348,6 +354,12 @@ export default class MicrosoftTeamsAlertActions {
         });
 
         await turnContext.sendActivity("✅ On-call policy executed successfully.");
+
+        // Hide the form card
+        const updatedActivity = { ...turnContext.activity };
+        updatedActivity.attachments = [];
+        await turnContext.updateActivity(updatedActivity);
+
         return;
       } else {
         await turnContext.sendActivity("Unable to execute on-call policy: missing policy id.");
@@ -391,6 +403,12 @@ export default class MicrosoftTeamsAlertActions {
         });
 
         await turnContext.sendActivity("✅ Alert state changed successfully.");
+
+        // Hide the form card
+        const updatedActivity = { ...turnContext.activity };
+        updatedActivity.attachments = [];
+        await turnContext.updateActivity(updatedActivity);
+
         return;
       } else {
         await turnContext.sendActivity("Unable to change alert state: missing state id.");

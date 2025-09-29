@@ -191,6 +191,12 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           }
 
           await turnContext.sendActivity('Note added successfully');
+
+          // Hide the form card
+          const updatedActivity = { ...turnContext.activity };
+          updatedActivity.attachments = [];
+          await turnContext.updateActivity(updatedActivity);
+
           break;
 
         case MicrosoftTeamsScheduledMaintenanceActionType.ViewChangeScheduledMaintenanceState:
@@ -218,6 +224,12 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           });
 
           await turnContext.sendActivity('ScheduledMaintenance state changed successfully');
+
+          // Hide the form card
+          const updatedActivity2 = { ...turnContext.activity };
+          updatedActivity2.attachments = [];
+          await turnContext.updateActivity(updatedActivity2);
+
           break;
 
         default:
