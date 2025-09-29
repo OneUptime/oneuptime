@@ -119,11 +119,11 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
       },
       getElement: () => {
         if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
-          const selectedTeam = (props.microsoftTeamsTeams || []).find(
-            (i: MicrosoftTeamsTeam) => {
-              return props.value.existingTeam?.toString() === i.id;
-            },
-          );
+          const selectedTeam: MicrosoftTeamsTeam | undefined = (
+            props.microsoftTeamsTeams || []
+          ).find((i: MicrosoftTeamsTeam) => {
+            return props.value.existingTeam?.toString() === i.id;
+          });
           return <span>{selectedTeam?.name || "Unknown Team"}</span>;
         }
 
@@ -204,13 +204,13 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
       },
       getElement: () => {
         if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
-          const selectedTeam = (props.microsoftTeamsTeams || []).find(
-            (i: MicrosoftTeamsTeam) => {
-              return (
-                (props.value as any).teamToCreateChannelIn?.toString() === i.id
-              );
-            },
-          );
+          const selectedTeam: MicrosoftTeamsTeam | undefined = (
+            props.microsoftTeamsTeams || []
+          ).find((i: MicrosoftTeamsTeam) => {
+            return (
+              (props.value as any).teamToCreateChannelIn?.toString() === i.id
+            );
+          });
           return <span>{selectedTeam?.name || "Unknown Team"}</span>;
         }
 

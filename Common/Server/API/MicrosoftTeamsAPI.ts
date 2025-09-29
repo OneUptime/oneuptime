@@ -23,7 +23,7 @@ import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import API from "../../Utils/API";
 import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTokenService";
-import {
+import WorkspaceProjectAuthToken, {
   MicrosoftTeamsMiscData,
   MicrosoftTeamsTeam,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -405,7 +405,7 @@ export default class MicrosoftTeamsAPI {
           });
 
           // Check if admin consent is already granted
-          const existingProjectAuth =
+          const existingProjectAuth: WorkspaceProjectAuthToken | null =
             await WorkspaceProjectAuthTokenService.getProjectAuth({
               projectId: new ObjectID(projectId),
               workspaceType: WorkspaceType.MicrosoftTeams,
@@ -535,17 +535,17 @@ export default class MicrosoftTeamsAPI {
           // Persist project auth now that team is selected.
           // IMPORTANT: Do NOT overwrite project-level auth token (admin-consent app token)
           // with the user delegated token. Preserve existing project auth token if present.
-          const existingProjectAuth =
+          const existingProjectAuth: WorkspaceProjectAuthToken | null =
             await WorkspaceProjectAuthTokenService.getProjectAuth({
               projectId: projectId,
               workspaceType: WorkspaceType.MicrosoftTeams,
             });
 
-          const projectAuthTokenToPersist =
+          const projectAuthTokenToPersist: string =
             existingProjectAuth?.authToken || "";
 
           // Merge miscData while updating team selection details
-          const mergedProjectMiscData = {
+          const mergedProjectMiscData: MicrosoftTeamsMiscData = {
             ...(existingProjectAuth?.miscData as any),
             tenantId: tenantId,
             teamId: teamId,
@@ -630,7 +630,7 @@ export default class MicrosoftTeamsAPI {
           // Try to use tenant from existing project auth, otherwise default to "organizations"
           let tenantForConsent: string = "organizations";
           try {
-            const existingAuth =
+            const existingAuth: WorkspaceProjectAuthToken | null =
               await WorkspaceProjectAuthTokenService.getProjectAuth({
                 projectId: new ObjectID(projectId),
                 workspaceType: WorkspaceType.MicrosoftTeams,
@@ -641,7 +641,7 @@ export default class MicrosoftTeamsAPI {
             if (existingTenant) {
               tenantForConsent = existingTenant;
             }
-          } catch (e) {
+          } catch {
             // ignore and fall back to default
           }
 
@@ -746,7 +746,7 @@ export default class MicrosoftTeamsAPI {
           }
 
           // Fetch any existing project auth to merge
-          const existingAuth =
+          const existingAuth: WorkspaceProjectAuthToken | null =
             await WorkspaceProjectAuthTokenService.getProjectAuth({
               projectId: new ObjectID(projectId),
               workspaceType: WorkspaceType.MicrosoftTeams,
@@ -793,11 +793,12 @@ export default class MicrosoftTeamsAPI {
 
           // Get available teams from user auth token
           const userId: string = stateParts[1]!;
-          const userAuth = await WorkspaceUserAuthTokenService.getUserAuth({
-            projectId: new ObjectID(projectId),
-            userId: new ObjectID(userId),
-            workspaceType: WorkspaceType.MicrosoftTeams,
-          });
+          const userAuth: WorkspaceUserAuthToken | null =
+            await WorkspaceUserAuthTokenService.getUserAuth({
+              projectId: new ObjectID(projectId),
+              userId: new ObjectID(userId),
+              workspaceType: WorkspaceType.MicrosoftTeams,
+            });
 
           let availableTeams: Record<string, MicrosoftTeamsTeam> = {};
           if (userAuth?.miscData) {
@@ -872,7 +873,7 @@ export default class MicrosoftTeamsAPI {
           }
 
           // Merge and persist project auth with tenantId, app token, and available teams
-          const mergedMiscData = {
+          const mergedMiscData: MicrosoftTeamsMiscData = {
             ...(existingAuth?.miscData as any),
             tenantId: tenantId,
             appAccessToken: appAccessToken,
@@ -1083,18 +1084,21 @@ export default class MicrosoftTeamsAPI {
           const userId: ObjectID = databaseProps.userId!;
 
           // Use the refreshTeams method to get fresh teams data
-          const availableTeams = await MicrosoftTeamsUtil.refreshTeams({
-            projectId: projectId,
-            userId: userId,
-          });
+          const availableTeams: Record<string, MicrosoftTeamsTeam> =
+            await MicrosoftTeamsUtil.refreshTeams({
+              projectId: projectId,
+              userId: userId,
+            });
 
           return Response.sendJsonObjectResponse(req, res, {
-            teams: Object.values(availableTeams).map((team) => {
-              return {
-                id: team.id,
-                name: team.name,
-              };
-            }),
+            teams: Object.values(availableTeams).map(
+              (team: MicrosoftTeamsTeam) => {
+                return {
+                  id: team.id,
+                  name: team.name,
+                };
+              },
+            ),
           });
         } catch (err) {
           return Response.sendErrorResponse(req, res, err as Exception);
@@ -1115,18 +1119,21 @@ export default class MicrosoftTeamsAPI {
           const userId: ObjectID = databaseProps.userId!;
 
           // Call MicrosoftTeamsUtil to refresh teams
-          const availableTeams = await MicrosoftTeamsUtil.refreshTeams({
-            projectId: projectId,
-            userId: userId,
-          });
+          const availableTeams: Record<string, MicrosoftTeamsTeam> =
+            await MicrosoftTeamsUtil.refreshTeams({
+              projectId: projectId,
+              userId: userId,
+            });
 
           return Response.sendJsonObjectResponse(req, res, {
-            teams: Object.values(availableTeams).map((team) => {
-              return {
-                id: team.id,
-                name: team.name,
-              };
-            }),
+            teams: Object.values(availableTeams).map(
+              (team: MicrosoftTeamsTeam) => {
+                return {
+                  id: team.id,
+                  name: team.name,
+                };
+              },
+            ),
           });
         } catch (err) {
           return Response.sendErrorResponse(req, res, err as Exception);

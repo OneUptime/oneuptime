@@ -98,13 +98,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         });
 
       if (projectAuth.data.length > 0) {
-        const miscData = projectAuth.data[0]!
+        const miscData: MicrosoftTeamsMiscData = projectAuth.data[0]!
           .miscData! as MicrosoftTeamsMiscData;
 
         setWorkspaceProjectAuthTokenId(projectAuth.data[0]!.id);
 
         // Check if admin consent is granted
-        const adminConsentGranted = miscData.adminConsentGranted || false;
+        const adminConsentGranted: boolean =
+          miscData.adminConsentGranted || false;
         setIsAdminConsentCompleted(adminConsentGranted);
 
         // Project is connected if there's a project auth token

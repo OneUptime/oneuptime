@@ -11,12 +11,14 @@ import IncidentService from "../../../../Services/IncidentService";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import { TurnContext } from "botbuilder";
-import { JSONObject } from "../../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import IncidentPublicNoteService from "../../../../Services/IncidentPublicNoteService";
 import IncidentInternalNoteService from "../../../../Services/IncidentInternalNoteService";
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
 import IncidentStateService from "../../../../Services/IncidentStateService";
 import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
+import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
+import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
 
 export default class MicrosoftTeamsIncidentActions {
   @CaptureSpan()
@@ -305,7 +307,7 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
-      const message = `**Incident Details**\n\n**Title:** ${incident.title}\n**Description:** ${incident.description || "No description"}\n**State:** ${incident.currentIncidentState?.name || "Unknown"}\n**Severity:** ${incident.incidentSeverity?.name || "Unknown"}\n**Created At:** ${incident.createdAt ? new Date(incident.createdAt).toLocaleString() : "Unknown"}`;
+      const message: string = `**Incident Details**\n\n**Title:** ${incident.title}\n**Description:** ${incident.description || "No description"}\n**State:** ${incident.currentIncidentState?.name || "Unknown"}\n**Severity:** ${incident.incidentSeverity?.name || "Unknown"}\n**Created At:** ${incident.createdAt ? new Date(incident.createdAt).toLocaleString() : "Unknown"}`;
 
       await turnContext.sendActivity(message);
       return;
@@ -320,7 +322,7 @@ export default class MicrosoftTeamsIncidentActions {
       }
 
       // Send the input card
-      const card = this.buildAddIncidentNoteCard(actionValue);
+      const card: JSONObject = this.buildAddIncidentNoteCard(actionValue);
       await turnContext.sendActivity({
         attachments: [
           {
@@ -341,12 +343,12 @@ export default class MicrosoftTeamsIncidentActions {
       }
 
       // Check if form data is provided
-      const noteType = value["noteType"];
-      const note = value["note"];
+      const noteType: JSONValue = value["noteType"];
+      const note: JSONValue = value["note"];
 
       if (noteType && note) {
         // Submit the note
-        const incidentId = new ObjectID(actionValue);
+        const incidentId: ObjectID = new ObjectID(actionValue);
 
         if (noteType === "public") {
           await IncidentPublicNoteService.addNote({
@@ -389,7 +391,7 @@ export default class MicrosoftTeamsIncidentActions {
       }
 
       // Send the input card
-      const card = await this.buildExecuteOnCallPolicyCard(
+      const card: JSONObject | null = await this.buildExecuteOnCallPolicyCard(
         actionValue,
         projectId,
       );
@@ -422,11 +424,11 @@ export default class MicrosoftTeamsIncidentActions {
       }
 
       // Check if form data is provided
-      const onCallPolicyId = value["onCallPolicy"];
+      const onCallPolicyId: JSONValue = value["onCallPolicy"];
 
       if (onCallPolicyId) {
         // Execute the policy
-        const incidentId = new ObjectID(actionValue);
+        const incidentId: ObjectID = new ObjectID(actionValue);
 
         await OnCallDutyPolicyService.executePolicy(
           new ObjectID(onCallPolicyId.toString()),
@@ -465,7 +467,7 @@ export default class MicrosoftTeamsIncidentActions {
       }
 
       // Send the input card
-      const card = await this.buildChangeIncidentStateCard(
+      const card: JSONObject = await this.buildChangeIncidentStateCard(
         actionValue,
         projectId,
       );
@@ -491,11 +493,11 @@ export default class MicrosoftTeamsIncidentActions {
       }
 
       // Check if form data is provided
-      const incidentStateId = value["incidentState"];
+      const incidentStateId: JSONValue = value["incidentState"];
 
       if (incidentStateId) {
         // Update the state
-        const incidentId = new ObjectID(actionValue);
+        const incidentId: ObjectID = new ObjectID(actionValue);
 
         await IncidentService.updateOneById({
           id: incidentId,
@@ -586,29 +588,30 @@ export default class MicrosoftTeamsIncidentActions {
     incidentId: string,
     projectId: ObjectID,
   ): Promise<JSONObject | null> {
-    const onCallPolicies = await OnCallDutyPolicyService.findBy({
-      query: {
-        projectId: projectId,
-      },
-      select: {
-        name: true,
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: 50,
-      skip: 0,
-    });
+    const onCallPolicies: Array<OnCallDutyPolicy> =
+      await OnCallDutyPolicyService.findBy({
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          name: true,
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: 50,
+        skip: 0,
+      });
 
-    const choices = onCallPolicies
-      .map((policy) => {
+    const choices: Array<{ title: string; value: string }> = onCallPolicies
+      .map((policy: OnCallDutyPolicy) => {
         return {
           title: policy.name || "",
           value: policy._id?.toString() || "",
         };
       })
-      .filter((choice) => {
+      .filter((choice: { title: string; value: string }) => {
         return choice.title && choice.value;
       });
 
@@ -653,21 +656,22 @@ export default class MicrosoftTeamsIncidentActions {
     incidentId: string,
     projectId: ObjectID,
   ): Promise<JSONObject> {
-    const incidentStates = await IncidentStateService.getAllIncidentStates({
-      projectId: projectId,
-      props: {
-        isRoot: true,
-      },
-    });
+    const incidentStates: Array<IncidentState> =
+      await IncidentStateService.getAllIncidentStates({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      });
 
-    const choices = incidentStates
-      .map((state) => {
+    const choices: Array<{ title: string; value: string }> = incidentStates
+      .map((state: IncidentState) => {
         return {
           title: state.name || "",
           value: state._id?.toString() || "",
         };
       })
-      .filter((choice) => {
+      .filter((choice: { title: string; value: string }) => {
         return choice.title && choice.value;
       });
 

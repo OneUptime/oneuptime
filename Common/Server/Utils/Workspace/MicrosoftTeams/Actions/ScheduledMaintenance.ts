@@ -9,6 +9,7 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import ScheduledMaintenanceService from "../../../../Services/ScheduledMaintenanceService";
 import ScheduledMaintenance from "../../../../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "../../../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceInternalNoteService from "../../../../Services/ScheduledMaintenanceInternalNoteService";
 import ScheduledMaintenancePublicNoteService from "../../../../Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceStateService from "../../../../Services/ScheduledMaintenanceStateService";
@@ -121,8 +122,8 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           );
           break;
 
-        case MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing:
-          const ongoingState =
+        case MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing: {
+          const ongoingState: ScheduledMaintenanceState =
             await ScheduledMaintenanceStateService.getOngoingScheduledMaintenanceState(
               {
                 projectId: scheduledMaintenance.projectId!,
@@ -144,9 +145,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             "ScheduledMaintenance marked as ongoing",
           );
           break;
+        }
 
-        case MicrosoftTeamsScheduledMaintenanceActionType.MarkAsComplete:
-          const completedState =
+        case MicrosoftTeamsScheduledMaintenanceActionType.MarkAsComplete: {
+          const completedState: ScheduledMaintenanceState =
             await ScheduledMaintenanceStateService.getCompletedScheduledMaintenanceState(
               {
                 projectId: scheduledMaintenance.projectId!,
@@ -168,6 +170,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             "ScheduledMaintenance marked as complete",
           );
           break;
+        }
 
         case MicrosoftTeamsScheduledMaintenanceActionType.ViewAddScheduledMaintenanceNote:
           await turnContext.sendActivity({
@@ -182,7 +185,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           });
           break;
 
-        case MicrosoftTeamsScheduledMaintenanceActionType.SubmitScheduledMaintenanceNote:
+        case MicrosoftTeamsScheduledMaintenanceActionType.SubmitScheduledMaintenanceNote: {
           const note: string = actionPayload["note"] as string;
           const isPublic: boolean = actionPayload["isPublic"] as boolean;
 
@@ -215,6 +218,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           }
 
           break;
+        }
 
         case MicrosoftTeamsScheduledMaintenanceActionType.ViewChangeScheduledMaintenanceState:
           await turnContext.sendActivity({
@@ -230,7 +234,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           });
           break;
 
-        case MicrosoftTeamsScheduledMaintenanceActionType.SubmitChangeScheduledMaintenanceState:
+        case MicrosoftTeamsScheduledMaintenanceActionType.SubmitChangeScheduledMaintenanceState: {
           const stateId: ObjectID = actionPayload["stateId"] as ObjectID;
 
           await ScheduledMaintenanceService.updateOneById({
@@ -253,6 +257,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           }
 
           break;
+        }
 
         default:
           logger.error(`Unknown action type: ${actionType}`);
@@ -324,7 +329,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
     scheduledMaintenanceId: ObjectID,
     projectId: ObjectID,
   ): Promise<JSONObject> {
-    const scheduledMaintenanceStates =
+    const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
       await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates({
         projectId: projectId,
         props: {
@@ -332,16 +337,17 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         },
       });
 
-    const choices = scheduledMaintenanceStates
-      .map((state) => {
-        return {
-          title: state.name || "",
-          value: state._id?.toString() || "",
-        };
-      })
-      .filter((choice) => {
-        return choice.title && choice.value;
-      });
+    const choices: Array<{ title: string; value: string }> =
+      scheduledMaintenanceStates
+        .map((state: ScheduledMaintenanceState) => {
+          return {
+            title: state.name || "",
+            value: state._id?.toString() || "",
+          };
+        })
+        .filter((choice: { title: string; value: string }) => {
+          return choice.title && choice.value;
+        });
 
     return {
       type: "AdaptiveCard",

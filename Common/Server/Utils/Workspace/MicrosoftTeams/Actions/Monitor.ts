@@ -95,7 +95,7 @@ export default class MicrosoftTeamsMonitorActions {
         return;
       }
 
-      const message = `**Monitor Details**\n\n**Name:** ${monitor.name}\n**Description:** ${monitor.description || "No description"}\n**Type:** ${monitor.monitorType}\n**Status:** ${monitor.currentMonitorStatus?.name || "Unknown"}\n**Enabled:** ${monitor.disableActiveMonitoring ? "No" : "Yes"}\n**Created At:** ${monitor.createdAt ? new Date(monitor.createdAt).toLocaleString() : "Unknown"}`;
+      const message: string = `**Monitor Details**\n\n**Name:** ${monitor.name}\n**Description:** ${monitor.description || "No description"}\n**Type:** ${monitor.monitorType}\n**Status:** ${monitor.currentMonitorStatus?.name || "Unknown"}\n**Enabled:** ${monitor.disableActiveMonitoring ? "No" : "Yes"}\n**Created At:** ${monitor.createdAt ? new Date(monitor.createdAt).toLocaleString() : "Unknown"}`;
 
       await turnContext.sendActivity(message);
       return;

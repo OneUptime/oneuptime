@@ -29,10 +29,16 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
-import {
+import WorkspaceProjectAuthToken, {
   MicrosoftTeamsMiscData,
   MicrosoftTeamsTeam,
 } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import Incident from "../../../../Models/DatabaseModels/Incident";
+import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
+import Alert from "../../../../Models/DatabaseModels/Alert";
+import AlertState from "../../../../Models/DatabaseModels/AlertState";
+import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import OneUptimeDate from "../../../../Types/Date";
 import {
   MicrosoftTeamsAppClientId,
@@ -51,7 +57,7 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 
 // Microsoft Teams apps should always be single-tenant
-const MICROSOFT_TEAMS_APP_TYPE = "SingleTenant";
+const MICROSOFT_TEAMS_APP_TYPE: string = "SingleTenant";
 
 // Bot Framework SDK imports
 import {
@@ -62,6 +68,7 @@ import {
   ConversationReference,
   MessageFactory,
   ConfigurationBotFrameworkAuthenticationOptions,
+  Activity,
 } from "botbuilder";
 import { ExpressRequest, ExpressResponse } from "../../Express";
 // Teams action handlers and types
@@ -102,9 +109,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       MicrosoftAppTenantId: microsoftAppTenantId,
     };
 
-    const botFrameworkAuthentication =
+    const botFrameworkAuthentication: ConfigurationBotFrameworkAuthentication =
       new ConfigurationBotFrameworkAuthentication(authConfig);
-    const adapter = new CloudAdapter(botFrameworkAuthentication);
+    const adapter: CloudAdapter = new CloudAdapter(botFrameworkAuthentication);
 
     logger.debug("Bot Framework adapter created successfully");
     return adapter;
@@ -116,69 +123,88 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }): Promise<string> {
     logger.debug("=== getValidAccessToken called ===");
     logger.debug(`Project ID: ${data.projectId.toString()}`);
-    logger.debug(`Auth token (first 20 chars): ${data.authToken?.substring(0, 20)}...`);
-    
+    logger.debug(
+      `Auth token (first 20 chars): ${data.authToken?.substring(0, 20)}...`,
+    );
+
     // Get project auth and check token expiration
-    const projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
-      projectId: data.projectId,
-      workspaceType: WorkspaceType.MicrosoftTeams,
-    });
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
 
-    logger.debug(`Project auth found: ${!!projectAuth}`);
+    logger.debug(`Project auth found: ${Boolean(projectAuth)}`);
     if (projectAuth) {
-      logger.debug(`Project auth has miscData: ${!!projectAuth.miscData}`);
-    }
-
-    if (!projectAuth || !projectAuth.miscData) {
-      logger.error("Microsoft Teams integration not found for this project - no project auth or miscData");
-      throw new BadDataException(
-        "Microsoft Teams integration not found for this project"
+      logger.debug(
+        `Project auth has miscData: ${Boolean(projectAuth.miscData)}`,
       );
     }
 
-    const miscData = projectAuth.miscData as MicrosoftTeamsMiscData;
-    logger.debug(`MiscData appAccessToken exists: ${!!miscData.appAccessToken}`);
-    logger.debug(`MiscData appAccessTokenExpiresAt: ${miscData.appAccessTokenExpiresAt}`);
-    
+    if (!projectAuth || !projectAuth.miscData) {
+      logger.error(
+        "Microsoft Teams integration not found for this project - no project auth or miscData",
+      );
+      throw new BadDataException(
+        "Microsoft Teams integration not found for this project",
+      );
+    }
+
+    const miscData: MicrosoftTeamsMiscData =
+      projectAuth.miscData as MicrosoftTeamsMiscData;
+    logger.debug(
+      `MiscData appAccessToken exists: ${Boolean(miscData.appAccessToken)}`,
+    );
+    logger.debug(
+      `MiscData appAccessTokenExpiresAt: ${miscData.appAccessTokenExpiresAt}`,
+    );
+
     // Check if token exists and is valid
-    if (miscData.appAccessToken && miscData.appAccessToken.includes('.')) {
+    if (miscData.appAccessToken && miscData.appAccessToken.includes(".")) {
       logger.debug("Found app access token in miscData");
       // Check if token is expired
       if (miscData.appAccessTokenExpiresAt) {
-        const expiryDate = OneUptimeDate.fromString(miscData.appAccessTokenExpiresAt);
-        const now = OneUptimeDate.getCurrentDate();
-        const isExpired = OneUptimeDate.isAfter(now, expiryDate);
-        const secondsToExpiry = OneUptimeDate.getSecondsTo(expiryDate);
+        const expiryDate: Date = OneUptimeDate.fromString(
+          miscData.appAccessTokenExpiresAt,
+        );
+        const now: Date = OneUptimeDate.getCurrentDate();
+        const isExpired: boolean = OneUptimeDate.isAfter(now, expiryDate);
+        const secondsToExpiry: number = OneUptimeDate.getSecondsTo(expiryDate);
         logger.debug(`Token expires in ${secondsToExpiry} seconds`);
         logger.debug(`Token is expired: ${isExpired}`);
-        
+
         // If token is already expired or expires within the next 5 minutes, refresh it
         if (isExpired || secondsToExpiry <= 300) {
-          logger.debug("Access token is expired or expiring soon, attempting to refresh");
-          const newToken = await this.refreshAccessToken({
+          logger.debug(
+            "Access token is expired or expiring soon, attempting to refresh",
+          );
+          const newToken: string | null = await this.refreshAccessToken({
             projectId: data.projectId,
             miscData,
           });
           if (newToken) {
             logger.debug("Successfully refreshed token");
             return newToken;
-          } 
-            logger.warn("Failed to refresh token, falling back to cached token");
-          
+          }
+          logger.warn("Failed to refresh token, falling back to cached token");
         } else {
-          logger.debug("Using cached appAccessToken from miscData for Microsoft Graph API call");
+          logger.debug(
+            "Using cached appAccessToken from miscData for Microsoft Graph API call",
+          );
           return miscData.appAccessToken;
         }
       } else {
         // No expiry information, use the token but it might be expired
-        logger.debug("Using appAccessToken from miscData (no expiry info available)");
+        logger.debug(
+          "Using appAccessToken from miscData (no expiry info available)",
+        );
         return miscData.appAccessToken;
       }
     }
 
     // If we couldn't find a valid token, try to refresh
     logger.debug("No valid app access token found, attempting to refresh");
-    const newToken = await this.refreshAccessToken({
+    const newToken: string | null = await this.refreshAccessToken({
       projectId: data.projectId,
       miscData,
     });
@@ -189,7 +215,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     // If refresh failed, throw error
     logger.error("Could not obtain valid access token for Microsoft Teams");
-    throw new BadDataException("Could not obtain valid access token for Microsoft Teams");
+    throw new BadDataException(
+      "Could not obtain valid access token for Microsoft Teams",
+    );
   }
 
   // Method to refresh the Microsoft Teams access token
@@ -226,10 +254,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug(`Using tenant ID: ${data.miscData.tenantId}`);
 
       // Use OAuth 2.0 client credentials flow to get a new app access token
-      const tokenUrl = `https://login.microsoftonline.com/${data.miscData.tenantId}/oauth2/v2.0/token`;
+      const tokenUrl: string = `https://login.microsoftonline.com/${data.miscData.tenantId}/oauth2/v2.0/token`;
       logger.debug(`Token URL: ${tokenUrl}`);
 
-      const tokenRequestBody = {
+      const tokenRequestBody: JSONObject = {
         client_id: MicrosoftTeamsAppClientId,
         client_secret: MicrosoftTeamsAppClientSecret,
         grant_type: "client_credentials",
@@ -254,9 +282,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
 
       logger.debug("Token refresh response received successfully");
-      const tokenData = response.data;
-      const newAccessToken = tokenData["access_token"] as string;
-      const expiresIn = tokenData["expires_in"] as number; // seconds
+      const tokenData: JSONObject = response.data;
+      const newAccessToken: string = tokenData["access_token"] as string;
+      const expiresIn: number = tokenData["expires_in"] as number; // seconds
 
       logger.debug(`New access token received: ${Boolean(newAccessToken)}`);
       logger.debug(`Token expires in: ${expiresIn} seconds`);
@@ -267,8 +295,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
 
       // Calculate expiry time
-      const now = OneUptimeDate.getCurrentDate();
-      const expiryDate = OneUptimeDate.addRemoveSeconds(now, expiresIn - 300); // Subtrutes buffer
+      const now: Date = OneUptimeDate.getCurrentDate();
+      const expiryDate: Date = OneUptimeDate.addRemoveSeconds(
+        now,
+        expiresIn - 300,
+      ); // Subtrutes buffer
 
       logger.debug(
         `Token expiry calculated: ${OneUptimeDate.toString(expiryDate)}`,
@@ -371,7 +402,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       const titleLinkRegex: RegExp = /\[([^\]]+)\]\(([^)]+)\)/g;
       title = title.replace(titleLinkRegex, "$1");
       // Sanitize unmatched bold markers if any remain
-      const boldCountTitle = (title.match(/\*\*/g) || []).length;
+      const boldCountTitle: number = (title.match(/\*\*/g) || []).length;
       if (boldCountTitle % 2 !== 0) {
         title = title.replace(/\*\*/g, "");
       }
@@ -381,8 +412,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const linkRegex: RegExp = /\[([^\]]+)\]\(([^)]+)\)/g; // [text](url)
 
     // Helper to clean up unmatched bold markers that can break rendering
-    const sanitizeMarkdownText = (text: string): string => {
-      const boldCount = (text.match(/\*\*/g) || []).length;
+    const sanitizeMarkdownText: (text: string) => string = (
+      text: string,
+    ): string => {
+      const boldCount: number = (text.match(/\*\*/g) || []).length;
       // If we have an odd number of **, remove them all to avoid raw markers showing
       if (boldCount % 2 !== 0) {
         text = text.replace(/\*\*/g, "");
@@ -522,7 +555,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(data);
 
     // Get valid access token
-    const accessToken = await this.getValidAccessToken({
+    const accessToken: string = await this.getValidAccessToken({
       authToken: data.authToken,
       projectId: data.projectId,
     });
@@ -629,7 +662,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
 
       logger.debug(`Channel ${channelName} does not exist. Creating channel.`);
-      const createChannelData = {
+      const createChannelData: {
+        authToken: string;
+        channelName: string;
+        projectId: ObjectID;
+        teamId: string;
+      } = {
         authToken: data.authToken,
         channelName: normalizedChannelName,
         projectId: data.projectId,
@@ -660,7 +698,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const teamId: string = data.teamId;
 
     // Get valid access token
-    const accessToken = await this.getValidAccessToken({
+    const accessToken: string = await this.getValidAccessToken({
       authToken: data.authToken,
       projectId: data.projectId,
     });
@@ -737,10 +775,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`Getting workspace channel by name: ${data.channelName}`);
 
     // Get project auth to get available teams
-    const projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
-      projectId: data.projectId,
-      workspaceType: WorkspaceType.MicrosoftTeams,
-    });
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
 
     if (!projectAuth?.miscData) {
       logger.error("Microsoft Teams integration not found for this project");
@@ -750,7 +789,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
 
     // Get valid access token
-    const accessToken = await this.getValidAccessToken({
+    const accessToken: string | null = await this.getValidAccessToken({
       authToken: data.authToken,
       projectId: data.projectId,
     });
@@ -789,7 +828,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         `Comparing channel '${apiChannelName}' with requested '${channelName.toLowerCase()}'`,
       );
       if (apiChannelName === channelName.toLowerCase()) {
-        const foundChannel = {
+        const foundChannel: WorkspaceChannel = {
           id: `${channelData["id"]}`,
           name: `${channelData["displayName"]}`,
           workspaceType: WorkspaceType.MicrosoftTeams,
@@ -937,12 +976,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     try {
       // Get project auth to retrieve bot ID
-      const projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth(
-        {
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await WorkspaceProjectAuthTokenService.getProjectAuth({
           projectId: data.projectId,
           workspaceType: WorkspaceType.MicrosoftTeams,
-        },
-      );
+        });
 
       if (!projectAuth || !projectAuth.miscData) {
         throw new BadDataException(
@@ -950,7 +988,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         );
       }
 
-      const miscData = projectAuth.miscData as MicrosoftTeamsMiscData;
+      const miscData: MicrosoftTeamsMiscData =
+        projectAuth.miscData as MicrosoftTeamsMiscData;
       if (!miscData.botId) {
         throw new BadDataException(
           "Bot ID not found in Microsoft Teams integration",
@@ -967,7 +1006,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug(`Using bot ID: ${miscData.botId}`);
 
       // Get Bot Framework adapter
-      const adapter = this.getBotAdapter(miscData.tenantId);
+      const adapter: CloudAdapter = this.getBotAdapter(miscData.tenantId);
 
       // Create conversation reference for the channel
       const conversationReference: ConversationReference = {
@@ -1000,18 +1039,19 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           logger.debug("Sending adaptive card as proactive message");
 
           // Create message with adaptive card attachment
-          const message = MessageFactory.attachment({
+          const message: Activity = MessageFactory.attachment({
             contentType: "application/vnd.microsoft.card.adaptive",
             content: data.adaptiveCard,
           });
 
-          const response = await context.sendActivity(message);
-          messageId = response?.id || "";
+          const response: string | undefined =
+            await context.sendActivity(message);
+          messageId = response || "";
           logger.debug(`Message sent with ID: ${messageId}`);
         },
       );
 
-      const thread = {
+      const thread: WorkspaceThread = {
         channel: data.workspaceChannel,
         threadId: messageId,
       };
@@ -1041,7 +1081,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     try {
       // Get valid access token
-      const accessToken = await this.getValidAccessToken({
+      const accessToken: string | null = await this.getValidAccessToken({
         authToken: data.authToken,
         projectId: data.projectId,
       });
@@ -1049,7 +1089,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug("Access token obtained for channel info retrieval");
 
       // Fetch channel information from Microsoft Graph API
-      const apiUrl = `https://graph.microsoft.com/v1.0/teams/${data.teamId}/channels/${data.channelId}`;
+      const apiUrl: string = `https://graph.microsoft.com/v1.0/teams/${data.teamId}/channels/${data.channelId}`;
       logger.debug(`Making API call to: ${apiUrl}`);
 
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -1076,7 +1116,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug("Channel info API call successful");
       const channelData: JSONObject = response.data;
 
-      const channel = {
+      const channel: WorkspaceChannel = {
         id: data.channelId,
         name: channelData["displayName"] as string,
         workspaceType: WorkspaceType.MicrosoftTeams,
@@ -1112,16 +1152,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug(`Processing message block of type: ${block._type}`);
 
       if (block._type === "WorkspacePayloadMarkdown") {
-        const markdownBlock = block as WorkspacePayloadMarkdown;
+        const markdownBlock: WorkspacePayloadMarkdown =
+          block as WorkspacePayloadMarkdown;
         logger.debug(`Markdown text: ${markdownBlock.text}`);
-        const markdownObj = this.getMarkdownBlock({
+        const markdownObj: JSONObject = this.getMarkdownBlock({
           payloadMarkdownBlock: markdownBlock,
         });
         body.push(markdownObj);
       } else if (block._type === "WorkspacePayloadHeader") {
-        const headerBlock = block as WorkspacePayloadHeader;
+        const headerBlock: WorkspacePayloadHeader =
+          block as WorkspacePayloadHeader;
         logger.debug(`Header text: ${headerBlock.text}`);
-        const headerObj = this.getHeaderBlock({
+        const headerObj: JSONObject = this.getHeaderBlock({
           payloadHeaderBlock: headerBlock,
         });
         body.push(headerObj);
@@ -1133,7 +1175,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           logger.debug(
             `Button: ${button.title} -> ${button.url ? button.url.toString() : "invoke"}`,
           );
-          const actionObj = this.getButtonBlock({ payloadButtonBlock: button });
+          const actionObj: JSONObject = this.getButtonBlock({
+            payloadButtonBlock: button,
+          });
           actions.push(actionObj);
         }
       }
@@ -1257,7 +1301,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug("Getting all workspace channels for team ID: " + data.teamId);
 
     // Get valid access token
-    const accessToken = await this.getValidAccessToken({
+    const accessToken: string | null = await this.getValidAccessToken({
       authToken: data.authToken,
       projectId: data.projectId,
     });
@@ -1550,21 +1594,22 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
 
     // Get project auth by tenant ID
-    const projectAuth = await WorkspaceProjectAuthTokenService.findOneBy({
-      query: {
-        workspaceType: WorkspaceType.MicrosoftTeams,
-        miscData: {
-          tenantId: tenantId,
-        } as any,
-      },
-      select: {
-        projectId: true,
-        miscData: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.findOneBy({
+        query: {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          miscData: {
+            tenantId: tenantId,
+          } as any,
+        },
+        select: {
+          projectId: true,
+          miscData: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
     if (!projectAuth || !projectAuth.projectId) {
       logger.error("Project auth not found for tenant ID: " + tenantId);
@@ -1574,7 +1619,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       return;
     }
 
-    const projectId = projectAuth.projectId;
+    const projectId: ObjectID = projectAuth.projectId;
     logger.debug(
       `Found project ID: ${projectId.toString()} for tenant ID: ${tenantId}`,
     );
@@ -1653,16 +1698,18 @@ Just type any of these commands to get the information you need!`;
       );
 
       // Get unresolved incident states
-      const unresolvedIncidentStates =
+      const unresolvedIncidentStates: Array<IncidentState> =
         await IncidentStateService.getUnresolvedIncidentStates(projectId, {
           isRoot: true,
         });
 
-      const unresolvedIncidentStateIds = unresolvedIncidentStates.map((state) => {return state.id!});
-      );
+      const unresolvedIncidentStateIds: Array<ObjectID> =
+        unresolvedIncidentStates.map((state: IncidentState) => {
+          return state.id!;
+        });
 
       // Find active incidents
-      const activeIncidents = await IncidentService.findBy({
+      const activeIncidents: Array<Incident> = await IncidentService.findBy({
         query: {
           projectId: projectId,
           currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
@@ -1701,14 +1748,14 @@ Currently, there are no active incidents in the system. All services are operati
 If you need to report an incident or check historical incidents, please visit the OneUptime dashboard.`;
       }
 
-      let message = `**Active Incidents** (${activeIncidents.length})
+      let message: string = `**Active Incidents** (${activeIncidents.length})
 
 `;
 
       for (const incident of activeIncidents) {
-        const severity = incident.incidentSeverity?.name || "Unknown";
-        const state = incident.currentIncidentState?.name || "Unknown";
-        const createdAt = incident.createdAt
+        const severity: string = incident.incidentSeverity?.name || "Unknown";
+        const state: string = incident.currentIncidentState?.name || "Unknown";
+        const createdAt: string = incident.createdAt
           ? OneUptimeDate.getDateAsFormattedString(incident.createdAt)
           : "Unknown";
 
@@ -1719,7 +1766,11 @@ If you need to report an incident or check historical incidents, please visit th
 `;
 
         if (incident.monitors && incident.monitors.length > 0) {
-          message += `• **Affected Services:** ${incident.monitors.map((m) => {return m.name}).join(", ")}\n`;
+          message += `• **Affected Services:** ${incident.monitors
+            .map((m: Monitor) => {
+              return m.name;
+            })
+            .join(", ")}\n`;
         }
 
         if (incident.description) {
@@ -1746,36 +1797,37 @@ If you need to report an incident or check historical incidents, please visit th
       );
 
       // Get scheduled maintenance events
-      const scheduledEvents = await ScheduledMaintenanceService.findBy({
-        query: {
-          projectId: projectId,
-          currentScheduledMaintenanceState: {
-            isScheduledState: true,
-          } as any,
-          isVisibleOnStatusPage: true, // Only show events visible on status page
-        },
-        select: {
-          title: true,
-          description: true,
-          startsAt: true,
-          endsAt: true,
-          currentScheduledMaintenanceState: {
-            name: true,
+      const scheduledEvents: Array<ScheduledMaintenance> =
+        await ScheduledMaintenanceService.findBy({
+          query: {
+            projectId: projectId,
+            currentScheduledMaintenanceState: {
+              isScheduledState: true,
+            } as any,
+            isVisibleOnStatusPage: true, // Only show events visible on status page
           },
-          monitors: {
-            name: true,
+          select: {
+            title: true,
+            description: true,
+            startsAt: true,
+            endsAt: true,
+            currentScheduledMaintenanceState: {
+              name: true,
+            },
+            monitors: {
+              name: true,
+            },
+            scheduledMaintenanceNumber: true,
           },
-          scheduledMaintenanceNumber: true,
-        },
-        sort: {
-          startsAt: SortOrder.Ascending,
-        },
-        limit: 10,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+          sort: {
+            startsAt: SortOrder.Ascending,
+          },
+          limit: 10,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
 
       if (scheduledEvents.length === 0) {
         return `**Scheduled Maintenance Events**
@@ -1791,17 +1843,17 @@ When maintenance is scheduled, you'll see details here including:
 Check back later for upcoming maintenance windows.`;
       }
 
-      let message = `**Scheduled Maintenance Events** (${scheduledEvents.length})
+      let message: string = `**Scheduled Maintenance Events** (${scheduledEvents.length})
 
 `;
 
       for (const event of scheduledEvents) {
-        const state =
+        const state: string =
           event.currentScheduledMaintenanceState?.name || "Scheduled";
-        const startTime = event.startsAt
+        const startTime: string = event.startsAt
           ? OneUptimeDate.getDateAsFormattedString(event.startsAt)
           : "TBD";
-        const endTime = event.endsAt
+        const endTime: string = event.endsAt
           ? OneUptimeDate.getDateAsFormattedString(event.endsAt)
           : "TBD";
 
@@ -1812,7 +1864,11 @@ Check back later for upcoming maintenance windows.`;
 `;
 
         if (event.monitors && event.monitors.length > 0) {
-          message += `• **Affected Services:** ${event.monitors.map((m) => {return m.name}).join(", ")}\n`;
+          message += `• **Affected Services:** ${event.monitors
+            .map((m: Monitor) => {
+              return m.name;
+            })
+            .join(", ")}\n`;
         }
 
         if (event.description) {
@@ -1839,35 +1895,36 @@ Check back later for upcoming maintenance windows.`;
       );
 
       // Get ongoing maintenance events
-      const ongoingEvents = await ScheduledMaintenanceService.findBy({
-        query: {
-          projectId: projectId,
-          currentScheduledMaintenanceState: {
-            isOngoingState: true,
-          } as any,
-        },
-        select: {
-          title: true,
-          description: true,
-          startsAt: true,
-          endsAt: true,
-          currentScheduledMaintenanceState: {
-            name: true,
+      const ongoingEvents: Array<ScheduledMaintenance> =
+        await ScheduledMaintenanceService.findBy({
+          query: {
+            projectId: projectId,
+            currentScheduledMaintenanceState: {
+              isOngoingState: true,
+            } as any,
           },
-          monitors: {
-            name: true,
+          select: {
+            title: true,
+            description: true,
+            startsAt: true,
+            endsAt: true,
+            currentScheduledMaintenanceState: {
+              name: true,
+            },
+            monitors: {
+              name: true,
+            },
+            scheduledMaintenanceNumber: true,
           },
-          scheduledMaintenanceNumber: true,
-        },
-        sort: {
-          startsAt: SortOrder.Descending,
-        },
-        limit: 10,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+          sort: {
+            startsAt: SortOrder.Descending,
+          },
+          limit: 10,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
 
       if (ongoingEvents.length === 0) {
         return `**Ongoing Maintenance Events**
@@ -1883,16 +1940,17 @@ When maintenance is in progress, you'll see details here including:
 All systems are currently operating normally.`;
       }
 
-      let message = `**Ongoing Maintenance Events** (${ongoingEvents.length})
+      let message: string = `**Ongoing Maintenance Events** (${ongoingEvents.length})
 
 `;
 
       for (const event of ongoingEvents) {
-        const state = event.currentScheduledMaintenanceState?.name || "Ongoing";
-        const startTime = event.startsAt
+        const state: string =
+          event.currentScheduledMaintenanceState?.name || "Ongoing";
+        const startTime: string = event.startsAt
           ? OneUptimeDate.getDateAsFormattedString(event.startsAt)
           : "Unknown";
-        const endTime = event.endsAt
+        const endTime: string = event.endsAt
           ? OneUptimeDate.getDateAsFormattedString(event.endsAt)
           : "TBD";
 
@@ -1903,7 +1961,11 @@ All systems are currently operating normally.`;
 `;
 
         if (event.monitors && event.monitors.length > 0) {
-          message += `• **Affected Services:** ${event.monitors.map((m) => {return m.name}).join(", ")}\n`;
+          message += `• **Affected Services:** ${event.monitors
+            .map((m: Monitor) => {
+              return m.name;
+            })
+            .join(", ")}\n`;
         }
 
         if (event.description) {
@@ -1929,16 +1991,18 @@ All systems are currently operating normally.`;
       );
 
       // Get unresolved alert states
-      const unresolvedAlertStates =
+      const unresolvedAlertStates: Array<AlertState> =
         await AlertStateService.getUnresolvedAlertStates(projectId, {
           isRoot: true,
         });
 
-      const unresolvedAlertStateIds = unresolvedAlertStates.map((state) => {return state.id!});
-      );
+      const unresolvedAlertStateIds: Array<ObjectID> =
+        unresolvedAlertStates.map((state: AlertState) => {
+          return state.id!;
+        });
 
       // Find active alerts
-      const activeAlerts = await AlertService.findBy({
+      const activeAlerts: Array<Alert> = await AlertService.findBy({
         query: {
           projectId: projectId,
           currentAlertStateId: QueryHelper.any(unresolvedAlertStateIds),
@@ -1984,14 +2048,14 @@ When alerts are triggered, you'll see details here including:
 All monitoring checks are passing normally.`;
       }
 
-      let message = `**Active Alerts** (${activeAlerts.length})
+      let message: string = `**Active Alerts** (${activeAlerts.length})
 
 `;
 
       for (const alert of activeAlerts) {
-        const severity = alert.alertSeverity?.name || "Unknown";
-        const state = alert.currentAlertState?.name || "Unknown";
-        const createdAt = alert.createdAt
+        const severity: string = alert.alertSeverity?.name || "Unknown";
+        const state: string = alert.currentAlertState?.name || "Unknown";
+        const createdAt: string = alert.createdAt
           ? OneUptimeDate.getDateAsFormattedString(alert.createdAt)
           : "Unknown";
 
@@ -2048,14 +2112,15 @@ All monitoring checks are passing normally.`;
         return;
       }
 
-      const projectAuth = await WorkspaceProjectAuthTokenService.findOneBy({
-        query: {
-          workspaceType: WorkspaceType.MicrosoftTeams,
-          miscData: { tenantId: tenantId } as any,
-        },
-        select: { projectId: true, authToken: true },
-        props: { isRoot: true },
-      });
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await WorkspaceProjectAuthTokenService.findOneBy({
+          query: {
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            miscData: { tenantId: tenantId } as any,
+          },
+          select: { projectId: true, authToken: true },
+          props: { isRoot: true },
+        });
 
       if (!projectAuth || !projectAuth.projectId) {
         logger.error(
@@ -2266,11 +2331,11 @@ All monitoring checks are passing normally.`;
       }
 
       // Get Bot Framework adapter
-      const adapter = this.getBotAdapter(tenantId);
+      const adapter: CloudAdapter = this.getBotAdapter(tenantId);
 
       // Create custom activity handler class that extends TeamsActivityHandler
       class OneUptimeTeamsActivityHandler extends TeamsActivityHandler {
-        constructor() {
+        public constructor() {
           super();
 
           // Set up message handlers using the proper API
@@ -2319,7 +2384,8 @@ All monitoring checks are passing normally.`;
       }
 
       // Create activity handler instance
-      const activityHandler = new OneUptimeTeamsActivityHandler();
+      const activityHandler: TeamsActivityHandler =
+        new OneUptimeTeamsActivityHandler();
 
       // Use the adapter's process method with Express-style req/res
       await adapter.process(req, res, async (context: TurnContext) => {
@@ -2358,12 +2424,11 @@ All monitoring checks are passing normally.`;
 
     try {
       // Get project auth to get app access token
-      const projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth(
-        {
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await WorkspaceProjectAuthTokenService.getProjectAuth({
           projectId: data.projectId,
           workspaceType: WorkspaceType.MicrosoftTeams,
-        },
-      );
+        });
 
       if (!projectAuth || !projectAuth.miscData) {
         throw new BadDataException(
@@ -2415,7 +2480,7 @@ All monitoring checks are passing normally.`;
             acc: Record<string, { id: string; name: string }>,
             t: JSONObject,
           ) => {
-            const team = {
+            const team: { id: string; name: string } = {
               id: t["id"] as string,
               name: (t["displayName"] as string) || "Unnamed Team",
             };
@@ -2489,7 +2554,7 @@ All monitoring checks are passing normally.`;
       // Process teams
       const availableTeams: Record<string, MicrosoftTeamsTeam> = teams.reduce(
         (acc: Record<string, MicrosoftTeamsTeam>, t: JSONObject) => {
-          const team = {
+          const team: { id: string; name: string } = {
             id: t["id"] as string,
             name: (t["displayName"] as string) || "Unnamed Team",
           };

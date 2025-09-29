@@ -11,11 +11,13 @@ import AlertService from "../../../../Services/AlertService";
 import Alert from "../../../../../Models/DatabaseModels/Alert";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import { TurnContext } from "botbuilder";
-import { JSONObject } from "../../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import AlertInternalNoteService from "../../../../Services/AlertInternalNoteService";
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
 import AlertStateService from "../../../../Services/AlertStateService";
 import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
+import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
+import AlertState from "../../../../../Models/DatabaseModels/AlertState";
 
 export default class MicrosoftTeamsAlertActions {
   @CaptureSpan()
@@ -286,7 +288,7 @@ export default class MicrosoftTeamsAlertActions {
         return;
       }
 
-      const message = `**Alert Details**\n\n**Title:** ${alert.title}\n**Description:** ${alert.description || "No description"}\n**State:** ${alert.currentAlertState?.name || "Unknown"}\n**Severity:** ${alert.alertSeverity?.name || "Unknown"}\n**Created At:** ${alert.createdAt ? new Date(alert.createdAt).toLocaleString() : "Unknown"}`;
+      const message: string = `**Alert Details**\n\n**Title:** ${alert.title}\n**Description:** ${alert.description || "No description"}\n**State:** ${alert.currentAlertState?.name || "Unknown"}\n**Severity:** ${alert.alertSeverity?.name || "Unknown"}\n**Created At:** ${alert.createdAt ? new Date(alert.createdAt).toLocaleString() : "Unknown"}`;
 
       await turnContext.sendActivity(message);
       return;
@@ -299,7 +301,7 @@ export default class MicrosoftTeamsAlertActions {
       }
 
       // Send the input card
-      const card = this.buildAddAlertNoteCard(actionValue);
+      const card: JSONObject = this.buildAddAlertNoteCard(actionValue);
       await turnContext.sendActivity({
         attachments: [
           {
@@ -318,11 +320,11 @@ export default class MicrosoftTeamsAlertActions {
       }
 
       // Check if form data is provided
-      const note = value["note"];
+      const note: JSONValue = value["note"];
 
       if (note) {
         // Submit the note
-        const alertId = new ObjectID(actionValue);
+        const alertId: ObjectID = new ObjectID(actionValue);
 
         await AlertInternalNoteService.addNote({
           alertId: alertId,
@@ -355,10 +357,8 @@ export default class MicrosoftTeamsAlertActions {
       }
 
       // Send the input card
-      const card = await this.buildExecuteAlertOnCallPolicyCard(
-        actionValue,
-        projectId,
-      );
+      const card: JSONObject | null =
+        await this.buildExecuteAlertOnCallPolicyCard(actionValue, projectId);
       if (!card) {
         await turnContext.sendActivity(
           "No on-call policies found in the project",
@@ -388,11 +388,11 @@ export default class MicrosoftTeamsAlertActions {
       }
 
       // Check if form data is provided
-      const onCallPolicyId = value["onCallPolicy"];
+      const onCallPolicyId: JSONValue = value["onCallPolicy"];
 
       if (onCallPolicyId) {
         // Execute the policy
-        const alertId = new ObjectID(actionValue);
+        const alertId: ObjectID = new ObjectID(actionValue);
 
         await OnCallDutyPolicyService.executePolicy(
           new ObjectID(onCallPolicyId.toString()),
@@ -428,7 +428,10 @@ export default class MicrosoftTeamsAlertActions {
       }
 
       // Send the input card
-      const card = await this.buildChangeAlertStateCard(actionValue, projectId);
+      const card: JSONObject = await this.buildChangeAlertStateCard(
+        actionValue,
+        projectId,
+      );
       await turnContext.sendActivity({
         attachments: [
           {
@@ -449,11 +452,11 @@ export default class MicrosoftTeamsAlertActions {
       }
 
       // Check if form data is provided
-      const alertStateId = value["alertState"];
+      const alertStateId: JSONValue = value["alertState"];
 
       if (alertStateId) {
         // Update the state
-        const alertId = new ObjectID(actionValue);
+        const alertId: ObjectID = new ObjectID(actionValue);
 
         await AlertService.updateOneById({
           id: alertId,
@@ -525,29 +528,30 @@ export default class MicrosoftTeamsAlertActions {
     alertId: string,
     projectId: ObjectID,
   ): Promise<JSONObject | null> {
-    const onCallPolicies = await OnCallDutyPolicyService.findBy({
-      query: {
-        projectId: projectId,
-      },
-      select: {
-        name: true,
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: 50,
-      skip: 0,
-    });
+    const onCallPolicies: Array<OnCallDutyPolicy> =
+      await OnCallDutyPolicyService.findBy({
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          name: true,
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: 50,
+        skip: 0,
+      });
 
-    const choices = onCallPolicies
-      .map((policy) => {
+    const choices: Array<{ title: string; value: string }> = onCallPolicies
+      .map((policy: OnCallDutyPolicy) => {
         return {
           title: policy.name || "",
           value: policy._id?.toString() || "",
         };
       })
-      .filter((choice) => {
+      .filter((choice: { title: string; value: string }) => {
         return choice.title && choice.value;
       });
 
@@ -592,21 +596,22 @@ export default class MicrosoftTeamsAlertActions {
     alertId: string,
     projectId: ObjectID,
   ): Promise<JSONObject> {
-    const alertStates = await AlertStateService.getAllAlertStates({
-      projectId: projectId,
-      props: {
-        isRoot: true,
-      },
-    });
+    const alertStates: Array<AlertState> =
+      await AlertStateService.getAllAlertStates({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      });
 
-    const choices = alertStates
-      .map((state) => {
+    const choices: Array<{ title: string; value: string }> = alertStates
+      .map((state: AlertState) => {
         return {
           title: state.name || "",
           value: state._id?.toString() || "",
         };
       })
-      .filter((choice) => {
+      .filter((choice: { title: string; value: string }) => {
         return choice.title && choice.value;
       });
 
