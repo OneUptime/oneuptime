@@ -104,20 +104,29 @@ export default class MicrosoftTeamsAuthAction {
     let projectAuthToken: WorkspaceProjectAuthToken | null = null;
 
     try {
-      projectAuthToken = await WorkspaceProjectAuthTokenService.findOneBy({
+      // Find project auth token by checking if miscData contains the teamId
+      const allProjectAuths = await WorkspaceProjectAuthTokenService.findBy({
         query: {
-          workspaceProjectId: teamId,
           workspaceType: WorkspaceType.MicrosoftTeams,
         },
         select: {
           _id: true,
           projectId: true,
           authToken: true,
+          miscData: true,
         },
+        limit: 100, // Reasonable limit for finding matching auth tokens
+        skip: 0,
         props: {
           isRoot: true,
         },
       });
+
+      // Find the auth token where miscData.teamId matches the teamId from payload
+      projectAuthToken = allProjectAuths.find((auth) => {
+        const miscData = auth.miscData as any;
+        return miscData && miscData.teamId === teamId;
+      }) || null;
     } catch (error) {
       logger.debug("Error finding project auth token:");
       logger.debug(error);

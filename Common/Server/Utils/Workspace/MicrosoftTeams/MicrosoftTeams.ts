@@ -29,7 +29,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
-import { MicrosoftTeamsMiscData } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import { MicrosoftTeamsMiscData, MicrosoftTeamsTeam } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import OneUptimeDate from "../../../../Types/Date";
 import { MicrosoftTeamsAppClientId, MicrosoftTeamsAppClientSecret } from "../../../EnvironmentConfig";
 
@@ -255,7 +255,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         projectId: data.projectId,
         workspaceType: WorkspaceType.MicrosoftTeams,
         authToken: newAccessToken,
-        workspaceProjectId: data.miscData.teamId,
+        workspaceProjectId: data.miscData.tenantId,
         miscData: updatedMiscData as any,
       });
 
@@ -550,24 +550,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     authToken: string;
     channelNames: Array<string>;
     projectId: ObjectID;
+    teamId: string; // Required team ID
   }): Promise<Array<WorkspaceChannel>> {
     logger.debug("Creating channels if they do not exist with data:");
     logger.debug(data);
 
     const workspaceChannels: Array<WorkspaceChannel> = [];
-
-    // Get team ID from project auth
-    const projectAuth: any =
-      await WorkspaceProjectAuthTokenService.getProjectAuth({
-        projectId: data.projectId,
-        workspaceType: WorkspaceType.MicrosoftTeams,
-      });
-
-    if (!projectAuth || !projectAuth.workspaceProjectId) {
-      throw new BadDataException(
-        "Microsoft Teams integration not found for this project",
-      );
-    }
 
     for (let channelName of data.channelNames) {
       // Normalize channel name - Teams has different naming requirements
@@ -583,6 +571,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           authToken: data.authToken,
           channelName: normalizedChannelName,
           projectId: data.projectId,
+          teamId: data.teamId,
         });
 
       if (existingChannel) {
@@ -592,11 +581,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
 
       logger.debug(`Channel ${channelName} does not exist. Creating channel.`);
-      const channel: WorkspaceChannel = await this.createChannel({
+      const createChannelData = {
         authToken: data.authToken,
         channelName: normalizedChannelName,
         projectId: data.projectId,
-      });
+        teamId: data.teamId,
+      };
+      
+      
+      const channel: WorkspaceChannel = await this.createChannel(createChannelData);
 
       if (channel) {
         logger.debug(`Channel ${channelName} created successfully.`);
@@ -614,21 +607,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
+    teamId: string; // Required team ID
   }): Promise<WorkspaceChannel> {
-    // Get team ID from project auth
-    const projectAuth: any =
-      await WorkspaceProjectAuthTokenService.getProjectAuth({
-        projectId: data.projectId,
-        workspaceType: WorkspaceType.MicrosoftTeams,
-      });
-
-    if (!projectAuth || !projectAuth.workspaceProjectId) {
-      throw new BadDataException(
-        "Microsoft Teams integration not found for this project",
-      );
-    }
-
-    const teamId: string = projectAuth.workspaceProjectId;
+    const teamId: string = data.teamId;
 
     // Get valid access token
     const accessToken = await this.getValidAccessToken({
@@ -681,12 +662,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
+    teamId: string;
   }): Promise<WorkspaceChannel> {
     const channel: WorkspaceChannel | null =
       await this.getWorkspaceChannelByName({
         authToken: data.authToken,
         channelName: data.channelName,
         projectId: data.projectId,
+        teamId: data.teamId,
       });
 
     if (!channel) {
@@ -701,25 +684,25 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
+    teamId: string;
   }): Promise<WorkspaceChannel | null> {
     logger.debug(`Getting workspace channel by name: ${data.channelName}`);
     
-    // Get team ID from project auth
-    const projectAuth: any =
+    // Get project auth to get available teams
+    const projectAuth =
       await WorkspaceProjectAuthTokenService.getProjectAuth({
         projectId: data.projectId,
         workspaceType: WorkspaceType.MicrosoftTeams,
       });
 
-    if (!projectAuth || !projectAuth.workspaceProjectId) {
+    if (!projectAuth?.miscData) {
       logger.error("Microsoft Teams integration not found for this project");
       throw new BadDataException(
         "Microsoft Teams integration not found for this project",
       );
     }
 
-    const teamId: string = projectAuth.workspaceProjectId;
-    logger.debug(`Using team ID: ${teamId}`);
+    
 
     // Get valid access token
     const accessToken = await this.getValidAccessToken({
@@ -727,7 +710,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       projectId: data.projectId,
     });
 
-    logger.debug("Making API call to get channels");
+
+    // Get channels for this team
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.get({
         url: URL.fromString(
@@ -750,17 +734,19 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       (channelsData["value"] as Array<JSONObject>) || [];
 
     logger.debug(`Found ${channels.length} channels from API`);
-    logger.debug(`Channels: ${JSON.stringify(channels.map(c => ({ id: c["id"], displayName: c["displayName"] })))}`);
+
+    const channelName: string = data.channelName.toLowerCase();
+
 
     for (const channelData of channels) {
-      const channelName: string = (
-        channelData["displayName"] as string
+      const apiChannelName: string = (
+        channelData["name"] as string
       ).toLowerCase();
-      logger.debug(`Comparing channel '${channelName}' with requested '${data.channelName.toLowerCase()}'`);
-      if (channelName === data.channelName.toLowerCase()) {
+      logger.debug(`Comparing channel '${apiChannelName}' with requested '${channelName.toLowerCase()}'`);
+      if (apiChannelName === channelName.toLowerCase()) {
         const foundChannel = {
-          id: channelData["id"] as string,
-          name: channelData["displayName"] as string,
+          id: `${channelData["id"]}`, 
+          name: `${channelData["displayName"]}`,
           workspaceType: WorkspaceType.MicrosoftTeams,
         };
         logger.debug(`Channel match found: ${JSON.stringify(foundChannel)}`);
@@ -778,6 +764,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     authToken: string;
     userId: string;
     projectId: ObjectID;
+    teamId: string;
   }): Promise<WorkspaceSendMessageResponse> {
     logger.debug("=== MicrosoftTeamsUtil.sendMessage called ===");
     logger.debug("Sending message to Microsoft Teams with data:");
@@ -803,6 +790,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           authToken: data.authToken,
           channelName: channelName,
           projectId: data.projectId,
+          teamId: data.teamId,
         });
 
       if (channel) {
@@ -813,36 +801,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
     }
 
-    logger.debug("=== Getting team ID from project auth ===");
-    const workspaceMessageResponse: WorkspaceSendMessageResponse = {
-      threads: [],
-      workspaceType: WorkspaceType.MicrosoftTeams,
-    };
-
-    // Get team ID from project auth
-    const projectAuth: any =
-      await WorkspaceProjectAuthTokenService.getProjectAuth({
-        projectId: data.projectId,
-        workspaceType: WorkspaceType.MicrosoftTeams,
-      });
-
-    logger.debug(`Project auth found: ${!!projectAuth}`);
-    if (projectAuth) {
-      logger.debug(`Project auth workspaceProjectId: ${projectAuth.workspaceProjectId}`);
-    }
-
-    if (!projectAuth || !projectAuth.workspaceProjectId) {
-      logger.error("Microsoft Teams integration not found for this project - missing projectAuth or workspaceProjectId");
-      throw new BadDataException(
-        "Microsoft Teams integration not found for this project",
-      );
-    }
-
-    const teamId: string = projectAuth.workspaceProjectId;
-    logger.debug(`Using team ID: ${teamId}`);
-
-    logger.debug(`Processing ${data.workspaceMessagePayload.channelIds.length} channel IDs`);
-    logger.debug(`Channel IDs: ${JSON.stringify(data.workspaceMessagePayload.channelIds)}`);
+    logger.debug("=== Starting message sending loop ===");
+    logger.debug(`Total channels to post to: ${workspaceChannelsToPostTo.length}`);
+    logger.debug(`Channels: ${JSON.stringify(workspaceChannelsToPostTo)}`);
 
     // Add channels by ID
     for (const channelId of data.workspaceMessagePayload.channelIds) {
@@ -852,7 +813,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           await this.getWorkspaceChannelFromChannelId({
             authToken: data.authToken,
             channelId: channelId,
-            teamId: teamId,
             projectId: data.projectId,
           });
         logger.debug(`Channel info obtained: ${JSON.stringify(channel)}`);
@@ -867,12 +827,19 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`Total channels to post to: ${workspaceChannelsToPostTo.length}`);
     logger.debug(`Channels: ${JSON.stringify(workspaceChannelsToPostTo)}`);
 
+    const workspaceMessageResponse: WorkspaceSendMessageResponse = {
+      threads: [],
+      workspaceType: WorkspaceType.MicrosoftTeams,
+    };
+
     for (const channel of workspaceChannelsToPostTo) {
       try {
         logger.debug(`Attempting to send message to channel: ${JSON.stringify(channel)}`);
+        
+
         const thread: WorkspaceThread = await this.sendAdaptiveCardToChannel({
           authToken: data.authToken,
-          teamId: teamId,
+          teamId: data.teamId,
           workspaceChannel: channel,
           adaptiveCard: adaptiveCard,
           projectId: data.projectId,
@@ -994,13 +961,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   public static override async getWorkspaceChannelFromChannelId(data: {
     authToken: string;
     channelId: string;
-    teamId: string;
+    teamId: string; 
     projectId: ObjectID;
   }): Promise<WorkspaceChannel> {
     logger.debug("=== getWorkspaceChannelFromChannelId called ===");
     logger.debug(`Channel ID: ${data.channelId}`);
     logger.debug(`Team ID: ${data.teamId}`);
     logger.debug(`Project ID: ${data.projectId.toString()}`);
+    
     
     try {
       // Get valid access token
@@ -1038,8 +1006,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       logger.debug("Channel info API call successful");
       const channelData: JSONObject = response.data;
+      
+
+
+      
       const channel = {
-        id: channelData["id"] as string,
+        id: data.channelId,
         name: channelData["displayName"] as string,
         workspaceType: WorkspaceType.MicrosoftTeams,
       };
@@ -1203,11 +1175,55 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }
 
   @CaptureSpan()
-  public static override async getAllWorkspaceChannels(_data: {
+  public static override async getAllWorkspaceChannels(data: {
     authToken: string;
+    projectId: ObjectID;
+    teamId: string;
   }): Promise<Dictionary<WorkspaceChannel>> {
-    // This would require team ID - placeholder implementation
-    return {};
+    logger.debug("Getting all workspace channels for team ID: " + data.teamId);
+
+    // Get valid access token
+    const accessToken = await this.getValidAccessToken({
+      authToken: data.authToken,
+      projectId: data.projectId,
+    });
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.get({
+        url: URL.fromString(
+          `https://graph.microsoft.com/v1.0/teams/${data.teamId}/channels`,
+        ),
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.error("Error response from Microsoft Graph API:");
+      logger.error(response);
+      throw response;
+    }
+
+    const channelsData: JSONObject = response.data;
+    const channelsArray: Array<JSONObject> =
+      (channelsData["value"] as Array<JSONObject>) || [];
+
+    const channelsDict: Dictionary<WorkspaceChannel> = {};
+
+    for (const channelData of channelsArray) {
+      const channel: WorkspaceChannel = {
+        id: channelData["id"] as string,
+        name: channelData["displayName"] as string,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      };
+      channelsDict[channel.id] = channel;
+    }
+
+    logger.debug(
+      `Retrieved ${Object.keys(channelsDict).length} channels from API`,
+    );
+    return channelsDict;
   }
 
   @CaptureSpan()
@@ -1215,6 +1231,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
+    teamId: string;
   }): Promise<boolean> {
     const channel: WorkspaceChannel | null =
       await this.getWorkspaceChannelByName(data);

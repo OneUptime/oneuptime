@@ -8,6 +8,7 @@ import BadRequestException from "../../Types/Exception/BadRequestException";
 import logger from "../Utils/Logger";
 import { JSONObject } from "../../Types/JSON";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Exception from "../../Types/Exception/Exception";
 import {
   AppApiClientUrl,
   AppVersion,
@@ -22,6 +23,7 @@ import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import API from "../../Utils/API";
 import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTokenService";
+import WorkspaceProjectAuthToken, { MicrosoftTeamsMiscData, MicrosoftTeamsTeam } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import ObjectID from "../../Types/ObjectID";
 import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenService";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
@@ -38,11 +40,6 @@ import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams
 import archiver, { Archiver } from "archiver";
 import LocalFile from "../Utils/LocalFile";
 import path from "path";
-
-interface MicrosoftTeamsTeam {
-  id: string;
-  displayName: string;
-}
 
 export default class MicrosoftTeamsAPI {
   private static getTeamsAppManifest(): JSONObject {
@@ -400,13 +397,16 @@ export default class MicrosoftTeamsAPI {
             );
           }
           // Unified handling for single vs multiple teams (no if/else block)
-          const availableTeams: Array<MicrosoftTeamsTeam> = teams.map(
-            (t: JSONObject): MicrosoftTeamsTeam => {
-              return {
+          const availableTeams: Record<string, MicrosoftTeamsTeam> = teams.reduce(
+            (acc: Record<string, MicrosoftTeamsTeam>, t: JSONObject) => {
+              const team: MicrosoftTeamsTeam = {
                 id: t["id"] as string,
-                displayName: (t["displayName"] as string) || "Unnamed Team",
+                name: (t["displayName"] as string) || "Unnamed Team",
               };
+              acc[team.name] = team;
+              return acc;
             },
+            {} as Record<string, MicrosoftTeamsTeam>
           );
           await WorkspaceUserAuthTokenService.refreshAuthToken({
             projectId: new ObjectID(projectId),
@@ -424,11 +424,36 @@ export default class MicrosoftTeamsAPI {
             },
           });
 
-          return Response.redirect(
-            req,
-            res,
-            teamsIntegrationPageUrl.addQueryParam("selectTeam", "true"),
-          );
+          // Check if admin consent is already granted
+          const existingProjectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
+            projectId: new ObjectID(projectId),
+            workspaceType: WorkspaceType.MicrosoftTeams,
+          });
+
+          if (existingProjectAuth && (existingProjectAuth.miscData as any)?.adminConsentGranted) {
+            // Admin consent already granted, finalize connection with all teams
+            const mergedProjectMiscData: MicrosoftTeamsMiscData = {
+              ...(existingProjectAuth.miscData as MicrosoftTeamsMiscData),
+              availableTeams: availableTeams,
+            };
+
+            await WorkspaceProjectAuthTokenService.refreshAuthToken({
+              projectId: new ObjectID(projectId),
+              workspaceType: WorkspaceType.MicrosoftTeams,
+              authToken: existingProjectAuth.authToken || "",
+              workspaceProjectId: existingProjectAuth.workspaceProjectId || "",
+              miscData: mergedProjectMiscData,
+            });
+
+            return Response.redirect(req, res, teamsIntegrationPageUrl);
+          } else {
+            // Need admin consent
+            return Response.redirect(
+              req,
+              res,
+              teamsIntegrationPageUrl.addQueryParam("needAdminConsent", "true"),
+            );
+          }
         } catch (err) {
           logger.error("Error in static Microsoft Teams auth callback: ");
           logger.error(err);
@@ -483,10 +508,10 @@ export default class MicrosoftTeamsAPI {
 
           const accessToken: string = userAuth.authToken || "";
           const miscData: any = userAuth.miscData || {};
-          const availableTeams: Array<MicrosoftTeamsTeam> =
-            (miscData.availableTeams as Array<MicrosoftTeamsTeam>) || [];
+          const availableTeams: Record<string, MicrosoftTeamsTeam> =
+            (miscData.availableTeams as Record<string, MicrosoftTeamsTeam>) || {};
           const matchedTeam: MicrosoftTeamsTeam | undefined =
-            availableTeams.find((t: MicrosoftTeamsTeam) => {
+            Object.values(availableTeams).find((t: MicrosoftTeamsTeam) => {
               return t.id === teamId;
             });
 
@@ -537,7 +562,7 @@ export default class MicrosoftTeamsAPI {
             ...(existingProjectAuth?.miscData as any),
             tenantId: tenantId,
             teamId: teamId,
-            teamName: matchedTeam.displayName,
+            teamName: matchedTeam.name,
             botId: MicrosoftTeamsAppClientId || "",
           };
 
@@ -545,7 +570,7 @@ export default class MicrosoftTeamsAPI {
             projectId: projectId,
             workspaceType: WorkspaceType.MicrosoftTeams,
             authToken: projectAuthTokenToPersist,
-            workspaceProjectId: teamId, // Use the actual team ID instead of placeholder
+            workspaceProjectId: tenantId, // Use tenant ID as the workspace project identifier
             miscData: mergedProjectMiscData,
           });
 
@@ -561,7 +586,7 @@ export default class MicrosoftTeamsAPI {
               displayName: miscData.displayName,
               email: miscData.email,
               teamId: teamId,
-              teamName: matchedTeam.displayName,
+              teamName: matchedTeam.name,
             },
           });
 
@@ -767,13 +792,22 @@ export default class MicrosoftTeamsAPI {
           logger.debug("App Access Token acquired via admin consent: ");
           logger.debug(tokenData);
 
-          // Try to get teams using the app token to auto-select the first team
-          let selectedTeamId: string = existingAuth?.workspaceProjectId || "";
-          let selectedTeamName: string = "";
+          // Get available teams from user auth token
+          const userId: string = stateParts[1]!;
+          const userAuth = await WorkspaceUserAuthTokenService.getUserAuth({
+            projectId: new ObjectID(projectId),
+            userId: new ObjectID(userId),
+            workspaceType: WorkspaceType.MicrosoftTeams,
+          });
 
-          if (!existingAuth?.workspaceProjectId) {
+          let availableTeams: Record<string, MicrosoftTeamsTeam> = {};
+          if (userAuth?.miscData) {
+            availableTeams = (userAuth.miscData as any).availableTeams || {};
+          }
+
+          // If no teams from user auth, try to get them using app token
+          if (Object.keys(availableTeams).length === 0) {
             try {
-              // Get available teams using app token - use Teams API instead of Groups API
               const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
                 await API.get<JSONObject>({
                   url: URL.fromString("https://graph.microsoft.com/v1.0/teams?$select=id,displayName"),
@@ -783,7 +817,7 @@ export default class MicrosoftTeamsAPI {
                 });
 
               if (teamsResponse instanceof HTTPErrorResponse) {
-                logger.error("Failed to get teams for auto-selection:");
+                logger.error("Failed to get teams:");
                 logger.error(teamsResponse);
                 return Response.redirect(
                   req,
@@ -809,13 +843,20 @@ export default class MicrosoftTeamsAPI {
                 );
               }
 
-              // Select the first team
-              selectedTeamId = teams[0]!["id"] as string;
-              selectedTeamName = (teams[0]!["displayName"] as string) || "Unnamed Team";
-              logger.debug(`Auto-selected first team: ${selectedTeamName} (${selectedTeamId})`);
+              availableTeams = teams.reduce(
+                (acc: Record<string, MicrosoftTeamsTeam>, t: JSONObject) => {
+                  const team: MicrosoftTeamsTeam = {
+                    id: t["id"] as string,
+                    name: (t["displayName"] as string) || "Unnamed Team",
+                  };
+                  acc[team.name] = team;
+                  return acc;
+                },
+                {} as Record<string, MicrosoftTeamsTeam>
+              );
 
             } catch (error) {
-              logger.error("Error getting teams for auto-selection:");
+              logger.error("Error getting teams:");
               logger.error(error);
               return Response.redirect(
                 req,
@@ -828,7 +869,7 @@ export default class MicrosoftTeamsAPI {
             }
           }
 
-          // Merge and persist project auth with tenantId, app token, and selected team
+          // Merge and persist project auth with tenantId, app token, and available teams
           const mergedMiscData = {
             ...(existingAuth?.miscData as any),
             tenantId: tenantId,
@@ -836,8 +877,7 @@ export default class MicrosoftTeamsAPI {
             appAccessTokenExpiresAt: expiresAtIso,
             adminConsentGranted: true,
             adminConsentGrantedAt: new Date().toISOString(),
-            teamId: selectedTeamId,
-            teamName: selectedTeamName,
+            availableTeams: availableTeams,
             botId: MicrosoftTeamsAppClientId || "",
           };
 
@@ -845,7 +885,7 @@ export default class MicrosoftTeamsAPI {
             projectId: new ObjectID(projectId),
             workspaceType: WorkspaceType.MicrosoftTeams,
             authToken: appAccessToken,
-            workspaceProjectId: selectedTeamId,
+            workspaceProjectId: tenantId, // Use tenant ID as the workspace project identifier
             miscData: mergedMiscData,
           });
 
@@ -1020,6 +1060,48 @@ export default class MicrosoftTeamsAPI {
 
         res.setHeader("Content-Type", "text/html");
         return res.send(html);
+      },
+    );
+
+    // Get available teams for a project
+    router.get(
+      "/microsoft-teams/teams",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const projectId: string | undefined = req.query["projectId"]?.toString();
+
+          if (!projectId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Project ID is required"),
+            );
+          }
+
+          // Get project auth to access available teams
+          const projectAuth: WorkspaceProjectAuthToken | null =
+            await WorkspaceProjectAuthTokenService.getProjectAuth({
+              projectId: new ObjectID(projectId),
+              workspaceType: WorkspaceType.MicrosoftTeams,
+            });
+
+          if (!projectAuth || !projectAuth.miscData?.["availableTeams"]) {
+            return Response.sendJsonObjectResponse(req, res, {
+              teams: [],
+            });
+          }
+
+          const availableTeams: Record<string, MicrosoftTeamsTeam> = projectAuth.miscData["availableTeams"] as Record<string, MicrosoftTeamsTeam>;
+
+          return Response.sendJsonObjectResponse(req, res, {
+            teams: Object.values(availableTeams).map(team => ({
+              id: team.id,
+              name: team.name,
+            })),
+          });
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
       },
     );
 

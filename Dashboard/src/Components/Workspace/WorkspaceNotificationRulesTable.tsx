@@ -51,7 +51,7 @@ import EmptyResponseData from "Common/Types/API/EmptyResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
-
+import { JSONObject } from "Common/Types/JSON";
 export interface ComponentProps {
   workspaceType: WorkspaceType;
   eventType: NotificationRuleEventType;
@@ -81,6 +81,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     Array<MonitorStatus>
   >([]);
   const [teams, setTeams] = React.useState<Array<Team>>([]);
+  const [microsoftTeamsTeams, setMicrosoftTeams] = React.useState<Array<{ id: string; displayName: string }>>([]);
   const [users, setUsers] = React.useState<Array<User>>([]);
 
   const [showTestModal, setShowTestModal] = React.useState<boolean>(false);
@@ -346,6 +347,28 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       });
 
       setUsers(uniqueUsers);
+
+      // Load Microsoft Teams if workspace type is Microsoft Teams
+      if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
+        try {
+          const microsoftTeamsResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+            await API.get({
+              url: URL.fromString(APP_API_URL.toString()).addRoute(
+                `/microsoft-teams/teams?projectId=${ProjectUtil.getCurrentProjectId()!.toString()}`,
+              ),
+            });
+
+          if (microsoftTeamsResponse instanceof HTTPErrorResponse) {
+
+          } else {
+            const teamsData: Array<{ id: string; displayName: string }> = 
+              (microsoftTeamsResponse.data as any)?.teams || [];
+            setMicrosoftTeams(teamsData);
+          }
+        } catch (err) {
+          
+        }
+      }
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Exception));
     }
@@ -523,6 +546,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
                   monitorStatus={monitorStatus}
                   workspaceType={props.workspaceType}
                   teams={teams}
+                  microsoftTeamsTeams={microsoftTeamsTeams}
                   users={users}
                 />
               );
@@ -594,6 +618,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
                     monitorStatus={monitorStatus}
                     workspaceType={props.workspaceType}
                     teams={teams}
+                    microsoftTeamsTeams={microsoftTeamsTeams}
                     users={users}
                   />
                 </Fragment>
