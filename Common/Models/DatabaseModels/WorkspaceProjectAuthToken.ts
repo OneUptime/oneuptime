@@ -60,6 +60,8 @@ export interface MicrosoftTeamsMiscData extends MiscData {
   };
 }
 
+export type WorkspaceMiscData = SlackMiscData | MicrosoftTeamsMiscData;
+
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
