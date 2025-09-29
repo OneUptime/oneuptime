@@ -343,18 +343,28 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (
-      updateBy.query.id &&
-      updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent
+      updateBy.query._id &&
+      (updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent ||
+        updateBy.data.startsAt)
     ) {
+      logger.debug(
+        `Calculating nextSubscriberNotificationBeforeTheEventAt for Scheduled Maintenance: ${updateBy.query.id}`,
+      );
+
       const scheduledMaintenance: Model | null = await this.findOneById({
-        id: updateBy.query.id! as ObjectID,
+        id: updateBy.query._id! as ObjectID,
         select: {
           startsAt: true,
+          sendSubscriberNotificationsOnBeforeTheEvent: true,
         },
         props: {
           isRoot: true,
         },
       });
+
+      logger.debug(
+        `Current Scheduled Maintenance data: ${JSON.stringify(scheduledMaintenance)}`,
+      );
 
       if (!scheduledMaintenance) {
         throw new BadDataException("Scheduled Maintenance Event not found");
@@ -364,15 +374,27 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         (updateBy.data.startsAt as Date) ||
         (scheduledMaintenance.startsAt! as Date);
 
+      const notificationSettings: Array<Recurring> =
+        (updateBy.data
+          .sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>) ||
+        (scheduledMaintenance.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>);
+
+      logger.debug(
+        `Using startsAt: ${startsAt} and notificationSettings: ${JSON.stringify(notificationSettings)}`,
+      );
+
       const nextTimeToNotifyBeforeTheEvent: Date | null =
         this.getNextTimeToNotify({
           eventScheduledDate: startsAt,
-          sendSubscriberNotifiationsOn: updateBy.data
-            .sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>,
+          sendSubscriberNotifiationsOn: notificationSettings,
         });
 
       updateBy.data.nextSubscriberNotificationBeforeTheEventAt =
         nextTimeToNotifyBeforeTheEvent;
+
+      logger.debug(
+        `nextSubscriberNotificationBeforeTheEventAt set to: ${nextTimeToNotifyBeforeTheEvent}`,
+      );
     }
 
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnEventCreated if it's being updated
@@ -905,7 +927,19 @@ ${scheduledMaintenance.description || "No description provided."}
     projectId: ObjectID,
     scheduledMaintenanceId: ObjectID,
   ): Promise<URL> {
+    if (!projectId) {
+      throw new BadDataException("projectId is required");
+    }
+
+    if (!scheduledMaintenanceId) {
+      throw new BadDataException("scheduledMaintenanceId is required");
+    }
+
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    if (!dashboardUrl) {
+      throw new BadDataException("Dashboard URL not found");
+    }
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
       `/${projectId.toString()}/scheduled-maintenance-events/${scheduledMaintenanceId.toString()}`,

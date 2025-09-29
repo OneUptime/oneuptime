@@ -64,6 +64,7 @@ export default class SCIMMiddleware {
             projectId: true,
             autoProvisionUsers: true,
             autoDeprovisionUsers: true,
+            enablePushGroups: true,
             teams: {
               _id: true,
               name: true,

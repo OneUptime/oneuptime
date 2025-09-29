@@ -422,4 +422,4 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd MCP && npm install && npm run compile && npm run dep-check
+          command: cd MCP && npm update @oneuptime/common && npm install && npm run compile && npm run dep-check

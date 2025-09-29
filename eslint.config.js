@@ -1,11 +1,13 @@
-// @ts-check
-
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 import globals from "globals";
 import unusedImports from "eslint-plugin-unused-imports";
 import react from "eslint-plugin-react";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default tseslint.config(
   {
@@ -237,7 +239,7 @@ export default tseslint.config(
         project: ["./tsconfig.json"], // Specify it only for TypeScript files
         // or `project: true` in typescript-eslint version >= 5.52.0
         createDefaultProgram: false,
-        tsconfigRootDir: ".",
+        tsconfigRootDir: __dirname,
       },
     },
     linterOptions: {

@@ -17,6 +17,7 @@ import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 
 @EnableDocumentation()
 @TableBillingAccessControl({
@@ -26,6 +27,12 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
   delete: PlanType.Growth,
 })
 @TenantColumn("projectId")
+@EnableWorkflow({
+  create: true,
+  delete: true,
+  update: true,
+  read: true,
+})
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
