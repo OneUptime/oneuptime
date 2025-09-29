@@ -1,5 +1,5 @@
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Button from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -35,14 +35,15 @@ const TeamsAvailableModal: FunctionComponent<TeamsAvailableModalProps> = (
       title="Microsoft Teams — Available Teams"
   description="Teams that OneUptime can access in your tenant. Use Refresh if you recently added or changed teams."
       modalWidth={ModalWidth.Large}
-      onClose={props.onClose}
+      submitButtonStyleType={ButtonStyleType.NORMAL}
       submitButtonText="Close"
       onSubmit={props.onClose}
       rightElement={
         <Button
-          title="Refresh Teams"
+          title="Refresh"
           icon={IconProp.Refresh}
           isLoading={props.isRefreshing}
+          buttonStyle={ButtonStyleType.OUTLINE}
           onClick={async () => {
             await props.onRefresh();
           }}
@@ -74,7 +75,7 @@ const TeamsAvailableModal: FunctionComponent<TeamsAvailableModalProps> = (
                   <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 overflow-hidden bg-white">
                     {props.teams.map((t: TeamItem) => (
                       <li key={t.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
-                        <div className="h-9 w-9 flex items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+                        <div className="h-9 w-9 flex items-center justify-center rounded-full bg-gray-50 text-gray-600">
                           <Icon icon={IconProp.Team} size={SizeProp.Large} thick={ThickProp.Thick} className="h-5 w-5" />
                         </div>
                         <div className="min-w-0">
