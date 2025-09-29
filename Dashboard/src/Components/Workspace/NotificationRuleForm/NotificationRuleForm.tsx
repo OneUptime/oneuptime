@@ -38,6 +38,7 @@ export interface ComponentProps {
   monitorStatus: Array<MonitorStatus>;
   workspaceType: WorkspaceType;
   teams: Array<Team>;
+  microsoftTeamsTeams?: Array<{ id: string; displayName: string }>;
   users: Array<User>;
   error?: string | undefined;
 }
@@ -120,6 +121,26 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     },
     {
       field: {
+        existingTeam: true,
+      },
+      title: `Select ${getWorkspaceTypeDisplayName(props.workspaceType)} Team`,
+      description: `Select the team where you want to post the message.`,
+      fieldType: FormFieldSchemaType.Dropdown,
+      required: true,
+      showIf: (formValue: FormValues<BaseNotificationRule>) => {
+        return Boolean(formValue.shouldPostToExistingChannel) && props.workspaceType === WorkspaceType.MicrosoftTeams;
+      },
+      dropdownOptions: props.workspaceType === WorkspaceType.MicrosoftTeams 
+        ? (props.microsoftTeamsTeams || []).map((i: { id: string; displayName: string }) => {
+            return {
+              label: i.displayName,
+              value: i.id,
+            };
+          })
+        : []
+    },
+    {
+      field: {
         existingChannelNames: true,
       },
       title: `Existing ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Name to Post To`,
@@ -173,6 +194,29 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       fieldType: FormFieldSchemaType.Toggle,
       showHorizontalRuleAbove: true,
       required: false,
+    },
+    {
+      field: {
+        teamToCreateChannelIn: true,
+      },
+      title: `Select ${getWorkspaceTypeDisplayName(props.workspaceType)} Team`,
+      description: `Select the team where you want to create the new channel.`,
+      fieldType: FormFieldSchemaType.Dropdown,
+      required: true,
+      showIf: (formValue: FormValues<NotificationRulesType>) => {
+        return (
+          (formValue as CreateNewSlackChannelNotificationRuleType)
+            .shouldCreateNewChannel && props.workspaceType === WorkspaceType.MicrosoftTeams
+        );
+      },
+      dropdownOptions: props.workspaceType === WorkspaceType.MicrosoftTeams 
+        ? (props.microsoftTeamsTeams || []).map((i: { id: string; displayName: string }) => {
+            return {
+              label: i.displayName,
+              value: i.id,
+            };
+          })
+        : []
     },
     {
       field: {

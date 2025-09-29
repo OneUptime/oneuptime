@@ -40,6 +40,7 @@ export interface ComponentProps {
   monitorStatus: Array<MonitorStatus>;
   workspaceType: WorkspaceType;
   teams: Array<Team>;
+  microsoftTeams?: Array<{ id: string; displayName: string }>;
   users: Array<User>;
 }
 
@@ -109,6 +110,31 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
         return Boolean(formValue.shouldPostToExistingChannel) || false;
       },
     },
+    {
+      key: "existingTeam",
+      title: `Selected ${getWorkspaceTypeDisplayName(props.workspaceType)} Team`,
+      description: `The team where the message will be posted.`,
+      fieldType: FieldType.Element,
+      showIf: (
+        formValue:
+          | IncidentNotificationRule
+          | AlertNotificationRule
+          | ScheduledMaintenanceNotificationRule
+          | MonitorNotificationRule,
+      ) => {
+        return Boolean(formValue.shouldPostToExistingChannel) && props.workspaceType === WorkspaceType.MicrosoftTeams && Boolean(formValue.existingTeam);
+      },
+      getElement: () => {
+        if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
+          const selectedTeam = (props.microsoftTeams || []).find((i: { id: string; displayName: string }) => {
+            return props.value.existingTeam?.toString() === i.id;
+          });
+          return <span>{selectedTeam?.displayName || "Unknown Team"}</span>;
+        } 
+
+        return <span>N/A</span>;
+      },
+    },
   ];
 
   let archiveTitle: string = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`;
@@ -148,6 +174,30 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
       title: `Create ${props.workspaceType} Channel`,
       description: `When above conditions are met, create a new ${props.workspaceType} channel.`,
       fieldType: FieldType.Boolean,
+    },
+    {
+      key: "teamToCreateChannelIn",
+      title: `Team to Create Channel In`,
+      description: `The team where the new channel will be created.`,
+      fieldType: FieldType.Element,
+      showIf: (
+        formValue:
+          | IncidentNotificationRule
+          | AlertNotificationRule
+          | ScheduledMaintenanceNotificationRule,
+      ) => {
+        return formValue.shouldCreateNewChannel && props.workspaceType === WorkspaceType.MicrosoftTeams && Boolean((formValue as any).teamToCreateChannelIn);
+      },
+      getElement: () => {
+        if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
+          const selectedTeam = (props.microsoftTeams || []).find((i: { id: string; displayName: string }) => {
+            return (props.value as any).teamToCreateChannelIn?.toString() === i.id;
+          });
+          return <span>{selectedTeam?.displayName || "Unknown Team"}</span>;
+        } 
+
+        return <span>N/A</span>;
+      },
     },
     {
       key: "newChannelTemplateName",
