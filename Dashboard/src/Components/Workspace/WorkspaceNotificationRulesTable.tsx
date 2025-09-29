@@ -52,6 +52,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
+import { MicrosoftTeamsTeam } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 export interface ComponentProps {
   workspaceType: WorkspaceType;
   eventType: NotificationRuleEventType;
@@ -81,7 +82,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     Array<MonitorStatus>
   >([]);
   const [teams, setTeams] = React.useState<Array<Team>>([]);
-  const [microsoftTeamsTeams, setMicrosoftTeams] = React.useState<Array<{ id: string; displayName: string }>>([]);
+  const [microsoftTeamsTeams, setMicrosoftTeams] = React.useState<Array<MicrosoftTeamsTeam>>([]);
   const [users, setUsers] = React.useState<Array<User>>([]);
 
   const [showTestModal, setShowTestModal] = React.useState<boolean>(false);
@@ -354,14 +355,15 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           const microsoftTeamsResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
             await API.get({
               url: URL.fromString(APP_API_URL.toString()).addRoute(
-                `/microsoft-teams/teams?projectId=${ProjectUtil.getCurrentProjectId()!.toString()}`,
+                `/microsoft-teams/teams`,
               ),
+              headers: ModelAPI.getCommonHeaders(),
             });
 
           if (microsoftTeamsResponse instanceof HTTPErrorResponse) {
 
           } else {
-            const teamsData: Array<{ id: string; displayName: string }> = 
+            const teamsData: Array<MicrosoftTeamsTeam> = 
               (microsoftTeamsResponse.data as any)?.teams || [];
             setMicrosoftTeams(teamsData);
           }

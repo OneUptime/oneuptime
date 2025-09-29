@@ -40,6 +40,9 @@ import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams
 import archiver, { Archiver } from "archiver";
 import LocalFile from "../Utils/LocalFile";
 import path from "path";
+import UserMiddleware from "../Middleware/UserAuthorization";
+import CommonAPI from "./CommonAPI";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export default class MicrosoftTeamsAPI {
   private static getTeamsAppManifest(): JSONObject {
@@ -1066,22 +1069,18 @@ export default class MicrosoftTeamsAPI {
     // Get available teams for a project
     router.get(
       "/microsoft-teams/teams",
+      UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const projectId: string | undefined = req.query["projectId"]?.toString();
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-          if (!projectId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Project ID is required"),
-            );
-          }
+          const projectId: ObjectID = databaseProps.tenantId!;
 
           // Get project auth to access available teams
           const projectAuth: WorkspaceProjectAuthToken | null =
             await WorkspaceProjectAuthTokenService.getProjectAuth({
-              projectId: new ObjectID(projectId),
+              projectId: projectId,
               workspaceType: WorkspaceType.MicrosoftTeams,
             });
 

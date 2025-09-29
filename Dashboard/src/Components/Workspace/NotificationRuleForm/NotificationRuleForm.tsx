@@ -23,6 +23,7 @@ import BaseNotificationRule from "Common/Types/Workspace/NotificationRules/BaseN
 import AlertNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/AlertNotificationRule";
 import ScheduledMaintenanceNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/ScheduledMaintenanceNotificationRule";
 import MonitorNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/MonitorNotificationRule";
+import { MicrosoftTeamsTeam } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 
 export interface ComponentProps {
   value?: undefined | IncidentNotificationRule;
@@ -38,7 +39,7 @@ export interface ComponentProps {
   monitorStatus: Array<MonitorStatus>;
   workspaceType: WorkspaceType;
   teams: Array<Team>;
-  microsoftTeamsTeams?: Array<{ id: string; displayName: string }>;
+  microsoftTeamsTeams?: Array<MicrosoftTeamsTeam>;
   users: Array<User>;
   error?: string | undefined;
 }
@@ -210,7 +211,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         );
       },
       dropdownOptions: props.workspaceType === WorkspaceType.MicrosoftTeams 
-        ? (props.microsoftTeamsTeams || []).map((i: { id: string; displayName: string }) => {
+        ? (props.microsoftTeamsTeams || []).map((i: MicrosoftTeamsTeam) => {
             return {
               label: i.displayName,
               value: i.id,

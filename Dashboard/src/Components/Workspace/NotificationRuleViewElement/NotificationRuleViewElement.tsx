@@ -22,6 +22,7 @@ import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMai
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import TeamsElement from "../../Team/TeamsElement";
 import UsersElement from "../../User/Users";
+import { MicrosoftTeamsTeam } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 
 export interface ComponentProps {
   value:
@@ -40,7 +41,7 @@ export interface ComponentProps {
   monitorStatus: Array<MonitorStatus>;
   workspaceType: WorkspaceType;
   teams: Array<Team>;
-  microsoftTeamsTeams?: Array<{ id: string; displayName: string }>;
+  microsoftTeamsTeams?: Array<MicrosoftTeamsTeam>;
   users: Array<User>;
 }
 
@@ -126,10 +127,10 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
       },
       getElement: () => {
         if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
-          const selectedTeam = (props.microsoftTeamsTeams || []).find((i: { id: string; displayName: string }) => {
+          const selectedTeam = (props.microsoftTeamsTeams || []).find((i: MicrosoftTeamsTeam) => {
             return props.value.existingTeam?.toString() === i.id;
           });
-          return <span>{selectedTeam?.displayName || "Unknown Team"}</span>;
+          return <span>{selectedTeam?.name || "Unknown Team"}</span>;
         } 
 
         return <span>N/A</span>;
@@ -190,10 +191,10 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
       },
       getElement: () => {
         if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
-          const selectedTeam = (props.microsoftTeamsTeams || []).find((i: { id: string; displayName: string }) => {
+          const selectedTeam = (props.microsoftTeamsTeams || []).find((i: MicrosoftTeamsTeam) => {
             return (props.value as any).teamToCreateChannelIn?.toString() === i.id;
           });
-          return <span>{selectedTeam?.displayName || "Unknown Team"}</span>;
+          return <span>{selectedTeam?.name || "Unknown Team"}</span>;
         } 
 
         return <span>N/A</span>;
