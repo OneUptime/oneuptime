@@ -21,6 +21,11 @@ export interface MiscData {
   [key: string]: any;
 }
 
+export interface MicrosoftTeamsTeam {
+  id: string;
+  name: string;
+}
+
 export interface SlackMiscData extends MiscData {
   teamId: string;
   teamName: string;
@@ -44,6 +49,7 @@ export interface MicrosoftTeamsMiscData extends MiscData {
   lastAppTokenIssuedAt?: string;
   adminConsentGrantedAt?: string;
   adminConsentGrantedBy?: string;
+  availableTeams?: Record<string, MicrosoftTeamsTeam>;
   appAccessTokenExpiresAt?: string;
   channelCache?: {
     [channelName: string]: {
