@@ -51,13 +51,6 @@ export interface MicrosoftTeamsMiscData extends MiscData {
   adminConsentGrantedBy?: string;
   availableTeams?: Record<string, MicrosoftTeamsTeam>;
   appAccessTokenExpiresAt?: string;
-  channelCache?: {
-    [channelName: string]: {
-      id: string;
-      name: string;
-      lastUpdated: string;
-    };
-  };
 }
 
 export type WorkspaceMiscData = SlackMiscData | MicrosoftTeamsMiscData;
