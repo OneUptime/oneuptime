@@ -51,9 +51,13 @@ const MICROSOFT_TEAMS_APP_TYPE = "SingleTenant";
 import { CloudAdapter, ConfigurationBotFrameworkAuthentication, TeamsActivityHandler, TurnContext, ConversationReference, MessageFactory, ConfigurationBotFrameworkAuthenticationOptions } from 'botbuilder';
 import { ExpressRequest, ExpressResponse } from "../../Express";
 // Teams action handlers and types
-import MicrosoftTeamsAuthAction from "./Actions/Auth";
+import MicrosoftTeamsAuthAction, { MicrosoftTeamsRequest } from "./Actions/Auth";
 import MicrosoftTeamsIncidentActions from "./Actions/Incident";
-import { MicrosoftTeamsActionType } from "./Actions/ActionTypes";
+import { MicrosoftTeamsActionType, MicrosoftTeamsScheduledMaintenanceActionType, MicrosoftTeamsOnCallDutyActionType } from "./Actions/ActionTypes";
+import MicrosoftTeamsAlertActions from "./Actions/Alert";
+import MicrosoftTeamsMonitorActions from "./Actions/Monitor";
+import MicrosoftTeamsScheduledMaintenanceActions from "./Actions/ScheduledMaintenance";
+import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
 
 
 export default class MicrosoftTeamsUtil extends WorkspaceBase {
@@ -1886,6 +1890,53 @@ All monitoring checks are passing normally.`;
         oneUptimeUserId,
         turnContext: data.turnContext,
       });
+
+      // Handle alert actions
+      if (MicrosoftTeamsAlertActions.isAlertAction({ actionType })) {
+        await MicrosoftTeamsAlertActions.handleBotAlertAction({
+          actionType,
+          actionValue,
+          value,
+          projectId,
+          oneUptimeUserId,
+          turnContext: data.turnContext,
+        });
+        return;
+      }
+
+      // Handle monitor actions
+      if (MicrosoftTeamsMonitorActions.isMonitorAction({ actionType })) {
+        await MicrosoftTeamsMonitorActions.handleBotMonitorAction({
+          actionType,
+          actionValue,
+          value,
+          projectId,
+          oneUptimeUserId,
+          turnContext: data.turnContext,
+        });
+        return;
+      }
+
+      // Handle scheduled maintenance actions
+      if (MicrosoftTeamsScheduledMaintenanceActions.isScheduledMaintenanceAction({ actionType })) {
+        await MicrosoftTeamsScheduledMaintenanceActions.handleBotScheduledMaintenanceAction(
+          actionType as MicrosoftTeamsScheduledMaintenanceActionType,
+          data.turnContext,
+          value,
+          { userId: oneUptimeUserId.toString(), projectId, isAuthorized: true, authToken: "", payloadType: "invoke" } as MicrosoftTeamsRequest
+        );
+        return;
+      }
+
+      // Handle on-call duty actions
+      if (MicrosoftTeamsOnCallDutyActions.isOnCallDutyAction({ actionType })) {
+        await MicrosoftTeamsOnCallDutyActions.handleBotOnCallDutyAction(
+          actionType as MicrosoftTeamsOnCallDutyActionType,
+          data.turnContext,
+          value,
+        );
+        return;
+      }
 
     } catch (error) {
       logger.error("Error handling bot invoke activity:");

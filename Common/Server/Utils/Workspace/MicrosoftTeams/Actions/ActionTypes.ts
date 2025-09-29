@@ -12,6 +12,10 @@ export enum MicrosoftTeamsIncidentActionType {
   SubmitIncidentNote = "SubmitIncidentNote",
   AddIncidentNote = "AddIncidentNote",
   ExecuteIncidentOnCallPolicy = "ExecuteIncidentOnCallPolicy",
+  ViewExecuteIncidentOnCallPolicy = "ViewExecuteIncidentOnCallPolicy",
+  SubmitExecuteIncidentOnCallPolicy = "SubmitExecuteIncidentOnCallPolicy",
+  ViewChangeIncidentState = "ViewChangeIncidentState",
+  SubmitChangeIncidentState = "SubmitChangeIncidentState",
 }
 
 // Alert Actions
@@ -23,6 +27,12 @@ export enum MicrosoftTeamsAlertActionType {
   AlertStateChanged = "AlertStateChanged",
   AddAlertNote = "AddAlertNote",
   ExecuteAlertOnCallPolicy = "ExecuteAlertOnCallPolicy",
+  ViewAddAlertNote = "ViewAddAlertNote",
+  SubmitAlertNote = "SubmitAlertNote",
+  ViewExecuteAlertOnCallPolicy = "ViewExecuteAlertOnCallPolicy",
+  SubmitExecuteAlertOnCallPolicy = "SubmitExecuteAlertOnCallPolicy",
+  ViewChangeAlertState = "ViewChangeAlertState",
+  SubmitChangeAlertState = "SubmitChangeAlertState",
 }
 
 // Monitor Actions
@@ -41,6 +51,10 @@ export enum MicrosoftTeamsScheduledMaintenanceActionType {
   ScheduledMaintenanceCreated = "ScheduledMaintenanceCreated",
   ScheduledMaintenanceStateChanged = "ScheduledMaintenanceStateChanged",
   AddScheduledMaintenanceNote = "AddScheduledMaintenanceNote",
+  ViewAddScheduledMaintenanceNote = "ViewAddScheduledMaintenanceNote",
+  SubmitScheduledMaintenanceNote = "SubmitScheduledMaintenanceNote",
+  ViewChangeScheduledMaintenanceState = "ViewChangeScheduledMaintenanceState",
+  SubmitChangeScheduledMaintenanceState = "SubmitChangeScheduledMaintenanceState",
 }
 
 // On-Call Duty Actions

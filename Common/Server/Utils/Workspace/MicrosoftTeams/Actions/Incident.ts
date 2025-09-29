@@ -14,6 +14,9 @@ import { TurnContext } from 'botbuilder';
 import { JSONObject } from "../../../../../Types/JSON";
 import IncidentPublicNoteService from "../../../../Services/IncidentPublicNoteService";
 import IncidentInternalNoteService from "../../../../Services/IncidentInternalNoteService";
+import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
+import IncidentStateService from "../../../../Services/IncidentStateService";
+import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 
 export default class MicrosoftTeamsIncidentActions {
   @CaptureSpan()
@@ -26,7 +29,12 @@ export default class MicrosoftTeamsIncidentActions {
       data.actionType === MicrosoftTeamsIncidentActionType.IncidentCreated ||
       data.actionType === MicrosoftTeamsIncidentActionType.IncidentStateChanged ||
       data.actionType === MicrosoftTeamsIncidentActionType.ViewAddIncidentNote ||
-      data.actionType === MicrosoftTeamsIncidentActionType.SubmitIncidentNote
+      data.actionType === MicrosoftTeamsIncidentActionType.SubmitIncidentNote ||
+      data.actionType === MicrosoftTeamsIncidentActionType.ExecuteIncidentOnCallPolicy ||
+      data.actionType === MicrosoftTeamsIncidentActionType.ViewExecuteIncidentOnCallPolicy ||
+      data.actionType === MicrosoftTeamsIncidentActionType.SubmitExecuteIncidentOnCallPolicy ||
+      data.actionType === MicrosoftTeamsIncidentActionType.ViewChangeIncidentState ||
+      data.actionType === MicrosoftTeamsIncidentActionType.SubmitChangeIncidentState
     );
   }
 
@@ -238,6 +246,45 @@ export default class MicrosoftTeamsIncidentActions {
       return;
     }
 
+    if (actionType === MicrosoftTeamsIncidentActionType.ViewIncident) {
+      if (!actionValue) {
+        await turnContext.sendActivity("Unable to view incident: missing incident id.");
+        return;
+      }
+
+      const incident: Incident | null = await IncidentService.findOneBy({
+        query: {
+          _id: actionValue,
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          title: true,
+          description: true,
+          currentIncidentState: {
+            name: true,
+          },
+          incidentSeverity: {
+            name: true,
+          },
+          createdAt: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!incident) {
+        await turnContext.sendActivity("Incident not found.");
+        return;
+      }
+
+      const message = `**Incident Details**\n\n**Title:** ${incident.title}\n**Description:** ${incident.description || 'No description'}\n**State:** ${incident.currentIncidentState?.name || 'Unknown'}\n**Severity:** ${incident.incidentSeverity?.name || 'Unknown'}\n**Created At:** ${incident.createdAt ? new Date(incident.createdAt).toLocaleString() : 'Unknown'}`;
+
+      await turnContext.sendActivity(message);
+      return;
+    }
+
     if (actionType === MicrosoftTeamsIncidentActionType.ViewAddIncidentNote) {
       if (!actionValue) {
         await turnContext.sendActivity("Unable to add note: missing incident id.");
@@ -284,6 +331,87 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       } else {
         await turnContext.sendActivity("Unable to add note: missing note data.");
+        return;
+      }
+    }
+
+    if (actionType === MicrosoftTeamsIncidentActionType.ViewExecuteIncidentOnCallPolicy) {
+      if (!actionValue) {
+        await turnContext.sendActivity("Unable to execute on-call policy: missing incident id.");
+        return;
+      }
+
+      // Send the input card
+      const card = await this.buildExecuteOnCallPolicyCard(actionValue, projectId);
+      await turnContext.sendActivity({ attachments: [{ contentType: "application/vnd.microsoft.card.adaptive", content: card }] });
+      return;
+    }
+
+    if (actionType === MicrosoftTeamsIncidentActionType.SubmitExecuteIncidentOnCallPolicy) {
+      if (!actionValue) {
+        await turnContext.sendActivity("Unable to execute on-call policy: missing incident id.");
+        return;
+      }
+
+      // Check if form data is provided
+      const onCallPolicyId = value["onCallPolicy"];
+
+      if (onCallPolicyId) {
+        // Execute the policy
+        const incidentId = new ObjectID(actionValue);
+
+        await OnCallDutyPolicyService.executePolicy(new ObjectID(onCallPolicyId.toString()), {
+          triggeredByIncidentId: incidentId,
+          userNotificationEventType: UserNotificationEventType.IncidentCreated,
+        });
+
+        await turnContext.sendActivity("✅ On-call policy executed successfully.");
+        return;
+      } else {
+        await turnContext.sendActivity("Unable to execute on-call policy: missing policy id.");
+        return;
+      }
+    }
+
+    if (actionType === MicrosoftTeamsIncidentActionType.ViewChangeIncidentState) {
+      if (!actionValue) {
+        await turnContext.sendActivity("Unable to change incident state: missing incident id.");
+        return;
+      }
+
+      // Send the input card
+      const card = await this.buildChangeIncidentStateCard(actionValue, projectId);
+      await turnContext.sendActivity({ attachments: [{ contentType: "application/vnd.microsoft.card.adaptive", content: card }] });
+      return;
+    }
+
+    if (actionType === MicrosoftTeamsIncidentActionType.SubmitChangeIncidentState) {
+      if (!actionValue) {
+        await turnContext.sendActivity("Unable to change incident state: missing incident id.");
+        return;
+      }
+
+      // Check if form data is provided
+      const incidentStateId = value["incidentState"];
+
+      if (incidentStateId) {
+        // Update the state
+        const incidentId = new ObjectID(actionValue);
+
+        await IncidentService.updateOneById({
+          id: incidentId,
+          data: {
+            currentIncidentStateId: new ObjectID(incidentStateId.toString()),
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        await turnContext.sendActivity("✅ Incident state changed successfully.");
+        return;
+      } else {
+        await turnContext.sendActivity("Unable to change incident state: missing state id.");
         return;
       }
     }
@@ -335,6 +463,104 @@ export default class MicrosoftTeamsIncidentActions {
           title: "Submit",
           data: {
             action: MicrosoftTeamsIncidentActionType.SubmitIncidentNote,
+            actionValue: incidentId,
+          },
+        },
+      ],
+    };
+  }
+
+  private static async buildExecuteOnCallPolicyCard(incidentId: string, projectId: ObjectID): Promise<JSONObject> {
+    const onCallPolicies = await OnCallDutyPolicyService.findBy({
+      query: {
+        projectId: projectId,
+      },
+      select: {
+        name: true,
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: 50,
+      skip: 0,
+    });
+
+    const choices = onCallPolicies.map(policy => ({
+      title: policy.name || "",
+      value: policy._id?.toString() || "",
+    })).filter(choice => choice.title && choice.value);
+
+    return {
+      type: "AdaptiveCard",
+      $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+      version: "1.5",
+      body: [
+        {
+          type: "TextBlock",
+          text: "Execute On-Call Policy",
+          size: "Large",
+          weight: "Bolder",
+        },
+        {
+          type: "Input.ChoiceSet",
+          id: "onCallPolicy",
+          label: "On-Call Policy",
+          style: "compact",
+          choices: choices,
+        },
+      ],
+      actions: [
+        {
+          type: "Action.Submit",
+          title: "Execute",
+          data: {
+            action: MicrosoftTeamsIncidentActionType.SubmitExecuteIncidentOnCallPolicy,
+            actionValue: incidentId,
+          },
+        },
+      ],
+    };
+  }
+
+  private static async buildChangeIncidentStateCard(incidentId: string, projectId: ObjectID): Promise<JSONObject> {
+    const incidentStates = await IncidentStateService.getAllIncidentStates({
+      projectId: projectId,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const choices = incidentStates.map(state => ({
+      title: state.name || "",
+      value: state._id?.toString() || "",
+    })).filter(choice => choice.title && choice.value);
+
+    return {
+      type: "AdaptiveCard",
+      $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+      version: "1.5",
+      body: [
+        {
+          type: "TextBlock",
+          text: "Change Incident State",
+          size: "Large",
+          weight: "Bolder",
+        },
+        {
+          type: "Input.ChoiceSet",
+          id: "incidentState",
+          label: "Incident State",
+          style: "compact",
+          choices: choices,
+        },
+      ],
+      actions: [
+        {
+          type: "Action.Submit",
+          title: "Change",
+          data: {
+            action: MicrosoftTeamsIncidentActionType.SubmitChangeIncidentState,
             actionValue: incidentId,
           },
         },

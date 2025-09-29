@@ -61,7 +61,7 @@ export default class MicrosoftTeamsIncidentMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "📞 Execute On Call",
       value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsIncidentActionType.ExecuteIncidentOnCallPolicy,
+      actionId: MicrosoftTeamsIncidentActionType.ViewExecuteIncidentOnCallPolicy,
     };
 
     buttons.push(executeOnCallButton);
@@ -91,7 +91,7 @@ export default class MicrosoftTeamsIncidentMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "➡️ Change Incident State",
       value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsIncidentActionType.IncidentStateChanged,
+      actionId: MicrosoftTeamsIncidentActionType.ViewChangeIncidentState,
     };
 
     buttons.push(changeIncidentStateButton);
