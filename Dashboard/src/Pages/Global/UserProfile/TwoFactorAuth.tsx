@@ -8,7 +8,9 @@ import Page from "Common/UI/Components/Page/Page";
 import React, { FunctionComponent, ReactElement } from "react";
 import UserUtil from "Common/UI/Utils/User";
 import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
+import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -41,6 +43,14 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [tableRefreshToggle, setTableRefreshToggle] = React.useState<string>(
     OneUptimeDate.getCurrentDate().toString(),
   );
+
+  const [showWebAuthnRegistrationModal, setShowWebAuthnRegistrationModal] =
+    React.useState<boolean>(false);
+  const [webAuthnRegistrationError, setWebAuthnRegistrationError] = React.useState<
+    string | null
+  >(null);
+  const [webAuthnRegistrationLoading, setWebAuthnRegistrationLoading] =
+    React.useState<boolean>(false);
 
   return (
     <Page
@@ -137,6 +147,58 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           ]}
         />
+
+        <div>
+          <div className="flex justify-end mb-4">
+            <Button
+              title="Add Security Key"
+              buttonStyle={ButtonStyleType.NORMAL}
+              icon={IconProp.Add}
+              onClick={() => setShowWebAuthnRegistrationModal(true)}
+            />
+          </div>
+
+          <ModelTable<UserWebAuthn>
+          modelType={UserWebAuthn}
+          name="Security Keys (WebAuthn)"
+          id="webauthn-table"
+          userPreferencesKey="user-webauthn-table"
+          isDeleteable={true}
+          refreshToggle={tableRefreshToggle}
+          filters={[]}
+          query={{
+            userId: UserUtil.getUserId(),
+          }}
+          isEditable={false}
+          showRefreshButton={true}
+          isCreateable={false}
+          isViewable={false}
+          cardProps={{
+            title: "Security Keys (WebAuthn)",
+            description: "Manage your security keys for two factor authentication.",
+          }}
+          noItemsMessage={"No security keys found."}
+          singularName="Security Key"
+          pluralName="Security Keys"
+          columns={[
+            {
+              field: {
+                name: true,
+              },
+              title: "Name",
+              type: FieldType.Text,
+            },
+            {
+              field: {
+                isVerified: true,
+              },
+              title: "Is Verified?",
+              type: FieldType.Boolean,
+            },
+          ]}
+        />
+        </div>
+
         {showVerificationModal && selectedTwoFactorAuth ? (
           <BasicFormModal
             title={`Verify ${selectedTwoFactorAuth.name}`}
@@ -227,6 +289,100 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ) : (
           <></>
         )}
+
+        {showWebAuthnRegistrationModal ? (
+          <BasicFormModal
+            title="Add Security Key"
+            description="Register a new security key for two factor authentication."
+            formProps={{
+              error: webAuthnRegistrationError || undefined,
+              fields: [
+                {
+                  field: {
+                    name: true,
+                  },
+                  title: "Name",
+                  description: "Give your security key a name (e.g., YubiKey, Titan Key)",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: true,
+                },
+              ],
+            }}
+            submitButtonText="Register Security Key"
+            onClose={() => {
+              setShowWebAuthnRegistrationModal(false);
+              setWebAuthnRegistrationError(null);
+            }}
+            isLoading={webAuthnRegistrationLoading}
+            onSubmit={async (values: JSONObject) => {
+              try {
+                setWebAuthnRegistrationLoading(true);
+                setWebAuthnRegistrationError("");
+
+                // Generate registration options
+                const response:
+                  | HTTPResponse<JSONObject>
+                  | HTTPErrorResponse = await API.post({
+                  url: URL.fromString(APP_API_URL.toString()).addRoute(
+                    `/user-webauthn/generate-registration-options`,
+                  ),
+                  data: {},
+                });
+
+                if (response instanceof HTTPErrorResponse) {
+                  throw response;
+                }
+
+                const data = response.data as any;
+
+                // Use WebAuthn API
+                const credential = await navigator.credentials.create({
+                  publicKey: data.options,
+                }) as PublicKeyCredential;
+
+                const attestationResponse = credential.response as AuthenticatorAttestationResponse;
+
+                // Verify registration
+                const verifyResponse:
+                  | HTTPResponse<EmptyResponseData>
+                  | HTTPErrorResponse = await API.post({
+                  url: URL.fromString(APP_API_URL.toString()).addRoute(
+                    `/user-webauthn/verify-registration`,
+                  ),
+                  data: {
+                    challenge: data.challenge,
+                    name: values["name"],
+                    credential: {
+                      id: credential.id,
+                      rawId: Array.from(new Uint8Array(credential.rawId)),
+                      response: {
+                        attestationObject: Array.from(new Uint8Array(attestationResponse.attestationObject)),
+                        clientDataJSON: Array.from(new Uint8Array(attestationResponse.clientDataJSON)),
+                      },
+                      type: credential.type,
+                    },
+                  },
+                });
+
+                if (verifyResponse instanceof HTTPErrorResponse) {
+                  throw verifyResponse;
+                }
+
+                setShowWebAuthnRegistrationModal(false);
+                setWebAuthnRegistrationError(null);
+                setTableRefreshToggle(
+                  OneUptimeDate.getCurrentDate().toString(),
+                );
+              } catch (err) {
+                setWebAuthnRegistrationError(API.getFriendlyMessage(err));
+                setWebAuthnRegistrationLoading(false);
+              }
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
       </div>
       <CardModelDetail<User>
         cardProps={{

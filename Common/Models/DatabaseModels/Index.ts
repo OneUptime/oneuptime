@@ -147,6 +147,7 @@ import ServiceCatalogMonitor from "./ServiceCatalogMonitor";
 import ServiceCatalogTelemetryService from "./ServiceCatalogTelemetryService";
 
 import UserTwoFactorAuth from "./UserTwoFactorAuth";
+import UserWebAuthn from "./UserWebAuthn";
 
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
@@ -367,6 +368,7 @@ const AllModelTypes: Array<{
   ProbeOwnerUser,
 
   UserTwoFactorAuth,
+  UserWebAuthn,
 
   TelemetryIngestionKey,
 

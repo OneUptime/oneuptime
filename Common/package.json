@@ -68,6 +68,7 @@
         "@opentelemetry/sdk-trace-web": "^1.25.1",
         "@opentelemetry/semantic-conventions": "^1.26.0",
         "@remixicon/react": "^4.2.0",
+        "@simplewebauthn/server": "^13.2.1",
         "@tippyjs/react": "^4.2.6",
         "@types/crypto-js": "^4.2.2",
         "@types/qrcode": "^1.5.5",
