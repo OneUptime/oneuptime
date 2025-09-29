@@ -192,11 +192,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
 
           await turnContext.sendActivity('Note added successfully');
 
-          // Hide the form card
-          const updatedActivity = { ...turnContext.activity };
-          updatedActivity.attachments = [];
-          updatedActivity.text = " "; // Required for activity update
-          await turnContext.updateActivity(updatedActivity);
+          // Hide the form card by deleting it
+          if (turnContext.activity.replyToId) {
+            await turnContext.deleteActivity(turnContext.activity.replyToId);
+          }
 
           break;
 
@@ -226,11 +225,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
 
           await turnContext.sendActivity('ScheduledMaintenance state changed successfully');
 
-          // Hide the form card
-          const updatedActivity2 = { ...turnContext.activity };
-          updatedActivity2.attachments = [];
-          updatedActivity2.text = " "; // Required for activity update
-          await turnContext.updateActivity(updatedActivity2);
+          // Hide the form card by deleting it
+          if (turnContext.activity.replyToId) {
+            await turnContext.deleteActivity(turnContext.activity.replyToId);
+          }
 
           break;
 

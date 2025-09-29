@@ -307,11 +307,10 @@ export default class MicrosoftTeamsAlertActions {
 
         await turnContext.sendActivity("✅ Note added successfully.");
 
-        // Hide the form card
-        const updatedActivity = { ...turnContext.activity };
-        updatedActivity.attachments = [];
-        updatedActivity.text = " "; // Required for activity update
-        await turnContext.updateActivity(updatedActivity);
+        // Hide the form card by deleting it
+        if (turnContext.activity.replyToId) {
+          await turnContext.deleteActivity(turnContext.activity.replyToId);
+        }
 
         return;
       } else {
@@ -356,11 +355,10 @@ export default class MicrosoftTeamsAlertActions {
 
         await turnContext.sendActivity("✅ On-call policy executed successfully.");
 
-        // Hide the form card
-        const updatedActivity = { ...turnContext.activity };
-        updatedActivity.attachments = [];
-        updatedActivity.text = " "; // Required for activity update
-        await turnContext.updateActivity(updatedActivity);
+        // Hide the form card by deleting it
+        if (turnContext.activity.replyToId) {
+          await turnContext.deleteActivity(turnContext.activity.replyToId);
+        }
 
         return;
       } else {
@@ -406,11 +404,10 @@ export default class MicrosoftTeamsAlertActions {
 
         await turnContext.sendActivity("✅ Alert state changed successfully.");
 
-        // Hide the form card
-        const updatedActivity = { ...turnContext.activity };
-        updatedActivity.attachments = [];
-        updatedActivity.text = " "; // Required for activity update
-        await turnContext.updateActivity(updatedActivity);
+        // Hide the form card by deleting it
+        if (turnContext.activity.replyToId) {
+          await turnContext.deleteActivity(turnContext.activity.replyToId);
+        }
 
         return;
       } else {
