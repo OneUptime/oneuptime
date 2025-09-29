@@ -321,6 +321,10 @@ export default class MicrosoftTeamsAlertActions {
 
       // Send the input card
       const card = await this.buildExecuteAlertOnCallPolicyCard(actionValue, projectId);
+      if (!card) {
+        await turnContext.sendActivity("No on-call policies found in the project");
+        return;
+      }
       await turnContext.sendActivity({ attachments: [{ contentType: "application/vnd.microsoft.card.adaptive", content: card }] });
       return;
     }
@@ -431,7 +435,7 @@ export default class MicrosoftTeamsAlertActions {
     };
   }
 
-  private static async buildExecuteAlertOnCallPolicyCard(alertId: string, projectId: ObjectID): Promise<JSONObject> {
+  private static async buildExecuteAlertOnCallPolicyCard(alertId: string, projectId: ObjectID): Promise<JSONObject | null> {
     const onCallPolicies = await OnCallDutyPolicyService.findBy({
       query: {
         projectId: projectId,
@@ -451,6 +455,10 @@ export default class MicrosoftTeamsAlertActions {
       title: policy.name || "",
       value: policy._id?.toString() || "",
     })).filter(choice => choice.title && choice.value);
+
+    if (choices.length === 0) {
+      return null;
+    }
 
     return {
       type: "AdaptiveCard",
