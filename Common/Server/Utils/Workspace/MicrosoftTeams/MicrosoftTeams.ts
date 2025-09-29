@@ -86,7 +86,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     return adapter;
   }
   // Helper method to get a valid access token, refreshing if necessary
-  private static async getValidAccessToken(data: {
+  public static async getValidAccessToken(data: {
     authToken: string;
     projectId: ObjectID;
   }): Promise<string> {
@@ -2127,6 +2127,98 @@ All monitoring checks are passing normally.`;
       if (!res.headersSent) {
         res.status(500).json({ error: "Failed to process bot activity" });
       }
+    }
+  }
+
+  // Method to refresh teams list for a user
+  @CaptureSpan()
+  public static async refreshTeams(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<Record<string, { id: string; name: string }>> {
+    logger.debug("=== refreshTeams called ===");
+    logger.debug(`Project ID: ${data.projectId.toString()}`);
+    logger.debug(`User ID: ${data.userId.toString()}`);
+
+    try {
+      // Get project auth to get app access token
+      const projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+      if (!projectAuth || !projectAuth.miscData) {
+        throw new BadDataException("Microsoft Teams integration not found for this project");
+      }
+
+      // Get a valid app access token
+      const accessToken: string | null = await this.refreshAccessToken({
+        projectId: data.projectId,
+        miscData: projectAuth.miscData as MicrosoftTeamsMiscData,
+      });
+
+      if (!accessToken) {
+        throw new BadDataException("Could not obtain valid access token for Microsoft Teams");
+      }
+
+      // Fetch all teams from Microsoft Graph API using app permissions
+      const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get<JSONObject>({
+          url: URL.fromString("https://graph.microsoft.com/v1.0/teams"),
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+      if (teamsResponse instanceof HTTPErrorResponse) {
+        logger.error("Error fetching teams from Microsoft Teams:");
+        logger.error(teamsResponse);
+        throw new BadDataException("Failed to fetch teams from Microsoft Teams");
+      }
+
+      const teams: Array<JSONObject> = (teamsResponse.data as any)["value"] || [];
+
+      if (teams.length === 0) {
+        logger.debug("No teams found in organization");
+        return {};
+      }
+
+      // Process teams
+      const availableTeams: Record<string, { id: string; name: string }> = teams.reduce(
+        (acc: Record<string, { id: string; name: string }>, t: JSONObject) => {
+          const team = {
+            id: t["id"] as string,
+            name: (t["displayName"] as string) || "Unnamed Team",
+          };
+          acc[team.name] = team;
+          return acc;
+        },
+        {} as Record<string, { id: string; name: string }>
+      );
+
+      logger.debug(`Fetched ${Object.keys(availableTeams).length} teams`);
+
+      // Update project auth token with new teams
+      const miscData: MicrosoftTeamsMiscData = (projectAuth.miscData as MicrosoftTeamsMiscData) || {};
+      miscData.availableTeams = availableTeams;
+
+      await WorkspaceProjectAuthTokenService.updateOneById({
+        id: projectAuth.id!,
+        data: {
+          miscData: miscData,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      logger.debug("Updated project auth token with refreshed teams");
+
+      return availableTeams;
+    } catch (error) {
+      logger.error("Error refreshing teams:");
+      logger.error(error);
+      throw error;
     }
   }
 
