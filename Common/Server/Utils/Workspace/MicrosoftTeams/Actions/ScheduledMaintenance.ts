@@ -195,6 +195,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           // Hide the form card
           const updatedActivity = { ...turnContext.activity };
           updatedActivity.attachments = [];
+          updatedActivity.text = " "; // Required for activity update
           await turnContext.updateActivity(updatedActivity);
 
           break;
@@ -228,6 +229,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           // Hide the form card
           const updatedActivity2 = { ...turnContext.activity };
           updatedActivity2.attachments = [];
+          updatedActivity2.text = " "; // Required for activity update
           await turnContext.updateActivity(updatedActivity2);
 
           break;

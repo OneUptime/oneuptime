@@ -310,6 +310,7 @@ export default class MicrosoftTeamsAlertActions {
         // Hide the form card
         const updatedActivity = { ...turnContext.activity };
         updatedActivity.attachments = [];
+        updatedActivity.text = " "; // Required for activity update
         await turnContext.updateActivity(updatedActivity);
 
         return;
@@ -358,6 +359,7 @@ export default class MicrosoftTeamsAlertActions {
         // Hide the form card
         const updatedActivity = { ...turnContext.activity };
         updatedActivity.attachments = [];
+        updatedActivity.text = " "; // Required for activity update
         await turnContext.updateActivity(updatedActivity);
 
         return;
@@ -407,6 +409,7 @@ export default class MicrosoftTeamsAlertActions {
         // Hide the form card
         const updatedActivity = { ...turnContext.activity };
         updatedActivity.attachments = [];
+        updatedActivity.text = " "; // Required for activity update
         await turnContext.updateActivity(updatedActivity);
 
         return;
