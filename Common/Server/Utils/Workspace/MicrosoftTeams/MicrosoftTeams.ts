@@ -29,7 +29,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
-import { MicrosoftTeamsMiscData, MicrosoftTeamsTeam } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import { MicrosoftTeamsMiscData } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import OneUptimeDate from "../../../../Types/Date";
 import { MicrosoftTeamsAppClientId, MicrosoftTeamsAppClientSecret } from "../../../EnvironmentConfig";
 
@@ -715,7 +715,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.get({
         url: URL.fromString(
-          `https://graph.microsoft.com/v1.0/teams/${teamId}/channels`,
+          `https://graph.microsoft.com/v1.0/teams/${data.teamId}/channels`,
         ),
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -814,6 +814,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             authToken: data.authToken,
             channelId: channelId,
             projectId: data.projectId,
+            teamId: data.teamId,
           });
         logger.debug(`Channel info obtained: ${JSON.stringify(channel)}`);
         workspaceChannelsToPostTo.push(channel);
