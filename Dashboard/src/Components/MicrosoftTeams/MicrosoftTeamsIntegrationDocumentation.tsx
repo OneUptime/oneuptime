@@ -2,8 +2,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import Card from "Common/UI/Components/Card/Card";
 
-const MicrosoftTeamsIntegrationDocumentation: FunctionComponent = (): ReactElement => {
-  const markdownText: string = `
+const MicrosoftTeamsIntegrationDocumentation: FunctionComponent =
+  (): ReactElement => {
+    const markdownText: string = `
 
 ##### Step 1: Prerequisites
 
@@ -151,14 +152,14 @@ We would like to improve this integration, so feedback is more than welcome. Ple
 
     `;
 
-  return (
-    <Card
-      title={`Integrating Microsoft Teams with your OneUptime Project`}
-      description={`Microsoft Teams is not connected to OneUptime. Here are some of the steps you need to do to integrate Microsoft Teams with your OneUptime Project`}
-    >
-      <MarkdownViewer text={markdownText} />
-    </Card>
-  );
-};
+    return (
+      <Card
+        title={`Integrating Microsoft Teams with your OneUptime Project`}
+        description={`Microsoft Teams is not connected to OneUptime. Here are some of the steps you need to do to integrate Microsoft Teams with your OneUptime Project`}
+      >
+        <MarkdownViewer text={markdownText} />
+      </Card>
+    );
+  };
 
 export default MicrosoftTeamsIntegrationDocumentation;

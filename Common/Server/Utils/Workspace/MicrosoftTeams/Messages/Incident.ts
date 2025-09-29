@@ -61,7 +61,8 @@ export default class MicrosoftTeamsIncidentMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "📞 Execute On Call",
       value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsIncidentActionType.ViewExecuteIncidentOnCallPolicy,
+      actionId:
+        MicrosoftTeamsIncidentActionType.ViewExecuteIncidentOnCallPolicy,
     };
 
     buttons.push(executeOnCallButton);

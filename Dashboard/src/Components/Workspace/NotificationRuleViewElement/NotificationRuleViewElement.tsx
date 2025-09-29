@@ -4,7 +4,9 @@ import AlertNotificationRule from "Common/Types/Workspace/NotificationRules/Noti
 import ScheduledMaintenanceNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/ScheduledMaintenanceNotificationRule";
 import MonitorNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/MonitorNotificationRule";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
-import WorkspaceType, { getWorkspaceTypeDisplayName } from "Common/Types/Workspace/WorkspaceType";
+import WorkspaceType, {
+  getWorkspaceTypeDisplayName,
+} from "Common/Types/Workspace/WorkspaceType";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Field from "Common/UI/Components/Detail/Field";
 import Detail from "Common/UI/Components/Detail/Detail";
@@ -96,7 +98,7 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
       description: `When above conditions are met, post to an existing ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`,
       fieldType: FieldType.Boolean,
     },
-    
+
     {
       key: "existingTeam",
       title: `Team select in ${getWorkspaceTypeDisplayName(props.workspaceType)} `,
@@ -109,15 +111,21 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
           | ScheduledMaintenanceNotificationRule
           | MonitorNotificationRule,
       ) => {
-        return Boolean(formValue.shouldPostToExistingChannel) && props.workspaceType === WorkspaceType.MicrosoftTeams && Boolean(formValue.existingTeam);
+        return (
+          Boolean(formValue.shouldPostToExistingChannel) &&
+          props.workspaceType === WorkspaceType.MicrosoftTeams &&
+          Boolean(formValue.existingTeam)
+        );
       },
       getElement: () => {
         if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
-          const selectedTeam = (props.microsoftTeamsTeams || []).find((i: MicrosoftTeamsTeam) => {
-            return props.value.existingTeam?.toString() === i.id;
-          });
+          const selectedTeam = (props.microsoftTeamsTeams || []).find(
+            (i: MicrosoftTeamsTeam) => {
+              return props.value.existingTeam?.toString() === i.id;
+            },
+          );
           return <span>{selectedTeam?.name || "Unknown Team"}</span>;
-        } 
+        }
 
         return <span>N/A</span>;
       },
@@ -188,15 +196,23 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
           | AlertNotificationRule
           | ScheduledMaintenanceNotificationRule,
       ) => {
-        return formValue.shouldCreateNewChannel && props.workspaceType === WorkspaceType.MicrosoftTeams && Boolean((formValue as any).teamToCreateChannelIn);
+        return (
+          formValue.shouldCreateNewChannel &&
+          props.workspaceType === WorkspaceType.MicrosoftTeams &&
+          Boolean((formValue as any).teamToCreateChannelIn)
+        );
       },
       getElement: () => {
         if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
-          const selectedTeam = (props.microsoftTeamsTeams || []).find((i: MicrosoftTeamsTeam) => {
-            return (props.value as any).teamToCreateChannelIn?.toString() === i.id;
-          });
+          const selectedTeam = (props.microsoftTeamsTeams || []).find(
+            (i: MicrosoftTeamsTeam) => {
+              return (
+                (props.value as any).teamToCreateChannelIn?.toString() === i.id
+              );
+            },
+          );
           return <span>{selectedTeam?.name || "Unknown Team"}</span>;
-        } 
+        }
 
         return <span>N/A</span>;
       },

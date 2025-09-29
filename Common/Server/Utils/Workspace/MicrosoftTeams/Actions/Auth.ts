@@ -117,7 +117,7 @@ export default class MicrosoftTeamsAuthAction {
       projectAuthToken = await WorkspaceProjectAuthTokenService.findOneBy({
         query: {
           workspaceType: WorkspaceType.MicrosoftTeams,
-          workspaceProjectId: tenantId
+          workspaceProjectId: tenantId,
         },
         select: {
           _id: true,
@@ -129,9 +129,6 @@ export default class MicrosoftTeamsAuthAction {
           isRoot: true,
         },
       });
-
-
-
     } catch (error) {
       logger.debug("Error finding project auth token:");
       logger.debug(error);

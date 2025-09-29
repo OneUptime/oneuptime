@@ -35,9 +35,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import MicrosoftTeamsIntegrationDocumentation from "./MicrosoftTeamsIntegrationDocumentation";
 import Link from "Common/UI/Components/Link/Link";
-import {
-  ButtonStyleType as SharedButtonStyle,
-} from "Common/UI/Components/Button/Button";
+import { ButtonStyleType as SharedButtonStyle } from "Common/UI/Components/Button/Button";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 
 export interface ComponentProps {
@@ -63,9 +61,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
   const [isAdminConsentCompleted, setIsAdminConsentCompleted] =
     React.useState<boolean>(false);
-  const [isRefreshTeamsLoading, setIsRefreshTeamsLoading] = React.useState<boolean>(false);
-
-
+  const [isRefreshTeamsLoading, setIsRefreshTeamsLoading] =
+    React.useState<boolean>(false);
 
   useEffect(() => {
     if (isProjectAccountConnected) {
@@ -101,14 +98,15 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         });
 
       if (projectAuth.data.length > 0) {
-        const miscData = projectAuth.data[0]!.miscData! as MicrosoftTeamsMiscData;
-        
+        const miscData = projectAuth.data[0]!
+          .miscData! as MicrosoftTeamsMiscData;
+
         setWorkspaceProjectAuthTokenId(projectAuth.data[0]!.id);
-        
+
         // Check if admin consent is granted
         const adminConsentGranted = miscData.adminConsentGranted || false;
         setIsAdminConsentCompleted(adminConsentGranted);
-        
+
         // Project is connected if there's a project auth token
         setIsProjectAccountConnected(true);
       }
@@ -137,8 +135,6 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         setIsUserAccountConnected(true);
         setWorkspaceUserAuthTokenId(userAuth.data[0]!.id);
       }
-
-     
     } catch (error) {
       setError(<div>{API.getFriendlyErrorMessage(error as Error)}</div>);
     } finally {
@@ -160,7 +156,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         </div>,
       );
       setIsLoading(false);
-      return; 
+      return;
     }
 
     loadItems().catch((error: Exception) => {
@@ -387,7 +383,11 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   }
 
   // if admin consent is completed but no team is selected yet
-  if (isAdminConsentCompleted && !isProjectAccountConnected && !isUserAccountConnected) {
+  if (
+    isAdminConsentCompleted &&
+    !isProjectAccountConnected &&
+    !isUserAccountConnected
+  ) {
     cardTitle = `Admin Consent Granted - Connect Your Account`;
     cardDescription = `Admin consent has been granted for the OneUptime Microsoft Teams app. Now connect your account to select a team and complete the setup.`;
     cardButtons = [getConnectWithTeamsButton(`Connect with Microsoft Teams`)];
@@ -400,19 +400,18 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   }
 
   if (!MicrosoftTeamsAppClientId) {
-    return (
-      <MicrosoftTeamsIntegrationDocumentation
-       
-      />
-    );
+    return <MicrosoftTeamsIntegrationDocumentation />;
   }
 
   return (
     <Fragment>
-
       <div className="mt-6">
         <Card
-          title={isAdminConsentCompleted ? "Admin Consent Completed" : "Grant Admin Consent"}
+          title={
+            isAdminConsentCompleted
+              ? "Admin Consent Completed"
+              : "Grant Admin Consent"
+          }
           description={
             isAdminConsentCompleted
               ? "Admin consent has been successfully granted for the OneUptime Microsoft Teams app. You can now proceed to connect your account."
@@ -434,7 +433,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                     buttonStyle: SharedButtonStyle.NORMAL,
                     icon: IconProp.Refresh,
                     isLoading: isRefreshTeamsLoading,
-                    onClick: () => refreshTeams(),
+                    onClick: () => {
+                      return refreshTeams();
+                    },
                   },
                 ]
               : [
@@ -442,13 +443,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                     title: "Grant Admin Consent",
                     buttonStyle: SharedButtonStyle.PRIMARY,
                     icon: IconProp.ShieldCheck,
-                    onClick: () => startAdminConsent(),
+                    onClick: () => {
+                      return startAdminConsent();
+                    },
                   },
                 ]
           }
         />
       </div>
-
 
       {isAdminConsentCompleted && (
         <div>
@@ -459,7 +461,6 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           />
         </div>
       )}
-
 
       {isAdminConsentCompleted && isUserAccountConnected && (
         <div className="mt-6">

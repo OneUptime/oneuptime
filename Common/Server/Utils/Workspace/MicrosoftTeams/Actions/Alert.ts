@@ -10,7 +10,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import AlertService from "../../../../Services/AlertService";
 import Alert from "../../../../../Models/DatabaseModels/Alert";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
-import { TurnContext } from 'botbuilder';
+import { TurnContext } from "botbuilder";
 import { JSONObject } from "../../../../../Types/JSON";
 import AlertInternalNoteService from "../../../../Services/AlertInternalNoteService";
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
@@ -29,8 +29,10 @@ export default class MicrosoftTeamsAlertActions {
       data.actionType === MicrosoftTeamsAlertActionType.AlertStateChanged ||
       data.actionType === MicrosoftTeamsAlertActionType.ViewAddAlertNote ||
       data.actionType === MicrosoftTeamsAlertActionType.SubmitAlertNote ||
-      data.actionType === MicrosoftTeamsAlertActionType.ViewExecuteAlertOnCallPolicy ||
-      data.actionType === MicrosoftTeamsAlertActionType.SubmitExecuteAlertOnCallPolicy ||
+      data.actionType ===
+        MicrosoftTeamsAlertActionType.ViewExecuteAlertOnCallPolicy ||
+      data.actionType ===
+        MicrosoftTeamsAlertActionType.SubmitExecuteAlertOnCallPolicy ||
       data.actionType === MicrosoftTeamsAlertActionType.ViewChangeAlertState ||
       data.actionType === MicrosoftTeamsAlertActionType.SubmitChangeAlertState
     );
@@ -210,15 +212,27 @@ export default class MicrosoftTeamsAlertActions {
     oneUptimeUserId: ObjectID;
     turnContext: TurnContext;
   }): Promise<void> {
-    const { actionType, actionValue, value, projectId, oneUptimeUserId, turnContext } = data;
+    const {
+      actionType,
+      actionValue,
+      value,
+      projectId,
+      oneUptimeUserId,
+      turnContext,
+    } = data;
 
     if (actionType === MicrosoftTeamsAlertActionType.AckAlert) {
       if (!actionValue) {
-        await turnContext.sendActivity("Unable to acknowledge: missing alert id.");
+        await turnContext.sendActivity(
+          "Unable to acknowledge: missing alert id.",
+        );
         return;
       }
 
-      await AlertService.acknowledgeAlert(new ObjectID(actionValue), oneUptimeUserId);
+      await AlertService.acknowledgeAlert(
+        new ObjectID(actionValue),
+        oneUptimeUserId,
+      );
       await turnContext.sendActivity("✅ Alert acknowledged.");
       return;
     }
@@ -229,14 +243,19 @@ export default class MicrosoftTeamsAlertActions {
         return;
       }
 
-      await AlertService.resolveAlert(new ObjectID(actionValue), oneUptimeUserId);
+      await AlertService.resolveAlert(
+        new ObjectID(actionValue),
+        oneUptimeUserId,
+      );
       await turnContext.sendActivity("✅ Alert resolved.");
       return;
     }
 
     if (actionType === MicrosoftTeamsAlertActionType.ViewAlert) {
       if (!actionValue) {
-        await turnContext.sendActivity("Unable to view alert: missing alert id.");
+        await turnContext.sendActivity(
+          "Unable to view alert: missing alert id.",
+        );
         return;
       }
 
@@ -267,7 +286,7 @@ export default class MicrosoftTeamsAlertActions {
         return;
       }
 
-      const message = `**Alert Details**\n\n**Title:** ${alert.title}\n**Description:** ${alert.description || 'No description'}\n**State:** ${alert.currentAlertState?.name || 'Unknown'}\n**Severity:** ${alert.alertSeverity?.name || 'Unknown'}\n**Created At:** ${alert.createdAt ? new Date(alert.createdAt).toLocaleString() : 'Unknown'}`;
+      const message = `**Alert Details**\n\n**Title:** ${alert.title}\n**Description:** ${alert.description || "No description"}\n**State:** ${alert.currentAlertState?.name || "Unknown"}\n**Severity:** ${alert.alertSeverity?.name || "Unknown"}\n**Created At:** ${alert.createdAt ? new Date(alert.createdAt).toLocaleString() : "Unknown"}`;
 
       await turnContext.sendActivity(message);
       return;
@@ -281,7 +300,14 @@ export default class MicrosoftTeamsAlertActions {
 
       // Send the input card
       const card = this.buildAddAlertNoteCard(actionValue);
-      await turnContext.sendActivity({ attachments: [{ contentType: "application/vnd.microsoft.card.adaptive", content: card }] });
+      await turnContext.sendActivity({
+        attachments: [
+          {
+            contentType: "application/vnd.microsoft.card.adaptive",
+            content: card,
+          },
+        ],
+      });
       return;
     }
 
@@ -313,31 +339,51 @@ export default class MicrosoftTeamsAlertActions {
         }
 
         return;
-      } else {
-        await turnContext.sendActivity("Unable to add note: missing note data.");
-        return;
       }
+      await turnContext.sendActivity("Unable to add note: missing note data.");
+      return;
     }
 
-    if (actionType === MicrosoftTeamsAlertActionType.ViewExecuteAlertOnCallPolicy) {
+    if (
+      actionType === MicrosoftTeamsAlertActionType.ViewExecuteAlertOnCallPolicy
+    ) {
       if (!actionValue) {
-        await turnContext.sendActivity("Unable to execute on-call policy: missing alert id.");
+        await turnContext.sendActivity(
+          "Unable to execute on-call policy: missing alert id.",
+        );
         return;
       }
 
       // Send the input card
-      const card = await this.buildExecuteAlertOnCallPolicyCard(actionValue, projectId);
+      const card = await this.buildExecuteAlertOnCallPolicyCard(
+        actionValue,
+        projectId,
+      );
       if (!card) {
-        await turnContext.sendActivity("No on-call policies found in the project");
+        await turnContext.sendActivity(
+          "No on-call policies found in the project",
+        );
         return;
       }
-      await turnContext.sendActivity({ attachments: [{ contentType: "application/vnd.microsoft.card.adaptive", content: card }] });
+      await turnContext.sendActivity({
+        attachments: [
+          {
+            contentType: "application/vnd.microsoft.card.adaptive",
+            content: card,
+          },
+        ],
+      });
       return;
     }
 
-    if (actionType === MicrosoftTeamsAlertActionType.SubmitExecuteAlertOnCallPolicy) {
+    if (
+      actionType ===
+      MicrosoftTeamsAlertActionType.SubmitExecuteAlertOnCallPolicy
+    ) {
       if (!actionValue) {
-        await turnContext.sendActivity("Unable to execute on-call policy: missing alert id.");
+        await turnContext.sendActivity(
+          "Unable to execute on-call policy: missing alert id.",
+        );
         return;
       }
 
@@ -348,12 +394,17 @@ export default class MicrosoftTeamsAlertActions {
         // Execute the policy
         const alertId = new ObjectID(actionValue);
 
-        await OnCallDutyPolicyService.executePolicy(new ObjectID(onCallPolicyId.toString()), {
-          triggeredByAlertId: alertId,
-          userNotificationEventType: UserNotificationEventType.AlertCreated,
-        });
+        await OnCallDutyPolicyService.executePolicy(
+          new ObjectID(onCallPolicyId.toString()),
+          {
+            triggeredByAlertId: alertId,
+            userNotificationEventType: UserNotificationEventType.AlertCreated,
+          },
+        );
 
-        await turnContext.sendActivity("✅ On-call policy executed successfully.");
+        await turnContext.sendActivity(
+          "✅ On-call policy executed successfully.",
+        );
 
         // Hide the form card by deleting it
         if (turnContext.activity.replyToId) {
@@ -361,27 +412,39 @@ export default class MicrosoftTeamsAlertActions {
         }
 
         return;
-      } else {
-        await turnContext.sendActivity("Unable to execute on-call policy: missing policy id.");
-        return;
       }
+      await turnContext.sendActivity(
+        "Unable to execute on-call policy: missing policy id.",
+      );
+      return;
     }
 
     if (actionType === MicrosoftTeamsAlertActionType.ViewChangeAlertState) {
       if (!actionValue) {
-        await turnContext.sendActivity("Unable to change alert state: missing alert id.");
+        await turnContext.sendActivity(
+          "Unable to change alert state: missing alert id.",
+        );
         return;
       }
 
       // Send the input card
       const card = await this.buildChangeAlertStateCard(actionValue, projectId);
-      await turnContext.sendActivity({ attachments: [{ contentType: "application/vnd.microsoft.card.adaptive", content: card }] });
+      await turnContext.sendActivity({
+        attachments: [
+          {
+            contentType: "application/vnd.microsoft.card.adaptive",
+            content: card,
+          },
+        ],
+      });
       return;
     }
 
     if (actionType === MicrosoftTeamsAlertActionType.SubmitChangeAlertState) {
       if (!actionValue) {
-        await turnContext.sendActivity("Unable to change alert state: missing alert id.");
+        await turnContext.sendActivity(
+          "Unable to change alert state: missing alert id.",
+        );
         return;
       }
 
@@ -410,14 +473,19 @@ export default class MicrosoftTeamsAlertActions {
         }
 
         return;
-      } else {
-        await turnContext.sendActivity("Unable to change alert state: missing state id.");
-        return;
       }
+      await turnContext.sendActivity(
+        "Unable to change alert state: missing state id.",
+      );
+      return;
     }
 
-        // Default fallback for unimplemented actions
-    await turnContext.sendActivity("Sorry, but the action " + actionType + " you requested is not implemented yet.");
+    // Default fallback for unimplemented actions
+    await turnContext.sendActivity(
+      "Sorry, but the action " +
+        actionType +
+        " you requested is not implemented yet.",
+    );
   }
 
   private static buildAddAlertNoteCard(alertId: string): JSONObject {
@@ -453,7 +521,10 @@ export default class MicrosoftTeamsAlertActions {
     };
   }
 
-  private static async buildExecuteAlertOnCallPolicyCard(alertId: string, projectId: ObjectID): Promise<JSONObject | null> {
+  private static async buildExecuteAlertOnCallPolicyCard(
+    alertId: string,
+    projectId: ObjectID,
+  ): Promise<JSONObject | null> {
     const onCallPolicies = await OnCallDutyPolicyService.findBy({
       query: {
         projectId: projectId,
@@ -469,10 +540,16 @@ export default class MicrosoftTeamsAlertActions {
       skip: 0,
     });
 
-    const choices = onCallPolicies.map(policy => ({
-      title: policy.name || "",
-      value: policy._id?.toString() || "",
-    })).filter(choice => choice.title && choice.value);
+    const choices = onCallPolicies
+      .map((policy) => {
+        return {
+          title: policy.name || "",
+          value: policy._id?.toString() || "",
+        };
+      })
+      .filter((choice) => {
+        return choice.title && choice.value;
+      });
 
     if (choices.length === 0) {
       return null;
@@ -502,7 +579,8 @@ export default class MicrosoftTeamsAlertActions {
           type: "Action.Submit",
           title: "Execute",
           data: {
-            action: MicrosoftTeamsAlertActionType.SubmitExecuteAlertOnCallPolicy,
+            action:
+              MicrosoftTeamsAlertActionType.SubmitExecuteAlertOnCallPolicy,
             actionValue: alertId,
           },
         },
@@ -510,7 +588,10 @@ export default class MicrosoftTeamsAlertActions {
     };
   }
 
-  private static async buildChangeAlertStateCard(alertId: string, projectId: ObjectID): Promise<JSONObject> {
+  private static async buildChangeAlertStateCard(
+    alertId: string,
+    projectId: ObjectID,
+  ): Promise<JSONObject> {
     const alertStates = await AlertStateService.getAllAlertStates({
       projectId: projectId,
       props: {
@@ -518,10 +599,16 @@ export default class MicrosoftTeamsAlertActions {
       },
     });
 
-    const choices = alertStates.map(state => ({
-      title: state.name || "",
-      value: state._id?.toString() || "",
-    })).filter(choice => choice.title && choice.value);
+    const choices = alertStates
+      .map((state) => {
+        return {
+          title: state.name || "",
+          value: state._id?.toString() || "",
+        };
+      })
+      .filter((choice) => {
+        return choice.title && choice.value;
+      });
 
     return {
       type: "AdaptiveCard",

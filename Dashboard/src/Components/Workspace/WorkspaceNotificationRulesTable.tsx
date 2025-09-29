@@ -9,7 +9,9 @@ import React, {
   ReactElement,
   useEffect,
 } from "react";
-import WorkspaceType, { getWorkspaceTypeDisplayName } from "Common/Types/Workspace/WorkspaceType";
+import WorkspaceType, {
+  getWorkspaceTypeDisplayName,
+} from "Common/Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -82,7 +84,9 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     Array<MonitorStatus>
   >([]);
   const [teams, setTeams] = React.useState<Array<Team>>([]);
-  const [microsoftTeamsTeams, setMicrosoftTeams] = React.useState<Array<MicrosoftTeamsTeam>>([]);
+  const [microsoftTeamsTeams, setMicrosoftTeams] = React.useState<
+    Array<MicrosoftTeamsTeam>
+  >([]);
   const [users, setUsers] = React.useState<Array<User>>([]);
 
   const [showTestModal, setShowTestModal] = React.useState<boolean>(false);
@@ -351,18 +355,19 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
 
       // Load Microsoft Teams if workspace type is Microsoft Teams
       if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
-        const microsoftTeamsResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.get({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              `/microsoft-teams/teams`,
-            ),
-            headers: ModelAPI.getCommonHeaders(),
-          });
+        const microsoftTeamsResponse:
+          | HTTPResponse<JSONObject>
+          | HTTPErrorResponse = await API.get({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/microsoft-teams/teams`,
+          ),
+          headers: ModelAPI.getCommonHeaders(),
+        });
 
         if (microsoftTeamsResponse instanceof HTTPErrorResponse) {
           throw microsoftTeamsResponse;
         } else {
-          const teamsData: Array<MicrosoftTeamsTeam> = 
+          const teamsData: Array<MicrosoftTeamsTeam> =
             (microsoftTeamsResponse.data as any)?.teams || [];
           setMicrosoftTeams(teamsData);
         }

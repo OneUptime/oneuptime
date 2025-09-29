@@ -220,8 +220,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           };
 
           // Add teamId for Microsoft Teams
-          if (rule.workspaceType === WorkspaceType.MicrosoftTeams && projectAuth.miscData?.['teamId']) {
-            doesChannelExistData.teamId = projectAuth.miscData['teamId'];
+          if (
+            rule.workspaceType === WorkspaceType.MicrosoftTeams &&
+            projectAuth.miscData?.["teamId"]
+          ) {
+            doesChannelExistData.teamId = projectAuth.miscData["teamId"];
           }
 
           const channelExists: boolean =
@@ -1025,7 +1028,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             logger.debug("Channel IDs to send message to:");
             logger.debug(channelIds);
 
-            let sendMessageData: {
+            const sendMessageData: {
               userId: string;
               authToken: string;
               workspaceMessagePayload: WorkspaceMessagePayload;
@@ -1054,8 +1057,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             };
 
             // Add teamId for Microsoft Teams
-            if (data.workspaceType === WorkspaceType.MicrosoftTeams && data.projectAuth.miscData?.['teamId']) {
-              sendMessageData.teamId = data.projectAuth.miscData['teamId'];
+            if (
+              data.workspaceType === WorkspaceType.MicrosoftTeams &&
+              data.projectAuth.miscData?.["teamId"]
+            ) {
+              sendMessageData.teamId = data.projectAuth.miscData["teamId"];
             }
 
             await WorkspaceUtil.getWorkspaceTypeUtil(
@@ -1196,7 +1202,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             logger.debug("Channel IDs to send message to:");
             logger.debug(channelIds);
 
-            let sendMessageData: {
+            const sendMessageData: {
               userId: string;
               authToken: string;
               workspaceMessagePayload: WorkspaceMessagePayload;
@@ -1225,11 +1231,16 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             };
 
             // Add teamId for Microsoft Teams
-            if (workspaceType === WorkspaceType.MicrosoftTeams && projectAuth.miscData?.['teamId']) {
-              sendMessageData.teamId = projectAuth.miscData['teamId'];
+            if (
+              workspaceType === WorkspaceType.MicrosoftTeams &&
+              projectAuth.miscData?.["teamId"]
+            ) {
+              sendMessageData.teamId = projectAuth.miscData["teamId"];
             }
 
-            await WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).sendMessage(sendMessageData);
+            await WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).sendMessage(
+              sendMessageData,
+            );
           } catch (e) {
             logger.error("Error in sending message to channel");
             logger.error(e);
@@ -1391,13 +1402,16 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     logger.debug(notificationChannels);
 
     // Get project auth to access teamId for Microsoft Teams
-    const projectAuth: WorkspaceProjectAuthToken | null = await WorkspaceProjectAuthTokenService.getProjectAuth({
-      projectId: data.projectId,
-      workspaceType: data.workspaceType,
-    });
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+      });
 
     if (!projectAuth) {
-      throw new BadDataException("Project auth not found for workspace type " + data.workspaceType);
+      throw new BadDataException(
+        "Project auth not found for workspace type " + data.workspaceType,
+      );
     }
 
     if (!notificationChannels || notificationChannels.length === 0) {
@@ -1430,18 +1444,26 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         channelName: notificationChannel.channelName,
         projectId: data.projectId,
       };
-      
+
       if (notificationChannel.teamId) {
         createChannelData.teamId = notificationChannel.teamId;
-      } else if (data.workspaceType === WorkspaceType.MicrosoftTeams && projectAuth.miscData?.['teamId']) {
-        createChannelData.teamId = projectAuth.miscData['teamId'];
+      } else if (
+        data.workspaceType === WorkspaceType.MicrosoftTeams &&
+        projectAuth.miscData?.["teamId"]
+      ) {
+        createChannelData.teamId = projectAuth.miscData["teamId"];
       }
 
       // Ensure teamId is set for Microsoft Teams
-      if (data.workspaceType === WorkspaceType.MicrosoftTeams && !createChannelData.teamId) {
-        throw new BadDataException("teamId is required for Microsoft Teams channels");
+      if (
+        data.workspaceType === WorkspaceType.MicrosoftTeams &&
+        !createChannelData.teamId
+      ) {
+        throw new BadDataException(
+          "teamId is required for Microsoft Teams channels",
+        );
       }
-      
+
       const channel: WorkspaceChannel =
         await WorkspaceUtil.getWorkspaceTypeUtil(
           data.workspaceType,
@@ -1683,7 +1705,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
         if (
           channels.filter(
-            (name: { channelName: string; notificationRuleId: string; teamId?: string }) => {
+            (name: {
+              channelName: string;
+              notificationRuleId: string;
+              teamId?: string;
+            }) => {
               return name.channelName === channelName;
             },
           ).length === 0
@@ -1697,11 +1723,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             channelName: channelName,
             notificationRuleId: notificationRule.id!.toString() || "",
           };
-          
+
           if (workspaceRules.teamToCreateChannelIn) {
             channelData.teamId = workspaceRules.teamToCreateChannelIn;
           }
-          
+
           channels.push(channelData);
           logger.debug(`Channel name ${channelName} added to the list.`);
         } else {

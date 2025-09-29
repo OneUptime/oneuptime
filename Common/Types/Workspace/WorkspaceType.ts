@@ -3,7 +3,9 @@ enum WorkspaceType {
   MicrosoftTeams = "MicrosoftTeams",
 }
 
-export const getWorkspaceTypeDisplayName = (workspaceType: WorkspaceType): string => {
+export const getWorkspaceTypeDisplayName = (
+  workspaceType: WorkspaceType,
+): string => {
   if (workspaceType === WorkspaceType.MicrosoftTeams) {
     return "Microsoft Teams";
   }

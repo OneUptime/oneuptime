@@ -185,8 +185,6 @@ export default class WorkspaceUtil {
         }
       }
 
-
-
       if (!projectAuthToken.authToken) {
         responses.push({
           workspaceType: workspaceType,

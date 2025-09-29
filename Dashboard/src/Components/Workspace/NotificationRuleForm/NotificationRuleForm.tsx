@@ -8,7 +8,9 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
-import WorkspaceType, { getWorkspaceTypeDisplayName } from "Common/Types/Workspace/WorkspaceType";
+import WorkspaceType, {
+  getWorkspaceTypeDisplayName,
+} from "Common/Types/Workspace/WorkspaceType";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -129,16 +131,20 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       fieldType: FormFieldSchemaType.Dropdown,
       required: true,
       showIf: (formValue: FormValues<BaseNotificationRule>) => {
-        return Boolean(formValue.shouldPostToExistingChannel) && props.workspaceType === WorkspaceType.MicrosoftTeams;
+        return (
+          Boolean(formValue.shouldPostToExistingChannel) &&
+          props.workspaceType === WorkspaceType.MicrosoftTeams
+        );
       },
-      dropdownOptions: props.workspaceType === WorkspaceType.MicrosoftTeams 
-        ? (props.microsoftTeamsTeams || []).map((i: MicrosoftTeamsTeam) => {
-            return {
-              label: i.name,
-              value: i.id,
-            };
-          })
-        : []
+      dropdownOptions:
+        props.workspaceType === WorkspaceType.MicrosoftTeams
+          ? (props.microsoftTeamsTeams || []).map((i: MicrosoftTeamsTeam) => {
+              return {
+                label: i.name,
+                value: i.id,
+              };
+            })
+          : [],
     },
     {
       field: {
@@ -207,17 +213,19 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       showIf: (formValue: FormValues<NotificationRulesType>) => {
         return (
           (formValue as CreateNewSlackChannelNotificationRuleType)
-            .shouldCreateNewChannel && props.workspaceType === WorkspaceType.MicrosoftTeams
+            .shouldCreateNewChannel &&
+          props.workspaceType === WorkspaceType.MicrosoftTeams
         );
       },
-      dropdownOptions: props.workspaceType === WorkspaceType.MicrosoftTeams 
-        ? (props.microsoftTeamsTeams || []).map((i: MicrosoftTeamsTeam) => {
-            return {
-              label: i.name,
-              value: i.id,
-            };
-          })
-        : []
+      dropdownOptions:
+        props.workspaceType === WorkspaceType.MicrosoftTeams
+          ? (props.microsoftTeamsTeams || []).map((i: MicrosoftTeamsTeam) => {
+              return {
+                label: i.name,
+                value: i.id,
+              };
+            })
+          : [],
     },
     {
       field: {
