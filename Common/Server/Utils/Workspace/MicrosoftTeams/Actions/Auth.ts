@@ -23,6 +23,7 @@ export interface MicrosoftTeamsRequest {
   actions?: Array<MicrosoftTeamsAction>;
   userId?: string;
   teamId?: string;
+  tenantId?: string;
   channelId?: string;
   messageId?: string;
   payload?: JSONObject;
@@ -35,6 +36,7 @@ export default class MicrosoftTeamsAuthAction {
   }): Promise<MicrosoftTeamsRequest> {
     const req: ExpressRequest = data.req;
     let payload: JSONObject = {};
+    let tenantId: string = "";
 
     try {
       payload = req.body as JSONObject;
@@ -48,6 +50,7 @@ export default class MicrosoftTeamsAuthAction {
         projectId: new ObjectID(""),
         authToken: "",
         payloadType: "unknown",
+        tenantId: tenantId,
       };
     }
 
@@ -75,6 +78,10 @@ export default class MicrosoftTeamsAuthAction {
       userId = from["id"] as string;
     }
 
+    if (channelData && channelData["tenant"]) {
+      tenantId = (channelData["tenant"] as JSONObject)["id"] as string;
+    }
+
     // Handle different activity types
     if (activityType === "installationUpdate") {
       // Bot was installed or uninstalled
@@ -86,6 +93,7 @@ export default class MicrosoftTeamsAuthAction {
           authToken: "",
           payloadType: "app_uninstall",
           teamId: teamId,
+          tenantId: tenantId,
         };
       }
     }
@@ -98,6 +106,7 @@ export default class MicrosoftTeamsAuthAction {
         projectId: new ObjectID(""),
         authToken: "",
         payloadType: activityType,
+        tenantId: tenantId,
       };
     }
 
@@ -105,9 +114,10 @@ export default class MicrosoftTeamsAuthAction {
 
     try {
       // Find project auth token by checking if miscData contains the teamId
-      const allProjectAuths = await WorkspaceProjectAuthTokenService.findBy({
+      projectAuthToken = await WorkspaceProjectAuthTokenService.findOneBy({
         query: {
           workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceProjectId: tenantId
         },
         select: {
           _id: true,
@@ -115,18 +125,13 @@ export default class MicrosoftTeamsAuthAction {
           authToken: true,
           miscData: true,
         },
-        limit: 100, // Reasonable limit for finding matching auth tokens
-        skip: 0,
         props: {
           isRoot: true,
         },
       });
 
-      // Find the auth token where miscData.teamId matches the teamId from payload
-      projectAuthToken = allProjectAuths.find((auth) => {
-        const miscData = auth.miscData as any;
-        return miscData && miscData.teamId === teamId;
-      }) || null;
+
+
     } catch (error) {
       logger.debug("Error finding project auth token:");
       logger.debug(error);
@@ -135,6 +140,7 @@ export default class MicrosoftTeamsAuthAction {
         projectId: new ObjectID(""),
         authToken: "",
         payloadType: activityType,
+        tenantId: tenantId,
       };
     }
 
@@ -145,6 +151,7 @@ export default class MicrosoftTeamsAuthAction {
         projectId: new ObjectID(""),
         authToken: "",
         payloadType: activityType,
+        tenantId: tenantId,
       };
     }
 
@@ -178,6 +185,7 @@ export default class MicrosoftTeamsAuthAction {
       actions: actions,
       userId: userId,
       teamId: teamId,
+      tenantId: tenantId,
       channelId: channelId,
       messageId: payload["id"] as string,
       payload: payload,
