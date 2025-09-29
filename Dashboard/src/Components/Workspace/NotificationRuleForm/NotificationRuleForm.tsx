@@ -124,7 +124,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       field: {
         existingTeam: true,
       },
-      title: `Select ${getWorkspaceTypeDisplayName(props.workspaceType)} Team`,
+      title: `Select a Team in ${getWorkspaceTypeDisplayName(props.workspaceType)} `,
       description: `Select the team where you want to post the message.`,
       fieldType: FormFieldSchemaType.Dropdown,
       required: true,
@@ -132,9 +132,9 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         return Boolean(formValue.shouldPostToExistingChannel) && props.workspaceType === WorkspaceType.MicrosoftTeams;
       },
       dropdownOptions: props.workspaceType === WorkspaceType.MicrosoftTeams 
-        ? (props.microsoftTeamsTeams || []).map((i: { id: string; displayName: string }) => {
+        ? (props.microsoftTeamsTeams || []).map((i: MicrosoftTeamsTeam) => {
             return {
-              label: i.displayName,
+              label: i.name,
               value: i.id,
             };
           })
@@ -200,7 +200,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       field: {
         teamToCreateChannelIn: true,
       },
-      title: `Select ${getWorkspaceTypeDisplayName(props.workspaceType)} Team`,
+      title: `Select a team in ${getWorkspaceTypeDisplayName(props.workspaceType)}`,
       description: `Select the team where you want to create the new channel.`,
       fieldType: FormFieldSchemaType.Dropdown,
       required: true,
@@ -213,7 +213,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       dropdownOptions: props.workspaceType === WorkspaceType.MicrosoftTeams 
         ? (props.microsoftTeamsTeams || []).map((i: MicrosoftTeamsTeam) => {
             return {
-              label: i.displayName,
+              label: i.name,
               value: i.id,
             };
           })
