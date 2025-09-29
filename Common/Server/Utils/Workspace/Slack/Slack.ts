@@ -48,6 +48,7 @@ export default class SlackUtil extends WorkspaceBase {
   public static override async getUsernameFromUserId(data: {
     authToken: string;
     userId: string;
+    projectId: ObjectID;
   }): Promise<string | null> {
     logger.debug("Getting username from user ID with data:");
     logger.debug(data);

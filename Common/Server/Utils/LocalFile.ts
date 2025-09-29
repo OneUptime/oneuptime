@@ -218,4 +218,18 @@ export default class LocalFile {
       },
     );
   }
+
+  @CaptureSpan()
+  public static async readAsBuffer(path: string): Promise<Buffer> {
+    return new Promise(
+      (resolve: (data: Buffer) => void, reject: PromiseRejectErrorFunction) => {
+        fs.readFile(path, (err: Error | null, data: Buffer) => {
+          if (!err) {
+            return resolve(data);
+          }
+          return reject(err);
+        });
+      },
+    );
+  }
 }

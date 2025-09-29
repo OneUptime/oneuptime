@@ -754,6 +754,9 @@ slackApp:
   clientSecret:
   signingSecret:
 
+microsoftTeamsApp: 
+  clientId:
+  clientSecret:
 
 keda:
   enabled: true

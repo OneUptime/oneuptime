@@ -21,6 +21,11 @@ export interface MiscData {
   [key: string]: any;
 }
 
+export interface MicrosoftTeamsTeam {
+  id: string;
+  name: string;
+}
+
 export interface SlackMiscData extends MiscData {
   teamId: string;
   teamName: string;
@@ -33,6 +38,22 @@ export interface SlackMiscData extends MiscData {
     };
   };
 }
+
+export interface MicrosoftTeamsMiscData extends MiscData {
+  tenantId: string;
+  teamId: string;
+  teamName: string;
+  botId: string;
+  appAccessToken?: string;
+  adminConsentGranted?: boolean;
+  lastAppTokenIssuedAt?: string;
+  adminConsentGrantedAt?: string;
+  adminConsentGrantedBy?: string;
+  availableTeams?: Record<string, MicrosoftTeamsTeam>;
+  appAccessTokenExpiresAt?: string;
+}
+
+export type WorkspaceMiscData = SlackMiscData | MicrosoftTeamsMiscData;
 
 @TenantColumn("projectId")
 @TableAccessControl({

@@ -340,6 +340,13 @@ export const SlackAppClientSecret: string | null =
 export const SlackAppSigningSecret: string | null =
   process.env["SLACK_APP_SIGNING_SECRET"] || null;
 
+// Microsoft Teams Configuration
+export const MicrosoftTeamsAppClientId: string | null =
+  process.env["MICROSOFT_TEAMS_APP_CLIENT_ID"] || null;
+export const MicrosoftTeamsAppClientSecret: string | null =
+  process.env["MICROSOFT_TEAMS_APP_CLIENT_SECRET"] || null;
+
+
 // VAPID Configuration for Web Push Notifications
 export const VapidPublicKey: string | undefined =
   process.env["VAPID_PUBLIC_KEY"] || undefined;

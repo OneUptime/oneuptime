@@ -9,4 +9,5 @@ export default interface BaseNotificationRule {
 
   shouldPostToExistingChannel: boolean;
   existingChannelNames: string; // separate by comma
+  existingTeam?: string; // team to post to (for MS Teams only)
 }

@@ -12,6 +12,10 @@ Usage:
 {{- end -}}
 
 {{- define "oneuptime.env.common" }}
+
+- name: MICROSOFT_TEAMS_APP_CLIENT_ID
+  value: {{ $.Values.microsoftTeamsApp.clientId }}
+
 {{- if $.Values.openTelemetryExporter.endpoint }}
 - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
   value: {{ $.Values.openTelemetryExporter.endpoint }}
@@ -170,6 +174,10 @@ Usage:
 
 - name: SLACK_APP_SIGNING_SECRET
   value: {{ $.Values.slackApp.signingSecret }}
+
+- name: MICROSOFT_TEAMS_APP_CLIENT_SECRET
+  value: {{ $.Values.microsoftTeamsApp.clientSecret }}
+
 
 - name: NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER
   value: {{ $.Values.notifications.webhooks.slack.onCreateUser }}

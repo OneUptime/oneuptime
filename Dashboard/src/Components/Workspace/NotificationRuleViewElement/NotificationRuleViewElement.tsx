@@ -4,7 +4,7 @@ import AlertNotificationRule from "Common/Types/Workspace/NotificationRules/Noti
 import ScheduledMaintenanceNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/ScheduledMaintenanceNotificationRule";
 import MonitorNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/MonitorNotificationRule";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
-import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import WorkspaceType, { getWorkspaceTypeDisplayName } from "Common/Types/Workspace/WorkspaceType";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Field from "Common/UI/Components/Detail/Field";
 import Detail from "Common/UI/Components/Detail/Detail";
@@ -22,6 +22,7 @@ import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMai
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import TeamsElement from "../../Team/TeamsElement";
 import UsersElement from "../../User/Users";
+import { MicrosoftTeamsTeam } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 
 export interface ComponentProps {
   value:
@@ -40,6 +41,7 @@ export interface ComponentProps {
   monitorStatus: Array<MonitorStatus>;
   workspaceType: WorkspaceType;
   teams: Array<Team>;
+  microsoftTeamsTeams?: Array<MicrosoftTeamsTeam>;
   users: Array<User>;
 }
 
@@ -90,14 +92,40 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
     {
       key: "shouldPostToExistingChannel",
-      title: `Post to Existing ${props.workspaceType} Channel`,
-      description: `When above conditions are met, post to an existing ${props.workspaceType} channel.`,
+      title: `Post to Existing ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`,
+      description: `When above conditions are met, post to an existing ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`,
       fieldType: FieldType.Boolean,
+    },
+    
+    {
+      key: "existingTeam",
+      title: `Team select in ${getWorkspaceTypeDisplayName(props.workspaceType)} `,
+      description: `The team where the message will be posted.`,
+      fieldType: FieldType.Element,
+      showIf: (
+        formValue:
+          | IncidentNotificationRule
+          | AlertNotificationRule
+          | ScheduledMaintenanceNotificationRule
+          | MonitorNotificationRule,
+      ) => {
+        return Boolean(formValue.shouldPostToExistingChannel) && props.workspaceType === WorkspaceType.MicrosoftTeams && Boolean(formValue.existingTeam);
+      },
+      getElement: () => {
+        if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
+          const selectedTeam = (props.microsoftTeamsTeams || []).find((i: MicrosoftTeamsTeam) => {
+            return props.value.existingTeam?.toString() === i.id;
+          });
+          return <span>{selectedTeam?.name || "Unknown Team"}</span>;
+        } 
+
+        return <span>N/A</span>;
+      },
     },
     {
       key: "existingChannelNames",
-      title: `Existing ${props.workspaceType} Channel Name to Post To`,
-      description: `Please provide the name of the ${props.workspaceType} channel you want to post to.`,
+      title: `Existing ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Name to Post To`,
+      description: `Please provide the name of the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel you want to post to.`,
       fieldType: FieldType.Text,
       showIf: (
         formValue:
@@ -111,29 +139,29 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
   ];
 
-  let archiveTitle: string = `Archive ${props.workspaceType} Channel`;
-  let archiveDescription: string = `When above conditions are met, archive the ${props.workspaceType} channel.`;
+  let archiveTitle: string = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`;
+  let archiveDescription: string = `When above conditions are met, archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`;
 
   if (props.eventType === NotificationRuleEventType.Monitor) {
-    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
-    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the monitor is deleted.`;
+    archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;
+    archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the monitor is deleted.`;
   }
 
   if (props.eventType === NotificationRuleEventType.ScheduledMaintenance) {
-    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
-    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the scheduled maintenance is completed.`;
+    archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;
+    archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the scheduled maintenance is completed.`;
   }
 
   // incident.
   if (props.eventType === NotificationRuleEventType.Incident) {
-    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
-    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the incident is resolved.`;
+    archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;
+    archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the incident is resolved.`;
   }
 
   // alert
   if (props.eventType === NotificationRuleEventType.Alert) {
-    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
-    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the alert is resolved.`;
+    archiveTitle = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Automatically`;
+    archiveDescription = `Archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel automatically when the alert is resolved.`;
   }
 
   const incidentAlertMaintenanceFields: Array<
@@ -148,6 +176,30 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
       title: `Create ${props.workspaceType} Channel`,
       description: `When above conditions are met, create a new ${props.workspaceType} channel.`,
       fieldType: FieldType.Boolean,
+    },
+    {
+      key: "teamToCreateChannelIn",
+      title: `Team to Create Channel In`,
+      description: `The team where the new channel will be created.`,
+      fieldType: FieldType.Element,
+      showIf: (
+        formValue:
+          | IncidentNotificationRule
+          | AlertNotificationRule
+          | ScheduledMaintenanceNotificationRule,
+      ) => {
+        return formValue.shouldCreateNewChannel && props.workspaceType === WorkspaceType.MicrosoftTeams && Boolean((formValue as any).teamToCreateChannelIn);
+      },
+      getElement: () => {
+        if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
+          const selectedTeam = (props.microsoftTeamsTeams || []).find((i: MicrosoftTeamsTeam) => {
+            return (props.value as any).teamToCreateChannelIn?.toString() === i.id;
+          });
+          return <span>{selectedTeam?.name || "Unknown Team"}</span>;
+        } 
+
+        return <span>N/A</span>;
+      },
     },
     {
       key: "newChannelTemplateName",

@@ -55,6 +55,7 @@ export default class WorkspaceBase {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
+    teamId?: string;
   }): Promise<boolean> {
     throw new NotImplementedException();
   }
@@ -74,6 +75,7 @@ export default class WorkspaceBase {
   public static async getUsernameFromUserId(_data: {
     authToken: string;
     userId: string;
+    projectId: ObjectID;
   }): Promise<string | null> {
     throw new NotImplementedException();
   }
@@ -192,6 +194,7 @@ export default class WorkspaceBase {
   public static async getWorkspaceChannelFromChannelId(_data: {
     authToken: string;
     channelId: string;
+    teamId?: string;
   }): Promise<WorkspaceChannel> {
     throw new NotImplementedException();
   }
@@ -202,6 +205,7 @@ export default class WorkspaceBase {
     authToken: string; // which auth token should we use to send.
     userId: string;
     projectId: ObjectID;
+    teamId?: string;
   }): Promise<WorkspaceSendMessageResponse> {
     throw new NotImplementedException();
   }
