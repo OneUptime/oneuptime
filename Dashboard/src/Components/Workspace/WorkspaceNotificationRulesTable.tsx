@@ -351,24 +351,20 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
 
       // Load Microsoft Teams if workspace type is Microsoft Teams
       if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
-        try {
-          const microsoftTeamsResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
-            await API.get({
-              url: URL.fromString(APP_API_URL.toString()).addRoute(
-                `/microsoft-teams/teams`,
-              ),
-              headers: ModelAPI.getCommonHeaders(),
-            });
+        const microsoftTeamsResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.get({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              `/microsoft-teams/teams`,
+            ),
+            headers: ModelAPI.getCommonHeaders(),
+          });
 
-          if (microsoftTeamsResponse instanceof HTTPErrorResponse) {
-
-          } else {
-            const teamsData: Array<MicrosoftTeamsTeam> = 
-              (microsoftTeamsResponse.data as any)?.teams || [];
-            setMicrosoftTeams(teamsData);
-          }
-        } catch (err) {
-          
+        if (microsoftTeamsResponse instanceof HTTPErrorResponse) {
+          throw microsoftTeamsResponse;
+        } else {
+          const teamsData: Array<MicrosoftTeamsTeam> = 
+            (microsoftTeamsResponse.data as any)?.teams || [];
+          setMicrosoftTeams(teamsData);
         }
       }
     } catch (err) {
