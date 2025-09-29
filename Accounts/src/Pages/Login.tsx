@@ -1,6 +1,8 @@
 import {
   LOGIN_API_URL,
   VERIFY_TWO_FACTOR_AUTH_API_URL,
+  GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL,
+  VERIFY_WEBAUTHN_AUTH_API_URL,
 } from "../Utils/ApiPaths";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -13,12 +15,12 @@ import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg
 import UiAnalytics from "Common/UI/Utils/Analytics";
 import LoginUtil from "Common/UI/Utils/Login";
 import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
+import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
 import React from "react";
 import useAsyncEffect from "use-async-effect";
-import StaticModelList from "Common/UI/Components/ModelList/StaticModelList";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import API from "Common/UI/Utils/API/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -40,9 +42,27 @@ const LoginPage: () => JSX.Element = () => {
     UserTwoFactorAuth[]
   >([]);
 
+  const [webAuthnList, setWebAuthnList] = React.useState<
+    UserWebAuthn[]
+  >([]);
+
   const [selectedTwoFactorAuth, setSelectedTwoFactorAuth] = React.useState<
     UserTwoFactorAuth | undefined
   >(undefined);
+
+  const [selectedWebAuthn, setSelectedWebAuthn] = React.useState<
+    UserWebAuthn | undefined
+  >(undefined);
+
+  type TwoFactorMethod = {
+    type: "totp" | "webauthn";
+    item: UserTwoFactorAuth | UserWebAuthn;
+  };
+
+  const twoFactorMethods: TwoFactorMethod[] = [
+    ...twoFactorAuthList.map(item => ({ type: "totp" as const, item })),
+    ...webAuthnList.map(item => ({ type: "webauthn" as const, item })),
+  ];
 
   const [isTwoFactorAuthLoading, setIsTwoFactorAuthLoading] =
     React.useState<boolean>(false);
@@ -56,6 +76,72 @@ const LoginPage: () => JSX.Element = () => {
       });
     }
   }, []);
+
+  useAsyncEffect(async () => {
+    if (selectedWebAuthn) {
+      setIsTwoFactorAuthLoading(true);
+      try {
+        const result = await API.post({
+          url: GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL,
+          data: {
+            email: initialValues["email"],
+          },
+        });
+
+        if (result instanceof HTTPErrorResponse) {
+          throw result;
+        }
+
+        const data = result.data as any;
+
+        // Use WebAuthn API
+        const credential = await navigator.credentials.get({
+          publicKey: data.options,
+        }) as PublicKeyCredential;
+
+        const assertionResponse = credential.response as AuthenticatorAssertionResponse;
+
+        // Verify
+        const verifyResult = await API.post({
+          url: VERIFY_WEBAUTHN_AUTH_API_URL,
+          data: {
+            userId: data.userId,
+            challenge: data.challenge,
+            credential: {
+              id: credential.id,
+              rawId: Array.from(new Uint8Array(credential.rawId)),
+              response: {
+                authenticatorData: Array.from(new Uint8Array(assertionResponse.authenticatorData)),
+                clientDataJSON: Array.from(new Uint8Array(assertionResponse.clientDataJSON)),
+                signature: Array.from(new Uint8Array(assertionResponse.signature)),
+                userHandle: assertionResponse.userHandle ? Array.from(new Uint8Array(assertionResponse.userHandle)) : null,
+              },
+              type: credential.type,
+            },
+          },
+        });
+
+        if (verifyResult instanceof HTTPErrorResponse) {
+          throw verifyResult;
+        }
+
+        const user: User = User.fromJSON(
+          verifyResult.data as JSONObject,
+          User,
+        ) as User;
+        const miscData: JSONObject = (verifyResult.data as JSONObject)[
+          "miscData"
+        ] as JSONObject;
+
+        login(user as User, miscData as JSONObject);
+      } catch (error) {
+        setTwoFactorAuthError(
+          API.getFriendlyErrorMessage(error as Error),
+        );
+      }
+      setIsTwoFactorAuthLoading(false);
+    }
+  }, [selectedWebAuthn]);
 
   type LoginFunction = (user: User, miscData: JSONObject) => void;
 
@@ -165,7 +251,15 @@ const LoginPage: () => JSX.Element = () => {
                       ] as JSONArray,
                       UserTwoFactorAuth,
                     );
+                  const webAuthnList: Array<UserWebAuthn> =
+                    UserWebAuthn.fromJSONArray(
+                      (miscData as JSONObject)[
+                        "webAuthnList"
+                      ] as JSONArray,
+                      UserWebAuthn,
+                    );
                   setTwoFactorAuthList(twoFactorAuthList);
+                  setWebAuthnList(webAuthnList);
                   setShowTwoFactorAuth(true);
                   return;
                 }
@@ -187,16 +281,42 @@ const LoginPage: () => JSX.Element = () => {
             />
           )}
 
-          {showTwoFactorAuth && !selectedTwoFactorAuth && (
-            <StaticModelList<UserTwoFactorAuth>
-              titleField="name"
-              descriptionField=""
-              selectedItems={[]}
-              list={twoFactorAuthList}
-              onClick={(item: UserTwoFactorAuth) => {
-                setSelectedTwoFactorAuth(item);
-              }}
-            />
+          {showTwoFactorAuth && !selectedTwoFactorAuth && !selectedWebAuthn && (
+            <div className="space-y-4">
+              {twoFactorMethods.map((method, index) => (
+                <div
+                  key={index}
+                  className="cursor-pointer p-4 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  onClick={() => {
+                    if (method.type === "totp") {
+                      setSelectedTwoFactorAuth(method.item as UserTwoFactorAuth);
+                    } else {
+                      setSelectedWebAuthn(method.item as UserWebAuthn);
+                    }
+                  }}
+                >
+                  <div className="font-medium">{(method.item as any).name}</div>
+                  <div className="text-sm text-gray-500">
+                    {method.type === "totp" ? "Authenticator App" : "Security Key"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {showTwoFactorAuth && selectedWebAuthn && (
+            <div className="text-center">
+              <div className="text-lg font-medium mb-4">Authenticating with Security Key</div>
+              <div className="text-sm text-gray-500 mb-4">
+                Please follow the instructions on your security key device.
+              </div>
+              {isTwoFactorAuthLoading && (
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto"></div>
+              )}
+              {twofactorAuthError && (
+                <div className="text-red-500 text-sm mt-4">{twofactorAuthError}</div>
+              )}
+            </div>
           )}
 
           {showTwoFactorAuth && selectedTwoFactorAuth && (
@@ -225,7 +345,7 @@ const LoginPage: () => JSX.Element = () => {
                 try {
                   const code: string = data["code"] as string;
                   const twoFactorAuthId: string =
-                    selectedTwoFactorAuth.id?.toString() as string;
+                    selectedTwoFactorAuth!.id?.toString() as string;
 
                   const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
                     await API.post({
@@ -262,7 +382,7 @@ const LoginPage: () => JSX.Element = () => {
           )}
         </div>
         <div className="mt-10 text-center">
-          {!selectedTwoFactorAuth && (
+          {!selectedTwoFactorAuth && !selectedWebAuthn && (
             <div className="text-muted mb-0 text-gray-500">
               Don&apos;t have an account?{" "}
               <Link
@@ -273,11 +393,12 @@ const LoginPage: () => JSX.Element = () => {
               </Link>
             </div>
           )}
-          {selectedTwoFactorAuth ? (
+          {(selectedTwoFactorAuth || selectedWebAuthn) ? (
             <div className="text-muted mb-0 text-gray-500">
               <Link
                 onClick={() => {
                   setSelectedTwoFactorAuth(undefined);
+                  setSelectedWebAuthn(undefined);
                 }}
                 className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
               >
