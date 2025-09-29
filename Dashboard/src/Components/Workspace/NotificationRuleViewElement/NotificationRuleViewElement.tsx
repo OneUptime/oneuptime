@@ -96,24 +96,10 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
       description: `When above conditions are met, post to an existing ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`,
       fieldType: FieldType.Boolean,
     },
-    {
-      key: "existingChannelNames",
-      title: `Existing ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Name to Post To`,
-      description: `Please provide the name of the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel you want to post to.`,
-      fieldType: FieldType.Text,
-      showIf: (
-        formValue:
-          | IncidentNotificationRule
-          | AlertNotificationRule
-          | ScheduledMaintenanceNotificationRule
-          | MonitorNotificationRule,
-      ) => {
-        return Boolean(formValue.shouldPostToExistingChannel) || false;
-      },
-    },
+    
     {
       key: "existingTeam",
-      title: `Selected ${getWorkspaceTypeDisplayName(props.workspaceType)} Team`,
+      title: `Team select in ${getWorkspaceTypeDisplayName(props.workspaceType)} `,
       description: `The team where the message will be posted.`,
       fieldType: FieldType.Element,
       showIf: (
@@ -134,6 +120,21 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
         } 
 
         return <span>N/A</span>;
+      },
+    },
+    {
+      key: "existingChannelNames",
+      title: `Existing ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Name to Post To`,
+      description: `Please provide the name of the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel you want to post to.`,
+      fieldType: FieldType.Text,
+      showIf: (
+        formValue:
+          | IncidentNotificationRule
+          | AlertNotificationRule
+          | ScheduledMaintenanceNotificationRule
+          | MonitorNotificationRule,
+      ) => {
+        return Boolean(formValue.shouldPostToExistingChannel) || false;
       },
     },
   ];

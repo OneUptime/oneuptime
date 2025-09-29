@@ -20,6 +20,9 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import API from "Common/Utils/API";
 import Exception from "Common/Types/Exception/Exception";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import WorkspaceProjectAuthToken, {
   MicrosoftTeamsMiscData,
@@ -60,6 +63,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
   const [isAdminConsentCompleted, setIsAdminConsentCompleted] =
     React.useState<boolean>(false);
+  const [isRefreshTeamsLoading, setIsRefreshTeamsLoading] = React.useState<boolean>(false);
 
 
 
@@ -312,6 +316,32 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const refreshTeams: VoidFunction = async (): Promise<void> => {
+    try {
+      setIsRefreshTeamsLoading(true);
+      setError(null);
+
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/microsoft-teams/refresh-teams`,
+          ),
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      // Reload the component to get updated teams
+      await loadItems();
+    } catch (error) {
+      setError(<div>{API.getFriendlyErrorMessage(error as Exception)}</div>);
+    } finally {
+      setIsRefreshTeamsLoading(false);
+    }
+  };
+
   // if user is not connected and the project is connected with Teams.
   if (!isUserAccountConnected && isProjectAccountConnected) {
     cardTitle = `You are disconnected from Microsoft Teams`;
@@ -398,6 +428,13 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                     onClick: () => {
                       setIsAdminConsentCompleted(false);
                     },
+                  },
+                  {
+                    title: "Refresh Teams",
+                    buttonStyle: SharedButtonStyle.NORMAL,
+                    icon: IconProp.Refresh,
+                    isLoading: isRefreshTeamsLoading,
+                    onClick: () => refreshTeams(),
                   },
                 ]
               : [
