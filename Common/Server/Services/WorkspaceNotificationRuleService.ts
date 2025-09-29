@@ -208,7 +208,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       for (const channelName of existingChannelNames) {
         try {
           // check if these channels exist.
-          const doesChannelExistData = {
+          const doesChannelExistData: {
+            authToken: string;
+            channelName: string;
+            projectId: ObjectID;
+            teamId?: string;
+          } = {
             authToken: projectAuthToken,
             channelName: channelName,
             projectId: data.projectId,
@@ -1020,7 +1025,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             logger.debug("Channel IDs to send message to:");
             logger.debug(channelIds);
 
-            const sendMessageData = {
+            let sendMessageData: {
+              userId: string;
+              authToken: string;
+              workspaceMessagePayload: WorkspaceMessagePayload;
+              projectId: ObjectID;
+              teamId?: string;
+            } = {
               userId: data.projectAuth.workspaceProjectId!,
               authToken: data.projectAuth.authToken!,
               workspaceMessagePayload: {
@@ -1038,7 +1049,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                     })} cannot be invited to the channel because the account is not connected to ${data.workspaceType}. Please go to User Settings > ${data.workspaceType} on OneUptime Dashboard and connect the account.`,
                   } as WorkspacePayloadMarkdown,
                 ],
-              },
+              } as WorkspaceMessagePayload,
               projectId: data.projectId,
             };
 
@@ -1185,7 +1196,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             logger.debug("Channel IDs to send message to:");
             logger.debug(channelIds);
 
-            const sendMessageData = {
+            let sendMessageData: {
+              userId: string;
+              authToken: string;
+              workspaceMessagePayload: WorkspaceMessagePayload;
+              projectId: ObjectID;
+              teamId?: string;
+            } = {
               userId: projectAuth.workspaceProjectId!,
               authToken: projectAuth.authToken!,
               workspaceMessagePayload: {
@@ -1203,7 +1220,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                     })} cannot be invited to the channel because the account is not connected to ${workspaceType}. Please go to User Settings > ${workspaceType} on OneUptime Dashboard and connect the account.`,
                   } as WorkspacePayloadMarkdown,
                 ],
-              },
+              } as WorkspaceMessagePayload,
               projectId: data.projectId,
             };
 

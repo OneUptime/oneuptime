@@ -1232,10 +1232,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
-    teamId: string;
+    teamId?: string;
   }): Promise<boolean> {
+    if (!data.teamId) {
+      throw new BadDataException("teamId is required for Microsoft Teams doesChannelExist");
+    }
     const channel: WorkspaceChannel | null =
-      await this.getWorkspaceChannelByName(data);
+      await this.getWorkspaceChannelByName({
+        authToken: data.authToken,
+        channelName: data.channelName,
+        projectId: data.projectId,
+        teamId: data.teamId,
+      });
     return channel !== null;
   }
 
