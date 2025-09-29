@@ -42,9 +42,7 @@ const LoginPage: () => JSX.Element = () => {
     UserTwoFactorAuth[]
   >([]);
 
-  const [webAuthnList, setWebAuthnList] = React.useState<
-    UserWebAuthn[]
-  >([]);
+  const [webAuthnList, setWebAuthnList] = React.useState<UserWebAuthn[]>([]);
 
   const [selectedTwoFactorAuth, setSelectedTwoFactorAuth] = React.useState<
     UserTwoFactorAuth | undefined
@@ -60,8 +58,12 @@ const LoginPage: () => JSX.Element = () => {
   };
 
   const twoFactorMethods: TwoFactorMethod[] = [
-    ...twoFactorAuthList.map(item => ({ type: "totp" as const, item })),
-    ...webAuthnList.map(item => ({ type: "webauthn" as const, item })),
+    ...twoFactorAuthList.map((item: UserTwoFactorAuth) => {
+      return { type: "totp" as const, item };
+    }),
+    ...webAuthnList.map((item: UserWebAuthn) => {
+      return { type: "webauthn" as const, item };
+    }),
   ];
 
   const [isTwoFactorAuthLoading, setIsTwoFactorAuthLoading] =
@@ -81,7 +83,7 @@ const LoginPage: () => JSX.Element = () => {
     if (selectedWebAuthn) {
       setIsTwoFactorAuthLoading(true);
       try {
-        const result = await API.post({
+        const result: HTTPResponse<JSONObject> = await API.post({
           url: GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL,
           data: {
             email: initialValues["email"],
@@ -92,17 +94,19 @@ const LoginPage: () => JSX.Element = () => {
           throw result;
         }
 
-        const data = result.data as any;
+        const data: any = result.data as any;
 
         // Use WebAuthn API
-        const credential = await navigator.credentials.get({
-          publicKey: data.options,
-        }) as PublicKeyCredential;
+        const credential: PublicKeyCredential =
+          (await navigator.credentials.get({
+            publicKey: data.options,
+          })) as PublicKeyCredential;
 
-        const assertionResponse = credential.response as AuthenticatorAssertionResponse;
+        const assertionResponse: AuthenticatorAssertionResponse =
+          credential.response as AuthenticatorAssertionResponse;
 
         // Verify
-        const verifyResult = await API.post({
+        const verifyResult: HTTPResponse<JSONObject> = await API.post({
           url: VERIFY_WEBAUTHN_AUTH_API_URL,
           data: {
             userId: data.userId,
@@ -111,10 +115,18 @@ const LoginPage: () => JSX.Element = () => {
               id: credential.id,
               rawId: Array.from(new Uint8Array(credential.rawId)),
               response: {
-                authenticatorData: Array.from(new Uint8Array(assertionResponse.authenticatorData)),
-                clientDataJSON: Array.from(new Uint8Array(assertionResponse.clientDataJSON)),
-                signature: Array.from(new Uint8Array(assertionResponse.signature)),
-                userHandle: assertionResponse.userHandle ? Array.from(new Uint8Array(assertionResponse.userHandle)) : null,
+                authenticatorData: Array.from(
+                  new Uint8Array(assertionResponse.authenticatorData),
+                ),
+                clientDataJSON: Array.from(
+                  new Uint8Array(assertionResponse.clientDataJSON),
+                ),
+                signature: Array.from(
+                  new Uint8Array(assertionResponse.signature),
+                ),
+                userHandle: assertionResponse.userHandle
+                  ? Array.from(new Uint8Array(assertionResponse.userHandle))
+                  : null,
               },
               type: credential.type,
             },
@@ -135,9 +147,7 @@ const LoginPage: () => JSX.Element = () => {
 
         login(user as User, miscData as JSONObject);
       } catch (error) {
-        setTwoFactorAuthError(
-          API.getFriendlyErrorMessage(error as Error),
-        );
+        setTwoFactorAuthError(API.getFriendlyErrorMessage(error as Error));
       }
       setIsTwoFactorAuthLoading(false);
     }
@@ -253,9 +263,7 @@ const LoginPage: () => JSX.Element = () => {
                     );
                   const webAuthnList: Array<UserWebAuthn> =
                     UserWebAuthn.fromJSONArray(
-                      (miscData as JSONObject)[
-                        "webAuthnList"
-                      ] as JSONArray,
+                      (miscData as JSONObject)["webAuthnList"] as JSONArray,
                       UserWebAuthn,
                     );
                   setTwoFactorAuthList(twoFactorAuthList);
@@ -283,30 +291,42 @@ const LoginPage: () => JSX.Element = () => {
 
           {showTwoFactorAuth && !selectedTwoFactorAuth && !selectedWebAuthn && (
             <div className="space-y-4">
-              {twoFactorMethods.map((method, index) => (
-                <div
-                  key={index}
-                  className="cursor-pointer p-4 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  onClick={() => {
-                    if (method.type === "totp") {
-                      setSelectedTwoFactorAuth(method.item as UserTwoFactorAuth);
-                    } else {
-                      setSelectedWebAuthn(method.item as UserWebAuthn);
-                    }
-                  }}
-                >
-                  <div className="font-medium">{(method.item as any).name}</div>
-                  <div className="text-sm text-gray-500">
-                    {method.type === "totp" ? "Authenticator App" : "Security Key"}
-                  </div>
-                </div>
-              ))}
+              {twoFactorMethods.map(
+                (method: TwoFactorMethod, index: number) => {
+                  return (
+                    <div
+                      key={index}
+                      className="cursor-pointer p-4 border border-gray-300 rounded-lg hover:bg-gray-50"
+                      onClick={() => {
+                        if (method.type === "totp") {
+                          setSelectedTwoFactorAuth(
+                            method.item as UserTwoFactorAuth,
+                          );
+                        } else {
+                          setSelectedWebAuthn(method.item as UserWebAuthn);
+                        }
+                      }}
+                    >
+                      <div className="font-medium">
+                        {(method.item as any).name}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {method.type === "totp"
+                          ? "Authenticator App"
+                          : "Security Key"}
+                      </div>
+                    </div>
+                  );
+                },
+              )}
             </div>
           )}
 
           {showTwoFactorAuth && selectedWebAuthn && (
             <div className="text-center">
-              <div className="text-lg font-medium mb-4">Authenticating with Security Key</div>
+              <div className="text-lg font-medium mb-4">
+                Authenticating with Security Key
+              </div>
               <div className="text-sm text-gray-500 mb-4">
                 Please follow the instructions on your security key device.
               </div>
@@ -314,7 +334,9 @@ const LoginPage: () => JSX.Element = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto"></div>
               )}
               {twofactorAuthError && (
-                <div className="text-red-500 text-sm mt-4">{twofactorAuthError}</div>
+                <div className="text-red-500 text-sm mt-4">
+                  {twofactorAuthError}
+                </div>
               )}
             </div>
           )}
@@ -393,7 +415,7 @@ const LoginPage: () => JSX.Element = () => {
               </Link>
             </div>
           )}
-          {(selectedTwoFactorAuth || selectedWebAuthn) ? (
+          {selectedTwoFactorAuth || selectedWebAuthn ? (
             <div className="text-muted mb-0 text-gray-500">
               <Link
                 onClick={() => {

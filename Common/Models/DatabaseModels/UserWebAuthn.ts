@@ -141,8 +141,7 @@ class UserWebAuthn extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Is Verified",
     isDefaultValueColumn: true,
-    description:
-      "Is this WebAuthn credential verified and validated",
+    description: "Is this WebAuthn credential verified and validated",
     defaultValue: false,
   })
   @Column({
@@ -232,8 +231,7 @@ class UserWebAuthn extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "User ID",
-    description:
-      "User ID who owns this WebAuthn credential",
+    description: "User ID who owns this WebAuthn credential",
   })
   @Column({
     type: ColumnType.ObjectID,

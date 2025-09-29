@@ -22,8 +22,8 @@ import {
   verifyAuthenticationResponse,
 } from "@simplewebauthn/server";
 import { JSONObject } from "../../Types/JSON";
-import  { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
-import {  Host, HttpProtocol } from "../EnvironmentConfig";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { Host, HttpProtocol } from "../EnvironmentConfig";
 
 export default class UserWebAuthnAPI extends BaseAPI<
   UserWebAuthn,
@@ -37,7 +37,8 @@ export default class UserWebAuthnAPI extends BaseAPI<
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const userId: ObjectID = (req as OneUptimeRequest).userAuthorization!.userId;
+          const userId: ObjectID = (req as OneUptimeRequest).userAuthorization!
+            .userId;
 
           const user: User | null = await UserService.findOneById({
             id: userId,
@@ -59,31 +60,38 @@ export default class UserWebAuthnAPI extends BaseAPI<
           }
 
           // Get existing credentials for this user
-          const existingCredentials: Array<UserWebAuthn> = await UserWebAuthnService.findBy({
-            query: {
-              userId: userId,
-            },
-            select: {
-              credentialId: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
+          const existingCredentials: Array<UserWebAuthn> =
+            await UserWebAuthnService.findBy({
+              query: {
+                userId: userId,
+              },
+              select: {
+                credentialId: true,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
 
-          const options = await generateRegistrationOptions({
+          const options: any = await generateRegistrationOptions({
             rpName: "OneUptime",
             rpID: Host.toString(),
             userID: new Uint8Array(Buffer.from(userId.toString())),
             userName: user.email.toString(),
-            userDisplayName: user.name ? user.name.toString() : user.email.toString(),
+            userDisplayName: user.name
+              ? user.name.toString()
+              : user.email.toString(),
             attestationType: "none",
-            excludeCredentials: existingCredentials.map(cred => ({
-              id: cred.credentialId!,
-              type: "public-key",
-            })),
+            excludeCredentials: existingCredentials.map(
+              (cred: UserWebAuthn) => {
+                return {
+                  id: cred.credentialId!,
+                  type: "public-key",
+                };
+              },
+            ),
             authenticatorSelection: {
               residentKey: "discouraged",
               userVerification: "preferred",
@@ -113,7 +121,7 @@ export default class UserWebAuthnAPI extends BaseAPI<
 
           const expectedOrigin: string = `${HttpProtocol}${Host.toString()}`;
 
-          const verification = await verifyRegistrationResponse({
+          const verification: any = await verifyRegistrationResponse({
             response: credential,
             expectedChallenge: expectedChallenge,
             expectedOrigin: expectedOrigin,
@@ -135,7 +143,9 @@ export default class UserWebAuthnAPI extends BaseAPI<
             data: {
               name: name,
               credentialId: registrationInfo.credential.id,
-              publicKey: Buffer.from(registrationInfo.credential.publicKey).toString('base64'),
+              publicKey: Buffer.from(
+                registrationInfo.credential.publicKey,
+              ).toString("base64"),
               counter: "0",
               transports: JSON.stringify([]),
               isVerified: true,
@@ -176,32 +186,37 @@ export default class UserWebAuthnAPI extends BaseAPI<
             throw new BadDataException("User not found");
           }
 
-                    // Get user's WebAuthn credentials
-          const credentials: Array<UserWebAuthn> = await UserWebAuthnService.findBy({
-            query: {
-              userId: user.id!,
-              isVerified: true,
-            },
-            select: {
-              credentialId: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
+          // Get user's WebAuthn credentials
+          const credentials: Array<UserWebAuthn> =
+            await UserWebAuthnService.findBy({
+              query: {
+                userId: user.id!,
+                isVerified: true,
+              },
+              select: {
+                credentialId: true,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
 
           if (credentials.length === 0) {
-            throw new BadDataException("No WebAuthn credentials found for this user");
+            throw new BadDataException(
+              "No WebAuthn credentials found for this user",
+            );
           }
 
-          const options = await generateAuthenticationOptions({
+          const options: any = await generateAuthenticationOptions({
             rpID: Host.toString(),
-            allowCredentials: credentials.map(cred => ({
-              id: cred.credentialId!,
-              type: "public-key",
-            })),
+            allowCredentials: credentials.map((cred: UserWebAuthn) => {
+              return {
+                id: cred.credentialId!,
+                type: "public-key",
+              };
+            }),
             userVerification: "preferred",
           });
 
@@ -241,21 +256,22 @@ export default class UserWebAuthnAPI extends BaseAPI<
           }
 
           // Get the credential from database
-          const dbCredential: UserWebAuthn | null = await UserWebAuthnService.findOneBy({
-            query: {
-              credentialId: credential.id,
-              userId: new ObjectID(userId),
-              isVerified: true,
-            },
-            select: {
-              credentialId: true,
-              publicKey: true,
-              counter: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+          const dbCredential: UserWebAuthn | null =
+            await UserWebAuthnService.findOneBy({
+              query: {
+                credentialId: credential.id,
+                userId: new ObjectID(userId),
+                isVerified: true,
+              },
+              select: {
+                credentialId: true,
+                publicKey: true,
+                counter: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
 
           if (!dbCredential) {
             throw new BadDataException("Credential not found");
@@ -263,14 +279,14 @@ export default class UserWebAuthnAPI extends BaseAPI<
 
           const expectedOrigin: string = `${HttpProtocol}${Host.toString()}`;
 
-          const verification = await verifyAuthenticationResponse({
+          const verification: any = await verifyAuthenticationResponse({
             response: credential,
             expectedChallenge: expectedChallenge,
             expectedOrigin: expectedOrigin,
             expectedRPID: Host.toString(),
             credential: {
               id: dbCredential.credentialId!,
-              publicKey: Buffer.from(dbCredential.publicKey!, 'base64'),
+              publicKey: Buffer.from(dbCredential.publicKey!, "base64"),
               counter: parseInt(dbCredential.counter!),
             } as any,
           });

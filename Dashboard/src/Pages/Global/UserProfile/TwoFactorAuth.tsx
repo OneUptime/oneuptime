@@ -9,8 +9,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import UserUtil from "Common/UI/Utils/User";
 import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
 import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Button from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -46,9 +45,8 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const [showWebAuthnRegistrationModal, setShowWebAuthnRegistrationModal] =
     React.useState<boolean>(false);
-  const [webAuthnRegistrationError, setWebAuthnRegistrationError] = React.useState<
-    string | null
-  >(null);
+  const [webAuthnRegistrationError, setWebAuthnRegistrationError] =
+    React.useState<string | null>(null);
   const [webAuthnRegistrationLoading, setWebAuthnRegistrationLoading] =
     React.useState<boolean>(false);
 
@@ -154,49 +152,52 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title="Add Security Key"
               buttonStyle={ButtonStyleType.NORMAL}
               icon={IconProp.Add}
-              onClick={() => setShowWebAuthnRegistrationModal(true)}
+              onClick={() => {
+                return setShowWebAuthnRegistrationModal(true);
+              }}
             />
           </div>
 
           <ModelTable<UserWebAuthn>
-          modelType={UserWebAuthn}
-          name="Security Keys (WebAuthn)"
-          id="webauthn-table"
-          userPreferencesKey="user-webauthn-table"
-          isDeleteable={true}
-          refreshToggle={tableRefreshToggle}
-          filters={[]}
-          query={{
-            userId: UserUtil.getUserId(),
-          }}
-          isEditable={false}
-          showRefreshButton={true}
-          isCreateable={false}
-          isViewable={false}
-          cardProps={{
-            title: "Security Keys (WebAuthn)",
-            description: "Manage your security keys for two factor authentication.",
-          }}
-          noItemsMessage={"No security keys found."}
-          singularName="Security Key"
-          pluralName="Security Keys"
-          columns={[
-            {
-              field: {
-                name: true,
+            modelType={UserWebAuthn}
+            name="Security Keys (WebAuthn)"
+            id="webauthn-table"
+            userPreferencesKey="user-webauthn-table"
+            isDeleteable={true}
+            refreshToggle={tableRefreshToggle}
+            filters={[]}
+            query={{
+              userId: UserUtil.getUserId(),
+            }}
+            isEditable={false}
+            showRefreshButton={true}
+            isCreateable={false}
+            isViewable={false}
+            cardProps={{
+              title: "Security Keys (WebAuthn)",
+              description:
+                "Manage your security keys for two factor authentication.",
+            }}
+            noItemsMessage={"No security keys found."}
+            singularName="Security Key"
+            pluralName="Security Keys"
+            columns={[
+              {
+                field: {
+                  name: true,
+                },
+                title: "Name",
+                type: FieldType.Text,
               },
-              title: "Name",
-              type: FieldType.Text,
-            },
-            {
-              field: {
-                isVerified: true,
+              {
+                field: {
+                  isVerified: true,
+                },
+                title: "Is Verified?",
+                type: FieldType.Boolean,
               },
-              title: "Is Verified?",
-              type: FieldType.Boolean,
-            },
-          ]}
-        />
+            ]}
+          />
         </div>
 
         {showVerificationModal && selectedTwoFactorAuth ? (
@@ -302,7 +303,8 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     name: true,
                   },
                   title: "Name",
-                  description: "Give your security key a name (e.g., YubiKey, Titan Key)",
+                  description:
+                    "Give your security key a name (e.g., YubiKey, Titan Key)",
                   fieldType: FormFieldSchemaType.Text,
                   required: true,
                 },
@@ -320,27 +322,28 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 setWebAuthnRegistrationError("");
 
                 // Generate registration options
-                const response:
-                  | HTTPResponse<JSONObject>
-                  | HTTPErrorResponse = await API.post({
-                  url: URL.fromString(APP_API_URL.toString()).addRoute(
-                    `/user-webauthn/generate-registration-options`,
-                  ),
-                  data: {},
-                });
+                const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+                  await API.post({
+                    url: URL.fromString(APP_API_URL.toString()).addRoute(
+                      `/user-webauthn/generate-registration-options`,
+                    ),
+                    data: {},
+                  });
 
                 if (response instanceof HTTPErrorResponse) {
                   throw response;
                 }
 
-                const data = response.data as any;
+                const data: any = response.data as any;
 
                 // Use WebAuthn API
-                const credential = await navigator.credentials.create({
-                  publicKey: data.options,
-                }) as PublicKeyCredential;
+                const credential: PublicKeyCredential =
+                  (await navigator.credentials.create({
+                    publicKey: data.options,
+                  })) as PublicKeyCredential;
 
-                const attestationResponse = credential.response as AuthenticatorAttestationResponse;
+                const attestationResponse: AuthenticatorAttestationResponse =
+                  credential.response as AuthenticatorAttestationResponse;
 
                 // Verify registration
                 const verifyResponse:
@@ -356,8 +359,12 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       id: credential.id,
                       rawId: Array.from(new Uint8Array(credential.rawId)),
                       response: {
-                        attestationObject: Array.from(new Uint8Array(attestationResponse.attestationObject)),
-                        clientDataJSON: Array.from(new Uint8Array(attestationResponse.clientDataJSON)),
+                        attestationObject: Array.from(
+                          new Uint8Array(attestationResponse.attestationObject),
+                        ),
+                        clientDataJSON: Array.from(
+                          new Uint8Array(attestationResponse.clientDataJSON),
+                        ),
                       },
                       type: credential.type,
                     },
@@ -382,7 +389,6 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ) : (
           <></>
         )}
-
       </div>
       <CardModelDetail<User>
         cardProps={{
