@@ -76,7 +76,14 @@ export default class UserWebAuthnAPI extends BaseAPI<
       `${new this.entityType().getCrudApiPath()?.toString()}/generate-authentication-options`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const email: string = req.body["email"] as string;
+          const data: JSONObject = req.body["data"] as JSONObject;
+
+          if(!data){
+            throw new BadDataException("Data is required");
+          }
+
+          const email: string | undefined = data["email"] as string | undefined;
+
 
           if (!email) {
             throw new BadDataException("Email is required");

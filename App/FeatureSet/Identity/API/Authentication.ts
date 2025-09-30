@@ -505,7 +505,7 @@ router.post(
 );
 
 router.post(
-  "/verify-two-factor-auth",
+  "/verify-totp-auth",
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -629,6 +629,8 @@ const login: LoginFunction = async (options: {
 
   try {
     const data: JSONObject = req.body["data"];
+
+    logger.debug("Login request data: " + JSON.stringify(req.body, null, 2));
 
     const user: User = BaseModel.fromJSON(data as JSONObject, User) as User;
 

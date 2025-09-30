@@ -1,6 +1,6 @@
 import {
   LOGIN_API_URL,
-  VERIFY_TWO_FACTOR_AUTH_API_URL,
+  VERIFY_TOTP_AUTH_API_URL,
   GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL,
   VERIFY_WEBAUTHN_AUTH_API_URL,
 } from "../Utils/ApiPaths";
@@ -87,7 +87,9 @@ const LoginPage: () => JSX.Element = () => {
         const result: HTTPResponse<JSONObject> = await API.post({
           url: GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL,
           data: {
-            email: initialValues["email"],
+            data: {
+              email: initialValues["email"],
+            }
           },
         });
 
@@ -120,30 +122,32 @@ const LoginPage: () => JSX.Element = () => {
         const verifyResult: HTTPResponse<JSONObject> = await API.post({
           url: VERIFY_WEBAUTHN_AUTH_API_URL,
           data: {
-            ...initialValues,
-            challenge: data.challenge,
-            credential: {
-              id: credential.id,
-              rawId: Base64.uint8ArrayToBase64Url(
-                new Uint8Array(credential.rawId),
-              ),
-              response: {
-                authenticatorData: Base64.uint8ArrayToBase64Url(
-                  new Uint8Array(assertionResponse.authenticatorData),
+            data: {
+              ...initialValues,
+              challenge: data.challenge,
+              credential: {
+                id: credential.id,
+                rawId: Base64.uint8ArrayToBase64Url(
+                  new Uint8Array(credential.rawId),
                 ),
-                clientDataJSON: Base64.uint8ArrayToBase64Url(
-                  new Uint8Array(assertionResponse.clientDataJSON),
-                ),
-                signature: Base64.uint8ArrayToBase64Url(
-                  new Uint8Array(assertionResponse.signature),
-                ),
-                userHandle: assertionResponse.userHandle
-                  ? Base64.uint8ArrayToBase64Url(
+                response: {
+                  authenticatorData: Base64.uint8ArrayToBase64Url(
+                    new Uint8Array(assertionResponse.authenticatorData),
+                  ),
+                  clientDataJSON: Base64.uint8ArrayToBase64Url(
+                    new Uint8Array(assertionResponse.clientDataJSON),
+                  ),
+                  signature: Base64.uint8ArrayToBase64Url(
+                    new Uint8Array(assertionResponse.signature),
+                  ),
+                  userHandle: assertionResponse.userHandle
+                    ? Base64.uint8ArrayToBase64Url(
                       new Uint8Array(assertionResponse.userHandle),
                     )
-                  : null,
-              },
-              type: credential.type,
+                    : null,
+                },
+                type: credential.type,
+              }
             },
           },
         });
@@ -379,11 +383,13 @@ const LoginPage: () => JSX.Element = () => {
 
                   const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
                     await API.post({
-                      url: VERIFY_TWO_FACTOR_AUTH_API_URL,
+                      url: VERIFY_TOTP_AUTH_API_URL,
                       data: {
-                        ...initialValues,
-                        code: code,
-                        twoFactorAuthId: twoFactorAuthId,
+                        data: {
+                          ...initialValues,
+                          code: code,
+                          twoFactorAuthId: twoFactorAuthId,
+                        }
                       },
                     });
 
