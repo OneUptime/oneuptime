@@ -601,8 +601,8 @@ const fetchTotpAuthList: FetchTotpAuthListFunction = async (
   });
 
   return {
-    totpAuthList,
-    webAuthnList,
+    totpAuthList: totpAuthList || [],
+    webAuthnList: webAuthnList || [],
   };
 };
 
@@ -717,7 +717,7 @@ const login: LoginFunction = async (options: {
           );
         }
 
-        return Response.sendEntityResponse(req, res, user, User, {
+        return Response.sendEntityResponse(req, res, alreadySavedUser, User, {
           miscData: {
             totpAuthList: UserTotpAuth.toJSONArray(totpAuthList, UserTotpAuth),
             webAuthnList: UserWebAuthn.toJSONArray(webAuthnList, UserWebAuthn),
