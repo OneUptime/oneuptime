@@ -81,9 +81,10 @@ export default class UserWebAuthnAPI extends BaseAPI<
             throw new BadDataException("Email is required");
           }
 
-          const result = await UserWebAuthnService.generateAuthenticationOptions({
-            email: email,
-          });
+          const result =
+            await UserWebAuthnService.generateAuthenticationOptions({
+              email: email,
+            });
 
           return Response.sendJsonObjectResponse(req, res, result);
         } catch (err) {
@@ -91,6 +92,5 @@ export default class UserWebAuthnAPI extends BaseAPI<
         }
       },
     );
-
   }
 }

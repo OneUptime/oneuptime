@@ -70,7 +70,9 @@ export class Service extends DatabaseService<Model> {
       userDisplayName: user.name ? user.name.toString() : user.email.toString(),
       attestationType: "none",
       excludeCredentials: existingCredentials
-        .filter((cred: Model) => cred.credentialId)
+        .filter((cred: Model) => {
+          return cred.credentialId;
+        })
         .map((cred: Model) => {
           return {
             id: cred.credentialId!,
@@ -87,12 +89,15 @@ export class Service extends DatabaseService<Model> {
     options.challenge = Buffer.from(options.challenge).toString("base64url");
     if (options.excludeCredentials) {
       options.excludeCredentials = options.excludeCredentials.map(
-        (cred: any) => ({
-          ...cred,
-          id: typeof cred.id === "string"
-            ? cred.id
-            : Buffer.from(cred.id).toString("base64url"),
-        }),
+        (cred: any) => {
+          return {
+            ...cred,
+            id:
+              typeof cred.id === "string"
+                ? cred.id
+                : Buffer.from(cred.id).toString("base64url"),
+          };
+        },
       );
     }
 
@@ -189,9 +194,7 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (credentials.length === 0) {
-      throw new BadDataException(
-        "No WebAuthn credentials found for this user",
-      );
+      throw new BadDataException("No WebAuthn credentials found for this user");
     }
 
     const options: any = await generateAuthenticationOptions({

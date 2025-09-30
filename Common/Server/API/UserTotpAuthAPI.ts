@@ -46,7 +46,6 @@ export default class UserTotpAuthAPI extends BaseAPI<
           }
 
           if (
-            
             userTotpAuth.userId?.toString() !==
             (req as OneUptimeRequest).userAuthorization?.userId.toString()
           ) {

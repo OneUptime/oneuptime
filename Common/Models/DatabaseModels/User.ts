@@ -300,9 +300,6 @@ class User extends UserModel {
   })
   public twoFactorAuthEnabled?: boolean = undefined;
 
-
-
-
   @ColumnAccessControl({
     create: [],
     read: [],

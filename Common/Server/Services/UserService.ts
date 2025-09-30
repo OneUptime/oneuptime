@@ -29,8 +29,8 @@ import EmailVerificationToken from "../../Models/DatabaseModels/EmailVerificatio
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Model from "../../Models/DatabaseModels/User";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
-import UserTwoFactorAuth from "../../Models/DatabaseModels/UserTwoFactorAuth";
-import UserTwoFactorAuthService from "./UserTwoFactorAuthService";
+import UserTotpAuth from "../../Models/DatabaseModels/UserTotpAuth";
+import UserTotpAuthService from "./UserTotpAuthService";
 import UserWebAuthn from "../../Models/DatabaseModels/UserWebAuthn";
 import UserWebAuthnService from "./UserWebAuthnService";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -159,8 +159,8 @@ export class Service extends DatabaseService<Model> {
       });
 
       for (const user of users) {
-        const twoFactorAuth: UserTwoFactorAuth | null =
-          await UserTwoFactorAuthService.findOneBy({
+        const totpAuth: UserTotpAuth | null =
+          await UserTotpAuthService.findOneBy({
             query: {
               userId: user.id!,
               isVerified: true,
@@ -187,7 +187,7 @@ export class Service extends DatabaseService<Model> {
             },
           });
 
-        if (!twoFactorAuth && !webAuthn) {
+        if (!totpAuth && !webAuthn) {
           throw new BadDataException(
             "Please verify two factor authentication method before you enable two factor authentication.",
           );

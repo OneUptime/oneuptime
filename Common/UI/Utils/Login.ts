@@ -23,12 +23,11 @@ export default abstract class LoginUtil {
       UserUtil.setSavedUserTimezone(user.timezone);
     }
 
-    if(user.isMasterAdmin){
+    if (user.isMasterAdmin) {
       UserUtil.setIsMasterAdmin(user.isMasterAdmin as boolean);
-    }else{
+    } else {
       UserUtil.setIsMasterAdmin(false);
     }
-    
 
     if (user.profilePictureId) {
       UserUtil.setProfilePicId(user.profilePictureId);

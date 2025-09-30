@@ -123,7 +123,7 @@ import UserNotificationSettingService from "./UserNotificationSettingService";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import UserService from "./UserService";
-import UserTwoFactorAuthService from "./UserTwoFactorAuthService";
+import UserTotpAuthService from "./UserTotpAuthService";
 import UserWebAuthnService from "./UserWebAuthnService";
 import UserSmsService from "./UserSmsService";
 import WorkflowLogService from "./WorkflowLogService";
@@ -281,7 +281,7 @@ const services: Array<BaseService> = [
   UserOnCallLogService,
   UserOnCallLogTimelineService,
   UserSmsService,
-  UserTwoFactorAuthService,
+  UserTotpAuthService,
   UserWebAuthnService,
 
   WorkflowLogService,

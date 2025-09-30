@@ -24,7 +24,7 @@ import WorkspaceNotificationRuleAPI from "Common/Server/API/WorkspaceNotificatio
 import StatusPageDomainAPI from "Common/Server/API/StatusPageDomainAPI";
 import StatusPageSubscriberAPI from "Common/Server/API/StatusPageSubscriberAPI";
 import UserCallAPI from "Common/Server/API/UserCallAPI";
-import UserTwoFactorAuthAPI from "Common/Server/API/UserTwoFactorAuthAPI";
+import UserTotpAuthAPI from "Common/Server/API/UserTotpAuthAPI";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 // User Notification methods.
 import UserEmailAPI from "Common/Server/API/UserEmailAPI";
@@ -1661,7 +1661,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserCallAPI().getRouter());
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new UserTwoFactorAuthAPI().getRouter(),
+      new UserTotpAuthAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserEmailAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserSMSAPI().getRouter());

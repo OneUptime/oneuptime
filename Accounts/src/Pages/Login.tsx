@@ -14,7 +14,7 @@ import { DASHBOARD_URL } from "Common/UI/Config";
 import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
 import UiAnalytics from "Common/UI/Utils/Analytics";
 import LoginUtil from "Common/UI/Utils/Login";
-import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
+import UserTotpAuth from "Common/Models/DatabaseModels/UserTotpAuth";
 import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
@@ -41,14 +41,12 @@ const LoginPage: () => JSX.Element = () => {
   const [showTwoFactorAuth, setShowTwoFactorAuth] =
     React.useState<boolean>(false);
 
-  const [twoFactorAuthList, setTwoFactorAuthList] = React.useState<
-    UserTwoFactorAuth[]
-  >([]);
+  const [totpAuthList, setTotpAuthList] = React.useState<UserTotpAuth[]>([]);
 
   const [webAuthnList, setWebAuthnList] = React.useState<UserWebAuthn[]>([]);
 
-  const [selectedTwoFactorAuth, setSelectedTwoFactorAuth] = React.useState<
-    UserTwoFactorAuth | undefined
+  const [selectedTotpAuth, setSelectedTotpAuth] = React.useState<
+    UserTotpAuth | undefined
   >(undefined);
 
   const [selectedWebAuthn, setSelectedWebAuthn] = React.useState<
@@ -57,11 +55,11 @@ const LoginPage: () => JSX.Element = () => {
 
   type TwoFactorMethod = {
     type: "totp" | "webauthn";
-    item: UserTwoFactorAuth | UserWebAuthn;
+    item: UserTotpAuth | UserWebAuthn;
   };
 
   const twoFactorMethods: TwoFactorMethod[] = [
-    ...twoFactorAuthList.map((item: UserTwoFactorAuth) => {
+    ...totpAuthList.map((item: UserTotpAuth) => {
       return { type: "totp" as const, item };
     }),
     ...webAuthnList.map((item: UserWebAuthn) => {
@@ -100,7 +98,9 @@ const LoginPage: () => JSX.Element = () => {
         const data: any = result.data as any;
 
         // Convert base64url strings back to Uint8Array
-        data.options.challenge = Base64.base64UrlToUint8Array(data.options.challenge);
+        data.options.challenge = Base64.base64UrlToUint8Array(
+          data.options.challenge,
+        );
         if (data.options.allowCredentials) {
           data.options.allowCredentials.forEach((cred: any) => {
             cred.id = Base64.base64UrlToUint8Array(cred.id);
@@ -124,7 +124,9 @@ const LoginPage: () => JSX.Element = () => {
             challenge: data.challenge,
             credential: {
               id: credential.id,
-              rawId: Base64.uint8ArrayToBase64Url(new Uint8Array(credential.rawId)),
+              rawId: Base64.uint8ArrayToBase64Url(
+                new Uint8Array(credential.rawId),
+              ),
               response: {
                 authenticatorData: Base64.uint8ArrayToBase64Url(
                   new Uint8Array(assertionResponse.authenticatorData),
@@ -136,7 +138,9 @@ const LoginPage: () => JSX.Element = () => {
                   new Uint8Array(assertionResponse.signature),
                 ),
                 userHandle: assertionResponse.userHandle
-                  ? Base64.uint8ArrayToBase64Url(new Uint8Array(assertionResponse.userHandle))
+                  ? Base64.uint8ArrayToBase64Url(
+                      new Uint8Array(assertionResponse.userHandle),
+                    )
                   : null,
               },
               type: credential.type,
@@ -259,23 +263,18 @@ const LoginPage: () => JSX.Element = () => {
                 value: User | JSONObject,
                 miscData: JSONObject | undefined,
               ) => {
-                if (
-                  miscData &&
-                  (miscData as JSONObject)["twoFactorAuth"] === true
-                ) {
-                  const twoFactorAuthList: Array<UserTwoFactorAuth> =
-                    UserTwoFactorAuth.fromJSONArray(
-                      (miscData as JSONObject)[
-                        "twoFactorAuthList"
-                      ] as JSONArray,
-                      UserTwoFactorAuth,
+                if (miscData && (miscData as JSONObject)["totpAuth"] === true) {
+                  const totpAuthList: Array<UserTotpAuth> =
+                    UserTotpAuth.fromJSONArray(
+                      (miscData as JSONObject)["totpAuthList"] as JSONArray,
+                      UserTotpAuth,
                     );
                   const webAuthnList: Array<UserWebAuthn> =
                     UserWebAuthn.fromJSONArray(
                       (miscData as JSONObject)["webAuthnList"] as JSONArray,
                       UserWebAuthn,
                     );
-                  setTwoFactorAuthList(twoFactorAuthList);
+                  setTotpAuthList(totpAuthList);
                   setWebAuthnList(webAuthnList);
                   setShowTwoFactorAuth(true);
                   return;
@@ -298,7 +297,7 @@ const LoginPage: () => JSX.Element = () => {
             />
           )}
 
-          {showTwoFactorAuth && !selectedTwoFactorAuth && !selectedWebAuthn && (
+          {showTwoFactorAuth && !selectedTotpAuth && !selectedWebAuthn && (
             <div className="space-y-4">
               {twoFactorMethods.map(
                 (method: TwoFactorMethod, index: number) => {
@@ -308,9 +307,7 @@ const LoginPage: () => JSX.Element = () => {
                       className="cursor-pointer p-4 border border-gray-300 rounded-lg hover:bg-gray-50"
                       onClick={() => {
                         if (method.type === "totp") {
-                          setSelectedTwoFactorAuth(
-                            method.item as UserTwoFactorAuth,
-                          );
+                          setSelectedTotpAuth(method.item as UserTotpAuth);
                         } else {
                           setSelectedWebAuthn(method.item as UserWebAuthn);
                         }
@@ -340,11 +337,13 @@ const LoginPage: () => JSX.Element = () => {
                 Please follow the instructions on your security key device.
               </div>
               {isTwoFactorAuthLoading && <ComponentLoader />}
-              {twofactorAuthError && <ErrorMessage message={twofactorAuthError} />}
+              {twofactorAuthError && (
+                <ErrorMessage message={twofactorAuthError} />
+              )}
             </div>
           )}
 
-          {showTwoFactorAuth && selectedTwoFactorAuth && (
+          {showTwoFactorAuth && selectedTotpAuth && (
             <BasicForm
               id="two-factor-auth-form"
               name="Two Factor Auth"
@@ -370,7 +369,7 @@ const LoginPage: () => JSX.Element = () => {
                 try {
                   const code: string = data["code"] as string;
                   const twoFactorAuthId: string =
-                    selectedTwoFactorAuth!.id?.toString() as string;
+                    selectedTotpAuth!.id?.toString() as string;
 
                   const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
                     await API.post({
@@ -407,7 +406,7 @@ const LoginPage: () => JSX.Element = () => {
           )}
         </div>
         <div className="mt-10 text-center">
-          {!selectedTwoFactorAuth && !selectedWebAuthn && (
+          {!selectedTotpAuth && !selectedWebAuthn && (
             <div className="text-muted mb-0 text-gray-500">
               Don&apos;t have an account?{" "}
               <Link
@@ -418,11 +417,11 @@ const LoginPage: () => JSX.Element = () => {
               </Link>
             </div>
           )}
-          {selectedTwoFactorAuth || selectedWebAuthn ? (
+          {selectedTotpAuth || selectedWebAuthn ? (
             <div className="text-muted mb-0 text-gray-500">
               <Link
                 onClick={() => {
-                  setSelectedTwoFactorAuth(undefined);
+                  setSelectedTotpAuth(undefined);
                   setSelectedWebAuthn(undefined);
                 }}
                 className="text-indigo-500 hover:text-indigo-900 cursor-pointer"

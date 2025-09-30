@@ -7,7 +7,7 @@ import Route from "Common/Types/API/Route";
 import Page from "Common/UI/Components/Page/Page";
 import React, { FunctionComponent, ReactElement } from "react";
 import UserUtil from "Common/UI/Utils/User";
-import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
+import UserTotpAuth from "Common/Models/DatabaseModels/UserTotpAuth";
 import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -30,8 +30,8 @@ import OneUptimeDate from "Common/Types/Date";
 import Base64 from "Common/Utils/Base64";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  const [selectedTwoFactorAuth, setSelectedTwoFactorAuth] =
-    React.useState<UserTwoFactorAuth | null>(null);
+  const [selectedTotpAuth, setSelectedTotpAuth] =
+    React.useState<UserTotpAuth | null>(null);
   const [showVerificationModal, setShowVerificationModal] =
     React.useState<boolean>(false);
   const [verificationError, setVerificationError] = React.useState<
@@ -75,11 +75,11 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
       sideMenu={<SideMenu />}
     >
       <div>
-        <ModelTable<UserTwoFactorAuth>
-          modelType={UserTwoFactorAuth}
-          name="Authenticator Based Two Factor Authentication"
-          id="two-factor-auth-table"
-          userPreferencesKey="user-two-factor-auth-table"
+        <ModelTable<UserTotpAuth>
+          modelType={UserTotpAuth}
+          name="Authenticator Based TOTP Authentication"
+          id="totp-auth-table"
+          userPreferencesKey="user-totp-auth-table"
           isDeleteable={true}
           refreshToggle={tableRefreshToggle}
           filters={[]}
@@ -92,9 +92,12 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isViewable={false}
           cardProps={{
             title: "Authenticator Based Two Factor Authentication",
-            description: "Manage your authenticator based two factor authentication settings here.",
+            description:
+              "Manage your authenticator based two factor authentication settings here.",
           }}
-          noItemsMessage={"No authenticator based two factor authentication found."}
+          noItemsMessage={
+            "No authenticator based two factor authentication found."
+          }
           singularName="Authenticator Based Two Factor Authentication"
           pluralName="Authenticator Based Two Factor Authentications"
           actionButtons={[
@@ -102,14 +105,14 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Verify",
               buttonStyleType: ButtonStyleType.NORMAL,
               icon: IconProp.Check,
-              isVisible: (item: UserTwoFactorAuth) => {
+              isVisible: (item: UserTotpAuth) => {
                 return !item.isVerified;
               },
               onClick: async (
-                item: UserTwoFactorAuth,
+                item: UserTotpAuth,
                 onCompleteAction: VoidFunction,
               ) => {
-                setSelectedTwoFactorAuth(item);
+                setSelectedTotpAuth(item);
                 setShowVerificationModal(true);
                 onCompleteAction();
               },
@@ -148,8 +151,6 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         />
 
         <div>
-          
-
           <ModelTable<UserWebAuthn>
             modelType={UserWebAuthn}
             name="Security Key-Based Two-Factor Authentication"
@@ -169,20 +170,20 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Security Key-Based Two-Factor Authentication",
               description:
                 "Manage your security keys for two-factor authentication.",
-                rightElement: (
-                  <div className="flex justify-end mb-4">
-            <Button
-              title="Add Security Key"
-              buttonStyle={ButtonStyleType.NORMAL}
-              icon={IconProp.Add}
-              onClick={() => {
-                setWebAuthnRegistrationLoading(false);
-                setWebAuthnRegistrationError(null);
-                return setShowWebAuthnRegistrationModal(true);
-              }}
-            />
-          </div>
-                )
+              rightElement: (
+                <div className="flex justify-end mb-4">
+                  <Button
+                    title="Add Security Key"
+                    buttonStyle={ButtonStyleType.NORMAL}
+                    icon={IconProp.Add}
+                    onClick={() => {
+                      setWebAuthnRegistrationLoading(false);
+                      setWebAuthnRegistrationError(null);
+                      return setShowWebAuthnRegistrationModal(true);
+                    }}
+                  />
+                </div>
+              ),
             }}
             noItemsMessage={"No security keys found."}
             singularName="Security Key"
@@ -206,9 +207,9 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           />
         </div>
 
-        {showVerificationModal && selectedTwoFactorAuth ? (
+        {showVerificationModal && selectedTotpAuth ? (
           <BasicFormModal
-            title={`Verify ${selectedTwoFactorAuth.name}`}
+            title={`Verify ${selectedTotpAuth.name}`}
             description={`Please scan this QR code with your authenticator app and enter the code below. This code works with Google Authenticator.`}
             formProps={{
               error: verificationError || undefined,
@@ -231,7 +232,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     }
                     return (
                       <QRCodeElement
-                        text={selectedTwoFactorAuth.twoFactorOtpUrl || ""}
+                        text={selectedTotpAuth.twoFactorOtpUrl || ""}
                       />
                     );
                   },
@@ -252,7 +253,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             onClose={() => {
               setShowVerificationModal(false);
               setVerificationError(null);
-              setSelectedTwoFactorAuth(null);
+              setSelectedTotpAuth(null);
             }}
             isLoading={verificationLoading}
             onSubmit={async (values: JSONObject) => {
@@ -264,17 +265,17 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   | HTTPResponse<EmptyResponseData>
                   | HTTPErrorResponse = await API.post({
                   url: URL.fromString(APP_API_URL.toString()).addRoute(
-                    `/user-two-factor-auth/validate`,
+                    `/user-totp-auth/validate`,
                   ),
                   data: {
                     code: values["code"],
-                    id: selectedTwoFactorAuth.id?.toString(),
+                    id: selectedTotpAuth.id?.toString(),
                   },
                 });
                 if (response.isSuccess()) {
                   setShowVerificationModal(false);
                   setVerificationError(null);
-                  setSelectedTwoFactorAuth(null);
+                  setSelectedTotpAuth(null);
                   setVerificationLoading(false);
                 }
 
@@ -344,14 +345,18 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 const data: any = response.data as any;
 
                 // Convert base64url strings back to Uint8Array
-                data.options.challenge = Base64.base64UrlToUint8Array(data.options.challenge);
+                data.options.challenge = Base64.base64UrlToUint8Array(
+                  data.options.challenge,
+                );
                 if (data.options.excludeCredentials) {
                   data.options.excludeCredentials.forEach((cred: any) => {
                     cred.id = Base64.base64UrlToUint8Array(cred.id);
                   });
                 }
                 if (data.options.user && data.options.user.id) {
-                  data.options.user.id = Base64.base64UrlToUint8Array(data.options.user.id);
+                  data.options.user.id = Base64.base64UrlToUint8Array(
+                    data.options.user.id,
+                  );
                 }
 
                 // Use WebAuthn API
@@ -375,7 +380,9 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     name: values["name"],
                     credential: {
                       id: credential.id,
-                      rawId: Base64.uint8ArrayToBase64Url(new Uint8Array(credential.rawId)),
+                      rawId: Base64.uint8ArrayToBase64Url(
+                        new Uint8Array(credential.rawId),
+                      ),
                       response: {
                         attestationObject: Base64.uint8ArrayToBase64Url(
                           new Uint8Array(attestationResponse.attestationObject),

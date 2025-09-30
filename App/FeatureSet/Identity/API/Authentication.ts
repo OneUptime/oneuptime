@@ -24,7 +24,7 @@ import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
 import MailService from "Common/Server/Services/MailService";
 import UserService from "Common/Server/Services/UserService";
-import UserTwoFactorAuthService from "Common/Server/Services/UserTwoFactorAuthService";
+import UserTotpAuthService from "Common/Server/Services/UserTotpAuthService";
 import CookieUtil from "Common/Server/Utils/Cookie";
 import Express, {
   ExpressRequest,
@@ -37,7 +37,7 @@ import Response from "Common/Server/Utils/Response";
 import TwoFactorAuth from "Common/Server/Utils/TwoFactorAuth";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import User from "Common/Models/DatabaseModels/User";
-import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
+import UserTotpAuth from "Common/Models/DatabaseModels/UserTotpAuth";
 import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import UserWebAuthnService from "Common/Server/Services/UserWebAuthnService";
 
@@ -555,34 +555,33 @@ router.post(
   },
 );
 
-type FetchTwoFactorAuthListFunction = (userId: ObjectID) => Promise<{
-  twoFactorAuthList: Array<UserTwoFactorAuth>;
+type FetchTotpAuthListFunction = (userId: ObjectID) => Promise<{
+  totpAuthList: Array<UserTotpAuth>;
   webAuthnList: Array<UserWebAuthn>;
 }>;
 
-const fetchTwoFactorAuthList: FetchTwoFactorAuthListFunction = async (
+const fetchTotpAuthList: FetchTotpAuthListFunction = async (
   userId: ObjectID,
 ): Promise<{
-  twoFactorAuthList: Array<UserTwoFactorAuth>;
+  totpAuthList: Array<UserTotpAuth>;
   webAuthnList: Array<UserWebAuthn>;
 }> => {
-  const twoFactorAuthList: Array<UserTwoFactorAuth> =
-    await UserTwoFactorAuthService.findBy({
-      query: {
-        userId: userId,
-        isVerified: true,
-      },
-      select: {
-        _id: true,
-        userId: true,
-        name: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+  const totpAuthList: Array<UserTotpAuth> = await UserTotpAuthService.findBy({
+    query: {
+      userId: userId,
+      isVerified: true,
+    },
+    select: {
+      _id: true,
+      userId: true,
+      name: true,
+    },
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
 
   const webAuthnList: Array<UserWebAuthn> = await UserWebAuthnService.findBy({
     query: {
@@ -602,7 +601,7 @@ const fetchTwoFactorAuthList: FetchTwoFactorAuthListFunction = async (
   });
 
   return {
-    twoFactorAuthList,
+    totpAuthList,
     webAuthnList,
   };
 };
@@ -689,11 +688,12 @@ const login: LoginFunction = async (options: {
       if (alreadySavedUser.enableTwoFactorAuth && !verifyTwoFactorAuth) {
         // If two factor auth is enabled then we will send the user to the two factor auth page.
 
-        const { twoFactorAuthList, webAuthnList } =
-          await fetchTwoFactorAuthList(alreadySavedUser.id!);
+        const { totpAuthList, webAuthnList } = await fetchTotpAuthList(
+          alreadySavedUser.id!,
+        );
 
         if (
-          (!twoFactorAuthList || twoFactorAuthList.length === 0) &&
+          (!totpAuthList || totpAuthList.length === 0) &&
           (!webAuthnList || webAuthnList.length === 0)
         ) {
           const errorMessage: string = IsBillingEnabled
@@ -709,12 +709,9 @@ const login: LoginFunction = async (options: {
 
         return Response.sendEntityResponse(req, res, user, User, {
           miscData: {
-            twoFactorAuthList: UserTwoFactorAuth.toJSONArray(
-              twoFactorAuthList,
-              UserTwoFactorAuth,
-            ),
+            totpAuthList: UserTotpAuth.toJSONArray(totpAuthList, UserTotpAuth),
             webAuthnList: UserWebAuthn.toJSONArray(webAuthnList, UserWebAuthn),
-            twoFactorAuth: true,
+            totpAuth: true,
           },
         });
       }
@@ -725,8 +722,8 @@ const login: LoginFunction = async (options: {
           const code: string = data["code"] as string;
           const twoFactorAuthId: string = data["twoFactorAuthId"] as string;
 
-          const twoFactorAuth: UserTwoFactorAuth | null =
-            await UserTwoFactorAuthService.findOneBy({
+          const totpAuth: UserTotpAuth | null =
+            await UserTotpAuthService.findOneBy({
               query: {
                 _id: twoFactorAuthId,
                 userId: alreadySavedUser.id!,
@@ -741,7 +738,7 @@ const login: LoginFunction = async (options: {
               },
             });
 
-          if (!twoFactorAuth) {
+          if (!totpAuth) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -751,7 +748,7 @@ const login: LoginFunction = async (options: {
 
           const isVerified: boolean = TwoFactorAuth.verifyToken({
             token: code,
-            secret: twoFactorAuth.twoFactorSecret!,
+            secret: totpAuth.twoFactorSecret!,
             email: alreadySavedUser.email!,
           });
 
@@ -772,7 +769,7 @@ const login: LoginFunction = async (options: {
             credential: credential,
           });
         }
-      }      // Refresh Permissions for this user here.
+      } // Refresh Permissions for this user here.
       await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
 
       if (alreadySavedUser.password.toString() === user.password!.toString()) {
