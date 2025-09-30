@@ -148,18 +148,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         />
 
         <div>
-          <div className="flex justify-end mb-4">
-            <Button
-              title="Add Security Key"
-              buttonStyle={ButtonStyleType.NORMAL}
-              icon={IconProp.Add}
-              onClick={() => {
-                setWebAuthnRegistrationLoading(false);
-                setWebAuthnRegistrationError(null);
-                return setShowWebAuthnRegistrationModal(true);
-              }}
-            />
-          </div>
+          
 
           <ModelTable<UserWebAuthn>
             modelType={UserWebAuthn}
@@ -180,6 +169,20 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Security Keys (WebAuthn)",
               description:
                 "Manage your security keys for two factor authentication.",
+                rightElement: (
+                  <div className="flex justify-end mb-4">
+            <Button
+              title="Add Security Key"
+              buttonStyle={ButtonStyleType.NORMAL}
+              icon={IconProp.Add}
+              onClick={() => {
+                setWebAuthnRegistrationLoading(false);
+                setWebAuthnRegistrationError(null);
+                return setShowWebAuthnRegistrationModal(true);
+              }}
+            />
+          </div>
+                )
             }}
             noItemsMessage={"No security keys found."}
             singularName="Security Key"
