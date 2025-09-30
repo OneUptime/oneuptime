@@ -685,7 +685,7 @@ const login: LoginFunction = async (options: {
         );
       }
 
-      if (alreadySavedUser.enableTwoFactorAuth && !verifyTotpAuth) {
+      if (alreadySavedUser.enableTwoFactorAuth && !verifyTotpAuth && !verifyWebAuthn) {
         // If two factor auth is enabled then we will send the user to the two factor auth page.
 
         const { totpAuthList, webAuthnList } = await fetchTotpAuthList(
@@ -711,7 +711,6 @@ const login: LoginFunction = async (options: {
           miscData: {
             totpAuthList: UserTotpAuth.toJSONArray(totpAuthList, UserTotpAuth),
             webAuthnList: UserWebAuthn.toJSONArray(webAuthnList, UserWebAuthn),
-            totpAuth: true,
           },
         });
       }
