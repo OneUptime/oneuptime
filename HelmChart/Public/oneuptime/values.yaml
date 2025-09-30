@@ -8,6 +8,7 @@ host: localhost
 httpProtocol: http
 
 # Important: You do need to set this to a long random values if you're using OneUptime in production.
+# Please set this to string.
 oneuptimeSecret:
 encryptionSecret:
 
