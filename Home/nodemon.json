@@ -6,5 +6,5 @@
     ],
     "watchOptions": {"useFsEvents": false, "interval": 500},
     "env": {"TS_NODE_TRANSPILE_ONLY": "1", "TS_NODE_FILES": "false"},
-    "exec": "node --inspect=0.0.0.0:9229 -r ts-node/register/transpile-only Index.ts"
+    "exec": "node  -r ts-node/register/transpile-only Index.ts"
 }
