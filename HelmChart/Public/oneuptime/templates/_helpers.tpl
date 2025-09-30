@@ -573,6 +573,7 @@ spec:
   {{- if or (not $.Values.autoscaling.enabled) ($.DisableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
+  strategy: {{- toYaml $.Values.deployment.updateStrategy | nindent 4 }}
   {{- end }}
   template:
     metadata:

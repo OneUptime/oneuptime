@@ -29,7 +29,10 @@ fluentdHost:
 
 deployment:
   # Default replica count for all deployments
-  replicaCount: 1 
+  replicaCount: 1
+  # Update strategy type for all deployments
+  updateStrategy:
+    type: RollingUpdate
 
 metalLb:
   enabled: false
