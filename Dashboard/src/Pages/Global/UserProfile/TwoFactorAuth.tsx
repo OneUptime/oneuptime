@@ -27,6 +27,7 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import User from "Common/Models/DatabaseModels/User";
 import OneUptimeDate from "Common/Types/Date";
+import Base64 from "Common/Utils/Base64";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [selectedTwoFactorAuth, setSelectedTwoFactorAuth] =
@@ -153,6 +154,8 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               buttonStyle={ButtonStyleType.NORMAL}
               icon={IconProp.Add}
               onClick={() => {
+                setWebAuthnRegistrationLoading(false);
+                setWebAuthnRegistrationError(null);
                 return setShowWebAuthnRegistrationModal(true);
               }}
             />
@@ -314,6 +317,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             onClose={() => {
               setShowWebAuthnRegistrationModal(false);
               setWebAuthnRegistrationError(null);
+              setWebAuthnRegistrationLoading(false);
             }}
             isLoading={webAuthnRegistrationLoading}
             onSubmit={async (values: JSONObject) => {
@@ -336,6 +340,17 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
                 const data: any = response.data as any;
 
+                // Convert base64url strings back to Uint8Array
+                data.options.challenge = Base64.base64UrlToUint8Array(data.options.challenge);
+                if (data.options.excludeCredentials) {
+                  data.options.excludeCredentials.forEach((cred: any) => {
+                    cred.id = Base64.base64UrlToUint8Array(cred.id);
+                  });
+                }
+                if (data.options.user && data.options.user.id) {
+                  data.options.user.id = Base64.base64UrlToUint8Array(data.options.user.id);
+                }
+
                 // Use WebAuthn API
                 const credential: PublicKeyCredential =
                   (await navigator.credentials.create({
@@ -357,12 +372,12 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     name: values["name"],
                     credential: {
                       id: credential.id,
-                      rawId: Array.from(new Uint8Array(credential.rawId)),
+                      rawId: Base64.uint8ArrayToBase64Url(new Uint8Array(credential.rawId)),
                       response: {
-                        attestationObject: Array.from(
+                        attestationObject: Base64.uint8ArrayToBase64Url(
                           new Uint8Array(attestationResponse.attestationObject),
                         ),
-                        clientDataJSON: Array.from(
+                        clientDataJSON: Base64.uint8ArrayToBase64Url(
                           new Uint8Array(attestationResponse.clientDataJSON),
                         ),
                       },
@@ -380,6 +395,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 setTableRefreshToggle(
                   OneUptimeDate.getCurrentDate().toString(),
                 );
+                setWebAuthnRegistrationLoading(false);
               } catch (err) {
                 setWebAuthnRegistrationError(API.getFriendlyMessage(err));
                 setWebAuthnRegistrationLoading(false);
