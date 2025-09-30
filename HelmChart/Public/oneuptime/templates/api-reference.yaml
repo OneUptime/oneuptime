@@ -21,6 +21,7 @@ spec:
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
+  strategy: {{- toYaml $.Values.deployment.updateStrategy | nindent 4 }}
   template:
     metadata:
       labels:
