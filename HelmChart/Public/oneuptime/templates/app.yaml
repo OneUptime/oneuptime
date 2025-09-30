@@ -33,9 +33,12 @@ spec:
       imagePullSecrets:
         {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
       {{- end }}
-      {{- $podSecurityContext := merge $.Values.podSecurityContext $.Values.app.podSecurityContext }}
-      {{- if $podSecurityContext }}
-      securityContext: {{- $podSecurityContext | toYaml | nindent 8 }}
+      {{- if $.Values.app.podSecurityContext }}
+      securityContext:
+        {{- toYaml $.Values.app.podSecurityContext | nindent 8 }}
+      {{- else if $.Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
       {{- end }}
       {{- if $.Values.affinity }}
       affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
@@ -80,9 +83,12 @@ spec:
             initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
             timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
           {{- end }}
-          {{- $containerSecurityContext := merge $.Values.containerSecurityContext $.Values.app.containerSecurityContext }}
-          {{- if $containerSecurityContext }}
-          securityContext: {{- $containerSecurityContext | toYaml | nindent 12 }}
+          {{- if $.Values.app.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.app.containerSecurityContext | nindent 12 }}
+          {{- else if $.Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
           {{- end }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:

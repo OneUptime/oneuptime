@@ -43,9 +43,12 @@ spec:
         - name: run
           emptyDir:
             sizeLimit: "1Gi"
-      {{- $podSecurityContext := merge $.Values.podSecurityContext $.Values.nginx.podSecurityContext }}
-      {{- if $podSecurityContext }}
-      securityContext: {{- $podSecurityContext | toYaml | nindent 8 }}
+      {{- if $.Values.nginx.podSecurityContext }}
+      securityContext:
+        {{- toYaml $.Values.nginx.podSecurityContext | nindent 8 }}
+      {{- else if $.Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
       {{- end }}
       {{- if $.Values.imagePullSecrets }}
       imagePullSecrets:
@@ -102,9 +105,12 @@ spec:
               mountPath: /etc/nginx/conf.d
             - name: run
               mountPath: /var/run
-          {{- $containerSecurityContext := merge $.Values.containerSecurityContext $.Values.nginx.containerSecurityContext }}
-          {{- if $containerSecurityContext }}
-          securityContext: {{- $containerSecurityContext | toYaml | nindent 12 }}
+          {{- if $.Values.nginx.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.nginx.containerSecurityContext | nindent 12 }}
+          {{- else if $.Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
           {{- end }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:

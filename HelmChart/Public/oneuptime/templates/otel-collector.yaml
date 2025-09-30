@@ -34,9 +34,12 @@ spec:
         - name: greenlockrc
           emptyDir:
             sizeLimit: "1Gi"
-      {{- $podSecurityContext := merge $.Values.podSecurityContext $.Values.openTelemetryCollector.podSecurityContext }}
-      {{- if $podSecurityContext }}
-      securityContext: {{- $podSecurityContext | toYaml | nindent 8 }}
+      {{- if $.Values.openTelemetryCollector.podSecurityContext }}
+      securityContext:
+        {{- toYaml $.Values.openTelemetryCollector.podSecurityContext | nindent 8 }}
+      {{- else if $.Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
       {{- end }}
       {{- if $.Values.imagePullSecrets }}
       imagePullSecrets:
@@ -85,9 +88,12 @@ spec:
             initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
             timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
           {{- end }}
-          {{- $containerSecurityContext := merge $.Values.containerSecurityContext $.Values.openTelemetryCollector.containerSecurityContext }}
-          {{- if $containerSecurityContext }}
-          securityContext: {{- $containerSecurityContext | toYaml | nindent 12 }}
+          {{- if $.Values.openTelemetryCollector.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.openTelemetryCollector.containerSecurityContext | nindent 12 }}
+          {{- else if $.Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
           {{- end }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
