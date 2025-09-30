@@ -586,9 +586,12 @@ spec:
       imagePullSecrets:
         {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
       {{- end }}
-      {{- $podSecurityContext := merge $.Values.podSecurityContext $.PodSecurityContext }}
-      {{- if $podSecurityContext }}
-      securityContext: {{- $podSecurityContext | toYaml | nindent 8 }}
+      {{- if $.PodSecurityContext }}
+      securityContext:
+        {{- toYaml $.PodSecurityContext | nindent 8 }}
+      {{- else if $.Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
       {{- end }}
       {{- if $.Values.affinity }}
       affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
@@ -596,9 +599,12 @@ spec:
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
-      {{- $nodeSelector := merge $.Values.nodeSelector $.NodeSelector }}
-      {{- if $nodeSelector }}
-      nodeSelector: {{- $nodeSelector | toYaml | nindent 8 }}
+      {{- if $.NodeSelector }}
+      nodeSelector:
+        {{- toYaml $.NodeSelector | nindent 8 }}
+      {{- else if $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.nodeSelector | nindent 8 }}
       {{- end }}
       {{- if $.Volumes }}
       volumes:
@@ -615,9 +621,12 @@ spec:
         - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository $.ServiceName .Values.image.tag }}
         {{- end}}
           name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
-          {{- $containerSecurityContext := merge $.Values.containerSecurityContext $.ContainerSecurityContext }}
-          {{- if $containerSecurityContext }}
-          securityContext: {{- $containerSecurityContext | toYaml | nindent 12 }}
+          {{- if $.ContainerSecurityContext }}
+          securityContext:
+            {{- toYaml $.ContainerSecurityContext | nindent 12 }}
+          {{- else if $.Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
           {{- end }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
