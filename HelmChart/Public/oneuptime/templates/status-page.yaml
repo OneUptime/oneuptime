@@ -1,7 +1,7 @@
 # OneUptime statusPage Deployment
 {{- $statusPagePorts := dict "port" $.Values.statusPage.ports.http -}}
 {{- $statusPageEnv := dict "PORT"  $.Values.statusPage.ports.http "DISABLE_TELEMETRY" $.Values.statusPage.disableTelemetryCollection -}}
-{{- $statusPageDeploymentArgs :=dict "IsUI" true "ServiceName" "status-page" "Ports" $statusPagePorts "Release" $.Release "Values" $.Values "Env" $statusPageEnv "Resources" $.Values.statusPage.resources "DisableAutoscaler" $.Values.statusPage.disableAutoscaler "ReplicaCount" $.Values.statusPage.replicaCount -}}
+{{- $statusPageDeploymentArgs :=dict "IsUI" true "ServiceName" "status-page" "Ports" $statusPagePorts "Release" $.Release "Values" $.Values "Env" $statusPageEnv "Resources" $.Values.statusPage.resources "NodeSelector" $.Values.statusPage.nodeSelector "DisableAutoscaler" $.Values.statusPage.disableAutoscaler "ReplicaCount" $.Values.statusPage.replicaCount -}}
 {{- include "oneuptime.deployment" $statusPageDeploymentArgs }}
 ---
 

@@ -594,8 +594,9 @@ spec:
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
-      {{- if $.Values.nodeSelector }}
-      nodeSelector: {{- $.Values.nodeSelector | toYaml | nindent 8 }}
+      {{- $nodeSelector := merge $.Values.nodeSelector $.NodeSelector }}
+      {{- if $nodeSelector }}
+      nodeSelector: {{- $nodeSelector | toYaml | nindent 8 }}
       {{- end }}
       {{- if $.Volumes }}
       volumes:
