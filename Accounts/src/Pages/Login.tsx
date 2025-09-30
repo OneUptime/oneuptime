@@ -120,7 +120,7 @@ const LoginPage: () => JSX.Element = () => {
         const verifyResult: HTTPResponse<JSONObject> = await API.post({
           url: VERIFY_WEBAUTHN_AUTH_API_URL,
           data: {
-            userId: data.userId,
+            ...initialValues,
             challenge: data.challenge,
             credential: {
               id: credential.id,

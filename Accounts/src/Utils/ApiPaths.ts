@@ -18,8 +18,8 @@ export const GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL: URL = URL.fromURL(
 ).addRoute(new Route("/user-webauthn/generate-authentication-options"));
 
 export const VERIFY_WEBAUTHN_AUTH_API_URL: URL = URL.fromURL(
-  APP_API_URL,
-).addRoute(new Route("/user-webauthn/verify-authentication"));
+  IDENTITY_URL,
+).addRoute(new Route("/verify-webauthn-auth"));
 
 export const SERVICE_PROVIDER_LOGIN_URL: URL = URL.fromURL(
   IDENTITY_URL,
