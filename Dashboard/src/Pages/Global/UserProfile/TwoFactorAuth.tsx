@@ -152,7 +152,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
           <ModelTable<UserWebAuthn>
             modelType={UserWebAuthn}
-            name="Security Keys (WebAuthn)"
+            name="Security Key-Based Two-Factor Authentication"
             id="webauthn-table"
             userPreferencesKey="user-webauthn-table"
             isDeleteable={true}
@@ -166,9 +166,9 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             isCreateable={false}
             isViewable={false}
             cardProps={{
-              title: "Security Keys (WebAuthn)",
+              title: "Security Key-Based Two-Factor Authentication",
               description:
-                "Manage your security keys for two factor authentication.",
+                "Manage your security keys for two-factor authentication.",
                 rightElement: (
                   <div className="flex justify-end mb-4">
             <Button
