@@ -5,7 +5,6 @@ import SCIMAPI from "./API/SCIM";
 import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
 import StatusPageSsoAPI from "./API/StatusPageSSO";
 import StatusPageSCIMAPI from "./API/StatusPageSCIM";
-import UserWebAuthnAPI from "Common/Server/API/UserWebAuthnAPI";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import "ejs";
@@ -32,8 +31,6 @@ const IdentityFeatureSet: FeatureSet = {
       [`/${APP_NAME}/status-page`, "/status-page"],
       StatusPageAuthenticationAPI,
     );
-
-    app.use([`/${APP_NAME}`, "/"], new UserWebAuthnAPI().getRouter());
   },
 };
 

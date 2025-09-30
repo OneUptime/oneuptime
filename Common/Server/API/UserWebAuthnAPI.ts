@@ -16,6 +16,7 @@ import Response from "../Utils/Response";
 import { JSONObject } from "../../Types/JSON";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import User from "../../Models/DatabaseModels/User";
 
 export default class UserWebAuthnAPI extends BaseAPI<
   UserWebAuthn,
@@ -88,6 +89,31 @@ export default class UserWebAuthnAPI extends BaseAPI<
             });
 
           return Response.sendJsonObjectResponse(req, res, result);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/verify-authentication`,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const data: JSONObject = req.body;
+
+          const userId: string = data["userId"] as string;
+          const challenge: string = data["challenge"] as string;
+          const credential: any = data["credential"];
+
+          const user: User = await UserWebAuthnService.verifyAuthentication({
+            userId: userId,
+            challenge: challenge,
+            credential: credential,
+          });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            user: User.toJSON(user, User),
+          });
         } catch (err) {
           next(err);
         }
