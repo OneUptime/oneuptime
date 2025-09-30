@@ -85,6 +85,34 @@
         "replicaCount": {
           "type": "integer",
           "minimum": 1
+        },
+        "updateStrategy": {
+          "type": "object",
+          "properties": {
+            "rollingUpdate": {
+              "type": "object",
+              "properties": {
+                "maxSurge": {
+                  "type": [
+                    "integer",
+                    "string",
+                    "null"
+                  ]
+                },
+                "maxUnavailable": {
+                  "type": [
+                    "integer",
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "type": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
