@@ -35,9 +35,7 @@ export default class AuthenticationEmail {
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-    logger.debug(
-      "Sending verification email"
-    )
+    logger.debug("Sending verification email");
 
     MailService.sendMail({
       toEmail: user.email!,
@@ -54,11 +52,13 @@ export default class AuthenticationEmail {
         ).toString(),
         homeUrl: new URL(httpProtocol, host).toString(),
       },
-    }).then(()=>{
-      logger.debug("Verification email sent")
-    }).catch((err: Error) => {
-      logger.debug("Error sending verification email")
-      logger.error(err);
-    });
+    })
+      .then(() => {
+        logger.debug("Verification email sent");
+      })
+      .catch((err: Error) => {
+        logger.debug("Error sending verification email");
+        logger.error(err);
+      });
   }
 }

@@ -78,12 +78,11 @@ export default class UserWebAuthnAPI extends BaseAPI<
         try {
           const data: JSONObject = req.body["data"] as JSONObject;
 
-          if(!data){
+          if (!data) {
             throw new BadDataException("Data is required");
           }
 
           const email: string | undefined = data["email"] as string | undefined;
-
 
           if (!email) {
             throw new BadDataException("Email is required");

@@ -89,7 +89,7 @@ const LoginPage: () => JSX.Element = () => {
           data: {
             data: {
               email: initialValues["email"],
-            }
+            },
           },
         });
 
@@ -142,12 +142,12 @@ const LoginPage: () => JSX.Element = () => {
                   ),
                   userHandle: assertionResponse.userHandle
                     ? Base64.uint8ArrayToBase64Url(
-                      new Uint8Array(assertionResponse.userHandle),
-                    )
+                        new Uint8Array(assertionResponse.userHandle),
+                      )
                     : null,
                 },
                 type: credential.type,
-              }
+              },
             },
           },
         });
@@ -268,9 +268,9 @@ const LoginPage: () => JSX.Element = () => {
                 miscData: JSONObject | undefined,
               ) => {
                 if (
-                  miscData &&
-                  (((miscData as JSONObject)["totpAuthList"] as JSONArray)
-                    ?.length || 0) > 0 ||
+                  (miscData &&
+                    (((miscData as JSONObject)["totpAuthList"] as JSONArray)
+                      ?.length || 0) > 0) ||
                   (((miscData as JSONObject)["webAuthnList"] as JSONArray)
                     ?.length || 0) > 0
                 ) {
@@ -389,7 +389,7 @@ const LoginPage: () => JSX.Element = () => {
                           ...initialValues,
                           code: code,
                           twoFactorAuthId: twoFactorAuthId,
-                        }
+                        },
                       },
                     });
 

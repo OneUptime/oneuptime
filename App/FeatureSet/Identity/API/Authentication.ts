@@ -634,7 +634,7 @@ const login: LoginFunction = async (options: {
 
     const user: User = BaseModel.fromJSON(data as JSONObject, User) as User;
 
-    if(!user.email || !user.password){
+    if (!user.email || !user.password) {
       return Response.sendErrorResponse(
         req,
         res,
@@ -695,7 +695,11 @@ const login: LoginFunction = async (options: {
         );
       }
 
-      if (alreadySavedUser.enableTwoFactorAuth && !verifyTotpAuth && !verifyWebAuthn) {
+      if (
+        alreadySavedUser.enableTwoFactorAuth &&
+        !verifyTotpAuth &&
+        !verifyWebAuthn
+      ) {
         // If two factor auth is enabled then we will send the user to the two factor auth page.
 
         const { totpAuthList, webAuthnList } = await fetchTotpAuthList(

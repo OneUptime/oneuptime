@@ -9,9 +9,9 @@ export const LOGIN_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/login"),
 );
 
-export const VERIFY_TOTP_AUTH_API_URL: URL = URL.fromURL(
-  IDENTITY_URL,
-).addRoute(new Route("/verify-totp-auth"));
+export const VERIFY_TOTP_AUTH_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
+  new Route("/verify-totp-auth"),
+);
 
 export const GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL: URL = URL.fromURL(
   APP_API_URL,
