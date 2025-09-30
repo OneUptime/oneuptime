@@ -6,10 +6,10 @@
       "type": "object",
       "properties": {
         "storageClass": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "clusterDomain": {
-          "type": "string"
+          "type": ["string", "null"]
         }
       },
       "additionalProperties": false
@@ -23,10 +23,10 @@
       "enum": ["http", "https"]
     },
     "oneuptimeSecret": {
-      "type": "string"
+      "type": ["string", "null"]
     },
     "encryptionSecret": {
-      "type": "string"
+      "type": ["string", "null"]
     },
     "externalSecrets": {
       "type": "object",
@@ -38,10 +38,10 @@
               "type": "object",
               "properties": {
                 "name": {
-                  "type": "string"
+                  "type": ["string", "null"]
                 },
                 "passwordKey": {
-                  "type": "string"
+                  "type": ["string", "null"]
                 }
               },
               "additionalProperties": false
@@ -56,10 +56,10 @@
               "type": "object",
               "properties": {
                 "name": {
-                  "type": "string"
+                  "type": ["string", "null"]
                 },
                 "passwordKey": {
-                  "type": "string"
+                  "type": ["string", "null"]
                 }
               },
               "additionalProperties": false
@@ -71,10 +71,10 @@
       "additionalProperties": false
     },
     "openTelemetryCollectorHost": {
-      "type": "string"
+      "type": ["string", "null"]
     },
     "fluentdHost": {
-      "type": "string"
+      "type": ["string", "null"]
     },
     "deployment": {
       "type": "object",
@@ -127,7 +127,7 @@
               "type": "boolean"
             },
             "addresses": {
-              "type": "array",
+              "type": ["array", "null"],
               "items": {
                 "type": "string"
               }
@@ -185,14 +185,14 @@
           "type": "object",
           "properties": {
             "loadBalancerIP": {
-              "type": "string"
+              "type": ["string", "null"]
             },
             "type": {
               "type": "string",
               "enum": ["LoadBalancer", "ClusterIP", "NodePort"]
             },
             "externalIPs": {
-              "type": "array",
+              "type": ["array", "null"],
               "items": {
                 "type": "string"
               }
@@ -201,7 +201,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -244,7 +244,7 @@
               "type": "string"
             },
             "postgresPassword": {
-              "type": "string"
+              "type": ["string", "null"]
             }
           },
           "additionalProperties": false
@@ -299,8 +299,8 @@
               "type": "object"
             },
             "resources": {
-              "type": "object"
-            },
+          "type": ["object", "null"]
+        },
             "configuration": {
               "type": "string"
             },
@@ -329,10 +329,10 @@
           "type": "object",
           "properties": {
             "username": {
-              "type": "string"
+              "type": ["string", "null"]
             },
             "password": {
-              "type": "string"
+              "type": ["string", "null"]
             }
           },
           "additionalProperties": false
@@ -409,7 +409,7 @@
           "type": "object"
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "configuration": {
           "type": "string"
@@ -433,7 +433,7 @@
           "type": "object",
           "properties": {
             "password": {
-              "type": "string"
+              "type": ["string", "null"]
             }
           },
           "additionalProperties": false
@@ -501,8 +501,8 @@
               "type": "object"
             },
             "resources": {
-              "type": "object"
-            },
+          "type": ["object", "null"]
+        },
             "podSecurityContext": {
               "type": "object"
             },
@@ -571,22 +571,22 @@
           "type": "boolean"
         },
         "publicKey": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "privateKey": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "smsDefaultValueInCents": {
-          "type": "integer"
+          "type": ["integer", "null"]
         },
         "callDefaultValueInCentsPerMinute": {
-          "type": "integer"
+          "type": ["integer", "null"]
         },
         "smsHighRiskValueInCents": {
-          "type": "integer"
+          "type": ["integer", "null"]
         },
         "callHighRiskValueInCentsPerMinute": {
-          "type": "integer"
+          "type": ["integer", "null"]
         },
         "allowedActiveMonitorCountInFreePlan": {
           "type": "integer"
@@ -598,16 +598,16 @@
       "type": "object",
       "properties": {
         "basic": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "growth": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "scale": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "enterprise": {
-          "type": "string"
+          "type": ["string", "null"]
         }
       },
       "additionalProperties": false
@@ -616,10 +616,10 @@
       "type": "object",
       "properties": {
         "host": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "key": {
-          "type": "string"
+          "type": ["string", "null"]
         }
       },
       "additionalProperties": false
@@ -628,13 +628,13 @@
       "type": "object",
       "properties": {
         "publicKey": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "privateKey": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "subject": {
-          "type": "string"
+          "type": ["string", "null"]
         }
       },
       "additionalProperties": false
@@ -664,7 +664,7 @@
           "type": "integer"
         },
         "cnameRecord": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "disableTelemetryCollection": {
           "type": "boolean"
@@ -682,7 +682,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -718,7 +718,7 @@
               "type": "integer"
             },
             "key": {
-              "type": "string"
+              "type": ["string", "null"]
             },
             "replicaCount": {
               "type": "integer"
@@ -748,10 +748,10 @@
               "type": "object",
               "properties": {
                 "httpProxyUrl": {
-                  "type": "string"
+                  "type": ["string", "null"]
                 },
                 "httpsProxyUrl": {
-                  "type": "string"
+                  "type": ["string", "null"]
                 }
               },
               "additionalProperties": false
@@ -781,8 +781,8 @@
               "additionalProperties": false
             },
             "resources": {
-              "type": "object"
-            },
+          "type": ["object", "null"]
+        },
             "nodeSelector": {
               "type": "object"
             },
@@ -826,7 +826,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -844,28 +844,28 @@
       "type": "object",
       "properties": {
         "endpoint": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "headers": {
-          "type": "string"
+          "type": ["string", "null"]
         }
       },
       "additionalProperties": false
     },
     "containerSecurityContext": {
-      "type": "object"
+      "type": ["object", "null"]
     },
     "podSecurityContext": {
-      "type": "object"
+      "type": ["object", "null"]
     },
     "affinity": {
-      "type": "object"
+      "type": ["object", "null"]
     },
     "tolerations": {
-      "type": "array"
+      "type": ["array", "null"]
     },
     "nodeSelector": {
-      "type": "object"
+      "type": ["object", "null"]
     },
     "logLevel": {
       "type": "string",
@@ -893,16 +893,16 @@
               "type": "boolean"
             },
             "registeredUserEmail": {
-              "type": "string"
+              "type": ["string", "null"]
             },
             "registeredUserPassword": {
-              "type": "string"
+              "type": ["string", "null"]
             },
             "statusPageUrl": {
-              "type": "string"
+              "type": ["string", "null"]
             },
             "failedWebhookUrl": {
-              "type": "string"
+              "type": ["string", "null"]
             }
           },
           "additionalProperties": false
@@ -914,10 +914,10 @@
       "type": "object",
       "properties": {
         "accountKey": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "email": {
-          "type": "string"
+          "type": ["string", "null"]
         }
       },
       "additionalProperties": false
@@ -929,13 +929,13 @@
           "type": "boolean"
         },
         "annotations": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "className": {
           "type": "string"
         },
         "hosts": {
-          "type": "array",
+          "type": ["array", "null"],
           "items": {
             "type": "string"
           }
@@ -947,7 +947,7 @@
               "type": "boolean"
             },
             "hosts": {
-              "type": "array",
+              "type": ["array", "null"],
               "items": {
                 "type": "object",
                 "properties": {
@@ -977,7 +977,7 @@
       "additionalProperties": false
     },
     "extraTemplates": {
-      "type": "array",
+      "type": ["array", "null"],
       "items": {
         "type": ["string", "object"]
       }
@@ -986,31 +986,31 @@
       "type": "object",
       "properties": {
         "host": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "port": {
-          "type": "integer"
+          "type": ["integer", "null"]
         },
         "username": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "password": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "existingSecret": {
           "type": "object",
           "properties": {
             "name": {
-              "type": "string"
+              "type": ["string", "null"]
             },
             "passwordKey": {
-              "type": "string"
+              "type": ["string", "null"]
             }
           },
           "additionalProperties": false
         },
         "database": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "ssl": {
           "type": "object",
@@ -1019,13 +1019,13 @@
               "type": "boolean"
             },
             "ca": {
-              "type": "string"
+              "type": ["string", "null"]
             },
             "cert": {
-              "type": "string"
+              "type": ["string", "null"]
             },
             "key": {
-              "type": "string"
+              "type": ["string", "null"]
             }
           },
           "additionalProperties": false
@@ -1037,34 +1037,34 @@
       "type": "object",
       "properties": {
         "host": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "port": {
-          "type": "integer"
+          "type": ["integer", "null"]
         },
         "username": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "password": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "ipFamily": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "existingSecret": {
           "type": "object",
           "properties": {
             "name": {
-              "type": "string"
+              "type": ["string", "null"]
             },
             "passwordKey": {
-              "type": "string"
+              "type": ["string", "null"]
             }
           },
           "additionalProperties": false
         },
         "database": {
-          "type": "integer"
+          "type": ["integer", "null"]
         },
         "tls": {
           "type": "object",
@@ -1073,13 +1073,13 @@
               "type": "boolean"
             },
             "ca": {
-              "type": "string"
+              "type": ["string", "null"]
             },
             "cert": {
-              "type": "string"
+              "type": ["string", "null"]
             },
             "key": {
-              "type": "string"
+              "type": ["string", "null"]
             }
           },
           "additionalProperties": false
@@ -1091,34 +1091,34 @@
       "type": "object",
       "properties": {
         "host": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "isHostHttps": {
           "type": "boolean"
         },
         "port": {
-          "type": "integer"
+          "type": ["integer", "null"]
         },
         "username": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "password": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "existingSecret": {
           "type": "object",
           "properties": {
             "name": {
-              "type": "string"
+              "type": ["string", "null"]
             },
             "passwordKey": {
-              "type": "string"
+              "type": ["string", "null"]
             }
           },
           "additionalProperties": false
         },
         "database": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "tls": {
           "type": "object",
@@ -1127,13 +1127,13 @@
               "type": "boolean"
             },
             "ca": {
-              "type": "string"
+              "type": ["string", "null"]
             },
             "cert": {
-              "type": "string"
+              "type": ["string", "null"]
             },
             "key": {
-              "type": "string"
+              "type": ["string", "null"]
             }
           },
           "additionalProperties": false
@@ -1151,16 +1151,16 @@
               "type": "object",
               "properties": {
                 "onCreateUser": {
-                  "type": "string"
+                  "type": ["string", "null"]
                 },
                 "onDeleteProject": {
-                  "type": "string"
+                  "type": ["string", "null"]
                 },
                 "onCreateProject": {
-                  "type": "string"
+                  "type": ["string", "null"]
                 },
                 "onSubscriptionUpdate": {
-                  "type": "string"
+                  "type": ["string", "null"]
                 }
               },
               "additionalProperties": false
@@ -1262,7 +1262,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1298,7 +1298,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1334,7 +1334,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1370,7 +1370,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1406,7 +1406,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1445,7 +1445,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1508,7 +1508,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1544,7 +1544,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1580,7 +1580,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1616,7 +1616,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1655,7 +1655,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1718,7 +1718,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1781,7 +1781,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1844,7 +1844,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1904,7 +1904,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1943,7 +1943,7 @@
           "additionalProperties": false
         },
         "resources": {
-          "type": "object"
+          "type": ["object", "null"]
         },
         "nodeSelector": {
           "type": "object"
@@ -1985,13 +1985,13 @@
       "type": "object",
       "properties": {
         "clientId": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "clientSecret": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "signingSecret": {
-          "type": "string"
+          "type": ["string", "null"]
         }
       },
       "additionalProperties": false
@@ -2000,10 +2000,10 @@
       "type": "object",
       "properties": {
         "clientId": {
-          "type": "string"
+          "type": ["string", "null"]
         },
         "clientSecret": {
-          "type": "string"
+          "type": ["string", "null"]
         }
       },
       "additionalProperties": false
