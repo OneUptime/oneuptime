@@ -46,9 +46,12 @@ spec:
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
-      {{- $nodeSelector := merge $.Values.nodeSelector $.Values.home.nodeSelector }}
-      {{- if $nodeSelector }}
-      nodeSelector: {{- $nodeSelector | toYaml | nindent 8 }}
+      {{- if $.Values.home.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.home.nodeSelector | nindent 8 }}
+      {{- else if $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.nodeSelector | nindent 8 }}
       {{- end }}
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "home" $.Values.image.tag }}

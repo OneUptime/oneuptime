@@ -51,9 +51,12 @@ spec:
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
-      {{- $nodeSelector := merge $.Values.nodeSelector $.Values.openTelemetryIngest.nodeSelector }}
-      {{- if $nodeSelector }}
-      nodeSelector: {{- $nodeSelector | toYaml | nindent 8 }}
+      {{- if $.Values.openTelemetryIngest.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.openTelemetryIngest.nodeSelector | nindent 8 }}
+      {{- else if $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.nodeSelector | nindent 8 }}
       {{- end }}
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "open-telemetry-ingest" $.Values.image.tag }}

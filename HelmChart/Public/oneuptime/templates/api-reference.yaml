@@ -46,9 +46,12 @@ spec:
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
-      {{- $nodeSelector := merge $.Values.nodeSelector $.Values.apiReference.nodeSelector }}
-      {{- if $nodeSelector }}
-      nodeSelector: {{- $nodeSelector | toYaml | nindent 8 }}
+      {{- if $.Values.apiReference.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.apiReference.nodeSelector | nindent 8 }}
+      {{- else if $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.nodeSelector | nindent 8 }}
       {{- end }}
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "api-reference" $.Values.image.tag }}

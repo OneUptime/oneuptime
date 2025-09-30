@@ -51,9 +51,12 @@ spec:
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
-      {{- $nodeSelector := merge $.Values.nodeSelector $.Values.serverMonitorIngest.nodeSelector }}
-      {{- if $nodeSelector }}
-      nodeSelector: {{- $nodeSelector | toYaml | nindent 8 }}
+      {{- if $.Values.serverMonitorIngest.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.serverMonitorIngest.nodeSelector | nindent 8 }}
+      {{- else if $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.nodeSelector | nindent 8 }}
       {{- end }}
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "server-monitor-ingest" $.Values.image.tag }}
