@@ -34,7 +34,7 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
-import TwoFactorAuth from "Common/Server/Utils/TwoFactorAuth";
+import TotpAuth from "Common/Server/Utils/TotpAuth";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import User from "Common/Models/DatabaseModels/User";
 import UserTotpAuth from "Common/Models/DatabaseModels/UserTotpAuth";
@@ -746,7 +746,7 @@ const login: LoginFunction = async (options: {
             );
           }
 
-          const isVerified: boolean = TwoFactorAuth.verifyToken({
+          const isVerified: boolean = TotpAuth.verifyToken({
             token: code,
             secret: totpAuth.twoFactorSecret!,
             email: alreadySavedUser.email!,

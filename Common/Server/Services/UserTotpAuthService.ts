@@ -2,7 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/UserTotpAuth";
-import TwoFactorAuth from "../Utils/TwoFactorAuth";
+import TotpAuth from "../Utils/TotpAuth";
 import UserService from "./UserService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import User from "../../Models/DatabaseModels/User";
@@ -43,8 +43,8 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("User email is required");
     }
 
-    createBy.data.twoFactorSecret = TwoFactorAuth.generateSecret();
-    createBy.data.twoFactorOtpUrl = TwoFactorAuth.generateUri({
+    createBy.data.twoFactorSecret = TotpAuth.generateSecret();
+    createBy.data.twoFactorOtpUrl = TotpAuth.generateUri({
       secret: createBy.data.twoFactorSecret,
       userEmail: user.email,
     });

@@ -3,9 +3,9 @@ import * as OTPAuth from "otpauth";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 
 /**
- * Utility class for handling two-factor authentication.
+ * Utility class for handling TOTP authentication.
  */
-export default class TwoFactorAuth {
+export default class TotpAuth {
   /**
    * Generates a random secret key for two-factor authentication.
    * @returns The generated secret key.

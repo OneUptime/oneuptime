@@ -12,7 +12,7 @@ import {
 import BaseAPI from "./BaseAPI";
 import UserTotpAuth from "../../Models/DatabaseModels/UserTotpAuth";
 import BadDataException from "../../Types/Exception/BadDataException";
-import TwoFactorAuth from "../Utils/TwoFactorAuth";
+import TotpAuth from "../Utils/TotpAuth";
 import Response from "../Utils/Response";
 import User from "../../Models/DatabaseModels/User";
 import UserService from "../Services/UserService";
@@ -75,7 +75,7 @@ export default class UserTotpAuthAPI extends BaseAPI<
             throw new BadDataException("User email not found");
           }
 
-          const isValid: boolean = TwoFactorAuth.verifyToken({
+          const isValid: boolean = TotpAuth.verifyToken({
             secret: userTotpAuth.twoFactorSecret || "",
             token: req.body["code"] || "",
             email: user.email!,
