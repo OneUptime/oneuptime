@@ -71,9 +71,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     name: string;
   }
 
-  const [isTeamsModalOpen, setIsTeamsModalOpen] = React.useState<boolean>(
-    false,
-  );
+  const [isTeamsModalOpen, setIsTeamsModalOpen] =
+    React.useState<boolean>(false);
   const [teams, setTeams] = React.useState<Array<TeamItem>>([]);
   const [isTeamsLoading, setIsTeamsLoading] = React.useState<boolean>(false);
   const [teamsError, setTeamsError] = React.useState<string>("");
@@ -101,7 +100,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             name: (t["name"] as string) || "",
           };
         })
-        .filter((t: TeamItem) => t.id && t.name);
+        .filter((t: TeamItem) => {
+          return t.id && t.name;
+        });
 
       setTeams(list);
     } catch (err) {
@@ -565,7 +566,9 @@ The zip file contains the app manifest and required icons for Teams installation
       {isTeamsModalOpen && (
         <TeamsAvailableModal
           isOpen={isTeamsModalOpen}
-          onClose={() => setIsTeamsModalOpen(false)}
+          onClose={() => {
+            return setIsTeamsModalOpen(false);
+          }}
           onRefresh={async () => {
             await refreshTeams();
             await loadTeams();

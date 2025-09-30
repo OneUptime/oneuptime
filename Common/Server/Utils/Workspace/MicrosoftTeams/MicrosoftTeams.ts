@@ -822,7 +822,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const channelName: string = data.channelName.toLowerCase();
 
     for (const channelData of channels) {
-      const displayName: string | undefined = channelData["displayName"] as string;
+      const displayName: string | undefined = channelData[
+        "displayName"
+      ] as string;
       if (!displayName) {
         continue;
       }
@@ -1047,7 +1049,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             content: data.adaptiveCard,
           });
 
-          const response: ResourceResponse | undefined=
+          const response: ResourceResponse | undefined =
             await context.sendActivity(message);
 
           messageId = response?.id || "";

@@ -33,7 +33,7 @@ const TeamsAvailableModal: FunctionComponent<TeamsAvailableModalProps> = (
   return (
     <Modal
       title="Microsoft Teams — Available Teams"
-  description="Teams that OneUptime can access in your tenant. Use Refresh if you recently added or changed teams."
+      description="Teams that OneUptime can access in your tenant. Use Refresh if you recently added or changed teams."
       modalWidth={ModalWidth.Large}
       submitButtonStyleType={ButtonStyleType.NORMAL}
       submitButtonText="Close"
@@ -70,19 +70,33 @@ const TeamsAvailableModal: FunctionComponent<TeamsAvailableModalProps> = (
 
             {props.teams.length > 0 && (
               <div className="space-y-2">
-                <div className="text-sm text-gray-600">Teams ({props.teams.length})</div>
+                <div className="text-sm text-gray-600">
+                  Teams ({props.teams.length})
+                </div>
                 <div className="max-h-[60vh] overflow-y-auto pr-1">
                   <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 overflow-hidden bg-white">
-                    {props.teams.map((t: TeamItem) => (
-                      <li key={t.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
-                        <div className="h-9 w-9 flex items-center justify-center rounded-full bg-gray-50 text-gray-600">
-                          <Icon icon={IconProp.Team} size={SizeProp.Large} thick={ThickProp.Thick} className="h-5 w-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-medium text-gray-900 truncate">{t.name}</div>
-                        </div>
-                      </li>
-                    ))}
+                    {props.teams.map((t: TeamItem) => {
+                      return (
+                        <li
+                          key={t.id}
+                          className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="h-9 w-9 flex items-center justify-center rounded-full bg-gray-50 text-gray-600">
+                            <Icon
+                              icon={IconProp.Team}
+                              size={SizeProp.Large}
+                              thick={ThickProp.Thick}
+                              className="h-5 w-5"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-medium text-gray-900 truncate">
+                              {t.name}
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               </div>
