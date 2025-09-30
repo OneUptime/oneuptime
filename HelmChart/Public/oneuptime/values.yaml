@@ -90,16 +90,8 @@ postgresql:
     nodeSelector: {}
     tolerations: []
     affinity: {}
-  # Optional: override global security contexts just for the PostgreSQL pod/container
-  # podSecurityContext:
-  #   runAsUser: 999
-  #   runAsGroup: 999
-  #   fsGroup: 999
-  # containerSecurityContext:
-  #   allowPrivilegeEscalation: false
-  #   readOnlyRootFilesystem: true
-  #   capabilities:
-  #     drop: ["ALL"]
+    podSecurityContext: {}
+    containerSecurityContext: {}
     resources: {}
     configuration: |-
       # Network and connection settings
@@ -142,16 +134,8 @@ clickhouse:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-  # Optional: override global security contexts just for the ClickHouse pod/container
-  # podSecurityContext:
-  #   runAsUser: 101
-  #   runAsGroup: 101
-  #   fsGroup: 101
-  # containerSecurityContext:
-  #   allowPrivilegeEscalation: false
-  #   readOnlyRootFilesystem: true
-  #   capabilities:
-  #     drop: ["ALL"]
+  podSecurityContext: {}
+  containerSecurityContext: {}
   resources: {}
   # Custom ClickHouse configuration
   configuration: |-
@@ -214,15 +198,8 @@ redis:
     tolerations: []
     affinity: {}
   # Optional: override global security contexts just for the Redis pod/container
-  # podSecurityContext:
-  #   runAsUser: 999
-  #   runAsGroup: 999
-  #   fsGroup: 999
-  # containerSecurityContext:
-  #   allowPrivilegeEscalation: false
-  #   readOnlyRootFilesystem: true
-  #   capabilities:
-  #     drop: ["ALL"]
+    podSecurityContext: {}
+    containerSecurityContext: {}
     resources: {}
   commonConfiguration: |-
    appendonly no

@@ -306,6 +306,12 @@
             },
             "hbaConfiguration": {
               "type": "string"
+            },
+            "podSecurityContext": {
+              "type": "object"
+            },
+            "containerSecurityContext": {
+              "type": "object"
             }
           },
           "additionalProperties": false
@@ -407,6 +413,12 @@
         },
         "configuration": {
           "type": "string"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
+          "type": "object"
         }
       },
       "additionalProperties": false
@@ -489,6 +501,12 @@
               "type": "object"
             },
             "resources": {
+              "type": "object"
+            },
+            "podSecurityContext": {
+              "type": "object"
+            },
+            "containerSecurityContext": {
               "type": "object"
             }
           },
