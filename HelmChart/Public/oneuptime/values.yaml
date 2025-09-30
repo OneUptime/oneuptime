@@ -57,6 +57,8 @@ nginx:
       # - 51.158.55.153 # Please make sure this is the same as the one in metalLb.ipAdddressPool.addresses
   resources: {}
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 
 
@@ -288,6 +290,8 @@ statusPage:
     http: 3105
   resources: {}
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 probes:
   one:
@@ -329,6 +333,8 @@ probes:
       cooldownPeriod: 300
   resources: {}
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
 #   additionalContainers:
 # two:
 #   name: "Probe 2"
@@ -374,6 +380,8 @@ testServer:
     http: 3800
   resources: {}
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 
 openTelemetryExporter:
@@ -563,6 +571,8 @@ openTelemetryCollector:
     numConsumers: 3
   resources: {}
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 accounts: 
   replicaCount: 1
@@ -572,6 +582,8 @@ accounts:
     http: 3003
   resources:
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 home: 
   replicaCount: 1
@@ -581,6 +593,8 @@ home:
     http: 1444
   resources:
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 dashboard:
   replicaCount: 1
@@ -590,6 +604,8 @@ dashboard:
     http: 3009
   resources:
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 adminDashboard:
   replicaCount: 1
@@ -599,6 +615,8 @@ adminDashboard:
     http: 3158
   resources:
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 worker:
   replicaCount: 1
@@ -609,6 +627,8 @@ worker:
     http: 1445
   resources:
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
   # KEDA autoscaling configuration based on queue metrics
   keda:
     enabled: false
@@ -630,6 +650,8 @@ workflow:
     http: 3099
   resources:
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 apiReference:
   replicaCount: 1
@@ -639,6 +661,8 @@ apiReference:
     http: 1446
   resources:
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 docs:
   replicaCount: 1
@@ -648,6 +672,8 @@ docs:
     http: 1447
   resources:
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 app: 
   replicaCount: 1
@@ -657,6 +683,8 @@ app:
     http: 3002
   resources:
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 probeIngest:
   replicaCount: 1
@@ -667,6 +695,8 @@ probeIngest:
     http: 3400
   resources:
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
   # KEDA autoscaling configuration based on queue metrics
   keda:
     enabled: false
@@ -689,6 +719,8 @@ openTelemetryIngest:
     http: 3403
   resources:
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
   # KEDA autoscaling configuration based on queue metrics
   keda:
     enabled: false
@@ -710,6 +742,8 @@ fluentIngest:
     http: 3401
   resources:
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
   # KEDA autoscaling configuration based on queue metrics
   keda:
     enabled: false
@@ -731,6 +765,8 @@ incomingRequestIngest:
     http: 3402
   resources:
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
   # KEDA autoscaling configuration based on queue metrics
   keda:
     enabled: false
@@ -751,6 +787,8 @@ isolatedVM:
     http: 4572
   resources:
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
 
 serverMonitorIngest:
   replicaCount: 1
@@ -761,6 +799,8 @@ serverMonitorIngest:
     http: 3404
   resources:
   nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
   # KEDA autoscaling configuration based on queue metrics
   keda:
     enabled: false

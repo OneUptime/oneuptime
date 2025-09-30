@@ -585,8 +585,9 @@ spec:
       imagePullSecrets:
         {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
       {{- end }}
-      {{- if $.Values.podSecurityContext }}
-      securityContext: {{- $.Values.podSecurityContext | toYaml | nindent 8 }}
+      {{- $podSecurityContext := merge $.Values.podSecurityContext $.PodSecurityContext }}
+      {{- if $podSecurityContext }}
+      securityContext: {{- $podSecurityContext | toYaml | nindent 8 }}
       {{- end }}
       {{- if $.Values.affinity }}
       affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
@@ -613,8 +614,9 @@ spec:
         - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository $.ServiceName .Values.image.tag }}
         {{- end}}
           name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
-          {{- if $.Values.containerSecurityContext }}
-          securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
+          {{- $containerSecurityContext := merge $.Values.containerSecurityContext $.ContainerSecurityContext }}
+          {{- if $containerSecurityContext }}
+          securityContext: {{- $containerSecurityContext | toYaml | nindent 12 }}
           {{- end }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:

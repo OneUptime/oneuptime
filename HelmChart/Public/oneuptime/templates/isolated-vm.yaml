@@ -42,6 +42,10 @@ spec:
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
+      {{- $podSecurityContext := merge $.Values.podSecurityContext $.Values.isolatedVM.podSecurityContext }}
+      {{- if $podSecurityContext }}
+      securityContext: {{- $podSecurityContext | toYaml | nindent 8 }}
+      {{- end }}
       {{- $nodeSelector := merge $.Values.nodeSelector $.Values.isolatedVM.nodeSelector }}
       {{- if $nodeSelector }}
       nodeSelector: {{- $nodeSelector | toYaml | nindent 8 }}
@@ -49,8 +53,9 @@ spec:
       containers:
         - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "isolated-vm" $.Values.image.tag }}
           name: {{ printf "%s-%s" $.Release.Name "isolated-vm"  }}
-          {{- if $.Values.containerSecurityContext }}
-          securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
+          {{- $containerSecurityContext := merge $.Values.containerSecurityContext $.Values.isolatedVM.containerSecurityContext }}
+          {{- if $containerSecurityContext }}
+          securityContext: {{- $containerSecurityContext | toYaml | nindent 12 }}
           {{- end }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:

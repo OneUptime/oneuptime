@@ -180,6 +180,12 @@
         },
         "nodeSelector": {
           "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
+          "type": "object"
         }
       },
       "additionalProperties": false
@@ -637,6 +643,12 @@
         },
         "nodeSelector": {
           "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
+          "type": "object"
         }
       },
       "additionalProperties": false
@@ -731,6 +743,12 @@
             "nodeSelector": {
               "type": "object"
             },
+            "podSecurityContext": {
+              "type": "object"
+            },
+            "containerSecurityContext": {
+              "type": "object"
+            },
             "additionalContainers": {
               "type": "array"
             }
@@ -768,6 +786,12 @@
           "type": "object"
         },
         "nodeSelector": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
           "type": "object"
         }
       },
@@ -1199,6 +1223,12 @@
         },
         "nodeSelector": {
           "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
+          "type": "object"
         }
       },
       "additionalProperties": false
@@ -1228,6 +1258,12 @@
           "type": "object"
         },
         "nodeSelector": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
           "type": "object"
         }
       },
@@ -1259,6 +1295,12 @@
         },
         "nodeSelector": {
           "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
+          "type": "object"
         }
       },
       "additionalProperties": false
@@ -1289,6 +1331,12 @@
         },
         "nodeSelector": {
           "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
+          "type": "object"
         }
       },
       "additionalProperties": false
@@ -1318,6 +1366,12 @@
           "type": "object"
         },
         "nodeSelector": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
           "type": "object"
         }
       },
@@ -1351,6 +1405,12 @@
           "type": "object"
         },
         "nodeSelector": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
           "type": "object"
         },
         "keda": {
@@ -1409,6 +1469,12 @@
         },
         "nodeSelector": {
           "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
+          "type": "object"
         }
       },
       "additionalProperties": false
@@ -1438,6 +1504,12 @@
           "type": "object"
         },
         "nodeSelector": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
           "type": "object"
         }
       },
@@ -1469,6 +1541,12 @@
         },
         "nodeSelector": {
           "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
+          "type": "object"
         }
       },
       "additionalProperties": false
@@ -1498,6 +1576,12 @@
           "type": "object"
         },
         "nodeSelector": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
           "type": "object"
         }
       },
@@ -1531,6 +1615,12 @@
           "type": "object"
         },
         "nodeSelector": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
           "type": "object"
         },
         "keda": {
@@ -1590,6 +1680,12 @@
         "nodeSelector": {
           "type": "object"
         },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
+          "type": "object"
+        },
         "keda": {
           "type": "object",
           "properties": {
@@ -1645,6 +1741,12 @@
           "type": "object"
         },
         "nodeSelector": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
           "type": "object"
         },
         "keda": {
@@ -1704,6 +1806,12 @@
         "nodeSelector": {
           "type": "object"
         },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
+          "type": "object"
+        },
         "keda": {
           "type": "object",
           "properties": {
@@ -1757,6 +1865,12 @@
         },
         "nodeSelector": {
           "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
+          "type": "object"
         }
       },
       "additionalProperties": false
@@ -1789,6 +1903,12 @@
           "type": "object"
         },
         "nodeSelector": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
           "type": "object"
         },
         "keda": {

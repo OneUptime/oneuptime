@@ -46,6 +46,10 @@ spec:
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
+      {{- $podSecurityContext := merge $.Values.podSecurityContext $.Values.incomingRequestIngest.podSecurityContext }}
+      {{- if $podSecurityContext }}
+      securityContext: {{- $podSecurityContext | toYaml | nindent 8 }}
+      {{- end }}
       {{- $nodeSelector := merge $.Values.nodeSelector $.Values.incomingRequestIngest.nodeSelector }}
       {{- if $nodeSelector }}
       nodeSelector: {{- $nodeSelector | toYaml | nindent 8 }}
@@ -82,8 +86,9 @@ spec:
             initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
             timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
           {{- end }}
-          {{- if $.Values.containerSecurityContext }}
-          securityContext: {{- $.Values.containerSecurityContext | toYaml | nindent 12 }}
+          {{- $containerSecurityContext := merge $.Values.containerSecurityContext $.Values.incomingRequestIngest.containerSecurityContext }}
+          {{- if $containerSecurityContext }}
+          securityContext: {{- $containerSecurityContext | toYaml | nindent 12 }}
           {{- end }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
