@@ -515,7 +515,7 @@ router.post(
       req: req,
       res: res,
       next: next,
-      verifyTwoFactorAuth: true,
+      verifyTotpAuth: true,
       verifyWebAuthn: false,
     });
   },
@@ -532,7 +532,7 @@ router.post(
       req: req,
       res: res,
       next: next,
-      verifyTwoFactorAuth: false,
+      verifyTotpAuth: false,
       verifyWebAuthn: true,
     });
   },
@@ -549,7 +549,7 @@ router.post(
       req: req,
       res: res,
       next: next,
-      verifyTwoFactorAuth: false,
+      verifyTotpAuth: false,
       verifyWebAuthn: false,
     });
   },
@@ -610,7 +610,7 @@ type LoginFunction = (options: {
   req: ExpressRequest;
   res: ExpressResponse;
   next: NextFunction;
-  verifyTwoFactorAuth: boolean;
+  verifyTotpAuth: boolean;
   verifyWebAuthn: boolean;
 }) => Promise<void>;
 
@@ -618,13 +618,13 @@ const login: LoginFunction = async (options: {
   req: ExpressRequest;
   res: ExpressResponse;
   next: NextFunction;
-  verifyTwoFactorAuth: boolean;
+  verifyTotpAuth: boolean;
   verifyWebAuthn: boolean;
 }): Promise<void> => {
   const req: ExpressRequest = options.req;
   const res: ExpressResponse = options.res;
   const next: NextFunction = options.next;
-  const verifyTwoFactorAuth: boolean = options.verifyTwoFactorAuth;
+  const verifyTotpAuth: boolean = options.verifyTotpAuth;
   const verifyWebAuthn: boolean = options.verifyWebAuthn;
 
   try {
@@ -685,7 +685,7 @@ const login: LoginFunction = async (options: {
         );
       }
 
-      if (alreadySavedUser.enableTwoFactorAuth && !verifyTwoFactorAuth) {
+      if (alreadySavedUser.enableTwoFactorAuth && !verifyTotpAuth) {
         // If two factor auth is enabled then we will send the user to the two factor auth page.
 
         const { totpAuthList, webAuthnList } = await fetchTotpAuthList(
@@ -716,8 +716,8 @@ const login: LoginFunction = async (options: {
         });
       }
 
-      if (verifyTwoFactorAuth || verifyWebAuthn) {
-        if (verifyTwoFactorAuth) {
+      if (verifyTotpAuth || verifyWebAuthn) {
+        if (verifyTotpAuth) {
           // code from req
           const code: string = data["code"] as string;
           const twoFactorAuthId: string = data["twoFactorAuthId"] as string;
