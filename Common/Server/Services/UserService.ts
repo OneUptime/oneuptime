@@ -31,6 +31,8 @@ import Model from "../../Models/DatabaseModels/User";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import UserTwoFactorAuth from "../../Models/DatabaseModels/UserTwoFactorAuth";
 import UserTwoFactorAuthService from "./UserTwoFactorAuthService";
+import UserWebAuthn from "../../Models/DatabaseModels/UserWebAuthn";
+import UserWebAuthnService from "./UserWebAuthnService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Name from "../../Types/Name";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -171,7 +173,21 @@ export class Service extends DatabaseService<Model> {
             },
           });
 
-        if (!twoFactorAuth) {
+        const webAuthn: UserWebAuthn | null =
+          await UserWebAuthnService.findOneBy({
+            query: {
+              userId: user.id!,
+              isVerified: true,
+            },
+            select: {
+              _id: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!twoFactorAuth && !webAuthn) {
           throw new BadDataException(
             "Please verify two factor authentication method before you enable two factor authentication.",
           );
