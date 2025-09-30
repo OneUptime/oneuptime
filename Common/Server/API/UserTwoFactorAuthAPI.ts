@@ -46,6 +46,7 @@ export default class UserTwoFactorAuthAPI extends BaseAPI<
           }
 
           if (
+            
             userTwoFactorAuth.userId?.toString() !==
             (req as OneUptimeRequest).userAuthorization?.userId.toString()
           ) {

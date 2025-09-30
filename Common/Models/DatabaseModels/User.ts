@@ -301,50 +301,8 @@ class User extends UserModel {
   })
   public twoFactorAuthEnabled?: boolean = undefined;
 
-  @ColumnAccessControl({
-    create: [],
-    read: [],
 
-    update: [],
-  })
-  @TableColumn({ type: TableColumnType.ShortText })
-  @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
-    nullable: true,
-    unique: false,
-  })
-  public twoFactorSecretCode?: string = undefined;
 
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-
-    update: [],
-  })
-  @TableColumn({ type: TableColumnType.ShortURL })
-  @Column({
-    type: ColumnType.ShortURL,
-    length: ColumnLength.ShortURL,
-    nullable: true,
-    unique: false,
-    transformer: URL.getDatabaseTransformer(),
-  })
-  public twoFactorAuthUrl?: URL = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [Permission.CurrentUser],
-
-    update: [],
-  })
-  @TableColumn({ type: TableColumnType.Array })
-  @Column({
-    type: ColumnType.Array,
-    nullable: true,
-    unique: false,
-  })
-  public backupCodes?: Array<string> = undefined;
 
   @ColumnAccessControl({
     create: [],
