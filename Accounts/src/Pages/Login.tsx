@@ -26,6 +26,8 @@ import API from "Common/UI/Utils/API/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Base64 from "Common/Utils/Base64";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 
 const LoginPage: () => JSX.Element = () => {
   const apiUrl: URL = LOGIN_API_URL;
@@ -337,14 +339,8 @@ const LoginPage: () => JSX.Element = () => {
               <div className="text-sm text-gray-500 mb-4">
                 Please follow the instructions on your security key device.
               </div>
-              {isTwoFactorAuthLoading && (
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto"></div>
-              )}
-              {twofactorAuthError && (
-                <div className="text-red-500 text-sm mt-4">
-                  {twofactorAuthError}
-                </div>
-              )}
+              {isTwoFactorAuthLoading && <ComponentLoader />}
+              {twofactorAuthError && <ErrorMessage message={twofactorAuthError} />}
             </div>
           )}
 
