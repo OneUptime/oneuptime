@@ -32,9 +32,10 @@ export default class UserWebAuthnAPI extends BaseAPI<
           const userId: ObjectID = (req as OneUptimeRequest).userAuthorization!
             .userId;
 
-          const result = await UserWebAuthnService.generateRegistrationOptions({
-            userId: userId,
-          });
+          const result: { options: any; challenge: string } =
+            await UserWebAuthnService.generateRegistrationOptions({
+              userId: userId,
+            });
 
           return Response.sendJsonObjectResponse(req, res, result);
         } catch (err) {
@@ -81,7 +82,7 @@ export default class UserWebAuthnAPI extends BaseAPI<
             throw new BadDataException("Email is required");
           }
 
-          const result =
+          const result: { options: any; challenge: string; userId: string } =
             await UserWebAuthnService.generateAuthenticationOptions({
               email: email,
             });

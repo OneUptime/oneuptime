@@ -6,7 +6,7 @@ import UserService from "./UserService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import User from "../../Models/DatabaseModels/User";
 import DeleteBy from "../Types/Database/DeleteBy";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import {
   generateRegistrationOptions,
@@ -14,7 +14,6 @@ import {
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
 } from "@simplewebauthn/server";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import { Host, HttpProtocol } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
