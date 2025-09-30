@@ -77,7 +77,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <div>
         <ModelTable<UserTwoFactorAuth>
           modelType={UserTwoFactorAuth}
-          name="Two Factor Authentication"
+          name="Authenticator Based Two Factor Authentication"
           id="two-factor-auth-table"
           userPreferencesKey="user-two-factor-auth-table"
           isDeleteable={true}
@@ -91,12 +91,12 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isCreateable={true}
           isViewable={false}
           cardProps={{
-            title: "Two Factor Authentication",
-            description: "Manage your two factor authentication settings here.",
+            title: "Authenticator Based Two Factor Authentication",
+            description: "Manage your authenticator based two factor authentication settings here.",
           }}
-          noItemsMessage={"No two factor authentication found."}
-          singularName="Two Factor Authentication"
-          pluralName="Two Factor Authentications"
+          noItemsMessage={"No authenticator based two factor authentication found."}
+          singularName="Authenticator Based Two Factor Authentication"
+          pluralName="Authenticator Based Two Factor Authentications"
           actionButtons={[
             {
               title: "Verify",
