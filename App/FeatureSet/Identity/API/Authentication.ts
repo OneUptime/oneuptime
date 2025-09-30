@@ -632,6 +632,14 @@ const login: LoginFunction = async (options: {
 
     const user: User = BaseModel.fromJSON(data as JSONObject, User) as User;
 
+    if(!user.email || !user.password){
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Email and password are required."),
+      );
+    }
+
     await user.password?.hashValue(EncryptionSecret);
 
     const alreadySavedUser: User | null = await UserService.findOneBy({
