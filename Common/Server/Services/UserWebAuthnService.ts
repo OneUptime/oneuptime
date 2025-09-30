@@ -42,7 +42,9 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("User email is required");
     }
 
-    createBy.data.isVerified = false;
+    // by default secuirty keys are always verified. You can't add an unverified security key.
+
+    createBy.data.isVerified = true;
 
     return {
       createBy: createBy,
