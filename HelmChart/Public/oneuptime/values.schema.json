@@ -23,13 +23,10 @@
       "enum": ["http", "https"]
     },
     "oneuptimeSecret": {
-      "type": "object",
-      "properties": {
-        "encryptionSecret": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
+      "type": "string"
+    },
+    "encryptionSecret": {
+      "type": "string"
     },
     "externalSecrets": {
       "type": "object",
