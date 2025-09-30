@@ -15,6 +15,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Response from "../Utils/Response";
 import User from "../../Models/DatabaseModels/User";
 import UserService from "../Services/UserService";
+import CookieUtil from "../Utils/Cookie";
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -24,6 +25,8 @@ import {
 import { JSONObject } from "../../Types/JSON";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import { Host, HttpProtocol } from "../EnvironmentConfig";
+import CommonAPI from "./CommonAPI";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export default class UserWebAuthnAPI extends BaseAPI<
   UserWebAuthn,
@@ -84,19 +87,30 @@ export default class UserWebAuthnAPI extends BaseAPI<
               ? user.name.toString()
               : user.email.toString(),
             attestationType: "none",
-            excludeCredentials: existingCredentials.map(
-              (cred: UserWebAuthn) => {
+            excludeCredentials: existingCredentials
+              .filter((cred: UserWebAuthn) => cred.credentialId)
+              .map((cred: UserWebAuthn) => {
                 return {
                   id: cred.credentialId!,
                   type: "public-key",
                 };
-              },
-            ),
+              }),
             authenticatorSelection: {
               residentKey: "discouraged",
               userVerification: "preferred",
             },
           });
+
+          // Convert to JSON serializable format
+          options.challenge = Buffer.from(options.challenge).toString('base64url');
+          if (options.excludeCredentials) {
+            options.excludeCredentials = options.excludeCredentials.map(
+              (cred: any) => ({
+                ...cred,
+                id: typeof cred.id === 'string' ? cred.id : Buffer.from(cred.id).toString('base64url'),
+              }),
+            );
+          }
 
           return Response.sendJsonObjectResponse(req, res, {
             options: options as any,
@@ -114,6 +128,9 @@ export default class UserWebAuthnAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const data: JSONObject = req.body;
+
+            const databaseProps: DatabaseCommonInteractionProps =
+                await CommonAPI.getDatabaseCommonInteractionProps(req);
 
           const expectedChallenge: string = data["challenge"] as string;
           const credential: any = data["credential"];
@@ -138,21 +155,30 @@ export default class UserWebAuthnAPI extends BaseAPI<
             throw new BadDataException("Registration info not found");
           }
 
+
+          if(!databaseProps.userId){
+            throw new BadDataException("User ID not found in request");
+          }
+
+
           // Save the credential
+          const userWebAuthn: UserWebAuthn = UserWebAuthn.fromJSON({
+            name: name,
+            credentialId: registrationInfo.credential.id,
+            publicKey: Buffer.from(
+              registrationInfo.credential.publicKey,
+            ).toString("base64"),
+            counter: "0",
+            transports: JSON.stringify([]),
+            isVerified: true,
+            userId: databaseProps.userId,
+          }, UserWebAuthn) as UserWebAuthn;
+
+            
+
           await UserWebAuthnService.create({
-            data: {
-              name: name,
-              credentialId: registrationInfo.credential.id,
-              publicKey: Buffer.from(
-                registrationInfo.credential.publicKey,
-              ).toString("base64"),
-              counter: "0",
-              transports: JSON.stringify([]),
-              isVerified: true,
-            } as any,
-            props: {
-              isRoot: false,
-            },
+            data: userWebAuthn,
+            props: databaseProps
           });
 
           return Response.sendEmptySuccessResponse(req, res);
@@ -219,6 +245,10 @@ export default class UserWebAuthnAPI extends BaseAPI<
             }),
             userVerification: "preferred",
           });
+
+          // Convert to JSON serializable format
+          options.challenge = Buffer.from(options.challenge).toString('base64url');
+          // allowCredentials id is already base64url string
 
           return Response.sendJsonObjectResponse(req, res, {
             options: options as any,
@@ -306,9 +336,13 @@ export default class UserWebAuthnAPI extends BaseAPI<
             },
           });
 
-          return Response.sendJsonObjectResponse(req, res, {
+          CookieUtil.setUserCookie({
+            expressResponse: res,
             user: user,
+            isGlobalLogin: true,
           });
+
+          return Response.sendEntityResponse(req, res, user, User);
         } catch (err) {
           next(err);
         }

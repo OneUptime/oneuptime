@@ -25,6 +25,7 @@ import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import API from "Common/UI/Utils/API/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import Base64 from "Common/Utils/Base64";
 
 const LoginPage: () => JSX.Element = () => {
   const apiUrl: URL = LOGIN_API_URL;
@@ -96,6 +97,14 @@ const LoginPage: () => JSX.Element = () => {
 
         const data: any = result.data as any;
 
+        // Convert base64url strings back to Uint8Array
+        data.options.challenge = Base64.base64UrlToUint8Array(data.options.challenge);
+        if (data.options.allowCredentials) {
+          data.options.allowCredentials.forEach((cred: any) => {
+            cred.id = Base64.base64UrlToUint8Array(cred.id);
+          });
+        }
+
         // Use WebAuthn API
         const credential: PublicKeyCredential =
           (await navigator.credentials.get({
@@ -113,19 +122,19 @@ const LoginPage: () => JSX.Element = () => {
             challenge: data.challenge,
             credential: {
               id: credential.id,
-              rawId: Array.from(new Uint8Array(credential.rawId)),
+              rawId: Base64.uint8ArrayToBase64Url(new Uint8Array(credential.rawId)),
               response: {
-                authenticatorData: Array.from(
+                authenticatorData: Base64.uint8ArrayToBase64Url(
                   new Uint8Array(assertionResponse.authenticatorData),
                 ),
-                clientDataJSON: Array.from(
+                clientDataJSON: Base64.uint8ArrayToBase64Url(
                   new Uint8Array(assertionResponse.clientDataJSON),
                 ),
-                signature: Array.from(
+                signature: Base64.uint8ArrayToBase64Url(
                   new Uint8Array(assertionResponse.signature),
                 ),
                 userHandle: assertionResponse.userHandle
-                  ? Array.from(new Uint8Array(assertionResponse.userHandle))
+                  ? Base64.uint8ArrayToBase64Url(new Uint8Array(assertionResponse.userHandle))
                   : null,
               },
               type: credential.type,
@@ -141,11 +150,9 @@ const LoginPage: () => JSX.Element = () => {
           verifyResult.data as JSONObject,
           User,
         ) as User;
-        const miscData: JSONObject = (verifyResult.data as JSONObject)[
-          "miscData"
-        ] as JSONObject;
+        const miscData: JSONObject = {};
 
-        login(user as User, miscData as JSONObject);
+        login(user as User, miscData);
       } catch (error) {
         setTwoFactorAuthError(API.getFriendlyErrorMessage(error as Error));
       }
