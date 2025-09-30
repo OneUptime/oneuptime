@@ -146,7 +146,8 @@ import ServiceCatalogDependency from "./ServiceCatalogDependency";
 import ServiceCatalogMonitor from "./ServiceCatalogMonitor";
 import ServiceCatalogTelemetryService from "./ServiceCatalogTelemetryService";
 
-import UserTwoFactorAuth from "./UserTwoFactorAuth";
+import UserTotpAuth from "./UserTotpAuth";
+import UserWebAuthn from "./UserWebAuthn";
 
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
@@ -366,7 +367,8 @@ const AllModelTypes: Array<{
   ProbeOwnerTeam,
   ProbeOwnerUser,
 
-  UserTwoFactorAuth,
+  UserTotpAuth,
+  UserWebAuthn,
 
   TelemetryIngestionKey,
 

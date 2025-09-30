@@ -1,7 +1,6 @@
 import File from "./File";
 import UserModel from "../../Models/DatabaseModels/DatabaseBaseModel/UserModel";
 import Route from "../../Types/API/Route";
-import URL from "../../Types/API/URL";
 import CompanySize from "../../Types/Company/CompanySize";
 import JobRole from "../../Types/Company/JobRole";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
@@ -300,51 +299,6 @@ class User extends UserModel {
     unique: false,
   })
   public twoFactorAuthEnabled?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-
-    update: [],
-  })
-  @TableColumn({ type: TableColumnType.ShortText })
-  @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
-    nullable: true,
-    unique: false,
-  })
-  public twoFactorSecretCode?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-
-    update: [],
-  })
-  @TableColumn({ type: TableColumnType.ShortURL })
-  @Column({
-    type: ColumnType.ShortURL,
-    length: ColumnLength.ShortURL,
-    nullable: true,
-    unique: false,
-    transformer: URL.getDatabaseTransformer(),
-  })
-  public twoFactorAuthUrl?: URL = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [Permission.CurrentUser],
-
-    update: [],
-  })
-  @TableColumn({ type: TableColumnType.Array })
-  @Column({
-    type: ColumnType.Array,
-    nullable: true,
-    unique: false,
-  })
-  public backupCodes?: Array<string> = undefined;
 
   @ColumnAccessControl({
     create: [],

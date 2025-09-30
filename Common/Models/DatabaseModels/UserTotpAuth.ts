@@ -27,19 +27,19 @@ import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
   delete: [Permission.CurrentUser],
   update: [Permission.CurrentUser],
 })
-@CrudApiEndpoint(new Route("/user-two-factor-auth"))
+@CrudApiEndpoint(new Route("/user-totp-auth"))
 @Entity({
-  name: "UserTwoFactorAuth",
+  name: "UserTotpAuth",
 })
 @TableMetadata({
-  tableName: "UserTwoFactorAuth",
-  singularName: "Two Factor Auth",
-  pluralName: "Two Factor Auth",
+  tableName: "UserTotpAuth",
+  singularName: "TOTP Auth",
+  pluralName: "TOTP Auth",
   icon: IconProp.ShieldCheck,
-  tableDescription: "Two Factor Authentication for users",
+  tableDescription: "TOTP Authentication for users",
 })
 @CurrentUserCanAccessRecordBy("userId")
-class UserTwoFactorAuth extends BaseModel {
+class UserTotpAuth extends BaseModel {
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
@@ -48,8 +48,8 @@ class UserTwoFactorAuth extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    title: "Two Factor Auth Name",
-    description: "Name of the two factor authentication",
+    title: "TOTP Auth Name",
+    description: "Name of the TOTP authentication",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -67,8 +67,8 @@ class UserTwoFactorAuth extends BaseModel {
   @TableColumn({
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: false,
-    title: "Two Factor Auth Secret",
-    description: "Secret of the two factor authentication",
+    title: "TOTP Auth Secret",
+    description: "Secret of the TOTP authentication",
   })
   @Column({
     type: ColumnType.VeryLongText,
@@ -85,8 +85,8 @@ class UserTwoFactorAuth extends BaseModel {
   @TableColumn({
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: false,
-    title: "Two Factor Auth OTP URL",
-    description: "OTP URL of the two factor authentication",
+    title: "TOTP Auth OTP URL",
+    description: "OTP URL of the TOTP authentication",
   })
   @Column({
     type: ColumnType.VeryLongText,
@@ -106,7 +106,7 @@ class UserTwoFactorAuth extends BaseModel {
     title: "Is Verified",
     isDefaultValueColumn: true,
     description:
-      "Is this two factor authentication verified and validated (has user entered the tokent to verify it)",
+      "Is this TOTP authentication verified and validated (has user entered the token to verify it)",
     defaultValue: false,
   })
   @Column({
@@ -171,7 +171,7 @@ class UserTwoFactorAuth extends BaseModel {
     manyToOneRelationColumn: "userId",
     type: TableColumnType.Entity,
     title: "User",
-    description: "Relation to User who owns this two factor authentication",
+    description: "Relation to User who owns this TOTP authentication",
   })
   @ManyToOne(
     () => {
@@ -207,4 +207,4 @@ class UserTwoFactorAuth extends BaseModel {
   public userId?: ObjectID = undefined;
 }
 
-export default UserTwoFactorAuth;
+export default UserTotpAuth;

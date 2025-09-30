@@ -1,8 +1,8 @@
 import ObjectID from "../../Types/ObjectID";
 import UserMiddleware from "../Middleware/UserAuthorization";
-import UserTwoFactorAuthService, {
-  Service as UserTwoFactorAuthServiceType,
-} from "../Services/UserTwoFactorAuthService";
+import UserTotpAuthService, {
+  Service as UserTotpAuthServiceType,
+} from "../Services/UserTotpAuthService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -10,27 +10,27 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import BaseAPI from "./BaseAPI";
-import UserTwoFactorAuth from "../../Models/DatabaseModels/UserTwoFactorAuth";
+import UserTotpAuth from "../../Models/DatabaseModels/UserTotpAuth";
 import BadDataException from "../../Types/Exception/BadDataException";
-import TwoFactorAuth from "../Utils/TwoFactorAuth";
+import TotpAuth from "../Utils/TotpAuth";
 import Response from "../Utils/Response";
 import User from "../../Models/DatabaseModels/User";
 import UserService from "../Services/UserService";
 
-export default class UserTwoFactorAuthAPI extends BaseAPI<
-  UserTwoFactorAuth,
-  UserTwoFactorAuthServiceType
+export default class UserTotpAuthAPI extends BaseAPI<
+  UserTotpAuth,
+  UserTotpAuthServiceType
 > {
   public constructor() {
-    super(UserTwoFactorAuth, UserTwoFactorAuthService);
+    super(UserTotpAuth, UserTotpAuthService);
 
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/validate`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const userTwoFactorAuth: UserTwoFactorAuth | null =
-            await UserTwoFactorAuthService.findOneById({
+          const userTotpAuth: UserTotpAuth | null =
+            await UserTotpAuthService.findOneById({
               id: new ObjectID(req.body["id"]),
               select: {
                 twoFactorSecret: true,
@@ -41,24 +41,24 @@ export default class UserTwoFactorAuthAPI extends BaseAPI<
               },
             });
 
-          if (!userTwoFactorAuth) {
-            throw new BadDataException("Two factor auth not found");
+          if (!userTotpAuth) {
+            throw new BadDataException("TOTP auth not found");
           }
 
           if (
-            userTwoFactorAuth.userId?.toString() !==
+            userTotpAuth.userId?.toString() !==
             (req as OneUptimeRequest).userAuthorization?.userId.toString()
           ) {
             throw new BadDataException("Two factor auth not found");
           }
 
-          if (!userTwoFactorAuth.userId) {
+          if (!userTotpAuth.userId) {
             throw new BadDataException("User not found");
           }
 
           // get user email.
           const user: User | null = await UserService.findOneById({
-            id: userTwoFactorAuth.userId!,
+            id: userTotpAuth.userId!,
             select: {
               email: true,
             },
@@ -75,8 +75,8 @@ export default class UserTwoFactorAuthAPI extends BaseAPI<
             throw new BadDataException("User email not found");
           }
 
-          const isValid: boolean = TwoFactorAuth.verifyToken({
-            secret: userTwoFactorAuth.twoFactorSecret || "",
+          const isValid: boolean = TotpAuth.verifyToken({
+            secret: userTotpAuth.twoFactorSecret || "",
             token: req.body["code"] || "",
             email: user.email!,
           });
@@ -87,8 +87,8 @@ export default class UserTwoFactorAuthAPI extends BaseAPI<
 
           // update this 2fa code as verified
 
-          await UserTwoFactorAuthService.updateOneById({
-            id: userTwoFactorAuth.id!,
+          await UserTotpAuthService.updateOneById({
+            id: userTotpAuth.id!,
             data: {
               isVerified: true,
             },

@@ -8,5 +8,5 @@
         "./build/**",
         "greenlock.d/*"
     ],
-    "exec": "node --inspect=0.0.0.0:9229 --require ts-node/register Index.ts"
+    "exec": "node  --require ts-node/register Index.ts"
 }

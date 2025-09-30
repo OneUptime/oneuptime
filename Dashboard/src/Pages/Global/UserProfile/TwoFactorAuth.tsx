@@ -7,8 +7,9 @@ import Route from "Common/Types/API/Route";
 import Page from "Common/UI/Components/Page/Page";
 import React, { FunctionComponent, ReactElement } from "react";
 import UserUtil from "Common/UI/Utils/User";
-import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import UserTotpAuth from "Common/Models/DatabaseModels/UserTotpAuth";
+import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -26,10 +27,11 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import User from "Common/Models/DatabaseModels/User";
 import OneUptimeDate from "Common/Types/Date";
+import Base64 from "Common/Utils/Base64";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  const [selectedTwoFactorAuth, setSelectedTwoFactorAuth] =
-    React.useState<UserTwoFactorAuth | null>(null);
+  const [selectedTotpAuth, setSelectedTotpAuth] =
+    React.useState<UserTotpAuth | null>(null);
   const [showVerificationModal, setShowVerificationModal] =
     React.useState<boolean>(false);
   const [verificationError, setVerificationError] = React.useState<
@@ -41,6 +43,13 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [tableRefreshToggle, setTableRefreshToggle] = React.useState<string>(
     OneUptimeDate.getCurrentDate().toString(),
   );
+
+  const [showWebAuthnRegistrationModal, setShowWebAuthnRegistrationModal] =
+    React.useState<boolean>(false);
+  const [webAuthnRegistrationError, setWebAuthnRegistrationError] =
+    React.useState<string | null>(null);
+  const [webAuthnRegistrationLoading, setWebAuthnRegistrationLoading] =
+    React.useState<boolean>(false);
 
   return (
     <Page
@@ -66,11 +75,11 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
       sideMenu={<SideMenu />}
     >
       <div>
-        <ModelTable<UserTwoFactorAuth>
-          modelType={UserTwoFactorAuth}
-          name="Two Factor Authentication"
-          id="two-factor-auth-table"
-          userPreferencesKey="user-two-factor-auth-table"
+        <ModelTable<UserTotpAuth>
+          modelType={UserTotpAuth}
+          name="Authenticator Based TOTP Authentication"
+          id="totp-auth-table"
+          userPreferencesKey="user-totp-auth-table"
           isDeleteable={true}
           refreshToggle={tableRefreshToggle}
           filters={[]}
@@ -82,25 +91,28 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isCreateable={true}
           isViewable={false}
           cardProps={{
-            title: "Two Factor Authentication",
-            description: "Manage your two factor authentication settings here.",
+            title: "Authenticator Based Two Factor Authentication",
+            description:
+              "Manage your authenticator based two factor authentication settings here.",
           }}
-          noItemsMessage={"No two factor authentication found."}
-          singularName="Two Factor Authentication"
-          pluralName="Two Factor Authentications"
+          noItemsMessage={
+            "No authenticator based two factor authentication found."
+          }
+          singularName="Authenticator Based Two Factor Authentication"
+          pluralName="Authenticator Based Two Factor Authentications"
           actionButtons={[
             {
               title: "Verify",
               buttonStyleType: ButtonStyleType.NORMAL,
               icon: IconProp.Check,
-              isVisible: (item: UserTwoFactorAuth) => {
+              isVisible: (item: UserTotpAuth) => {
                 return !item.isVerified;
               },
               onClick: async (
-                item: UserTwoFactorAuth,
+                item: UserTotpAuth,
                 onCompleteAction: VoidFunction,
               ) => {
-                setSelectedTwoFactorAuth(item);
+                setSelectedTotpAuth(item);
                 setShowVerificationModal(true);
                 onCompleteAction();
               },
@@ -137,9 +149,67 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           ]}
         />
-        {showVerificationModal && selectedTwoFactorAuth ? (
+
+        <div>
+          <ModelTable<UserWebAuthn>
+            modelType={UserWebAuthn}
+            name="Security Key-Based Two-Factor Authentication"
+            id="webauthn-table"
+            userPreferencesKey="user-webauthn-table"
+            isDeleteable={true}
+            refreshToggle={tableRefreshToggle}
+            filters={[]}
+            query={{
+              userId: UserUtil.getUserId(),
+            }}
+            isEditable={false}
+            showRefreshButton={true}
+            isCreateable={false}
+            isViewable={false}
+            cardProps={{
+              title: "Security Key-Based Two-Factor Authentication",
+              description:
+                "Manage your security keys for two-factor authentication.",
+              rightElement: (
+                <div className="flex justify-end mb-4">
+                  <Button
+                    title="Add Security Key"
+                    buttonStyle={ButtonStyleType.NORMAL}
+                    icon={IconProp.Add}
+                    onClick={() => {
+                      setWebAuthnRegistrationLoading(false);
+                      setWebAuthnRegistrationError(null);
+                      return setShowWebAuthnRegistrationModal(true);
+                    }}
+                  />
+                </div>
+              ),
+            }}
+            noItemsMessage={"No security keys found."}
+            singularName="Security Key"
+            pluralName="Security Keys"
+            columns={[
+              {
+                field: {
+                  name: true,
+                },
+                title: "Name",
+                type: FieldType.Text,
+              },
+              {
+                field: {
+                  isVerified: true,
+                },
+                title: "Is Verified?",
+                type: FieldType.Boolean,
+              },
+            ]}
+          />
+        </div>
+
+        {showVerificationModal && selectedTotpAuth ? (
           <BasicFormModal
-            title={`Verify ${selectedTwoFactorAuth.name}`}
+            title={`Verify ${selectedTotpAuth.name}`}
             description={`Please scan this QR code with your authenticator app and enter the code below. This code works with Google Authenticator.`}
             formProps={{
               error: verificationError || undefined,
@@ -162,7 +232,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     }
                     return (
                       <QRCodeElement
-                        text={selectedTwoFactorAuth.twoFactorOtpUrl || ""}
+                        text={selectedTotpAuth.twoFactorOtpUrl || ""}
                       />
                     );
                   },
@@ -183,7 +253,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             onClose={() => {
               setShowVerificationModal(false);
               setVerificationError(null);
-              setSelectedTwoFactorAuth(null);
+              setSelectedTotpAuth(null);
             }}
             isLoading={verificationLoading}
             onSubmit={async (values: JSONObject) => {
@@ -195,17 +265,17 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   | HTTPResponse<EmptyResponseData>
                   | HTTPErrorResponse = await API.post({
                   url: URL.fromString(APP_API_URL.toString()).addRoute(
-                    `/user-two-factor-auth/validate`,
+                    `/user-totp-auth/validate`,
                   ),
                   data: {
                     code: values["code"],
-                    id: selectedTwoFactorAuth.id?.toString(),
+                    id: selectedTotpAuth.id?.toString(),
                   },
                 });
                 if (response.isSuccess()) {
                   setShowVerificationModal(false);
                   setVerificationError(null);
-                  setSelectedTwoFactorAuth(null);
+                  setSelectedTotpAuth(null);
                   setVerificationLoading(false);
                 }
 
@@ -222,6 +292,124 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }
 
               setVerificationLoading(false);
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
+        {showWebAuthnRegistrationModal ? (
+          <BasicFormModal
+            title="Add Security Key"
+            description="Register a new security key for two factor authentication."
+            formProps={{
+              error: webAuthnRegistrationError || undefined,
+              fields: [
+                {
+                  field: {
+                    name: true,
+                  },
+                  title: "Name",
+                  description:
+                    "Give your security key a name (e.g., YubiKey, Titan Key)",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: true,
+                },
+              ],
+            }}
+            submitButtonText="Register Security Key"
+            onClose={() => {
+              setShowWebAuthnRegistrationModal(false);
+              setWebAuthnRegistrationError(null);
+              setWebAuthnRegistrationLoading(false);
+            }}
+            isLoading={webAuthnRegistrationLoading}
+            onSubmit={async (values: JSONObject) => {
+              try {
+                setWebAuthnRegistrationLoading(true);
+                setWebAuthnRegistrationError("");
+
+                // Generate registration options
+                const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+                  await API.post({
+                    url: URL.fromString(APP_API_URL.toString()).addRoute(
+                      `/user-webauthn/generate-registration-options`,
+                    ),
+                    data: {},
+                  });
+
+                if (response instanceof HTTPErrorResponse) {
+                  throw response;
+                }
+
+                const data: any = response.data as any;
+
+                // Convert base64url strings back to Uint8Array
+                data.options.challenge = Base64.base64UrlToUint8Array(
+                  data.options.challenge,
+                );
+                if (data.options.excludeCredentials) {
+                  data.options.excludeCredentials.forEach((cred: any) => {
+                    cred.id = Base64.base64UrlToUint8Array(cred.id);
+                  });
+                }
+                if (data.options.user && data.options.user.id) {
+                  data.options.user.id = Base64.base64UrlToUint8Array(
+                    data.options.user.id,
+                  );
+                }
+
+                // Use WebAuthn API
+                const credential: PublicKeyCredential =
+                  (await navigator.credentials.create({
+                    publicKey: data.options,
+                  })) as PublicKeyCredential;
+
+                const attestationResponse: AuthenticatorAttestationResponse =
+                  credential.response as AuthenticatorAttestationResponse;
+
+                // Verify registration
+                const verifyResponse:
+                  | HTTPResponse<EmptyResponseData>
+                  | HTTPErrorResponse = await API.post({
+                  url: URL.fromString(APP_API_URL.toString()).addRoute(
+                    `/user-webauthn/verify-registration`,
+                  ),
+                  data: {
+                    challenge: data.challenge,
+                    name: values["name"],
+                    credential: {
+                      id: credential.id,
+                      rawId: Base64.uint8ArrayToBase64Url(
+                        new Uint8Array(credential.rawId),
+                      ),
+                      response: {
+                        attestationObject: Base64.uint8ArrayToBase64Url(
+                          new Uint8Array(attestationResponse.attestationObject),
+                        ),
+                        clientDataJSON: Base64.uint8ArrayToBase64Url(
+                          new Uint8Array(attestationResponse.clientDataJSON),
+                        ),
+                      },
+                      type: credential.type,
+                    },
+                  },
+                });
+
+                if (verifyResponse instanceof HTTPErrorResponse) {
+                  throw verifyResponse;
+                }
+
+                setShowWebAuthnRegistrationModal(false);
+                setWebAuthnRegistrationError(null);
+                setTableRefreshToggle(
+                  OneUptimeDate.getCurrentDate().toString(),
+                );
+                setWebAuthnRegistrationLoading(false);
+              } catch (err) {
+                setWebAuthnRegistrationError(API.getFriendlyMessage(err));
+                setWebAuthnRegistrationLoading(false);
+              }
             }}
           />
         ) : (
