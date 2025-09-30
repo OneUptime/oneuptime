@@ -55,6 +55,8 @@ nginx:
     type: LoadBalancer
     externalIPs:
       # - 51.158.55.153 # Please make sure this is the same as the one in metalLb.ipAdddressPool.addresses
+  resources: {}
+  nodeSelector: {}
 
 
 
@@ -284,6 +286,8 @@ statusPage:
   disableAutoscaler: false
   ports:
     http: 3105
+  resources: {}
+  nodeSelector: {}
 
 probes:
   one:
@@ -323,7 +327,8 @@ probes:
       pollingInterval: 30
       # Cooldown period after scaling (in seconds)
       cooldownPeriod: 300
-#   resources:
+  resources: {}
+  nodeSelector: {}
 #   additionalContainers:
 # two:
 #   name: "Probe 2"
@@ -357,6 +362,7 @@ probes:
     #   pollingInterval: 30
     #   # Cooldown period after scaling (in seconds)
     #   cooldownPeriod: 300
+    
 
 
 testServer:
@@ -366,6 +372,8 @@ testServer:
   disableAutoscaler: false
   ports:
     http: 3800
+  resources: {}
+  nodeSelector: {}
 
 
 openTelemetryExporter:
@@ -553,6 +561,8 @@ openTelemetryCollector:
     enabled: true
     size: 1000
     numConsumers: 3
+  resources: {}
+  nodeSelector: {}
 
 accounts: 
   replicaCount: 1
@@ -561,6 +571,7 @@ accounts:
   ports:
     http: 3003
   resources:
+  nodeSelector: {}
 
 home: 
   replicaCount: 1
@@ -569,6 +580,7 @@ home:
   ports:
     http: 1444
   resources:
+  nodeSelector: {}
 
 dashboard:
   replicaCount: 1
@@ -577,6 +589,7 @@ dashboard:
   ports:
     http: 3009
   resources:
+  nodeSelector: {}
 
 adminDashboard:
   replicaCount: 1
@@ -585,6 +598,7 @@ adminDashboard:
   ports:
     http: 3158
   resources:
+  nodeSelector: {}
 
 worker:
   replicaCount: 1
@@ -594,6 +608,7 @@ worker:
   ports:
     http: 1445
   resources:
+  nodeSelector: {}
   # KEDA autoscaling configuration based on queue metrics
   keda:
     enabled: false
@@ -614,6 +629,7 @@ workflow:
   ports:
     http: 3099
   resources:
+  nodeSelector: {}
 
 apiReference:
   replicaCount: 1
@@ -622,6 +638,7 @@ apiReference:
   ports:
     http: 1446
   resources:
+  nodeSelector: {}
 
 docs:
   replicaCount: 1
@@ -630,6 +647,7 @@ docs:
   ports:
     http: 1447
   resources:
+  nodeSelector: {}
 
 app: 
   replicaCount: 1
@@ -638,6 +656,7 @@ app:
   ports:
     http: 3002
   resources:
+  nodeSelector: {}
 
 probeIngest:
   replicaCount: 1
@@ -647,6 +666,7 @@ probeIngest:
   ports:
     http: 3400
   resources:
+  nodeSelector: {}
   # KEDA autoscaling configuration based on queue metrics
   keda:
     enabled: false
@@ -668,6 +688,7 @@ openTelemetryIngest:
   ports:
     http: 3403
   resources:
+  nodeSelector: {}
   # KEDA autoscaling configuration based on queue metrics
   keda:
     enabled: false
@@ -688,6 +709,7 @@ fluentIngest:
   ports:
     http: 3401
   resources:
+  nodeSelector: {}
   # KEDA autoscaling configuration based on queue metrics
   keda:
     enabled: false
@@ -708,6 +730,7 @@ incomingRequestIngest:
   ports:
     http: 3402
   resources:
+  nodeSelector: {}
   # KEDA autoscaling configuration based on queue metrics
   keda:
     enabled: false
@@ -727,6 +750,7 @@ isolatedVM:
   ports:
     http: 4572
   resources:
+  nodeSelector: {}
 
 serverMonitorIngest:
   replicaCount: 1
@@ -736,6 +760,7 @@ serverMonitorIngest:
   ports:
     http: 3404
   resources:
+  nodeSelector: {}
   # KEDA autoscaling configuration based on queue metrics
   keda:
     enabled: false
