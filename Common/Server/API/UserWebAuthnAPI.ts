@@ -13,8 +13,6 @@ import BaseAPI from "./BaseAPI";
 import UserWebAuthn from "../../Models/DatabaseModels/UserWebAuthn";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Response from "../Utils/Response";
-import User from "../../Models/DatabaseModels/User";
-import CookieUtil from "../Utils/Cookie";
 import { JSONObject } from "../../Types/JSON";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -94,32 +92,5 @@ export default class UserWebAuthnAPI extends BaseAPI<
       },
     );
 
-    this.router.post(
-      `${new this.entityType().getCrudApiPath()?.toString()}/verify-authentication`,
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          const data: JSONObject = req.body;
-          const userId: string = data["userId"] as string;
-          const expectedChallenge: string = data["challenge"] as string;
-          const credential: any = data["credential"];
-
-          const user = await UserWebAuthnService.verifyAuthentication({
-            userId: userId,
-            challenge: expectedChallenge,
-            credential: credential,
-          });
-
-          CookieUtil.setUserCookie({
-            expressResponse: res,
-            user: user,
-            isGlobalLogin: true,
-          });
-
-          return Response.sendEntityResponse(req, res, user, User);
-        } catch (err) {
-          next(err);
-        }
-      },
-    );
   }
 }

@@ -516,6 +516,24 @@ router.post(
       res: res,
       next: next,
       verifyTwoFactorAuth: true,
+      verifyWebAuthn: false,
+    });
+  },
+);
+
+router.post(
+  "/verify-webauthn-auth",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    return login({
+      req: req,
+      res: res,
+      next: next,
+      verifyTwoFactorAuth: false,
+      verifyWebAuthn: true,
     });
   },
 );
@@ -532,6 +550,7 @@ router.post(
       res: res,
       next: next,
       verifyTwoFactorAuth: false,
+      verifyWebAuthn: false,
     });
   },
 );
@@ -593,6 +612,7 @@ type LoginFunction = (options: {
   res: ExpressResponse;
   next: NextFunction;
   verifyTwoFactorAuth: boolean;
+  verifyWebAuthn: boolean;
 }) => Promise<void>;
 
 const login: LoginFunction = async (options: {
@@ -600,11 +620,13 @@ const login: LoginFunction = async (options: {
   res: ExpressResponse;
   next: NextFunction;
   verifyTwoFactorAuth: boolean;
+  verifyWebAuthn: boolean;
 }): Promise<void> => {
   const req: ExpressRequest = options.req;
   const res: ExpressResponse = options.res;
   const next: NextFunction = options.next;
   const verifyTwoFactorAuth: boolean = options.verifyTwoFactorAuth;
+  const verifyWebAuthn: boolean = options.verifyWebAuthn;
 
   try {
     const data: JSONObject = req.body["data"];
@@ -697,51 +719,60 @@ const login: LoginFunction = async (options: {
         });
       }
 
-      if (verifyTwoFactorAuth) {
-        // code from req
-        const code: string = data["code"] as string;
-        const twoFactorAuthId: string = data["twoFactorAuthId"] as string;
+      if (verifyTwoFactorAuth || verifyWebAuthn) {
+        if (verifyTwoFactorAuth) {
+          // code from req
+          const code: string = data["code"] as string;
+          const twoFactorAuthId: string = data["twoFactorAuthId"] as string;
 
-        const twoFactorAuth: UserTwoFactorAuth | null =
-          await UserTwoFactorAuthService.findOneBy({
-            query: {
-              _id: twoFactorAuthId,
-              userId: alreadySavedUser.id!,
-              isVerified: true,
-            },
-            select: {
-              _id: true,
-              twoFactorSecret: true,
-            },
-            props: {
-              isRoot: true,
-            },
+          const twoFactorAuth: UserTwoFactorAuth | null =
+            await UserTwoFactorAuthService.findOneBy({
+              query: {
+                _id: twoFactorAuthId,
+                userId: alreadySavedUser.id!,
+                isVerified: true,
+              },
+              select: {
+                _id: true,
+                twoFactorSecret: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!twoFactorAuth) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid two factor auth id."),
+            );
+          }
+
+          const isVerified: boolean = TwoFactorAuth.verifyToken({
+            token: code,
+            secret: twoFactorAuth.twoFactorSecret!,
+            email: alreadySavedUser.email!,
           });
 
-        if (!twoFactorAuth) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid two factor auth id."),
-          );
+          if (!isVerified) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid code."),
+            );
+          }
+        } else if (verifyWebAuthn) {
+          const expectedChallenge: string = data["challenge"] as string;
+          const credential: any = data["credential"];
+
+          await UserWebAuthnService.verifyAuthentication({
+            userId: alreadySavedUser.id!.toString(),
+            challenge: expectedChallenge,
+            credential: credential,
+          });
         }
-
-        const isVerified: boolean = TwoFactorAuth.verifyToken({
-          token: code,
-          secret: twoFactorAuth.twoFactorSecret!,
-          email: alreadySavedUser.email!,
-        });
-
-        if (!isVerified) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid code."),
-          );
-        }
-      }
-
-      // Refresh Permissions for this user here.
+      }      // Refresh Permissions for this user here.
       await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
 
       if (alreadySavedUser.password.toString() === user.password!.toString()) {
