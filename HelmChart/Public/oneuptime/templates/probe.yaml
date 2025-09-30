@@ -147,7 +147,7 @@ spec:
 {{- include "oneuptime.service" $probeServiceArgs }}
 ---
 
-{{- if and (not $val.disableAutoscaler) (not (and $.Values.keda.enabled $val.keda.enabled)) }}
+{{- if and (not $val.disableAutoscaler) (not (and $.Values.keda.enabled (and $val.keda $val.keda.enabled))) }}
 # OneUptime probe autoscaler
 {{- $probeAutoScalerArgs := dict "ServiceName" (printf "probe-%s" $key) "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $probeAutoScalerArgs }}

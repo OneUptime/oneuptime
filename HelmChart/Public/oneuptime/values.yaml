@@ -312,10 +312,10 @@ probes:
       pollingInterval: 30
       # Cooldown period after scaling (in seconds)
       cooldownPeriod: 300
-  resources: {}
-  nodeSelector: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
+    resources: {}
+    nodeSelector: {}
+    podSecurityContext: {}
+    containerSecurityContext: {}
 #   additionalContainers:
 # two:
 #   name: "Probe 2"

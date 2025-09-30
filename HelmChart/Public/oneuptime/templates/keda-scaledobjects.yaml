@@ -39,7 +39,7 @@ KEDA ScaledObjects for various services
 
 {{/* Probe KEDA ScaledObjects - one for each probe configuration */}}
 {{- range $key, $val := $.Values.probes }}
-{{- if and $.Values.keda.enabled $val.keda.enabled (not $val.disableAutoscaler) }}
+{{- if and $.Values.keda.enabled (and $val.keda $val.keda.enabled) (not $val.disableAutoscaler) }}
 {{- $serviceName := printf "probe-%s" $key }}
 {{- $probePort := 3874 }}
 {{- if and $val.ports $val.ports.http }}
