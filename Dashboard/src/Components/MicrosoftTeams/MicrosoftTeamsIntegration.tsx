@@ -554,7 +554,7 @@ Pre-requisite:
    - Find "OneUptime" in your apps
    - Click "Add" to install it for your team
    - Grant the necessary permissions
-4. **Return here** and click "Connect with Microsoft Teams" to complete the setup
+4. Once the app is installed, you can create workspace notification rules in OneUptime to send messages to your teams.
 
 The zip file contains the app manifest and required icons for Teams installation.
               `}
