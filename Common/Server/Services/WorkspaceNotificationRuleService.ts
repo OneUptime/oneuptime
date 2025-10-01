@@ -302,9 +302,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
             // Check for errors in the response
             if (res.errors && res.errors.length > 0) {
-              const errorMessages: Array<string> = res.errors.map(
-                (error) => `Channel ${error.channel.name}: ${error.error}`,
-              );
+              const errorMessages: Array<string> = res.errors.map((error) => {
+                return `Channel ${error.channel.name}: ${error.error}`;
+              });
               throw new BadDataException(
                 `Failed to send test message to some channels: ${errorMessages.join(
                   "; ",
@@ -356,8 +356,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                     channelIds: [],
                   };
 
-                  if (messageBlocksByWorkspaceType.workspaceType === WorkspaceType.MicrosoftTeams) {
-                    (payload).teamId = channel.teamId;
+                  if (
+                    messageBlocksByWorkspaceType.workspaceType ===
+                    WorkspaceType.MicrosoftTeams
+                  ) {
+                    payload.teamId = channel.teamId;
                   }
 
                   return payload;
@@ -396,9 +399,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
             // Check for errors in the response
             if (res.errors && res.errors.length > 0) {
-              const errorMessages: Array<string> = res.errors.map(
-                (error) => `Channel ${error.channel.name}: ${error.error}`,
-              );
+              const errorMessages: Array<string> = res.errors.map((error) => {
+                return `Channel ${error.channel.name}: ${error.error}`;
+              });
               throw new BadDataException(
                 `Failed to send test message to some channels: ${errorMessages.join(
                   "; ",
@@ -576,35 +579,30 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           workspaceType: messageBlocksByWorkspaceType.workspaceType,
         });
 
-        for(const monitorChannel of monitorChannels) {
-          const workspaceMessagePayload: WorkspaceMessagePayload = {
-        _type: "WorkspaceMessagePayload",
-        workspaceType: messageBlocksByWorkspaceType.workspaceType,
-        messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-        channelNames: [],
-        channelIds:
-          [monitorChannel.id], // we use channel ids here as channel names can change,
-        teamId: monitorChannel.teamId,
-          
-      };
+      for (const monitorChannel of monitorChannels) {
+        const workspaceMessagePayload: WorkspaceMessagePayload = {
+          _type: "WorkspaceMessagePayload",
+          workspaceType: messageBlocksByWorkspaceType.workspaceType,
+          messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
+          channelNames: [],
+          channelIds: [monitorChannel.id], // we use channel ids here as channel names can change,
+          teamId: monitorChannel.teamId,
+        };
 
-      workspaceNotificationPaylaods.push(workspaceMessagePayload);
-        }
-
-        for(const existingChannel of existingChannels) {
-      const workspaceMessagePayload: WorkspaceMessagePayload = {
-        _type: "WorkspaceMessagePayload",
-        workspaceType: messageBlocksByWorkspaceType.workspaceType,
-        messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-        channelNames: [existingChannel.name],
-        channelIds: [], // we use channel names here as we don't have channel ids.
-        teamId: existingChannel.teamId,
+        workspaceNotificationPaylaods.push(workspaceMessagePayload);
       }
-       workspaceNotificationPaylaods.push(workspaceMessagePayload);
-        }
 
-      
-
+      for (const existingChannel of existingChannels) {
+        const workspaceMessagePayload: WorkspaceMessagePayload = {
+          _type: "WorkspaceMessagePayload",
+          workspaceType: messageBlocksByWorkspaceType.workspaceType,
+          messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
+          channelNames: [existingChannel.name],
+          channelIds: [], // we use channel names here as we don't have channel ids.
+          teamId: existingChannel.teamId,
+        };
+        workspaceNotificationPaylaods.push(workspaceMessagePayload);
+      }
     }
 
     const responses: Array<WorkspaceSendMessageResponse> =
@@ -929,7 +927,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           logger.debug(
             "Adding created channel names to existing channel names",
           );
-          let allChannelNames: Array<string> = existingChannels.map(c => c.name);
+          const allChannelNames: Array<string> = existingChannels.map((c) => {
+            return c.name;
+          });
           for (const channel of createdWorkspaceChannels) {
             if (!allChannelNames.includes(channel.name)) {
               allChannelNames.push(channel.name);
@@ -1710,10 +1710,16 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             id: channelName,
             name: channelName,
             workspaceType: data.workspaceType,
-            ...(workspaceRules.existingTeam && { teamId: workspaceRules.existingTeam }),
+            ...(workspaceRules.existingTeam && {
+              teamId: workspaceRules.existingTeam,
+            }),
           };
 
-          if (!channels.some(c => c.name === channelName)) {
+          if (
+            !channels.some((c) => {
+              return c.name === channelName;
+            })
+          ) {
             channels.push(channel);
           }
         }
