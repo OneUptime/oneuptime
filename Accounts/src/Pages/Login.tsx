@@ -268,11 +268,11 @@ const LoginPage: () => JSX.Element = () => {
                 miscData: JSONObject | undefined,
               ) => {
                 if (
-                  (miscData &&
-                    (((miscData as JSONObject)["totpAuthList"] as JSONArray)
-                      ?.length || 0) > 0) ||
-                  (((miscData as JSONObject)["webAuthnList"] as JSONArray)
-                    ?.length || 0) > 0
+                  miscData &&
+                  ((((miscData as JSONObject)["totpAuthList"] as JSONArray)
+                    ?.length || 0) > 0 ||
+                    (((miscData as JSONObject)["webAuthnList"] as JSONArray)
+                      ?.length || 0) > 0)
                 ) {
                   const totpAuthList: Array<UserTotpAuth> =
                     UserTotpAuth.fromJSONArray(
