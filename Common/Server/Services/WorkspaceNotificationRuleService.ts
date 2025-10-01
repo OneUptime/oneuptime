@@ -163,7 +163,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       ],
     });
 
-    let existingChannelNames: Array<string> = [];
+    let existingChannels: Array<WorkspaceChannel> = [];
 
     let createdChannels: NotificationRuleWorkspaceChannel[] = [];
 
@@ -201,11 +201,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     if (notificationRule.shouldPostToExistingChannel) {
-      existingChannelNames = this.getExistingChannelNamesFromNotificationRules({
+      existingChannels = this.getExistingChannelNamesFromNotificationRules({
         notificationRules: [notificationRule],
+        workspaceType: rule.workspaceType!,
       });
 
-      for (const channelName of existingChannelNames) {
+      for (const channel of existingChannels) {
         try {
           // check if these channels exist.
           const doesChannelExistData: {
@@ -215,13 +216,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             teamId?: string;
           } = {
             authToken: projectAuthToken,
-            channelName: channelName,
+            channelName: channel.name,
             projectId: data.projectId,
           };
 
           // Add teamId for Microsoft Teams
           if (rule.workspaceType === WorkspaceType.MicrosoftTeams) {
-            const teamId: string | undefined = notificationRule.existingTeam;
+            const teamId: string | undefined = channel.teamId;
             if (!teamId) {
               throw new BadDataException(
                 "Microsoft Teams integration requires a team to be selected for posting to existing channels. Please edit the notification rule and select a team.",
@@ -237,7 +238,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
           if (!channelExists) {
             throw new BadDataException(
-              `Channel ${channelName} does not exist. If this channel is private, you need to invite OneUptime bot to the channel and try again.`,
+              `Channel ${channel.name} does not exist. If this channel is private, you need to invite OneUptime bot to the channel and try again.`,
             );
           }
         } catch (err) {
@@ -338,7 +339,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         }
       }
 
-      for (const existingChannelName of existingChannelNames) {
+      for (const channel of existingChannels) {
         try {
           const responses: Array<WorkspaceSendMessageResponse> =
             await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
@@ -351,12 +352,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                     _type: "WorkspaceMessagePayload",
                     workspaceType: messageBlocksByWorkspaceType.workspaceType,
                     messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-                    channelNames: [existingChannelName],
+                    channelNames: [channel.name],
                     channelIds: [],
                   };
 
                   if (messageBlocksByWorkspaceType.workspaceType === WorkspaceType.MicrosoftTeams) {
-                    (payload as any).teamId = notificationRule.existingTeam;
+                    (payload).teamId = channel.teamId;
                   }
 
                   return payload;
@@ -558,7 +559,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     const workspaceNotificationPaylaods: Array<WorkspaceMessagePayload> = [];
 
     for (const messageBlocksByWorkspaceType of messageBlocksByWorkspaceTypes) {
-      const existingChannels: Array<string> =
+      const existingChannels: Array<WorkspaceChannel> =
         await this.getExistingChannelNamesBasedOnEventType({
           projectId: data.projectId,
           notificationRuleEventType: this.getNotificationRuleEventType(
@@ -575,18 +576,35 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           workspaceType: messageBlocksByWorkspaceType.workspaceType,
         });
 
+        for(const monitorChannel of monitorChannels) {
+          const workspaceMessagePayload: WorkspaceMessagePayload = {
+        _type: "WorkspaceMessagePayload",
+        workspaceType: messageBlocksByWorkspaceType.workspaceType,
+        messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
+        channelNames: [],
+        channelIds:
+          [monitorChannel.id], // we use channel ids here as channel names can change,
+        teamId: monitorChannel.teamId,
+          
+      };
+
+      workspaceNotificationPaylaods.push(workspaceMessagePayload);
+        }
+
+        for(const existingChannel of existingChannels) {
       const workspaceMessagePayload: WorkspaceMessagePayload = {
         _type: "WorkspaceMessagePayload",
         workspaceType: messageBlocksByWorkspaceType.workspaceType,
         messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-        channelNames: existingChannels,
-        channelIds:
-          monitorChannels.map((channel: WorkspaceChannel) => {
-            return channel.id;
-          }) || [],
-      };
+        channelNames: [existingChannel.name],
+        channelIds: [], // we use channel names here as we don't have channel ids.
+        teamId: existingChannel.teamId,
+      }
+       workspaceNotificationPaylaods.push(workspaceMessagePayload);
+        }
 
-      workspaceNotificationPaylaods.push(workspaceMessagePayload);
+      
+
     }
 
     const responses: Array<WorkspaceSendMessageResponse> =
@@ -779,7 +797,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     workspaceType: WorkspaceType;
     notificationRuleEventType: NotificationRuleEventType;
     notificationFor: NotificationFor;
-  }): Promise<Array<string>> {
+  }): Promise<Array<WorkspaceChannel>> {
     logger.debug("getExistingChannelNamesBasedOnEventType called with data:");
     logger.debug(data);
 
@@ -794,19 +812,20 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     logger.debug("Notification rules retrieved:");
     logger.debug(notificationRules);
 
-    const existingChannelNames: Array<string> =
+    const existingChannels: Array<WorkspaceChannel> =
       this.getExistingChannelNamesFromNotificationRules({
         notificationRules: notificationRules.map(
           (rule: WorkspaceNotificationRule) => {
             return rule.notificationRule as BaseNotificationRule;
           },
         ),
+        workspaceType: data.workspaceType,
       }) || [];
 
-    logger.debug("Existing channel names:");
-    logger.debug(existingChannelNames);
+    logger.debug("Existing channels:");
+    logger.debug(existingChannels);
 
-    return existingChannelNames;
+    return existingChannels;
   }
 
   @CaptureSpan()
@@ -894,29 +913,31 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           logger.debug(
             "Getting existing channel names from notification rules",
           );
-          const existingChannelNames: Array<string> =
+          const existingChannels: Array<WorkspaceChannel> =
             this.getExistingChannelNamesFromNotificationRules({
               notificationRules: notificationRules.map(
                 (rule: WorkspaceNotificationRule) => {
                   return rule.notificationRule as BaseNotificationRule;
                 },
               ),
+              workspaceType: workspaceType,
             }) || [];
 
-          logger.debug("Existing channel names:");
-          logger.debug(existingChannelNames);
+          logger.debug("Existing channels:");
+          logger.debug(existingChannels);
 
           logger.debug(
             "Adding created channel names to existing channel names",
           );
+          let allChannelNames: Array<string> = existingChannels.map(c => c.name);
           for (const channel of createdWorkspaceChannels) {
-            if (!existingChannelNames.includes(channel.name)) {
-              existingChannelNames.push(channel.name);
+            if (!allChannelNames.includes(channel.name)) {
+              allChannelNames.push(channel.name);
             }
           }
 
           logger.debug("Final list of channel names to post messages to:");
-          logger.debug(existingChannelNames);
+          logger.debug(allChannelNames);
 
           logger.debug("Posting messages to workspace channels");
 
@@ -1660,13 +1681,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
   public getExistingChannelNamesFromNotificationRules(data: {
     notificationRules: Array<BaseNotificationRule>;
-  }): Array<string> {
+    workspaceType: WorkspaceType;
+  }): Array<WorkspaceChannel> {
     logger.debug(
       "getExistingChannelNamesFromNotificationRules called with data:",
     );
     logger.debug(data);
 
-    const channelNames: Array<string> = [];
+    const channels: Array<WorkspaceChannel> = [];
 
     for (const notificationRule of data.notificationRules) {
       const workspaceRules: BaseNotificationRule = notificationRule;
@@ -1684,17 +1706,24 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             continue;
           }
 
-          if (!channelNames.includes(channelName)) {
-            channelNames.push(channelName);
+          const channel: WorkspaceChannel = {
+            id: channelName,
+            name: channelName,
+            workspaceType: data.workspaceType,
+            ...(workspaceRules.existingTeam && { teamId: workspaceRules.existingTeam }),
+          };
+
+          if (!channels.some(c => c.name === channelName)) {
+            channels.push(channel);
           }
         }
       }
     }
 
-    logger.debug("Final list of existing channel names:");
-    logger.debug(channelNames);
+    logger.debug("Final list of existing channels:");
+    logger.debug(channels);
 
-    return channelNames;
+    return channels;
   }
 
   public getnotificationChannelssFromNotificationRules(data: {
