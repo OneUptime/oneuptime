@@ -1056,6 +1056,7 @@ export default class SlackUtil extends WorkspaceBase {
     const workspaspaceMessageResponse: WorkspaceSendMessageResponse = {
       threads: [],
       workspaceType: WorkspaceType.Slack,
+      errors: [],
     };
 
     for (const channel of workspaceChannelsToPostTo) {
@@ -1089,6 +1090,10 @@ export default class SlackUtil extends WorkspaceBase {
       } catch (e) {
         logger.error(`Error sending message to channel ID ${channel.id}:`);
         logger.error(e);
+        workspaspaceMessageResponse.errors!.push({
+          channel: channel,
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
     }
 

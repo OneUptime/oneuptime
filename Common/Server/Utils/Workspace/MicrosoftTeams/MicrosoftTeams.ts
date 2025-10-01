@@ -939,6 +939,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const workspaceMessageResponse: WorkspaceSendMessageResponse = {
       threads: [],
       workspaceType: WorkspaceType.MicrosoftTeams,
+      errors: [],
     };
 
     for (const channel of workspaceChannelsToPostTo) {
@@ -966,6 +967,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       } catch (e) {
         logger.error(`Error sending message to channel ID ${channel.id}:`);
         logger.error(e);
+        workspaceMessageResponse.errors!.push({
+          channel: channel,
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
     }
 

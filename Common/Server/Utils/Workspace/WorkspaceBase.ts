@@ -32,6 +32,10 @@ export interface WorkspaceThread {
 export interface WorkspaceSendMessageResponse {
   threads: Array<WorkspaceThread>;
   workspaceType: WorkspaceType;
+  errors?: Array<{
+    channel: WorkspaceChannel;
+    error: string;
+  }>;
 }
 
 export interface WorkspaceChannel {

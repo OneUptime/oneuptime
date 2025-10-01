@@ -299,6 +299,18 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           for (const res of responses) {
             const messageSummary: string = getMessageSummary(res.workspaceType);
 
+            // Check for errors in the response
+            if (res.errors && res.errors.length > 0) {
+              const errorMessages: Array<string> = res.errors.map(
+                (error) => `Channel ${error.channel.name}: ${error.error}`,
+              );
+              throw new BadDataException(
+                `Failed to send test message to some channels: ${errorMessages.join(
+                  "; ",
+                )}`,
+              );
+            }
+
             for (const thread of res.threads) {
               const log: WorkspaceNotificationLog =
                 new WorkspaceNotificationLog();
@@ -380,6 +392,18 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
           for (const res of responses) {
             const messageSummary: string = getMessageSummary(res.workspaceType);
+
+            // Check for errors in the response
+            if (res.errors && res.errors.length > 0) {
+              const errorMessages: Array<string> = res.errors.map(
+                (error) => `Channel ${error.channel.name}: ${error.error}`,
+              );
+              throw new BadDataException(
+                `Failed to send test message to some channels: ${errorMessages.join(
+                  "; ",
+                )}`,
+              );
+            }
 
             for (const thread of res.threads) {
               const log: WorkspaceNotificationLog =
