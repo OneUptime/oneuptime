@@ -109,7 +109,7 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
 
     req.on("end", () => {
       const buffer: Buffer = Buffer.concat(buffers);
-      zlib.gunzip(buffer, (err: unknown, decoded: Buffer) => {
+      zlib.gunzip(buffer as Uint8Array, (err: unknown, decoded: Buffer) => {
         if (err) {
           logger.error(err);
           return Response.sendErrorResponse(

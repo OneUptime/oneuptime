@@ -53,8 +53,8 @@ export default class SlackAuthorization {
     // check if the signature is valid
     if (
       !crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(slackSignature),
+        Buffer.from(signature) as Uint8Array,
+        Buffer.from(slackSignature) as Uint8Array,
       )
     ) {
       logger.error("Slack Signature Verification Failed.");

@@ -18,7 +18,7 @@ export interface ComponentProps {
 
 export class ImageFunctions {
   public static getImageURL(file: File): string {
-    const blob: Blob = new Blob([file.file as Uint8Array], {
+    const blob: Blob = new Blob([file.file!.buffer as ArrayBuffer], {
       type: (file as File).fileType as string,
     });
 

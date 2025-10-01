@@ -131,7 +131,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         return <></>;
       }
 
-      const blob: Blob = new Blob([file.file as Uint8Array], {
+      const blob: Blob = new Blob([file.file!.buffer as ArrayBuffer], {
         type: file.fileType as string,
       });
       const url: string = URL.createObjectURL(blob);
