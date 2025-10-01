@@ -1689,9 +1689,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         cleanText.includes("active alerts")
       ) {
         responseText = await this.getActiveAlertsMessage(projectId);
-      } else if (cleanText.includes("status")) {
-        responseText =
-          "System status is operational. All services are running normally.";
       } else {
         responseText = `I received your message: "${cleanText}". Type 'help' to see what I can do for you.`;
       }
@@ -1718,7 +1715,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 - **show scheduled maintenance** — Show upcoming scheduled maintenance events
 - **show ongoing maintenance** — Display currently ongoing maintenance events
 - **show active alerts** — Display all active alerts
-- **status** — Check system status
 
 Just type any of these commands to get the information you need!`;
   }
