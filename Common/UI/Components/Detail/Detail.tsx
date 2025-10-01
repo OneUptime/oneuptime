@@ -261,7 +261,10 @@ const Detail: DetailFunction = <T extends GenericObject>(
         (props.item[fieldKey] as unknown as FileModel).fileType
       ) {
         const blob: Blob = new Blob(
-          [(props.item[fieldKey] as unknown as FileModel).file!.buffer as ArrayBuffer],
+          [
+            (props.item[fieldKey] as unknown as FileModel).file!
+              .buffer as ArrayBuffer,
+          ],
           {
             type: (props.item[fieldKey] as unknown as FileModel)
               .fileType as string,

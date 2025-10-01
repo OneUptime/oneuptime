@@ -880,8 +880,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     for (const channelName of data.workspaceMessagePayload.channelNames) {
       logger.debug(`Attempting to resolve channel name: ${channelName}`);
 
-      if(!data.workspaceMessagePayload.teamId){
-        throw new BadDataException("Team ID is required to resolve channel names.");
+      if (!data.workspaceMessagePayload.teamId) {
+        throw new BadDataException(
+          "Team ID is required to resolve channel names.",
+        );
       }
 
       const channel: WorkspaceChannel | null =
@@ -910,9 +912,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     // Add channels by ID
     for (const channelId of data.workspaceMessagePayload.channelIds) {
-
-      if(!data.workspaceMessagePayload.teamId){
-        throw new BadDataException("Team ID is required to resolve channel IDs.");
+      if (!data.workspaceMessagePayload.teamId) {
+        throw new BadDataException(
+          "Team ID is required to resolve channel IDs.",
+        );
       }
 
       try {
@@ -950,8 +953,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           `Attempting to send message to channel: ${JSON.stringify(channel)}`,
         );
 
-        if(!data.workspaceMessagePayload.teamId){
-          throw new BadDataException("Team ID is required to send messages to channels.");
+        if (!data.workspaceMessagePayload.teamId) {
+          throw new BadDataException(
+            "Team ID is required to send messages to channels.",
+          );
         }
 
         const thread: WorkspaceThread = await this.sendAdaptiveCardToChannel({
