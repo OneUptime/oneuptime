@@ -853,7 +853,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     authToken: string;
     userId: string;
     projectId: ObjectID;
-    teamId: string;
   }): Promise<WorkspaceSendMessageResponse> {
     logger.debug("=== MicrosoftTeamsUtil.sendMessage called ===");
     logger.debug("Sending message to Microsoft Teams with data:");
@@ -878,12 +877,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     // Resolve channel names
     for (const channelName of data.workspaceMessagePayload.channelNames) {
       logger.debug(`Attempting to resolve channel name: ${channelName}`);
+
+      if(!data.workspaceMessagePayload.teamId){
+        throw new BadDataException("Team ID is required to resolve channel names.");
+      }
+
       const channel: WorkspaceChannel | null =
         await this.getWorkspaceChannelByName({
           authToken: data.authToken,
           channelName: channelName,
           projectId: data.projectId,
-          teamId: data.teamId,
+          teamId: data.workspaceMessagePayload.teamId,
         });
 
       if (channel) {
@@ -904,6 +908,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     // Add channels by ID
     for (const channelId of data.workspaceMessagePayload.channelIds) {
+
+      if(!data.workspaceMessagePayload.teamId){
+        throw new BadDataException("Team ID is required to resolve channel IDs.");
+      }
+
       try {
         logger.debug(`Getting channel info for channel ID: ${channelId}`);
         const channel: WorkspaceChannel =
@@ -911,7 +920,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             authToken: data.authToken,
             channelId: channelId,
             projectId: data.projectId,
-            teamId: data.teamId,
+            teamId: data.workspaceMessagePayload.teamId,
           });
         logger.debug(`Channel info obtained: ${JSON.stringify(channel)}`);
         workspaceChannelsToPostTo.push(channel);
@@ -938,9 +947,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           `Attempting to send message to channel: ${JSON.stringify(channel)}`,
         );
 
+        if(!data.workspaceMessagePayload.teamId){
+          throw new BadDataException("Team ID is required to send messages to channels.");
+        }
+
         const thread: WorkspaceThread = await this.sendAdaptiveCardToChannel({
           authToken: data.authToken,
-          teamId: data.teamId,
+          teamId: data.workspaceMessagePayload.teamId!,
           workspaceChannel: channel,
           adaptiveCard: adaptiveCard,
           projectId: data.projectId,

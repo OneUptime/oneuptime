@@ -262,7 +262,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                     messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
                     channelNames: [],
                     channelIds: [createdChannel.id],
-                    teamId: notificationRule.existingTeam
+                    teamId: notificationRule.existingTeam,
                   };
 
                   return payload;
