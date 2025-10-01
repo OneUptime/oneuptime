@@ -1580,6 +1580,21 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`Channel data: ${JSON.stringify(channelData)}`);
     logger.debug(`Entities: ${JSON.stringify(entities)}`);
 
+    // If this is actually an Adaptive Card submit wrapped as a message, route to invoke handler
+    if (
+      (possibleActionValue["action"] as string) ||
+      (possibleActionValue["data"] as any)?.["action"]
+    ) {
+      logger.debug(
+        "Message activity contains action payload; routing to invoke handler",
+      );
+      await this.handleBotInvokeActivity({
+        activity: data.activity,
+        turnContext: data.turnContext,
+      });
+      return;
+    }
+
     // Check if the bot was mentioned
     const recipientId: string = (data.activity["recipient"] as JSONObject)?.[
       "id"
@@ -1597,21 +1612,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     // Only respond if it's a direct message or the bot was mentioned
     if (!isDirectMessage && !isMentioned) {
       logger.debug("Bot not mentioned in channel message, ignoring");
-      return;
-    }
-
-    // If this is actually an Adaptive Card submit wrapped as a message, route to invoke handler
-    if (
-      (possibleActionValue["action"] as string) ||
-      (possibleActionValue["data"] as any)?.["action"]
-    ) {
-      logger.debug(
-        "Message activity contains action payload; routing to invoke handler",
-      );
-      await this.handleBotInvokeActivity({
-        activity: data.activity,
-        turnContext: data.turnContext,
-      });
       return;
     }
 
