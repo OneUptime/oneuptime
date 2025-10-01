@@ -302,9 +302,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
             // Check for errors in the response
             if (res.errors && res.errors.length > 0) {
-              const errorMessages: Array<string> = res.errors.map((error) => {
-                return `Channel ${error.channel.name}: ${error.error}`;
-              });
+              const errorMessages: Array<string> = res.errors.map(
+                (error: { channel: WorkspaceChannel; error: string }) => {
+                  return `Channel ${error.channel.name}: ${error.error}`;
+                },
+              );
               throw new BadDataException(
                 `Failed to send test message to some channels: ${errorMessages.join(
                   "; ",
@@ -399,9 +401,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
             // Check for errors in the response
             if (res.errors && res.errors.length > 0) {
-              const errorMessages: Array<string> = res.errors.map((error) => {
-                return `Channel ${error.channel.name}: ${error.error}`;
-              });
+              const errorMessages: Array<string> = res.errors.map(
+                (error: { channel: WorkspaceChannel; error: string }) => {
+                  return `Channel ${error.channel.name}: ${error.error}`;
+                },
+              );
               throw new BadDataException(
                 `Failed to send test message to some channels: ${errorMessages.join(
                   "; ",
@@ -927,9 +931,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           logger.debug(
             "Adding created channel names to existing channel names",
           );
-          const allChannelNames: Array<string> = existingChannels.map((c) => {
-            return c.name;
-          });
+          const allChannelNames: Array<string> = existingChannels.map(
+            (c: WorkspaceChannel) => {
+              return c.name;
+            },
+          );
           for (const channel of createdWorkspaceChannels) {
             if (!allChannelNames.includes(channel.name)) {
               allChannelNames.push(channel.name);
@@ -1716,7 +1722,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           };
 
           if (
-            !channels.some((c) => {
+            !channels.some((c: WorkspaceChannel) => {
               return c.name === channelName;
             })
           ) {
