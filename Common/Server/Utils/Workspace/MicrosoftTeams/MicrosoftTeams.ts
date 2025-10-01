@@ -1749,6 +1749,8 @@ Just type any of these commands to get the information you need!`;
           currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
         },
         select: {
+          _id: true,
+          incidentNumber: true,
           title: true,
           description: true,
           currentIncidentState: {
@@ -1793,7 +1795,20 @@ If you need to report an incident or check historical incidents, please visit th
           ? OneUptimeDate.getDateAsFormattedString(incident.createdAt)
           : "Unknown";
 
-        message += `🔴 **${incident.title}**
+        const severityIcon: string = ["Critical", "Major"].includes(
+          severity,
+        )
+          ? "🔴"
+          : severity === "Minor"
+            ? "🟠"
+            : "🟡";
+
+        const incidentUrl: URL = await IncidentService.getIncidentLinkInDashboard(
+          projectId,
+          incident.id!,
+        );
+
+        message += `${severityIcon} **[Incident #${incident.incidentNumber}: ${incident.title}](${incidentUrl.toString()})**
 • **Severity:** ${severity}
 • **Status:** ${state}
 • **Created:** ${createdAt}
@@ -1808,10 +1823,11 @@ If you need to report an incident or check historical incidents, please visit th
         }
 
         if (incident.description) {
-          message += `• **Description:** ${incident.description.substring(0, 100)}${incident.description.length > 100 ? "..." : ""}\n`;
+          const desc: string = incident.description.replace(/\s+/g, " ");
+          message += `• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
         }
 
-        message += `\n`;
+        message += `• [Open in Dashboard](${incidentUrl.toString()})\n\n`;
       }
 
       return message;
@@ -1841,6 +1857,7 @@ If you need to report an incident or check historical incidents, please visit th
             isVisibleOnStatusPage: true, // Only show events visible on status page
           },
           select: {
+            _id: true,
             title: true,
             description: true,
             startsAt: true,
@@ -1877,7 +1894,7 @@ When maintenance is scheduled, you'll see details here including:
 Check back later for upcoming maintenance windows.`;
       }
 
-      let message: string = `**Scheduled Maintenance Events** (${scheduledEvents.length})
+  let message: string = `**Scheduled Maintenance Events** (${scheduledEvents.length})
 
 `;
 
@@ -1891,7 +1908,13 @@ Check back later for upcoming maintenance windows.`;
           ? OneUptimeDate.getDateAsFormattedString(event.endsAt)
           : "TBD";
 
-        message += `🛠️ **${event.title}** (#${event.scheduledMaintenanceNumber})
+        const eventUrl: URL =
+          await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+            projectId,
+            event.id!,
+          );
+
+        message += `🛠️ **[Scheduled Maintenance #${event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
 • **Status:** ${state}
 • **Starts:** ${startTime}
 • **Ends:** ${endTime}
@@ -1906,10 +1929,11 @@ Check back later for upcoming maintenance windows.`;
         }
 
         if (event.description) {
-          message += `• **Description:** ${event.description.substring(0, 100)}${event.description.length > 100 ? "..." : ""}\n`;
+          const desc: string = event.description.replace(/\s+/g, " ");
+          message += `• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
         }
 
-        message += `\n`;
+        message += `• [View Event](${eventUrl.toString()})\n\n`;
       }
 
       return message;
@@ -1938,6 +1962,7 @@ Check back later for upcoming maintenance windows.`;
             } as any,
           },
           select: {
+            _id: true,
             title: true,
             description: true,
             startsAt: true,
@@ -1974,7 +1999,7 @@ When maintenance is in progress, you'll see details here including:
 All systems are currently operating normally.`;
       }
 
-      let message: string = `**Ongoing Maintenance Events** (${ongoingEvents.length})
+  let message: string = `**Ongoing Maintenance Events** (${ongoingEvents.length})
 
 `;
 
@@ -1988,7 +2013,13 @@ All systems are currently operating normally.`;
           ? OneUptimeDate.getDateAsFormattedString(event.endsAt)
           : "TBD";
 
-        message += `🔧 **${event.title}** (#${event.scheduledMaintenanceNumber})
+        const eventUrl: URL =
+          await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+            projectId,
+            event.id!,
+          );
+
+        message += `🔧 **[Scheduled Maintenance #${event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
 • **Status:** ${state}
 • **Started:** ${startTime}
 • **Expected End:** ${endTime}
@@ -2003,10 +2034,11 @@ All systems are currently operating normally.`;
         }
 
         if (event.description) {
-          message += `• **Description:** ${event.description.substring(0, 100)}${event.description.length > 100 ? "..." : ""}\n`;
+          const desc: string = event.description.replace(/\s+/g, " ");
+          message += `• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
         }
 
-        message += `\n`;
+        message += `• [View Event](${eventUrl.toString()})\n\n`;
       }
 
       return message;
@@ -2042,6 +2074,8 @@ All systems are currently operating normally.`;
           currentAlertStateId: QueryHelper.any(unresolvedAlertStateIds),
         },
         select: {
+          _id: true,
+          alertNumber: true,
           title: true,
           description: true,
           currentAlertState: {
@@ -2082,7 +2116,7 @@ When alerts are triggered, you'll see details here including:
 All monitoring checks are passing normally.`;
       }
 
-      let message: string = `**Active Alerts** (${activeAlerts.length})
+  let message: string = `**Active Alerts** (${activeAlerts.length})
 
 `;
 
@@ -2093,7 +2127,12 @@ All monitoring checks are passing normally.`;
           ? OneUptimeDate.getDateAsFormattedString(alert.createdAt)
           : "Unknown";
 
-        message += `⚠️ **${alert.title}**
+  const alertUrl: URL = await AlertService.getAlertLinkInDashboard(
+    projectId,
+    alert.id!,
+  );
+
+  message += `⚠️ **[Alert #${alert.alertNumber}: ${alert.title}](${alertUrl.toString()})**
 • **Severity:** ${severity}
 • **Status:** ${state}
 • **Triggered:** ${createdAt}
@@ -2104,10 +2143,11 @@ All monitoring checks are passing normally.`;
         }
 
         if (alert.description) {
-          message += `• **Description:** ${alert.description.substring(0, 100)}${alert.description.length > 100 ? "..." : ""}\n`;
+          const desc: string = alert.description.replace(/\s+/g, " ");
+          message += `• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
         }
 
-        message += `\n`;
+        message += `• [Open in Dashboard](${alertUrl.toString()})\n\n`;
       }
 
       return message;
