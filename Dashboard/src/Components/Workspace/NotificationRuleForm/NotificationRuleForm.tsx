@@ -153,7 +153,10 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       title: `Existing ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Name to Post To`,
       description: `Please provide the name of the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel you want to post to.`,
       fieldType: FormFieldSchemaType.Text,
-      placeholder: props.workspaceType === WorkspaceType.MicrosoftTeams ? `channel-name, General, etc.` : `#channel-name, #general, etc.`,
+      placeholder:
+        props.workspaceType === WorkspaceType.MicrosoftTeams
+          ? `channel-name, General, etc.`
+          : `#channel-name, #general, etc.`,
       required: true,
       showIf: (formValue: FormValues<BaseNotificationRule>) => {
         return Boolean(formValue.shouldPostToExistingChannel) || false;

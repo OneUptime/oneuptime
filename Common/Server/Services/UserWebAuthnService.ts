@@ -17,6 +17,8 @@ import {
 import { Host, HttpProtocol } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import UserTotpAuth from "../../Models/DatabaseModels/UserTotpAuth";
+import UserTotpAuthService from "./UserTotpAuthService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -366,9 +368,9 @@ export class Service extends DatabaseService<Model> {
         }
 
         if (user.enableTwoFactorAuth) {
-          // if enabled then check if this is the only verified item for this user.
+          // if enabled then check if this is the only verified 2FA method for this user.
 
-          const verifiedItems: Array<Model> = await this.findBy({
+          const verifiedWebAuthnItems: Array<Model> = await this.findBy({
             query: {
               userId: item.userId!,
               isVerified: true,
@@ -381,7 +383,24 @@ export class Service extends DatabaseService<Model> {
             props: deleteBy.props,
           });
 
-          if (verifiedItems.length === 1) {
+          const verifiedTotpItems: Array<UserTotpAuth> =
+            await UserTotpAuthService.findBy({
+              query: {
+                userId: item.userId!,
+                isVerified: true,
+              },
+              select: {
+                _id: true,
+              },
+              limit: LIMIT_MAX,
+              skip: 0,
+              props: deleteBy.props,
+            });
+
+          const totalVerified2FA: number =
+            verifiedWebAuthnItems.length + verifiedTotpItems.length;
+
+          if (totalVerified2FA === 1) {
             throw new BadDataException(
               "You must have atleast one verified two factor auth. Please disable two factor auth before deleting this item.",
             );
