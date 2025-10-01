@@ -736,6 +736,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       id: channelData["id"] as string,
       name: channelData["displayName"] as string,
       workspaceType: WorkspaceType.MicrosoftTeams,
+      teamId: data.teamId,
     };
 
     logger.debug("Channel created successfully:");
@@ -837,6 +838,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           id: `${channelData["id"]}`,
           name: displayName,
           workspaceType: WorkspaceType.MicrosoftTeams,
+          teamId: data.teamId,
         };
         logger.debug(`Channel match found: ${JSON.stringify(foundChannel)}`);
         return foundChannel;
@@ -1135,6 +1137,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           id: data.channelId,
           name: data.channelId,
           workspaceType: WorkspaceType.MicrosoftTeams,
+          teamId: data.teamId,
         };
       }
 
@@ -1145,6 +1148,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         id: data.channelId,
         name: channelData["displayName"] as string,
         workspaceType: WorkspaceType.MicrosoftTeams,
+        teamId: data.teamId,
       };
 
       logger.debug(`Channel info retrieved: ${JSON.stringify(channel)}`);

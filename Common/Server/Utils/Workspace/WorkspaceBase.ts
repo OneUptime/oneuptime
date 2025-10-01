@@ -42,6 +42,7 @@ export interface WorkspaceChannel {
   id: string;
   name: string;
   workspaceType: WorkspaceType;
+  teamId?: string; // Required for Microsoft Teams
 }
 
 export default class WorkspaceBase {
