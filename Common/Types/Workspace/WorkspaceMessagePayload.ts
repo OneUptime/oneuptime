@@ -105,4 +105,5 @@ export default interface WorkspaceMessagePayload {
   channelIds: Array<string>; // Channel ids to send message to.
   messageBlocks: Array<WorkspaceMessageBlock>; // Message to add to blocks.
   workspaceType: WorkspaceType;
+  teamId?: string | undefined; // Team ID for Microsoft Teams
 }

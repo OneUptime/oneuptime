@@ -256,13 +256,16 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                 (
                   messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType,
                 ) => {
-                  return {
+                  const payload: WorkspaceMessagePayload = {
                     _type: "WorkspaceMessagePayload",
                     workspaceType: messageBlocksByWorkspaceType.workspaceType,
                     messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
                     channelNames: [],
                     channelIds: [createdChannel.id],
+                    teamId: notificationRule.existingTeam
                   };
+
+                  return payload;
                 },
               ),
             });
@@ -332,13 +335,19 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                 (
                   messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType,
                 ) => {
-                  return {
+                  const payload: WorkspaceMessagePayload = {
                     _type: "WorkspaceMessagePayload",
                     workspaceType: messageBlocksByWorkspaceType.workspaceType,
                     messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
                     channelNames: [existingChannelName],
                     channelIds: [],
                   };
+
+                  if (messageBlocksByWorkspaceType.workspaceType === WorkspaceType.MicrosoftTeams) {
+                    (payload as any).teamId = notificationRule.existingTeam;
+                  }
+
+                  return payload;
                 },
               ),
             });
