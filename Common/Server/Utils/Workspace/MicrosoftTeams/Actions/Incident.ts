@@ -97,7 +97,9 @@ export default class MicrosoftTeamsIncidentActions {
           return await this.showNewIncidentCard(data);
 
         case MicrosoftTeamsIncidentActionType.SubmitNewIncident:
-          return await this.submitNewIncident(data);
+          // This is handled by handleBotIncidentAction through bot framework
+          // Don't process it here to avoid duplicate messages
+          break;
 
         default:
           logger.debug("Unhandled incident action: " + action.actionType);

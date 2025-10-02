@@ -78,7 +78,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           return await this.showNewScheduledMaintenanceCard(data);
 
         case MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance:
-          return await this.submitNewScheduledMaintenance(data);
+          // This is handled by handleBotScheduledMaintenanceAction through bot framework
+          // Don't process it here to avoid duplicate messages
+          break;
 
         default:
           logger.debug(
