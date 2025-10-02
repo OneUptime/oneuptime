@@ -127,6 +127,56 @@
       </div>
     </div>
 
+    <!-- Call Scheduler -->
+    <div class="mt-16 rounded-2xl border border-gray-200 bg-white p-6 sm:p-8">
+      <h3 class="text-xl font-semibold text-gray-900 text-center">Schedule a Call</h3>
+      <p class="mt-2 text-sm text-gray-600 text-center">Need personalized help? Schedule a call with our support team.</p>
+      
+      <div style="margin-top: 30px;">
+        <!-- Cal inline embed code begins -->
+        <div style="width:100%;height:100%;overflow:scroll" id="my-cal-inline-support"></div>
+        <script type="text/javascript">
+          (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; typeof namespace === "string" ? (cal.ns[namespace] = api) && p(api, ar) : p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
+          Cal("init", { origin: "https://cal.com" });
+
+          Cal("inline", {
+            elementOrSelector: "#my-cal-inline-support",
+            calLink: "oneuptimehq/demo",
+            layout: "month_view"
+          });
+
+          Cal("ui", { "styles": { "branding": { "brandColor": "#6366f1" } }, "hideEventTypeDetails": false, "layout": "month_view" });
+
+          Cal("on", {
+            action: "bookingSuccessful",
+            callback: (e) => {
+              // `data` is properties for the event.
+              // `type` is the name of the action(You can also call it type of the action.) This would be same as "ANY_ACTION_NAME" except when ANY_ACTION_NAME="*" which listens to all the events.
+              // `namespace` tells you the Cal namespace for which the event is fired/
+              const { data, type, namespace } = e.detail;
+
+              if (posthog) {
+                posthog.capture('home/support-call-booked', {
+                  'page': {
+                    'path': window.location.pathname,
+                    'referrer': document.referrer,
+                    'search': window.location.search,
+                    'url': window.location.href,
+                    'title': document.title,
+                  },
+                  'data': data,
+                  'type': type,
+                  'namespace': namespace
+                });
+              }
+            }
+          })
+
+        </script>
+        <!-- Cal inline embed code ends -->
+      </div>
+    </div>
+
     <!-- Final CTA -->
     <div class="mt-10 flex flex-wrap items-center gap-3">
       <a href="mailto:support@oneuptime.com" class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Email support</a>
