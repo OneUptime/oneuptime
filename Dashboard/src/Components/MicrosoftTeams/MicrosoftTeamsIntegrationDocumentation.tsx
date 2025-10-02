@@ -29,49 +29,20 @@ Azure Account - You can create one by going to https://azure.com.
 2. Click "Add a permission" and select "Microsoft Graph"
 
 **Add Delegated Permissions** (when acting on behalf of a signed-in user):
-   - **For basic user information:**
-     - User.Read
-   - **For reading team and channel information:**
-     - Team.ReadBasic.All
-     - Channel.ReadBasic.All
-   - **For sending messages to channels:**
-     - ChannelMessage.Send
-   - **For creating channels:**
-     - Channel.Create
-   - **For personal and group chats:**
-     - Chat.Create
-     - ChatMessage.Send
-     - Chat.ReadWrite
+   - **User.Read** - Required to get the authenticated user's profile information (display name, email) during the OAuth flow
+   - **Team.ReadBasic.All** - Required to list teams that the user is a member of when selecting which team to connect
+   - **Channel.ReadBasic.All** - Required to read channel information and list channels within teams for notification delivery
+   - **ChannelMessage.Send** - Required to send alert and incident notifications to Teams channels
 
 **Add Application Permissions** (when acting as the app itself, without a signed-in user):
-   - **For reading team and channel information:**
-     - Team.ReadBasic.All
-     - Channel.ReadBasic.All
-     - ChannelSettings.Read.All
-   - **For creating and managing channels:**
-     - Channel.Create
-     - Channel.Delete.All (optional)
-     - ChannelSettings.ReadWrite.All
-   - **For channel messages:**
-     - ChannelMessage.Read.All (to read messages)
-   - **For managing channel members:**
-     - ChannelMember.Read.All
-     - ChannelMember.ReadWrite.All
-   - **For creating and managing chats:**
-     - Chat.Create
-     - Chat.ReadBasic.All
-     - Chat.ReadWrite.All
-   - **For chat messages:**
-     - ChatMessage.Read.All
-   - **For managing chat members:**
-     - ChatMember.Read.All
-     - ChatMember.ReadWrite.All
-   - **For team management:**
-     - TeamMember.Read.All
-   - **For user information:**
-     - User.Read.All (to get user details)
-   - **For reading groups:**
-     - Group.Read.All
+   - **Team.ReadBasic.All** - Required to list all teams in the organization after admin consent is granted
+   - **Channel.ReadBasic.All** - Required to verify channel existence and retrieve channel details
+   - **Channel.Create** - Required to create new channels for organizing notifications (e.g., separate channels for incidents, alerts)
+
+**Note:** The Bot Framework handles message delivery using Resource-Specific Consent (RSC) permissions defined in the Teams app manifest. These permissions are:
+   - **ChannelMessage.Send.Group** - Allows the bot to send messages to team channels
+   - **ChannelMessage.Read.Group** - Allows the bot to read channel messages for interactive commands
+   - **Channel.Create.Group** - Allows the bot to create channels when needed
 
 3. Click "Grant admin consent" for your organization
 

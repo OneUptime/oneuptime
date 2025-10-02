@@ -111,10 +111,6 @@ export default class MicrosoftTeamsAPI {
               type: "Application",
               name: "Channel.Create.Group",
             },
-            {
-              type: "Application",
-              name: "ChannelSettings.ReadWrite.Group",
-            },
           ],
         },
       },
