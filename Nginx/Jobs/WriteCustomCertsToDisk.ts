@@ -4,7 +4,6 @@ import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import StatusPageDomainService from "Common/Server/Services/StatusPageDomainService";
 import BasicCron from "Common/Server/Utils/BasicCron";
 import LocalFile from "Common/Server/Utils/LocalFile";
-// @ts-ignore
 import logger from "Common/Server/Utils/Logger";
 import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";

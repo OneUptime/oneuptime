@@ -4,7 +4,6 @@ import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import AcmeCertificateService from "Common/Server/Services/AcmeCertificateService";
 import BasicCron from "Common/Server/Utils/BasicCron";
 import LocalFile from "Common/Server/Utils/LocalFile";
-// @ts-ignore
 import logger from "Common/Server/Utils/Logger";
 import AcmeCertificate from "Common/Models/DatabaseModels/AcmeCertificate";
 

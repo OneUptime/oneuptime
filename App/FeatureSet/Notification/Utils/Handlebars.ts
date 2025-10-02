@@ -42,10 +42,10 @@ loadPartials().catch((err: Error) => {
 
 Handlebars.registerHelper("ifCond", function (v1, v2, options) {
   if (v1 === v2) {
-    //@ts-ignore
+    //@ts-expect-error - Handlebars uses dynamic this context for template helpers
     return options.fn(this);
   }
-  //@ts-ignore
+  //@ts-expect-error - Handlebars uses dynamic this context for template helpers
   return options.inverse(this);
 });
 
@@ -56,9 +56,9 @@ Handlebars.registerHelper("concat", (v1: any, v2: any) => {
 
 Handlebars.registerHelper("ifNotCond", function (v1, v2, options) {
   if (v1 !== v2) {
-    //@ts-ignore
+    //@ts-expect-error - Handlebars uses dynamic this context for template helpers
     return options.fn(this);
   }
-  //@ts-ignore
+  //@ts-expect-error - Handlebars uses dynamic this context for template helpers
   return options.inverse(this);
 });

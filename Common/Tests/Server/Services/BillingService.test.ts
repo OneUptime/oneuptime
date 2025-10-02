@@ -856,9 +856,9 @@ describe("BillingService", () => {
 
       it("should successfully retrieve subscription items for a given subscription", async () => {
         mockSubscription.items.data = [
-          // @ts-ignore
+          // @ts-expect-error - Simplified mock object for testing without all required Stripe SubscriptionItem properties
           { id: "item_1", price: { id: "price_123" } },
-          // @ts-ignore
+          // @ts-expect-error - Simplified mock object for testing without all required Stripe SubscriptionItem properties
           { id: "item_2", price: { id: "price_456" } },
         ];
         mockStripe.subscriptions.retrieve =
@@ -1025,14 +1025,14 @@ describe("BillingService", () => {
             {
               id: "pm_123",
               type: "card",
-              // @ts-ignore
+              // @ts-expect-error - Simplified mock card object for testing without all required Stripe card properties
               card: { last4: "4242", brand: "mastercard" },
               isDefault: true,
             },
             {
               id: "pm_456",
               type: "card",
-              // @ts-ignore
+              // @ts-expect-error - Simplified mock card object for testing without all required Stripe card properties
               card: { last4: "4343", brand: "mastercard" },
               isDefault: true,
             },

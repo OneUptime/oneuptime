@@ -68,7 +68,7 @@ const getStripeSubscription: GetStripeSubscriptionFunction =
         data: [
           {
             id: Faker.generateRandomObjectID().toString(),
-            // @ts-ignore
+            // @ts-expect-error - Simplified mock price object for testing without all required Stripe Price properties
             price: {
               id: new BillingService().getMeteredPlanPriceId(
                 ProductType.ActiveMonitoring,
@@ -100,7 +100,7 @@ const getSubscriptionPlanData: GetSubscriptionPlanDataFunction =
 type GetStripeInvoiceFunction = () => Stripe.Invoice;
 
 const getStripeInvoice: GetStripeInvoiceFunction = (): Stripe.Invoice => {
-  // @ts-ignore
+  // @ts-expect-error - Simplified mock invoice object for testing without all required Stripe Invoice properties
   return {
     id: Faker.generateRandomObjectID().toString(),
     amount_due: Faker.getNumberBetweenMinAndMax({ min: 1, max: 100 }),
