@@ -282,6 +282,149 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           break;
         }
 
+        case MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance: {
+          // Handle new scheduled maintenance submission
+          const title: string =
+            (actionPayload["scheduledMaintenanceTitle"] as string) || "";
+          const description: string =
+            (actionPayload["scheduledMaintenanceDescription"] as string) || "";
+          const startDate: string = (actionPayload["startDate"] as string) || "";
+          const endDate: string = (actionPayload["endDate"] as string) || "";
+          const monitorIds: string =
+            (actionPayload["scheduledMaintenanceMonitors"] as string) || "";
+          const monitorStatusId: string =
+            (actionPayload["monitorStatus"] as string) || "";
+          const labelIds: string = (actionPayload["labels"] as string) || "";
+
+          if (!title || !description || !startDate || !endDate) {
+            await turnContext.sendActivity(
+              "Unable to create scheduled maintenance: missing required fields (title, description, start date, or end date).",
+            );
+            return;
+          }
+
+          if (!request.userId || !request.projectId) {
+            await turnContext.sendActivity(
+              "Unable to create scheduled maintenance: missing user or project information.",
+            );
+            return;
+          }
+
+          try {
+            // Create the scheduled maintenance
+            const scheduledMaintenanceObj: ScheduledMaintenance =
+              new ScheduledMaintenance();
+            scheduledMaintenanceObj.title = title;
+            scheduledMaintenanceObj.description = description;
+            scheduledMaintenanceObj.projectId = request.projectId;
+            scheduledMaintenanceObj.createdByUserId = new ObjectID(
+              request.userId,
+            );
+            scheduledMaintenanceObj.startsAt =
+              OneUptimeDate.fromString(startDate);
+            scheduledMaintenanceObj.endsAt = OneUptimeDate.fromString(endDate);
+
+            // Parse monitors
+            if (monitorIds) {
+              const monitorIdArray: Array<string> = monitorIds
+                .split(",")
+                .map((id: string) => {
+                  return id.trim();
+                })
+                .filter((id: string) => {
+                  return id;
+                });
+              if (monitorIdArray.length > 0) {
+                scheduledMaintenanceObj.monitors = monitorIdArray.map(
+                  (id: string) => {
+                    const monitor: Monitor = new Monitor();
+                    monitor.id = new ObjectID(id);
+                    return monitor;
+                  },
+                );
+              }
+            }
+
+            // Parse labels
+            if (labelIds) {
+              const labelIdArray: Array<string> = labelIds
+                .split(",")
+                .map((id: string) => {
+                  return id.trim();
+                })
+                .filter((id: string) => {
+                  return id;
+                });
+              if (labelIdArray.length > 0) {
+                scheduledMaintenanceObj.labels = labelIdArray.map(
+                  (id: string) => {
+                    const label: Label = new Label();
+                    label.id = new ObjectID(id);
+                    return label;
+                  },
+                );
+              }
+            }
+
+            // Save the scheduled maintenance
+            const createdScheduledMaintenance: ScheduledMaintenance =
+              await ScheduledMaintenanceService.create({
+                data: scheduledMaintenanceObj,
+                props: {
+                  isRoot: true,
+                },
+              });
+
+            logger.debug(
+              "Scheduled maintenance created successfully: " +
+                createdScheduledMaintenance.id?.toString(),
+            );
+
+            // Update monitor status if specified
+            if (monitorStatusId && monitorIds) {
+              const monitorIdArray: Array<string> = monitorIds
+                .split(",")
+                .map((id: string) => {
+                  return id.trim();
+                })
+                .filter((id: string) => {
+                  return id;
+                });
+              for (const monitorId of monitorIdArray) {
+                await MonitorService.updateOneById({
+                  id: new ObjectID(monitorId),
+                  data: {
+                    currentMonitorStatusId: new ObjectID(monitorStatusId),
+                  },
+                  props: {
+                    isRoot: true,
+                  },
+                });
+              }
+            }
+
+            await turnContext.sendActivity(
+              "✅ Scheduled maintenance created successfully!",
+            );
+
+            // Hide the form card by deleting it
+            if (turnContext.activity.replyToId) {
+              await turnContext.deleteActivity(turnContext.activity.replyToId);
+            }
+
+            return;
+          } catch (error) {
+            logger.error(
+              "Error creating scheduled maintenance from Microsoft Teams:",
+            );
+            logger.error(error);
+            await turnContext.sendActivity(
+              "❌ Failed to create scheduled maintenance. Please try again.",
+            );
+            return;
+          }
+        }
+
         default:
           logger.error(`Unknown action type: ${actionType}`);
           await turnContext.sendActivity("Unknown action type");

@@ -545,6 +545,145 @@ export default class MicrosoftTeamsIncidentActions {
       return;
     }
 
+    if (actionType === MicrosoftTeamsIncidentActionType.SubmitNewIncident) {
+      // Handle new incident submission
+      const title: string = (value["incidentTitle"] as string) || "";
+      const description: string =
+        (value["incidentDescription"] as string) || "";
+      const severityId: string = (value["incidentSeverity"] as string) || "";
+      const monitorIds: string = (value["incidentMonitors"] as string) || "";
+      const monitorStatusId: string = (value["monitorStatus"] as string) || "";
+      const labelIds: string = (value["labels"] as string) || "";
+      const onCallPolicyIds: string =
+        (value["onCallDutyPolicies"] as string) || "";
+
+      if (!title || !description || !severityId) {
+        await turnContext.sendActivity(
+          "Unable to create incident: missing required fields (title, description, or severity).",
+        );
+        return;
+      }
+
+      try {
+        // Create the incident
+        const incident: Incident = new Incident();
+        incident.title = title;
+        incident.description = description;
+        incident.projectId = projectId;
+        incident.createdByUserId = oneUptimeUserId;
+        incident.incidentSeverityId = new ObjectID(severityId);
+        incident.rootCause = `Incident created via Microsoft Teams`;
+
+        // Parse monitors
+        if (monitorIds) {
+          const monitorIdArray: Array<string> = monitorIds
+            .split(",")
+            .map((id: string) => {
+              return id.trim();
+            })
+            .filter((id: string) => {
+              return id;
+            });
+          if (monitorIdArray.length > 0) {
+            incident.monitors = monitorIdArray.map((id: string) => {
+              const monitor: Monitor = new Monitor();
+              monitor.id = new ObjectID(id);
+              return monitor;
+            });
+          }
+        }
+
+        // Parse labels
+        if (labelIds) {
+          const labelIdArray: Array<string> = labelIds
+            .split(",")
+            .map((id: string) => {
+              return id.trim();
+            })
+            .filter((id: string) => {
+              return id;
+            });
+          if (labelIdArray.length > 0) {
+            incident.labels = labelIdArray.map((id: string) => {
+              const label: Label = new Label();
+              label.id = new ObjectID(id);
+              return label;
+            });
+          }
+        }
+
+        // Parse on-call policies
+        if (onCallPolicyIds) {
+          const policyIdArray: Array<string> = onCallPolicyIds
+            .split(",")
+            .map((id: string) => {
+              return id.trim();
+            })
+            .filter((id: string) => {
+              return id;
+            });
+          if (policyIdArray.length > 0) {
+            incident.onCallDutyPolicies = policyIdArray.map((id: string) => {
+              const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+              policy.id = new ObjectID(id);
+              return policy;
+            });
+          }
+        }
+
+        // Save the incident
+        const createdIncident: Incident = await IncidentService.create({
+          data: incident,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        logger.debug(
+          "Incident created successfully: " + createdIncident.id?.toString(),
+        );
+
+        // Update monitor status if specified
+        if (monitorStatusId && monitorIds) {
+          const monitorIdArray: Array<string> = monitorIds
+            .split(",")
+            .map((id: string) => {
+              return id.trim();
+            })
+            .filter((id: string) => {
+              return id;
+            });
+          for (const monitorId of monitorIdArray) {
+            await MonitorService.updateOneById({
+              id: new ObjectID(monitorId),
+              data: {
+                currentMonitorStatusId: new ObjectID(monitorStatusId),
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+          }
+        }
+
+        await turnContext.sendActivity("✅ Incident created successfully!");
+
+        // Hide the form card by deleting it
+        if (turnContext.activity.replyToId) {
+          await turnContext.deleteActivity(turnContext.activity.replyToId);
+        }
+
+        return;
+      } catch (error) {
+        logger.error("Error creating incident from Microsoft Teams:");
+        logger.error(error);
+        await turnContext.sendActivity(
+          "❌ Failed to create incident. Please try again.",
+        );
+        return;
+      }
+    }
+
     // Default fallback for unimplemented actions
     await turnContext.sendActivity(
       "Sorry, but the action " +
