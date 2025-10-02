@@ -19,6 +19,17 @@ import IncidentStateService from "../../../../Services/IncidentStateService";
 import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
+import IncidentSeverityService from "../../../../Services/IncidentSeverityService";
+import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSeverity";
+import MonitorService from "../../../../Services/MonitorService";
+import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import MonitorStatusService from "../../../../Services/MonitorStatusService";
+import MonitorStatus from "../../../../../Models/DatabaseModels/MonitorStatus";
+import LabelService from "../../../../Services/LabelService";
+import Label from "../../../../../Models/DatabaseModels/Label";
+import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
+import BadDataException from "../../../../../Types/Exception/BadDataException";
 
 export default class MicrosoftTeamsIncidentActions {
   @CaptureSpan()
@@ -43,7 +54,9 @@ export default class MicrosoftTeamsIncidentActions {
       data.actionType ===
         MicrosoftTeamsIncidentActionType.ViewChangeIncidentState ||
       data.actionType ===
-        MicrosoftTeamsIncidentActionType.SubmitChangeIncidentState
+        MicrosoftTeamsIncidentActionType.SubmitChangeIncidentState ||
+      data.actionType === MicrosoftTeamsIncidentActionType.NewIncident ||
+      data.actionType === MicrosoftTeamsIncidentActionType.SubmitNewIncident
     );
   }
 
@@ -78,6 +91,12 @@ export default class MicrosoftTeamsIncidentActions {
         case MicrosoftTeamsIncidentActionType.ViewIncident:
           // This is handled by opening the URL directly
           break;
+
+        case MicrosoftTeamsIncidentActionType.NewIncident:
+          return await this.showNewIncidentCard(data);
+
+        case MicrosoftTeamsIncidentActionType.SubmitNewIncident:
+          return await this.submitNewIncident(data);
 
         default:
           logger.debug("Unhandled incident action: " + action.actionType);
@@ -701,6 +720,443 @@ export default class MicrosoftTeamsIncidentActions {
           data: {
             action: MicrosoftTeamsIncidentActionType.SubmitChangeIncidentState,
             actionValue: incidentId,
+          },
+        },
+      ],
+    };
+  }
+
+  @CaptureSpan()
+  public static async showNewIncidentCard(data: {
+    teamsRequest: MicrosoftTeamsRequest;
+    action: MicrosoftTeamsAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { teamsRequest, req, res } = data;
+
+    logger.debug("Showing new incident card for Microsoft Teams");
+
+    // Send empty response first
+    Response.sendTextResponse(req, res, "");
+
+    if (!teamsRequest.projectId) {
+      logger.error("Project ID not found in Teams request");
+      return;
+    }
+
+    // Build the adaptive card with form fields
+    const card: JSONObject = await this.buildNewIncidentCard(
+      teamsRequest.projectId,
+    );
+
+    // Send card as a message (note: in real Teams bot, this would be sent via TurnContext)
+    // For now, we'll just log it. The actual sending will be done through the bot framework
+    logger.debug("New incident card built:");
+    logger.debug(JSON.stringify(card, null, 2));
+  }
+
+  @CaptureSpan()
+  public static async submitNewIncident(data: {
+    teamsRequest: MicrosoftTeamsRequest;
+    action: MicrosoftTeamsAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { teamsRequest, req, res } = data;
+    const { userId, projectId } = teamsRequest;
+
+    logger.debug("Submitting new incident from Microsoft Teams");
+
+    if (!projectId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Project ID"),
+      );
+    }
+
+    if (!userId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid User ID"),
+      );
+    }
+
+    // Send early response
+    Response.sendTextResponse(req, res, "");
+
+    // Extract form data from the payload
+    const payload: JSONObject = teamsRequest.payload || {};
+    const value: JSONObject = (payload["value"] as JSONObject) || {};
+
+    const title: string = (value["incidentTitle"] as string) || "";
+    const description: string = (value["incidentDescription"] as string) || "";
+    const severityId: string = (value["incidentSeverity"] as string) || "";
+    const monitorIds: string = (value["incidentMonitors"] as string) || "";
+    const monitorStatusId: string = (value["monitorStatus"] as string) || "";
+    const labelIds: string = (value["labels"] as string) || "";
+    const onCallPolicyIds: string =
+      (value["onCallDutyPolicies"] as string) || "";
+
+    if (!title || !description || !severityId) {
+      logger.error("Missing required fields for incident creation");
+      return;
+    }
+
+    try {
+      // Get OneUptime user ID
+      const oneUptimeUserId: ObjectID =
+        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
+          teamsUserId: userId,
+          projectId: projectId,
+        });
+
+      // Create the incident
+      const incident: Incident = new Incident();
+      incident.title = title;
+      incident.description = description;
+      incident.projectId = projectId;
+      incident.createdByUserId = oneUptimeUserId;
+      incident.incidentSeverityId = new ObjectID(severityId);
+      incident.rootCause = `Incident created via Microsoft Teams`;
+
+      // Parse monitors
+      if (monitorIds) {
+        const monitorIdArray: Array<string> = monitorIds
+          .split(",")
+          .map((id: string) => {
+            return id.trim();
+          })
+          .filter((id: string) => {
+            return id;
+          });
+        if (monitorIdArray.length > 0) {
+          incident.monitors = monitorIdArray.map((id: string) => {
+            const monitor: Monitor = new Monitor();
+            monitor.id = new ObjectID(id);
+            return monitor;
+          });
+        }
+      }
+
+      // Parse labels
+      if (labelIds) {
+        const labelIdArray: Array<string> = labelIds
+          .split(",")
+          .map((id: string) => {
+            return id.trim();
+          })
+          .filter((id: string) => {
+            return id;
+          });
+        if (labelIdArray.length > 0) {
+          incident.labels = labelIdArray.map((id: string) => {
+            const label: Label = new Label();
+            label.id = new ObjectID(id);
+            return label;
+          });
+        }
+      }
+
+      // Parse on-call policies
+      if (onCallPolicyIds) {
+        const policyIdArray: Array<string> = onCallPolicyIds
+          .split(",")
+          .map((id: string) => {
+            return id.trim();
+          })
+          .filter((id: string) => {
+            return id;
+          });
+        if (policyIdArray.length > 0) {
+          incident.onCallDutyPolicies = policyIdArray.map((id: string) => {
+            const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+            policy.id = new ObjectID(id);
+            return policy;
+          });
+        }
+      }
+
+      // Save the incident
+      const createdIncident: Incident = await IncidentService.create({
+        data: incident,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      logger.debug(
+        "Incident created successfully: " + createdIncident.id?.toString(),
+      );
+
+      // Update monitor status if specified
+      if (monitorStatusId && monitorIds) {
+        const monitorIdArray: Array<string> = monitorIds
+          .split(",")
+          .map((id: string) => {
+            return id.trim();
+          })
+          .filter((id: string) => {
+            return id;
+          });
+        for (const monitorId of monitorIdArray) {
+          await MonitorService.updateOneById({
+            id: new ObjectID(monitorId),
+            data: {
+              currentMonitorStatusId: new ObjectID(monitorStatusId),
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        }
+      }
+
+      logger.debug("New incident created from Microsoft Teams successfully");
+    } catch (error) {
+      logger.error("Error creating incident from Microsoft Teams:");
+      logger.error(error);
+    }
+  }
+
+  public static async buildNewIncidentCard(
+    projectId: ObjectID,
+  ): Promise<JSONObject> {
+    // Fetch severities
+    const severities: Array<IncidentSeverity> =
+      await IncidentSeverityService.findBy({
+        query: {
+          projectId: projectId,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const severityChoices: Array<{ title: string; value: string }> =
+      severities.map((severity: IncidentSeverity) => {
+        return {
+          title: severity.name || "",
+          value: severity._id?.toString() || "",
+        };
+      });
+
+    // Fetch monitors
+    const monitors: Array<Monitor> = await MonitorService.findBy({
+      query: {
+        projectId: projectId,
+      },
+      select: {
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+    });
+
+    const monitorChoices: Array<{ title: string; value: string }> = monitors
+      .map((monitor: Monitor) => {
+        return {
+          title: monitor.name || "",
+          value: monitor._id?.toString() || "",
+        };
+      })
+      .filter((choice: { title: string; value: string }) => {
+        return choice.title && choice.value;
+      });
+
+    // Fetch monitor statuses
+    const monitorStatuses: Array<MonitorStatus> =
+      await MonitorStatusService.findBy({
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        sort: {
+          priority: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    const monitorStatusChoices: Array<{ title: string; value: string }> =
+      monitorStatuses
+        .map((status: MonitorStatus) => {
+          return {
+            title: status.name || "",
+            value: status._id?.toString() || "",
+          };
+        })
+        .filter((choice: { title: string; value: string }) => {
+          return choice.title && choice.value;
+        });
+
+    // Fetch labels
+    const labels: Array<Label> = await LabelService.findBy({
+      query: {
+        projectId: projectId,
+      },
+      select: {
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+    });
+
+    const labelChoices: Array<{ title: string; value: string }> = labels
+      .map((label: Label) => {
+        return {
+          title: label.name || "",
+          value: label._id?.toString() || "",
+        };
+      })
+      .filter((choice: { title: string; value: string }) => {
+        return choice.title && choice.value;
+      });
+
+    // Fetch on-call policies
+    const onCallPolicies: Array<OnCallDutyPolicy> =
+      await OnCallDutyPolicyService.findBy({
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    const onCallPolicyChoices: Array<{ title: string; value: string }> =
+      onCallPolicies
+        .map((policy: OnCallDutyPolicy) => {
+          return {
+            title: policy.name || "",
+            value: policy._id?.toString() || "",
+          };
+        })
+        .filter((choice: { title: string; value: string }) => {
+          return choice.title && choice.value;
+        });
+
+    // Build the card
+    const bodyElements: Array<JSONObject> = [
+      {
+        type: "TextBlock",
+        text: "Create New Incident",
+        size: "Large",
+        weight: "Bolder",
+      },
+      {
+        type: "Input.Text",
+        id: "incidentTitle",
+        label: "Incident Title",
+        placeholder: "Enter incident title",
+        isRequired: true,
+      },
+      {
+        type: "Input.Text",
+        id: "incidentDescription",
+        label: "Incident Description",
+        placeholder: "Enter incident description",
+        isMultiline: true,
+        isRequired: true,
+      },
+    ];
+
+    // Add severity dropdown if we have severities
+    if (severityChoices.length > 0) {
+      bodyElements.push({
+        type: "Input.ChoiceSet",
+        id: "incidentSeverity",
+        label: "Incident Severity",
+        style: "compact",
+        isRequired: true,
+        choices: severityChoices,
+      });
+    }
+
+    // Add monitor multi-select if we have monitors
+    if (monitorChoices.length > 0) {
+      bodyElements.push({
+        type: "Input.ChoiceSet",
+        id: "incidentMonitors",
+        label: "Affected Monitors (Optional)",
+        style: "compact",
+        isMultiSelect: true,
+        choices: monitorChoices,
+      });
+    }
+
+    // Add monitor status dropdown if we have statuses and monitors
+    if (monitorStatusChoices.length > 0 && monitorChoices.length > 0) {
+      bodyElements.push({
+        type: "Input.ChoiceSet",
+        id: "monitorStatus",
+        label: "Change Monitor Status To (Optional)",
+        style: "compact",
+        choices: monitorStatusChoices,
+      });
+    }
+
+    // Add on-call policy multi-select if we have policies
+    if (onCallPolicyChoices.length > 0) {
+      bodyElements.push({
+        type: "Input.ChoiceSet",
+        id: "onCallDutyPolicies",
+        label: "Execute On-Call Policies (Optional)",
+        style: "compact",
+        isMultiSelect: true,
+        choices: onCallPolicyChoices,
+      });
+    }
+
+    // Add labels multi-select if we have labels
+    if (labelChoices.length > 0) {
+      bodyElements.push({
+        type: "Input.ChoiceSet",
+        id: "labels",
+        label: "Labels (Optional)",
+        style: "compact",
+        isMultiSelect: true,
+        choices: labelChoices,
+      });
+    }
+
+    return {
+      type: "AdaptiveCard",
+      $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+      version: "1.5",
+      body: bodyElements,
+      actions: [
+        {
+          type: "Action.Submit",
+          title: "Create Incident",
+          data: {
+            action: MicrosoftTeamsIncidentActionType.SubmitNewIncident,
           },
         },
       ],

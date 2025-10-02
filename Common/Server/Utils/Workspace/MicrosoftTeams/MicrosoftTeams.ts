@@ -1669,6 +1669,38 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     try {
       if (cleanText.includes("help") || cleanText === "") {
         responseText = this.getHelpMessage();
+      } else if (cleanText === "/incident" || cleanText.startsWith("/incident ")) {
+        // Handle /incident slash command
+        logger.debug("Processing /incident command");
+        const card: JSONObject =
+          await MicrosoftTeamsIncidentActions.buildNewIncidentCard(projectId);
+        await data.turnContext.sendActivity({
+          attachments: [
+            {
+              contentType: "application/vnd.microsoft.card.adaptive",
+              content: card,
+            },
+          ],
+        });
+        logger.debug("New incident card sent successfully");
+        return;
+      } else if (cleanText === "/maintenance" || cleanText.startsWith("/maintenance ")) {
+        // Handle /maintenance slash command
+        logger.debug("Processing /maintenance command");
+        const card: JSONObject =
+          await MicrosoftTeamsScheduledMaintenanceActions.buildNewScheduledMaintenanceCard(
+            projectId,
+          );
+        await data.turnContext.sendActivity({
+          attachments: [
+            {
+              contentType: "application/vnd.microsoft.card.adaptive",
+              content: card,
+            },
+          ],
+        });
+        logger.debug("New scheduled maintenance card sent successfully");
+        return;
       } else if (
         cleanText.includes("show active incidents") ||
         cleanText.includes("active incidents")
@@ -1711,6 +1743,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
 **Available Commands:**
 - **help** — Show this help message
+- **/incident** — Create a new incident
+- **/maintenance** — Create a new scheduled maintenance event
 - **show active incidents** — Display all currently active incidents
 - **show scheduled maintenance** — Show upcoming scheduled maintenance events
 - **show ongoing maintenance** — Display currently ongoing maintenance events
