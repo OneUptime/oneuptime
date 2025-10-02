@@ -562,9 +562,9 @@ metadata:
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
     appname: oneuptime
-    {{- if $.Values.deployment.includeTimestampLabel -}}
+    {{- if $.Values.deployment.includeTimestampLabel }}
     date: "{{ now | unixEpoch }}"
-    {{- end -}}
+    {{- end }}
 spec:
   selector:
     matchLabels:
@@ -581,9 +581,9 @@ spec:
     metadata:
       labels:
         app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
-        {{- if $.Values.deployment.includeTimestampLabel -}}
+        {{- if $.Values.deployment.includeTimestampLabel }}
         date: "{{ now | unixEpoch }}"
-        {{- end -}}
+        {{- end }}
         appname: oneuptime
     spec:
       {{- if $.Values.imagePullSecrets }}

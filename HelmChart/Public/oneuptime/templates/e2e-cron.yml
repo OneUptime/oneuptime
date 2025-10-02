@@ -10,9 +10,9 @@ metadata:
     appname: oneuptime
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
-    {{- if $.Values.deployment.includeTimestampLabel -}}
+    {{- if $.Values.deployment.includeTimestampLabel }}
     date: "{{ now | unixEpoch }}"
-    {{- end -}}
+    {{- end }}
 spec:
   schedule: "*/30 * * * *" # At every 30 minute.
   {{- if $.Values.nodeSelector }}
