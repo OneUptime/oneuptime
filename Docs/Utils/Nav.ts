@@ -173,6 +173,10 @@ const DocsNav: NavGroup[] = [
         title: "Slack",
         url: "/docs/workspace-connections/slack",
       },
+      {
+        title: "Microsoft Teams",
+        url: "/docs/workspace-connections/microsoft-teams",
+      },
     ],
   },
   {
@@ -224,6 +228,10 @@ if (!IsBillingEnabled) {
       {
         title: "Slack Integration",
         url: "/docs/self-hosted/slack-integration",
+      },
+      {
+        title: "Microsoft Teams Integration",
+        url: "/docs/self-hosted/microsoft-teams-integration",
       },
     ],
   });
