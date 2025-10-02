@@ -667,6 +667,11 @@ export default class MicrosoftTeamsIncidentActions {
           }
         }
 
+        // Hide the form card by deleting it first
+        if (turnContext.activity.replyToId) {
+          await turnContext.deleteActivity(turnContext.activity.replyToId);
+        }
+
         // Get the incident link
         const incidentLink: URL =
           await IncidentService.getIncidentLinkInDashboard(
@@ -674,14 +679,10 @@ export default class MicrosoftTeamsIncidentActions {
             createdIncident.id!,
           );
 
+        // Send confirmation message as a new message in the thread
         await turnContext.sendActivity(
           `✅ Incident created successfully!\n\nView incident: ${incidentLink.toString()}`,
         );
-
-        // Hide the form card by deleting it
-        if (turnContext.activity.replyToId) {
-          await turnContext.deleteActivity(turnContext.activity.replyToId);
-        }
 
         return;
       } catch (error) {

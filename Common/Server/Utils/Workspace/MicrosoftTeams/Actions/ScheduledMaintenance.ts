@@ -404,6 +404,11 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
               }
             }
 
+            // Hide the form card by deleting it first
+            if (turnContext.activity.replyToId) {
+              await turnContext.deleteActivity(turnContext.activity.replyToId);
+            }
+
             // Get the scheduled maintenance link
             const maintenanceLink: URL =
               await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
@@ -411,14 +416,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
                 createdScheduledMaintenance.id!,
               );
 
+            // Send confirmation message as a new message in the thread
             await turnContext.sendActivity(
               `✅ Scheduled maintenance created successfully!\n\nView scheduled maintenance: ${maintenanceLink.toString()}`,
             );
-
-            // Hide the form card by deleting it
-            if (turnContext.activity.replyToId) {
-              await turnContext.deleteActivity(turnContext.activity.replyToId);
-            }
 
             return;
           } catch (error) {
