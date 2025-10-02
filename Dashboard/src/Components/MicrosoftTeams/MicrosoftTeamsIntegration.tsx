@@ -519,27 +519,29 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {isAdminConsentCompleted && isUserAccountConnected && !BILLING_ENABLED && (
-        <div className="mt-6">
-          <Card
-            title="Action Required: Install App on Microsoft Teams"
-            description="If you prefer to install the OneUptime app manually in Microsoft Teams, download the app manifest zip file and follow the instructions below."
-            buttons={[
-              {
-                title: "Download App Manifest Zip",
-                buttonStyle: SharedButtonStyle.PRIMARY,
-                icon: IconProp.Download,
-                onClick: () => {
-                  window.open(
-                    `${HOME_URL.toString()}api/microsoft-teams/app-manifest-zip`,
-                    "_blank",
-                  );
+      {isAdminConsentCompleted &&
+        isUserAccountConnected &&
+        !BILLING_ENABLED && (
+          <div className="mt-6">
+            <Card
+              title="Action Required: Install App on Microsoft Teams"
+              description="If you prefer to install the OneUptime app manually in Microsoft Teams, download the app manifest zip file and follow the instructions below."
+              buttons={[
+                {
+                  title: "Download App Manifest Zip",
+                  buttonStyle: SharedButtonStyle.PRIMARY,
+                  icon: IconProp.Download,
+                  onClick: () => {
+                    window.open(
+                      `${HOME_URL.toString()}api/microsoft-teams/app-manifest-zip`,
+                      "_blank",
+                    );
+                  },
                 },
-              },
-            ]}
-          >
-            <MarkdownViewer
-              text={`
+              ]}
+            >
+              <MarkdownViewer
+                text={`
 ##### Installation Steps:
 
 Pre-requisite: 
@@ -559,10 +561,10 @@ Pre-requisite:
 
 The zip file contains the app manifest and required icons for Teams installation.
               `}
-            />
-          </Card>
-        </div>
-      )}
+              />
+            </Card>
+          </div>
+        )}
 
       {isAdminConsentCompleted && isUserAccountConnected && BILLING_ENABLED && (
         <div className="mt-6">
@@ -576,7 +578,8 @@ The zip file contains the app manifest and required icons for Teams installation
                 icon: IconProp.ExternalLink,
                 onClick: () => {
                   window.open(
-                    "https://teams.microsoft.com/l/app/"+MicrosoftTeamsAppClientId,
+                    "https://teams.microsoft.com/l/app/" +
+                      MicrosoftTeamsAppClientId,
                     "_blank",
                   );
                 },
