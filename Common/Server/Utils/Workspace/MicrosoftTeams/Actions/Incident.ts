@@ -30,6 +30,7 @@ import Label from "../../../../../Models/DatabaseModels/Label";
 import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
+import URL from "../../../../../Types/API/URL";
 
 export default class MicrosoftTeamsIncidentActions {
   @CaptureSpan()
@@ -666,7 +667,16 @@ export default class MicrosoftTeamsIncidentActions {
           }
         }
 
-        await turnContext.sendActivity("✅ Incident created successfully!");
+        // Get the incident link
+        const incidentLink: URL =
+          await IncidentService.getIncidentLinkInDashboard(
+            projectId,
+            createdIncident.id!,
+          );
+
+        await turnContext.sendActivity(
+          `✅ Incident created successfully!\n\nView incident: ${incidentLink.toString()}`,
+        );
 
         // Hide the form card by deleting it
         if (turnContext.activity.replyToId) {

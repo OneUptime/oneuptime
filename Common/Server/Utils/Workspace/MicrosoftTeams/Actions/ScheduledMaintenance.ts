@@ -26,6 +26,7 @@ import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import OneUptimeDate from "../../../../../Types/Date";
+import URL from "../../../../../Types/API/URL";
 
 export default class MicrosoftTeamsScheduledMaintenanceActions {
   @CaptureSpan()
@@ -403,8 +404,15 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
               }
             }
 
+            // Get the scheduled maintenance link
+            const maintenanceLink: URL =
+              await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+                createdScheduledMaintenance.projectId!,
+                createdScheduledMaintenance.id!,
+              );
+
             await turnContext.sendActivity(
-              "✅ Scheduled maintenance created successfully!",
+              `✅ Scheduled maintenance created successfully!\n\nView scheduled maintenance: ${maintenanceLink.toString()}`,
             );
 
             // Hide the form card by deleting it
