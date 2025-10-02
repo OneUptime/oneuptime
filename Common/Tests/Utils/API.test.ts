@@ -34,12 +34,9 @@ jest.mock("axios", () => {
 
 /*
  * Mock axios(config) top level function
- * Ignore type error
- * Property 'lastCall' is optional in type MockFunctionState but required in type MockContext
- * @ts-ignore
  */
-const mockedAxios: jest.MockedFunctionDeep<typeof axios> =
-  jest.mocked<AxiosStatic>(axios);
+const mockedAxios: jest.MockedFunction<AxiosStatic> =
+  axios as jest.MockedFunction<typeof axios>;
 
 // Spy on calls to HTTPErrorResponse
 jest.mock("../../Types/API/HTTPErrorResponse");
