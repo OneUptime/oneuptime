@@ -79,6 +79,9 @@
     "deployment": {
       "type": "object",
       "properties": {
+        "includeTimestampLabel": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer",
           "minimum": 1
