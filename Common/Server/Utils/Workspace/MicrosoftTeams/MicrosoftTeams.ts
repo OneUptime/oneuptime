@@ -2266,15 +2266,18 @@ All monitoring checks are passing normally.`;
           userLookupParamsRes,
         );
 
-      // Handle key incident actions for now
-      await MicrosoftTeamsIncidentActions.handleBotIncidentAction({
-        actionType,
-        actionValue,
-        value,
-        projectId,
-        oneUptimeUserId,
-        turnContext: data.turnContext,
-      });
+      // Handle incident actions
+      if (MicrosoftTeamsIncidentActions.isIncidentAction({ actionType })) {
+        await MicrosoftTeamsIncidentActions.handleBotIncidentAction({
+          actionType,
+          actionValue,
+          value,
+          projectId,
+          oneUptimeUserId,
+          turnContext: data.turnContext,
+        });
+        return;
+      }
 
       // Handle alert actions
       if (MicrosoftTeamsAlertActions.isAlertAction({ actionType })) {
