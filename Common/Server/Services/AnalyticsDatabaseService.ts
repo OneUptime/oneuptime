@@ -813,13 +813,15 @@ export default class AnalyticsDatabaseService<
       this.useDefaultDatabase();
     }
 
-    return (await this.databaseClient.exec(
-      statement instanceof Statement
-        ? statement
-        : {
-            query: statement, // TODO remove and only accept Statements
-          }
-    )) as ExecResult<Stream>;
+    const query: string =
+      statement instanceof Statement ? statement.query : statement;
+    const queryParams: Record<string, unknown> | undefined =
+      statement instanceof Statement ? statement.query_params : undefined;
+
+    return (await this.databaseClient.exec({
+      query: query,
+      query_params: queryParams || (undefined as any), // undefined is not specified in the type for query_params, but its ok to pass undefined.
+    })) as ExecResult<Stream>;
   }
 
   @CaptureSpan()
