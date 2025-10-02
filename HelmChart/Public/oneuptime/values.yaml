@@ -333,17 +333,17 @@ probes:
 #     httpsProxyUrl:
 #   resources:
 #   additionalContainers:
-# KEDA autoscaling configuration based on monitor queue metrics
-# keda:
-#   enabled: false
-#   minReplicas: 1
-#   maxReplicas: 100
-#   # Scale up when queue size exceeds this threshold per probe
-#   queueSizeThreshold: 10
-#   # Polling interval for metrics (in seconds)
-#   pollingInterval: 30
-#   # Cooldown period after scaling (in seconds)
-#   cooldownPeriod: 300
+  # KEDA autoscaling configuration based on monitor queue metrics
+  # keda:
+  #   enabled: false
+  #   minReplicas: 1
+  #   maxReplicas: 100
+  #   # Scale up when queue size exceeds this threshold per probe
+  #   queueSizeThreshold: 10
+  #   # Polling interval for metrics (in seconds)
+  #   pollingInterval: 30
+  #   # Cooldown period after scaling (in seconds)
+  #   cooldownPeriod: 300
 
 testServer:
   replicaCount: 1
