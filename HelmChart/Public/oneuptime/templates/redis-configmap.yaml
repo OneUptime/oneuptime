@@ -28,9 +28,6 @@ data:
     # Security
     requirepass ${REDIS_PASSWORD}
     
-    # Memory management
-    maxmemory-policy allkeys-lru
-    
     # Custom configuration from values
 {{ .Values.redis.commonConfiguration | indent 4 }}
 {{- end }}

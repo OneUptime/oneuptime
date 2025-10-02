@@ -200,6 +200,7 @@ redis:
   commonConfiguration: |-
     appendonly no
     save ""
+    maxmemory-policy noeviction
 
 image:
   registry: docker.io
