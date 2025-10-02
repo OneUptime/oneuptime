@@ -2,7 +2,6 @@ global:
   storageClass:
   clusterDomain: &global-cluster-domain cluster.local
 
-
 # Please change this to the domain name / IP where OneUptime server is hosted on.
 host: localhost
 httpProtocol: http
@@ -34,6 +33,8 @@ deployment:
   # Update strategy type for all deployments
   updateStrategy:
     type: RollingUpdate
+  # Dynamic timestamp label to force updates
+  includeTimestampLabel: true
 
 metalLb:
   enabled: false
@@ -64,8 +65,6 @@ nginx:
   podSecurityContext: {}
   containerSecurityContext: {}
 
-
-
 postgresql:
   enabled: true # Set this to false if you're using an external postgresql database.
   image:
@@ -76,7 +75,7 @@ postgresql:
     database: oneuptimedb
     # Username is fixed to "postgres"
     # Will be auto-generated if not provided
-    postgresPassword: 
+    postgresPassword:
   primary:
     service:
       type: ClusterIP
@@ -107,13 +106,11 @@ postgresql:
       host    all             all             0.0.0.0/0               md5
       host    all             all             ::/0                    md5
 
-  
-
 clickhouse:
   enabled: true
   auth:
     username: oneuptime
-    # Will be auto-generated if not provided  
+    # Will be auto-generated if not provided
     password:
   image:
     repository: clickhouse/clickhouse-server
@@ -175,12 +172,11 @@ clickhouse:
         </quotas>
     </clickhouse>
 
-
 redis:
   enabled: true
   auth:
     # Will be auto-generated if not provided
-    password: 
+    password:
   image:
     repository: redis
     tag: latest
@@ -191,20 +187,19 @@ redis:
       ports:
         redis: "6379"
     persistence:
-      enabled: false 
+      enabled: false
       size: 8Gi
       storageClass: ""
     nodeSelector: {}
     tolerations: []
     affinity: {}
-  # Optional: override global security contexts just for the Redis pod/container
+    # Optional: override global security contexts just for the Redis pod/container
     podSecurityContext: {}
     containerSecurityContext: {}
     resources: {}
   commonConfiguration: |-
-   appendonly no
-   save ""
-
+    appendonly no
+    save ""
 
 image:
   registry: docker.io
@@ -334,23 +329,21 @@ probes:
 #   proxy:
 #     # HTTP proxy URL for HTTP requests (optional)
 #     httpProxyUrl:
-#     # HTTPS proxy URL for HTTPS requests (optional) 
+#     # HTTPS proxy URL for HTTPS requests (optional)
 #     httpsProxyUrl:
 #   resources:
 #   additionalContainers:
-    # KEDA autoscaling configuration based on monitor queue metrics
-    # keda:
-    #   enabled: false
-    #   minReplicas: 1
-    #   maxReplicas: 100
-    #   # Scale up when queue size exceeds this threshold per probe
-    #   queueSizeThreshold: 10
-    #   # Polling interval for metrics (in seconds)
-    #   pollingInterval: 30
-    #   # Cooldown period after scaling (in seconds)
-    #   cooldownPeriod: 300
-    
-
+# KEDA autoscaling configuration based on monitor queue metrics
+# keda:
+#   enabled: false
+#   minReplicas: 1
+#   maxReplicas: 100
+#   # Scale up when queue size exceeds this threshold per probe
+#   queueSizeThreshold: 10
+#   # Polling interval for metrics (in seconds)
+#   pollingInterval: 30
+#   # Cooldown period after scaling (in seconds)
+#   cooldownPeriod: 300
 
 testServer:
   replicaCount: 1
@@ -364,7 +357,6 @@ testServer:
   podSecurityContext: {}
   containerSecurityContext: {}
 
-
 openTelemetryExporter:
   endpoint:
   # This can be for example: x-oneuptime-token=<YOUR_ONEUPTIME_TELEMETRY_INGEST_TOKEN>
@@ -375,7 +367,6 @@ podSecurityContext:
 affinity:
 tolerations:
 nodeSelector:
-
 
 # This can be one of the following: DEBUG, INFO, WARN, ERROR, OFF
 # Please do not set this to DEBUG in production. This is only for development / debugging purposes.
@@ -396,8 +387,7 @@ cronJobs:
     statusPageUrl:
     failedWebhookUrl:
 
-
-# Please add this information if you want to generate SSL certificates for your status page custom domains. 
+# Please add this information if you want to generate SSL certificates for your status page custom domains.
 # This is only required if you're using custom domains for status pages.
 letsEncrypt:
   # Generate a random private key via openssl, encode it to base64
@@ -413,7 +403,7 @@ oneuptimeIngress:
   # Please change this to the ingress class name for your cluster. If you use a cloud provider, this is usually the default ingress class name.
   # If you dont have nginx ingress controller installed, please install it by going to https://kubernetes.github.io/ingress-nginx/deploy/
   className: nginx # Required. Please change this to the ingress class name for your cluster. If you use a cloud provider, this is usually the default ingress class name.
-  hosts:  # List of hosts for the ingress. Please change this to your hosts
+  hosts: # List of hosts for the ingress. Please change this to your hosts
     # - "oneuptime.com" # Host 1
     # - "www.oneuptime.com" # Host 2
   tls:
@@ -421,7 +411,6 @@ oneuptimeIngress:
     hosts:
       # - host: "oneuptime.com" # Host 1
       #   secretName: "oneuptime-tls"  # This secret will be created by Cert-Manager if enabled
-
 
 script:
   workflowScriptTimeoutInMs: 5000
@@ -437,7 +426,6 @@ extraTemplates:
   #      name: my-configmap
   #    data:
   #      key: {{ .Values.myCustomValue | quote }}
-
 
 # External Postgres Configuration
 # You need to set postgresql.enabled to false if you're using an external postgres database.
@@ -483,7 +471,6 @@ externalRedis:
     cert:
     key:
 
-
 ## External Clickhouse Configuration
 # You need to set clickhouse.enabled to false if you're using an external clickhouse database.
 externalClickhouse:
@@ -507,18 +494,15 @@ externalClickhouse:
     cert:
     key:
 
-
 # Notification webhooks when certain events happen in the system. (usually they are slack webhooks)
 notifications:
   webhooks:
-    slack: 
+    slack:
       # This is the webhook that will be called when a user is created or signs up.
       onCreateUser:
-      onDeleteProject: 
-      onCreateProject: 
-      onSubscriptionUpdate: 
-
-
+      onDeleteProject:
+      onCreateProject:
+      onSubscriptionUpdate:
 
 startupProbe: # Startup probe configuration
   enabled: true
@@ -537,16 +521,15 @@ readinessProbe: # Readiness probe configuration
   initialDelaySeconds: 10
   timeoutSeconds: 120
 
-
 # OpenTelemetry Collector Configuration
-openTelemetryCollector: 
+openTelemetryCollector:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   ports:
     grpc: 4317
     http: 4318
-  sendingQueue: 
+  sendingQueue:
     enabled: true
     size: 1000
     numConsumers: 3
@@ -555,7 +538,7 @@ openTelemetryCollector:
   podSecurityContext: {}
   containerSecurityContext: {}
 
-accounts: 
+accounts:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -566,7 +549,7 @@ accounts:
   podSecurityContext: {}
   containerSecurityContext: {}
 
-home: 
+home:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -656,7 +639,7 @@ docs:
   podSecurityContext: {}
   containerSecurityContext: {}
 
-app: 
+app:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -794,13 +777,12 @@ serverMonitorIngest:
     # Cooldown period after scaling (in seconds)
     cooldownPeriod: 300
 
-
-slackApp: 
+slackApp:
   clientId:
   clientSecret:
   signingSecret:
 
-microsoftTeamsApp: 
+microsoftTeamsApp:
   clientId:
   clientSecret:
 
@@ -815,5 +797,5 @@ cert-manager:
 certManagerLetsEncrypt:
   # Please enable cert-manager.enabled before enabing this to ensure cert-manager is installed and all CRDs are created.
   enabled: false
-  email: ""  # Set your email for Let's Encrypt notifications
-  server: "https://acme-v02.api.letsencrypt.org/directory"  # Use "https://acme-staging-v02.api.letsencrypt.org/directory" for staging
+  email: "" # Set your email for Let's Encrypt notifications
+  server: "https://acme-v02.api.letsencrypt.org/directory" # Use "https://acme-staging-v02.api.letsencrypt.org/directory" for staging
