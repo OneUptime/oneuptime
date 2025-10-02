@@ -16,8 +16,10 @@ export default class ComponentCodeAPI {
   }
 
   public init(): void {
-    // init all component code.
-    /// Get all the components.
+    /*
+     * init all component code.
+     * Get all the components.
+     */
     for (const key in Components) {
       const ComponentCode: ComponentCode | undefined = Components[key];
 

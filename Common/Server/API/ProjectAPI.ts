@@ -25,8 +25,10 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
   public constructor() {
     super(Project, ProjectService);
 
-    /// This API lists all the projects where user is its team member.
-    /// This API is usually used to show project selector dropdown in the UI
+    /*
+     * This API lists all the projects where user is its team member.
+     * This API is usually used to show project selector dropdown in the UI
+     */
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()

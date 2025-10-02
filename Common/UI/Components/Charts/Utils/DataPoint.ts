@@ -1,9 +1,11 @@
-/// ChartDataPoint is in the format of:
-// {
-//     date: "Feb 22",
-//     SolarPanels: 2756,
-//     Inverters: 2103,
-// }
+/*
+ * ChartDataPoint is in the format of:
+ * {
+ *     date: "Feb 22",
+ *     SolarPanels: 2756,
+ *     Inverters: 2103,
+ * }
+ */
 
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ChartDataPoint from "../ChartLibrary/Types/ChartDataPoint";

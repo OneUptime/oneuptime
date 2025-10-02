@@ -59,8 +59,8 @@ export default tseslint.config(
       "@typescript-eslint/no-var-requires": "off", // TODO: Remove this rule
       "@typescript-eslint/no-duplicate-enum-values": "off", // TODO: Remove this rule
       "no-constant-binary-expression": "off", // TODO: Remove this rule
-      "@typescript-eslint/ban-ts-comment": "off", // TODO: Remove this rule
-      "multiline-comment-style": "error", // TODO: Remove this rule
+      "@typescript-eslint/ban-ts-comment": "off",
+      "multiline-comment-style": "error",
       "@typescript-eslint/no-floating-promises": "off", // TODO: Remove this rule
       "no-fallthrough": "error",
       "no-unreachable": "error",
