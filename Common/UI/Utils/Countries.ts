@@ -1,6 +1,8 @@
-// ISO 3166-1 alpha-2 country codes and names.
-// Limited to widely recognized sovereign states and territories supported by Stripe.
-// If needed, expand or adjust for specific business logic.
+/*
+ * ISO 3166-1 alpha-2 country codes and names.
+ * Limited to widely recognized sovereign states and territories supported by Stripe.
+ * If needed, expand or adjust for specific business logic.
+ */
 export interface CountryOption {
   value: string;
   label: string;

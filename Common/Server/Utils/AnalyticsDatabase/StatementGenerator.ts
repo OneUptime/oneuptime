@@ -131,8 +131,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       records.push(record);
     }
 
-    // we need async insert to be enabled for clickhouse to work.
-    // otherwise too many parts will be created.
+    /*
+     * we need async insert to be enabled for clickhouse to work.
+     * otherwise too many parts will be created.
+     */
 
     const statement: string = `INSERT INTO ${
       this.database.getDatasourceOptions().database
@@ -263,9 +265,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           setStatement.append(SQL`, `);
         }
 
-        // special case - ClickHouse does not support using query
-        // parameters for column names in the SET statement so we
-        // have to trust the column names here.
+        /*
+         * special case - ClickHouse does not support using query
+         * parameters for column names in the SET statement so we
+         * have to trust the column names here.
+         */
         const keyStatement: string = column.key;
 
         setStatement.append(keyStatement).append(
@@ -505,8 +509,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     statement: Statement;
     columns: Array<string>;
   } {
-    // EXAMPLE:
-    // SELECT sum(Metric.value) as avg_value, date_trunc('hour', toStartOfInterval(createdAt, INTERVAL 1 hour)) as createdAt
+    /*
+     * EXAMPLE:
+     * SELECT sum(Metric.value) as avg_value, date_trunc('hour', toStartOfInterval(createdAt, INTERVAL 1 hour)) as createdAt
+     */
 
     const selectStatement: Statement = new Statement();
 
@@ -578,8 +584,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         columns.append(SQL`, `);
       }
 
-      // special case - ClickHouse does not support using an a query parameter
-      // to specify the column name when creating the table
+      /*
+       * special case - ClickHouse does not support using an a query parameter
+       * to specify the column name when creating the table
+       */
       const keyStatement: string = column.key;
 
       columns
@@ -683,8 +691,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       this.model.tableColumns,
     );
 
-    // special case - ClickHouse does not support using a query parameter
-    // to specify the table engine
+    /*
+     * special case - ClickHouse does not support using a query parameter
+     * to specify the table engine
+     */
     const tableEngineStatement: string = this.model.tableEngine;
 
     const partitionKey: string = this.model.partitionKey;

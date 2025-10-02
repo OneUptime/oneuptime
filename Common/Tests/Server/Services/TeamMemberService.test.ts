@@ -343,10 +343,12 @@ describe("TeamMemberService", () => {
           "refreshTokens",
         );
 
-        // const updateSeatsSpy: jest.SpyInstance = jest.spyOn(
-        //   TeamMemberService,
-        //   "updateSubscriptionSeatsByUniqueTeamMembersInProject",
-        // );
+        /*
+         * const updateSeatsSpy: jest.SpyInstance = jest.spyOn(
+         *   TeamMemberService,
+         *   "updateSubscriptionSeatsByUniqueTeamMembersInProject",
+         * );
+         */
 
         const user: User = await UserService.create({
           data: UserServiceHelper.generateRandomUser(),
@@ -741,8 +743,10 @@ describe("TeamMemberService", () => {
 
   describe("getUniqueTeamMemberCountInProject", () => {
     it("should return the count of unique team members in a project", async () => {
-      // make findBy to return 4 team members: 1 normal, 2 with the same id and 1 without a user ID
-      // total should be 2 unique team members
+      /*
+       * make findBy to return 4 team members: 1 normal, 2 with the same id and 1 without a user ID
+       * total should be 2 unique team members
+       */
 
       const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
         null,
@@ -839,9 +843,11 @@ describe("TeamMemberService", () => {
 
   describe("getUsersInTeam(s)", () => {
     it("should return users in specified team", async () => {
-      // team A members: user1 & user2
-      // team B members: user2 & user3
-      // team C members: user 3
+      /*
+       * team A members: user1 & user2
+       * team B members: user2 & user3
+       * team C members: user 3
+       */
 
       const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
         null,
@@ -966,9 +972,11 @@ describe("TeamMemberService", () => {
     });
 
     it("should return users in multiple teams", async () => {
-      // team A members: user1 & user2
-      // team B members: user2 & user3
-      // team C members: user 3
+      /*
+       * team A members: user1 & user2
+       * team B members: user2 & user3
+       * team C members: user 3
+       */
 
       const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
         null,

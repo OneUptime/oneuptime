@@ -44,8 +44,10 @@ export default class TelemetryIngest {
         logger.error("Missing header: x-oneuptime-token");
 
         if (isOpenTelemetryAPI) {
-          // then accept the response and return success.
-          // do not return error because it causes Otel to retry the request.
+          /*
+           * then accept the response and return success.
+           * do not return error because it causes Otel to retry the request.
+           */
           return Response.sendEmptySuccessResponse(req, res);
         }
 
@@ -71,8 +73,10 @@ export default class TelemetryIngest {
         logger.error("Invalid service token: " + oneuptimeToken);
 
         if (isOpenTelemetryAPI) {
-          // then accept the response and return success.
-          // do not return error because it causes Otel to retry the request.
+          /*
+           * then accept the response and return success.
+           * do not return error because it causes Otel to retry the request.
+           */
           return Response.sendEmptySuccessResponse(req, res);
         }
 
@@ -89,8 +93,10 @@ export default class TelemetryIngest {
         );
 
         if (isOpenTelemetryAPI) {
-          // then accept the response and return success.
-          // do not return error because it causes Otel to retry the request.
+          /*
+           * then accept the response and return success.
+           * do not return error because it causes Otel to retry the request.
+           */
           return Response.sendEmptySuccessResponse(req, res);
         }
 

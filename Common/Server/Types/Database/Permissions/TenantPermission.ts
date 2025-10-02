@@ -44,9 +44,11 @@ export default class TenantPermission {
       !props.tenantId &&
       props.userGlobalAccessPermission
     ) {
-      // for each of these projectIds,
-      // check if they have valid permissions for these projects
-      // and if they do, include them in the query.
+      /*
+       * for each of these projectIds,
+       * check if they have valid permissions for these projects
+       * and if they do, include them in the query.
+       */
 
       const queries: Array<Query<TBaseModel>> = [];
 

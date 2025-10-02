@@ -51,9 +51,11 @@ export default class JavaScriptCode extends ComponentCode {
     }
 
     try {
-      // Set timeout
-      // Inject args
-      // Inject dependencies
+      /*
+       * Set timeout
+       * Inject args
+       * Inject dependencies
+       */
 
       let scriptArgs: JSONObject | string =
         (args["arguments"] as JSONObject | string) || {};

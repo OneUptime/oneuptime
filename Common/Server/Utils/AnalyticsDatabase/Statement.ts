@@ -159,8 +159,10 @@ export class Statement implements BaseQueryParams {
   private static toColumnType(
     statementParam: StatementParameter | string,
   ): string {
-    // ensure we have a mapping for all types (a missing mapping will
-    // be a compile error)
+    /*
+     * ensure we have a mapping for all types (a missing mapping will
+     * be a compile error)
+     */
     const columnTypes: Dictionary<string> = {
       [TableColumnType.Text]: "String",
       [TableColumnType.ObjectID]: "String",

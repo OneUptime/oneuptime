@@ -220,8 +220,10 @@ describe("LayerUtil getEvents - Daily Restrictions", () => {
       calendarEndDate: calendarEnd,
     });
 
-    // Expect two events: 23:00 -> 23:59:59 (approx) and 00:00 -> 11:00 next day (depending on trimming logic)
-    // We simplify by checking presence of one starting at 23:00 and one ending at 11:00.
+    /*
+     * Expect two events: 23:00 -> 23:59:59 (approx) and 00:00 -> 11:00 next day (depending on trimming logic)
+     * We simplify by checking presence of one starting at 23:00 and one ending at 11:00.
+     */
     expect(events.length).toBeGreaterThanOrEqual(2); // Expect at least two distinct segments across midnight.
     const has23Window: boolean = events.some((e: CalendarEvent) => {
       return OneUptimeDate.getLocalHourAndMinuteFromDate(e.start) === "23:00";
@@ -436,8 +438,10 @@ describe("LayerUtil getEvents - Rotation Handoff", () => {
       return e.title;
     });
 
-    // Titles are user ids (strings we passed) according to implementation.
-    // Check that at least first three rotate u1 -> u2 -> u3
+    /*
+     * Titles are user ids (strings we passed) according to implementation.
+     * Check that at least first three rotate u1 -> u2 -> u3
+     */
     expect(userSequence.slice(0, 3)).toEqual(["u1", "u2", "u3"]);
   });
 });

@@ -11,8 +11,10 @@ export default class DeleteOldTelemetryTable extends DataMigrationBase {
 
   public override async migrate(): Promise<void> {
     try {
-      // delete old telemetry tables that are no longer needed
-      // we have renamed these tables to new names
+      /*
+       * delete old telemetry tables that are no longer needed
+       * we have renamed these tables to new names
+       */
       await MetricService.executeQuery("DROP TABLE IF EXISTS Metric");
       await SpanService.executeQuery("DROP TABLE IF EXISTS Span");
       await LogService.executeQuery("DROP TABLE IF EXISTS Log");

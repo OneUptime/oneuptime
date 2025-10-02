@@ -100,8 +100,10 @@ export default class RunWorkflow {
       this.projectId = workflow.projectId || null;
 
       if (!runProps.workflowLogId) {
-        // create a new workflow log here.
-        // if the workflow is to be run immediately.
+        /*
+         * create a new workflow log here.
+         * if the workflow is to be run immediately.
+         */
         const runLog: WorkflowLog = new WorkflowLog();
         runLog.workflowId = runProps.workflowId;
         runLog.projectId = workflow.projectId!;
@@ -168,8 +170,10 @@ export default class RunWorkflow {
           );
         }
 
-        // get component.
-        // and remove that component from the stack.
+        /*
+         * get component.
+         * and remove that component from the stack.
+         */
         executeComponentId = fifoStackOfComponentsPendingExecution.shift()!;
 
         if (componentsExecuted.includes(executeComponentId)) {

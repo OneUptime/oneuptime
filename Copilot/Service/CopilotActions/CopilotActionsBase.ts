@@ -168,8 +168,10 @@ If you have  any feedback or suggestions, please let us know. We would love to h
 
     while (!isActionComplete) {
       if (!(await this.validateExecutionStep(processData))) {
-        // execution step not valid
-        // return data as it is
+        /*
+         * execution step not valid
+         * return data as it is
+         */
 
         return processData;
       }

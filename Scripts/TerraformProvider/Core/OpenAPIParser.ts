@@ -290,8 +290,10 @@ export class OpenAPIParser {
       computed: true,
     };
 
-    // First pass: Extract schema from create/update operations (input fields)
-    // These define the required fields for the resource
+    /*
+     * First pass: Extract schema from create/update operations (input fields)
+     * These define the required fields for the resource
+     */
     if (operations.create) {
       this.addSchemaFromOperation(
         schema,
@@ -329,19 +331,23 @@ export class OpenAPIParser {
       );
     }
 
-    // Third pass: Identify fields that should be both optional and computed
-    // These are fields that:
-    // 1. Appear in both create/update AND read operations, but
-    // 2. Are not required in create/update operations
-    // This indicates server-managed fields that can be optionally set by users
+    /*
+     * Third pass: Identify fields that should be both optional and computed
+     * These are fields that:
+     * 1. Appear in both create/update AND read operations, but
+     * 2. Are not required in create/update operations
+     * This indicates server-managed fields that can be optionally set by users
+     */
     for (const [fieldName, attr] of Object.entries(schema)) {
       const isInCreateUpdate: boolean = createUpdateFields.has(fieldName);
       const isRequired: boolean = requiredFields.has(fieldName);
       const isComputed: boolean = Boolean(attr.computed);
 
       if (isInCreateUpdate && !isRequired && isComputed) {
-        // Field is optional in create/update but computed in read
-        // This means it should be both optional and computed
+        /*
+         * Field is optional in create/update but computed in read
+         * This means it should be both optional and computed
+         */
         schema[fieldName] = {
           ...attr,
           required: false,
@@ -609,8 +615,10 @@ export class OpenAPIParser {
             existingField.description = description;
           }
 
-          // If the field exists from create/update and now appears in read,
-          // it should be marked as both optional and computed (server-managed field)
+          /*
+           * If the field exists from create/update and now appears in read,
+           * it should be marked as both optional and computed (server-managed field)
+           */
           if (existingField && !existingField.required) {
             schema[terraformName] = {
               ...existingField,
@@ -692,8 +700,10 @@ export class OpenAPIParser {
       case "array":
         return "list";
       case "object":
-        // For now, treat complex objects as JSON strings to handle nested structures
-        // This allows users to pass complex nested objects that will be serialized to JSON
+        /*
+         * For now, treat complex objects as JSON strings to handle nested structures
+         * This allows users to pass complex nested objects that will be serialized to JSON
+         */
         return "string";
       default:
         return "string";

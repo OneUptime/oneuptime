@@ -29,8 +29,10 @@ export default class AddDowntimeMonitorStatusToStatusPage extends DataMigrationB
     });
 
     for (const statusPage of statusPages) {
-      // add ended scheduled maintenance state for each of these projects.
-      // first fetch resolved state. Ended state order is -1 of resolved state.
+      /*
+       * add ended scheduled maintenance state for each of these projects.
+       * first fetch resolved state. Ended state order is -1 of resolved state.
+       */
 
       if (!statusPage.projectId) {
         continue;

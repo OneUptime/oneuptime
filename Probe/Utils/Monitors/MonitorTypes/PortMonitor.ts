@@ -117,8 +117,10 @@ export default class PortMonitor {
             logger.debug("Ping timeout");
 
             if (!hasPromiseResolved) {
-              // this could mean port 25 is blocked by the cloud provider and is timing out but is actually online.
-              // so we will return isOnline as true
+              /*
+               * this could mean port 25 is blocked by the cloud provider and is timing out but is actually online.
+               * so we will return isOnline as true
+               */
               if (
                 !Register.isPingMonitoringEnabled() &&
                 port.toNumber() === 25

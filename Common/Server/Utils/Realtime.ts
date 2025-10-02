@@ -92,8 +92,10 @@ export default abstract class Realtime {
       await this.init();
     }
 
-    // before joining room check the user token and check if the user has access to this tenant
-    // and to this model and to this event type
+    /*
+     * before joining room check the user token and check if the user has access to this tenant
+     * and to this model and to this event type
+     */
 
     logger.debug("Extracting user access token from socket");
     const userAccessToken: string | undefined =

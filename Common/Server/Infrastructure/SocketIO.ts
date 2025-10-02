@@ -26,8 +26,10 @@ export default abstract class IO {
       );
     }
 
-    // const pubClient: ClientType = Redis.getClient()!.duplicate();
-    // const subClient: ClientType = Redis.getClient()!.duplicate();
+    /*
+     * const pubClient: ClientType = Redis.getClient()!.duplicate();
+     * const subClient: ClientType = Redis.getClient()!.duplicate();
+     */
 
     // this.socketServer.adapter(createAdapter(pubClient, subClient));
   }

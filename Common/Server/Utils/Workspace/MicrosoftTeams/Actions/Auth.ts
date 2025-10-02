@@ -194,8 +194,10 @@ export default class MicrosoftTeamsAuthAction {
     teamsUserId: string;
     projectId: ObjectID;
   }): Promise<ObjectID> {
-    // Find a OneUptime user associated with this Teams user ID using WorkspaceUserAuthToken table
-    // This table is populated when users authenticate with Microsoft Teams through the OAuth flow
+    /*
+     * Find a OneUptime user associated with this Teams user ID using WorkspaceUserAuthToken table
+     * This table is populated when users authenticate with Microsoft Teams through the OAuth flow
+     */
 
     try {
       // Look up the user in the WorkspaceUserAuthToken table

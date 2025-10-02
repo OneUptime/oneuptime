@@ -42,15 +42,17 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
             }
             onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
             initialValue={i}
-            // onDelete={() => {
-            //     // remove the criteria filter
-            //     const index: number = incidents.indexOf(i);
-            //     const newIncidents: Array<CriteriaIncident> = [
-            //         ...incidents,
-            //     ];
-            //     newIncidents.splice(index, 1);
-            //     setIncidents(newIncidents);
-            // }}
+            /*
+             * onDelete={() => {
+             *     // remove the criteria filter
+             *     const index: number = incidents.indexOf(i);
+             *     const newIncidents: Array<CriteriaIncident> = [
+             *         ...incidents,
+             *     ];
+             *     newIncidents.splice(index, 1);
+             *     setIncidents(newIncidents);
+             * }}
+             */
             onChange={(value: CriteriaIncident) => {
               const index: number = incidents.indexOf(i);
               const newIncidents: Array<CriteriaIncident> = [...incidents];

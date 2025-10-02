@@ -31,8 +31,10 @@ export default class SlackMonitorActions {
     const actionType: SlackActionType | undefined = data.action.actionType;
 
     if (actionType === SlackActionType.ViewMonitor) {
-      // do nothing. This is just a view Monitor action.
-      // clear response.
+      /*
+       * do nothing. This is just a view Monitor action.
+       * clear response.
+       */
       return Response.sendJsonObjectResponse(data.req, data.res, {
         response_action: "clear",
       });

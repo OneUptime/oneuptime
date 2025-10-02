@@ -1,5 +1,7 @@
-// To run this script:
-// export $(grep -v '^#' config.env | xargs) && ts-node ./Scripts/PaymentProvider/CouponCodeGenerator.ts > coupons.csv
+/*
+ * To run this script:
+ * export $(grep -v '^#' config.env | xargs) && ts-node ./Scripts/PaymentProvider/CouponCodeGenerator.ts > coupons.csv
+ */
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Sleep from "Common/Types/Sleep";
 import BillingService from "Common/Server/Services/BillingService";

@@ -32,13 +32,15 @@ export default class MicrosoftTeamsIncidentMessages {
 
     blockMicrosoftTeams.push(dividerBlock);
 
-    // now add buttons.
-    // View data.
-    // Execute On Call
-    // Acknowledge incident
-    // Resolve data.
-    // Change Incident State.
-    // Add Note.
+    /*
+     * now add buttons.
+     * View data.
+     * Execute On Call
+     * Acknowledge incident
+     * Resolve data.
+     * Change Incident State.
+     * Add Note.
+     */
 
     const buttons: Array<WorkspaceMessagePayloadButton> = [];
 

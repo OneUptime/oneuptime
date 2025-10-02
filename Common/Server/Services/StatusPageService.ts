@@ -168,8 +168,10 @@ export class Service extends DatabaseService<StatusPage> {
       createBy.data.defaultBarColor = Green;
     }
 
-    // For new status pages, set enableCustomSubscriberEmailNotificationFooterText to false by default
-    // and provide a default custom footer text only if not provided
+    /*
+     * For new status pages, set enableCustomSubscriberEmailNotificationFooterText to false by default
+     * and provide a default custom footer text only if not provided
+     */
     if (
       createBy.data.enableCustomSubscriberEmailNotificationFooterText ===
       undefined

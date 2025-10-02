@@ -60,8 +60,10 @@ const CopilotDocuementationPage: FunctionComponent<
           return;
         }
 
-        // Send api request to get documentation
-        // http://localhost/docs/copilot/introduction
+        /*
+         * Send api request to get documentation
+         * http://localhost/docs/copilot/introduction
+         */
 
         const documentation: HTTPErrorResponse | HTTPResponse<JSONObject> =
           (await API.get({

@@ -69,12 +69,14 @@ export class MonitorTypeHelper {
         description:
           "This monitor type does the basic ping test of an endpoint.",
       },
-      // {
-      //     monitorType: MonitorType.Kubernetes,
-      //     title: 'Kubernetes',
-      //     description:
-      //         'This monitor types lets you monitor Kubernetes clusters.',
-      // },
+      /*
+       * {
+       *     monitorType: MonitorType.Kubernetes,
+       *     title: 'Kubernetes',
+       *     description:
+       *         'This monitor types lets you monitor Kubernetes clusters.',
+       * },
+       */
       {
         monitorType: MonitorType.IP,
         title: "IP",

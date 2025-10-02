@@ -90,13 +90,15 @@ export class BillingService extends BaseService {
     if (!this.isBillingEnabled()) {
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
     }
-    // Goal: Update Stripe Customer "Billing details" (address fields) rather than invoice footer.
-    // We only have a single free-form textarea. We'll map:
-    //   First non-empty line -> address.line1
-    //   Second non-empty line (if any) and remaining (joined, truncated) -> address.line2
-    // We also persist full text in metadata so we can reconstruct or improve parsing later.
-    // NOTE: Because Stripe requires structured address, any city/state/postal/country detection
-    // would be heuristic; we keep it simple unless we later add structured fields.
+    /*
+     * Goal: Update Stripe Customer "Billing details" (address fields) rather than invoice footer.
+     * We only have a single free-form textarea. We'll map:
+     *   First non-empty line -> address.line1
+     *   Second non-empty line (if any) and remaining (joined, truncated) -> address.line2
+     * We also persist full text in metadata so we can reconstruct or improve parsing later.
+     * NOTE: Because Stripe requires structured address, any city/state/postal/country detection
+     * would be heuristic; we keep it simple unless we later add structured fields.
+     */
 
     const lines: Array<string> = businessDetails
       .split(/\r?\n/)
@@ -137,8 +139,10 @@ export class BillingService extends BaseService {
       address: {},
     };
 
-    // If finance / accounting email provided, set it as the customer email so Stripe sends
-    // invoices / receipts there. (Stripe only supports a single email via API currently.)
+    /*
+     * If finance / accounting email provided, set it as the customer email so Stripe sends
+     * invoices / receipts there. (Stripe only supports a single email via API currently.)
+     */
     if (financeAccountingEmail && financeAccountingEmail.trim().length > 0) {
       updateParams.email = financeAccountingEmail.trim();
     }

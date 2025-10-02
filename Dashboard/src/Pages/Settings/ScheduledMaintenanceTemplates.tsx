@@ -28,8 +28,10 @@ type GetTemplateFormFieldsFunction = (data: {
 export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
   isViewPage: boolean;
 }): ModelField<ScheduledMaintenanceTemplate>[] => {
-  // if its the view page then ignore the owner fields
-  // because they are already on the table in the view page.
+  /*
+   * if its the view page then ignore the owner fields
+   * because they are already on the table in the view page.
+   */
 
   let fields: ModelField<ScheduledMaintenanceTemplate>[] = [
     {
@@ -345,8 +347,10 @@ type GetFormStepsFunction = (data: {
 export const getFormSteps: GetFormStepsFunction = (data: {
   isViewPage: boolean;
 }): Array<FormStep<ScheduledMaintenanceTemplate>> => {
-  // if its the view page then ignore the owner fields
-  // because they are already on the table in the view page.
+  /*
+   * if its the view page then ignore the owner fields
+   * because they are already on the table in the view page.
+   */
 
   const steps: Array<FormStep<ScheduledMaintenanceTemplate>> = [
     {

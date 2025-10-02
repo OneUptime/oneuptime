@@ -11,9 +11,11 @@ export default class DatabaseCommonInteractionPropsUtil {
     props: DatabaseCommonInteractionProps,
     permissionType: PermissionType,
   ): Array<UserPermission> {
-    // Check first if the user has Global Permissions.
-    // Global permissions includes all the tenantId user has access to.
-    // and it includes all the global permissions that applies to all the tenant, like PUBLIC.
+    /*
+     * Check first if the user has Global Permissions.
+     * Global permissions includes all the tenantId user has access to.
+     * and it includes all the global permissions that applies to all the tenant, like PUBLIC.
+     */
     if (!props.userGlobalAccessPermission) {
       props.userGlobalAccessPermission = {
         globalPermissions: [Permission.Public],

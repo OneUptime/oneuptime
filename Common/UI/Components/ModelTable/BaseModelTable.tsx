@@ -224,9 +224,11 @@ export interface BaseTableProps<
 
   formSummary?: FormSummaryConfig | undefined;
 
-  // this key is used to save table user preferences in local storage.
-  // If you provide this key, the table will save the user preferences in local storage.
-  // If you do not provide this key, the table will not save the user preferences in local storage.
+  /*
+   * this key is used to save table user preferences in local storage.
+   * If you provide this key, the table will save the user preferences in local storage.
+   * If you do not provide this key, the table will not save the user preferences in local storage.
+   */
   userPreferencesKey: string;
 }
 

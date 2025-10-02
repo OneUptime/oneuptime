@@ -30,8 +30,10 @@ export default class AddStartDateToIncidentStateTimeline extends DataMigrationBa
     });
 
     for (const project of projects) {
-      // add ended scheduled maintenance state for each of these projects.
-      // first fetch resolved state. Ended state order is -1 of resolved state.
+      /*
+       * add ended scheduled maintenance state for each of these projects.
+       * first fetch resolved state. Ended state order is -1 of resolved state.
+       */
 
       const incidents: Array<Incident> = await IncidentService.findBy({
         query: {

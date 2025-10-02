@@ -11,10 +11,12 @@ export default class RenameRuleTypeInUserNotificationRule extends DataMigrationB
   }
 
   public override async migrate(): Promise<void> {
-    // get all projects.
-    // for each project get all UserNotifiacationRules with ruleType ""When incident is created during on call"
-    // update ruleType to "When on-call policy is executed"
-    // update UserNotificationRule
+    /*
+     * get all projects.
+     * for each project get all UserNotifiacationRules with ruleType ""When incident is created during on call"
+     * update ruleType to "When on-call policy is executed"
+     * update UserNotificationRule
+     */
 
     const projects: Array<Project> = await ProjectService.findBy({
       query: {},

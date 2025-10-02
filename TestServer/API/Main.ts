@@ -71,8 +71,10 @@ const returnResponse: RequestHandler = async (
       await Sleep.sleep(responseTime);
     }
 
-    // middleware marks the probe as alive.
-    // so we don't need to do anything here.
+    /*
+     * middleware marks the probe as alive.
+     * so we don't need to do anything here.
+     */
     return Response.sendCustomResponse(
       req,
       res,

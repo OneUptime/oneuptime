@@ -67,8 +67,10 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    // refresh the subscription status. This is a hack to ensure that the subscription status is always up to date.
-    // This is because the subscription status can change at any time and we need to ensure that the subscription status is always up to date.
+    /*
+     * refresh the subscription status. This is a hack to ensure that the subscription status is always up to date.
+     * This is because the subscription status can change at any time and we need to ensure that the subscription status is always up to date.
+     */
 
     if (!project) {
       throw new BadDataException("Project not found");
@@ -207,8 +209,10 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    // refresh the subscription status. This is a hack to ensure that the subscription status is always up to date.
-    // This is because the subscription status can change at any time and we need to ensure that the subscription status is always up to date.
+    /*
+     * refresh the subscription status. This is a hack to ensure that the subscription status is always up to date.
+     * This is because the subscription status can change at any time and we need to ensure that the subscription status is always up to date.
+     */
 
     await this.refreshSubscriptionStatus({ projectId: findBy.props.tenantId! });
 

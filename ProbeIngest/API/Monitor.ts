@@ -324,10 +324,12 @@ router.post(
 
       logger.debug("Fetching monitor list for probes");
 
-      // we do this to distribute the load among the probes.
-      // so every request will get a different set of monitors to monitor
-      // const moduloBy: number = 10;
-      // const reminder: number = NumberUtil.getRandomNumber(0, 100) % moduloBy;
+      /*
+       * we do this to distribute the load among the probes.
+       * so every request will get a different set of monitors to monitor
+       * const moduloBy: number = 10;
+       * const reminder: number = NumberUtil.getRandomNumber(0, 100) % moduloBy;
+       */
 
       const count: PositiveNumber = await MonitorProbeService.countBy({
         query: {
@@ -340,8 +342,10 @@ router.post(
         },
       });
 
-      // we do this to distribute the load among the probes.
-      // so every request will get a different set of monitors to monitor
+      /*
+       * we do this to distribute the load among the probes.
+       * so every request will get a different set of monitors to monitor
+       */
       const countNumber: number = count.toNumber();
       let skip: number = 0;
 

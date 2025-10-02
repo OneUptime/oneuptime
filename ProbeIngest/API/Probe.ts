@@ -119,8 +119,10 @@ router.post(
           );
         }
 
-        // If global probe offline? If yes, then email master-admin.
-        // If not a global probe then them email project owners.
+        /*
+         * If global probe offline? If yes, then email master-admin.
+         * If not a global probe then them email project owners.
+         */
 
         const isGlobalProbe: boolean = !probe.projectId;
         const emailsToNotify: Email[] = [];
@@ -210,8 +212,10 @@ router.post(
           issue += " This probe cannot reach out to monitor ports.";
         }
 
-        // now send an email to all the emailsToNotify
-        // Skip sending email if billing is enabled
+        /*
+         * now send an email to all the emailsToNotify
+         * Skip sending email if billing is enabled
+         */
         if (!IsBillingEnabled) {
           for (const email of emailsToNotify) {
             MailService.sendMail(
@@ -394,8 +398,10 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      // This endpoint returns the number of monitors pending for the specific probe
-      // to be used by Keda for autoscaling probe replicas
+      /*
+       * This endpoint returns the number of monitors pending for the specific probe
+       * to be used by Keda for autoscaling probe replicas
+       */
 
       // Get the probe ID from the authenticated request
       const data: JSONObject = req.body;

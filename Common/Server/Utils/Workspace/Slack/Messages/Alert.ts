@@ -32,13 +32,15 @@ export default class SlackAlertMessages {
 
     blockSlack.push(dividerBlock);
 
-    // now add buttons.
-    // View data.
-    // Execute On Call
-    // Acknowledge alert
-    // Resolve data.
-    // Change Alert State.
-    // Add Note.
+    /*
+     * now add buttons.
+     * View data.
+     * Execute On Call
+     * Acknowledge alert
+     * Resolve data.
+     * Change Alert State.
+     * Add Note.
+     */
 
     const buttons: Array<WorkspaceMessagePayloadButton> = [];
 

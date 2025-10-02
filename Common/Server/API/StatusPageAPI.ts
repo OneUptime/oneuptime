@@ -735,9 +735,11 @@ export default class StatusPageAPI extends BaseAPI<
             req: req,
           });
 
-          // get start and end date from request body.
-          // if no end date is provided then it will be current date.
-          // if no start date is provided then it will be 14 days ago from end date.
+          /*
+           * get start and end date from request body.
+           * if no end date is provided then it will be current date.
+           * if no start date is provided then it will be 14 days ago from end date.
+           */
 
           let startDate: Date = OneUptimeDate.getSomeDaysAgo(14);
           let endDate: Date = OneUptimeDate.getCurrentDate();

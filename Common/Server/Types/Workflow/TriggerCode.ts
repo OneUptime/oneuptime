@@ -1,5 +1,7 @@
-// this class is the base class that all the component can implement
-//
+/*
+ * this class is the base class that all the component can implement
+ *
+ */
 import { ExpressRouter } from "../../Utils/Express";
 import ComponentCode, { RunOptions, RunReturnType } from "./ComponentCode";
 import BadDataException from "../../../Types/Exception/BadDataException";

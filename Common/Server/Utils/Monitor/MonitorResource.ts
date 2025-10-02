@@ -572,8 +572,10 @@ export default class MonitorResourceUtil {
         lastMonitorStatusTimeline.monitorStatusId.toString() ===
           monitorSteps.data.defaultMonitorStatusId.toString()
       ) {
-        // status is same as last status. do not create new status timeline.
-        // do nothing! status is same as last status.
+        /*
+         * status is same as last status. do not create new status timeline.
+         * do nothing! status is same as last status.
+         */
       } else {
         // if no criteria is met then update monitor to default state.
         const monitorStatusTimeline: MonitorStatusTimeline =
@@ -634,9 +636,11 @@ export default class MonitorResourceUtil {
 
     const itemsToSave: Array<Metric> = [];
 
-    // Metric name to serviceId map
-    // example: "cpu.usage" -> [serviceId1, serviceId2]
-    // since these are monitor metrics. They dont belong to any service so we can keep the array empty.
+    /*
+     * Metric name to serviceId map
+     * example: "cpu.usage" -> [serviceId1, serviceId2]
+     * since these are monitor metrics. They dont belong to any service so we can keep the array empty.
+     */
     const metricNameServiceNameMap: Dictionary<MetricType> = {};
 
     if (
@@ -1147,8 +1151,10 @@ export default class MonitorResourceUtil {
     probeApiIngestResponse: ProbeApiIngestResponse;
     criteriaInstance: MonitorCriteriaInstance;
   }): Promise<string | null> {
-    // returns root cause if any. Otherwise criteria is not met.
-    // process monitor criteria instance here.
+    /*
+     * returns root cause if any. Otherwise criteria is not met.
+     * process monitor criteria instance here.
+     */
 
     const rootCause: string | null =
       await MonitorResourceUtil.isMonitorInstanceCriteriaFiltersMet({
@@ -1227,8 +1233,10 @@ export default class MonitorResourceUtil {
     criteriaInstance: MonitorCriteriaInstance;
     criteriaFilter: CriteriaFilter;
   }): Promise<string | null> {
-    // returns root cause if any. Otherwise criteria is not met.
-    // process monitor criteria filter here.
+    /*
+     * returns root cause if any. Otherwise criteria is not met.
+     * process monitor criteria filter here.
+     */
 
     if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {
       let storageMap: JSONObject = {};

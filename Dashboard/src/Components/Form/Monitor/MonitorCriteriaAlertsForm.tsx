@@ -42,15 +42,17 @@ const MonitorCriteriaAlertsForm: FunctionComponent<ComponentProps> = (
             alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
             onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
             initialValue={i}
-            // onDelete={() => {
-            //     // remove the criteria filter
-            //     const index: number = alerts.indexOf(i);
-            //     const newAlerts: Array<CriteriaAlert> = [
-            //         ...alerts,
-            //     ];
-            //     newAlerts.splice(index, 1);
-            //     setAlerts(newAlerts);
-            // }}
+            /*
+             * onDelete={() => {
+             *     // remove the criteria filter
+             *     const index: number = alerts.indexOf(i);
+             *     const newAlerts: Array<CriteriaAlert> = [
+             *         ...alerts,
+             *     ];
+             *     newAlerts.splice(index, 1);
+             *     setAlerts(newAlerts);
+             * }}
+             */
             onChange={(value: CriteriaAlert) => {
               const index: number = alerts.indexOf(i);
               const newAlerts: Array<CriteriaAlert> = [...alerts];

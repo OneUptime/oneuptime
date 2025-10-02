@@ -297,8 +297,10 @@ describe("OneUptimeApiService", () => {
           args: any;
           expectedData: any;
         }) => {
-          // Test the internal getRequestData method if it were public
-          // This would require exposing the method or testing through executeOperation
+          /*
+           * Test the internal getRequestData method if it were public
+           * This would require exposing the method or testing through executeOperation
+           */
           expect(testCase.expectedData).toBeDefined();
         },
       );
@@ -311,8 +313,10 @@ describe("OneUptimeApiService", () => {
     });
 
     it("should include proper authentication headers", () => {
-      // Test that headers include the API key
-      // This would require exposing the getHeaders method or testing through executeOperation
+      /*
+       * Test that headers include the API key
+       * This would require exposing the getHeaders method or testing through executeOperation
+       */
       expect(mockConfig.apiKey).toBe("test-api-key-123");
     });
   });

@@ -98,9 +98,11 @@ class BaseAPI extends API {
   public static override handleError(
     error: HTTPErrorResponse | APIException,
   ): HTTPErrorResponse | APIException {
-    // 405 Status - Tenant not found. If Project was deleted.
-    // 401 Status - User is not logged in.
-    // 403 Status - Forbidden. If the IP address is not whitelisted (for example).
+    /*
+     * 405 Status - Tenant not found. If Project was deleted.
+     * 401 Status - User is not logged in.
+     * 403 Status - Forbidden. If the IP address is not whitelisted (for example).
+     */
     if (
       error instanceof HTTPErrorResponse &&
       (error.statusCode === 401 || error.statusCode === 405)

@@ -67,8 +67,10 @@ app.get(
 app.get(
   "/blog/post/:postName/:fileName",
   async (req: ExpressRequest, res: ExpressResponse) => {
-    // return static files for blog post images
-    // the static files are stored in the /usr/src/blog/post/:file/:imageName
+    /*
+     * return static files for blog post images
+     * the static files are stored in the /usr/src/blog/post/:file/:imageName
+     */
 
     try {
       const fileName: string = req.params["fileName"] as string;

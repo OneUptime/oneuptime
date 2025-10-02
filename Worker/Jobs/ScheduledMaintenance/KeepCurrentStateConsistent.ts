@@ -12,8 +12,10 @@ RunCron(
   { schedule: EVERY_DAY, runOnStartup: true },
   async () => {
     try {
-      // get all projects, then get all scheduled maintenances for each project, then get the last state of each scheduled maintenance and check with the current state of each scheduled maintenance.
-      // if they are different, then update the current state of the scheduled maintenance.
+      /*
+       * get all projects, then get all scheduled maintenances for each project, then get the last state of each scheduled maintenance and check with the current state of each scheduled maintenance.
+       * if they are different, then update the current state of the scheduled maintenance.
+       */
 
       const projects: Array<Project> = await ProjectService.findBy({
         query: {

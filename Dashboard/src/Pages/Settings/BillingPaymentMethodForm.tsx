@@ -24,13 +24,17 @@ const CheckoutForm: FunctionComponent<ComponentProps> = (
     event: Event,
   ): Promise<void> => {
     event.preventDefault();
-    // We don't want to let default form submission happen here,
-    // which would refresh the page.
+    /*
+     * We don't want to let default form submission happen here,
+     * which would refresh the page.
+     */
     event.preventDefault();
 
     if (!stripe || !elements) {
-      // Stripe.js has not yet loaded.
-      // Make sure to disable form submission until Stripe.js has loaded.
+      /*
+       * Stripe.js has not yet loaded.
+       * Make sure to disable form submission until Stripe.js has loaded.
+       */
       return;
     }
 
@@ -43,18 +47,22 @@ const CheckoutForm: FunctionComponent<ComponentProps> = (
     });
 
     if (error) {
-      // This point will only be reached if there is an immediate error when
-      // confirming the payment. Show error to your customer (for example, payment
-      // details incomplete)
+      /*
+       * This point will only be reached if there is an immediate error when
+       * confirming the payment. Show error to your customer (for example, payment
+       * details incomplete)
+       */
 
       props.onError(
         error.message?.toString() ||
           "Unknown error with your payemnt provider.",
       );
     } else {
-      // Your customer will be redirected to your `return_url`. For some payment
-      // methods like iDEAL, your customer will be redirected to an indeterminate
-      // site first to authorize the payment, then redirected to the `return_url`.
+      /*
+       * Your customer will be redirected to your `return_url`. For some payment
+       * methods like iDEAL, your customer will be redirected to an indeterminate
+       * site first to authorize the payment, then redirected to the `return_url`.
+       */
       props.onSuccess();
     }
   };

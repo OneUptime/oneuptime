@@ -46,8 +46,10 @@ const JSONTable: FunctionComponent<JSONTableProps> = (
       JSONFunctions.nestJson(json),
     ) as { [key: string]: any };
 
-    // Post-process flattened keys to group primitive arrays: prefix.0, prefix.1 => prefix: [v0, v1]
-    // We ONLY group if all matching keys are simple (no deeper nesting like prefix.0.field)
+    /*
+     * Post-process flattened keys to group primitive arrays: prefix.0, prefix.1 => prefix: [v0, v1]
+     * We ONLY group if all matching keys are simple (no deeper nesting like prefix.0.field)
+     */
     type GroupEntry = { index: number; value: unknown };
     type GroupMap = { [prefix: string]: Array<GroupEntry> };
     const groupMap: GroupMap = {};

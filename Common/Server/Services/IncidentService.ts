@@ -343,9 +343,11 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    // get monitors for this incident.
-    // if the monitors are removed then change them to operational state.
-    // then change all of the monitors in this incident to the changeMonitorStatusToId.
+    /*
+     * get monitors for this incident.
+     * if the monitors are removed then change them to operational state.
+     * then change all of the monitors in this incident to the changeMonitorStatusToId.
+     */
 
     const carryForward: UpdateCarryForward = {};
 

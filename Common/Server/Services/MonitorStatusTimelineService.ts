@@ -107,8 +107,10 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       createBy.data.isOwnerNotified = true;
     }
 
-    // check if this new state and the previous state are same.
-    // if yes, then throw bad data exception.
+    /*
+     * check if this new state and the previous state are same.
+     * if yes, then throw bad data exception.
+     */
 
     if (stateBeforeThis && stateBeforeThis.monitorStatusId && monitorStatusId) {
       if (
@@ -144,8 +146,10 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       createBy.data.endsAt = stateAfterThis.startsAt;
     }
 
-    // check if this new state and the previous state are same.
-    // if yes, then throw bad data exception.
+    /*
+     * check if this new state and the previous state are same.
+     * if yes, then throw bad data exception.
+     */
 
     if (stateAfterThis && stateAfterThis.monitorStatusId && monitorStatusId) {
       if (
@@ -194,14 +198,18 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     logger.debug("Created Item");
     logger.debug(createdItem);
 
-    // now there are three cases.
-    // 1. This is the first status OR there's no status after this.
+    /*
+     * now there are three cases.
+     * 1. This is the first status OR there's no status after this.
+     */
     if (!onCreate.carryForward.statusTimelineBeforeThisStatus) {
       // This is the first status, no need to update previous status.
       logger.debug("This is the first status.");
     } else if (!onCreate.carryForward.statusTimelineAfterThisStatus) {
-      // 2. This is the last status.
-      // Update the previous status to end at the start of this status.
+      /*
+       * 2. This is the last status.
+       * Update the previous status to end at the start of this status.
+       */
       await this.updateOneById({
         id: onCreate.carryForward.statusTimelineBeforeThisStatus.id!,
         data: {
@@ -213,8 +221,10 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       });
       logger.debug("This is the last status.");
     } else {
-      // 3. This is in the middle.
-      // Update the previous status to end at the start of this status.
+      /*
+       * 3. This is in the middle.
+       * Update the previous status to end at the start of this status.
+       */
       await this.updateOneById({
         id: onCreate.carryForward.statusTimelineBeforeThisStatus.id!,
         data: {
@@ -358,10 +368,12 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
           );
         }
 
-        // There are three cases.
-        // 1. This is the first status.
-        // 2. This is the last status.
-        // 3. This is in the middle.
+        /*
+         * There are three cases.
+         * 1. This is the first status.
+         * 2. This is the last status.
+         * 3. This is in the middle.
+         */
 
         const stateBeforeThis: MonitorStatusTimeline | null =
           await this.findOneBy({
@@ -410,8 +422,10 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
           // This is the first status, no need to update previous status.
           logger.debug("This is the first status.");
         } else if (!stateAfterThis) {
-          // This is the last status.
-          // Update the previous status to end at the start of this status.
+          /*
+           * This is the last status.
+           * Update the previous status to end at the start of this status.
+           */
           await this.updateOneById({
             id: stateBeforeThis.id!,
             data: {
@@ -423,8 +437,10 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
           });
           logger.debug("This is the last status.");
         } else {
-          // This status is in the middle.
-          // Update the previous status to end at the start of this status.
+          /*
+           * This status is in the middle.
+           * Update the previous status to end at the start of this status.
+           */
           await this.updateOneById({
             id: stateBeforeThis.id!,
             data: {

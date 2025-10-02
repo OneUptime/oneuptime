@@ -198,10 +198,12 @@ export default class Markdown {
       return `<figure class="my-8"><img src="${href}" alt="${text}" class="rounded-xl shadow-sm border border-gray-200" loading="lazy"/><figcaption class="mt-2 text-center text-sm text-gray-500">${text || ""}</figcaption></figure>`;
     };
 
-    // Links
-    // We explicitly add underline + color classes because Tailwind Typography (prose-*)
-    // styles may get overridden by surrounding utility classes or global resets.
-    // External links open in a new tab with proper rel attributes; internal links stay in-page.
+    /*
+     * Links
+     * We explicitly add underline + color classes because Tailwind Typography (prose-*)
+     * styles may get overridden by surrounding utility classes or global resets.
+     * External links open in a new tab with proper rel attributes; internal links stay in-page.
+     */
     renderer.link = function (href, title, text) {
       // Guard: if no href, just return the text.
       if (!href) {

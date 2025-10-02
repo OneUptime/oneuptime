@@ -1,7 +1,9 @@
 import OpenTelemetryAPI, {
-  // diag,
-  // DiagConsoleLogger,
-  // DiagLogLevel,
+  /*
+   * diag,
+   * DiagConsoleLogger,
+   * DiagLogLevel,
+   */
   Meter,
 } from "@opentelemetry/api";
 import { Logger, logs } from "@opentelemetry/api-logs";
@@ -33,8 +35,10 @@ import Dictionary from "../../Types/Dictionary";
 import { DisableTelemetry } from "../EnvironmentConfig";
 import logger from "./Logger";
 
-// Enable this line to see debug logs
-// diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+/*
+ * Enable this line to see debug logs
+ * diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+ */
 
 export type Span = opentelemetry.api.Span;
 export type SpanStatus = opentelemetry.api.SpanStatus;
@@ -203,10 +207,12 @@ export default class Telemetry {
         nodeSdkConfiguration.traceExporter = traceExporter;
       }
 
-      // We will skip this becasue we're attachng this metric reader to the meter provider later.
-      // if (this.metricReader) {
-      //   nodeSdkConfiguration.metricReader = this.metricReader;
-      // }
+      /*
+       * We will skip this becasue we're attachng this metric reader to the meter provider later.
+       * if (this.metricReader) {
+       *   nodeSdkConfiguration.metricReader = this.metricReader;
+       * }
+       */
 
       if (logRecordProcessor) {
         nodeSdkConfiguration.logRecordProcessor = logRecordProcessor;

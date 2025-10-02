@@ -235,8 +235,10 @@ export default class BaseAPI<
   ): Promise<void> {
     await this.onBeforeList(req, res);
 
-    // Extract pagination parameters from query or body (for POST requests)
-    // Support both 'skip' and 'offset' parameters (offset is alias for skip)
+    /*
+     * Extract pagination parameters from query or body (for POST requests)
+     * Support both 'skip' and 'offset' parameters (offset is alias for skip)
+     */
     let skipValue: number = 0;
     let limitValue: number = DEFAULT_LIMIT;
 

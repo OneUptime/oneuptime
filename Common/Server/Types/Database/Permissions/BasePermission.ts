@@ -66,8 +66,10 @@ export default class BasePermission {
         // check model level permissions.
         TablePermission.checkTableLevelPermissions(modelType, props, type);
 
-        // We will check for this permission in recursive function.
-        // check query permissions.
+        /*
+         * We will check for this permission in recursive function.
+         * check query permissions.
+         */
         QueryPermission.checkQueryPermission(modelType, query, props);
 
         query = await AccessControlPermission.addAccessControlIdsToQuery(

@@ -78,10 +78,12 @@ export default class BrowserUtil {
       page = await browser.newPage();
     }
 
-    // if (data.browserType === BrowserType.Webkit) {
-    //     browser = await webkit.launch();
-    //     page = await browser.newPage();
-    // }
+    /*
+     * if (data.browserType === BrowserType.Webkit) {
+     *     browser = await webkit.launch();
+     *     page = await browser.newPage();
+     * }
+     */
 
     await page?.setViewportSize({
       width: viewport.width,

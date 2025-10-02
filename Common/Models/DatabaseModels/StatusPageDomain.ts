@@ -420,10 +420,12 @@ export default class StatusPageDomain extends BaseModel {
   @JoinColumn({ name: "deletedByUserId" })
   public deletedByUser?: User = undefined;
 
-  // This token is used by the Worker.
-  // worker pings the status page of customers - eg: status.company.com/verify-token/:id
-  // and the end  point on Status Page project returns 200.
-  // when that happens the isCnameVerified is set to True and the certificate is added to Greenlock.
+  /*
+   * This token is used by the Worker.
+   * worker pings the status page of customers - eg: status.company.com/verify-token/:id
+   * and the end  point on Status Page project returns 200.
+   * when that happens the isCnameVerified is set to True and the certificate is added to Greenlock.
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

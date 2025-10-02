@@ -47,9 +47,11 @@ function extractSayMessagesFromCallRequest(callRequest: CallRequest): string {
       if ((item as GatherInput).introMessage) {
         sayMessages.push((item as GatherInput).introMessage);
       }
-      // NOTE: Excluding noInputMessage and onInputCallRequest messages from summary
-      // as they contain system responses like "Good bye", "Invalid input", "You have acknowledged"
-      // which should not be included in the call summary according to user requirements
+      /*
+       * NOTE: Excluding noInputMessage and onInputCallRequest messages from summary
+       * as they contain system responses like "Good bye", "Invalid input", "You have acknowledged"
+       * which should not be included in the call summary according to user requirements
+       */
     }
   }
 

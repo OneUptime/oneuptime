@@ -126,8 +126,10 @@ export default class OtelIngestService {
 
   @CaptureSpan()
   public static async processLogsFromQueue(req: ExpressRequest): Promise<void> {
-    // This method is specifically for queue processing
-    // It bypasses the response handling since the response was already sent
+    /*
+     * This method is specifically for queue processing
+     * It bypasses the response handling since the response was already sent
+     */
     await this.processLogsAsync(req);
   }
 
@@ -135,8 +137,10 @@ export default class OtelIngestService {
   public static async processTracesFromQueue(
     req: ExpressRequest,
   ): Promise<void> {
-    // This method is specifically for queue processing
-    // It bypasses the response handling since the response was already sent
+    /*
+     * This method is specifically for queue processing
+     * It bypasses the response handling since the response was already sent
+     */
     await this.processTracesAsync(req);
   }
 
@@ -144,8 +148,10 @@ export default class OtelIngestService {
   public static async processMetricsFromQueue(
     req: ExpressRequest,
   ): Promise<void> {
-    // This method is specifically for queue processing
-    // It bypasses the response handling since the response was already sent
+    /*
+     * This method is specifically for queue processing
+     * It bypasses the response handling since the response was already sent
+     */
     await this.processMetricsAsync(req);
   }
 
@@ -519,8 +525,10 @@ export default class OtelIngestService {
       const attributeKeySet: Set<string> = new Set<string>();
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
 
-      // Metric name to serviceId map
-      // example: "cpu.usage" -> [serviceId1, serviceId2]
+      /*
+       * Metric name to serviceId map
+       * example: "cpu.usage" -> [serviceId1, serviceId2]
+       */
       const metricNameServiceNameMap: Dictionary<MetricType> = {};
 
       let resourceMetricCounter: number = 0;
@@ -1292,8 +1300,10 @@ export default class OtelIngestService {
               // add exception to dbExceptions
               dbExceptions.push(exception);
 
-              // save exception status
-              // Fix: Await the async operation to prevent memory leaks from unhandled promises
+              /*
+               * save exception status
+               * Fix: Await the async operation to prevent memory leaks from unhandled promises
+               */
               ExceptionUtil.saveOrUpdateTelemetryException(exception).catch(
                 (err: Error) => {
                   logger.error("Error saving/updating telemetry exception:");

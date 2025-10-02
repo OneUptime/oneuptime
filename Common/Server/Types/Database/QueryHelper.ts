@@ -463,8 +463,10 @@ export default class QueryHelper {
     }
 
     return Raw((alias: string) => {
-      // alias is table name + column name like tableName.columnName
-      // we need to convert this to "tableName"."columnName"
+      /*
+       * alias is table name + column name like tableName.columnName
+       * we need to convert this to "tableName"."columnName"
+       */
 
       alias = alias
         .split(".")

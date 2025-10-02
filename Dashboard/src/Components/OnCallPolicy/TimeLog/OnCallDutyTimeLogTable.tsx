@@ -151,16 +151,20 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
             let startDate: Date = log.startsAt!;
             let endDate: Date = log.endsAt || OneUptimeDate.getCurrentDate();
 
-            // if end date is mroe than the end date selected in the range, then
-            // set the end date to the end date selected in the range
+            /*
+             * if end date is mroe than the end date selected in the range, then
+             * set the end date to the end date selected in the range
+             */
             if (
               OneUptimeDate.isAfter(endDate, pickedStartAndEndDate.endValue)
             ) {
               endDate = pickedStartAndEndDate.endValue;
             }
 
-            // if start date is less than the start date selected in the range, then
-            // set the start date to the start date selected in the range
+            /*
+             * if start date is less than the start date selected in the range, then
+             * set the start date to the start date selected in the range
+             */
 
             if (
               OneUptimeDate.isBefore(

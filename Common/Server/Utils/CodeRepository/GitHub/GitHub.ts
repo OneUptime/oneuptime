@@ -141,8 +141,10 @@ export default class GitHubUtil extends HostedCodeRepository {
       page: page,
     });
 
-    // Fetch all pull requests by paginating through the results
-    // 100 pull requests per page is the limit of the GitHub API
+    /*
+     * Fetch all pull requests by paginating through the results
+     * 100 pull requests per page is the limit of the GitHub API
+     */
     while (pullRequests.length === page * 100 || page === 1) {
       pullRequests = await this.getPullRequestsByPage({
         organizationName: data.organizationName,

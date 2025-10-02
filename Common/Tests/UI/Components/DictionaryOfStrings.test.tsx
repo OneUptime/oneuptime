@@ -1,5 +1,7 @@
-// Libraries
-// Custom components
+/*
+ * Libraries
+ * Custom components
+ */
 import DictionaryOfStrings, {
   ComponentProps,
 } from "../../../UI/Components/Dictionary/DictionaryOfStrings";

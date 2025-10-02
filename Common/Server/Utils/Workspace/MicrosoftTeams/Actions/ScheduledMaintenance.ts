@@ -78,8 +78,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           return await this.showNewScheduledMaintenanceCard(data);
 
         case MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance:
-          // This is handled by handleBotScheduledMaintenanceAction through bot framework
-          // Don't process it here to avoid duplicate messages
+          /*
+           * This is handled by handleBotScheduledMaintenanceAction through bot framework
+           * Don't process it here to avoid duplicate messages
+           */
           break;
 
         default:
@@ -603,8 +605,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       teamsRequest.projectId,
     );
 
-    // Send card as a message (note: in real Teams bot, this would be sent via TurnContext)
-    // For now, we'll just log it. The actual sending will be done through the bot framework
+    /*
+     * Send card as a message (note: in real Teams bot, this would be sent via TurnContext)
+     * For now, we'll just log it. The actual sending will be done through the bot framework
+     */
     logger.debug("New scheduled maintenance card built:");
     logger.debug(JSON.stringify(card, null, 2));
   }

@@ -258,14 +258,16 @@ export default class SlackIncidentActions {
     // send response to clear the action.
     Response.sendTextResponse(data.req, data.res, "");
 
-    // show new incident modal.
-    // new incident modal is :
-    // Incident Title (this can be prefilled with actionValue)
-    // Incident Description
-    // Incident Severity (dropdown) (single select)
-    // Monitors (dropdown) (miltiselect)
-    // Change Monitor Status to (dropdown) (single select)
-    // Labels (dropdown) (multiselect)
+    /*
+     * show new incident modal.
+     * new incident modal is :
+     * Incident Title (this can be prefilled with actionValue)
+     * Incident Description
+     * Incident Severity (dropdown) (single select)
+     * Monitors (dropdown) (miltiselect)
+     * Change Monitor Status to (dropdown) (single select)
+     * Labels (dropdown) (multiselect)
+     */
 
     const incidentTitle: WorkspaceTextBoxBlock = {
       _type: "WorkspaceTextBoxBlock",
@@ -1267,8 +1269,10 @@ export default class SlackIncidentActions {
     }
 
     if (actionType === SlackActionType.ViewIncident) {
-      // do nothing. This is just a view incident action.
-      // clear response.
+      /*
+       * do nothing. This is just a view incident action.
+       * clear response.
+       */
       return Response.sendJsonObjectResponse(data.req, data.res, {
         response_action: "clear",
       });

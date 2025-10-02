@@ -139,10 +139,12 @@ export class ProjectService extends DatabaseService<Model> {
       data.data.planName = this.getPlanType(data.data.paymentProviderPlanId);
 
       if (data.data.paymentProviderPromoCode) {
-        // check if it exists in promcode table. Not all promocodes are in the table, only reseller ones are.
-        // If they are not in the table, allow projetc creation to proceed.
-        // If they are in the project table, then see if anyn restrictions on reseller plan apply and if it does,
-        // apply those restictions to the project.
+        /*
+         * check if it exists in promcode table. Not all promocodes are in the table, only reseller ones are.
+         * If they are not in the table, allow projetc creation to proceed.
+         * If they are in the project table, then see if anyn restrictions on reseller plan apply and if it does,
+         * apply those restictions to the project.
+         */
 
         const promoCode: PromoCode | null = await PromoCodeService.findOneBy({
           query: {

@@ -757,8 +757,10 @@ export default class SlackAlertActions {
     }
 
     if (actionType === SlackActionType.ViewAlert) {
-      // do nothing. This is just a view alert action.
-      // clear response.
+      /*
+       * do nothing. This is just a view alert action.
+       * clear response.
+       */
       return Response.sendJsonObjectResponse(data.req, data.res, {
         response_action: "clear",
       });

@@ -18,12 +18,14 @@ export default class StartOnCallUserTimeLog extends DataMigrationBase {
   }
 
   public override async migrate(): Promise<void> {
-    // get on call escalaton rules.
-    // first for users
-    // then for teams.
-    // for teams, get the team members and create time logs for them.
-    // then for schedules.
-    // create logs for the current user.
+    /*
+     * get on call escalaton rules.
+     * first for users
+     * then for teams.
+     * for teams, get the team members and create time logs for them.
+     * then for schedules.
+     * create logs for the current user.
+     */
 
     try {
       const escalationRulesForUsers: Array<OnCallDutyPolicyEscalationRuleUser> =

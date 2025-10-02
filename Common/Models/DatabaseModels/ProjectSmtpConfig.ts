@@ -336,8 +336,10 @@ export default class ProjectSmtpConfig extends BaseModel {
   })
   public deletedByUserId?: ObjectID = undefined;
 
-  // This is not required because some SMTP servers do not require authentication.
-  // eg: https://learn.microsoft.com/en-us/exchange/mail-flow-best-practices/how-to-set-up-a-multifunction-device-or-application-to-send-email-using-microsoft-365-or-office-365#option-2-send-mail-directly-from-your-printer-or-application-to-microsoft-365-or-office-365-direct-send
+  /*
+   * This is not required because some SMTP servers do not require authentication.
+   * eg: https://learn.microsoft.com/en-us/exchange/mail-flow-best-practices/how-to-set-up-a-multifunction-device-or-application-to-send-email-using-microsoft-365-or-office-365#option-2-send-mail-directly-from-your-printer-or-application-to-microsoft-365-or-office-365-direct-send
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

@@ -342,10 +342,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     actionType: MicrosoftTeamsActionType;
     actionValue: string;
   } {
-    // Support multiple shapes that Teams may send for Adaptive Card submits
-    // 1) { action: "ack-incident", actionValue: "<id>" }
-    // 2) { data: { action: "ack-incident", actionValue: "<id>" } }
-    // 3) { action: { type: "Action.Submit", data: { action: "ack-incident", actionValue: "<id>" } } }
+    /*
+     * Support multiple shapes that Teams may send for Adaptive Card submits
+     * 1) { action: "ack-incident", actionValue: "<id>" }
+     * 2) { data: { action: "ack-incident", actionValue: "<id>" } }
+     * 3) { action: { type: "Action.Submit", data: { action: "ack-incident", actionValue: "<id>" } } }
+     */
     let actionType: string = (value["action"] as string) || "";
     let actionValue: string = (value["actionValue"] as string) || "";
 
@@ -376,8 +378,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }
 
   private static buildMessageCardFromMarkdown(markdown: string): JSONObject {
-    // Teams MessageCard has limited markdown support. Headings like '##' are not supported
-    // and single newlines can collapse. Convert common patterns to a structured card.
+    /*
+     * Teams MessageCard has limited markdown support. Headings like '##' are not supported
+     * and single newlines can collapse. Convert common patterns to a structured card.
+     */
     const lines: Array<string> = markdown
       .split("\n")
       .map((l: string) => {

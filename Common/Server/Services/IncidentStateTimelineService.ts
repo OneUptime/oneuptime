@@ -169,8 +169,10 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         createBy.data.isOwnerNotified = true;
       }
 
-      // check if this new state and the previous state are same.
-      // if yes, then throw bad data exception.
+      /*
+       * check if this new state and the previous state are same.
+       * if yes, then throw bad data exception.
+       */
 
       if (
         stateBeforeThis &&
@@ -222,8 +224,10 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         createBy.data.endsAt = stateAfterThis.startsAt;
       }
 
-      // check if this new state and the previous state are same.
-      // if yes, then throw bad data exception.
+      /*
+       * check if this new state and the previous state are same.
+       * if yes, then throw bad data exception.
+       */
 
       if (stateAfterThis && stateAfterThis.incidentStateId && incidentStateId) {
         if (
@@ -314,14 +318,18 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
     logger.debug("Created Item");
     logger.debug(createdItem);
 
-    // now there are three cases.
-    // 1. This is the first status OR there's no status after this.
+    /*
+     * now there are three cases.
+     * 1. This is the first status OR there's no status after this.
+     */
     if (!onCreate.carryForward.statusTimelineBeforeThisStatus) {
       // This is the first status, no need to update previous status.
       logger.debug("This is the first status.");
     } else if (!onCreate.carryForward.statusTimelineAfterThisStatus) {
-      // 2. This is the last status.
-      // Update the previous status to end at the start of this status.
+      /*
+       * 2. This is the last status.
+       * Update the previous status to end at the start of this status.
+       */
       await this.updateOneById({
         id: onCreate.carryForward.statusTimelineBeforeThisStatus.id!,
         data: {
@@ -333,8 +341,10 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       });
       logger.debug("This is the last status.");
     } else {
-      // 3. This is in the middle.
-      // Update the previous status to end at the start of this status.
+      /*
+       * 3. This is in the middle.
+       * Update the previous status to end at the start of this status.
+       */
       await this.updateOneById({
         id: onCreate.carryForward.statusTimelineBeforeThisStatus.id!,
         data: {
@@ -598,10 +608,12 @@ ${createdItem.rootCause}`,
           );
         }
 
-        // There are three cases.
-        // 1. This is the first state.
-        // 2. This is the last state.
-        // 3. This is in the middle.
+        /*
+         * There are three cases.
+         * 1. This is the first state.
+         * 2. This is the last state.
+         * 3. This is in the middle.
+         */
 
         const stateBeforeThis: IncidentStateTimeline | null =
           await this.findOneBy({
@@ -650,8 +662,10 @@ ${createdItem.rootCause}`,
           // This is the first state, no need to update previous state.
           logger.debug("This is the first state.");
         } else if (!stateAfterThis) {
-          // This is the last state.
-          // Update the previous state to end at the end of this state.
+          /*
+           * This is the last state.
+           * Update the previous state to end at the end of this state.
+           */
           await this.updateOneById({
             id: stateBeforeThis.id!,
             data: {
@@ -663,8 +677,10 @@ ${createdItem.rootCause}`,
           });
           logger.debug("This is the last state.");
         } else {
-          // This state is in the middle.
-          // Update the previous state to end at the start of the next state.
+          /*
+           * This state is in the middle.
+           * Update the previous state to end at the start of the next state.
+           */
           await this.updateOneById({
             id: stateBeforeThis.id!,
             data: {

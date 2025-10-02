@@ -32,13 +32,15 @@ export default class SlackScheduledMaintenanceMessages {
 
     blockSlack.push(dividerBlock);
 
-    // now add buttons.
-    // View data.
-    // Execute On Call
-    // Acknowledge scheduledMaintenance
-    // Resolve data.
-    // Change ScheduledMaintenance State.
-    // Add Note.
+    /*
+     * now add buttons.
+     * View data.
+     * Execute On Call
+     * Acknowledge scheduledMaintenance
+     * Resolve data.
+     * Change ScheduledMaintenance State.
+     * Add Note.
+     */
 
     const buttons: Array<WorkspaceMessagePayloadButton> = [];
 

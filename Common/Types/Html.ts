@@ -18,9 +18,11 @@ export default class HTML {
   public static isHtml(text: string): boolean {
     // Check if the text is HTML
 
-    // Example usage const htmlString = '<div>Hello, World!</div>'; const notHtmlString = 'Just a regular string'
-    // console.log(HTML.isHtml(htmlString)); // true
-    // console.log(HTML.isHtml(notHtmlString)); // false
+    /*
+     * Example usage const htmlString = '<div>Hello, World!</div>'; const notHtmlString = 'Just a regular string'
+     * console.log(HTML.isHtml(htmlString)); // true
+     * console.log(HTML.isHtml(notHtmlString)); // false
+     */
 
     const htmlPattern: RegExp = /<\/?[a-z][\s\S]*>/i;
     return htmlPattern.test(text);

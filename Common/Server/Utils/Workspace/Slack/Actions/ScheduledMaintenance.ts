@@ -313,14 +313,16 @@ export default class SlackScheduledMaintenanceActions {
     // send response to clear the action.
     Response.sendTextResponse(data.req, data.res, "");
 
-    // show new scheduledMaintenance modal.
-    // new scheduledMaintenance modal is :
-    // ScheduledMaintenance Title (this can be prefilled with actionValue)
-    // ScheduledMaintenance Description
-    // Start Date and Time (date picker)
-    // End Date and Time (date picker)
-    // Monitors (dropdown) (miltiselect)
-    // Change Monitor Status to (dropdown) (single select)
+    /*
+     * show new scheduledMaintenance modal.
+     * new scheduledMaintenance modal is :
+     * ScheduledMaintenance Title (this can be prefilled with actionValue)
+     * ScheduledMaintenance Description
+     * Start Date and Time (date picker)
+     * End Date and Time (date picker)
+     * Monitors (dropdown) (miltiselect)
+     * Change Monitor Status to (dropdown) (single select)
+     */
 
     // Labels (dropdown) (multiselect)
 
@@ -1092,8 +1094,10 @@ export default class SlackScheduledMaintenanceActions {
     }
 
     if (actionType === SlackActionType.ViewScheduledMaintenance) {
-      // do nothing. This is just a view scheduledMaintenance action.
-      // clear response.
+      /*
+       * do nothing. This is just a view scheduledMaintenance action.
+       * clear response.
+       */
       return Response.sendJsonObjectResponse(data.req, data.res, {
         response_action: "clear",
       });

@@ -43,8 +43,10 @@ export default class DynamicToolGenerator {
     zodSchema: ModelSchemaType | AnalyticsModelSchemaType,
   ): any {
     try {
-      // The Zod schemas in this project are extended with OpenAPI metadata
-      // We can extract the shape and create a basic JSON schema
+      /*
+       * The Zod schemas in this project are extended with OpenAPI metadata
+       * We can extract the shape and create a basic JSON schema
+       */
       const shape: any = (zodSchema as any)._def?.shape;
 
       if (!shape) {

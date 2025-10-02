@@ -51,8 +51,10 @@ router.post(
       LocalCache.setNumber("TestServer", "responseTime", responseTime || 0);
       LocalCache.setString("TestServer", "responseBody", responseBody || "");
 
-      // middleware marks the probe as alive.
-      // so we don't need to do anything here.
+      /*
+       * middleware marks the probe as alive.
+       * so we don't need to do anything here.
+       */
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);

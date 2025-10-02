@@ -15,9 +15,11 @@ export default class Phone extends DatabaseProperty {
     primaryPhoneNumberToPickFrom: Phone | string;
     seocndaryPhoneNumbersToPickFrom: Phone[] | string[];
   }): Phone {
-    // convert all to string, so that we can compare them
-    // if the country code matches in secondary phone numbers, then pick that number
-    // if no country code matches, then pick the primary phone number and return it.
+    /*
+     * convert all to string, so that we can compare them
+     * if the country code matches in secondary phone numbers, then pick that number
+     * if no country code matches, then pick the primary phone number and return it.
+     */
 
     const to: string =
       typeof data.to === "string" ? data.to : data.to.toString();

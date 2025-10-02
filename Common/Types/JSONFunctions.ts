@@ -27,11 +27,11 @@ export default class JSONFunctions {
     // obj could be in this format:
 
     /**
-         * {
-    "http.url.protocol": "http",
-    "http.url.hostname": "localhost",
-    "http.host": "localhost",
-         */
+     * {
+     *"http.url.protocol": "http",
+     *"http.url.hostname": "localhost",
+     *"http.host": "localhost",
+     */
 
     // we want to convert it to this format:
 

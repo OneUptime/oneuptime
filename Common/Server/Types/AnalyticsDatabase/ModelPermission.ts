@@ -252,8 +252,10 @@ export default class ModelPermission {
           DatabaseRequestType.Read,
         );
 
-        // We will check for this permission in recursive function.
-        // check query permissions.
+        /*
+         * We will check for this permission in recursive function.
+         * check query permissions.
+         */
         this.checkQueryPermission(modelType, query, props);
 
         if (select) {
@@ -393,9 +395,11 @@ export default class ModelPermission {
       !props.tenantId &&
       props.userGlobalAccessPermission
     ) {
-      // for each of these projectIds,
-      // check if they have valid permissions for these projects
-      // and if they do, include them in the query.
+      /*
+       * for each of these projectIds,
+       * check if they have valid permissions for these projects
+       * and if they do, include them in the query.
+       */
 
       const queries: Array<Query<TBaseModel>> = [];
 

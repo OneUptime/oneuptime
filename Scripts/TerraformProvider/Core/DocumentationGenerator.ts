@@ -194,8 +194,10 @@ terraform import ${this.config.providerName}_${resource.name}.example <id>
       return this.formatOpenAPIExample(attrInfo.example, attrInfo.type);
     }
 
-    // Fallback to the existing hardcoded logic
-    // Handle specific field types and names
+    /*
+     * Fallback to the existing hardcoded logic
+     * Handle specific field types and names
+     */
     if (fieldName.includes("id") && attrInfo.type === "string") {
       return '"123e4567-e89b-12d3-a456-426614174000"';
     }

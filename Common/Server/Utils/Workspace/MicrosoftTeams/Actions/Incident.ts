@@ -97,8 +97,10 @@ export default class MicrosoftTeamsIncidentActions {
           return await this.showNewIncidentCard(data);
 
         case MicrosoftTeamsIncidentActionType.SubmitNewIncident:
-          // This is handled by handleBotIncidentAction through bot framework
-          // Don't process it here to avoid duplicate messages
+          /*
+           * This is handled by handleBotIncidentAction through bot framework
+           * Don't process it here to avoid duplicate messages
+           */
           break;
 
         default:
@@ -902,8 +904,10 @@ export default class MicrosoftTeamsIncidentActions {
       teamsRequest.projectId,
     );
 
-    // Send card as a message (note: in real Teams bot, this would be sent via TurnContext)
-    // For now, we'll just log it. The actual sending will be done through the bot framework
+    /*
+     * Send card as a message (note: in real Teams bot, this would be sent via TurnContext)
+     * For now, we'll just log it. The actual sending will be done through the bot framework
+     */
     logger.debug("New incident card built:");
     logger.debug(JSON.stringify(card, null, 2));
   }

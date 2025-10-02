@@ -339,8 +339,10 @@ export default class AddSpans extends CopilotActionBase {
     _data: CopilotProcess,
     inputCode: string,
   ): Promise<CopilotActionPrompt> {
-    // const fileLanguage: TechStack = data.input.files[data.input.currentFilePath]
-    //   ?.fileLanguage as TechStack;
+    /*
+     * const fileLanguage: TechStack = data.input.files[data.input.currentFilePath]
+     *   ?.fileLanguage as TechStack;
+     */
 
     const fileLanguage: TechStack = TechStack.TypeScript;
 
@@ -383,11 +385,13 @@ export default class AddSpans extends CopilotActionBase {
     inputCode: string;
     outputCode: string;
   }): Promise<string> {
-    // this code contains text as well. The code is in betwen ```<type> and ```. Please extract the code and return it.
-    // for example code can be in the format of
-    // ```python
-    // print("Hello World")
-    // ```
+    /*
+     * this code contains text as well. The code is in betwen ```<type> and ```. Please extract the code and return it.
+     * for example code can be in the format of
+     * ```python
+     * print("Hello World")
+     * ```
+     */
 
     // so the code to be extracted is print("Hello World")
 

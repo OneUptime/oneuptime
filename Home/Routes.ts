@@ -32,8 +32,10 @@ const HomeFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
 
-    //Routes
-    // Middleware to inject baseUrl for templates (used for canonical links)
+    /*
+     * Routes
+     *  Middleware to inject baseUrl for templates (used for canonical links)
+     */
     app.use(
       async (_req: ExpressRequest, res: ExpressResponse, next: () => void) => {
         if (!res.locals["homeUrl"]) {
@@ -1406,8 +1408,10 @@ const HomeFeatureSet: FeatureSet = {
           "# Disallowed because host is not oneuptime.com",
         ].join("\n");
       } else {
-        // Allow all and point to sitemap
-        // res.locals.homeUrl is set earlier middleware; fallback to canonical domain.
+        /*
+         * Allow all and point to sitemap
+         * res.locals.homeUrl is set earlier middleware; fallback to canonical domain.
+         */
         const homeUrl: string = (
           res.locals["homeUrl"] || "https://oneuptime.com"
         ).replace(/\/$/, "");

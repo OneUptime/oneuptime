@@ -93,9 +93,11 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       },
     );
 
-    // We have this ack page to show the user a confirmation page before acknowledging the notification.
-    // this is because email clients automatically make a get request to the url in the email and ack the notification automatically which is not what we want.
-    // so we need to create this page for the user to confirm that they want to acknowledge the notification.
+    /*
+     * We have this ack page to show the user a confirmation page before acknowledging the notification.
+     * this is because email clients automatically make a get request to the url in the email and ack the notification automatically which is not what we want.
+     * so we need to create this page for the user to confirm that they want to acknowledge the notification.
+     */
     this.router.get(
       `${new this.entityType()
         .getCrudApiPath()

@@ -184,15 +184,17 @@ export default class SSOUtil {
       return null;
     }
 
-    // get displayName attribute.
-    //   {
-    //     "$": {
-    //         "Name": "http://schemas.microsoft.com/identity/claims/displayname"
-    //     },
-    //     "AttributeValue": [
-    //         "Nawaz Dhandala"
-    //     ]
-    // },
+    /*
+     * get displayName attribute.
+     *   {
+     *     "$": {
+     *         "Name": "http://schemas.microsoft.com/identity/claims/displayname"
+     *     },
+     *     "AttributeValue": [
+     *         "Nawaz Dhandala"
+     *     ]
+     * },
+     */
 
     for (let i: number = 0; i < samlAttribute.length; i++) {
       const attribute: JSONObject = samlAttribute[i] as JSONObject;

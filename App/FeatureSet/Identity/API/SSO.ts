@@ -40,8 +40,10 @@ import Name from "Common/Types/Name";
 
 const router: ExpressRouter = Express.getRouter();
 
-// This route is used to get the SSO config for the user.
-// when the user logs in from OneUptime and not from the IDP.
+/*
+ * This route is used to get the SSO config for the user.
+ * when the user logs in from OneUptime and not from the IDP.
+ */
 
 router.get(
   "/service-provider-login",
@@ -434,8 +436,10 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       isNewUser = true;
     }
 
-    // If he does not then add him to teams that he should belong and log in.
-    // This should never happen because email is verified before he logs in with SSO.
+    /*
+     * If he does not then add him to teams that he should belong and log in.
+     * This should never happen because email is verified before he logs in with SSO.
+     */
     if (!alreadySavedUser.isEmailVerified && !isNewUser) {
       await AuthenticationEmail.sendVerificationEmail(alreadySavedUser!);
 

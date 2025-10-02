@@ -1157,8 +1157,10 @@ export class ModelSchema extends BaseSchema {
         data.disableOpenApiSchema || false,
       );
 
-      // Check if the column is required and make it optional if not
-      // Also make columns with default values optional in create schemas
+      /*
+       * Check if the column is required and make it optional if not
+       * Also make columns with default values optional in create schemas
+       */
       if (column.isDefaultValueColumn) {
         // should be optional
         zodType = zodType.optional();

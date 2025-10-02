@@ -12,8 +12,10 @@ RunCron(
   { schedule: EVERY_DAY, runOnStartup: true },
   async () => {
     try {
-      // get all projects, then get all monitors for each project, then get the last status of each monitor and check with the current status of each monitor.
-      // if they are different, then update the current status of the monitor.
+      /*
+       * get all projects, then get all monitors for each project, then get the last status of each monitor and check with the current status of each monitor.
+       * if they are different, then update the current status of the monitor.
+       */
 
       const projects: Array<Project> = await ProjectService.findBy({
         query: {

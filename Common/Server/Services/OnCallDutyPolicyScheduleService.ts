@@ -181,8 +181,10 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
       const { previousInformation, newInformation } = data;
 
-      // if there's a change, witht he current user, send notification to the new current user.
-      // Send notificiation to the new current user.
+      /*
+       * if there's a change, witht he current user, send notification to the new current user.
+       * Send notificiation to the new current user.
+       */
       if (
         previousInformation.currentUserIdOnRoster?.toString() !==
           newInformation.currentUserIdOnRoster?.toString() ||

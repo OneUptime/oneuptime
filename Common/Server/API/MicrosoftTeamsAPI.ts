@@ -227,9 +227,11 @@ export default class MicrosoftTeamsAPI {
       },
     );
 
-    // Microsoft Teams OAuth callback endpoint for project integration
-    // New (preferred) static redirect URI that uses state param to carry projectId and userId
-    // State format: <projectId>:<userId>
+    /*
+     * Microsoft Teams OAuth callback endpoint for project integration
+     * New (preferred) static redirect URI that uses state param to carry projectId and userId
+     * State format: <projectId>:<userId>
+     */
     router.get(
       "/microsoft-teams/auth",
       async (req: ExpressRequest, res: ExpressResponse) => {
@@ -509,9 +511,11 @@ export default class MicrosoftTeamsAPI {
             );
           }
 
-          // Persist project auth now that team is selected.
-          // IMPORTANT: Do NOT overwrite project-level auth token (admin-consent app token)
-          // with the user delegated token. Preserve existing project auth token if present.
+          /*
+           * Persist project auth now that team is selected.
+           * IMPORTANT: Do NOT overwrite project-level auth token (admin-consent app token)
+           * with the user delegated token. Preserve existing project auth token if present.
+           */
           const existingProjectAuth: WorkspaceProjectAuthToken | null =
             await WorkspaceProjectAuthTokenService.getProjectAuth({
               projectId: projectId,
@@ -569,8 +573,10 @@ export default class MicrosoftTeamsAPI {
       },
     );
 
-    // Admin consent - start flow (tenant-wide admin consent)
-    // Uses state in the same format as OAuth: <projectId>:<userId>
+    /*
+     * Admin consent - start flow (tenant-wide admin consent)
+     * Uses state in the same format as OAuth: <projectId>:<userId>
+     */
     router.get(
       "/microsoft-teams/admin-consent",
       async (req: ExpressRequest, res: ExpressResponse) => {
@@ -651,8 +657,10 @@ export default class MicrosoftTeamsAPI {
       },
     );
 
-    // Admin consent - callback handler
-    // Receives: state=<projectId>:<userId>, tenant=<tenantId>, admin_consent=True | error params
+    /*
+     * Admin consent - callback handler
+     * Receives: state=<projectId>:<userId>, tenant=<tenantId>, admin_consent=True | error params
+     */
     router.get(
       "/microsoft-teams/admin-consent/callback",
       async (req: ExpressRequest, res: ExpressResponse) => {
@@ -912,8 +920,10 @@ export default class MicrosoftTeamsAPI {
       },
     );
 
-    // Microsoft Bot Framework endpoint - this is what Teams calls for bot messages
-    // Now uses the Bot Framework SDK's adapter.processActivity for proper protocol handling
+    /*
+     * Microsoft Bot Framework endpoint - this is what Teams calls for bot messages
+     * Now uses the Bot Framework SDK's adapter.processActivity for proper protocol handling
+     */
     router.post(
       "/microsoft-bot/messages",
       async (req: ExpressRequest, res: ExpressResponse) => {
@@ -1150,9 +1160,11 @@ export default class MicrosoftTeamsAPI {
     authResult: MicrosoftTeamsRequest,
     _activity: JSONObject,
   ): Promise<void> {
-    // Handle adaptive card button clicks
-    // const value: JSONObject = activity["value"] as JSONObject;
-    // const actionType: string = value["action"] as string;
+    /*
+     * Handle adaptive card button clicks
+     * const value: JSONObject = activity["value"] as JSONObject;
+     * const actionType: string = value["action"] as string;
+     */
 
     for (const action of authResult.actions || []) {
       if (!action.actionType) {

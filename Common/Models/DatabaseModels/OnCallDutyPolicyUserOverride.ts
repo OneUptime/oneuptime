@@ -132,9 +132,11 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
   })
   public projectId?: ObjectID = undefined;
 
-  // If this is null then it's a global override
-  // If this is set then it's a policy specific override
-  // Policy specifc override will take precedence over global override
+  /*
+   * If this is null then it's a global override
+   * If this is set then it's a policy specific override
+   * Policy specifc override will take precedence over global override
+   */
 
   @ColumnAccessControl({
     create: [

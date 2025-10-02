@@ -556,8 +556,10 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
       })
       .join("\n");
 
-    // This would update the provider.go file to include the data sources
-    // For now, we'll create a separate file with the data source list
+    /*
+     * This would update the provider.go file to include the data sources
+     * For now, we'll create a separate file with the data source list
+     */
     const dataSourceListContent: string = `package provider
 
 import (

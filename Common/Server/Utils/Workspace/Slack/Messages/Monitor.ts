@@ -31,13 +31,15 @@ export default class SlackMonitorMessages {
 
     blockSlack.push(dividerBlock);
 
-    // now add buttons.
-    // View data.
-    // Execute On Call
-    // Acknowledge Monitor
-    // Resolve data.
-    // Change Monitor State.
-    // Add Note.
+    /*
+     * now add buttons.
+     * View data.
+     * Execute On Call
+     * Acknowledge Monitor
+     * Resolve data.
+     * Change Monitor State.
+     * Add Note.
+     */
 
     const buttons: Array<WorkspaceMessagePayloadButton> = [];
 

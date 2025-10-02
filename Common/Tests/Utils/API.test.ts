@@ -32,10 +32,12 @@ jest.mock("axios", () => {
   return Object.assign(jest.fn(), jest.requireActual("axios"));
 });
 
-// Mock axios(config) top level function
-// Ignore type error
-// Property 'lastCall' is optional in type MockFunctionState but required in type MockContext
-// @ts-ignore
+/*
+ * Mock axios(config) top level function
+ * Ignore type error
+ * Property 'lastCall' is optional in type MockFunctionState but required in type MockContext
+ * @ts-ignore
+ */
 const mockedAxios: jest.MockedFunctionDeep<typeof axios> =
   jest.mocked<AxiosStatic>(axios);
 
@@ -342,8 +344,10 @@ interface HTTPMethodType {
   method: HTTPMethod;
 }
 
-// Set up table-driven tests for
-// .get(), .post(), .put(), .delete(), get(), post(), put(), delete()
+/*
+ * Set up table-driven tests for
+ * .get(), .post(), .put(), .delete(), get(), post(), put(), delete()
+ */
 const httpMethodTests: Array<HTTPMethodType> = [
   {
     name: "get",

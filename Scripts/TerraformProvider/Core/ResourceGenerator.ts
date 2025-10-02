@@ -444,8 +444,10 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
       !isInCreateSchema &&
       !isInUpdateSchema
     ) {
-      // Fields with defaults that are not in create or update schema should be Computed only
-      // This prevents drift when the server manages these fields
+      /*
+       * Fields with defaults that are not in create or update schema should be Computed only
+       * This prevents drift when the server manages these fields
+       */
       options.push("Computed: true");
     } else {
       options.push("Optional: true");
@@ -499,8 +501,10 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
       }
     }
 
-    // Add default empty list for all list types to avoid null vs empty list inconsistencies
-    // Exception: Don't add defaults for computed fields as they should be server-managed
+    /*
+     * Add default empty list for all list types to avoid null vs empty list inconsistencies
+     * Exception: Don't add defaults for computed fields as they should be server-managed
+     */
     if (
       attr.type === "list" &&
       !attr.required &&
@@ -1026,8 +1030,10 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     fieldName: string,
     fieldType: string,
   ): string {
-    // For unknown values (computed fields that are "known after apply"),
-    // we should not include them in update requests
+    /*
+     * For unknown values (computed fields that are "known after apply"),
+     * we should not include them in update requests
+     */
     const baseCondition: string = `!data.${fieldName}.IsUnknown() && !state.${fieldName}.IsUnknown() && !data.${fieldName}.Equal(state.${fieldName})`;
 
     switch (fieldType) {
@@ -1112,8 +1118,10 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
       const apiFieldName: string = attr.apiFieldName || name; // Use original OpenAPI field name
 
-      // For update operations, only include the field if it exists in the resource's main schema
-      // This ensures we only send fields that are defined in the main resource
+      /*
+       * For update operations, only include the field if it exists in the resource's main schema
+       * This ensures we only send fields that are defined in the main resource
+       */
       if (isUpdate && !resource.schema[name]) {
         continue;
       }
@@ -1257,8 +1265,10 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         ${fieldName} = types.StringValue(original${StringUtils.toPascalCase(originalFieldName)}Value)
     }`;
           }
-          // In Read/Update methods, preserve existing value if not present in API response
-          // This prevents drift detection when API doesn't return binary content
+          /*
+           * In Read/Update methods, preserve existing value if not present in API response
+           * This prevents drift detection when API doesn't return binary content
+           */
           return `if val, ok := ${responseValue}.(string); ok {
         ${fieldName} = types.StringValue(val)
     } else {
@@ -1411,8 +1421,10 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       case "bool":
         return `${fieldRef}.ValueBool()`;
       case "map":
-        // For map types, we need to handle them differently
-        // For now, we'll skip them in request bodies since they're typically complex objects
+        /*
+         * For map types, we need to handle them differently
+         * For now, we'll skip them in request bodies since they're typically complex objects
+         */
         return `""`;
       case "list":
         // For list types, we need to handle them differently
@@ -1435,8 +1447,10 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       })
       .join("\n");
 
-    // This would update the provider.go file to include the resources
-    // For now, we'll create a separate file with the resource list
+    /*
+     * This would update the provider.go file to include the resources
+     * For now, we'll create a separate file with the resource list
+     */
     const resourceListContent: string = `package provider
 
 import (

@@ -32,8 +32,10 @@ describe("DynamicToolGenerator", () => {
 
       testCases.forEach(
         ({ input, expected }: { input: string; expected: string }) => {
-          // Since sanitizeToolName is private, we test it through the public API
-          // or we could expose it for testing purposes
+          /*
+           * Since sanitizeToolName is private, we test it through the public API
+           * or we could expose it for testing purposes
+           */
           const sanitized: string = input
             .replace(/([a-z])([A-Z])/g, "$1_$2")
             .toLowerCase()
@@ -120,8 +122,10 @@ describe("DynamicToolGenerator", () => {
 
   describe("Schema Conversion", () => {
     it("should handle Zod schema to JSON schema conversion", () => {
-      // This test validates that schema conversion would work
-      // Mock Zod schema structure
+      /*
+       * This test validates that schema conversion would work
+       * Mock Zod schema structure
+       */
       const mockZodSchema: Record<string, any> = {
         _def: {
           shape: {

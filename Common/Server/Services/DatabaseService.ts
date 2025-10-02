@@ -1090,21 +1090,25 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         },
       });
 
-      // We are hard deleting anyway. So, this does not make sense. Please uncomment if
-      // we change the code to soft-delete.
+      /*
+       * We are hard deleting anyway. So, this does not make sense. Please uncomment if
+       * we change the code to soft-delete.
+       */
 
-      // await this._updateBy({
-      //     query: deleteBy.query,
-      //     data: {
-      //         deletedByUserId: deleteBy.props.userId,
-      //     } as any,
-      //     limit: deleteBy.limit,
-      //     skip: deleteBy.skip,
-      //     props: {
-      //         isRoot: true,
-      //         ignoreHooks: true,
-      //     },
-      // });
+      /*
+       * await this._updateBy({
+       *     query: deleteBy.query,
+       *     data: {
+       *         deletedByUserId: deleteBy.props.userId,
+       *     } as any,
+       *     limit: deleteBy.limit,
+       *     skip: deleteBy.skip,
+       *     props: {
+       *         isRoot: true,
+       *         ignoreHooks: true,
+       *     },
+       * });
+       */
 
       let numberOfDocsAffected: number = 0;
 
@@ -1407,9 +1411,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       for (const key of dataKeys) {
         dataColumns.push([key, true]);
       }
-      // Select the `_id` column and the columns in `data`.
-      // `_id` is used for locating database records for updates, and `data`
-      // columns are used for checking if the update causes a change in values.
+      /*
+       * Select the `_id` column and the columns in `data`.
+       * `_id` is used for locating database records for updates, and `data`
+       * columns are used for checking if the update causes a change in values.
+       */
       const selectColumns: Select<TBaseModel> = {
         _id: true,
         ...Object.fromEntries(dataColumns),
@@ -1467,16 +1473,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
       }
 
-      // Cant Update relations.
-      // https://github.com/typeorm/typeorm/issues/2821
+      /*
+       * Cant Update relations.
+       * https://github.com/typeorm/typeorm/issues/2821
+       */
 
-      // const numberOfDocsAffected: number =
-      //     (
-      //         await this.getRepository().update(
-      //             query as any,
-      //             data
-      //         )
-      //     ).affected || 0;
+      /*
+       * const numberOfDocsAffected: number =
+       *     (
+       *         await this.getRepository().update(
+       *             query as any,
+       *             data
+       *         )
+       *     ).affected || 0;
+       */
 
       if (!updateBy.props.ignoreHooks) {
         await this.onUpdateSuccess(
@@ -1499,8 +1509,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const columns: string[] = Object.keys(updatedItem);
     for (const column of columns) {
       if (
-        // `toString()` is necessary so we can compare wrapped values
-        // (e.g. `ObjectID`) with raw values (e.g. `string`)
+        /*
+         * `toString()` is necessary so we can compare wrapped values
+         * (e.g. `ObjectID`) with raw values (e.g. `string`)
+         */
         item.getColumnValue(column)?.toString() !==
         updatedItem[column]?.toString()
       ) {

@@ -318,10 +318,12 @@ export default class OneUptimeApiService {
           for (const columnName of columnNames) {
             const accessControl: any = accessControlForColumns[columnName];
 
-            // Include the field if:
-            // 1. No access control defined (open access)
-            // 2. Has read permissions that are not empty
-            // 3. Read permissions don't only contain Permission.CurrentUser
+            /*
+             * Include the field if:
+             * 1. No access control defined (open access)
+             * 2. Has read permissions that are not empty
+             * 3. Read permissions don't only contain Permission.CurrentUser
+             */
             if (
               !accessControl ||
               (accessControl.read &&

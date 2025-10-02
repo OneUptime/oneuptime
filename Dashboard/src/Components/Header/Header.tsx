@@ -1,7 +1,9 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-// import SearchBox from './SearchBox';
-// import Notifications from './Notifications';
+/*
+ * import SearchBox from './SearchBox';
+ * import Notifications from './Notifications';
+ */
 import Help from "./Help";
 import Logo from "./Logo";
 import ProjectPicker from "./ProjectPicker";

@@ -236,31 +236,35 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
               value={i}
               probes={probes}
-              // onDelete={() => {
-              //     // remove the criteria filter
-              // const index: number | undefined =
-              // monitorSteps.data?.monitorStepsInstanceArray.findIndex((item: MonitorStep) => {
-              //     return item.data?.id === value.data?.id;
-              // })
+              /*
+               * onDelete={() => {
+               *     // remove the criteria filter
+               * const index: number | undefined =
+               * monitorSteps.data?.monitorStepsInstanceArray.findIndex((item: MonitorStep) => {
+               *     return item.data?.id === value.data?.id;
+               * })
+               */
 
-              // if (index === undefined) {
-              //     return;
-              // }
-              //     const newMonitorSteps: Array<MonitorStep> = [
-              //         ...(monitorSteps.data
-              //             ?.monitorStepsInstanceArray || []),
-              //     ];
-              //     newMonitorSteps.splice(index, 1);
-              //     setMonitorSteps(
-              //         new MonitorSteps().fromJSON({
-              //             _type: 'MonitorSteps',
-              //             value: {
-              //                 monitorStepsInstanceArray:
-              //                     newMonitorSteps,
-              //             },
-              //         })
-              //     );
-              // }}
+              /*
+               * if (index === undefined) {
+               *     return;
+               * }
+               *     const newMonitorSteps: Array<MonitorStep> = [
+               *         ...(monitorSteps.data
+               *             ?.monitorStepsInstanceArray || []),
+               *     ];
+               *     newMonitorSteps.splice(index, 1);
+               *     setMonitorSteps(
+               *         new MonitorSteps().fromJSON({
+               *             _type: 'MonitorSteps',
+               *             value: {
+               *                 monitorStepsInstanceArray:
+               *                     newMonitorSteps,
+               *             },
+               *         })
+               *     );
+               * }}
+               */
               onChange={(value: MonitorStep) => {
                 const index: number | undefined =
                   monitorSteps.data?.monitorStepsInstanceArray.findIndex(

@@ -1,5 +1,7 @@
-// this class is the base class that all the component can implement
-//
+/*
+ * this class is the base class that all the component can implement
+ *
+ */
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";

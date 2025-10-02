@@ -27,8 +27,10 @@ export default class AddScheduledMaintenanceNumber extends DataMigrationBase {
     });
 
     for (const project of projects) {
-      // add ended scheduled maintenance state for each of these projects.
-      // first fetch resolved state. Ended state order is -1 of resolved state.
+      /*
+       * add ended scheduled maintenance state for each of these projects.
+       * first fetch resolved state. Ended state order is -1 of resolved state.
+       */
 
       // get all incicents for this project
       const scheduledMaintenances: Array<ScheduledMaintenance> =

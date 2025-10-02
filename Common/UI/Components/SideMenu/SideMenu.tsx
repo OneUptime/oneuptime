@@ -132,8 +132,10 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
   // Re-run active item detection when location changes
   useEffect(() => {
-    // This will trigger a re-render when navigation changes
-    // The activeItem will be recalculated
+    /*
+     * This will trigger a re-render when navigation changes
+     * The activeItem will be recalculated
+     */
   }, [Navigation.getCurrentPath().toString()]);
 
   // Render function for the menu content

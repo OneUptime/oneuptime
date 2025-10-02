@@ -663,9 +663,11 @@ export default class LayerUtil {
       // if start time is after end time, we need to add one week to the end time
 
       if (OneUptimeDate.isAfter(startTime, endTime)) {
-        // in this case the restriction is towards the ends of the week and not in the middle so we need to add two objects to the array.
-        // One for start of the week
-        // and the other for end of the week .
+        /*
+         * in this case the restriction is towards the ends of the week and not in the middle so we need to add two objects to the array.
+         * One for start of the week
+         * and the other for end of the week .
+         */
 
         const startOfWeek: Date = data.eventStartTime;
         // add 7 days to the end time to get the end of the week
@@ -718,11 +720,13 @@ export default class LayerUtil {
     let restrictionStartTime: Date = dayRestrictionTimes.startTime;
     let restrictionEndTime: Date = dayRestrictionTimes.endTime;
 
-    // Special Case: Overnight (wrap-around) window where end time is logically on the next day.
-    // Example: 23:00 -> 11:00 (next day). Existing algorithm assumed end >= start within same day
-    // and returned no events. We explicitly expand such windows into two segments per day:
-    // 1) start -> endOfDay(start)
-    // 2) startOfNextDay -> end (moved to next day)
+    /*
+     * Special Case: Overnight (wrap-around) window where end time is logically on the next day.
+     * Example: 23:00 -> 11:00 (next day). Existing algorithm assumed end >= start within same day
+     * and returned no events. We explicitly expand such windows into two segments per day:
+     * 1) start -> endOfDay(start)
+     * 2) startOfNextDay -> end (moved to next day)
+     */
     if (OneUptimeDate.isBefore(restrictionEndTime, restrictionStartTime)) {
       const results: Array<StartAndEndTime> = [];
 
@@ -1012,9 +1016,11 @@ export default class LayerUtil {
   public removeOverlappingEvents(
     events: PriorityCalendarEvents[],
   ): CalendarEvent[] {
-    // now remove overlapping events by priority and trim them by priority. Lower priority number will be kept and higher priority number will be trimmed.
-    // so if there are two events with the same start and end time, we will keep the one with the lower priority number and remove the one with the higher priority number.
-    // if there are overlapping events, we will trim the one with the higher priority number.
+    /*
+     * now remove overlapping events by priority and trim them by priority. Lower priority number will be kept and higher priority number will be trimmed.
+     * so if there are two events with the same start and end time, we will keep the one with the lower priority number and remove the one with the higher priority number.
+     * if there are overlapping events, we will trim the one with the higher priority number.
+     */
 
     // sort the events by priority
 
@@ -1078,14 +1084,18 @@ export default class LayerUtil {
         ) {
           // if the current event has a higher priority than the final event, we need to trim the final event
           if (event.priority < finalEvent.priority) {
-            // trim the final event based on the current event
-            // end time of the final event will be the start time of the current event - 1 second
+            /*
+             * trim the final event based on the current event
+             * end time of the final event will be the start time of the current event - 1 second
+             */
             const tempFinalEventEnd: Date = finalEvent.end;
 
             finalEvent.end = OneUptimeDate.addRemoveSeconds(event.start, -1);
 
-            // check if the final event end time is before the start time of the current event
-            // if it is, we need to remove the final event from the final events array
+            /*
+             * check if the final event end time is before the start time of the current event
+             * if it is, we need to remove the final event from the final events array
+             */
             if (OneUptimeDate.isBefore(finalEvent.end, finalEvent.start)) {
               finalEvents.splice(i, 1);
               i--; // Adjust index after removal
@@ -1115,8 +1125,10 @@ export default class LayerUtil {
               }
             }
           } else {
-            // trim the current event based on the final event
-            // start time of the current event will be the end time of the final event + 1 second
+            /*
+             * trim the current event based on the final event
+             * start time of the current event will be the end time of the final event + 1 second
+             */
             event.start = OneUptimeDate.addRemoveSeconds(finalEvent.end, 1);
           }
         }

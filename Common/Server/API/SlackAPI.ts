@@ -181,29 +181,31 @@ export default class SlackAPI {
         let botUserId: string | undefined = undefined;
         let slackUserAccessToken: string | undefined = undefined;
 
-        // ReponseBody is in this format.
-        //   {
-        //     "ok": true,
-        //     "access_token": "sample-token",
-        //     "token_type": "bot",
-        //     "scope": "commands,incoming-webhook",
-        //     "bot_user_id": "U0KRQLJ9H",
-        //     "app_id": "A0KRD7HC3",
-        //     "team": {
-        //         "name": "Slack Pickleball Team",
-        //         "id": "T9TK3CUKW"
-        //     },
-        //     "enterprise": {
-        //         "name": "slack-pickleball",
-        //         "id": "E12345678"
-        //     },
-        //     "authed_user": {
-        //         "id": "U1234",
-        //         "scope": "chat:write",
-        //         "access_token": "sample-token",
-        //         "token_type": "user"
-        //     }
-        // }
+        /*
+         * ReponseBody is in this format.
+         *   {
+         *     "ok": true,
+         *     "access_token": "sample-token",
+         *     "token_type": "bot",
+         *     "scope": "commands,incoming-webhook",
+         *     "bot_user_id": "U0KRQLJ9H",
+         *     "app_id": "A0KRD7HC3",
+         *     "team": {
+         *         "name": "Slack Pickleball Team",
+         *         "id": "T9TK3CUKW"
+         *     },
+         *     "enterprise": {
+         *         "name": "slack-pickleball",
+         *         "id": "E12345678"
+         *     },
+         *     "authed_user": {
+         *         "id": "U1234",
+         *         "scope": "chat:write",
+         *         "access_token": "sample-token",
+         *         "token_type": "user"
+         *     }
+         * }
+         */
 
         if (responseBody["ok"] !== true) {
           return Response.sendErrorResponse(
@@ -407,31 +409,35 @@ export default class SlackAPI {
           "id_token"
         ] as JSONObject;
 
-        // Example of Response Body
-        // {
-        //   "iss": "https://slack.com",
-        //   "sub": "U123ABC456",
-        //   "aud": "25259531569.1115258246291",
-        //   "exp": 1626874955,
-        //   "iat": 1626874655,
-        //   "auth_time": 1626874655,
-        //   "nonce": "abcd",
-        //   "at_hash": "abc...123",
-        //   "https://slack.com/team_id": "T0123ABC456",
-        //   "https://slack.com/user_id": "U123ABC456",
-        //   "email": "alice@example.com",
-        //   "email_verified": true,
-        //   "date_email_verified": 1622128723,
-        //   "locale": "en-US",
-        //   "name": "Alice",
-        //   "given_name": "",
-        //   "family_name": "",
-        //   "https://slack.com/team_image_230": "https://secure.gravatar.com/avatar/bc.png",
-        //   "https://slack.com/team_image_default": true
-        // }
+        /*
+         * Example of Response Body
+         * {
+         *   "iss": "https://slack.com",
+         *   "sub": "U123ABC456",
+         *   "aud": "25259531569.1115258246291",
+         *   "exp": 1626874955,
+         *   "iat": 1626874655,
+         *   "auth_time": 1626874655,
+         *   "nonce": "abcd",
+         *   "at_hash": "abc...123",
+         *   "https://slack.com/team_id": "T0123ABC456",
+         *   "https://slack.com/user_id": "U123ABC456",
+         *   "email": "alice@example.com",
+         *   "email_verified": true,
+         *   "date_email_verified": 1622128723,
+         *   "locale": "en-US",
+         *   "name": "Alice",
+         *   "given_name": "",
+         *   "family_name": "",
+         *   "https://slack.com/team_image_230": "https://secure.gravatar.com/avatar/bc.png",
+         *   "https://slack.com/team_image_default": true
+         * }
+         */
 
-        // check if the team id matches the project id.
-        // get project auth.
+        /*
+         * check if the team id matches the project id.
+         * get project auth.
+         */
 
         const projectAuth: WorkspaceProjectAuthToken | null =
           await WorkspaceProjectAuthTokenService.findOneBy({

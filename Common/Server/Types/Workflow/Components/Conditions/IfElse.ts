@@ -55,9 +55,11 @@ export default class IfElse extends ComponentCode {
     }
 
     try {
-      // Set timeout
-      // Inject args
-      // Inject dependencies
+      /*
+       * Set timeout
+       * Inject args
+       * Inject dependencies
+       */
 
       for (const key in args) {
         if (key === "operator") {

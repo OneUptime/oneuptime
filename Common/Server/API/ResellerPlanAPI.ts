@@ -30,8 +30,10 @@ export default class ResellerPlanAPI extends BaseAPI<
   public constructor() {
     super(ResellerPlan, ResellerPlanService);
 
-    // Reseller Plan Action API
-    // TODO: Refactor this API and make it partner specific.
+    /*
+     * Reseller Plan Action API
+     * TODO: Refactor this API and make it partner specific.
+     */
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()

@@ -42,8 +42,10 @@ export interface SlackRequest {
 
 const slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime: Array<SlackActionType> =
   [
-    // anyone in the company can create incident.
-    // regardless of whether they are connected to OneUptime or not.
+    /*
+     * anyone in the company can create incident.
+     * regardless of whether they are connected to OneUptime or not.
+     */
     SlackActionType.NewIncident,
     SlackActionType.SubmitNewIncident,
     SlackActionType.ViewIncident,
