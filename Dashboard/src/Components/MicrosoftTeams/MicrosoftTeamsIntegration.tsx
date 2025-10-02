@@ -10,6 +10,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import URL from "Common/Types/API/URL";
 import {
   APP_API_URL,
+  BILLING_ENABLED,
   HOME_URL,
   MicrosoftTeamsAppClientId,
 } from "Common/UI/Config";
@@ -518,7 +519,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {isAdminConsentCompleted && isUserAccountConnected && (
+      {isAdminConsentCompleted && isUserAccountConnected && !BILLING_ENABLED && (
         <div className="mt-6">
           <Card
             title="Action Required: Install App on Microsoft Teams"
@@ -557,6 +558,45 @@ Pre-requisite:
 4. Once the app is installed, you can create workspace notification rules in OneUptime to send messages to your teams.
 
 The zip file contains the app manifest and required icons for Teams installation.
+              `}
+            />
+          </Card>
+        </div>
+      )}
+
+      {isAdminConsentCompleted && isUserAccountConnected && BILLING_ENABLED && (
+        <div className="mt-6">
+          <Card
+            title="Install OneUptime App from Microsoft Teams Store"
+            description="Install the OneUptime app directly from the Microsoft Teams App Store to enable notifications and integrations."
+            buttons={[
+              {
+                title: "Open Teams Store",
+                buttonStyle: SharedButtonStyle.PRIMARY,
+                icon: IconProp.ExternalLink,
+                onClick: () => {
+                  window.open(
+                    "https://teams.microsoft.com/l/app/"+MicrosoftTeamsAppClientId,
+                    "_blank",
+                  );
+                },
+              },
+            ]}
+          >
+            <MarkdownViewer
+              text={`
+##### Installation Steps:
+
+1. **Click the button above** to open the OneUptime app in the Microsoft Teams Store
+2. **Install the app:**
+   - Click "Add" to install it for yourself
+   - Or click "Add to a team" to install it for your entire team
+   - Grant the necessary permissions
+3. Once the app is installed, you can create workspace notification rules in OneUptime to send messages to your teams.
+
+##### Alternative Installation:
+
+You can also search for "OneUptime" in the Microsoft Teams App Store and install it from there.
               `}
             />
           </Card>
