@@ -588,9 +588,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
   }): Promise<void> {
     const { teamsRequest, req, res } = data;
 
-    logger.debug(
-      "Showing new scheduled maintenance card for Microsoft Teams",
-    );
+    logger.debug("Showing new scheduled maintenance card for Microsoft Teams");
 
     // Send empty response first
     Response.sendTextResponse(req, res, "");
@@ -646,12 +644,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
     const payload: JSONObject = teamsRequest.payload || {};
     const value: JSONObject = (payload["value"] as JSONObject) || {};
 
-    const title: string =
-      (value["scheduledMaintenanceTitle"] as string) || "";
+    const title: string = (value["scheduledMaintenanceTitle"] as string) || "";
     const description: string =
       (value["scheduledMaintenanceDescription"] as string) || "";
-    const startDate: string =
-      (value["startDate"] as string) || "";
+    const startDate: string = (value["startDate"] as string) || "";
     const endDate: string = (value["endDate"] as string) || "";
     const monitorIds: string =
       (value["scheduledMaintenanceMonitors"] as string) || "";
@@ -694,13 +690,11 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             return id;
           });
         if (monitorIdArray.length > 0) {
-          scheduledMaintenance.monitors = monitorIdArray.map(
-            (id: string) => {
-              const monitor: Monitor = new Monitor();
-              monitor.id = new ObjectID(id);
-              return monitor;
-            },
-          );
+          scheduledMaintenance.monitors = monitorIdArray.map((id: string) => {
+            const monitor: Monitor = new Monitor();
+            monitor.id = new ObjectID(id);
+            return monitor;
+          });
         }
       }
 

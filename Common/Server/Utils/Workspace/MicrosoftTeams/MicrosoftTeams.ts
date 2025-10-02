@@ -1669,7 +1669,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     try {
       if (cleanText.includes("help") || cleanText === "") {
         responseText = this.getHelpMessage();
-      } else if (cleanText === "/incident" || cleanText.startsWith("/incident ")) {
+      } else if (
+        cleanText === "/incident" ||
+        cleanText.startsWith("/incident ")
+      ) {
         // Handle /incident slash command
         logger.debug("Processing /incident command");
         const card: JSONObject =
@@ -1684,7 +1687,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         });
         logger.debug("New incident card sent successfully");
         return;
-      } else if (cleanText === "/maintenance" || cleanText.startsWith("/maintenance ")) {
+      } else if (
+        cleanText === "/maintenance" ||
+        cleanText.startsWith("/maintenance ")
+      ) {
         // Handle /maintenance slash command
         logger.debug("Processing /maintenance command");
         const card: JSONObject =
@@ -1825,18 +1831,17 @@ If you need to report an incident or check historical incidents, please visit th
           ? OneUptimeDate.getDateAsFormattedString(incident.createdAt)
           : "Unknown";
 
-        const severityIcon: string = ["Critical", "Major"].includes(
-          severity,
-        )
+        const severityIcon: string = ["Critical", "Major"].includes(severity)
           ? "🔴"
           : severity === "Minor"
             ? "🟠"
             : "🟡";
 
-        const incidentUrl: URL = await IncidentService.getIncidentLinkInDashboard(
-          projectId,
-          incident.id!,
-        );
+        const incidentUrl: URL =
+          await IncidentService.getIncidentLinkInDashboard(
+            projectId,
+            incident.id!,
+          );
 
         message += `${severityIcon} **[Incident #${incident.incidentNumber}: ${incident.title}](${incidentUrl.toString()})**
 • **Severity:** ${severity}
@@ -1924,7 +1929,7 @@ When maintenance is scheduled, you'll see details here including:
 Check back later for upcoming maintenance windows.`;
       }
 
-  let message: string = `**Scheduled Maintenance Events** (${scheduledEvents.length})
+      let message: string = `**Scheduled Maintenance Events** (${scheduledEvents.length})
 
 `;
 
@@ -2029,7 +2034,7 @@ When maintenance is in progress, you'll see details here including:
 All systems are currently operating normally.`;
       }
 
-  let message: string = `**Ongoing Maintenance Events** (${ongoingEvents.length})
+      let message: string = `**Ongoing Maintenance Events** (${ongoingEvents.length})
 
 `;
 
@@ -2146,7 +2151,7 @@ When alerts are triggered, you'll see details here including:
 All monitoring checks are passing normally.`;
       }
 
-  let message: string = `**Active Alerts** (${activeAlerts.length})
+      let message: string = `**Active Alerts** (${activeAlerts.length})
 
 `;
 
@@ -2157,12 +2162,12 @@ All monitoring checks are passing normally.`;
           ? OneUptimeDate.getDateAsFormattedString(alert.createdAt)
           : "Unknown";
 
-  const alertUrl: URL = await AlertService.getAlertLinkInDashboard(
-    projectId,
-    alert.id!,
-  );
+        const alertUrl: URL = await AlertService.getAlertLinkInDashboard(
+          projectId,
+          alert.id!,
+        );
 
-  message += `⚠️ **[Alert #${alert.alertNumber}: ${alert.title}](${alertUrl.toString()})**
+        message += `⚠️ **[Alert #${alert.alertNumber}: ${alert.title}](${alertUrl.toString()})**
 • **Severity:** ${severity}
 • **Status:** ${state}
 • **Triggered:** ${createdAt}
