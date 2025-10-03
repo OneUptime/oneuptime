@@ -6,22 +6,20 @@ import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCa
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import Recurring from "Common/Types/Events/Recurring";
-import RestrictionTimes from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { JSONObject } from "Common/Types/JSON";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import PageComponentProps from "../../PageComponentProps";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const OnCallDutyScheduleSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const OnCallDutyScheduleSettings: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-
 
   const duplicateScheduleLayers = async (
     newSchedule: OnCallDutySchedule,
@@ -42,28 +40,29 @@ const OnCallDutyScheduleSettings: FunctionComponent<PageComponentProps> = (): Re
     }
 
     try {
-      const existingLayers = await ModelAPI.getList<OnCallDutyPolicyScheduleLayer>({
-        modelType: OnCallDutyPolicyScheduleLayer,
-        query: {
-          onCallDutyPolicyScheduleId: modelId,
-          projectId: projectId,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          _id: true,
-          order: true,
-          name: true,
-          description: true,
-          startsAt: true,
-          restrictionTimes: true,
-          rotation: true,
-          handOffTime: true,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-      });
+      const existingLayers =
+        await ModelAPI.getList<OnCallDutyPolicyScheduleLayer>({
+          modelType: OnCallDutyPolicyScheduleLayer,
+          query: {
+            onCallDutyPolicyScheduleId: modelId,
+            projectId: projectId,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            order: true,
+            name: true,
+            description: true,
+            startsAt: true,
+            restrictionTimes: true,
+            rotation: true,
+            handOffTime: true,
+          },
+          sort: {
+            order: SortOrder.Ascending,
+          },
+        });
 
       if (existingLayers.data.length === 0) {
         return;
@@ -106,7 +105,6 @@ const OnCallDutyScheduleSettings: FunctionComponent<PageComponentProps> = (): Re
         }
         newLayer.handOffTime = new Date(existingLayer.handOffTime);
         if (existingLayer.rotation) {
-
           newLayer.rotation = existingLayer.rotation;
         }
 

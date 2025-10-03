@@ -65,11 +65,14 @@ const TimePicker: FunctionComponent<ComponentProps> = (
   }, []);
 
   // Timezone label derived from OneUptimeDate utilities (e.g., "PDT (America/Los_Angeles)" or "GMT+5:30 (Asia/Kolkata)")
-  const [timezoneLabel, setTimezoneLabel] = useState<string>("your local time zone");
+  const [timezoneLabel, setTimezoneLabel] = useState<string>(
+    "your local time zone",
+  );
 
   useEffect((): void => {
     const abbr: string = OneUptimeDate.getCurrentTimezoneString();
-    const iana: string = OneUptimeDate.getCurrentTimezone() as unknown as string;
+    const iana: string =
+      OneUptimeDate.getCurrentTimezone() as unknown as string;
     setTimezoneLabel(`${abbr}${iana ? ` (${iana})` : ""}`);
   }, []);
 
@@ -290,7 +293,6 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           submitButtonText="Apply"
         >
           <div className="p-2">
-            
             <div className="flex items-center justify-center gap-6">
               {/* Hours selector */}
               <div className="flex flex-col items-center">
