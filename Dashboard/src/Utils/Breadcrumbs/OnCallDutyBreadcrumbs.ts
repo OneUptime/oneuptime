@@ -106,6 +106,10 @@ export function getOnCallDutyBreadcrumbs(
       "View On-Call Schedule",
       "Layers",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS,
+      ["Project", "On-Call Duty", "View On-Call Schedule", "Settings"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE, [
       "Project",
       "On-Call Duty",

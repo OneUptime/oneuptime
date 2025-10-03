@@ -59,6 +59,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
+        />
+        <SideMenuItem
+          link={{
             title: "Delete Schedule",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE] as Route,
