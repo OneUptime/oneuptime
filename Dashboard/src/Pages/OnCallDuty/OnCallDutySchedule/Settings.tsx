@@ -8,7 +8,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { type ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -21,7 +21,9 @@ const OnCallDutyScheduleSettings: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const duplicateScheduleLayers = async (
+  const duplicateScheduleLayers: (
+    newSchedule: OnCallDutySchedule,
+  ) => Promise<void> = async (
     newSchedule: OnCallDutySchedule,
   ): Promise<void> => {
     const projectId: ObjectID | null =
@@ -40,7 +42,7 @@ const OnCallDutyScheduleSettings: FunctionComponent<
     }
 
     try {
-      const existingLayers =
+      const existingLayers: ListResult<OnCallDutyPolicyScheduleLayer> =
         await ModelAPI.getList<OnCallDutyPolicyScheduleLayer>({
           modelType: OnCallDutyPolicyScheduleLayer,
           query: {
@@ -68,69 +70,68 @@ const OnCallDutyScheduleSettings: FunctionComponent<
         return;
       }
 
-      for (const existingLayer of existingLayers.data) {
-        if (!existingLayer.id) {
+      for (const layer of existingLayers.data) {
+        if (!layer.id) {
           continue;
         }
 
-        const newLayer = new OnCallDutyPolicyScheduleLayer();
+        const newLayer: OnCallDutyPolicyScheduleLayer =
+          new OnCallDutyPolicyScheduleLayer();
         newLayer.projectId = projectId;
         newLayer.onCallDutyPolicyScheduleId = newSchedule.id;
-        if (!existingLayer.name) {
+        if (!layer.name) {
           throw new Error(
             "Failed to duplicate schedule layers: layer name is missing.",
           );
         }
-        newLayer.name = existingLayer.name;
+        newLayer.name = layer.name;
 
-        if (existingLayer.description !== undefined) {
-          newLayer.description = existingLayer.description;
+        if (layer.description !== undefined) {
+          newLayer.description = layer.description;
         }
 
-        if (typeof existingLayer.order === "number") {
-          newLayer.order = existingLayer.order;
+        if (typeof layer.order === "number") {
+          newLayer.order = layer.order;
         }
 
-        if (!existingLayer.startsAt) {
+        if (!layer.startsAt) {
           throw new Error(
             "Failed to duplicate schedule layers: layer start time is missing.",
           );
         }
-        newLayer.startsAt = new Date(existingLayer.startsAt);
+        newLayer.startsAt = new Date(layer.startsAt);
 
-        if (!existingLayer.handOffTime) {
+        if (!layer.handOffTime) {
           throw new Error(
             "Failed to duplicate schedule layers: layer hand off time is missing.",
           );
         }
-        newLayer.handOffTime = new Date(existingLayer.handOffTime);
-        if (existingLayer.rotation) {
-          newLayer.rotation = existingLayer.rotation;
+        newLayer.handOffTime = new Date(layer.handOffTime);
+        if (layer.rotation) {
+          newLayer.rotation = layer.rotation;
         }
 
-        if (existingLayer.restrictionTimes) {
-          newLayer.restrictionTimes = existingLayer.restrictionTimes;
+        if (layer.restrictionTimes) {
+          newLayer.restrictionTimes = layer.restrictionTimes;
         }
 
-        const createdLayerResponse =
+        const createdLayer: OnCallDutyPolicyScheduleLayer = (
           await ModelAPI.create<OnCallDutyPolicyScheduleLayer>({
             model: newLayer,
             modelType: OnCallDutyPolicyScheduleLayer,
-          });
-
-        const createdLayer =
-          createdLayerResponse.data as OnCallDutyPolicyScheduleLayer;
+          })
+        ).data as OnCallDutyPolicyScheduleLayer;
 
         if (!createdLayer.id) {
           continue;
         }
 
-        const existingLayerUsers =
+        const existingLayerUsers: ListResult<OnCallDutyPolicyScheduleLayerUser> =
           await ModelAPI.getList<OnCallDutyPolicyScheduleLayerUser>({
             modelType: OnCallDutyPolicyScheduleLayerUser,
             query: {
               onCallDutyPolicyScheduleId: modelId,
-              onCallDutyPolicyScheduleLayerId: existingLayer.id,
+              onCallDutyPolicyScheduleLayerId: layer.id,
               projectId: projectId,
             },
             limit: LIMIT_PER_PROJECT,
@@ -145,18 +146,19 @@ const OnCallDutyScheduleSettings: FunctionComponent<
             },
           });
 
-        for (const layerUser of existingLayerUsers.data) {
-          if (!layerUser.userId) {
+        for (const existingLayerUser of existingLayerUsers.data) {
+          if (!existingLayerUser.userId) {
             continue;
           }
 
-          const newLayerUser = new OnCallDutyPolicyScheduleLayerUser();
+          const newLayerUser: OnCallDutyPolicyScheduleLayerUser =
+            new OnCallDutyPolicyScheduleLayerUser();
           newLayerUser.projectId = projectId;
           newLayerUser.onCallDutyPolicyScheduleId = newSchedule.id;
           newLayerUser.onCallDutyPolicyScheduleLayerId = createdLayer.id;
-          newLayerUser.userId = layerUser.userId;
-          if (typeof layerUser.order === "number") {
-            newLayerUser.order = layerUser.order;
+          newLayerUser.userId = existingLayerUser.userId;
+          if (typeof existingLayerUser.order === "number") {
+            newLayerUser.order = existingLayerUser.order;
           }
 
           await ModelAPI.create<OnCallDutyPolicyScheduleLayerUser>({

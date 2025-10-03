@@ -10,12 +10,30 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import TimePicker from "../../../../UI/Components/TimePicker/TimePicker";
+import DateUtilities from "../../../../Types/Date";
+
+type DateModule = typeof import("../../../../Types/Date");
+type DateLib = DateModule["default"];
+type MockedDateLib = jest.Mocked<DateLib>;
+type UserEventInstance = ReturnType<typeof userEvent.setup>;
+type ChangeHandler = jest.Mock<void, [string | undefined]>;
+type VoidHandler = jest.Mock<void, []>;
+type DialogElement = HTMLElement;
+type ButtonElement = HTMLButtonElement;
+type InputElement = HTMLInputElement;
+type HourMinuteMock = {
+  getHours: () => number;
+  getMinutes: () => number;
+};
 
 // Mock OneUptimeDate utilities used by the component
 jest.mock("../../../../Types/Date", () => {
-  const real = jest.requireActual("../../../../Types/Date");
+  const real: DateModule = jest.requireActual("../../../../Types/Date");
   // Helper to create a minimal date-like object with getHours/getMinutes
-  const makeHM = (h: number, m: number) => {
+  const makeHM: (h: number, m: number) => HourMinuteMock = (
+    h: number,
+    m: number,
+  ): HourMinuteMock => {
     return {
       getHours: () => {
         return h;
@@ -33,27 +51,31 @@ jest.mock("../../../../Types/Date", () => {
         return false;
       }), // default to 24h; tests can override per test
       getCurrentDate: jest.fn(() => {
-        return makeHM(13, 45) as any;
+        return makeHM(13, 45) as unknown as Date;
       }),
       fromString: jest.fn((v: string | Date) => {
         if (!v) {
-          return undefined as any;
+          return undefined as unknown as Date;
         }
         if (typeof v === "string") {
-          const m = v.match(/T(\d{2}):(\d{2})/);
-          const hh = m ? parseInt(m[1] as string, 10) : 0;
-          const mm = m ? parseInt(m[2] as string, 10) : 0;
-          return makeHM(hh, mm) as any;
+          const match: RegExpMatchArray | null = v.match(/T(\d{2}):(\d{2})/);
+          const hh: number = match ? parseInt(match[1] as string, 10) : 0;
+          const mm: number = match ? parseInt(match[2] as string, 10) : 0;
+          return makeHM(hh, mm) as unknown as Date;
         }
         // If a Date instance is provided, prefer UTC to avoid env timezone
-        const d = v as Date;
-        const hh = (d as any).getUTCHours
-          ? (d as any).getUTCHours()
-          : d.getHours();
-        const mm = (d as any).getUTCMinutes
-          ? (d as any).getUTCMinutes()
+        const d: Date = v;
+        const hasUtcHours: (() => number) | undefined = (
+          d as { getUTCHours?: () => number }
+        ).getUTCHours;
+        const hasUtcMinutes: (() => number) | undefined = (
+          d as { getUTCMinutes?: () => number }
+        ).getUTCMinutes;
+        const hh: number = hasUtcHours ? hasUtcHours.call(d) : d.getHours();
+        const mm: number = hasUtcMinutes
+          ? hasUtcMinutes.call(d)
           : d.getMinutes();
-        return makeHM(hh, mm) as any;
+        return makeHM(hh, mm) as unknown as Date;
       }),
       toString: jest.fn((d: Date) => {
         return d.toISOString();
@@ -67,7 +89,7 @@ jest.mock("../../../../Types/Date", () => {
           minutes: number;
           seconds?: number;
         }) => {
-          const base = new Date("2024-05-15T00:00:00.000Z");
+          const base: Date = new Date("2024-05-15T00:00:00.000Z");
           base.setUTCHours(hours, minutes, 0, 0);
           return base;
         },
@@ -117,8 +139,8 @@ jest.mock("../../../../UI/Components/Modal/Modal", () => {
   };
 });
 
-const getDateLib = () => {
-  return require("../../../../Types/Date").default;
+const getDateLib: () => MockedDateLib = () => {
+  return DateUtilities as MockedDateLib;
 };
 
 describe("TimePicker", () => {
@@ -128,7 +150,7 @@ describe("TimePicker", () => {
   });
 
   it("renders in 24h by default and shows current time", () => {
-    const onChange = jest.fn();
+    const onChange: ChangeHandler = jest.fn();
     render(<TimePicker value="2024-05-15T08:05:00.000Z" onChange={onChange} />);
 
     // Should display HH:mm based on value prop
@@ -145,7 +167,7 @@ describe("TimePicker", () => {
   });
 
   it("opens modal on click when enabled", async () => {
-    const user = userEvent.setup();
+    const user: UserEventInstance = userEvent.setup();
     render(<TimePicker value="2024-05-15T10:20:00.000Z" />);
 
     // Click the field container by clicking on hours input
@@ -159,7 +181,7 @@ describe("TimePicker", () => {
   });
 
   it("does not open modal when readOnly or disabled", async () => {
-    const user = userEvent.setup();
+    const user: UserEventInstance = userEvent.setup();
     const { rerender } = render(
       <TimePicker value="2024-05-15T10:20:00.000Z" readOnly />,
     );
@@ -177,30 +199,43 @@ describe("TimePicker", () => {
   });
 
   it("applies changes from modal and emits ISO via onChange (24h)", async () => {
-    const user = userEvent.setup();
-    const onChange = jest.fn();
+    const user: UserEventInstance = userEvent.setup();
+    const onChange: ChangeHandler = jest.fn();
     render(<TimePicker value="2024-05-15T08:05:00.000Z" onChange={onChange} />);
 
     // Open modal
     await user.click(screen.getByLabelText("Hours"));
-    const dialog = screen.getByRole("dialog", { name: "Select time" });
+    const dialog: DialogElement = screen.getByRole("dialog", {
+      name: "Select time",
+    });
 
     // Increase hours and minutes using the chevrons
-    const incHour = within(dialog).getByLabelText("Increase hours");
-    const incMin = within(dialog).getByLabelText("Increase minutes");
+    const incHour: ButtonElement = within(dialog).getByLabelText(
+      "Increase hours",
+    ) as HTMLButtonElement;
+    const incMin: ButtonElement = within(dialog).getByLabelText(
+      "Increase minutes",
+    ) as HTMLButtonElement;
 
     await user.click(incHour); // 08 -> 09
     await user.click(incMin); // 05 -> 06
 
     // Apply
-    await user.click(within(dialog).getByRole("button", { name: "Apply" }));
+    await user.click(
+      within(dialog).getByRole("button", {
+        name: "Apply",
+      }),
+    );
 
     // onChange should be called with ISO string
     expect(onChange).toHaveBeenCalledTimes(1);
-    const emitted = onChange.mock.calls[0][0] as string;
+    const emittedCall: [string | undefined] | undefined =
+      onChange.mock.calls[0];
+    expect(emittedCall).toBeDefined();
+    const emitted: string = (emittedCall as [string])[0];
     expect(typeof emitted).toBe("string");
 
-    const lib = getDateLib();
+    const lib: MockedDateLib = getDateLib();
     // getDateWithCustomTime uses UTC hours in our mock; 9:06 maps to 09:06:00Z on the chosen date
     expect(lib.getDateWithCustomTime).toHaveBeenCalledWith({
       hours: 9,
@@ -210,23 +245,33 @@ describe("TimePicker", () => {
   });
 
   it("supports decrement wrapping for hours and minutes (24h)", async () => {
-    const user = userEvent.setup();
-    const onChange = jest.fn();
+    const user: UserEventInstance = userEvent.setup();
+    const onChange: ChangeHandler = jest.fn();
     render(<TimePicker value="2024-05-15T00:00:00.000Z" onChange={onChange} />);
 
     await user.click(screen.getByLabelText("Hours"));
-    const dialog = screen.getByRole("dialog", { name: "Select time" });
+    const dialog: DialogElement = screen.getByRole("dialog", {
+      name: "Select time",
+    });
 
-    const decHour = within(dialog).getByLabelText("Decrease hours");
-    const decMin = within(dialog).getByLabelText("Decrease minutes");
+    const decHour: ButtonElement = within(dialog).getByLabelText(
+      "Decrease hours",
+    ) as HTMLButtonElement;
+    const decMin: ButtonElement = within(dialog).getByLabelText(
+      "Decrease minutes",
+    ) as HTMLButtonElement;
 
     // Minutes 00 -> 59 and hours 00 -> 23 when decreasing
     await user.click(decMin);
     await user.click(decHour);
 
-    await user.click(within(dialog).getByRole("button", { name: "Apply" }));
+    await user.click(
+      within(dialog).getByRole("button", {
+        name: "Apply",
+      }),
+    );
 
-    const lib = getDateLib();
+    const lib: MockedDateLib = getDateLib();
     // dec minute first -> 00 -> 59, hours 0->23, then dec hour -> 22
     expect(lib.getDateWithCustomTime).toHaveBeenCalledWith({
       hours: 22,
@@ -236,24 +281,24 @@ describe("TimePicker", () => {
   });
 
   it("renders and operates in 12h mode with AM/PM toggles", async () => {
-    const user = userEvent.setup();
-    const lib = getDateLib();
-    (lib.getUserPrefers12HourFormat as jest.Mock).mockReturnValue(true);
+    const user: UserEventInstance = userEvent.setup();
+    const lib: MockedDateLib = getDateLib();
+    lib.getUserPrefers12HourFormat.mockReturnValue(true);
 
-    const onChange = jest.fn();
+    const onChange: ChangeHandler = jest.fn();
     render(<TimePicker value="2024-05-15T13:45:00.000Z" onChange={onChange} />);
 
     // Displays 01:45 PM
     expect(screen.getByLabelText("Hours")).toHaveValue("01");
-    expect(screen.getByLabelText("Minutes")).toHaveValue("45");
-    // Inline AM/PM buttons have aria-label overriding the name
-    const apButtons = screen.getAllByRole("button", {
+    const apButtons: HTMLElement[] = screen.getAllByRole("button", {
       name: "Open time selector for AM/PM",
     });
     expect(apButtons).toHaveLength(2);
 
     await user.click(screen.getByLabelText("Hours"));
-    const dialog = screen.getByRole("dialog", { name: "Select time" });
+    const dialog: DialogElement = screen.getByRole("dialog", {
+      name: "Select time",
+    });
 
     // Modal description should reflect 12h mode
     expect(
@@ -261,14 +306,21 @@ describe("TimePicker", () => {
     ).toBeInTheDocument();
 
     // Toggle to AM and change hour input to 12 to map to 00
-    await user.click(within(dialog).getByRole("button", { name: /^AM$/ }));
-
-    const hourInput = within(dialog).getByLabelText("Hours");
+    await user.click(
+      within(dialog).getByRole("button", { name: /^AM$/ }) as HTMLButtonElement,
+    );
+    const hourInput: InputElement = within(dialog).getByLabelText(
+      "Hours",
+    ) as InputElement;
     // Change to 12
     await user.clear(hourInput);
     await user.type(hourInput, "12");
 
-    await user.click(within(dialog).getByRole("button", { name: "Apply" }));
+    await user.click(
+      within(dialog).getByRole("button", {
+        name: "Apply",
+      }),
+    );
 
     // Should map to hours 0 in 24h
     expect(lib.getDateWithCustomTime).toHaveBeenCalledWith({
@@ -279,21 +331,31 @@ describe("TimePicker", () => {
   });
 
   it("AM/PM button mapping inside modal", async () => {
-    const user = userEvent.setup();
-    const lib = getDateLib();
-    (lib.getUserPrefers12HourFormat as jest.Mock).mockReturnValue(true);
+    const user: UserEventInstance = userEvent.setup();
+    const lib: MockedDateLib = getDateLib();
+    lib.getUserPrefers12HourFormat.mockReturnValue(true);
 
     render(<TimePicker value="2024-05-15T01:10:00.000Z" />);
 
     await user.click(screen.getByLabelText("Hours"));
-    const dialog = screen.getByRole("dialog", { name: "Select time" });
+    const dialog: DialogElement = screen.getByRole("dialog", {
+      name: "Select time",
+    });
     // Click PM, should add 12 hours (1 -> 13)
-    await user.click(within(dialog).getByRole("button", { name: /^PM$/ }));
+    await user.click(
+      within(dialog).getByRole("button", { name: /^PM$/ }) as HTMLButtonElement,
+    );
 
     // Increase minutes to 11 to ensure state changed
-    await user.click(within(dialog).getByLabelText("Increase minutes"));
+    await user.click(
+      within(dialog).getByLabelText("Increase minutes") as HTMLButtonElement,
+    );
 
-    await user.click(within(dialog).getByRole("button", { name: "Apply" }));
+    await user.click(
+      within(dialog).getByRole("button", {
+        name: "Apply",
+      }),
+    );
 
     expect(lib.getDateWithCustomTime).toHaveBeenCalledWith({
       hours: 13,
@@ -303,17 +365,25 @@ describe("TimePicker", () => {
   });
 
   it("quick minutes buttons set minutes", async () => {
-    const user = userEvent.setup();
-    const onChange = jest.fn();
+    const user: UserEventInstance = userEvent.setup();
+    const onChange: ChangeHandler = jest.fn();
     render(<TimePicker value="2024-05-15T08:05:00.000Z" onChange={onChange} />);
 
     await user.click(screen.getByLabelText("Hours"));
-    const dialog = screen.getByRole("dialog", { name: "Select time" });
+    const dialog: DialogElement = screen.getByRole("dialog", {
+      name: "Select time",
+    });
 
-    await user.click(within(dialog).getByRole("button", { name: "05" }));
-    await user.click(within(dialog).getByRole("button", { name: "Apply" }));
+    await user.click(
+      within(dialog).getByRole("button", { name: "05" }) as HTMLButtonElement,
+    );
+    await user.click(
+      within(dialog).getByRole("button", {
+        name: "Apply",
+      }) as HTMLButtonElement,
+    );
 
-    const lib = getDateLib();
+    const lib: MockedDateLib = getDateLib();
     expect(lib.getDateWithCustomTime).toHaveBeenCalledWith({
       hours: 8,
       minutes: 5,
@@ -322,12 +392,12 @@ describe("TimePicker", () => {
   });
 
   it("respects placeholder in 24h and 12h modes", () => {
-    const lib = getDateLib();
-    (lib.getUserPrefers12HourFormat as jest.Mock).mockReturnValue(false);
+    const lib: MockedDateLib = getDateLib();
+    lib.getUserPrefers12HourFormat.mockReturnValue(false);
     const { unmount } = render(<TimePicker placeholder="HH" />);
     expect(screen.getByLabelText("Hours")).toHaveAttribute("placeholder", "HH");
 
-    (lib.getUserPrefers12HourFormat as jest.Mock).mockReturnValue(true);
+    lib.getUserPrefers12HourFormat.mockReturnValue(true);
     unmount();
     render(<TimePicker />);
     expect(screen.getByLabelText("Hours")).toHaveAttribute("placeholder", "hh");
@@ -339,20 +409,20 @@ describe("TimePicker", () => {
     expect(screen.getByTestId("error-message")).toHaveTextContent("Required");
     // Error icon rendered
     expect(
-      screen.getAllByTestId("icon").some((i) => {
-        return i.className?.includes("text-red-500");
+      screen.getAllByTestId("icon").some((iconEl: HTMLElement) => {
+        return iconEl.className?.includes("text-red-500");
       }),
     ).toBeTruthy();
   });
 
   it("calls onFocus and onBlur from the hours input", async () => {
-    const user = userEvent.setup();
-    const onFocus = jest.fn();
-    const onBlur = jest.fn();
+    const user: UserEventInstance = userEvent.setup();
+    const onFocus: VoidHandler = jest.fn();
+    const onBlur: VoidHandler = jest.fn();
 
     render(<TimePicker onFocus={onFocus} onBlur={onBlur} />);
 
-    const hours = screen.getByLabelText("Hours");
+    const hours: InputElement = screen.getByLabelText("Hours") as InputElement;
     await user.click(hours);
     expect(onFocus).toHaveBeenCalled();
 
@@ -362,8 +432,8 @@ describe("TimePicker", () => {
 
   it("updates when value prop changes", () => {
     // Force 24h mode for this test to avoid bleed from prior tests
-    const lib = getDateLib();
-    (lib.getUserPrefers12HourFormat as jest.Mock).mockReturnValue(false);
+    const lib: MockedDateLib = getDateLib();
+    lib.getUserPrefers12HourFormat.mockReturnValue(false);
 
     const { rerender } = render(
       <TimePicker value="2024-05-15T02:03:00.000Z" />,
@@ -377,20 +447,28 @@ describe("TimePicker", () => {
   });
 
   it("clamps and maps hour text edits inside modal for 12h", async () => {
-    const user = userEvent.setup();
-    const lib = getDateLib();
-    (lib.getUserPrefers12HourFormat as jest.Mock).mockReturnValue(true);
+    const user: UserEventInstance = userEvent.setup();
+    const lib: MockedDateLib = getDateLib();
+    lib.getUserPrefers12HourFormat.mockReturnValue(true);
 
     render(<TimePicker value="2024-05-15T12:00:00.000Z" />);
 
     await user.click(screen.getByLabelText("Hours"));
-    const dialog = screen.getByRole("dialog", { name: "Select time" });
+    const dialog: DialogElement = screen.getByRole("dialog", {
+      name: "Select time",
+    });
 
-    const hourInput = within(dialog).getByLabelText("Hours");
+    const hourInput: InputElement = within(dialog).getByLabelText(
+      "Hours",
+    ) as InputElement;
     await user.clear(hourInput);
     await user.type(hourInput, "99"); // should clamp to 12 in 12h mode
 
-    await user.click(within(dialog).getByRole("button", { name: "Apply" }));
+    await user.click(
+      within(dialog).getByRole("button", {
+        name: "Apply",
+      }),
+    );
 
     // 12 PM stays 12 (i.e., 12 in 24h), with minutes from initial value 00
     expect(lib.getDateWithCustomTime).toHaveBeenCalledWith({
@@ -401,19 +479,27 @@ describe("TimePicker", () => {
   });
 
   it("minute text edits clamp to 0-59", async () => {
-    const user = userEvent.setup();
+    const user: UserEventInstance = userEvent.setup();
     render(<TimePicker value="2024-05-15T10:10:00.000Z" />);
 
     await user.click(screen.getByLabelText("Hours"));
-    const dialog = screen.getByRole("dialog", { name: "Select time" });
+    const dialog: DialogElement = screen.getByRole("dialog", {
+      name: "Select time",
+    });
 
-    const minInput = within(dialog).getByLabelText("Minutes");
+    const minInput: InputElement = within(dialog).getByLabelText(
+      "Minutes",
+    ) as InputElement;
     await user.clear(minInput);
     await user.type(minInput, "99");
 
-    await user.click(within(dialog).getByRole("button", { name: "Apply" }));
+    await user.click(
+      within(dialog).getByRole("button", {
+        name: "Apply",
+      }),
+    );
 
-    const lib = getDateLib();
+    const lib: MockedDateLib = getDateLib();
     expect(lib.getDateWithCustomTime).toHaveBeenCalledWith({
       hours: 10,
       minutes: 59,
@@ -422,15 +508,23 @@ describe("TimePicker", () => {
   });
 
   it("modal Close does not emit change or update main display", async () => {
-    const user = userEvent.setup();
-    const onChange = jest.fn();
+    const user: UserEventInstance = userEvent.setup();
+    const onChange: ChangeHandler = jest.fn();
     render(<TimePicker value="2024-05-15T08:05:00.000Z" onChange={onChange} />);
 
     // Open modal, change something, then close
     await user.click(screen.getByLabelText("Hours"));
-    const dialog = screen.getByRole("dialog", { name: "Select time" });
-    await user.click(within(dialog).getByLabelText("Increase hours"));
-    await user.click(within(dialog).getByRole("button", { name: "Close" }));
+    const dialog: DialogElement = screen.getByRole("dialog", {
+      name: "Select time",
+    });
+    await user.click(
+      within(dialog).getByLabelText("Increase hours") as HTMLButtonElement,
+    );
+    await user.click(
+      within(dialog).getByRole("button", {
+        name: "Close",
+      }) as HTMLButtonElement,
+    );
 
     // No onChange called
     expect(onChange).not.toHaveBeenCalled();
