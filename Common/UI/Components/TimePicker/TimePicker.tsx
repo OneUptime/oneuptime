@@ -97,7 +97,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
     "flex items-center w-full rounded-md border border-gray-300 bg-white text-sm focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 shadow-sm";
 
   const inputClass =
-    "w-10 text-center py-1 outline-none bg-transparent leading-none focus:outline-none" +
+    "w-12 text-center py-1.5 outline-none bg-transparent leading-none focus:outline-none" +
     (props.readOnly || props.disabled ? " text-gray-500" : " text-gray-900");
 
   const openModal = () => {
@@ -114,7 +114,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           (props.error
             ? baseClass +
               " border-red-300 focus-within:border-red-500 focus-within:ring-red-500"
-            : baseClass) + (props.disabled ? " bg-gray-100" : "")
+      : baseClass) + (props.disabled ? " bg-gray-100" : "") + (clickable ? " cursor-pointer hover:bg-gray-50" : " cursor-not-allowed")
         }
         role="group"
         aria-label="Time input"
@@ -167,10 +167,8 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           onBlur={() => props.onBlur?.()}
         />
 
-        {/* Right affordance to indicate clickability */}
-        <div className={(clickable ? "cursor-pointer" : "cursor-not-allowed") + " ml-auto mr-1 text-gray-400"}>
-          <Icon icon={IconProp.Time} className="h-4 w-4" />
-        </div>
+        {/* spacer to maintain layout without right icon */}
+        <div className="ml-auto mr-1" />
 
         {userPrefers12h && (
           <div className="border-l border-gray-200 pl-2 pr-2 ml-1 mr-1">
