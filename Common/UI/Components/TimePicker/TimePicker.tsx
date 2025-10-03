@@ -290,9 +290,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           submitButtonText="Apply"
         >
           <div className="p-2">
-            <div className="mb-4 text-sm text-gray-500">
-              This time is in your {timezoneLabel}
-            </div>
+            
             <div className="flex items-center justify-center gap-6">
               {/* Hours selector */}
               <div className="flex flex-col items-center">
@@ -451,6 +449,9 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                   );
                 })}
               </div>
+            </div>
+            <div className="mt-4 mb-4 text-sm text-gray-500">
+              This time is in your {timezoneLabel} timezone.
             </div>
           </div>
         </Modal>
