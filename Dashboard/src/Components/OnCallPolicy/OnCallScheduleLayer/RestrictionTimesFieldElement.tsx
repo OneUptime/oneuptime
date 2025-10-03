@@ -9,7 +9,8 @@ import Typeof from "Common/Types/Typeof";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import Dropdown from "Common/UI/Components/Dropdown/Dropdown";
-import Input, { InputType } from "Common/UI/Components/Input/Input";
+// removed InputType.TIME usage in favor of TimePicker
+import TimePicker from "Common/UI/Components/TimePicker";
 import BasicRadioButtons from "Common/UI/Components/RadioButtons/BasicRadioButtons";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -48,8 +49,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
       <div className="flex space-x-3">
         <div>
           <FieldLabelElement title="From:" />
-          <Input
-            type={InputType.TIME}
+          <TimePicker
             value={OneUptimeDate.toString(
               restrictionTimes?.dayRestrictionTimes?.startTime,
             )}
@@ -86,8 +86,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
         </div>
         <div>
           <FieldLabelElement title="To:" />
-          <Input
-            type={InputType.TIME}
+          <TimePicker
             value={OneUptimeDate.toString(
               restrictionTimes?.dayRestrictionTimes?.endTime,
             )}
@@ -258,8 +257,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
               />
             </div>
             <div>
-              <Input
-                type={InputType.TIME}
+              <TimePicker
                 value={OneUptimeDate.toString(
                   params.weeklyRestriction?.startTime,
                 )}
@@ -316,8 +314,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
               />
             </div>
             <div>
-              <Input
-                type={InputType.TIME}
+              <TimePicker
                 value={OneUptimeDate.toString(
                   params.weeklyRestriction?.endTime,
                 )}
