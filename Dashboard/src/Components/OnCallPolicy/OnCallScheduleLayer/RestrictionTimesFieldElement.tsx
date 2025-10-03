@@ -10,7 +10,7 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import Dropdown from "Common/UI/Components/Dropdown/Dropdown";
 // removed InputType.TIME usage in favor of TimePicker
-import TimePicker from "Common/UI/Components/TimePicker";
+import TimePicker from "Common/UI/Components/TimePicker/Index";
 import BasicRadioButtons from "Common/UI/Components/RadioButtons/BasicRadioButtons";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
