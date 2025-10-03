@@ -41,7 +41,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     emailEnvelope: EmailEnvelope;
     smsMessage: SMSMessage;
     callRequestMessage: CallRequestMessage;
-    pushNotificationMessage: PushNotificationMessage;
+  pushNotificationMessage: PushNotificationMessage;
   whatsAppMessage?: WhatsAppMessage | undefined;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
