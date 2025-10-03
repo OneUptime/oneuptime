@@ -114,7 +114,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           (props.error
             ? baseClass +
               " border-red-300 focus-within:border-red-500 focus-within:ring-red-500"
-      : baseClass) + (props.disabled ? " bg-gray-100" : "") + (clickable ? " cursor-pointer hover:bg-gray-50" : " cursor-not-allowed")
+            : baseClass) + (props.disabled ? " bg-gray-100" : "") + (clickable ? " cursor-pointer hover:bg-gray-50" : " cursor-not-allowed") + " mt-2"
         }
         role="group"
         aria-label="Time input"
