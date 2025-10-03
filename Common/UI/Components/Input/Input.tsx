@@ -154,7 +154,7 @@ const Input: FunctionComponent<ComponentProps> = (
           onFocus={props.onFocus}
           onClick={props.onClick}
           data-testid={props.dataTestId}
-          spellCheck={!props.disableSpellCheck && props.type === InputType.TEXT}
+          spellCheck={!props.disableSpellCheck}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             let value: string | Date = e.target.value;
 

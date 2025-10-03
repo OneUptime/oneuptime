@@ -9,6 +9,7 @@ import DictionaryForm from "../../Dictionary/Dictionary";
 import Dropdown, { DropdownValue } from "../../Dropdown/Dropdown";
 import FilePicker from "../../FilePicker/FilePicker";
 import Input, { InputType } from "../../Input/Input";
+import TimePicker from "../../TimePicker/Index";
 import Link from "../../Link/Link";
 import Modal from "../../Modal/Modal";
 import IDGenerator from "../../ObjectID/IDGenerator";
@@ -280,6 +281,31 @@ const FormField: <T extends GenericObject>(
         )}
 
         <div className="mt-2">
+          {/* Time Picker */}
+          {props.field.fieldType === FormFieldSchemaType.Time && (
+            <TimePicker
+              autoFocus={!props.disableAutofocus && index === 1}
+              tabIndex={index}
+              disabled={props.isDisabled || props.field.disabled}
+              error={props.touched && props.error ? props.error : undefined}
+              dataTestId={props.field.dataTestId}
+              onChange={async (value: string) => {
+                onChange(value);
+                props.setFieldValue(props.fieldName, value);
+              }}
+              onBlur={async () => {
+                props.setFieldTouched(props.fieldName, true);
+              }}
+              value={
+                (props.currentValues &&
+                  (props.currentValues as any)[props.fieldName]) ||
+                (props.field.defaultValue as any) ||
+                undefined
+              }
+              placeholder={props.field.placeholder || undefined}
+            />
+          )}
+
           {props.field.fieldType === FormFieldSchemaType.Color && (
             <ColorPicker
               error={props.touched && props.error ? props.error : undefined}
