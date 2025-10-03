@@ -97,7 +97,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
     "flex items-center w-full rounded-md border border-gray-300 bg-white text-sm focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 shadow-sm";
 
   const inputClass =
-    "w-12 text-center py-1.5 outline-none bg-transparent leading-none focus:outline-none" +
+    "w-14 text-center py-2 outline-none bg-transparent leading-snug focus:outline-none" +
     (props.readOnly || props.disabled ? " text-gray-500" : " text-gray-900");
 
   const openModal = () => {
@@ -125,8 +125,8 @@ const TimePicker: FunctionComponent<ComponentProps> = (
         aria-expanded={showModal || undefined}
       >
         {/* Left time icon */}
-        <div className="pl-2 pr-1 text-gray-400" aria-hidden="true">
-          <Icon icon={IconProp.Time} className="h-4 w-4" />
+        <div className="pl-2 pr-2 text-gray-400" aria-hidden="true">
+          <Icon icon={IconProp.Time} className="h-5 w-5" />
         </div>
 
         {/* Hours */}
@@ -149,7 +149,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           onBlur={() => props.onBlur?.()}
         />
 
-        <span className="px-1 text-gray-500">:</span>
+  <span className="px-2 text-gray-500">:</span>
 
         {/* Minutes */}
         <input
