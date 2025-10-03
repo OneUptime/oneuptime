@@ -26,15 +26,21 @@ export interface ComponentProps {
   error?: string | undefined;
 }
 
-const pad2 = (n: number): string => {
+const pad2: (n: number) => string = (n: number): string => {
   return n < 10 ? `0${n}` : `${n}`;
 };
 
-const clamp = (n: number, min: number, max: number): number => {
+const clamp: (n: number, min: number, max: number) => number = (
+  n: number,
+  min: number,
+  max: number,
+): number => {
   return Math.min(Math.max(n, min), max);
 };
 
-const toDate = (v?: string | Date): Date | undefined => {
+const toDate: (v?: string | Date) => Date | undefined = (
+  v?: string | Date,
+): Date | undefined => {
   if (!v) {
     return undefined;
   }
@@ -59,8 +65,10 @@ const TimePicker: FunctionComponent<ComponentProps> = (
   const [hours24, setHours24] = useState<number>(initialDate.getHours());
   const [minutes, setMinutes] = useState<number>(initialDate.getMinutes());
 
-  const hoursInputRef = useRef<HTMLInputElement | null>(null);
-  const minutesInputRef = useRef<HTMLInputElement | null>(null);
+  const hoursInputRef: React.MutableRefObject<HTMLInputElement | null> =
+    useRef<HTMLInputElement | null>(null);
+  const minutesInputRef: React.MutableRefObject<HTMLInputElement | null> =
+    useRef<HTMLInputElement | null>(null);
 
   // Modal state
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -76,7 +84,10 @@ const TimePicker: FunctionComponent<ComponentProps> = (
     setMinutes(d.getMinutes());
   }, [props.value]);
 
-  const emitChange = (h24: number, m: number) => {
+  const emitChange: (h24: number, m: number) => void = (
+    h24: number,
+    m: number,
+  ): void => {
     const date: Date = OneUptimeDate.getDateWithCustomTime({
       hours: clamp(h24, 0, 23),
       minutes: clamp(m, 0, 59),
@@ -85,28 +96,29 @@ const TimePicker: FunctionComponent<ComponentProps> = (
     props.onChange?.(OneUptimeDate.toString(date));
   };
 
-  const display = useMemo(() => {
-    if (userPrefers12h) {
-      const isPM: boolean = hours24 >= 12;
-      const hr12: number = ((hours24 + 11) % 12) + 1; // 0->12
-      return { hours: pad2(hr12), minutes: pad2(minutes), isPM };
-    }
-    return { hours: pad2(hours24), minutes: pad2(minutes), isPM: false };
-  }, [hours24, minutes, userPrefers12h]);
+  const display: { hours: string; minutes: string; isPM: boolean } =
+    useMemo(() => {
+      if (userPrefers12h) {
+        const isPM: boolean = hours24 >= 12;
+        const hr12: number = ((hours24 + 11) % 12) + 1; // 0->12
+        return { hours: pad2(hr12), minutes: pad2(minutes), isPM };
+      }
+      return { hours: pad2(hours24), minutes: pad2(minutes), isPM: false };
+    }, [hours24, minutes, userPrefers12h]);
 
   // Inline editing disabled; all updates happen inside modal
 
-  const clickable = !(props.readOnly || props.disabled);
+  const clickable: boolean = !(props.readOnly || props.disabled);
 
-  const baseClass =
+  const baseClass: string =
     props.className ||
     "flex items-center w-full rounded-md border border-gray-300 bg-white text-sm focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 shadow-sm";
 
-  const inputClass =
+  const inputClass: string =
     "w-14 text-center py-2 outline-none bg-transparent leading-snug focus:outline-none" +
     (props.readOnly || props.disabled ? " text-gray-500" : " text-gray-900");
 
-  const openModal = () => {
+  const openModal: () => void = (): void => {
     if (!clickable) {
       return;
     }
@@ -271,7 +283,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                   aria-label="Increase hours"
                   className="p-2 rounded hover:bg-gray-50"
                   onClick={() => {
-                    return setTempHours24((h) => {
+                    return setTempHours24((h: number): number => {
                       return (h + 1) % 24;
                     });
                   }}
@@ -289,14 +301,14 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                       ? pad2(((tempHours24 + 11) % 12) + 1)
                       : pad2(tempHours24)
                   }
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/\D/g, "");
-                    let h = parseInt(raw || "0", 10);
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
+                    const raw: string = e.target.value.replace(/\D/g, "");
+                    let h: number = parseInt(raw || "0", 10);
                     if (userPrefers12h) {
                       h = clamp(h, 1, 12);
                       // map back to 24h preserving period
-                      const isPM = tempHours24 >= 12;
-                      const newH =
+                      const isPM: boolean = tempHours24 >= 12;
+                      const newH: number =
                         h === 12 ? (isPM ? 12 : 0) : isPM ? h + 12 : h;
                       setTempHours24(newH);
                     } else {
@@ -308,8 +320,8 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                   type="button"
                   aria-label="Decrease hours"
                   className="p-2 rounded hover:bg-gray-50"
-                  onClick={() => {
-                    return setTempHours24((h) => {
+                  onClick={(): void => {
+                    return setTempHours24((h: number): number => {
                       return (h + 23) % 24;
                     });
                   }}
@@ -326,9 +338,9 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                   type="button"
                   aria-label="Increase minutes"
                   className="p-2 rounded hover:bg-gray-50"
-                  onClick={() => {
-                    let m = tempMinutes + 1;
-                    let h = tempHours24;
+                  onClick={(): void => {
+                    let m: number = tempMinutes + 1;
+                    let h: number = tempHours24;
                     if (m >= 60) {
                       m = 0;
                       h = (h + 1) % 24;
@@ -346,9 +358,9 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                   aria-label="Minutes"
                   className="w-20 text-center text-3xl font-semibold py-2 rounded border border-gray-200 focus:ring-2 focus:ring-indigo-500"
                   value={pad2(tempMinutes)}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/\D/g, "");
-                    const m = clamp(parseInt(raw || "0", 10), 0, 59);
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
+                    const raw: string = e.target.value.replace(/\D/g, "");
+                    const m: number = clamp(parseInt(raw || "0", 10), 0, 59);
                     setTempMinutes(m);
                   }}
                 />
@@ -356,9 +368,9 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                   type="button"
                   aria-label="Decrease minutes"
                   className="p-2 rounded hover:bg-gray-50"
-                  onClick={() => {
-                    let m = tempMinutes - 1;
-                    let h = tempHours24;
+                  onClick={(): void => {
+                    let m: number = tempMinutes - 1;
+                    let h: number = tempHours24;
                     if (m < 0) {
                       m = 59;
                       h = (h + 23) % 24;
@@ -406,13 +418,13 @@ const TimePicker: FunctionComponent<ComponentProps> = (
             <div className="mt-6">
               <div className="text-sm text-gray-500 mb-2">Quick minutes</div>
               <div className="grid grid-cols-6 gap-2">
-                {[0, 5, 10, 15, 30, 45].map((m) => {
+                {[0, 5, 10, 15, 30, 45].map((m: number) => {
                   return (
                     <button
                       key={m}
                       type="button"
                       className={`px-2 py-1 rounded border text-sm ${tempMinutes === m ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-gray-700 border-gray-300"}`}
-                      onClick={() => {
+                      onClick={(): void => {
                         return setTempMinutes(m);
                       }}
                     >
