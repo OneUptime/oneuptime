@@ -51,34 +51,6 @@ const toDate: (v?: string | Date) => Date | undefined = (
   }
 };
 
-// Detect if the user's browser locale prefers 12-hour time (AM/PM)
-// Uses Intl API when available and falls back to existing project utility.
-const browserPrefers12HourFormat: () => boolean = (): boolean => {
-  try {
-    const dtf: Intl.DateTimeFormat = new Intl.DateTimeFormat(undefined, {
-      hour: "numeric",
-    });
-
-    // Prefer hourCycle if available
-    const resolved: Intl.ResolvedDateTimeFormatOptions = dtf.resolvedOptions();
-    if (resolved && (resolved as any).hourCycle) {
-      const hc: string = (resolved as any).hourCycle as string;
-      return hc === "h11" || hc === "h12"; // h11/h12 => 12-hour, h23/h24 => 24-hour
-    }
-
-    // Fallback: look for a dayPeriod (AM/PM) part in formatted output
-    const parts: Intl.DateTimeFormatPart[] = dtf.formatToParts(
-      new Date(2020, 1, 1, 13), // 1pm to capture PM if 12-hour
-    );
-    return parts.some((p: Intl.DateTimeFormatPart) => {
-      return p.type === "dayPeriod";
-    });
-  } catch {
-    // Final fallback to existing project utility
-    return OneUptimeDate.getUserPrefers12HourFormat();
-  }
-};
-
 const TimePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -88,8 +60,17 @@ const TimePicker: FunctionComponent<ComponentProps> = (
   );
 
   useEffect((): void => {
-    // Resolve to actual browser locale once mounted to avoid SSR hydration mismatch
-    setUserPrefers12h(browserPrefers12HourFormat());
+    // Resolve to actual browser preference once mounted using project utility
+    setUserPrefers12h(OneUptimeDate.getUserPrefers12HourFormat());
+  }, []);
+
+  // Timezone label derived from OneUptimeDate utilities (e.g., "PDT (America/Los_Angeles)" or "GMT+5:30 (Asia/Kolkata)")
+  const [timezoneLabel, setTimezoneLabel] = useState<string>("your local time zone");
+
+  useEffect((): void => {
+    const abbr: string = OneUptimeDate.getCurrentTimezoneString();
+    const iana: string = OneUptimeDate.getCurrentTimezone() as unknown as string;
+    setTimezoneLabel(`${abbr}${iana ? ` (${iana})` : ""}`);
   }, []);
 
   const initialDate: Date = useMemo(() => {
@@ -309,6 +290,9 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           submitButtonText="Apply"
         >
           <div className="p-2">
+            <div className="mb-4 text-sm text-gray-500">
+              This time is in your {timezoneLabel}
+            </div>
             <div className="flex items-center justify-center gap-6">
               {/* Hours selector */}
               <div className="flex flex-col items-center">
