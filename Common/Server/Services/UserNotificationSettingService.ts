@@ -189,32 +189,35 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           },
         });
 
-        for (const userWhatsApp of userWhatsApps) {
-          const whatsAppMessage: WhatsAppMessage = {
-            to: userWhatsApp.phone!,
-            body: data.whatsAppMessage?.body || data.smsMessage.message,
-            templateKey: data.whatsAppMessage?.templateKey,
-            templateVariables: data.whatsAppMessage?.templateVariables,
-            templateLanguageCode: data.whatsAppMessage?.templateLanguageCode,
-          };
+        if (!data.whatsAppMessage) {
+          logger.warn(
+            "Skipping WhatsApp notification because WhatsApp template payload is missing.",
+          );
+        } else {
+          for (const userWhatsApp of userWhatsApps) {
+            const whatsAppMessage: WhatsAppMessage = {
+              ...data.whatsAppMessage,
+              to: userWhatsApp.phone!,
+            };
 
-          WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
-            projectId: data.projectId,
-            incidentId: data.incidentId,
-            alertId: data.alertId,
-            scheduledMaintenanceId: data.scheduledMaintenanceId,
-            statusPageId: data.statusPageId,
-            statusPageAnnouncementId: data.statusPageAnnouncementId,
-            userId: data.userId,
-            teamId: data.teamId,
-            onCallPolicyId: data.onCallPolicyId,
-            onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
-            onCallDutyPolicyExecutionLogTimelineId:
-              data.onCallDutyPolicyExecutionLogTimelineId,
-            onCallScheduleId: data.onCallScheduleId,
-          }).catch((err: Error) => {
-            logger.error(err);
-          });
+            WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
+              projectId: data.projectId,
+              incidentId: data.incidentId,
+              alertId: data.alertId,
+              scheduledMaintenanceId: data.scheduledMaintenanceId,
+              statusPageId: data.statusPageId,
+              statusPageAnnouncementId: data.statusPageAnnouncementId,
+              userId: data.userId,
+              teamId: data.teamId,
+              onCallPolicyId: data.onCallPolicyId,
+              onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
+              onCallDutyPolicyExecutionLogTimelineId:
+                data.onCallDutyPolicyExecutionLogTimelineId,
+              onCallScheduleId: data.onCallScheduleId,
+            }).catch((err: Error) => {
+              logger.error(err);
+            });
+          }
         }
       }
 

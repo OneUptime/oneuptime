@@ -31,6 +31,11 @@ import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
 import SMS from "../../Types/SMS/SMS";
 import WhatsAppMessage from "../../Types/WhatsApp/WhatsAppMessage";
+import {
+  renderWhatsAppTemplate,
+  WhatsAppTemplateIds,
+  WhatsAppTemplateLanguage,
+} from "../../Types/WhatsApp/WhatsAppTemplates";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
 import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
@@ -1101,15 +1106,41 @@ export class Service extends DatabaseService<Model> {
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<WhatsAppMessage> {
-    const smsTemplate: SMS = await this.generateSmsTemplateForAlertCreated(
-      to,
-      alert,
-      userOnCallLogTimelineId,
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const acknowledgeShortLink: ShortLink =
+      await ShortLinkService.saveShortLinkFor(
+        new URL(
+          httpProtocol,
+          host,
+          new Route(AppApiRoute.toString())
+            .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+            .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString()),
+        ),
+      );
+
+    const acknowledgeUrl: URL =
+      await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
+
+    const templateKey = WhatsAppTemplateIds.AlertCreated;
+    const templateVariables: Record<string, string> = {
+      project_name: alert.project?.name || "OneUptime",
+      alert_title: alert.title || "",
+      acknowledge_url: acknowledgeUrl.toString(),
+    };
+
+    const body: string = renderWhatsAppTemplate(
+      templateKey,
+      templateVariables,
     );
 
     return {
       to,
-      body: smsTemplate.message,
+      body,
+      templateKey,
+      templateVariables,
+      templateLanguageCode: WhatsAppTemplateLanguage[templateKey],
     };
   }
 
@@ -1119,15 +1150,41 @@ export class Service extends DatabaseService<Model> {
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<WhatsAppMessage> {
-    const smsTemplate: SMS = await this.generateSmsTemplateForIncidentCreated(
-      to,
-      incident,
-      userOnCallLogTimelineId,
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const acknowledgeShortLink: ShortLink =
+      await ShortLinkService.saveShortLinkFor(
+        new URL(
+          httpProtocol,
+          host,
+          new Route(AppApiRoute.toString())
+            .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+            .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString()),
+        ),
+      );
+
+    const acknowledgeUrl: URL =
+      await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
+
+    const templateKey = WhatsAppTemplateIds.IncidentCreated;
+    const templateVariables: Record<string, string> = {
+      project_name: incident.project?.name || "OneUptime",
+      incident_title: incident.title || "",
+      acknowledge_url: acknowledgeUrl.toString(),
+    };
+
+    const body: string = renderWhatsAppTemplate(
+      templateKey,
+      templateVariables,
     );
 
     return {
       to,
-      body: smsTemplate.message,
+      body,
+      templateKey,
+      templateVariables,
+      templateLanguageCode: WhatsAppTemplateLanguage[templateKey],
     };
   }
 
