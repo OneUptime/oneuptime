@@ -10,7 +10,7 @@ import PageMap from "../../../Utils/PageMap";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const OnCallDutyScheduleSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
     <Fragment>
