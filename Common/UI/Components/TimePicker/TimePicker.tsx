@@ -97,12 +97,8 @@ const TimePicker: FunctionComponent<ComponentProps> = (
     "flex items-center w-full rounded-md border border-gray-300 bg-white text-sm focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 shadow-sm";
 
   const inputClass =
-    "w-12 text-center py-2 outline-none bg-transparent focus:outline-none" +
+    "w-10 text-center py-1 outline-none bg-transparent leading-none focus:outline-none" +
     (props.readOnly || props.disabled ? " text-gray-500" : " text-gray-900");
-
-  const buttonClass =
-    "flex flex-col items-center justify-center px-1 text-gray-400 hover:text-gray-600" +
-    (clickable ? " cursor-pointer" : " cursor-not-allowed");
 
   const openModal = () => {
     if (!clickable) return;
@@ -128,6 +124,11 @@ const TimePicker: FunctionComponent<ComponentProps> = (
         aria-haspopup="dialog"
         aria-expanded={showModal || undefined}
       >
+        {/* Left time icon */}
+        <div className="pl-2 pr-1 text-gray-400" aria-hidden="true">
+          <Icon icon={IconProp.Time} className="h-4 w-4" />
+        </div>
+
         {/* Hours */}
         <input
           ref={hoursInputRef}
@@ -139,11 +140,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           tabIndex={props.tabIndex}
           spellCheck={false}
           placeholder={props.placeholder || (userPrefers12h ? "hh" : "HH")}
-          className={
-            inputClass +
-            " rounded-l-md pl-3 focus:ring-0 focus-visible:outline-none" +
-            (clickable ? " hover:bg-gray-50" : "")
-          }
+          className={inputClass + " rounded-l-md pl-1 focus:ring-0 focus-visible:outline-none"}
           readOnly={true}
           aria-label="Hours"
           aria-invalid={props.error ? true : undefined}
@@ -162,11 +159,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           pattern="[0-9]*"
           spellCheck={false}
           placeholder="mm"
-          className={
-            inputClass +
-            " rounded-r-md pr-1 focus:ring-0 focus-visible:outline-none" +
-            (clickable ? " hover:bg-gray-50" : "")
-          }
+          className={inputClass + " rounded-r-md pr-2 focus:ring-0 focus-visible:outline-none"}
           readOnly={true}
           aria-label="Minutes"
           aria-invalid={props.error ? true : undefined}
@@ -174,29 +167,9 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           onBlur={() => props.onBlur?.()}
         />
 
-        {/* Steppers */}
-        <div className={buttonClass + " ml-auto mr-1 select-none"}
-             aria-label="Adjust time"
-             role="group"
-             onClick={openModal}>
-          <button
-            type="button"
-            aria-label="Open time selector"
-            disabled={!clickable}
-            className="p-1"
-            onClick={openModal}
-          >
-            <Icon icon={IconProp.ChevronUp} className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            aria-label="Open time selector"
-            disabled={!clickable}
-            className="p-1"
-            onClick={openModal}
-          >
-            <Icon icon={IconProp.ChevronDown} className="h-4 w-4" />
-          </button>
+        {/* Right affordance to indicate clickability */}
+        <div className={(clickable ? "cursor-pointer" : "cursor-not-allowed") + " ml-auto mr-1 text-gray-400"}>
+          <Icon icon={IconProp.Time} className="h-4 w-4" />
         </div>
 
         {userPrefers12h && (
