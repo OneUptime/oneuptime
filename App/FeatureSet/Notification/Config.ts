@@ -222,6 +222,59 @@ export const SMSHighRiskCostInCents: number = process.env[
   ? parseInt(process.env["SMS_HIGH_RISK_COST_IN_CENTS"])
   : 0;
 
+export interface MetaWhatsAppConfig {
+  accessToken: string;
+  phoneNumberId: string;
+  businessAccountId?: string | undefined;
+  appId?: string | undefined;
+  appSecret?: string | undefined;
+  apiVersion?: string | undefined;
+}
+
+type GetMetaWhatsAppConfigFunction = () => Promise<MetaWhatsAppConfig>;
+
+export const getMetaWhatsAppConfig: GetMetaWhatsAppConfigFunction =
+  async (): Promise<MetaWhatsAppConfig> => {
+    const accessToken: string | undefined =
+      process.env["META_WHATSAPP_ACCESS_TOKEN"];
+    const phoneNumberId: string | undefined =
+      process.env["META_WHATSAPP_PHONE_NUMBER_ID"];
+
+    if (!accessToken) {
+      throw new BadDataException(
+        "Meta WhatsApp access token not found. Please set META_WHATSAPP_ACCESS_TOKEN in environment variables.",
+      );
+    }
+
+    if (!phoneNumberId) {
+      throw new BadDataException(
+        "Meta WhatsApp phone number ID not found. Please set META_WHATSAPP_PHONE_NUMBER_ID in environment variables.",
+      );
+    }
+
+    return {
+      accessToken,
+      phoneNumberId,
+      businessAccountId:
+        process.env["META_WHATSAPP_BUSINESS_ACCOUNT_ID"] || undefined,
+      appId: process.env["META_WHATSAPP_APP_ID"] || undefined,
+      appSecret: process.env["META_WHATSAPP_APP_SECRET"] || undefined,
+      apiVersion: process.env["META_WHATSAPP_API_VERSION"] || undefined,
+    };
+  };
+
+export const WhatsAppTextDefaultCostInCents: number = process.env[
+  "WHATSAPP_TEXT_DEFAULT_COST_IN_CENTS"
+]
+  ? parseInt(process.env["WHATSAPP_TEXT_DEFAULT_COST_IN_CENTS"])
+  : 0;
+
+export const WhatsAppTextHighRiskCostInCents: number = process.env[
+  "WHATSAPP_TEXT_HIGH_RISK_COST_IN_CENTS"
+]
+  ? parseInt(process.env["WHATSAPP_TEXT_HIGH_RISK_COST_IN_CENTS"])
+  : 0;
+
 export const CallHighRiskCostInCentsPerMinute: number = process.env[
   "CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE"
 ]

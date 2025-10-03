@@ -91,6 +91,7 @@ import ServiceCopilotCodeRepositoryService from "./ServiceCopilotCodeRepositoryS
 import ShortLinkService from "./ShortLinkService";
 // SMS Log Service
 import SmsLogService from "./SmsLogService";
+import WhatsAppLogService from "./WhatsAppLogService";
 import SmsService from "./SmsService";
 import SpanService from "./SpanService";
 import StatusPageAnnouncementService from "./StatusPageAnnouncementService";
@@ -250,6 +251,7 @@ const services: Array<BaseService> = [
 
   ShortLinkService,
   SmsLogService,
+  WhatsAppLogService,
   SmsService,
 
   StatusPageAnnouncementService,
