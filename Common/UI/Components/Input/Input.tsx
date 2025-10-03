@@ -69,8 +69,8 @@ const Input: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     if (
-        props.type === InputType.DATE ||
-        props.type === InputType.DATETIME_LOCAL
+      props.type === InputType.DATE ||
+      props.type === InputType.DATETIME_LOCAL
     ) {
       if (value && (value as unknown) instanceof Date) {
         let dateString: string = "";
@@ -156,7 +156,7 @@ const Input: FunctionComponent<ComponentProps> = (
           data-testid={props.dataTestId}
           spellCheck={!props.disableSpellCheck}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            let value: string | Date = e.target.value;
+            const value: string | Date = e.target.value;
 
             if (
               (props.type === InputType.DATE ||
