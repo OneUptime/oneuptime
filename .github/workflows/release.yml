@@ -206,9 +206,7 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --file ./MCP/Dockerfile.tpl \
               --tag oneuptime/mcp-server:${{ steps.version.outputs.version }} \
-              --tag oneuptime/mcp-server:release \
               --tag ghcr.io/oneuptime/mcp-server:${{ steps.version.outputs.version }} \
-              --tag ghcr.io/oneuptime/mcp-server:release \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{ steps.version.outputs.version }} \
               --push .
@@ -282,9 +280,7 @@ jobs:
               --file ./Nginx/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/nginx:release \
               --tag oneuptime/nginx:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/nginx:release \
               --tag ghcr.io/oneuptime/nginx:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -351,9 +347,7 @@ jobs:
               --file ./E2E/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/e2e:release \
               --tag oneuptime/e2e:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/e2e:release \
               --tag ghcr.io/oneuptime/e2e:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -420,9 +414,7 @@ jobs:
               --file ./IsolatedVM/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/isolated-vm:release \
               --tag oneuptime/isolated-vm:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/isolated-vm:release \
               --tag ghcr.io/oneuptime/isolated-vm:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -489,9 +481,7 @@ jobs:
               --file ./Home/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/home:release \
               --tag oneuptime/home:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/home:release \
               --tag ghcr.io/oneuptime/home:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -561,9 +551,7 @@ jobs:
               --file ./TestServer/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/test-server:release \
               --tag oneuptime/test-server:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/test-server:release \
               --tag ghcr.io/oneuptime/test-server:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -630,9 +618,7 @@ jobs:
               --file ./OTelCollector/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/otel-collector:release \
               --tag oneuptime/otel-collector:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/otel-collector:release \
               --tag ghcr.io/oneuptime/otel-collector:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -701,9 +687,7 @@ jobs:
               --file ./StatusPage/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/status-page:release \
               --tag oneuptime/status-page:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/status-page:release \
               --tag ghcr.io/oneuptime/status-page:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -770,9 +754,7 @@ jobs:
               --file ./Tests/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/test:release \
               --tag oneuptime/test:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/test:release \
               --tag ghcr.io/oneuptime/test:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -839,9 +821,7 @@ jobs:
               --file ./ProbeIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/probe-ingest:release \
               --tag oneuptime/probe-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/probe-ingest:release \
               --tag ghcr.io/oneuptime/probe-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -909,9 +889,7 @@ jobs:
               --file ./ServerMonitorIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/server-monitor-ingest:release \
               --tag oneuptime/server-monitor-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/server-monitor-ingest:release \
               --tag ghcr.io/oneuptime/server-monitor-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -980,9 +958,7 @@ jobs:
               --file ./OpenTelemetryIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/open-telemetry-ingest:release \
               --tag oneuptime/open-telemetry-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/open-telemetry-ingest:release \
               --tag ghcr.io/oneuptime/open-telemetry-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -1050,9 +1026,7 @@ jobs:
               --file ./IncomingRequestIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/incoming-request-ingest:release \
               --tag oneuptime/incoming-request-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/incoming-request-ingest:release \
               --tag ghcr.io/oneuptime/incoming-request-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -1119,9 +1093,7 @@ jobs:
               --file ./FluentIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/fluent-ingest:release \
               --tag oneuptime/fluent-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/fluent-ingest:release \
               --tag ghcr.io/oneuptime/fluent-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -1188,9 +1160,7 @@ jobs:
               --file ./Probe/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/probe:release \
               --tag oneuptime/probe:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/probe:release \
               --tag ghcr.io/oneuptime/probe:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -1257,9 +1227,7 @@ jobs:
               --file ./AdminDashboard/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/admin-dashboard:release \
               --tag oneuptime/admin-dashboard:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/admin-dashboard:release \
               --tag ghcr.io/oneuptime/admin-dashboard:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -1327,9 +1295,7 @@ jobs:
               --file ./Dashboard/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/dashboard:release \
               --tag oneuptime/dashboard:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/dashboard:release \
               --tag ghcr.io/oneuptime/dashboard:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -1396,9 +1362,7 @@ jobs:
               --file ./App/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/app:release \
               --tag oneuptime/app:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/app:release \
               --tag ghcr.io/oneuptime/app:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -1466,9 +1430,7 @@ jobs:
               --file ./Copilot/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/copilot:release \
               --tag oneuptime/copilot:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/copilot:release \
               --tag ghcr.io/oneuptime/copilot:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -1535,9 +1497,7 @@ jobs:
               --file ./Accounts/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/accounts:release \
               --tag oneuptime/accounts:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/accounts:release \
               --tag ghcr.io/oneuptime/accounts:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -1648,9 +1608,7 @@ jobs:
               --file ./LLM/Dockerfile \
               --platform linux/amd64 \
               --push \
-              --tag oneuptime/llm:release \
               --tag oneuptime/llm:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/llm:release \
               --tag ghcr.io/oneuptime/llm:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -1719,9 +1677,7 @@ jobs:
               --file ./Docs/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/docs:release \
               --tag oneuptime/docs:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/docs:release \
               --tag ghcr.io/oneuptime/docs:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -1793,9 +1749,7 @@ jobs:
               --file ./Worker/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/worker:release \
               --tag oneuptime/worker:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/worker:release \
               --tag ghcr.io/oneuptime/worker:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -1867,9 +1821,7 @@ jobs:
               --file ./Workflow/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/workflow:release \
               --tag oneuptime/workflow:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/workflow:release \
               --tag ghcr.io/oneuptime/workflow:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
@@ -2001,20 +1953,83 @@ jobs:
               --file ./APIReference/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/api-reference:release \
               --tag oneuptime/api-reference:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/api-reference:release \
               --tag ghcr.io/oneuptime/api-reference:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
+
+  push-release-tags:
+    name: Push release tags after GitHub release
+    needs: [github-release, read-version, generate-build-number]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [
+          "mcp-server",
+          "nginx",
+          "e2e",
+          "isolated-vm",
+          "home",
+          "test-server",
+          "otel-collector",
+          "status-page",
+          "test",
+          "probe-ingest",
+          "server-monitor-ingest",
+          "open-telemetry-ingest",
+          "incoming-request-ingest",
+          "fluent-ingest",
+          "probe",
+          "admin-dashboard",
+          "dashboard",
+          "app",
+          "copilot",
+          "accounts",
+          "llm",
+          "docs",
+          "worker",
+          "workflow",
+          "api-reference"
+        ]
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Docker Hub release tag from version
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
+          docker buildx imagetools create \
+            --tag oneuptime/${{ matrix.image }}:release \
+            oneuptime/${{ matrix.image }}:${VERSION}
+
+      - name: Create GHCR release tag from version
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
+          docker buildx imagetools create \
+            --tag ghcr.io/oneuptime/${{ matrix.image }}:release \
+            ghcr.io/oneuptime/${{ matrix.image }}:${VERSION}
             
   
   
 
   test-e2e-release-saas: 
     runs-on: ubuntu-latest
-    needs: [open-telemetry-ingest-docker-image-deploy, copilot-docker-image-deploy, fluent-ingest-docker-image-deploy, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, llm-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, nginx-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
+    needs: [open-telemetry-ingest-docker-image-deploy, copilot-docker-image-deploy, fluent-ingest-docker-image-deploy, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, llm-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -2041,12 +2056,20 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           command: npm run prerun && bash ./Tests/Scripts/enable-billing-env-var.sh
-      - name: Start Server with release tag
-        run: npm run start
+      - name: Start Server with version tag
+        run: |
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
+          docker compose up --remove-orphans -d
+          npm run status-check
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
       - name: Run E2E Tests. Run docker container e2e in docker compose file
-        run: export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 3
+          on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
+          command: export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
         # Run this on failure
@@ -2054,7 +2077,7 @@ jobs:
         with:
           # Name of the artifact to upload.
           # Optional. Default is 'artifact'
-          name: test-results
+          name: test-results-${{ github.job }}-${{ github.run_attempt }}
       
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
@@ -2072,7 +2095,7 @@ jobs:
   test-e2e-release-self-hosted: 
     runs-on: ubuntu-latest
     # After all the jobs runs
-    needs: [open-telemetry-ingest-docker-image-deploy, publish-mcp-server, copilot-docker-image-deploy, incoming-request-ingest-docker-image-deploy, fluent-ingest-docker-image-deploy, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, llm-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, nginx-docker-image-deploy]
+    needs: [open-telemetry-ingest-docker-image-deploy, publish-mcp-server, copilot-docker-image-deploy, incoming-request-ingest-docker-image-deploy, fluent-ingest-docker-image-deploy, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, llm-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -2099,12 +2122,20 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           command: npm run prerun
-      - name: Start Server with release tag
-        run: npm run start
+      - name: Start Server with version tag
+        run: |
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
+          docker compose up --remove-orphans -d
+          npm run status-check
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
       - name: Run E2E Tests. Run docker container e2e in docker compose file
-        run: export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 3
+          on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
+          command: export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
         # Run this on failure
@@ -2112,7 +2143,7 @@ jobs:
         with:
           # Name of the artifact to upload.
           # Optional. Default is 'artifact'
-          name: test-results
+          name: test-results-${{ github.job }}-${{ github.run_attempt }}
       
           # A file, directory or wildcard pattern that describes what to upload
           # Required.

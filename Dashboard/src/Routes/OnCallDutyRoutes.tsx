@@ -113,6 +113,11 @@ const OnCallDutyScheduleViewNotificationLogs: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/OnCallDuty/OnCallDutySchedule/NotificationLogs");
 });
+const OnCallDutyScheduleViewSettings: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/OnCallDutySchedule/Settings");
+});
 
 // slack
 const WorkspaceConnectionSlack: LazyExoticComponent<
@@ -498,6 +503,22 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                   RouteMap[
                     PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_NOTIFICATION_LOGS
                   ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyScheduleViewSettings
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS] as Route
                 }
               />
             </Suspense>

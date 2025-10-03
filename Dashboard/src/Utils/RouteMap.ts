@@ -276,6 +276,7 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE]: `schedules/${RouteParams.ModelID}/delete`,
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS]: `schedules/${RouteParams.ModelID}/layers`,
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_NOTIFICATION_LOGS]: `schedules/${RouteParams.ModelID}/notification-logs`,
+  [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS]: `schedules/${RouteParams.ModelID}/settings`,
   [PageMap.ON_CALL_DUTY_POLICIES]: "policies",
   [PageMap.ON_CALL_DUTY_POLICY_VIEW]: `policies/${RouteParams.ModelID}`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]: `policies/${RouteParams.ModelID}/delete`,
@@ -1231,6 +1232,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_NOTIFICATION_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_NOTIFICATION_LOGS]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS]
     }`,
   ),
 
