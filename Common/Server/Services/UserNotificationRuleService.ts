@@ -9,6 +9,7 @@ import IncidentSeverityService from "./IncidentSeverityService";
 import MailService from "./MailService";
 import ShortLinkService from "./ShortLinkService";
 import SmsService from "./SmsService";
+import WhatsAppService from "./WhatsAppService";
 import UserEmailService from "./UserEmailService";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
@@ -29,6 +30,7 @@ import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleT
 import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
 import SMS from "../../Types/SMS/SMS";
+import WhatsAppMessage from "../../Types/WhatsApp/WhatsAppMessage";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
 import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
@@ -132,6 +134,10 @@ export class Service extends DatabaseService<Model> {
           isVerified: true,
         },
         userSms: {
+          phone: true,
+          isVerified: true,
+        },
+        userWhatsApp: {
           phone: true,
           isVerified: true,
         },
@@ -507,6 +513,125 @@ export class Service extends DatabaseService<Model> {
       // create a log.
       logTimelineItem.status = UserNotificationStatus.Error;
       logTimelineItem.statusMessage = `SMS not sent because phone ${notificationRuleItem.userSms?.phone.toString()} is not verified.`;
+
+      await UserOnCallLogTimelineService.create({
+        data: logTimelineItem,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (
+      notificationRuleItem.userWhatsApp?.phone &&
+      notificationRuleItem.userWhatsApp?.isVerified
+    ) {
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.AlertCreated &&
+        alert
+      ) {
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending WhatsApp message to ${notificationRuleItem.userWhatsApp?.phone.toString()}.`;
+        logTimelineItem.userWhatsAppId = notificationRuleItem.userWhatsApp.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const whatsAppMessage: WhatsAppMessage =
+          await this.generateWhatsAppTemplateForAlertCreated(
+            notificationRuleItem.userWhatsApp.phone,
+            alert,
+            updatedLog.id!,
+          );
+
+        WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
+          projectId: alert.projectId,
+          alertId: alert.id!,
+          userOnCallLogTimelineId: updatedLog.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending WhatsApp message.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.IncidentCreated &&
+        incident
+      ) {
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending WhatsApp message to ${notificationRuleItem.userWhatsApp?.phone.toString()}.`;
+        logTimelineItem.userWhatsAppId = notificationRuleItem.userWhatsApp.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const whatsAppMessage: WhatsAppMessage =
+          await this.generateWhatsAppTemplateForIncidentCreated(
+            notificationRuleItem.userWhatsApp.phone,
+            incident,
+            updatedLog.id!,
+          );
+
+        WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
+          projectId: incident.projectId,
+          incidentId: incident.id!,
+          userOnCallLogTimelineId: updatedLog.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending WhatsApp message.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+    }
+
+    if (
+      notificationRuleItem.userWhatsApp?.phone &&
+      !notificationRuleItem.userWhatsApp?.isVerified
+    ) {
+      logTimelineItem.status = UserNotificationStatus.Error;
+      logTimelineItem.statusMessage = `WhatsApp message not sent because phone ${notificationRuleItem.userWhatsApp?.phone.toString()} is not verified.`;
+      logTimelineItem.userWhatsAppId = notificationRuleItem.userWhatsApp.id!;
 
       await UserOnCallLogTimelineService.create({
         data: logTimelineItem,
@@ -971,6 +1096,42 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  public async generateWhatsAppTemplateForAlertCreated(
+    to: Phone,
+    alert: Alert,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<WhatsAppMessage> {
+    const smsTemplate: SMS = await this.generateSmsTemplateForAlertCreated(
+      to,
+      alert,
+      userOnCallLogTimelineId,
+    );
+
+    return {
+      to,
+      body: smsTemplate.message,
+    };
+  }
+
+  @CaptureSpan()
+  public async generateWhatsAppTemplateForIncidentCreated(
+    to: Phone,
+    incident: Incident,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<WhatsAppMessage> {
+    const smsTemplate: SMS = await this.generateSmsTemplateForIncidentCreated(
+      to,
+      incident,
+      userOnCallLogTimelineId,
+    );
+
+    return {
+      to,
+      body: smsTemplate.message,
+    };
+  }
+
+  @CaptureSpan()
   public async generateEmailTemplateForAlertCreated(
     to: Email,
     alert: Alert,
@@ -1210,12 +1371,14 @@ export class Service extends DatabaseService<Model> {
       !createBy.data.userEmail &&
       !createBy.data.userSms &&
       !createBy.data.userSmsId &&
+      !createBy.data.userWhatsApp &&
+      !createBy.data.userWhatsAppId &&
       !createBy.data.userEmailId &&
       !createBy.data.userPushId &&
       !createBy.data.userPush
     ) {
       throw new BadDataException(
-        "Call, SMS, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Email, or Push notification is required",
       );
     }
 
