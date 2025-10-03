@@ -450,7 +450,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                 })}
               </div>
             </div>
-            <div className="mt-4 mb-4 text-sm text-gray-500">
+            <div className="mt-8 text-sm text-gray-500">
               This time is in your {timezoneLabel} timezone.
             </div>
           </div>
