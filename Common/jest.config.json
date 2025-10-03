@@ -16,6 +16,7 @@
     },
     "moduleFileExtensions": [
         "ts",
+        "tsx",
         "js",
         "json"
     ],
@@ -28,9 +29,9 @@
         "text",
         "lcov"
     ],
-    "testRegex": "./Tests/(.*).test.ts",
+    "testRegex": "./Tests/(.*)\\.test\\.(ts|tsx)$",
     "collectCoverageFrom": [
-        "./**/*.(tsx||ts)"
+        "./**/*.{ts,tsx}"
     ],
     "coverageThreshold": {
         "global": {
