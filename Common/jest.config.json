@@ -11,6 +11,9 @@
             "babelConfig": false
         }
     },
+    "modulePathIgnorePatterns": [
+        "<rootDir>/build/dist"
+    ],
     "moduleNameMapper": {
         "Common/(.*)": "<rootDir>/$1"
     },
