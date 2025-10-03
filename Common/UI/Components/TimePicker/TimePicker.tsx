@@ -9,6 +9,7 @@ import React, {
 import OneUptimeDate from "../../../Types/Date";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import Modal, { ModalWidth } from "../Modal/Modal";
 
 export interface ComponentProps {
   value?: string | Date | undefined; // ISO string or Date
@@ -57,6 +58,11 @@ const TimePicker: FunctionComponent<ComponentProps> = (
   const hoursInputRef = useRef<HTMLInputElement | null>(null);
   const minutesInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Modal state
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [tempHours24, setTempHours24] = useState<number>(hours24);
+  const [tempMinutes, setTempMinutes] = useState<number>(minutes);
+
   useEffect(() => {
     const d: Date | undefined = toDate(props.value);
     if (!d) return;
@@ -82,47 +88,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
     return { hours: pad2(hours24), minutes: pad2(minutes), isPM: false };
   }, [hours24, minutes, userPrefers12h]);
 
-  const setFromInputs = (hStr: string, mStr: string, isPM?: boolean) => {
-    let h = parseInt(hStr.replace(/\D/g, "")) || 0;
-    let m = parseInt(mStr.replace(/\D/g, "")) || 0;
-    h = clamp(h, 0, userPrefers12h ? 12 : 23);
-    m = clamp(m, 0, 59);
-
-    let newH24 = h;
-    if (userPrefers12h) {
-      if (h === 12) {
-        newH24 = isPM ? 12 : 0;
-      } else {
-        newH24 = isPM ? h + 12 : h;
-      }
-    }
-
-    setHours24(newH24);
-    setMinutes(m);
-    emitChange(newH24, m);
-  };
-
-  const incrementHours = (delta: number) => {
-    const newH = (hours24 + delta + 24) % 24;
-    setHours24(newH);
-    emitChange(newH, minutes);
-  };
-
-  const incrementMinutes = (delta: number) => {
-    let total = minutes + delta;
-    let newH = hours24;
-    while (total < 0) {
-      total += 60;
-      newH = (newH + 23) % 24;
-    }
-    while (total >= 60) {
-      total -= 60;
-      newH = (newH + 1) % 24;
-    }
-    setHours24(newH);
-    setMinutes(total);
-    emitChange(newH, total);
-  };
+  // Inline editing disabled; all updates happen inside modal
 
   const clickable = !(props.readOnly || props.disabled);
 
@@ -138,6 +104,13 @@ const TimePicker: FunctionComponent<ComponentProps> = (
     "flex flex-col items-center justify-center px-1 text-gray-400 hover:text-gray-600" +
     (clickable ? " cursor-pointer" : " cursor-not-allowed");
 
+  const openModal = () => {
+    if (!clickable) return;
+    setTempHours24(hours24);
+    setTempMinutes(minutes);
+    setShowModal(true);
+  };
+
   return (
     <>
       <div
@@ -147,6 +120,13 @@ const TimePicker: FunctionComponent<ComponentProps> = (
               " border-red-300 focus-within:border-red-500 focus-within:ring-red-500"
             : baseClass) + (props.disabled ? " bg-gray-100" : "")
         }
+        role="group"
+        aria-label="Time input"
+        aria-disabled={props.disabled ? true : undefined}
+        aria-describedby={props.error ? "timepicker-error" : undefined}
+        onClick={openModal}
+        aria-haspopup="dialog"
+        aria-expanded={showModal || undefined}
       >
         {/* Hours */}
         <input
@@ -159,26 +139,17 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           tabIndex={props.tabIndex}
           spellCheck={false}
           placeholder={props.placeholder || (userPrefers12h ? "hh" : "HH")}
-          className={inputClass + " rounded-l-md pl-3"}
-          readOnly={props.readOnly || props.disabled || false}
+          className={
+            inputClass +
+            " rounded-l-md pl-3 focus:ring-0 focus-visible:outline-none" +
+            (clickable ? " hover:bg-gray-50" : "")
+          }
+          readOnly={true}
+          aria-label="Hours"
+          aria-invalid={props.error ? true : undefined}
           value={display.hours}
           onFocus={props.onFocus}
-          onBlur={props.onBlur}
-          onKeyDown={(e) => {
-            if (!clickable) return;
-            if (e.key === "ArrowUp") {
-              e.preventDefault();
-              incrementHours(1);
-            }
-            if (e.key === "ArrowDown") {
-              e.preventDefault();
-              incrementHours(-1);
-            }
-          }}
-          onChange={(e) => {
-            if (!clickable) return;
-            setFromInputs(e.target.value, display.minutes, display.isPM);
-          }}
+          onBlur={() => props.onBlur?.()}
         />
 
         <span className="px-1 text-gray-500">:</span>
@@ -191,43 +162,38 @@ const TimePicker: FunctionComponent<ComponentProps> = (
           pattern="[0-9]*"
           spellCheck={false}
           placeholder="mm"
-          className={inputClass + " rounded-r-md pr-1"}
-          readOnly={props.readOnly || props.disabled || false}
+          className={
+            inputClass +
+            " rounded-r-md pr-1 focus:ring-0 focus-visible:outline-none" +
+            (clickable ? " hover:bg-gray-50" : "")
+          }
+          readOnly={true}
+          aria-label="Minutes"
+          aria-invalid={props.error ? true : undefined}
           value={display.minutes}
-          onKeyDown={(e) => {
-            if (!clickable) return;
-            if (e.key === "ArrowUp") {
-              e.preventDefault();
-              incrementMinutes(1);
-            }
-            if (e.key === "ArrowDown") {
-              e.preventDefault();
-              incrementMinutes(-1);
-            }
-          }}
-          onChange={(e) => {
-            if (!clickable) return;
-            setFromInputs(display.hours, e.target.value, display.isPM);
-          }}
+          onBlur={() => props.onBlur?.()}
         />
 
         {/* Steppers */}
-        <div className={buttonClass + " ml-auto mr-1 select-none"}>
+        <div className={buttonClass + " ml-auto mr-1 select-none"}
+             aria-label="Adjust time"
+             role="group"
+             onClick={openModal}>
           <button
             type="button"
-            aria-label="Increase time"
+            aria-label="Open time selector"
             disabled={!clickable}
             className="p-1"
-            onClick={() => incrementMinutes(1)}
+            onClick={openModal}
           >
             <Icon icon={IconProp.ChevronUp} className="h-4 w-4" />
           </button>
           <button
             type="button"
-            aria-label="Decrease time"
+            aria-label="Open time selector"
             disabled={!clickable}
             className="p-1"
-            onClick={() => incrementMinutes(-1)}
+            onClick={openModal}
           >
             <Icon icon={IconProp.ChevronDown} className="h-4 w-4" />
           </button>
@@ -235,7 +201,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
 
         {userPrefers12h && (
           <div className="border-l border-gray-200 pl-2 pr-2 ml-1 mr-1">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1" role="group" aria-label="AM or PM">
               <button
                 type="button"
                 className={
@@ -245,13 +211,9 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                     : "bg-indigo-50 text-indigo-700 border border-indigo-200")
                 }
                 disabled={!clickable}
-                onClick={() => {
-                  if (!display.isPM) return; // already AM
-                  // switch to AM
-                  const h = hours24 >= 12 ? hours24 - 12 : hours24;
-                  setHours24(h);
-                  emitChange(h, minutes);
-                }}
+                aria-pressed={!display.isPM}
+                aria-label="Open time selector for AM/PM"
+                onClick={openModal}
               >
                 AM
               </button>
@@ -264,13 +226,9 @@ const TimePicker: FunctionComponent<ComponentProps> = (
                     : "bg-white text-gray-700 border border-gray-300")
                 }
                 disabled={!clickable}
-                onClick={() => {
-                  if (display.isPM) return; // already PM
-                  // switch to PM
-                  const h = hours24 < 12 ? hours24 + 12 : hours24;
-                  setHours24(h);
-                  emitChange(h, minutes);
-                }}
+                aria-pressed={display.isPM}
+                aria-label="Open time selector for AM/PM"
+                onClick={openModal}
               >
                 PM
               </button>
@@ -285,8 +243,165 @@ const TimePicker: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
+      {/* Time picker modal */}
+      {showModal && (
+        <Modal
+          title="Select time"
+          description={userPrefers12h ? "Choose hours, minutes, and AM/PM" : "Choose hours and minutes"}
+          modalWidth={ModalWidth.Medium}
+          onClose={() => setShowModal(false)}
+          onSubmit={() => {
+            setHours24(tempHours24);
+            setMinutes(tempMinutes);
+            emitChange(tempHours24, tempMinutes);
+            setShowModal(false);
+          }}
+          submitButtonText="Apply"
+        >
+          <div className="p-2">
+            <div className="flex items-center justify-center gap-6">
+              {/* Hours selector */}
+              <div className="flex flex-col items-center">
+                <button
+                  type="button"
+                  aria-label="Increase hours"
+                  className="p-2 rounded hover:bg-gray-50"
+                  onClick={() => setTempHours24((h) => (h + 1) % 24)}
+                >
+                  <Icon icon={IconProp.ChevronUp} className="h-6 w-6" />
+                </button>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  aria-label="Hours"
+                  className="w-20 text-center text-3xl font-semibold py-2 rounded border border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                  value={userPrefers12h ? pad2((((tempHours24 + 11) % 12) + 1)) : pad2(tempHours24)}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, "");
+                    let h = parseInt(raw || "0", 10);
+                    if (userPrefers12h) {
+                      h = clamp(h, 1, 12);
+                      // map back to 24h preserving period
+                      const isPM = tempHours24 >= 12;
+                      let newH = h === 12 ? (isPM ? 12 : 0) : (isPM ? h + 12 : h);
+                      setTempHours24(newH);
+                    } else {
+                      setTempHours24(clamp(h, 0, 23));
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  aria-label="Decrease hours"
+                  className="p-2 rounded hover:bg-gray-50"
+                  onClick={() => setTempHours24((h) => (h + 23) % 24)}
+                >
+                  <Icon icon={IconProp.ChevronDown} className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="text-3xl font-semibold text-gray-500">:</div>
+
+              {/* Minutes selector */}
+              <div className="flex flex-col items-center">
+                <button
+                  type="button"
+                  aria-label="Increase minutes"
+                  className="p-2 rounded hover:bg-gray-50"
+                  onClick={() => {
+                    let m = tempMinutes + 1;
+                    let h = tempHours24;
+                    if (m >= 60) { m = 0; h = (h + 1) % 24; }
+                    setTempMinutes(m);
+                    setTempHours24(h);
+                  }}
+                >
+                  <Icon icon={IconProp.ChevronUp} className="h-6 w-6" />
+                </button>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  aria-label="Minutes"
+                  className="w-20 text-center text-3xl font-semibold py-2 rounded border border-gray-200 focus:ring-2 focus:ring-indigo-500"
+                  value={pad2(tempMinutes)}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, "");
+                    let m = clamp(parseInt(raw || "0", 10), 0, 59);
+                    setTempMinutes(m);
+                  }}
+                />
+                <button
+                  type="button"
+                  aria-label="Decrease minutes"
+                  className="p-2 rounded hover:bg-gray-50"
+                  onClick={() => {
+                    let m = tempMinutes - 1;
+                    let h = tempHours24;
+                    if (m < 0) { m = 59; h = (h + 23) % 24; }
+                    setTempMinutes(m);
+                    setTempHours24(h);
+                  }}
+                >
+                  <Icon icon={IconProp.ChevronDown} className="h-6 w-6" />
+                </button>
+              </div>
+
+              {/* AM/PM */}
+              {userPrefers12h && (
+                <div className="ml-2 flex flex-col items-stretch gap-2">
+                  <button
+                    type="button"
+                    className={`px-3 py-2 rounded text-sm border ${tempHours24 < 12 ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-gray-700 border-gray-300"}`}
+                    aria-pressed={tempHours24 < 12}
+                    onClick={() => {
+                      if (tempHours24 >= 12) setTempHours24(tempHours24 - 12);
+                    }}
+                  >
+                    AM
+                  </button>
+                  <button
+                    type="button"
+                    className={`px-3 py-2 rounded text-sm border ${tempHours24 >= 12 ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-gray-700 border-gray-300"}`}
+                    aria-pressed={tempHours24 >= 12}
+                    onClick={() => {
+                      if (tempHours24 < 12) setTempHours24(tempHours24 + 12);
+                    }}
+                  >
+                    PM
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Quick minutes */}
+            <div className="mt-6">
+              <div className="text-sm text-gray-500 mb-2">Quick minutes</div>
+              <div className="grid grid-cols-6 gap-2">
+                {[0, 5, 10, 15, 30, 45].map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    className={`px-2 py-1 rounded border text-sm ${tempMinutes === m ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-gray-700 border-gray-300"}`}
+                    onClick={() => setTempMinutes(m)}
+                  >
+                    {pad2(m)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
+        <p
+          id="timepicker-error"
+          data-testid="error-message"
+          className="mt-1 text-sm text-red-400"
+          aria-live="polite"
+        >
           {props.error}
         </p>
       )}
