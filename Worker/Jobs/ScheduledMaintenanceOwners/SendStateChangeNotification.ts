@@ -25,10 +25,7 @@ import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/
 import { Blue500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import UserService from "Common/Server/Services/UserService";
-import {
-  createWhatsAppMessageFromTemplate,
-  getWhatsAppTemplateStringForEventType,
-} from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendStateChangeEmail",
@@ -176,8 +173,6 @@ RunCron(
           NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION;
 
         const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          templateString: getWhatsAppTemplateStringForEventType(eventType),
-          actionLink: vars["scheduledMaintenanceViewLink"],
           eventType,
           templateVariables: {
             event_title: scheduledMaintenance.title!,

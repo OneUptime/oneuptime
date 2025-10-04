@@ -15,10 +15,7 @@ import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import User from "Common/Models/DatabaseModels/User";
-import {
-  createWhatsAppMessageFromTemplate,
-  getWhatsAppTemplateStringForEventType,
-} from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 
 RunCron(
   "StatusPageOwner:SendCreatedResourceEmail",
@@ -131,8 +128,6 @@ RunCron(
           NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION;
 
         const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          templateString: getWhatsAppTemplateStringForEventType(eventType),
-          actionLink: vars["statusPageViewLink"],
           eventType,
           templateVariables: {
             status_page_name: statusPage.name!,

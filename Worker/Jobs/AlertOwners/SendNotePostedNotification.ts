@@ -15,10 +15,7 @@ import AlertService from "Common/Server/Services/AlertService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
-import {
-  createWhatsAppMessageFromTemplate,
-  getWhatsAppTemplateStringForEventType,
-} from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
@@ -189,8 +186,6 @@ RunCron(
           NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION;
 
         const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          templateString: getWhatsAppTemplateStringForEventType(eventType),
-          actionLink: vars["alertViewLink"],
           eventType,
           templateVariables: {
             alert_title: alert.title!,

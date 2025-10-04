@@ -24,10 +24,7 @@ import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { Yellow500 } from "Common/Types/BrandColors";
 import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import ObjectID from "Common/Types/ObjectID";
-import {
-  createWhatsAppMessageFromTemplate,
-  getWhatsAppTemplateStringForEventType,
-} from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 
 RunCron(
   "AlertOwner:SendCreatedResourceEmail",
@@ -196,8 +193,6 @@ RunCron(
             NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION;
 
           const whatsAppMessage = createWhatsAppMessageFromTemplate({
-            templateString: getWhatsAppTemplateStringForEventType(eventType),
-            actionLink: vars["alertViewLink"],
             eventType,
             templateVariables: {
               alert_title: alert.title!,

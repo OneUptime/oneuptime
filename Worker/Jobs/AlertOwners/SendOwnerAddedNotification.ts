@@ -15,10 +15,7 @@ import AlertService from "Common/Server/Services/AlertService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
-import {
-  createWhatsAppMessageFromTemplate,
-  getWhatsAppTemplateStringForEventType,
-} from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
@@ -218,8 +215,6 @@ RunCron(
           NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION;
 
         const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          templateString: getWhatsAppTemplateStringForEventType(eventType),
-          actionLink: vars["alertViewLink"],
           eventType,
           templateVariables: {
             alert_title: alert.title!,

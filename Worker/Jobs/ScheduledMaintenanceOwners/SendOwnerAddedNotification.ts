@@ -20,10 +20,7 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import User from "Common/Models/DatabaseModels/User";
-import {
-  createWhatsAppMessageFromTemplate,
-  getWhatsAppTemplateStringForEventType,
-} from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendOwnerAddedEmail",
@@ -234,8 +231,6 @@ RunCron(
           NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION;
 
         const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          templateString: getWhatsAppTemplateStringForEventType(eventType),
-          actionLink: vars["scheduledMaintenanceViewLink"],
           eventType,
           templateVariables: {
             event_title: scheduledMaintenance.title!,

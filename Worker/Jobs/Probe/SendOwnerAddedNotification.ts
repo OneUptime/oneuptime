@@ -14,10 +14,7 @@ import ProbeOwnerUserService from "Common/Server/Services/ProbeOwnerUserService"
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
-import {
-  createWhatsAppMessageFromTemplate,
-  getWhatsAppTemplateStringForEventType,
-} from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import User from "Common/Models/DatabaseModels/User";
@@ -196,8 +193,6 @@ RunCron(
           NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION;
 
         const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          templateString: getWhatsAppTemplateStringForEventType(eventType),
-          actionLink: vars["viewProbeLink"],
           eventType,
           templateVariables: {
             probe_name: probe.name!,

@@ -33,10 +33,7 @@ import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
-import {
-  createWhatsAppMessageFromTemplate,
-  getWhatsAppTemplateStringForEventType,
-} from "../Utils/WhatsAppTemplateUtil";
+import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -395,8 +392,6 @@ export class Service extends DatabaseService<Model> {
           NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION;
 
         const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          templateString: getWhatsAppTemplateStringForEventType(eventType),
-          actionLink: vars["viewProbesLink"],
           eventType,
           templateVariables: {
             probe_name: probe.name!,

@@ -22,10 +22,7 @@ import PushNotificationMessage from "../../Types/PushNotification/PushNotificati
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
-import {
-  createWhatsAppMessageFromTemplate,
-  getWhatsAppTemplateStringForEventType,
-} from "../Utils/WhatsAppTemplateUtil";
+import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
@@ -125,8 +122,6 @@ export class Service extends DatabaseService<Model> {
       NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY;
 
     const whatsAppMessage = createWhatsAppMessageFromTemplate({
-      templateString: getWhatsAppTemplateStringForEventType(eventType),
-      actionLink: vars["onCallPolicyViewLink"],
       eventType,
       templateVariables: {
         on_call_policy_name:
@@ -345,8 +340,6 @@ export class Service extends DatabaseService<Model> {
         NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY;
 
       const whatsAppMessage = createWhatsAppMessageFromTemplate({
-        templateString: getWhatsAppTemplateStringForEventType(eventType),
-        actionLink: vars["onCallPolicyViewLink"],
         eventType,
         templateVariables: {
           on_call_policy_name:

@@ -25,10 +25,7 @@ import User from "Common/Models/DatabaseModels/User";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
-import {
-  createWhatsAppMessageFromTemplate,
-  getWhatsAppTemplateStringForEventType,
-} from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 
 RunCron(
   "IncidentOwner:SendsNotePostedEmail",
@@ -226,8 +223,6 @@ RunCron(
           NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION;
 
         const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          templateString: getWhatsAppTemplateStringForEventType(eventType),
-          actionLink: vars["incidentViewLink"],
           eventType,
           templateVariables: {
             incident_title: incident.title!,

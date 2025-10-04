@@ -15,10 +15,7 @@ import IncidentService from "Common/Server/Services/IncidentService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
-import {
-  createWhatsAppMessageFromTemplate,
-  getWhatsAppTemplateStringForEventType,
-} from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
@@ -224,8 +221,6 @@ RunCron(
           NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION;
 
         const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          templateString: getWhatsAppTemplateStringForEventType(eventType),
-          actionLink: vars["incidentViewLink"],
           eventType,
           templateVariables: {
             incident_title: incident.title!,

@@ -36,10 +36,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnDelete } from "../Types/Database/Hooks";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
-import {
-  createWhatsAppMessageFromTemplate,
-  getWhatsAppTemplateStringForEventType,
-} from "../Utils/WhatsAppTemplateUtil";
+import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 
 export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   private layerUtil = new LayerUtil();
@@ -273,8 +270,6 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER;
 
           const whatsAppMessage = createWhatsAppMessageFromTemplate({
-            templateString: getWhatsAppTemplateStringForEventType(eventType),
-            actionLink: vars["onCallPolicyViewLink"],
             eventType,
             templateVariables: {
               on_call_policy_name: onCallPolicy.name!,
@@ -407,8 +402,6 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER;
 
           const whatsAppMessage = createWhatsAppMessageFromTemplate({
-            templateString: getWhatsAppTemplateStringForEventType(eventType),
-            actionLink: vars["onCallPolicyViewLink"],
             eventType,
             templateVariables: {
               on_call_policy_name: onCallPolicy.name!,
@@ -561,8 +554,6 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER;
 
           const whatsAppMessage = createWhatsAppMessageFromTemplate({
-            templateString: getWhatsAppTemplateStringForEventType(eventType),
-            actionLink: vars["onCallPolicyViewLink"],
             eventType,
             templateVariables: {
               on_call_policy_name: onCallPolicy.name!,

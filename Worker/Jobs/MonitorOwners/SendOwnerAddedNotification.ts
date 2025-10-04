@@ -15,10 +15,7 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
-import {
-  createWhatsAppMessageFromTemplate,
-  getWhatsAppTemplateStringForEventType,
-} from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorOwnerTeam from "Common/Models/DatabaseModels/MonitorOwnerTeam";
@@ -210,8 +207,6 @@ RunCron(
           NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION;
 
         const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          templateString: getWhatsAppTemplateStringForEventType(eventType),
-          actionLink: vars["monitorViewLink"],
           eventType,
           templateVariables: {
             monitor_name: monitor.name!,

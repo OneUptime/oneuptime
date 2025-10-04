@@ -20,10 +20,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
 import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUser";
 import User from "Common/Models/DatabaseModels/User";
-import {
-  createWhatsAppMessageFromTemplate,
-  getWhatsAppTemplateStringForEventType,
-} from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 
 RunCron(
   "StatusPageOwner:SendOwnerAddedEmail",
@@ -212,8 +209,6 @@ RunCron(
           NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION;
 
         const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          templateString: getWhatsAppTemplateStringForEventType(eventType),
-          actionLink: vars["statusPageViewLink"],
           eventType,
           templateVariables: {
             status_page_name: statusPage.name!,
