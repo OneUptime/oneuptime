@@ -69,6 +69,10 @@ import logger from "../Utils/Logger";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import Project from "../../Models/DatabaseModels/Project";
+import {
+  createWhatsAppMessageFromTemplate,
+  getWhatsAppTemplateStringForEventType,
+} from "../Utils/WhatsAppTemplateUtil";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -1191,6 +1195,20 @@ ${createdItem.description?.trim() || "No description provided."}
         ],
       };
 
+      const eventType =
+        NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR;
+
+      const whatsAppMessage = createWhatsAppMessageFromTemplate({
+        templateString: getWhatsAppTemplateStringForEventType(eventType),
+        actionLink: vars["monitorViewLink"],
+        eventType,
+        templateVariables: {
+          monitor_name: monitor.name!,
+          probe_status: enabledStatus,
+          action_link: vars["monitorViewLink"] || "",
+        },
+      });
+
       await UserNotificationSettingService.sendUserNotification({
         userId: owner.id!,
         projectId: monitor.projectId!,
@@ -1205,8 +1223,8 @@ ${createdItem.description?.trim() || "No description provided."}
             monitorId: monitor.id!.toString(),
             monitorName: monitor.name!,
           }),
-        eventType:
-          NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
+        whatsAppMessage,
+        eventType,
       });
     }
   }
@@ -1298,6 +1316,20 @@ ${createdItem.description?.trim() || "No description provided."}
         ],
       };
 
+      const eventType =
+        NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES;
+
+      const whatsAppMessage = createWhatsAppMessageFromTemplate({
+        templateString: getWhatsAppTemplateStringForEventType(eventType),
+        actionLink: vars["monitorViewLink"],
+        eventType,
+        templateVariables: {
+          monitor_name: monitor.name!,
+          probe_status: status,
+          action_link: vars["monitorViewLink"] || "",
+        },
+      });
+
       await UserNotificationSettingService.sendUserNotification({
         userId: owner.id!,
         projectId: monitor.projectId!,
@@ -1309,8 +1341,8 @@ ${createdItem.description?.trim() || "No description provided."}
             monitorName: monitor.name!,
             monitorId: monitor.id!.toString(),
           }),
-        eventType:
-          NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
+        whatsAppMessage,
+        eventType,
       });
     }
   }

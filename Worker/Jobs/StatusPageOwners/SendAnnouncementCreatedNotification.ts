@@ -18,6 +18,10 @@ import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import User from "Common/Models/DatabaseModels/User";
+import {
+  createWhatsAppMessageFromTemplate,
+  getWhatsAppTemplateStringForEventType,
+} from "Common/Server/Utils/WhatsAppTemplateUtil";
 
 RunCron(
   "StatusPageOwner:SendAnnouncementCreatedEmail",
@@ -111,19 +115,35 @@ RunCron(
             ],
           };
 
+          const statusPageLink: string = (
+            await StatusPageService.getStatusPageLinkInDashboard(
+              announcement.projectId!,
+              statusPage.id!,
+            )
+          ).toString();
+
           const pushMessage: PushNotificationMessage =
             PushNotificationUtil.createGenericNotification({
               title: "Status Page Announcement Created",
               body: `New announcement posted on status page ${statusPage.name}: ${announcement.title}. Click to view details.`,
-              clickAction: (
-                await StatusPageService.getStatusPageLinkInDashboard(
-                  announcement.projectId!,
-                  statusPage.id!,
-                )
-              ).toString(),
+              clickAction: statusPageLink,
               tag: "status-page-announcement-created",
               requireInteraction: false,
             });
+
+          const eventType =
+            NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION;
+
+          const whatsAppMessage = createWhatsAppMessageFromTemplate({
+            templateString: getWhatsAppTemplateStringForEventType(eventType),
+            actionLink: statusPageLink,
+            eventType,
+            templateVariables: {
+              status_page_name: statusPage.name!,
+              announcement_title: announcement.title!,
+              action_link: statusPageLink || "",
+            },
+          });
 
           // Send notifications via settings service with context for logs
           await UserNotificationSettingService.sendUserNotification({
@@ -131,10 +151,10 @@ RunCron(
             projectId: announcement.projectId!,
             emailEnvelope: emailMessage,
             smsMessage: sms,
+            whatsAppMessage,
             callRequestMessage: callMessage,
             pushNotificationMessage: pushMessage,
-            eventType:
-              NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION,
+            eventType,
             statusPageAnnouncementId: announcement.id!,
           } as any);
         }

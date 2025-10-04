@@ -13,6 +13,10 @@ import IncidentService from "Common/Server/Services/IncidentService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
+import {
+  createWhatsAppMessageFromTemplate,
+  getWhatsAppTemplateStringForEventType,
+} from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Select from "Common/Server/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger from "Common/Server/Utils/Logger";
@@ -200,6 +204,20 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
               ).toString(),
             });
 
+          const eventType =
+            NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION;
+
+          const whatsAppMessage = createWhatsAppMessageFromTemplate({
+            templateString: getWhatsAppTemplateStringForEventType(eventType),
+            actionLink: vars["incidentViewLink"],
+            eventType,
+            templateVariables: {
+              incident_title: incident.title!,
+              project_name: incident.project!.name!,
+              action_link: vars["incidentViewLink"] || "",
+            },
+          });
+
           await UserNotificationSettingService.sendUserNotification({
             userId: user.id!,
             projectId: incident.projectId!,
@@ -207,9 +225,9 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
             smsMessage: sms,
             callRequestMessage: callMessage,
             pushNotificationMessage: pushMessage,
+            whatsAppMessage,
             incidentId: incident.id!,
-            eventType:
-              NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+            eventType,
           });
 
           moreIncidentFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email})\n`;

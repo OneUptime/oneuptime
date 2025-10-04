@@ -20,6 +20,10 @@ import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCal
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
+import {
+  createWhatsAppMessageFromTemplate,
+  getWhatsAppTemplateStringForEventType,
+} from "../Utils/WhatsAppTemplateUtil";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -135,6 +139,22 @@ export class Service extends DatabaseService<Model> {
         policyName: createdModel.onCallDutyPolicy?.name || "No name provided",
       });
 
+    const eventType =
+      NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY;
+
+    const whatsAppMessage = createWhatsAppMessageFromTemplate({
+      templateString: getWhatsAppTemplateStringForEventType(eventType),
+      actionLink: vars["onCallPolicyViewLink"],
+      eventType,
+      templateVariables: {
+        on_call_policy_name:
+          createdModel.onCallDutyPolicy?.name || "No name provided",
+        schedule_name: scheduleName,
+        on_call_context: `schedule ${scheduleName}`,
+        action_link: vars["onCallPolicyViewLink"] || "",
+      },
+    });
+
     await UserNotificationSettingService.sendUserNotification({
       userId: sendEmailToUserId,
       projectId: createdModel!.projectId!,
@@ -142,8 +162,8 @@ export class Service extends DatabaseService<Model> {
       smsMessage: sms,
       callRequestMessage: callMessage,
       pushNotificationMessage: pushMessage,
-      eventType:
-        NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
+      whatsAppMessage,
+      eventType,
     });
 
     // add workspace message.
@@ -317,6 +337,22 @@ export class Service extends DatabaseService<Model> {
           policyName: deletedItem.onCallDutyPolicy?.name || "No name provided",
         });
 
+      const eventType =
+        NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY;
+
+      const whatsAppMessage = createWhatsAppMessageFromTemplate({
+        templateString: getWhatsAppTemplateStringForEventType(eventType),
+        actionLink: vars["onCallPolicyViewLink"],
+        eventType,
+        templateVariables: {
+          on_call_policy_name:
+            deletedItem.onCallDutyPolicy?.name || "No name provided",
+          schedule_name: scheduleName,
+          on_call_context: `schedule ${scheduleName}`,
+          action_link: vars["onCallPolicyViewLink"] || "",
+        },
+      });
+
       await UserNotificationSettingService.sendUserNotification({
         userId: sendEmailToUserId,
         projectId: deletedItem!.projectId!,
@@ -324,8 +360,8 @@ export class Service extends DatabaseService<Model> {
         smsMessage: sms,
         callRequestMessage: callMessage,
         pushNotificationMessage: pushMessage,
-        eventType:
-          NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
+        whatsAppMessage,
+        eventType,
       });
     }
 

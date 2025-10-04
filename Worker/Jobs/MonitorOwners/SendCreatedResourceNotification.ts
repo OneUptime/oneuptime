@@ -12,6 +12,10 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
+import {
+  createWhatsAppMessageFromTemplate,
+  getWhatsAppTemplateStringForEventType,
+} from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
@@ -117,6 +121,19 @@ RunCron(
             monitorId: monitor.id!.toString(),
           });
 
+        const eventType =
+          NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION;
+
+        const whatsAppMessage = createWhatsAppMessageFromTemplate({
+          templateString: getWhatsAppTemplateStringForEventType(eventType),
+          actionLink: vars["monitorViewLink"],
+          eventType,
+          templateVariables: {
+            monitor_name: monitor.name!,
+            action_link: vars["monitorViewLink"] || "",
+          },
+        });
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: monitor.projectId!,
@@ -124,8 +141,8 @@ RunCron(
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
-          eventType:
-            NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION,
+          whatsAppMessage,
+          eventType,
         });
       }
     }

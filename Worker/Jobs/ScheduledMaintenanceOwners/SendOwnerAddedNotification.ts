@@ -20,6 +20,10 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import User from "Common/Models/DatabaseModels/User";
+import {
+  createWhatsAppMessageFromTemplate,
+  getWhatsAppTemplateStringForEventType,
+} from "Common/Server/Utils/WhatsAppTemplateUtil";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendOwnerAddedEmail",
@@ -226,6 +230,19 @@ RunCron(
             requireInteraction: false,
           });
 
+        const eventType =
+          NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION;
+
+        const whatsAppMessage = createWhatsAppMessageFromTemplate({
+          templateString: getWhatsAppTemplateStringForEventType(eventType),
+          actionLink: vars["scheduledMaintenanceViewLink"],
+          eventType,
+          templateVariables: {
+            event_title: scheduledMaintenance.title!,
+            action_link: vars["scheduledMaintenanceViewLink"] || "",
+          },
+        });
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: scheduledMaintenance.projectId!,
@@ -233,9 +250,9 @@ RunCron(
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
+          whatsAppMessage,
           scheduledMaintenanceId: scheduledMaintenance.id!,
-          eventType:
-            NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION,
+          eventType,
         });
       }
     }

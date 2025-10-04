@@ -25,6 +25,10 @@ import User from "Common/Models/DatabaseModels/User";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
+import {
+  createWhatsAppMessageFromTemplate,
+  getWhatsAppTemplateStringForEventType,
+} from "Common/Server/Utils/WhatsAppTemplateUtil";
 
 RunCron(
   "IncidentOwner:SendsNotePostedEmail",
@@ -218,6 +222,19 @@ RunCron(
             ).toString(),
           });
 
+        const eventType =
+          NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION;
+
+        const whatsAppMessage = createWhatsAppMessageFromTemplate({
+          templateString: getWhatsAppTemplateStringForEventType(eventType),
+          actionLink: vars["incidentViewLink"],
+          eventType,
+          templateVariables: {
+            incident_title: incident.title!,
+            action_link: vars["incidentViewLink"] || "",
+          },
+        });
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: incident.projectId!,
@@ -225,9 +242,9 @@ RunCron(
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
+          whatsAppMessage,
           incidentId: incident.id!,
-          eventType:
-            NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
+          eventType,
         });
 
         moreIncidentFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;

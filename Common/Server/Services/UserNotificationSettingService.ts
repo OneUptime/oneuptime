@@ -21,12 +21,15 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { SMSMessage } from "../../Types/SMS/SMS";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
-import WhatsAppMessage from "../../Types/WhatsApp/WhatsAppMessage";
+import WhatsAppMessage, {
+  WhatsAppMessagePayload,
+} from "../../Types/WhatsApp/WhatsAppMessage";
 import UserCall from "../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../Models/DatabaseModels/UserEmail";
 import UserNotificationSetting from "../../Models/DatabaseModels/UserNotificationSetting";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { appendRecipientToWhatsAppMessage } from "../Utils/WhatsAppTemplateUtil";
 
 export class Service extends DatabaseService<UserNotificationSetting> {
   public constructor() {
@@ -41,8 +44,8 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     emailEnvelope: EmailEnvelope;
     smsMessage: SMSMessage;
     callRequestMessage: CallRequestMessage;
-  pushNotificationMessage: PushNotificationMessage;
-  whatsAppMessage?: WhatsAppMessage | undefined;
+    pushNotificationMessage: PushNotificationMessage;
+    whatsAppMessage: WhatsAppMessagePayload;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
     scheduledMaintenanceId?: ObjectID | undefined;
@@ -195,10 +198,11 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           );
         } else {
           for (const userWhatsApp of userWhatsApps) {
-            const whatsAppMessage: WhatsAppMessage = {
-              ...data.whatsAppMessage,
-              to: userWhatsApp.phone!,
-            };
+            const whatsAppMessage: WhatsAppMessage =
+              appendRecipientToWhatsAppMessage(
+                data.whatsAppMessage,
+                userWhatsApp.phone!,
+              );
 
             WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
               projectId: data.projectId,

@@ -26,6 +26,10 @@ import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import UserService from "Common/Server/Services/UserService";
 
+import {
+  createWhatsAppMessageFromTemplate,
+  getWhatsAppTemplateStringForEventType,
+} from "Common/Server/Utils/WhatsAppTemplateUtil";
 RunCron(
   "AlertOwner:SendStateChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -203,6 +207,20 @@ RunCron(
             requireInteraction: true,
           });
 
+        const eventType =
+          NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION;
+
+        const whatsAppMessage = createWhatsAppMessageFromTemplate({
+          templateString: getWhatsAppTemplateStringForEventType(eventType),
+          actionLink: vars["alertViewLink"],
+          eventType,
+          templateVariables: {
+            alert_title: alert.title!,
+            alert_state: alertState!.name!,
+            action_link: vars["alertViewLink"] || "",
+          },
+        });
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: alertStateTimeline.projectId!,
@@ -210,9 +228,9 @@ RunCron(
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
+          whatsAppMessage,
           alertId: alert.id!,
-          eventType:
-            NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
+          eventType,
         });
 
         moreAlertFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
