@@ -199,6 +199,7 @@ RunCron(
             templateVariables: {
               probe_name: probe.name!,
               action_link: vars["viewProbeLink"] || "",
+              probe_link_on_dashboard: vars["viewProbeLink"] || "",
             },
           });
 

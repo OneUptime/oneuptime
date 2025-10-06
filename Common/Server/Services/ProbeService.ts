@@ -399,6 +399,7 @@ export class Service extends DatabaseService<Model> {
               probe_name: probe.name!,
               probe_status: connectionStatus,
               action_link: vars["viewProbesLink"] || "",
+              probe_link_on_dashboard: vars["viewProbesLink"] || "",
             },
           });
 

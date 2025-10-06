@@ -10,6 +10,68 @@ import WhatsAppMessage, {
 
 const DEFAULT_ACTION_LINK: string = "https://oneuptime.com/dashboard";
 
+const templateDashboardLinkVariableMap: Partial<
+  Record<WhatsAppTemplateId, string>
+> = {
+  [WhatsAppTemplateIds.AlertCreated]: "alert_link_on_dashboard",
+  [WhatsAppTemplateIds.AlertCreatedOwnerNotification]:
+    "alert_link_on_dashboard",
+  [WhatsAppTemplateIds.AlertNotePostedOwnerNotification]:
+    "alert_link_on_dashboard",
+  [WhatsAppTemplateIds.AlertStateChangedOwnerNotification]:
+    "alert_link_on_dashboard",
+  [WhatsAppTemplateIds.AlertOwnerAddedNotification]:
+    "alert_link_on_dashboard",
+  [WhatsAppTemplateIds.IncidentCreated]: "incident_link_on_dashboard",
+  [WhatsAppTemplateIds.IncidentCreatedOwnerNotification]:
+    "incident_link_on_dashboard",
+  [WhatsAppTemplateIds.IncidentNotePostedOwnerNotification]:
+    "incident_link_on_dashboard",
+  [WhatsAppTemplateIds.IncidentStateChangedOwnerNotification]:
+    "incident_link_on_dashboard",
+  [WhatsAppTemplateIds.IncidentOwnerAddedNotification]:
+    "incident_link_on_dashboard",
+  [WhatsAppTemplateIds.MonitorOwnerAddedNotification]:
+    "monitor_link_on_dashboard",
+  [WhatsAppTemplateIds.MonitorCreatedOwnerNotification]:
+    "monitor_link_on_dashboard",
+  [WhatsAppTemplateIds.MonitorStatusChangedOwnerNotification]:
+    "monitor_link_on_dashboard",
+  [WhatsAppTemplateIds.MonitorProbeStatusChangedNotification]:
+    "monitor_link_on_dashboard",
+  [WhatsAppTemplateIds.MonitorNoProbesMonitoringNotification]:
+    "monitor_link_on_dashboard",
+  [WhatsAppTemplateIds.ScheduledMaintenanceCreatedOwnerNotification]:
+    "scheduled_maintenance_link_on_dashboard",
+  [WhatsAppTemplateIds.ScheduledMaintenanceNotePostedOwnerNotification]:
+    "scheduled_maintenance_link_on_dashboard",
+  [WhatsAppTemplateIds.ScheduledMaintenanceOwnerAddedNotification]:
+    "scheduled_maintenance_link_on_dashboard",
+  [WhatsAppTemplateIds.ScheduledMaintenanceStateChangedOwnerNotification]:
+    "scheduled_maintenance_link_on_dashboard",
+  [WhatsAppTemplateIds.StatusPageAnnouncementCreatedOwnerNotification]:
+    "status_page_link_on_dashboard",
+  [WhatsAppTemplateIds.StatusPageCreatedOwnerNotification]:
+    "status_page_link_on_dashboard",
+  [WhatsAppTemplateIds.StatusPageOwnerAddedNotification]:
+    "status_page_link_on_dashboard",
+  [WhatsAppTemplateIds.ProbeStatusChangedOwnerNotification]:
+    "probe_link_on_dashboard",
+  [WhatsAppTemplateIds.ProbeOwnerAddedNotification]:
+    "probe_link_on_dashboard",
+  [WhatsAppTemplateIds.OnCallUserIsOnRosterNotification]:
+    "on_call_schedule_link_on_dashboard",
+  [WhatsAppTemplateIds.OnCallUserIsNextNotification]:
+    "on_call_schedule_link_on_dashboard",
+  [WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification]:
+    "on_call_schedule_link_on_dashboard",
+  [WhatsAppTemplateIds.OnCallUserAddedToPolicyNotification]:
+    "on_call_policy_link_on_dashboard",
+  [WhatsAppTemplateIds.OnCallUserRemovedFromPolicyNotification]:
+    "on_call_policy_link_on_dashboard",
+  [WhatsAppTemplateIds.VerificationCode]: "oneuptime_dashboard_link",
+};
+
 const templateIdByEventType: Record<
   NotificationSettingEventType,
   WhatsAppTemplateId
@@ -155,6 +217,19 @@ export function createWhatsAppMessageFromTemplate({
     ...(templateVariables ?? {}),
     action_link: resolvedActionLink,
   };
+
+  const dashboardLinkVariableName: string | undefined =
+    templateDashboardLinkVariableMap[resolvedTemplateKey];
+
+  if (dashboardLinkVariableName) {
+    const providedLink: string | undefined =
+      templateVariablesWithDefaults[dashboardLinkVariableName] ??
+      templateVariables?.[dashboardLinkVariableName];
+
+    const finalLink: string = (providedLink || resolvedActionLink).trim();
+
+    templateVariablesWithDefaults[dashboardLinkVariableName] = finalLink;
+  }
 
   const resolvedTemplateContent: string | undefined =
     templateString ?? WhatsAppTemplateMessages[resolvedTemplateKey];

@@ -180,6 +180,8 @@ RunCron(
               event_title: scheduledMaintenance.title!,
               event_state: scheduledMaintenanceState!.name!,
               action_link: vars["scheduledMaintenanceViewLink"] || "",
+              scheduled_maintenance_link_on_dashboard:
+                vars["scheduledMaintenanceViewLink"] || "",
             },
           });
 

@@ -1132,6 +1132,16 @@ export class Service extends DatabaseService<Model> {
     const acknowledgeUrl: URL =
       await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
 
+    const alertLinkOnDashboard: string =
+      alert.projectId && alert.id
+        ? (
+            await AlertService.getAlertLinkInDashboard(
+              alert.projectId,
+              alert.id,
+            )
+          ).toString()
+        : acknowledgeUrl.toString();
+
     const templateKey: WhatsAppTemplateId = WhatsAppTemplateIds.AlertCreated;
     const templateVariables: Record<string, string> = {
       project_name: alert.project?.name || "OneUptime",
@@ -1139,6 +1149,7 @@ export class Service extends DatabaseService<Model> {
       acknowledge_url: acknowledgeUrl.toString(),
       alert_number:
         alert.alertNumber !== undefined ? alert.alertNumber.toString() : "",
+      alert_link_on_dashboard: alertLinkOnDashboard,
     };
 
     const body: string = renderWhatsAppTemplate(templateKey, templateVariables);
@@ -1175,6 +1186,16 @@ export class Service extends DatabaseService<Model> {
     const acknowledgeUrl: URL =
       await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
 
+    const incidentLinkOnDashboard: string =
+      incident.projectId && incident.id
+        ? (
+            await IncidentService.getIncidentLinkInDashboard(
+              incident.projectId,
+              incident.id,
+            )
+          ).toString()
+        : acknowledgeUrl.toString();
+
     const templateKey: WhatsAppTemplateId = WhatsAppTemplateIds.IncidentCreated;
     const templateVariables: Record<string, string> = {
       project_name: incident.project?.name || "OneUptime",
@@ -1184,6 +1205,7 @@ export class Service extends DatabaseService<Model> {
         incident.incidentNumber !== undefined
           ? incident.incidentNumber.toString()
           : "",
+      incident_link_on_dashboard: incidentLinkOnDashboard,
     };
 
     const body: string = renderWhatsAppTemplate(templateKey, templateVariables);

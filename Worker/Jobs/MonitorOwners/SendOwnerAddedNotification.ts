@@ -213,6 +213,7 @@ RunCron(
             templateVariables: {
               monitor_name: monitor.name!,
               action_link: vars["monitorViewLink"] || "",
+              monitor_link_on_dashboard: vars["monitorViewLink"] || "",
             },
           });
 

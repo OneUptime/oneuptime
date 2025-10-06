@@ -197,6 +197,7 @@ RunCron(
             templateVariables: {
               alert_title: alert.title!,
               action_link: vars["alertViewLink"] || "",
+              alert_link_on_dashboard: vars["alertViewLink"] || "",
               alert_number:
                 alert.alertNumber !== undefined
                   ? alert.alertNumber.toString()

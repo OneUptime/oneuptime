@@ -215,6 +215,7 @@ RunCron(
             templateVariables: {
               status_page_name: statusPage.name!,
               action_link: vars["statusPageViewLink"] || "",
+              status_page_link_on_dashboard: vars["statusPageViewLink"] || "",
             },
           });
 

@@ -238,6 +238,7 @@ RunCron(
                 incident.incidentNumber !== undefined
                   ? incident.incidentNumber.toString()
                   : "",
+              incident_link_on_dashboard: vars["incidentViewLink"] || "",
             },
           });
 
