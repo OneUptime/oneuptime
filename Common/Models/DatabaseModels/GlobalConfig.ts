@@ -359,25 +359,6 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
-    title: "Meta WhatsApp API Version",
-    description:
-      "Optional Graph API version to use (for example, v18.0). Leave empty to use the default.",
-  })
-  @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
-    nullable: true,
-    unique: true,
-  })
-  public metaWhatsAppApiVersion?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ShortText,
     title: "Email Server Type",
     description: "Email Server Type",
   })

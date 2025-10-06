@@ -3,6 +3,7 @@ import {
   WhatsAppTextHighRiskCostInCents,
   getMetaWhatsAppConfig,
   MetaWhatsAppConfig,
+  DEFAULT_META_WHATSAPP_API_VERSION,
 } from "../Config";
 import { isHighRiskPhoneNumber } from "Common/Types/Call/CallRequest";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -26,7 +27,6 @@ import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 
-const DEFAULT_META_WHATSAPP_API_VERSION: string = "v18.0";
 const SENSITIVE_MESSAGE_PLACEHOLDER: string =
   "This message is sensitive and is not logged";
 

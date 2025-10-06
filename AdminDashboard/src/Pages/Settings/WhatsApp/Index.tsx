@@ -60,7 +60,7 @@ const buildWhatsAppSetupMarkdown = (): string => {
     "2. From **Business Settings → Accounts → WhatsApp Accounts**, create or select the account that owns your sender phone number.",
     "3. Under **WhatsApp Manager → API Setup**, generate a long-lived access token and copy the phone number ID.",
     "4. Paste the access token and phone number ID into the **Meta WhatsApp Settings** card above, then save.",
-    "5. (Optional) Record the Business Account ID, App ID, App Secret, and preferred Graph API version if you use signed webhooks or Meta app features.",
+    "5. (Optional) Record the Business Account ID, App ID, and App Secret if you use signed webhooks or Meta app features.",
     "6. Create each template listed below in the Meta WhatsApp Manager. Make sure the template name, language, and variables match exactly.",
     "7. Send a test notification from OneUptime to confirm that WhatsApp delivery succeeds.",
   ].join("\n");
@@ -225,18 +225,6 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               "Optional Facebook App Secret used for webhook signature verification.",
             placeholder: "Facebook App Secret",
           },
-          {
-            field: {
-              metaWhatsAppApiVersion: true,
-            },
-            title: "Graph API Version",
-            stepId: "meta-app",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            description:
-              "Optional Graph API version (for example, v18.0). Leave blank to use the default.",
-            placeholder: "v18.0",
-          },
         ]}
         modelDetailProps={{
           modelType: GlobalConfig,
@@ -281,14 +269,6 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               title: "App Secret",
               fieldType: FieldType.HiddenText,
               placeholder: "Not Configured",
-            },
-            {
-              field: {
-                metaWhatsAppApiVersion: true,
-              },
-              title: "Graph API Version",
-              fieldType: FieldType.Text,
-              placeholder: "Default",
             },
           ],
           modelId: ObjectID.getZeroObjectID(),

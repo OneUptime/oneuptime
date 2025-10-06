@@ -12,6 +12,8 @@ import Phone from "Common/Types/Phone";
 
 type GetGlobalSMTPConfig = () => Promise<EmailServer | null>;
 
+export const DEFAULT_META_WHATSAPP_API_VERSION: string = "v18.0";
+
 export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
   async (): Promise<EmailServer | null> => {
     const globalConfig: GlobalConfig | null =
@@ -249,7 +251,6 @@ export const getMetaWhatsAppConfig: GetMetaWhatsAppConfigFunction =
           metaWhatsAppBusinessAccountId: true,
           metaWhatsAppAppId: true,
           metaWhatsAppAppSecret: true,
-          metaWhatsAppApiVersion: true,
         },
       });
 
@@ -258,11 +259,9 @@ export const getMetaWhatsAppConfig: GetMetaWhatsAppConfigFunction =
     }
 
     const accessToken: string | undefined =
-      globalConfig.metaWhatsAppAccessToken?.trim() ||
-      process.env["META_WHATSAPP_ACCESS_TOKEN"]?.trim();
+      globalConfig.metaWhatsAppAccessToken?.trim();
     const phoneNumberId: string | undefined =
-      globalConfig.metaWhatsAppPhoneNumberId?.trim() ||
-      process.env["META_WHATSAPP_PHONE_NUMBER_ID"]?.trim();
+      globalConfig.metaWhatsAppPhoneNumberId?.trim();
 
     if (!accessToken) {
       throw new BadDataException(
@@ -279,21 +278,12 @@ export const getMetaWhatsAppConfig: GetMetaWhatsAppConfigFunction =
     }
 
     const businessAccountId: string | undefined =
-      globalConfig.metaWhatsAppBusinessAccountId?.trim() ||
-      process.env["META_WHATSAPP_BUSINESS_ACCOUNT_ID"]?.trim() ||
-      undefined;
+      globalConfig.metaWhatsAppBusinessAccountId?.trim() || undefined;
     const appId: string | undefined =
-      globalConfig.metaWhatsAppAppId?.trim() ||
-      process.env["META_WHATSAPP_APP_ID"]?.trim() ||
-      undefined;
+      globalConfig.metaWhatsAppAppId?.trim() || undefined;
     const appSecret: string | undefined =
-      globalConfig.metaWhatsAppAppSecret?.trim() ||
-      process.env["META_WHATSAPP_APP_SECRET"]?.trim() ||
-      undefined;
-    const apiVersion: string | undefined =
-      globalConfig.metaWhatsAppApiVersion?.trim() ||
-      process.env["META_WHATSAPP_API_VERSION"]?.trim() ||
-      undefined;
+      globalConfig.metaWhatsAppAppSecret?.trim() || undefined;
+    const apiVersion: string = DEFAULT_META_WHATSAPP_API_VERSION;
 
     return {
       accessToken,
