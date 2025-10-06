@@ -1961,7 +1961,7 @@ jobs:
 
   push-release-tags:
     name: Push release tags after GitHub release
-    needs: [github-release, read-version, generate-build-number]
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -2067,6 +2067,7 @@ jobs:
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         uses: nick-fields/retry@v3
         with:
+          timeout_minutes: 90
           max_attempts: 3
           on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
           command: export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
@@ -2133,6 +2134,7 @@ jobs:
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         uses: nick-fields/retry@v3
         with:
+          timeout_minutes: 90
           max_attempts: 3
           on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
           command: export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
@@ -2158,7 +2160,7 @@ jobs:
           retention-days: 7
 
   github-release:
-    needs: [test-e2e-release-saas, test-e2e-release-self-hosted, generate-build-number, read-version]
+    needs: [test-e2e-release-saas, test-e2e-release-self-hosted, generate-build-number, read-version, push-release-tags]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/release'
     permissions:
