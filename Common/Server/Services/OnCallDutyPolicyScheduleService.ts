@@ -276,7 +276,6 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
               templateVariables: {
                 on_call_policy_name: onCallPolicy.name!,
                 schedule_name: onCallSchedule.name!,
-                action_link: vars["onCallPolicyViewLink"] || "",
                 schedule_link: vars["onCallPolicyViewLink"] || "",
               },
             });
@@ -410,7 +409,6 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
               templateVariables: {
                 on_call_policy_name: onCallPolicy.name!,
                 schedule_name: onCallSchedule.name!,
-                action_link: vars["onCallPolicyViewLink"] || "",
                 schedule_link: vars["onCallPolicyViewLink"] || "",
               },
             });
@@ -564,7 +562,6 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
               templateVariables: {
                 on_call_policy_name: onCallPolicy.name!,
                 schedule_name: onCallSchedule.name!,
-                action_link: vars["onCallPolicyViewLink"] || "",
                 schedule_link: vars["onCallPolicyViewLink"] || "",
               },
             });

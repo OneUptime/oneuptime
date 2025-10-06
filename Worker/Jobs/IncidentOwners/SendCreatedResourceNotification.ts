@@ -216,7 +216,6 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
               templateVariables: {
                 incident_title: incident.title!,
                 project_name: incident.project!.name!,
-                action_link: vars["incidentViewLink"] || "",
                 incident_link: vars["incidentViewLink"] || "",
                 incident_number: incidentNumber.toString(),
               },

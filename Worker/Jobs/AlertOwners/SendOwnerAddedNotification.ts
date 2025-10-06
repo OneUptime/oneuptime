@@ -226,7 +226,6 @@ RunCron(
             eventType,
             templateVariables: {
               alert_title: alert.title!,
-              action_link: vars["alertViewLink"] || "",
               alert_link: vars["alertViewLink"] || "",
               alert_number:
                 alert.alertNumber !== undefined

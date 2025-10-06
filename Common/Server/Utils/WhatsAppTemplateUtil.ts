@@ -37,9 +37,9 @@ const templateDashboardLinkVariableMap: Partial<
   [WhatsAppTemplateIds.ScheduledMaintenanceStateChangedOwnerNotification]:
     "maintenance_link",
   [WhatsAppTemplateIds.StatusPageAnnouncementCreatedOwnerNotification]:
-    "status_link",
-  [WhatsAppTemplateIds.StatusPageCreatedOwnerNotification]: "status_link",
-  [WhatsAppTemplateIds.StatusPageOwnerAddedNotification]: "status_link",
+    "status_page_link",
+  [WhatsAppTemplateIds.StatusPageCreatedOwnerNotification]: "status_page_link",
+  [WhatsAppTemplateIds.StatusPageOwnerAddedNotification]: "status_page_link",
   [WhatsAppTemplateIds.ProbeStatusChangedOwnerNotification]: "probe_link",
   [WhatsAppTemplateIds.ProbeOwnerAddedNotification]: "probe_link",
   [WhatsAppTemplateIds.OnCallUserIsOnRosterNotification]: "schedule_link",

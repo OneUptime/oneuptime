@@ -204,7 +204,6 @@ RunCron(
               templateVariables: {
                 alert_title: alert.title!,
                 project_name: alert.project!.name!,
-                action_link: vars["alertViewLink"] || "",
                 alert_link: vars["alertViewLink"] || "",
                 alert_number: alertNumber.toString(),
               },

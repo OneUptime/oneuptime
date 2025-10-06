@@ -138,8 +138,7 @@ RunCron(
               templateVariables: {
                 status_page_name: statusPage.name!,
                 announcement_title: announcement.title!,
-                action_link: statusPageLink || "",
-                status_link: statusPageLink || "",
+                status_page_link: statusPageLink || "",
               },
             });
 

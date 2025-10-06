@@ -179,7 +179,6 @@ RunCron(
             templateVariables: {
               event_title: scheduledMaintenance.title!,
               event_state: scheduledMaintenanceState!.name!,
-              action_link: vars["scheduledMaintenanceViewLink"] || "",
               maintenance_link: vars["scheduledMaintenanceViewLink"] || "",
             },
           });

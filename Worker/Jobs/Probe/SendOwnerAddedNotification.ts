@@ -198,7 +198,6 @@ RunCron(
             eventType,
             templateVariables: {
               probe_name: probe.name!,
-              action_link: vars["viewProbeLink"] || "",
               probe_link: vars["viewProbeLink"] || "",
             },
           });

@@ -1202,7 +1202,6 @@ ${createdItem.description?.trim() || "No description provided."}
           templateVariables: {
             monitor_name: monitor.name!,
             probe_status: enabledStatus,
-            action_link: vars["monitorViewLink"] || "",
             monitor_link: vars["monitorViewLink"] || "",
           },
         });
@@ -1323,7 +1322,6 @@ ${createdItem.description?.trim() || "No description provided."}
           templateVariables: {
             monitor_name: monitor.name!,
             probe_status: status,
-            action_link: vars["monitorViewLink"] || "",
             monitor_link: vars["monitorViewLink"] || "",
           },
         });

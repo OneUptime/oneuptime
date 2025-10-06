@@ -214,8 +214,7 @@ RunCron(
             eventType,
             templateVariables: {
               status_page_name: statusPage.name!,
-              action_link: vars["statusPageViewLink"] || "",
-              status_link: vars["statusPageViewLink"] || "",
+              status_page_link: vars["statusPageViewLink"] || "",
             },
           });
 

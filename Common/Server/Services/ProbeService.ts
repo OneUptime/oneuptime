@@ -398,7 +398,6 @@ export class Service extends DatabaseService<Model> {
             templateVariables: {
               probe_name: probe.name!,
               probe_status: connectionStatus,
-              action_link: vars["viewProbesLink"] || "",
               probe_link: vars["viewProbesLink"] || "",
             },
           });

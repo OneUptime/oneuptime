@@ -232,7 +232,6 @@ RunCron(
             eventType,
             templateVariables: {
               incident_title: incident.title!,
-              action_link: vars["incidentViewLink"] || "",
               incident_number:
                 incident.incidentNumber !== undefined
                   ? incident.incidentNumber.toString()

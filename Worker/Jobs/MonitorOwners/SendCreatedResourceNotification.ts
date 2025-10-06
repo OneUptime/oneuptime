@@ -127,7 +127,6 @@ RunCron(
             eventType,
             templateVariables: {
               monitor_name: monitor.name!,
-              action_link: vars["monitorViewLink"] || "",
               monitor_link: vars["monitorViewLink"] || "",
             },
           });

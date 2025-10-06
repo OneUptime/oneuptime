@@ -146,7 +146,6 @@ export class Service extends DatabaseService<Model> {
             on_call_policy_name:
               createdModel.onCallDutyPolicy?.name || "No name provided",
             on_call_context: `team ${temaName}`,
-            action_link: vars["onCallPolicyViewLink"] || "",
             policy_link: vars["onCallPolicyViewLink"] || "",
           },
         });
@@ -349,7 +348,6 @@ export class Service extends DatabaseService<Model> {
               on_call_policy_name:
                 deletedItem.onCallDutyPolicy?.name || "No name provided",
               on_call_context: `team ${teamName}`,
-              action_link: vars["onCallPolicyViewLink"] || "",
               policy_link: vars["onCallPolicyViewLink"] || "",
             },
           });
