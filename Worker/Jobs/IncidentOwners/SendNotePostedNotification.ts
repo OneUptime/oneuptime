@@ -187,6 +187,11 @@ RunCron(
         vars["isPrivateNote"] = "true";
       }
 
+      const incidentIdentifier: string =
+        incident.incidentNumber !== undefined
+          ? `#${incident.incidentNumber} (${incident.title})`
+          : incident.title!;
+
       for (const user of owners) {
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.IncidentOwnerNotePosted,
@@ -195,13 +200,13 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. New note posted on incident: ${incident.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: `This is a message from OneUptime. New note posted on incident ${incidentIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime. New note posted on incident ${incident.title}. To see the note, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+              sayMessage: `This is a message from OneUptime. New note posted on incident ${incidentIdentifier}. To see the note, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
         };

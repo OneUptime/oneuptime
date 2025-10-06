@@ -171,6 +171,11 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
             vars["isOwner"] = "true";
           }
 
+          const incidentIdentifier: string =
+            incident.incidentNumber !== undefined
+              ? `#${incident.incidentNumber} (${incident.title})`
+              : incident.title!;
+
           const emailMessage: EmailEnvelope = {
             templateType: EmailTemplateType.IncidentOwnerResourceCreated,
             vars: vars,
@@ -178,13 +183,13 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
           };
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. New incident created: ${incident.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: `This is a message from OneUptime. New incident created: ${incidentIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
           };
 
           const callMessage: CallRequestMessage = {
             data: [
               {
-                sayMessage: `This is a message from OneUptime. New incident created: ${incident.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+                sayMessage: `This is a message from OneUptime. New incident created: ${incidentIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
               },
             ],
           };

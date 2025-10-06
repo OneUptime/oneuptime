@@ -180,6 +180,11 @@ RunCron(
       };
 
       for (const user of users) {
+        const alertIdentifier: string =
+          alert.alertNumber !== undefined
+            ? `#${alert.alertNumber} (${alert.title})`
+            : alert.title!;
+
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.AlertOwnerAdded,
           vars: vars,
@@ -187,13 +192,13 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. You have been added as the owner of the alert: ${alert.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: `This is a message from OneUptime. You have been added as the owner of the alert ${alertIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime. You have been added as the owner of the alert: ${alert.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
+              sayMessage: `This is a message from OneUptime. You have been added as the owner of the alert ${alertIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
             },
           ],
         };
@@ -201,7 +206,7 @@ RunCron(
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
             title: "Added as Alert Owner",
-            body: `You have been added as the owner of the alert: ${alert.title}. Click to view details.`,
+            body: `You have been added as the owner of the alert ${alertIdentifier}. Click to view details.`,
             clickAction: (
               await AlertService.getAlertLinkInDashboard(
                 alert.projectId!,

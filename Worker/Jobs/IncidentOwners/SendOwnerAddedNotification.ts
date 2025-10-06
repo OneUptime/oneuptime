@@ -186,6 +186,11 @@ RunCron(
       };
 
       for (const user of users) {
+        const incidentIdentifier: string =
+          incident.incidentNumber !== undefined
+            ? `#${incident.incidentNumber} (${incident.title})`
+            : incident.title!;
+
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.IncidentOwnerAdded,
           vars: vars,
@@ -193,13 +198,13 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. You have been added as the owner of the incident: ${incident.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: `This is a message from OneUptime. You have been added as the owner of the incident ${incidentIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime. You have been added as the owner of the incident: ${incident.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
+              sayMessage: `This is a message from OneUptime. You have been added as the owner of the incident ${incidentIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
             },
           ],
         };
@@ -207,7 +212,7 @@ RunCron(
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
             title: "Added as Incident Owner",
-            body: `You have been added as the owner of the incident: ${incident.title}. Click to view details.`,
+            body: `You have been added as the owner of the incident ${incidentIdentifier}. Click to view details.`,
             clickAction: (
               await IncidentService.getIncidentLinkInDashboard(
                 incident.projectId!,

@@ -1062,11 +1062,14 @@ export class Service extends DatabaseService<Model> {
     );
     const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
 
+    const alertIdentifier: string =
+      alert.alertNumber !== undefined
+        ? `#${alert.alertNumber} (${alert.title || "Alert"})`
+        : alert.title || "Alert";
+
     const sms: SMS = {
       to,
-      message: `This is a message from OneUptime. A new alert has been created. ${
-        alert.title
-      }. To acknowledge this alert, please click on the following link ${url.toString()}`,
+      message: `This is a message from OneUptime. A new alert has been created: ${alertIdentifier}. To acknowledge this alert, please click on the following link ${url.toString()}`,
     };
 
     return sms;
@@ -1092,11 +1095,14 @@ export class Service extends DatabaseService<Model> {
     );
     const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
 
+    const incidentIdentifier: string =
+      incident.incidentNumber !== undefined
+        ? `#${incident.incidentNumber} (${incident.title || "Incident"})`
+        : incident.title || "Incident";
+
     const sms: SMS = {
       to,
-      message: `This is a message from OneUptime. A new incident has been created. ${
-        incident.title
-      }. To acknowledge this incident, please click on the following link ${url.toString()}`,
+      message: `This is a message from OneUptime. A new incident has been created: ${incidentIdentifier}. To acknowledge this incident, please click on the following link ${url.toString()}`,
     };
 
     return sms;
