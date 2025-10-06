@@ -1,5 +1,6 @@
+import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -7,8 +8,10 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/Team";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import TeamMemberService from "./TeamMemberService";
+import ProjectSCIMService from "./ProjectSCIMService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -46,6 +49,71 @@ export class Service extends DatabaseService<Model> {
     }
 
     return teams;
+  }
+
+  private async assertScimAllowsTeamMutation(data: {
+    projectIds: Array<ObjectID>;
+    action: "create" | "delete";
+  }): Promise<void> {
+    if (!data.projectIds || data.projectIds.length === 0) {
+      return;
+    }
+
+    const uniqueProjectIds: Map<string, ObjectID> = new Map();
+
+    for (const projectId of data.projectIds) {
+      if (projectId) {
+        uniqueProjectIds.set(projectId.toString(), new ObjectID(projectId));
+      }
+    }
+
+    for (const projectId of uniqueProjectIds.values()) {
+      const scimCount = await ProjectSCIMService.countBy({
+        query: {
+          projectId: projectId,
+        },
+        skip: new PositiveNumber(0),
+        limit: new PositiveNumber(1),
+        props: {
+          isRoot: true,
+          tenantId: projectId,
+        },
+      });
+
+      if (scimCount.toNumber() > 0) {
+        throw new BadDataException(
+          `Cannot ${data.action} teams when SCIM is enabled for this project.`,
+        );
+      }
+    }
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    let projectId: ObjectID | undefined = createBy.data.projectId;
+
+    if (!projectId && createBy.props.tenantId) {
+      projectId = new ObjectID(createBy.props.tenantId);
+    }
+
+    if (!projectId) {
+      throw new BadDataException("Project ID cannot be null");
+    }
+
+    projectId = new ObjectID(projectId);
+    createBy.data.projectId = projectId;
+
+    if(!createBy.props.isRoot){
+
+    await this.assertScimAllowsTeamMutation({
+      projectIds: [projectId],
+      action: "create",
+    });
+  }
+
+    return { createBy, carryForward: null };
   }
 
   @CaptureSpan()
@@ -90,10 +158,27 @@ export class Service extends DatabaseService<Model> {
       select: {
         name: true,
         isTeamDeleteable: true,
+        projectId: true,
       },
 
       props: deleteBy.props,
     });
+
+    const projectIds: Array<ObjectID> = teams
+      .map((team: Model) => {
+        return team.projectId;
+      })
+      .filter((projectId: ObjectID | undefined): projectId is ObjectID => {
+        return Boolean(projectId);
+      });
+
+      if(deleteBy.props.isRoot !== true){
+
+    await this.assertScimAllowsTeamMutation({
+      projectIds: projectIds,
+      action: "delete",
+    });
+  }
 
     for (const team of teams) {
       if (!team.isTeamDeleteable) {
