@@ -1997,6 +1997,7 @@ jobs:
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         uses: nick-fields/retry@v3
         with:
+          timeout_minutes: 90
           max_attempts: 3
           on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
           command: export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
@@ -2054,6 +2055,7 @@ jobs:
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         uses: nick-fields/retry@v3
         with:
+          timeout_minutes: 90
           max_attempts: 3
           on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
           command: export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)

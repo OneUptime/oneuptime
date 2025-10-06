@@ -70,17 +70,13 @@ const Input: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     if (
       props.type === InputType.DATE ||
-      props.type === InputType.DATETIME_LOCAL ||
-      props.type === InputType.TIME
+      props.type === InputType.DATETIME_LOCAL
     ) {
       if (value && (value as unknown) instanceof Date) {
         let dateString: string = "";
         try {
           if (props.type === InputType.DATETIME_LOCAL) {
             dateString = OneUptimeDate.toDateTimeLocalString(value as any);
-          } else if (props.type === InputType.TIME) {
-            // get time from date
-            dateString = OneUptimeDate.toTimeString(value as any);
           } else {
             dateString = OneUptimeDate.asDateForDatabaseQuery(value);
           }
@@ -99,9 +95,6 @@ const Input: FunctionComponent<ComponentProps> = (
         try {
           if (props.type === InputType.DATETIME_LOCAL) {
             dateString = OneUptimeDate.toDateTimeLocalString(date);
-          } else if (props.type === InputType.TIME) {
-            // get time from date
-            dateString = OneUptimeDate.toTimeString(value as any);
           } else {
             dateString = OneUptimeDate.asDateForDatabaseQuery(date);
           }
@@ -161,25 +154,15 @@ const Input: FunctionComponent<ComponentProps> = (
           onFocus={props.onFocus}
           onClick={props.onClick}
           data-testid={props.dataTestId}
-          spellCheck={!props.disableSpellCheck && props.type === InputType.TEXT}
+          spellCheck={!props.disableSpellCheck}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            let value: string | Date = e.target.value;
+            const value: string | Date = e.target.value;
 
             if (
               (props.type === InputType.DATE ||
-                props.type === InputType.DATETIME_LOCAL ||
-                props.type === InputType.TIME) &&
+                props.type === InputType.DATETIME_LOCAL) &&
               value
             ) {
-              if (props.type === InputType.TIME) {
-                // conver value like "16:00" to date with local timezone
-                value = OneUptimeDate.getDateWithCustomTime({
-                  hours: parseInt(value.split(":")[0]?.toString() || "0"),
-                  minutes: parseInt(value.split(":")[1]?.toString() || "0"),
-                  seconds: 0,
-                });
-              }
-
               const date: Date = OneUptimeDate.fromString(value);
               const dateString: string = OneUptimeDate.toString(date);
               setValue(dateString);

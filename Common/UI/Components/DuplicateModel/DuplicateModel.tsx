@@ -17,7 +17,7 @@ import Select from "../../../Types/BaseDatabase/Select";
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
   modelId: ObjectID;
-  onDuplicateSuccess?: (item: TBaseModel) => void | undefined;
+  onDuplicateSuccess?: (item: TBaseModel) => Promise<void> | void;
   fieldsToDuplicate: Select<TBaseModel>;
   fieldsToChange: Array<ModelField<TBaseModel>>;
   navigateToOnSuccess?: Route | undefined;
@@ -78,7 +78,9 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
         throw new Error(`Could not create ${model.singularName}`);
       }
 
-      props.onDuplicateSuccess?.(newItem.data);
+      if (props.onDuplicateSuccess) {
+        await props.onDuplicateSuccess(newItem.data);
+      }
 
       if (props.navigateToOnSuccess) {
         Navigation.navigate(
