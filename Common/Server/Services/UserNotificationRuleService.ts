@@ -1149,7 +1149,7 @@ export class Service extends DatabaseService<Model> {
       acknowledge_url: acknowledgeUrl.toString(),
       alert_number:
         alert.alertNumber !== undefined ? alert.alertNumber.toString() : "",
-      alert_link_on_dashboard: alertLinkOnDashboard,
+      alert_link: alertLinkOnDashboard,
     };
 
     const body: string = renderWhatsAppTemplate(templateKey, templateVariables);
@@ -1205,7 +1205,7 @@ export class Service extends DatabaseService<Model> {
         incident.incidentNumber !== undefined
           ? incident.incidentNumber.toString()
           : "",
-      incident_link_on_dashboard: incidentLinkOnDashboard,
+      incident_link: incidentLinkOnDashboard,
     };
 
     const body: string = renderWhatsAppTemplate(templateKey, templateVariables);

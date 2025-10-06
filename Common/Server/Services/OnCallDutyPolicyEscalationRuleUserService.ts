@@ -130,8 +130,7 @@ export class Service extends DatabaseService<Model> {
             createdModel.onCallDutyPolicy?.name || "No name provided",
           on_call_context: `escalation rule ${createdModel.onCallDutyPolicyEscalationRule?.name || "No name provided"}`,
           action_link: vars["onCallPolicyViewLink"] || "",
-          on_call_policy_link_on_dashboard:
-            vars["onCallPolicyViewLink"] || "",
+          policy_link: vars["onCallPolicyViewLink"] || "",
         },
       });
 
@@ -351,8 +350,7 @@ export class Service extends DatabaseService<Model> {
               deletedItem.onCallDutyPolicy?.name || "No name provided",
             on_call_context: `escalation rule ${deletedItem.onCallDutyPolicyEscalationRule?.name || "No name provided"}`,
             action_link: vars["onCallPolicyViewLink"] || "",
-            on_call_policy_link_on_dashboard:
-              vars["onCallPolicyViewLink"] || "",
+            policy_link: vars["onCallPolicyViewLink"] || "",
           },
         });
 

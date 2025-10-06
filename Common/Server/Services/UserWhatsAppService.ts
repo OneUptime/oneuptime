@@ -173,7 +173,7 @@ export class Service extends DatabaseService<Model> {
       WhatsAppTemplateIds.VerificationCode;
     const templateVariables: Record<string, string> = {
       verification_code: item.verificationCode || "",
-      oneuptime_dashboard_link: ONEUPTIME_DASHBOARD_URL,
+      dashboard_link: ONEUPTIME_DASHBOARD_URL,
     };
 
     const whatsAppMessage: WhatsAppMessage = {

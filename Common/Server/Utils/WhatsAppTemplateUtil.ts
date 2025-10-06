@@ -13,63 +13,41 @@ const DEFAULT_ACTION_LINK: string = "https://oneuptime.com/dashboard";
 const templateDashboardLinkVariableMap: Partial<
   Record<WhatsAppTemplateId, string>
 > = {
-  [WhatsAppTemplateIds.AlertCreated]: "alert_link_on_dashboard",
-  [WhatsAppTemplateIds.AlertCreatedOwnerNotification]:
-    "alert_link_on_dashboard",
-  [WhatsAppTemplateIds.AlertNotePostedOwnerNotification]:
-    "alert_link_on_dashboard",
-  [WhatsAppTemplateIds.AlertStateChangedOwnerNotification]:
-    "alert_link_on_dashboard",
-  [WhatsAppTemplateIds.AlertOwnerAddedNotification]:
-    "alert_link_on_dashboard",
-  [WhatsAppTemplateIds.IncidentCreated]: "incident_link_on_dashboard",
-  [WhatsAppTemplateIds.IncidentCreatedOwnerNotification]:
-    "incident_link_on_dashboard",
-  [WhatsAppTemplateIds.IncidentNotePostedOwnerNotification]:
-    "incident_link_on_dashboard",
-  [WhatsAppTemplateIds.IncidentStateChangedOwnerNotification]:
-    "incident_link_on_dashboard",
-  [WhatsAppTemplateIds.IncidentOwnerAddedNotification]:
-    "incident_link_on_dashboard",
-  [WhatsAppTemplateIds.MonitorOwnerAddedNotification]:
-    "monitor_link_on_dashboard",
-  [WhatsAppTemplateIds.MonitorCreatedOwnerNotification]:
-    "monitor_link_on_dashboard",
-  [WhatsAppTemplateIds.MonitorStatusChangedOwnerNotification]:
-    "monitor_link_on_dashboard",
-  [WhatsAppTemplateIds.MonitorProbeStatusChangedNotification]:
-    "monitor_link_on_dashboard",
-  [WhatsAppTemplateIds.MonitorNoProbesMonitoringNotification]:
-    "monitor_link_on_dashboard",
+  [WhatsAppTemplateIds.AlertCreated]: "alert_link",
+  [WhatsAppTemplateIds.AlertCreatedOwnerNotification]: "alert_link",
+  [WhatsAppTemplateIds.AlertNotePostedOwnerNotification]: "alert_link",
+  [WhatsAppTemplateIds.AlertStateChangedOwnerNotification]: "alert_link",
+  [WhatsAppTemplateIds.AlertOwnerAddedNotification]: "alert_link",
+  [WhatsAppTemplateIds.IncidentCreated]: "incident_link",
+  [WhatsAppTemplateIds.IncidentCreatedOwnerNotification]: "incident_link",
+  [WhatsAppTemplateIds.IncidentNotePostedOwnerNotification]: "incident_link",
+  [WhatsAppTemplateIds.IncidentStateChangedOwnerNotification]: "incident_link",
+  [WhatsAppTemplateIds.IncidentOwnerAddedNotification]: "incident_link",
+  [WhatsAppTemplateIds.MonitorOwnerAddedNotification]: "monitor_link",
+  [WhatsAppTemplateIds.MonitorCreatedOwnerNotification]: "monitor_link",
+  [WhatsAppTemplateIds.MonitorStatusChangedOwnerNotification]: "monitor_link",
+  [WhatsAppTemplateIds.MonitorProbeStatusChangedNotification]: "monitor_link",
+  [WhatsAppTemplateIds.MonitorNoProbesMonitoringNotification]: "monitor_link",
   [WhatsAppTemplateIds.ScheduledMaintenanceCreatedOwnerNotification]:
-    "scheduled_maintenance_link_on_dashboard",
+    "maintenance_link",
   [WhatsAppTemplateIds.ScheduledMaintenanceNotePostedOwnerNotification]:
-    "scheduled_maintenance_link_on_dashboard",
+    "maintenance_link",
   [WhatsAppTemplateIds.ScheduledMaintenanceOwnerAddedNotification]:
-    "scheduled_maintenance_link_on_dashboard",
+    "maintenance_link",
   [WhatsAppTemplateIds.ScheduledMaintenanceStateChangedOwnerNotification]:
-    "scheduled_maintenance_link_on_dashboard",
+    "maintenance_link",
   [WhatsAppTemplateIds.StatusPageAnnouncementCreatedOwnerNotification]:
-    "status_page_link_on_dashboard",
-  [WhatsAppTemplateIds.StatusPageCreatedOwnerNotification]:
-    "status_page_link_on_dashboard",
-  [WhatsAppTemplateIds.StatusPageOwnerAddedNotification]:
-    "status_page_link_on_dashboard",
-  [WhatsAppTemplateIds.ProbeStatusChangedOwnerNotification]:
-    "probe_link_on_dashboard",
-  [WhatsAppTemplateIds.ProbeOwnerAddedNotification]:
-    "probe_link_on_dashboard",
-  [WhatsAppTemplateIds.OnCallUserIsOnRosterNotification]:
-    "on_call_schedule_link_on_dashboard",
-  [WhatsAppTemplateIds.OnCallUserIsNextNotification]:
-    "on_call_schedule_link_on_dashboard",
-  [WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification]:
-    "on_call_schedule_link_on_dashboard",
-  [WhatsAppTemplateIds.OnCallUserAddedToPolicyNotification]:
-    "on_call_policy_link_on_dashboard",
-  [WhatsAppTemplateIds.OnCallUserRemovedFromPolicyNotification]:
-    "on_call_policy_link_on_dashboard",
-  [WhatsAppTemplateIds.VerificationCode]: "oneuptime_dashboard_link",
+    "status_link",
+  [WhatsAppTemplateIds.StatusPageCreatedOwnerNotification]: "status_link",
+  [WhatsAppTemplateIds.StatusPageOwnerAddedNotification]: "status_link",
+  [WhatsAppTemplateIds.ProbeStatusChangedOwnerNotification]: "probe_link",
+  [WhatsAppTemplateIds.ProbeOwnerAddedNotification]: "probe_link",
+  [WhatsAppTemplateIds.OnCallUserIsOnRosterNotification]: "schedule_link",
+  [WhatsAppTemplateIds.OnCallUserIsNextNotification]: "schedule_link",
+  [WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification]: "schedule_link",
+  [WhatsAppTemplateIds.OnCallUserAddedToPolicyNotification]: "policy_link",
+  [WhatsAppTemplateIds.OnCallUserRemovedFromPolicyNotification]: "policy_link",
+  [WhatsAppTemplateIds.VerificationCode]: "dashboard_link",
 };
 
 const templateIdByEventType: Record<

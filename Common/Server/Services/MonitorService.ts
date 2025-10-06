@@ -1203,7 +1203,7 @@ ${createdItem.description?.trim() || "No description provided."}
             monitor_name: monitor.name!,
             probe_status: enabledStatus,
             action_link: vars["monitorViewLink"] || "",
-            monitor_link_on_dashboard: vars["monitorViewLink"] || "",
+            monitor_link: vars["monitorViewLink"] || "",
           },
         });
 
@@ -1324,7 +1324,7 @@ ${createdItem.description?.trim() || "No description provided."}
             monitor_name: monitor.name!,
             probe_status: status,
             action_link: vars["monitorViewLink"] || "",
-            monitor_link_on_dashboard: vars["monitorViewLink"] || "",
+            monitor_link: vars["monitorViewLink"] || "",
           },
         });
 

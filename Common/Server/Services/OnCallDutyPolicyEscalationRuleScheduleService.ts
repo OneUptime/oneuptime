@@ -149,8 +149,7 @@ export class Service extends DatabaseService<Model> {
           schedule_name: scheduleName,
           on_call_context: `schedule ${scheduleName}`,
           action_link: vars["onCallPolicyViewLink"] || "",
-          on_call_policy_link_on_dashboard:
-            vars["onCallPolicyViewLink"] || "",
+          policy_link: vars["onCallPolicyViewLink"] || "",
         },
       });
 
@@ -348,8 +347,7 @@ export class Service extends DatabaseService<Model> {
             schedule_name: scheduleName,
             on_call_context: `schedule ${scheduleName}`,
             action_link: vars["onCallPolicyViewLink"] || "",
-            on_call_policy_link_on_dashboard:
-              vars["onCallPolicyViewLink"] || "",
+            policy_link: vars["onCallPolicyViewLink"] || "",
           },
         });
 
