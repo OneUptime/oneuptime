@@ -68,7 +68,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     for (const projectId of uniqueProjectIds.values()) {
-      const scimCount = await ProjectSCIMService.countBy({
+      const scimCount: PositiveNumber = await ProjectSCIMService.countBy({
         query: {
           projectId: projectId,
         },
@@ -105,13 +105,12 @@ export class Service extends DatabaseService<Model> {
     projectId = new ObjectID(projectId);
     createBy.data.projectId = projectId;
 
-    if(!createBy.props.isRoot){
-
-    await this.assertScimAllowsTeamMutation({
-      projectIds: [projectId],
-      action: "create",
-    });
-  }
+    if (!createBy.props.isRoot) {
+      await this.assertScimAllowsTeamMutation({
+        projectIds: [projectId],
+        action: "create",
+      });
+    }
 
     return { createBy, carryForward: null };
   }
@@ -172,13 +171,12 @@ export class Service extends DatabaseService<Model> {
         return Boolean(projectId);
       });
 
-      if(deleteBy.props.isRoot !== true){
-
-    await this.assertScimAllowsTeamMutation({
-      projectIds: projectIds,
-      action: "delete",
-    });
-  }
+    if (deleteBy.props.isRoot !== true) {
+      await this.assertScimAllowsTeamMutation({
+        projectIds: projectIds,
+        action: "delete",
+      });
+    }
 
     for (const team of teams) {
       if (!team.isTeamDeleteable) {
