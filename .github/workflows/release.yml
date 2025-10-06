@@ -1961,7 +1961,7 @@ jobs:
 
   push-release-tags:
     name: Push release tags after GitHub release
-    needs: [read-version, generate-build-number]
+    needs: [read-version, generate-build-number, github-release]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -2160,7 +2160,7 @@ jobs:
           retention-days: 7
 
   github-release:
-    needs: [test-e2e-release-saas, test-e2e-release-self-hosted, generate-build-number, read-version, push-release-tags]
+    needs: [test-e2e-release-saas, test-e2e-release-self-hosted, generate-build-number, read-version]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/release'
     permissions:
