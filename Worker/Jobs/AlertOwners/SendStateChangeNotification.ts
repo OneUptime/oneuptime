@@ -213,6 +213,10 @@ RunCron(
             alert_title: alert.title!,
             alert_state: alertState!.name!,
             action_link: vars["alertViewLink"] || "",
+            alert_number:
+              alert.alertNumber !== undefined
+                ? alert.alertNumber.toString()
+                : "",
           },
         });
 

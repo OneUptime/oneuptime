@@ -226,6 +226,10 @@ RunCron(
             incident_title: incident.title!,
             incident_state: incidentState!.name!,
             action_link: vars["incidentViewLink"] || "",
+            incident_number:
+              incident.incidentNumber !== undefined
+                ? incident.incidentNumber.toString()
+                : "",
           },
         });
 

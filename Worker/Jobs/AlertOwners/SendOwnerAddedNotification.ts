@@ -153,6 +153,7 @@ RunCron(
           monitor: {
             name: true,
           },
+          alertNumber: true,
         },
       });
 
@@ -219,6 +220,10 @@ RunCron(
           templateVariables: {
             alert_title: alert.title!,
             action_link: vars["alertViewLink"] || "",
+            alert_number:
+              alert.alertNumber !== undefined
+                ? alert.alertNumber.toString()
+                : "",
           },
         });
 

@@ -235,6 +235,7 @@ export class Service extends DatabaseService<Model> {
             name: true,
           },
           rootCause: true,
+          incidentNumber: true,
         },
       });
     }
@@ -263,6 +264,7 @@ export class Service extends DatabaseService<Model> {
           alertSeverity: {
             name: true,
           },
+          alertNumber: true,
         },
       });
     }
@@ -1128,6 +1130,10 @@ export class Service extends DatabaseService<Model> {
       project_name: alert.project?.name || "OneUptime",
       alert_title: alert.title || "",
       acknowledge_url: acknowledgeUrl.toString(),
+      alert_number:
+        alert.alertNumber !== undefined
+          ? alert.alertNumber.toString()
+          : "",
     };
 
     const body: string = renderWhatsAppTemplate(
@@ -1172,6 +1178,10 @@ export class Service extends DatabaseService<Model> {
       project_name: incident.project?.name || "OneUptime",
       incident_title: incident.title || "",
       acknowledge_url: acknowledgeUrl.toString(),
+      incident_number:
+        incident.incidentNumber !== undefined
+          ? incident.incidentNumber.toString()
+          : "",
     };
 
     const body: string = renderWhatsAppTemplate(
