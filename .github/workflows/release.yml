@@ -1989,6 +1989,8 @@ jobs:
       - worker-docker-image-deploy
       - workflow-docker-image-deploy
       - api-reference-docker-image-deploy
+      - test-e2e-release-saas
+      - test-e2e-release-self-hosted
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
