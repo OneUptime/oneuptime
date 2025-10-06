@@ -1960,8 +1960,35 @@ jobs:
               .
 
   push-release-tags:
-    name: Push release tags after GitHub release
-    needs: [read-version, generate-build-number, github-release]
+    name: Push release tags before GitHub release
+    needs:
+      - read-version
+      - generate-build-number
+      - publish-mcp-server
+      - nginx-docker-image-deploy
+      - e2e-docker-image-deploy
+      - isolated-vm-docker-image-deploy
+      - home-docker-image-deploy
+      - test-server-docker-image-deploy
+      - otel-collector-docker-image-deploy
+      - status-page-docker-image-deploy
+      - test-docker-image-deploy
+      - probe-ingest-docker-image-deploy
+      - server-monitor-ingest-docker-image-deploy
+      - open-telemetry-ingest-docker-image-deploy
+      - incoming-request-ingest-docker-image-deploy
+      - fluent-ingest-docker-image-deploy
+      - probe-docker-image-deploy
+      - admin-dashboard-docker-image-deploy
+      - dashboard-docker-image-deploy
+      - app-docker-image-deploy
+      - copilot-docker-image-deploy
+      - accounts-docker-image-deploy
+      - llm-docker-image-deploy
+      - docs-docker-image-deploy
+      - worker-docker-image-deploy
+      - workflow-docker-image-deploy
+      - api-reference-docker-image-deploy
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -2160,7 +2187,7 @@ jobs:
           retention-days: 7
 
   github-release:
-    needs: [test-e2e-release-saas, test-e2e-release-self-hosted, generate-build-number, read-version]
+    needs: [test-e2e-release-saas, test-e2e-release-self-hosted, generate-build-number, read-version, push-release-tags]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/release'
     permissions:
