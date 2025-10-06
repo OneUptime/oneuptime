@@ -28,6 +28,7 @@ import UserCall from "../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../Models/DatabaseModels/UserEmail";
 import UserNotificationSetting from "../../Models/DatabaseModels/UserNotificationSetting";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
+import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { appendRecipientToWhatsAppMessage } from "../Utils/WhatsAppTemplateUtil";
 
@@ -176,21 +177,22 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       }
 
       if (notificationSettings.alertByWhatsApp) {
-        const userWhatsApps = await UserWhatsAppService.findBy({
-          query: {
-            userId: data.userId,
-            projectId: data.projectId,
-            isVerified: true,
-          },
-          select: {
-            phone: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
+        const userWhatsApps: Array<UserWhatsApp> =
+          await UserWhatsAppService.findBy({
+            query: {
+              userId: data.userId,
+              projectId: data.projectId,
+              isVerified: true,
+            },
+            select: {
+              phone: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
 
         if (!data.whatsAppMessage) {
           logger.warn(

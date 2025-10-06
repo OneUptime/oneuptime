@@ -26,6 +26,7 @@ import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "IncidentOwner:SendsNotePostedEmail",
@@ -224,20 +225,21 @@ RunCron(
             ).toString(),
           });
 
-        const eventType =
+        const eventType: NotificationSettingEventType =
           NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION;
 
-        const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          eventType,
-          templateVariables: {
-            incident_title: incident.title!,
-            action_link: vars["incidentViewLink"] || "",
-            incident_number:
-              incident.incidentNumber !== undefined
-                ? incident.incidentNumber.toString()
-                : "",
-          },
-        });
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              incident_title: incident.title!,
+              action_link: vars["incidentViewLink"] || "",
+              incident_number:
+                incident.incidentNumber !== undefined
+                  ? incident.incidentNumber.toString()
+                  : "",
+            },
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

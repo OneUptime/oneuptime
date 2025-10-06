@@ -20,6 +20,7 @@ import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/
 import { Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendCreatedResourceEmail",
@@ -141,16 +142,17 @@ RunCron(
             requireInteraction: false,
           });
 
-        const eventType =
+        const eventType: NotificationSettingEventType =
           NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION;
 
-        const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          eventType,
-          templateVariables: {
-            event_title: scheduledMaintenance.title!,
-            action_link: vars["scheduledMaintenanceViewLink"] || "",
-          },
-        });
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              event_title: scheduledMaintenance.title!,
+              action_link: vars["scheduledMaintenanceViewLink"] || "",
+            },
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

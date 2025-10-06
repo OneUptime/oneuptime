@@ -70,9 +70,9 @@ const templateIdByEventType: Record<
     WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification,
 };
 
-export const getWhatsAppTemplateIdForEventType = (
+export function getWhatsAppTemplateIdForEventType(
   eventType: NotificationSettingEventType,
-): WhatsAppTemplateId => {
+): WhatsAppTemplateId {
   const templateId: WhatsAppTemplateId | undefined =
     templateIdByEventType[eventType];
 
@@ -83,11 +83,11 @@ export const getWhatsAppTemplateIdForEventType = (
   }
 
   return templateId;
-};
+}
 
-export const getWhatsAppTemplateStringForEventType = (
+export function getWhatsAppTemplateStringForEventType(
   eventType: NotificationSettingEventType,
-): string => {
+): string {
   const templateId: WhatsAppTemplateId =
     getWhatsAppTemplateIdForEventType(eventType);
 
@@ -101,13 +101,13 @@ export const getWhatsAppTemplateStringForEventType = (
   }
 
   return templateContent;
-};
+}
 
-const renderTemplateContent = (
+function renderTemplateContent(
   templateContent: string,
   variables: Record<string, string>,
   context: string,
-): string => {
+): string {
   return templateContent.replace(
     /\{\{(.*?)\}\}/g,
     (_match: string, key: string) => {
@@ -120,9 +120,9 @@ const renderTemplateContent = (
       return variables[key];
     },
   );
-};
+}
 
-export const createWhatsAppMessageFromTemplate = ({
+export function createWhatsAppMessageFromTemplate({
   templateString,
   actionLink,
   eventType,
@@ -134,7 +134,7 @@ export const createWhatsAppMessageFromTemplate = ({
   eventType?: NotificationSettingEventType;
   templateKey?: WhatsAppTemplateId;
   templateVariables?: Record<string, string>;
-}): WhatsAppMessagePayload => {
+}): WhatsAppMessagePayload {
   const resolvedTemplateKey: WhatsAppTemplateId | undefined =
     templateKey ??
     (eventType ? getWhatsAppTemplateIdForEventType(eventType) : undefined);
@@ -177,17 +177,17 @@ export const createWhatsAppMessageFromTemplate = ({
     templateVariables: templateVariablesWithDefaults,
     templateLanguageCode: WhatsAppTemplateLanguage[resolvedTemplateKey],
   };
-};
+}
 
-export const appendRecipientToWhatsAppMessage = (
+export function appendRecipientToWhatsAppMessage(
   payload: WhatsAppMessagePayload,
   to: WhatsAppMessage["to"],
-): WhatsAppMessage => {
+): WhatsAppMessage {
   return {
     ...payload,
     to,
   };
-};
+}
 
 export default {
   createWhatsAppMessageFromTemplate,

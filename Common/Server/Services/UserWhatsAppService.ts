@@ -19,6 +19,7 @@ import {
   renderWhatsAppTemplate,
   WhatsAppTemplateIds,
   WhatsAppTemplateLanguage,
+  WhatsAppTemplateId,
 } from "../../Types/WhatsApp/WhatsAppTemplates";
 
 export class Service extends DatabaseService<Model> {
@@ -166,7 +167,8 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const templateKey = WhatsAppTemplateIds.VerificationCode;
+    const templateKey: WhatsAppTemplateId =
+      WhatsAppTemplateIds.VerificationCode;
     const templateVariables: Record<string, string> = {
       verification_code: item.verificationCode || "",
     };

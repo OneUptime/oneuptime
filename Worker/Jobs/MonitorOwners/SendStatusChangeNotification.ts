@@ -20,6 +20,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import User from "Common/Models/DatabaseModels/User";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "MonitorOwner:SendStatusChangeEmail",
@@ -154,17 +155,18 @@ RunCron(
             monitorViewLink: vars["monitorViewLink"] || "",
           });
 
-        const eventType =
+        const eventType: NotificationSettingEventType =
           NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION;
 
-        const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          eventType,
-          templateVariables: {
-            monitor_name: monitor.name || "Monitor",
-            monitor_status: monitorStatus!.name!,
-            action_link: vars["monitorViewLink"] || "",
-          },
-        });
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              monitor_name: monitor.name || "Monitor",
+              monitor_status: monitorStatus!.name!,
+              action_link: vars["monitorViewLink"] || "",
+            },
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

@@ -26,6 +26,7 @@ import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed
 import { Blue500 } from "Common/Types/BrandColors";
 import UserService from "Common/Server/Services/UserService";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "IncidentOwner:SendStateChangeEmail",
@@ -220,21 +221,22 @@ RunCron(
             incidentViewLink: vars["incidentViewLink"] || "",
           });
 
-        const eventType =
+        const eventType: NotificationSettingEventType =
           NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION;
 
-        const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          eventType,
-          templateVariables: {
-            incident_title: incident.title!,
-            incident_state: incidentState!.name!,
-            action_link: vars["incidentViewLink"] || "",
-            incident_number:
-              incident.incidentNumber !== undefined
-                ? incident.incidentNumber.toString()
-                : "",
-          },
-        });
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              incident_title: incident.title!,
+              incident_state: incidentState!.name!,
+              action_link: vars["incidentViewLink"] || "",
+              incident_number:
+                incident.incidentNumber !== undefined
+                  ? incident.incidentNumber.toString()
+                  : "",
+            },
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

@@ -22,6 +22,7 @@ import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "IncidentOwner:SendOwnerAddedEmail",
@@ -223,20 +224,21 @@ RunCron(
             requireInteraction: false,
           });
 
-        const eventType =
+        const eventType: NotificationSettingEventType =
           NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION;
 
-        const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          eventType,
-          templateVariables: {
-            incident_title: incident.title!,
-            action_link: vars["incidentViewLink"] || "",
-            incident_number:
-              incident.incidentNumber !== undefined
-                ? incident.incidentNumber.toString()
-                : "",
-          },
-        });
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              incident_title: incident.title!,
+              action_link: vars["incidentViewLink"] || "",
+              incident_number:
+                incident.incidentNumber !== undefined
+                  ? incident.incidentNumber.toString()
+                  : "",
+            },
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

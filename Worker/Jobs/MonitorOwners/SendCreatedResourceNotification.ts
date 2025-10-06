@@ -16,6 +16,7 @@ import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppT
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "MonitorOwner:SendCreatedResourceEmail",
@@ -118,16 +119,17 @@ RunCron(
             monitorId: monitor.id!.toString(),
           });
 
-        const eventType =
+        const eventType: NotificationSettingEventType =
           NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION;
 
-        const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          eventType,
-          templateVariables: {
-            monitor_name: monitor.name!,
-            action_link: vars["monitorViewLink"] || "",
-          },
-        });
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              monitor_name: monitor.name!,
+              action_link: vars["monitorViewLink"] || "",
+            },
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

@@ -27,6 +27,7 @@ import { Blue500 } from "Common/Types/BrandColors";
 import UserService from "Common/Server/Services/UserService";
 
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 RunCron(
   "AlertOwner:SendStateChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -207,21 +208,22 @@ RunCron(
             requireInteraction: true,
           });
 
-        const eventType =
+        const eventType: NotificationSettingEventType =
           NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION;
 
-        const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          eventType,
-          templateVariables: {
-            alert_title: alert.title!,
-            alert_state: alertState!.name!,
-            action_link: vars["alertViewLink"] || "",
-            alert_number:
-              alert.alertNumber !== undefined
-                ? alert.alertNumber.toString()
-                : "",
-          },
-        });
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              alert_title: alert.title!,
+              alert_state: alertState!.name!,
+              action_link: vars["alertViewLink"] || "",
+              alert_number:
+                alert.alertNumber !== undefined
+                  ? alert.alertNumber.toString()
+                  : "",
+            },
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

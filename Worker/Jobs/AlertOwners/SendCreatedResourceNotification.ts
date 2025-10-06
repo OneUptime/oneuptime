@@ -25,6 +25,7 @@ import { Yellow500 } from "Common/Types/BrandColors";
 import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "AlertOwner:SendCreatedResourceEmail",
@@ -194,18 +195,19 @@ RunCron(
               alertViewLink: vars["alertViewLink"] || "",
             });
 
-          const eventType =
+          const eventType: NotificationSettingEventType =
             NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION;
 
-          const whatsAppMessage = createWhatsAppMessageFromTemplate({
-            eventType,
-            templateVariables: {
-              alert_title: alert.title!,
-              project_name: alert.project!.name!,
-              action_link: vars["alertViewLink"] || "",
-              alert_number: alertNumber.toString(),
-            },
-          });
+          const whatsAppMessage: WhatsAppMessagePayload =
+            createWhatsAppMessageFromTemplate({
+              eventType,
+              templateVariables: {
+                alert_title: alert.title!,
+                project_name: alert.project!.name!,
+                action_link: vars["alertViewLink"] || "",
+                alert_number: alertNumber.toString(),
+              },
+            });
 
           await UserNotificationSettingService.sendUserNotification({
             userId: user.id!,

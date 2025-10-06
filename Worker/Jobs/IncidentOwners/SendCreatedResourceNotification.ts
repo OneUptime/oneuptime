@@ -26,6 +26,7 @@ import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "IncidentOwner:SendCreatedResourceEmail",
@@ -206,18 +207,19 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
               ).toString(),
             });
 
-          const eventType =
+          const eventType: NotificationSettingEventType =
             NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION;
 
-          const whatsAppMessage = createWhatsAppMessageFromTemplate({
-            eventType,
-            templateVariables: {
-              incident_title: incident.title!,
-              project_name: incident.project!.name!,
-              action_link: vars["incidentViewLink"] || "",
-              incident_number: incidentNumber.toString(),
-            },
-          });
+          const whatsAppMessage: WhatsAppMessagePayload =
+            createWhatsAppMessageFromTemplate({
+              eventType,
+              templateVariables: {
+                incident_title: incident.title!,
+                project_name: incident.project!.name!,
+                action_link: vars["incidentViewLink"] || "",
+                incident_number: incidentNumber.toString(),
+              },
+            });
 
           await UserNotificationSettingService.sendUserNotification({
             userId: user.id!,

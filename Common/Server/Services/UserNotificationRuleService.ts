@@ -35,6 +35,7 @@ import {
   renderWhatsAppTemplate,
   WhatsAppTemplateIds,
   WhatsAppTemplateLanguage,
+  WhatsAppTemplateId,
 } from "../../Types/WhatsApp/WhatsAppTemplates";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
@@ -1131,7 +1132,7 @@ export class Service extends DatabaseService<Model> {
     const acknowledgeUrl: URL =
       await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
 
-    const templateKey = WhatsAppTemplateIds.AlertCreated;
+    const templateKey: WhatsAppTemplateId = WhatsAppTemplateIds.AlertCreated;
     const templateVariables: Record<string, string> = {
       project_name: alert.project?.name || "OneUptime",
       alert_title: alert.title || "",
@@ -1174,7 +1175,7 @@ export class Service extends DatabaseService<Model> {
     const acknowledgeUrl: URL =
       await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
 
-    const templateKey = WhatsAppTemplateIds.IncidentCreated;
+    const templateKey: WhatsAppTemplateId = WhatsAppTemplateIds.IncidentCreated;
     const templateVariables: Record<string, string> = {
       project_name: incident.project?.name || "OneUptime",
       incident_title: incident.title || "",

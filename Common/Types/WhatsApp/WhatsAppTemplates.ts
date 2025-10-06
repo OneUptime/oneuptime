@@ -1,4 +1,37 @@
-export const WhatsAppTemplateIds = {
+type WhatsAppTemplateIdsDefinition = {
+  readonly AlertCreated: "oneuptime_alert_created";
+  readonly IncidentCreated: "oneuptime_incident_created";
+  readonly VerificationCode: "oneuptime_verification_code";
+  readonly IncidentCreatedOwnerNotification: "oneuptime_incident_created_owner_notification";
+  readonly IncidentNotePostedOwnerNotification: "oneuptime_incident_note_posted_owner_notification";
+  readonly IncidentStateChangedOwnerNotification: "oneuptime_incident_state_changed_owner_notification";
+  readonly IncidentOwnerAddedNotification: "oneuptime_incident_owner_added_notification";
+  readonly AlertCreatedOwnerNotification: "oneuptime_alert_created_owner_notification";
+  readonly AlertNotePostedOwnerNotification: "oneuptime_alert_note_posted_owner_notification";
+  readonly AlertStateChangedOwnerNotification: "oneuptime_alert_state_changed_owner_notification";
+  readonly AlertOwnerAddedNotification: "oneuptime_alert_owner_added_notification";
+  readonly MonitorOwnerAddedNotification: "oneuptime_monitor_owner_added_notification";
+  readonly MonitorCreatedOwnerNotification: "oneuptime_monitor_created_owner_notification";
+  readonly MonitorStatusChangedOwnerNotification: "oneuptime_monitor_status_changed_owner_notification";
+  readonly MonitorProbeStatusChangedNotification: "oneuptime_monitor_probe_status_changed_notification";
+  readonly MonitorNoProbesMonitoringNotification: "oneuptime_monitor_no_probes_monitoring_notification";
+  readonly ScheduledMaintenanceCreatedOwnerNotification: "oneuptime_scheduled_maintenance_created_owner_notification";
+  readonly ScheduledMaintenanceNotePostedOwnerNotification: "oneuptime_scheduled_maintenance_note_posted_owner_notification";
+  readonly ScheduledMaintenanceOwnerAddedNotification: "oneuptime_scheduled_maintenance_owner_added_notification";
+  readonly ScheduledMaintenanceStateChangedOwnerNotification: "oneuptime_scheduled_maintenance_state_changed_owner_notification";
+  readonly StatusPageAnnouncementCreatedOwnerNotification: "oneuptime_status_page_announcement_created_owner_notification";
+  readonly StatusPageCreatedOwnerNotification: "oneuptime_status_page_created_owner_notification";
+  readonly StatusPageOwnerAddedNotification: "oneuptime_status_page_owner_added_notification";
+  readonly ProbeStatusChangedOwnerNotification: "oneuptime_probe_status_changed_owner_notification";
+  readonly ProbeOwnerAddedNotification: "oneuptime_probe_owner_added_notification";
+  readonly OnCallUserIsOnRosterNotification: "oneuptime_oncall_user_is_on_roster_notification";
+  readonly OnCallUserIsNextNotification: "oneuptime_oncall_user_is_next_notification";
+  readonly OnCallUserAddedToPolicyNotification: "oneuptime_oncall_user_added_to_policy_notification";
+  readonly OnCallUserRemovedFromPolicyNotification: "oneuptime_oncall_user_removed_from_policy_notification";
+  readonly OnCallUserNoLongerActiveNotification: "oneuptime_oncall_user_no_longer_active_notification";
+};
+
+const rawWhatsAppTemplateIds: WhatsAppTemplateIdsDefinition = {
   AlertCreated: "oneuptime_alert_created",
   IncidentCreated: "oneuptime_incident_created",
   VerificationCode: "oneuptime_verification_code",
@@ -50,9 +83,21 @@ export const WhatsAppTemplateIds = {
     "oneuptime_oncall_user_removed_from_policy_notification",
   OnCallUserNoLongerActiveNotification:
     "oneuptime_oncall_user_no_longer_active_notification",
-} as const;
+};
 
-const WhatsAppTemplateMessages = {
+export type WhatsAppTemplateIdsMap = WhatsAppTemplateIdsDefinition;
+
+export const WhatsAppTemplateIds: WhatsAppTemplateIdsDefinition =
+  rawWhatsAppTemplateIds;
+
+export type WhatsAppTemplateId =
+  (typeof WhatsAppTemplateIds)[keyof typeof WhatsAppTemplateIds];
+
+type WhatsAppTemplateMessagesDefinition = Readonly<
+  Record<WhatsAppTemplateId, string>
+>;
+
+const rawWhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
   [WhatsAppTemplateIds.AlertCreated]: `A new alert #{{alert_number}} ({{alert_title}}) has been created for project {{project_name}}. To acknowledge this alert, click here: {{acknowledge_url}}. For more information, visit your OneUptime dashboard.`,
   [WhatsAppTemplateIds.IncidentCreated]: `A new incident #{{incident_number}} ({{incident_title}}) has been created for project {{project_name}}. To acknowledge this incident, click here: {{acknowledge_url}}. For more information, visit your OneUptime dashboard.`,
   [WhatsAppTemplateIds.VerificationCode]: `Your OneUptime verification code is {{verification_code}}. Enter this code in the dashboard to verify your WhatsApp number. For more information, visit your OneUptime dashboard.`,
@@ -83,10 +128,10 @@ const WhatsAppTemplateMessages = {
   [WhatsAppTemplateIds.OnCallUserAddedToPolicyNotification]: `You have been added to on-call policy {{on_call_policy_name}} for {{on_call_context}}. Review the on-call policy: {{action_link}}. For more information, visit your OneUptime dashboard.`,
   [WhatsAppTemplateIds.OnCallUserRemovedFromPolicyNotification]: `You have been removed from on-call policy {{on_call_policy_name}} for {{on_call_context}}. View on-call policies: {{action_link}}. For more information, visit your OneUptime dashboard.`,
   [WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification]: `You are no longer on-call for policy {{on_call_policy_name}} on schedule {{schedule_name}}. Review your schedule: {{action_link}}. For more information, visit your OneUptime dashboard.`,
-} as const;
+};
 
-export type WhatsAppTemplateId =
-  (typeof WhatsAppTemplateIds)[keyof typeof WhatsAppTemplateIds];
+export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition =
+  rawWhatsAppTemplateMessages;
 
 export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.AlertCreated]: "en",
@@ -121,10 +166,10 @@ export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification]: "en",
 };
 
-export const renderWhatsAppTemplate = (
+export function renderWhatsAppTemplate(
   templateId: WhatsAppTemplateId,
   variables: Record<string, string>,
-): string => {
+): string {
   const template: string | undefined = WhatsAppTemplateMessages[templateId];
 
   if (!template) {
@@ -140,6 +185,6 @@ export const renderWhatsAppTemplate = (
 
     return variables[key];
   });
-};
+}
 
 export default WhatsAppTemplateMessages;

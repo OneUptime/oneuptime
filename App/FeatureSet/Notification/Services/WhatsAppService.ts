@@ -20,6 +20,8 @@ import logger from "Common/Server/Utils/Logger";
 import Project from "Common/Models/DatabaseModels/Project";
 import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
 import API from "Common/Utils/API";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -307,14 +309,21 @@ export default class WhatsAppService {
         new Route(`${apiVersion}/${config.phoneNumberId}/messages`),
       );
 
-      const response = await API.post<JSONObject>({
-        url,
-        data: payload,
-        headers: {
-          Authorization: `Bearer ${config.accessToken}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url,
+          data: payload,
+          headers: {
+            Authorization: `Bearer ${config.accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw new BadDataException(
+          response.message || "Failed to send WhatsApp message.",
+        );
+      }
 
       const responseData: JSONObject = (response.jsonData || {}) as JSONObject;
 
@@ -323,7 +332,7 @@ export default class WhatsAppService {
         (responseData["messages"] as JSONArray) || undefined;
 
       if (Array.isArray(messagesArray) && messagesArray.length > 0) {
-        const firstMessage = messagesArray[0] as JSONObject;
+        const firstMessage: JSONObject = messagesArray[0] as JSONObject;
         if (firstMessage["id"]) {
           messageId = firstMessage["id"] as string;
         }

@@ -14,7 +14,9 @@ import Response from "Common/Server/Utils/Response";
 
 const router: ExpressRouter = Express.getRouter();
 
-const toTemplateVariables = (
+const toTemplateVariables: (
+  rawVariables: JSONObject | undefined,
+) => Record<string, string> | undefined = (
   rawVariables: JSONObject | undefined,
 ): Record<string, string> | undefined => {
   if (!rawVariables) {

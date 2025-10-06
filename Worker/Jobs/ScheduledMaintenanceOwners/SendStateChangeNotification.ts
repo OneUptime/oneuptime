@@ -26,6 +26,7 @@ import { Blue500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import UserService from "Common/Server/Services/UserService";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendStateChangeEmail",
@@ -169,17 +170,18 @@ RunCron(
             requireInteraction: false,
           });
 
-        const eventType =
+        const eventType: NotificationSettingEventType =
           NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION;
 
-        const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          eventType,
-          templateVariables: {
-            event_title: scheduledMaintenance.title!,
-            event_state: scheduledMaintenanceState!.name!,
-            action_link: vars["scheduledMaintenanceViewLink"] || "",
-          },
-        });
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              event_title: scheduledMaintenance.title!,
+              event_state: scheduledMaintenanceState!.name!,
+              action_link: vars["scheduledMaintenanceViewLink"] || "",
+            },
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
