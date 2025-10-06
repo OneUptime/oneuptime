@@ -197,9 +197,8 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. Incident ${incidentIdentifier} - state changed to ${
-            incidentState!.name!
-          }. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: `This is a message from OneUptime. Incident ${incidentIdentifier} - state changed to ${incidentState!
+            .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
         const callMessage: CallRequestMessage = {

@@ -1137,15 +1137,10 @@ export class Service extends DatabaseService<Model> {
       alert_title: alert.title || "",
       acknowledge_url: acknowledgeUrl.toString(),
       alert_number:
-        alert.alertNumber !== undefined
-          ? alert.alertNumber.toString()
-          : "",
+        alert.alertNumber !== undefined ? alert.alertNumber.toString() : "",
     };
 
-    const body: string = renderWhatsAppTemplate(
-      templateKey,
-      templateVariables,
-    );
+    const body: string = renderWhatsAppTemplate(templateKey, templateVariables);
 
     return {
       to,
@@ -1190,10 +1185,7 @@ export class Service extends DatabaseService<Model> {
           : "",
     };
 
-    const body: string = renderWhatsAppTemplate(
-      templateKey,
-      templateVariables,
-    );
+    const body: string = renderWhatsAppTemplate(templateKey, templateVariables);
 
     return {
       to,

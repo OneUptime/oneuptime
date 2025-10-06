@@ -178,9 +178,8 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. Alert ${alertIdentifier} - state changed to ${
-            alertState!.name!
-          }. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: `This is a message from OneUptime. Alert ${alertIdentifier} - state changed to ${alertState!
+            .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
         const callMessage: CallRequestMessage = {

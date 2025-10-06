@@ -482,7 +482,8 @@ export default class WhatsAppLog extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Scheduled Maintenance ID",
-    description: "ID of Scheduled Maintenance associated with this message (if any)",
+    description:
+      "ID of Scheduled Maintenance associated with this message (if any)",
   })
   @Column({
     type: ColumnType.ObjectID,

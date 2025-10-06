@@ -53,7 +53,9 @@ export default class WhatsAppService {
 
     try {
       if (!message.to) {
-        throw new BadDataException("WhatsApp recipient phone number is required");
+        throw new BadDataException(
+          "WhatsApp recipient phone number is required",
+        );
       }
 
       if (!message.body && !message.templateKey) {
@@ -101,8 +103,7 @@ export default class WhatsAppService {
       }
 
       if (options.statusPageAnnouncementId) {
-        whatsAppLog.statusPageAnnouncementId =
-          options.statusPageAnnouncementId;
+        whatsAppLog.statusPageAnnouncementId = options.statusPageAnnouncementId;
       }
 
       if (options.userId) {
@@ -214,9 +215,7 @@ export default class WhatsAppService {
             return;
           }
 
-          if (
-            project.smsOrCallCurrentBalanceInUSDCents < messageCost * 100
-          ) {
+          if (project.smsOrCallCurrentBalanceInUSDCents < messageCost * 100) {
             whatsAppLog.status = WhatsAppStatus.LowBalance;
             whatsAppLog.statusMessage = `Project does not have enough balance to send WhatsApp message. Current balance is ${
               project.smsOrCallCurrentBalanceInUSDCents / 100
@@ -267,8 +266,10 @@ export default class WhatsAppService {
           },
         } as JSONObject;
 
-        if (message.templateVariables &&
-          Object.keys(message.templateVariables).length > 0) {
+        if (
+          message.templateVariables &&
+          Object.keys(message.templateVariables).length > 0
+        ) {
           const parameters: JSONArray = [];
 
           for (const value of Object.values(message.templateVariables)) {

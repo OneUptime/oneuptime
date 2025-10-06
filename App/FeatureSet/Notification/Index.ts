@@ -17,7 +17,7 @@ const NotificationFeatureSet: FeatureSet = {
 
     app.use([`/${APP_NAME}/email`, "/email"], MailAPI);
     app.use([`/${APP_NAME}/sms`, "/sms"], SmsAPI);
-  app.use([`/${APP_NAME}/whatsapp`, "/whatsapp"], WhatsAppAPI);
+    app.use([`/${APP_NAME}/whatsapp`, "/whatsapp"], WhatsAppAPI);
     app.use([`/${APP_NAME}/push`, "/push"], PushNotificationAPI);
     app.use([`/${APP_NAME}/call`, "/call"], CallAPI);
     app.use([`/${APP_NAME}/smtp-config`, "/smtp-config"], SMTPConfigAPI);

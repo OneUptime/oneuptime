@@ -11,7 +11,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Fragment>
       <UserEmail />
       <UserSMS />
-  <UserWhatsApp />
+      <UserWhatsApp />
       <UserCall />
       <UserPush />
     </Fragment>

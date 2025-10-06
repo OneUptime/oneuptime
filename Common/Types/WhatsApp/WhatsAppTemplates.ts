@@ -2,19 +2,22 @@ export const WhatsAppTemplateIds = {
   AlertCreated: "oneuptime_alert_created",
   IncidentCreated: "oneuptime_incident_created",
   VerificationCode: "oneuptime_verification_code",
-  IncidentCreatedOwnerNotification: "oneuptime_incident_created_owner_notification",
+  IncidentCreatedOwnerNotification:
+    "oneuptime_incident_created_owner_notification",
   IncidentNotePostedOwnerNotification:
     "oneuptime_incident_note_posted_owner_notification",
   IncidentStateChangedOwnerNotification:
     "oneuptime_incident_state_changed_owner_notification",
   IncidentOwnerAddedNotification: "oneuptime_incident_owner_added_notification",
   AlertCreatedOwnerNotification: "oneuptime_alert_created_owner_notification",
-  AlertNotePostedOwnerNotification: "oneuptime_alert_note_posted_owner_notification",
+  AlertNotePostedOwnerNotification:
+    "oneuptime_alert_note_posted_owner_notification",
   AlertStateChangedOwnerNotification:
     "oneuptime_alert_state_changed_owner_notification",
   AlertOwnerAddedNotification: "oneuptime_alert_owner_added_notification",
   MonitorOwnerAddedNotification: "oneuptime_monitor_owner_added_notification",
-  MonitorCreatedOwnerNotification: "oneuptime_monitor_created_owner_notification",
+  MonitorCreatedOwnerNotification:
+    "oneuptime_monitor_created_owner_notification",
   MonitorStatusChangedOwnerNotification:
     "oneuptime_monitor_status_changed_owner_notification",
   MonitorProbeStatusChangedNotification:
@@ -38,7 +41,8 @@ export const WhatsAppTemplateIds = {
   ProbeStatusChangedOwnerNotification:
     "oneuptime_probe_status_changed_owner_notification",
   ProbeOwnerAddedNotification: "oneuptime_probe_owner_added_notification",
-  OnCallUserIsOnRosterNotification: "oneuptime_oncall_user_is_on_roster_notification",
+  OnCallUserIsOnRosterNotification:
+    "oneuptime_oncall_user_is_on_roster_notification",
   OnCallUserIsNextNotification: "oneuptime_oncall_user_is_next_notification",
   OnCallUserAddedToPolicyNotification:
     "oneuptime_oncall_user_added_to_policy_notification",

@@ -38,24 +38,18 @@ const templateIdByEventType: Record<
     WhatsAppTemplateIds.MonitorStatusChangedOwnerNotification,
   [NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES]:
     WhatsAppTemplateIds.MonitorProbeStatusChangedNotification,
-  [
-    NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR
-  ]: WhatsAppTemplateIds.MonitorNoProbesMonitoringNotification,
-  [
-    NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION
-  ]: WhatsAppTemplateIds.ScheduledMaintenanceCreatedOwnerNotification,
-  [
-    NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION
-  ]: WhatsAppTemplateIds.ScheduledMaintenanceNotePostedOwnerNotification,
-  [
-    NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION
-  ]: WhatsAppTemplateIds.ScheduledMaintenanceOwnerAddedNotification,
-  [
-    NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION
-  ]: WhatsAppTemplateIds.ScheduledMaintenanceStateChangedOwnerNotification,
-  [
-    NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION
-  ]: WhatsAppTemplateIds.StatusPageAnnouncementCreatedOwnerNotification,
+  [NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR]:
+    WhatsAppTemplateIds.MonitorNoProbesMonitoringNotification,
+  [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.ScheduledMaintenanceCreatedOwnerNotification,
+  [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.ScheduledMaintenanceNotePostedOwnerNotification,
+  [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.ScheduledMaintenanceOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.ScheduledMaintenanceStateChangedOwnerNotification,
+  [NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.StatusPageAnnouncementCreatedOwnerNotification,
   [NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION]:
     WhatsAppTemplateIds.StatusPageCreatedOwnerNotification,
   [NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION]:
@@ -72,9 +66,8 @@ const templateIdByEventType: Record<
     WhatsAppTemplateIds.OnCallUserAddedToPolicyNotification,
   [NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY]:
     WhatsAppTemplateIds.OnCallUserRemovedFromPolicyNotification,
-  [
-    NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER
-  ]: WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification,
+  [NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER]:
+    WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification,
 };
 
 export const getWhatsAppTemplateIdForEventType = (
@@ -115,18 +108,18 @@ const renderTemplateContent = (
   variables: Record<string, string>,
   context: string,
 ): string => {
-  return templateContent.replace(/\{\{(.*?)\}\}/g, (
-    _match: string,
-    key: string,
-  ) => {
-    if (variables[key] === undefined) {
-      throw new Error(
-        `Missing variable "${key}" for WhatsApp template ${context}.`,
-      );
-    }
+  return templateContent.replace(
+    /\{\{(.*?)\}\}/g,
+    (_match: string, key: string) => {
+      if (variables[key] === undefined) {
+        throw new Error(
+          `Missing variable "${key}" for WhatsApp template ${context}.`,
+        );
+      }
 
-    return variables[key];
-  });
+      return variables[key];
+    },
+  );
 };
 
 export const createWhatsAppMessageFromTemplate = ({
@@ -143,7 +136,8 @@ export const createWhatsAppMessageFromTemplate = ({
   templateVariables?: Record<string, string>;
 }): WhatsAppMessagePayload => {
   const resolvedTemplateKey: WhatsAppTemplateId | undefined =
-    templateKey ?? (eventType ? getWhatsAppTemplateIdForEventType(eventType) : undefined);
+    templateKey ??
+    (eventType ? getWhatsAppTemplateIdForEventType(eventType) : undefined);
 
   if (!resolvedTemplateKey) {
     throw new Error(
@@ -152,7 +146,9 @@ export const createWhatsAppMessageFromTemplate = ({
   }
 
   const resolvedActionLink: string = (
-    actionLink ?? templateVariables?.["action_link"] ?? DEFAULT_ACTION_LINK
+    actionLink ??
+    templateVariables?.["action_link"] ??
+    DEFAULT_ACTION_LINK
   ).trim();
 
   const templateVariablesWithDefaults: Record<string, string> = {
