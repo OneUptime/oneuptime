@@ -235,31 +235,73 @@ type GetMetaWhatsAppConfigFunction = () => Promise<MetaWhatsAppConfig>;
 
 export const getMetaWhatsAppConfig: GetMetaWhatsAppConfigFunction =
   async (): Promise<MetaWhatsAppConfig> => {
+    const globalConfig: GlobalConfig | null =
+      await GlobalConfigService.findOneBy({
+        query: {
+          _id: ObjectID.getZeroObjectID().toString(),
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          metaWhatsAppAccessToken: true,
+          metaWhatsAppPhoneNumberId: true,
+          metaWhatsAppBusinessAccountId: true,
+          metaWhatsAppAppId: true,
+          metaWhatsAppAppSecret: true,
+          metaWhatsAppApiVersion: true,
+        },
+      });
+
+    if (!globalConfig) {
+      throw new BadDataException("Global Config not found");
+    }
+
     const accessToken: string | undefined =
-      process.env["META_WHATSAPP_ACCESS_TOKEN"];
+      globalConfig.metaWhatsAppAccessToken?.trim() ||
+      process.env["META_WHATSAPP_ACCESS_TOKEN"]?.trim();
     const phoneNumberId: string | undefined =
-      process.env["META_WHATSAPP_PHONE_NUMBER_ID"];
+      globalConfig.metaWhatsAppPhoneNumberId?.trim() ||
+      process.env["META_WHATSAPP_PHONE_NUMBER_ID"]?.trim();
 
     if (!accessToken) {
       throw new BadDataException(
-        "Meta WhatsApp access token not found. Please set META_WHATSAPP_ACCESS_TOKEN in environment variables.",
+        "Meta WhatsApp access token not configured. Please set it in the Admin Dashboard: " +
+          AdminDashboardClientURL.toString(),
       );
     }
 
     if (!phoneNumberId) {
       throw new BadDataException(
-        "Meta WhatsApp phone number ID not found. Please set META_WHATSAPP_PHONE_NUMBER_ID in environment variables.",
+        "Meta WhatsApp phone number ID not configured. Please set it in the Admin Dashboard: " +
+          AdminDashboardClientURL.toString(),
       );
     }
+
+    const businessAccountId: string | undefined =
+      globalConfig.metaWhatsAppBusinessAccountId?.trim() ||
+      process.env["META_WHATSAPP_BUSINESS_ACCOUNT_ID"]?.trim() ||
+      undefined;
+    const appId: string | undefined =
+      globalConfig.metaWhatsAppAppId?.trim() ||
+      process.env["META_WHATSAPP_APP_ID"]?.trim() ||
+      undefined;
+    const appSecret: string | undefined =
+      globalConfig.metaWhatsAppAppSecret?.trim() ||
+      process.env["META_WHATSAPP_APP_SECRET"]?.trim() ||
+      undefined;
+    const apiVersion: string | undefined =
+      globalConfig.metaWhatsAppApiVersion?.trim() ||
+      process.env["META_WHATSAPP_API_VERSION"]?.trim() ||
+      undefined;
 
     return {
       accessToken,
       phoneNumberId,
-      businessAccountId:
-        process.env["META_WHATSAPP_BUSINESS_ACCOUNT_ID"] || undefined,
-      appId: process.env["META_WHATSAPP_APP_ID"] || undefined,
-      appSecret: process.env["META_WHATSAPP_APP_SECRET"] || undefined,
-      apiVersion: process.env["META_WHATSAPP_API_VERSION"] || undefined,
+      businessAccountId,
+      appId,
+      appSecret,
+      apiVersion,
     };
   };
 

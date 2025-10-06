@@ -268,6 +268,115 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "Meta WhatsApp Access Token",
+    description:
+      "Access token generated from Meta for sending WhatsApp messages.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+    unique: true,
+  })
+  public metaWhatsAppAccessToken?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Meta WhatsApp Phone Number ID",
+    description: "The WhatsApp Business phone number ID from Meta.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public metaWhatsAppPhoneNumberId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Meta WhatsApp Business Account ID",
+    description: "Business account ID associated with your WhatsApp setup.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public metaWhatsAppBusinessAccountId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Meta WhatsApp App ID",
+    description:
+      "Facebook App ID used for the WhatsApp Business Platform integration.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public metaWhatsAppAppId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "Meta WhatsApp App Secret",
+    description: "Facebook App Secret for the WhatsApp Business Platform.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+    unique: true,
+  })
+  public metaWhatsAppAppSecret?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Meta WhatsApp API Version",
+    description:
+      "Optional Graph API version to use (for example, v18.0). Leave empty to use the default.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public metaWhatsAppApiVersion?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
     type: TableColumnType.ShortText,
     title: "Email Server Type",
     description: "Email Server Type",
