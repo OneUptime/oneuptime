@@ -254,6 +254,10 @@ export default class WhatsAppService {
         to: message.to.toString(),
       } as JSONObject;
 
+      if(!message.templateKey){
+        throw new BadDataException("WhatsApp message template key is required");
+      }
+
       if (message.templateKey) {
         const template: JSONObject = {
           name: message.templateKey,
@@ -302,6 +306,8 @@ export default class WhatsAppService {
         "graph.facebook.com",
         new Route(`${apiVersion}/${config.phoneNumberId}/messages`),
       );
+
+      logger.debug(`WhatsApp API request: ${JSON.stringify(payload)}`);
 
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.post<JSONObject>({
