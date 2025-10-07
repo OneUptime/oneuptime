@@ -20,6 +20,7 @@ import {
   WhatsAppTemplateLanguage,
   WhatsAppTemplateId,
 } from "../../Types/WhatsApp/WhatsAppTemplates";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -113,7 +114,9 @@ export class Service extends DatabaseService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.isVerified) {
-      this.sendVerificationCode(createdItem);
+      this.sendVerificationCode(createdItem).catch((error: Error) => {
+        logger.error(error);
+      });
     }
 
     return createdItem;
@@ -157,13 +160,15 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    this.sendVerificationCode(item);
+    await this.sendVerificationCode(item);
   }
 
-  public sendVerificationCode(item: Model): void {
+  public async sendVerificationCode(item: Model): Promise<void> {
     if (!item.projectId || !item.userId || !item.phone) {
       logger.warn("Cannot send WhatsApp verification code. Missing data.");
-      return;
+      throw new BadDataException(
+        "Unable to send WhatsApp verification code. Please remove this number and add it again.",
+      );
     }
 
     const templateKey: WhatsAppTemplateId =
@@ -180,13 +185,18 @@ export class Service extends DatabaseService<Model> {
       templateLanguageCode: WhatsAppTemplateLanguage[templateKey],
     };
 
-    WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
-      projectId: item.projectId,
-      isSensitive: true,
-      userId: item.userId,
-    }).catch((err: Error) => {
-      logger.error(err);
-    });
+    const response = await WhatsAppService.sendWhatsAppMessage(
+      whatsAppMessage,
+      {
+        projectId: item.projectId,
+        isSensitive: true,
+        userId: item.userId,
+      },
+    );
+
+    if (response instanceof HTTPErrorResponse) {
+      throw response; 
+    }
   }
 }
 
