@@ -301,12 +301,6 @@ export const WhatsAppTextDefaultCostInCents: number = process.env[
   ? parseInt(process.env["WHATSAPP_TEXT_DEFAULT_COST_IN_CENTS"])
   : 0;
 
-export const WhatsAppTextHighRiskCostInCents: number = process.env[
-  "WHATSAPP_TEXT_HIGH_RISK_COST_IN_CENTS"
-]
-  ? parseInt(process.env["WHATSAPP_TEXT_HIGH_RISK_COST_IN_CENTS"])
-  : 0;
-
 export const CallHighRiskCostInCentsPerMinute: number = process.env[
   "CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE"
 ]
