@@ -25,6 +25,8 @@ import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import UserService from "Common/Server/Services/UserService";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "IncidentOwner:SendStateChangeEmail",
@@ -184,6 +186,11 @@ RunCron(
           }
         }
 
+        const incidentIdentifier: string =
+          incident.incidentNumber !== undefined
+            ? `#${incident.incidentNumber} (${incident.title})`
+            : incident.title!;
+
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.IncidentOwnerStateChanged,
           vars: vars,
@@ -191,9 +198,7 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. Incident: ${
-            incident.title
-          } - state changed to ${incidentState!
+          message: `This is a message from OneUptime. Incident ${incidentIdentifier} - state changed to ${incidentState!
             .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
@@ -201,8 +206,8 @@ RunCron(
           data: [
             {
               sayMessage: `This is a message from OneUptime. Incident ${
-                incident.title
-              }       state changed to ${incidentState!
+                incidentIdentifier
+              } state changed to ${incidentState!
                 .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
@@ -216,6 +221,23 @@ RunCron(
             incidentViewLink: vars["incidentViewLink"] || "",
           });
 
+        const eventType: NotificationSettingEventType =
+          NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION;
+
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              incident_title: incident.title!,
+              incident_state: incidentState!.name!,
+              incident_number:
+                incident.incidentNumber !== undefined
+                  ? incident.incidentNumber.toString()
+                  : "",
+              incident_link: vars["incidentViewLink"] || "",
+            },
+          });
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: incidentStateTimeline.projectId!,
@@ -223,9 +245,9 @@ RunCron(
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
+          whatsAppMessage,
           incidentId: incident.id!,
-          eventType:
-            NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
+          eventType,
         });
 
         moreIncidentFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(

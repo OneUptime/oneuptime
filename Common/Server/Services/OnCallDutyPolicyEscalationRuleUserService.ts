@@ -22,7 +22,9 @@ import PushNotificationMessage from "../../Types/PushNotification/PushNotificati
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
+import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import logger from "../Utils/Logger";
+import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -117,6 +119,20 @@ export class Service extends DatabaseService<Model> {
         policyName: createdModel.onCallDutyPolicy?.name || "",
       });
 
+    const eventType: NotificationSettingEventType =
+      NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY;
+
+    const whatsAppMessage: WhatsAppMessagePayload =
+      createWhatsAppMessageFromTemplate({
+        eventType,
+        templateVariables: {
+          on_call_policy_name:
+            createdModel.onCallDutyPolicy?.name || "No name provided",
+          on_call_context: `escalation rule ${createdModel.onCallDutyPolicyEscalationRule?.name || "No name provided"}`,
+          policy_link: vars["onCallPolicyViewLink"] || "",
+        },
+      });
+
     await UserNotificationSettingService.sendUserNotification({
       userId: sendEmailToUserId,
       projectId: createdModel!.projectId!,
@@ -124,8 +140,8 @@ export class Service extends DatabaseService<Model> {
       smsMessage: sms,
       callRequestMessage: callMessage,
       pushNotificationMessage: pushMessage,
-      eventType:
-        NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
+      whatsAppMessage,
+      eventType,
       onCallPolicyId: createdModel.onCallDutyPolicy!.id!,
       onCallPolicyEscalationRuleId:
         createdModel.onCallDutyPolicyEscalationRule!.id!,
@@ -322,6 +338,20 @@ export class Service extends DatabaseService<Model> {
           policyName: deletedItem.onCallDutyPolicy?.name || "",
         });
 
+      const eventType: NotificationSettingEventType =
+        NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY;
+
+      const whatsAppMessage: WhatsAppMessagePayload =
+        createWhatsAppMessageFromTemplate({
+          eventType,
+          templateVariables: {
+            on_call_policy_name:
+              deletedItem.onCallDutyPolicy?.name || "No name provided",
+            on_call_context: `escalation rule ${deletedItem.onCallDutyPolicyEscalationRule?.name || "No name provided"}`,
+            policy_link: vars["onCallPolicyViewLink"] || "",
+          },
+        });
+
       UserNotificationSettingService.sendUserNotification({
         userId: sendEmailToUserId,
         projectId: deletedItem!.projectId!,
@@ -329,8 +359,8 @@ export class Service extends DatabaseService<Model> {
         smsMessage: sms,
         callRequestMessage: callMessage,
         pushNotificationMessage: pushMessage,
-        eventType:
-          NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
+        whatsAppMessage,
+        eventType,
         onCallPolicyId: deletedItem.onCallDutyPolicy!.id!,
         onCallPolicyEscalationRuleId:
           deletedItem.onCallDutyPolicyEscalationRule!.id!,

@@ -60,6 +60,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           userPush: {
             deviceName: true,
           },
+          userWhatsApp: {
+            phone: true,
+          },
         }}
         noItemsMessage={"No notifications sent out so far."}
         showRefreshButton={true}
@@ -110,6 +113,18 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             field: {
               userCall: {
+                phone: true,
+              },
+              userEmail: {
+                email: true,
+              },
+              userSms: {
+                phone: true,
+              },
+              userPush: {
+                deviceName: true,
+              },
+              userWhatsApp: {
                 phone: true,
               },
             },

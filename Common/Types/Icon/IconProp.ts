@@ -137,6 +137,7 @@ enum IconProp {
   EyeSlash = "EyeSlash",
   SquareStack3D = "SquareStack3D",
   ExclaimationCircle = "ExclaimationCircle",
+  WhatsApp = "WhatsApp",
 }
 
 export default IconProp;

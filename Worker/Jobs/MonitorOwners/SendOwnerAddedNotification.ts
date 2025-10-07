@@ -15,11 +15,13 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorOwnerTeam from "Common/Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
 import User from "Common/Models/DatabaseModels/User";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "MonitorOwner:SendOwnerAddedEmail",
@@ -202,6 +204,18 @@ RunCron(
             requireInteraction: false,
           });
 
+        const eventType: NotificationSettingEventType =
+          NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION;
+
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              monitor_name: monitor.name!,
+              monitor_link: vars["monitorViewLink"] || "",
+            },
+          });
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: monitor.projectId!,
@@ -209,8 +223,8 @@ RunCron(
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
-          eventType:
-            NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
+          whatsAppMessage,
+          eventType,
         });
       }
     }

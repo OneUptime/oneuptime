@@ -25,6 +25,8 @@ import User from "Common/Models/DatabaseModels/User";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "IncidentOwner:SendsNotePostedEmail",
@@ -186,6 +188,11 @@ RunCron(
         vars["isPrivateNote"] = "true";
       }
 
+      const incidentIdentifier: string =
+        incident.incidentNumber !== undefined
+          ? `#${incident.incidentNumber} (${incident.title})`
+          : incident.title!;
+
       for (const user of owners) {
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.IncidentOwnerNotePosted,
@@ -194,13 +201,13 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. New note posted on incident: ${incident.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: `This is a message from OneUptime. New note posted on incident ${incidentIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime. New note posted on incident ${incident.title}. To see the note, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+              sayMessage: `This is a message from OneUptime. New note posted on incident ${incidentIdentifier}. To see the note, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
         };
@@ -218,6 +225,22 @@ RunCron(
             ).toString(),
           });
 
+        const eventType: NotificationSettingEventType =
+          NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION;
+
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              incident_title: incident.title!,
+              incident_number:
+                incident.incidentNumber !== undefined
+                  ? incident.incidentNumber.toString()
+                  : "",
+              incident_link: vars["incidentViewLink"] || "",
+            },
+          });
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: incident.projectId!,
@@ -225,9 +248,9 @@ RunCron(
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
+          whatsAppMessage,
           incidentId: incident.id!,
-          eventType:
-            NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
+          eventType,
         });
 
         moreIncidentFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;

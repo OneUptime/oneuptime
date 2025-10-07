@@ -9,6 +9,7 @@ import IncidentSeverityService from "./IncidentSeverityService";
 import MailService from "./MailService";
 import ShortLinkService from "./ShortLinkService";
 import SmsService from "./SmsService";
+import WhatsAppService from "./WhatsAppService";
 import UserEmailService from "./UserEmailService";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
@@ -29,6 +30,13 @@ import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleT
 import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
 import SMS from "../../Types/SMS/SMS";
+import WhatsAppMessage from "../../Types/WhatsApp/WhatsAppMessage";
+import {
+  renderWhatsAppTemplate,
+  WhatsAppTemplateIds,
+  WhatsAppTemplateLanguage,
+  WhatsAppTemplateId,
+} from "../../Types/WhatsApp/WhatsAppTemplates";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
 import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
@@ -135,6 +143,10 @@ export class Service extends DatabaseService<Model> {
           phone: true,
           isVerified: true,
         },
+        userWhatsApp: {
+          phone: true,
+          isVerified: true,
+        },
         userEmail: {
           email: true,
           isVerified: true,
@@ -224,6 +236,7 @@ export class Service extends DatabaseService<Model> {
             name: true,
           },
           rootCause: true,
+          incidentNumber: true,
         },
       });
     }
@@ -252,6 +265,7 @@ export class Service extends DatabaseService<Model> {
           alertSeverity: {
             name: true,
           },
+          alertNumber: true,
         },
       });
     }
@@ -507,6 +521,125 @@ export class Service extends DatabaseService<Model> {
       // create a log.
       logTimelineItem.status = UserNotificationStatus.Error;
       logTimelineItem.statusMessage = `SMS not sent because phone ${notificationRuleItem.userSms?.phone.toString()} is not verified.`;
+
+      await UserOnCallLogTimelineService.create({
+        data: logTimelineItem,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (
+      notificationRuleItem.userWhatsApp?.phone &&
+      notificationRuleItem.userWhatsApp?.isVerified
+    ) {
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.AlertCreated &&
+        alert
+      ) {
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending WhatsApp message to ${notificationRuleItem.userWhatsApp?.phone.toString()}.`;
+        logTimelineItem.userWhatsAppId = notificationRuleItem.userWhatsApp.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const whatsAppMessage: WhatsAppMessage =
+          await this.generateWhatsAppTemplateForAlertCreated(
+            notificationRuleItem.userWhatsApp.phone,
+            alert,
+            updatedLog.id!,
+          );
+
+        WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
+          projectId: alert.projectId,
+          alertId: alert.id!,
+          userOnCallLogTimelineId: updatedLog.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending WhatsApp message.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.IncidentCreated &&
+        incident
+      ) {
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending WhatsApp message to ${notificationRuleItem.userWhatsApp?.phone.toString()}.`;
+        logTimelineItem.userWhatsAppId = notificationRuleItem.userWhatsApp.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const whatsAppMessage: WhatsAppMessage =
+          await this.generateWhatsAppTemplateForIncidentCreated(
+            notificationRuleItem.userWhatsApp.phone,
+            incident,
+            updatedLog.id!,
+          );
+
+        WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
+          projectId: incident.projectId,
+          incidentId: incident.id!,
+          userOnCallLogTimelineId: updatedLog.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending WhatsApp message.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+    }
+
+    if (
+      notificationRuleItem.userWhatsApp?.phone &&
+      !notificationRuleItem.userWhatsApp?.isVerified
+    ) {
+      logTimelineItem.status = UserNotificationStatus.Error;
+      logTimelineItem.statusMessage = `WhatsApp message not sent because phone ${notificationRuleItem.userWhatsApp?.phone.toString()} is not verified.`;
+      logTimelineItem.userWhatsAppId = notificationRuleItem.userWhatsApp.id!;
 
       await UserOnCallLogTimelineService.create({
         data: logTimelineItem,
@@ -930,11 +1063,14 @@ export class Service extends DatabaseService<Model> {
     );
     const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
 
+    const alertIdentifier: string =
+      alert.alertNumber !== undefined
+        ? `#${alert.alertNumber} (${alert.title || "Alert"})`
+        : alert.title || "Alert";
+
     const sms: SMS = {
       to,
-      message: `This is a message from OneUptime. A new alert has been created. ${
-        alert.title
-      }. To acknowledge this alert, please click on the following link ${url.toString()}`,
+      message: `This is a message from OneUptime. A new alert has been created: ${alertIdentifier}. To acknowledge this alert, please click on the following link ${url.toString()}`,
     };
 
     return sms;
@@ -960,14 +1096,127 @@ export class Service extends DatabaseService<Model> {
     );
     const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
 
+    const incidentIdentifier: string =
+      incident.incidentNumber !== undefined
+        ? `#${incident.incidentNumber} (${incident.title || "Incident"})`
+        : incident.title || "Incident";
+
     const sms: SMS = {
       to,
-      message: `This is a message from OneUptime. A new incident has been created. ${
-        incident.title
-      }. To acknowledge this incident, please click on the following link ${url.toString()}`,
+      message: `This is a message from OneUptime. A new incident has been created: ${incidentIdentifier}. To acknowledge this incident, please click on the following link ${url.toString()}`,
     };
 
     return sms;
+  }
+
+  @CaptureSpan()
+  public async generateWhatsAppTemplateForAlertCreated(
+    to: Phone,
+    alert: Alert,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<WhatsAppMessage> {
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const acknowledgeShortLink: ShortLink =
+      await ShortLinkService.saveShortLinkFor(
+        new URL(
+          httpProtocol,
+          host,
+          new Route(AppApiRoute.toString())
+            .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+            .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString()),
+        ),
+      );
+
+    const acknowledgeUrl: URL =
+      await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
+
+    const alertLinkOnDashboard: string =
+      alert.projectId && alert.id
+        ? (
+            await AlertService.getAlertLinkInDashboard(
+              alert.projectId,
+              alert.id,
+            )
+          ).toString()
+        : acknowledgeUrl.toString();
+
+    const templateKey: WhatsAppTemplateId = WhatsAppTemplateIds.AlertCreated;
+    const templateVariables: Record<string, string> = {
+      project_name: alert.project?.name || "OneUptime",
+      alert_title: alert.title || "",
+      acknowledge_url: acknowledgeUrl.toString(),
+      alert_number:
+        alert.alertNumber !== undefined ? alert.alertNumber.toString() : "",
+      alert_link: alertLinkOnDashboard,
+    };
+
+    const body: string = renderWhatsAppTemplate(templateKey, templateVariables);
+
+    return {
+      to,
+      body,
+      templateKey,
+      templateVariables,
+      templateLanguageCode: WhatsAppTemplateLanguage[templateKey],
+    };
+  }
+
+  @CaptureSpan()
+  public async generateWhatsAppTemplateForIncidentCreated(
+    to: Phone,
+    incident: Incident,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<WhatsAppMessage> {
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const acknowledgeShortLink: ShortLink =
+      await ShortLinkService.saveShortLinkFor(
+        new URL(
+          httpProtocol,
+          host,
+          new Route(AppApiRoute.toString())
+            .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+            .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString()),
+        ),
+      );
+
+    const acknowledgeUrl: URL =
+      await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
+
+    const incidentLinkOnDashboard: string =
+      incident.projectId && incident.id
+        ? (
+            await IncidentService.getIncidentLinkInDashboard(
+              incident.projectId,
+              incident.id,
+            )
+          ).toString()
+        : acknowledgeUrl.toString();
+
+    const templateKey: WhatsAppTemplateId = WhatsAppTemplateIds.IncidentCreated;
+    const templateVariables: Record<string, string> = {
+      project_name: incident.project?.name || "OneUptime",
+      incident_title: incident.title || "",
+      acknowledge_url: acknowledgeUrl.toString(),
+      incident_number:
+        incident.incidentNumber !== undefined
+          ? incident.incidentNumber.toString()
+          : "",
+      incident_link: incidentLinkOnDashboard,
+    };
+
+    const body: string = renderWhatsAppTemplate(templateKey, templateVariables);
+
+    return {
+      to,
+      body,
+      templateKey,
+      templateVariables,
+      templateLanguageCode: WhatsAppTemplateLanguage[templateKey],
+    };
   }
 
   @CaptureSpan()
@@ -1210,12 +1459,14 @@ export class Service extends DatabaseService<Model> {
       !createBy.data.userEmail &&
       !createBy.data.userSms &&
       !createBy.data.userSmsId &&
+      !createBy.data.userWhatsApp &&
+      !createBy.data.userWhatsAppId &&
       !createBy.data.userEmailId &&
       !createBy.data.userPushId &&
       !createBy.data.userPush
     ) {
       throw new BadDataException(
-        "Call, SMS, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Email, or Push notification is required",
       );
     }
 

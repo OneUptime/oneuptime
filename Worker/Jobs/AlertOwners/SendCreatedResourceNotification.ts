@@ -24,6 +24,8 @@ import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { Yellow500 } from "Common/Types/BrandColors";
 import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import ObjectID from "Common/Types/ObjectID";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "AlertOwner:SendCreatedResourceEmail",
@@ -124,6 +126,11 @@ RunCron(
 
       for (const user of owners) {
         try {
+          const alertIdentifier: string =
+            alert.alertNumber !== undefined
+              ? `#${alert.alertNumber} (${alert.title})`
+              : alert.title!;
+
           const vars: Dictionary<string> = {
             alertTitle: alert.title!,
             projectName: alert.project!.name!,
@@ -170,13 +177,13 @@ RunCron(
           };
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. New alert created: ${alert.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: `This is a message from OneUptime. New alert created: ${alertIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
           };
 
           const callMessage: CallRequestMessage = {
             data: [
               {
-                sayMessage: `This is a message from OneUptime. New alert created: ${alert.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+                sayMessage: `This is a message from OneUptime. New alert created: ${alertIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
               },
             ],
           };
@@ -188,6 +195,20 @@ RunCron(
               alertViewLink: vars["alertViewLink"] || "",
             });
 
+          const eventType: NotificationSettingEventType =
+            NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION;
+
+          const whatsAppMessage: WhatsAppMessagePayload =
+            createWhatsAppMessageFromTemplate({
+              eventType,
+              templateVariables: {
+                alert_title: alert.title!,
+                project_name: alert.project!.name!,
+                alert_link: vars["alertViewLink"] || "",
+                alert_number: alertNumber.toString(),
+              },
+            });
+
           await UserNotificationSettingService.sendUserNotification({
             userId: user.id!,
             projectId: alert.projectId!,
@@ -195,9 +216,9 @@ RunCron(
             smsMessage: sms,
             callRequestMessage: callMessage,
             pushNotificationMessage: pushMessage,
+            whatsAppMessage,
             alertId: alert.id!,
-            eventType:
-              NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
+            eventType,
           });
 
           moreAlertFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email})\n`;

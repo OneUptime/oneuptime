@@ -12,6 +12,8 @@ import Phone from "Common/Types/Phone";
 
 type GetGlobalSMTPConfig = () => Promise<EmailServer | null>;
 
+export const DEFAULT_META_WHATSAPP_API_VERSION: string = "v18.0";
+
 export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
   async (): Promise<EmailServer | null> => {
     const globalConfig: GlobalConfig | null =
@@ -220,6 +222,83 @@ export const SMSHighRiskCostInCents: number = process.env[
   "SMS_HIGH_RISK_COST_IN_CENTS"
 ]
   ? parseInt(process.env["SMS_HIGH_RISK_COST_IN_CENTS"])
+  : 0;
+
+export interface MetaWhatsAppConfig {
+  accessToken: string;
+  phoneNumberId: string;
+  businessAccountId?: string | undefined;
+  appId?: string | undefined;
+  appSecret?: string | undefined;
+  apiVersion?: string | undefined;
+}
+
+type GetMetaWhatsAppConfigFunction = () => Promise<MetaWhatsAppConfig>;
+
+export const getMetaWhatsAppConfig: GetMetaWhatsAppConfigFunction =
+  async (): Promise<MetaWhatsAppConfig> => {
+    const globalConfig: GlobalConfig | null =
+      await GlobalConfigService.findOneBy({
+        query: {
+          _id: ObjectID.getZeroObjectID().toString(),
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          metaWhatsAppAccessToken: true,
+          metaWhatsAppPhoneNumberId: true,
+          metaWhatsAppBusinessAccountId: true,
+          metaWhatsAppAppId: true,
+          metaWhatsAppAppSecret: true,
+        },
+      });
+
+    if (!globalConfig) {
+      throw new BadDataException("Global Config not found");
+    }
+
+    const accessToken: string | undefined =
+      globalConfig.metaWhatsAppAccessToken?.trim();
+    const phoneNumberId: string | undefined =
+      globalConfig.metaWhatsAppPhoneNumberId?.trim();
+
+    if (!accessToken) {
+      throw new BadDataException(
+        "Meta WhatsApp access token not configured. Please set it in the Admin Dashboard: " +
+          AdminDashboardClientURL.toString(),
+      );
+    }
+
+    if (!phoneNumberId) {
+      throw new BadDataException(
+        "Meta WhatsApp phone number ID not configured. Please set it in the Admin Dashboard: " +
+          AdminDashboardClientURL.toString(),
+      );
+    }
+
+    const businessAccountId: string | undefined =
+      globalConfig.metaWhatsAppBusinessAccountId?.trim() || undefined;
+    const appId: string | undefined =
+      globalConfig.metaWhatsAppAppId?.trim() || undefined;
+    const appSecret: string | undefined =
+      globalConfig.metaWhatsAppAppSecret?.trim() || undefined;
+    const apiVersion: string = DEFAULT_META_WHATSAPP_API_VERSION;
+
+    return {
+      accessToken,
+      phoneNumberId,
+      businessAccountId,
+      appId,
+      appSecret,
+      apiVersion,
+    };
+  };
+
+export const WhatsAppTextDefaultCostInCents: number = process.env[
+  "WHATSAPP_TEXT_DEFAULT_COST_IN_CENTS"
+]
+  ? parseInt(process.env["WHATSAPP_TEXT_DEFAULT_COST_IN_CENTS"])
   : 0;
 
 export const CallHighRiskCostInCentsPerMinute: number = process.env[

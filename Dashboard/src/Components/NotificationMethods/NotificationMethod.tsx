@@ -43,6 +43,15 @@ const NotificationMethodView: FunctionComponent<ComponentProps> = (
             ]?.toString()}
           </p>
         )}
+      {item.getColumnValue("userWhatsApp") &&
+        (item.getColumnValue("userWhatsApp") as JSONObject)["phone"] && (
+          <p>
+            WhatsApp:{" "}
+            {(item.getColumnValue("userWhatsApp") as JSONObject)[
+              "phone"
+            ]?.toString()}
+          </p>
+        )}
       {item.getColumnValue("userPush") &&
         (item.getColumnValue("userPush") as JSONObject)["deviceName"] && (
           <p>

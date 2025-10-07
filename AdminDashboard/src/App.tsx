@@ -5,6 +5,7 @@ import Projects from "./Pages/Projects/Index";
 import SettingsAPIKey from "./Pages/Settings/APIKey/Index";
 import SettingsAuthentication from "./Pages/Settings/Authentication/Index";
 import SettingsCallSMS from "./Pages/Settings/CallSMS/Index";
+import SettingsWhatsApp from "./Pages/Settings/WhatsApp/Index";
 // Settings Pages.
 import SettingsEmail from "./Pages/Settings/Email/Index";
 import SettingsProbes from "./Pages/Settings/Probes/Index";
@@ -103,6 +104,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.SETTINGS_CALL_AND_SMS]?.toString() || ""}
           element={<SettingsCallSMS />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.SETTINGS_WHATSAPP]?.toString() || ""}
+          element={<SettingsWhatsApp />}
         />
 
         <PageRoute

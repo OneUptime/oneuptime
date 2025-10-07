@@ -10,6 +10,8 @@ import UserCallService from "./UserCallService";
 import UserEmailService from "./UserEmailService";
 import UserSmsService from "./UserSmsService";
 import PushNotificationService from "./PushNotificationService";
+import UserWhatsAppService from "./UserWhatsAppService";
+import WhatsAppService from "./WhatsAppService";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import { EmailEnvelope } from "../../Types/Email/EmailMessage";
@@ -19,11 +21,16 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { SMSMessage } from "../../Types/SMS/SMS";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
+import WhatsAppMessage, {
+  WhatsAppMessagePayload,
+} from "../../Types/WhatsApp/WhatsAppMessage";
 import UserCall from "../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../Models/DatabaseModels/UserEmail";
 import UserNotificationSetting from "../../Models/DatabaseModels/UserNotificationSetting";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
+import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { appendRecipientToWhatsAppMessage } from "../Utils/WhatsAppTemplateUtil";
 
 export class Service extends DatabaseService<UserNotificationSetting> {
   public constructor() {
@@ -39,6 +46,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     smsMessage: SMSMessage;
     callRequestMessage: CallRequestMessage;
     pushNotificationMessage: PushNotificationMessage;
+    whatsAppMessage: WhatsAppMessagePayload;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
     scheduledMaintenanceId?: ObjectID | undefined;
@@ -67,6 +75,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         select: {
           alertByEmail: true,
           alertBySMS: true,
+          alertByWhatsApp: true,
           alertByCall: true,
           alertByPush: true,
         },
@@ -164,6 +173,57 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           ).catch((err: Error) => {
             logger.error(err);
           });
+        }
+      }
+
+      if (notificationSettings.alertByWhatsApp) {
+        const userWhatsApps: Array<UserWhatsApp> =
+          await UserWhatsAppService.findBy({
+            query: {
+              userId: data.userId,
+              projectId: data.projectId,
+              isVerified: true,
+            },
+            select: {
+              phone: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!data.whatsAppMessage) {
+          logger.warn(
+            "Skipping WhatsApp notification because WhatsApp template payload is missing.",
+          );
+        } else {
+          for (const userWhatsApp of userWhatsApps) {
+            const whatsAppMessage: WhatsAppMessage =
+              appendRecipientToWhatsAppMessage(
+                data.whatsAppMessage,
+                userWhatsApp.phone!,
+              );
+
+            WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
+              projectId: data.projectId,
+              incidentId: data.incidentId,
+              alertId: data.alertId,
+              scheduledMaintenanceId: data.scheduledMaintenanceId,
+              statusPageId: data.statusPageId,
+              statusPageAnnouncementId: data.statusPageAnnouncementId,
+              userId: data.userId,
+              teamId: data.teamId,
+              onCallPolicyId: data.onCallPolicyId,
+              onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
+              onCallDutyPolicyExecutionLogTimelineId:
+                data.onCallDutyPolicyExecutionLogTimelineId,
+              onCallScheduleId: data.onCallScheduleId,
+            }).catch((err: Error) => {
+              logger.error(err);
+            });
+          }
         }
       }
 

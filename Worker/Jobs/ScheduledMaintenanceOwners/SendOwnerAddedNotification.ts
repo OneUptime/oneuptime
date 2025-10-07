@@ -20,6 +20,8 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import User from "Common/Models/DatabaseModels/User";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendOwnerAddedEmail",
@@ -168,6 +170,7 @@ RunCron(
             currentScheduledMaintenanceState: {
               name: true,
             },
+            scheduledMaintenanceNumber: true,
           },
         });
 
@@ -226,6 +229,21 @@ RunCron(
             requireInteraction: false,
           });
 
+        const eventType: NotificationSettingEventType =
+          NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION;
+
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              event_title: scheduledMaintenance.title!,
+              maintenance_link: vars["scheduledMaintenanceViewLink"] || "",
+              event_number:
+                scheduledMaintenance.scheduledMaintenanceNumber?.toString() ??
+                "N/A",
+            },
+          });
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: scheduledMaintenance.projectId!,
@@ -233,9 +251,9 @@ RunCron(
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
+          whatsAppMessage,
           scheduledMaintenanceId: scheduledMaintenance.id!,
-          eventType:
-            NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION,
+          eventType,
         });
       }
     }

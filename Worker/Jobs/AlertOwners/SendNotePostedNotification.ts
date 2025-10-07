@@ -15,6 +15,7 @@ import AlertService from "Common/Server/Services/AlertService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
@@ -22,6 +23,7 @@ import User from "Common/Models/DatabaseModels/User";
 import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { Blue500 } from "Common/Types/BrandColors";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "AlertOwner:SendsNotePostedEmail",
@@ -120,6 +122,11 @@ RunCron(
         continue;
       }
 
+      const alertIdentifier: string =
+        alert.alertNumber !== undefined
+          ? `#${alert.alertNumber} (${alert.title})`
+          : alert.title!;
+
       const vars: Dictionary<string> = {
         alertTitle: alert.title!,
         projectName: alert.project!.name!,
@@ -156,13 +163,13 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. New note posted on alert: ${alert.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: `This is a message from OneUptime. New note posted on alert ${alertIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime. New note posted on alert ${alert.title}. To see the note, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+              sayMessage: `This is a message from OneUptime. New note posted on alert ${alertIdentifier}. To see the note, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
         };
@@ -181,6 +188,22 @@ RunCron(
             requireInteraction: true,
           });
 
+        const eventType: NotificationSettingEventType =
+          NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION;
+
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              alert_title: alert.title!,
+              alert_link: vars["alertViewLink"] || "",
+              alert_number:
+                alert.alertNumber !== undefined
+                  ? alert.alertNumber.toString()
+                  : "",
+            },
+          });
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: alert.projectId!,
@@ -188,9 +211,9 @@ RunCron(
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
+          whatsAppMessage,
           alertId: alert.id!,
-          eventType:
-            NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION,
+          eventType,
         });
 
         moreAlertFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;

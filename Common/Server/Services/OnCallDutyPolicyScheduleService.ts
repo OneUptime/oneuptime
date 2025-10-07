@@ -36,6 +36,8 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnDelete } from "../Types/Database/Hooks";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
+import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
+import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 
 export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   private layerUtil = new LayerUtil();
@@ -265,6 +267,19 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
               requireInteraction: false,
             });
 
+          const eventType: NotificationSettingEventType =
+            NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER;
+
+          const whatsAppMessage: WhatsAppMessagePayload =
+            createWhatsAppMessageFromTemplate({
+              eventType,
+              templateVariables: {
+                on_call_policy_name: onCallPolicy.name!,
+                schedule_name: onCallSchedule.name!,
+                schedule_link: vars["onCallPolicyViewLink"] || "",
+              },
+            });
+
           await UserNotificationSettingService.sendUserNotification({
             userId: sendEmailToUserId,
             projectId: projectId,
@@ -272,8 +287,8 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             smsMessage: sms,
             callRequestMessage: callMessage,
             pushNotificationMessage: pushMessage,
-            eventType:
-              NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
+            whatsAppMessage,
+            eventType,
             onCallPolicyId: escalationRule.onCallDutyPolicy!.id!,
             onCallPolicyEscalationRuleId:
               escalationRule.onCallDutyPolicyEscalationRule!.id!,
@@ -385,6 +400,19 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
               requireInteraction: true,
             });
 
+          const eventType: NotificationSettingEventType =
+            NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER;
+
+          const whatsAppMessage: WhatsAppMessagePayload =
+            createWhatsAppMessageFromTemplate({
+              eventType,
+              templateVariables: {
+                on_call_policy_name: onCallPolicy.name!,
+                schedule_name: onCallSchedule.name!,
+                schedule_link: vars["onCallPolicyViewLink"] || "",
+              },
+            });
+
           await UserNotificationSettingService.sendUserNotification({
             userId: sendEmailToUserId,
             projectId: projectId,
@@ -392,8 +420,8 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             smsMessage: sms,
             callRequestMessage: callMessage,
             pushNotificationMessage: pushMessage,
-            eventType:
-              NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER,
+            whatsAppMessage,
+            eventType,
             onCallPolicyId: escalationRule.onCallDutyPolicy!.id!,
             onCallPolicyEscalationRuleId:
               escalationRule.onCallDutyPolicyEscalationRule!.id!,
@@ -525,6 +553,19 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
               requireInteraction: false,
             });
 
+          const eventType: NotificationSettingEventType =
+            NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER;
+
+          const whatsAppMessage: WhatsAppMessagePayload =
+            createWhatsAppMessageFromTemplate({
+              eventType,
+              templateVariables: {
+                on_call_policy_name: onCallPolicy.name!,
+                schedule_name: onCallSchedule.name!,
+                schedule_link: vars["onCallPolicyViewLink"] || "",
+              },
+            });
+
           await UserNotificationSettingService.sendUserNotification({
             userId: sendEmailToUserId,
             projectId: projectId,
@@ -532,8 +573,8 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             smsMessage: sms,
             callRequestMessage: callMessage,
             pushNotificationMessage: pushMessage,
-            eventType:
-              NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER,
+            whatsAppMessage,
+            eventType,
             onCallPolicyId: escalationRule.onCallDutyPolicy!.id!,
             onCallPolicyEscalationRuleId:
               escalationRule.onCallDutyPolicyEscalationRule!.id!,

@@ -15,12 +15,14 @@ import IncidentService from "Common/Server/Services/IncidentService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "IncidentOwner:SendOwnerAddedEmail",
@@ -153,6 +155,7 @@ RunCron(
           monitors: {
             name: true,
           },
+          incidentNumber: true,
         },
       });
 
@@ -184,6 +187,11 @@ RunCron(
       };
 
       for (const user of users) {
+        const incidentIdentifier: string =
+          incident.incidentNumber !== undefined
+            ? `#${incident.incidentNumber} (${incident.title})`
+            : incident.title!;
+
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.IncidentOwnerAdded,
           vars: vars,
@@ -191,13 +199,13 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. You have been added as the owner of the incident: ${incident.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: `This is a message from OneUptime. You have been added as the owner of the incident ${incidentIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime. You have been added as the owner of the incident: ${incident.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
+              sayMessage: `This is a message from OneUptime. You have been added as the owner of the incident ${incidentIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
             },
           ],
         };
@@ -205,7 +213,7 @@ RunCron(
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
             title: "Added as Incident Owner",
-            body: `You have been added as the owner of the incident: ${incident.title}. Click to view details.`,
+            body: `You have been added as the owner of the incident ${incidentIdentifier}. Click to view details.`,
             clickAction: (
               await IncidentService.getIncidentLinkInDashboard(
                 incident.projectId!,
@@ -216,6 +224,22 @@ RunCron(
             requireInteraction: false,
           });
 
+        const eventType: NotificationSettingEventType =
+          NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION;
+
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              incident_title: incident.title!,
+              incident_number:
+                incident.incidentNumber !== undefined
+                  ? incident.incidentNumber.toString()
+                  : "",
+              incident_link: vars["incidentViewLink"] || "",
+            },
+          });
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: incident.projectId!,
@@ -223,9 +247,9 @@ RunCron(
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
+          whatsAppMessage,
           incidentId: incident.id!,
-          eventType:
-            NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
+          eventType,
         });
       }
     }

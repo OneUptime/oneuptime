@@ -23,6 +23,7 @@ import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
 import UserSMS from "Common/Models/DatabaseModels/UserSMS";
+import UserWhatsApp from "Common/Models/DatabaseModels/UserWhatsApp";
 import React, {
   Fragment,
   FunctionComponent,
@@ -39,6 +40,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   );
   const [userEmails, setUserEmails] = useState<Array<UserEmail>>([]);
   const [userSMSs, setUserSMSs] = useState<Array<UserSMS>>([]);
+  const [userWhatsApps, setUserWhatsApps] = useState<Array<UserWhatsApp>>([]);
   const [userCalls, setUserCalls] = useState<Array<UserCall>>([]);
   const [userPush, setUserPush] = useState<Array<UserPush>>([]);
   const [
@@ -131,6 +133,19 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             if (userPushDevice) {
               model.userPushId = userPushDevice.id!;
             }
+
+            const userWhatsApp: UserWhatsApp | undefined = userWhatsApps.find(
+              (userWhatsApp: UserWhatsApp) => {
+                return (
+                  userWhatsApp.id!.toString() ===
+                  miscDataProps["notificationMethod"]?.toString()
+                );
+              },
+            );
+
+            if (userWhatsApp) {
+              model.userWhatsAppId = userWhatsApp.id!;
+            }
           }
 
           return Promise.resolve(model);
@@ -189,6 +204,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             deviceName: true,
             deviceType: true,
           },
+          userWhatsApp: {
+            phone: true,
+          },
         }}
         filters={[]}
         columns={[
@@ -197,8 +215,17 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               userCall: {
                 phone: true,
               },
+              userEmail: {
+                email: true,
+              },
+              userSms: {
+                phone: true,
+              },
               userPush: {
                 deviceName: true,
+              },
+              userWhatsApp: {
+                phone: true,
               },
             },
             title: "Notification Method",
@@ -324,6 +351,25 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       setUserPush(userPushDevices.data);
 
+      const userWhatsAppList: ListResult<UserWhatsApp> = await ModelAPI.getList(
+        {
+          modelType: UserWhatsApp,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: User.getUserId(),
+            isVerified: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            phone: true,
+          },
+          sort: {},
+        },
+      );
+
+      setUserWhatsApps(userWhatsAppList.data);
+
       setAlertSeverities(alertSeverities.data);
 
       const dropdownOptions: Array<DropdownOption> = [
@@ -331,10 +377,12 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ...userEmails.data,
         ...userSMSes.data,
         ...userPushDevices.data,
+        ...userWhatsAppList.data,
       ].map((model: BaseModel) => {
         const isUserCall: boolean = model instanceof UserCall;
         const isUserSms: boolean = model instanceof UserSMS;
         const isUserPush: boolean = model instanceof UserPush;
+        const isUserWhatsApp: boolean = model instanceof UserWhatsApp;
 
         let option: DropdownOption;
 
@@ -358,6 +406,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             option.label = "Call: " + option.label;
           } else if (isUserSms) {
             option.label = "SMS: " + option.label;
+          } else if (isUserWhatsApp) {
+            option.label = "WhatsApp: " + option.label;
           } else {
             option.label = "Email: " + option.label;
           }

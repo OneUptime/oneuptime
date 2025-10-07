@@ -26,6 +26,8 @@ import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import UserService from "Common/Server/Services/UserService";
 
+import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 RunCron(
   "AlertOwner:SendStateChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -136,6 +138,11 @@ RunCron(
       let moreAlertFeedInformationInMarkdown: string = "";
 
       for (const user of owners) {
+        const alertIdentifier: string =
+          alert.alertNumber !== undefined
+            ? `#${alert.alertNumber} (${alert.title})`
+            : alert.title!;
+
         const vars: Dictionary<string> = {
           alertTitle: alert.title!,
           projectName: alertStateTimeline.project!.name!,
@@ -172,9 +179,7 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. Alert: ${
-            alert.title
-          } - state changed to ${alertState!
+          message: `This is a message from OneUptime. Alert ${alertIdentifier} - state changed to ${alertState!
             .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
@@ -182,8 +187,8 @@ RunCron(
           data: [
             {
               sayMessage: `This is a message from OneUptime. Alert ${
-                alert.title
-              }       state changed to ${alertState!
+                alertIdentifier
+              } state changed to ${alertState!
                 .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
@@ -203,6 +208,23 @@ RunCron(
             requireInteraction: true,
           });
 
+        const eventType: NotificationSettingEventType =
+          NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION;
+
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              alert_title: alert.title!,
+              alert_state: alertState!.name!,
+              alert_link: vars["alertViewLink"] || "",
+              alert_number:
+                alert.alertNumber !== undefined
+                  ? alert.alertNumber.toString()
+                  : "",
+            },
+          });
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: alertStateTimeline.projectId!,
@@ -210,9 +232,9 @@ RunCron(
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
+          whatsAppMessage,
           alertId: alert.id!,
-          eventType:
-            NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
+          eventType,
         });
 
         moreAlertFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
