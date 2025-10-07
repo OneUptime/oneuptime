@@ -25,83 +25,91 @@ export default class UserWhatsAppAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/verify`,
       UserMiddleware.getUserMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        req = req as OneUptimeRequest;
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
+        try {
+          req = req as OneUptimeRequest;
 
-        if (!req.body.itemId) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid item ID"),
-          );
+          if (!req.body.itemId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid item ID"),
+            );
+          }
+
+          if (!req.body.code) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid code"),
+            );
+          }
+
+          const item: UserWhatsApp | null = await this.service.findOneById({
+            id: req.body["itemId"],
+            props: {
+              isRoot: true,
+            },
+            select: {
+              userId: true,
+              verificationCode: true,
+              isVerified: true,
+            },
+          });
+
+          if (!item) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Item not found"),
+            );
+          }
+
+          if (item.isVerified) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("WhatsApp number already verified"),
+            );
+          }
+
+          if (
+            item.userId?.toString() !==
+            (req as OneUptimeRequest)?.userAuthorization?.userId?.toString()
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid user ID"),
+            );
+          }
+
+          if (item.verificationCode !== req.body["code"]) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid code"),
+            );
+          }
+
+          await this.service.updateOneById({
+            id: item.id!,
+            props: {
+              isRoot: true,
+            },
+            data: {
+              isVerified: true,
+            },
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          return next(err);
         }
-
-        if (!req.body.code) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid code"),
-          );
-        }
-
-        const item: UserWhatsApp | null = await this.service.findOneById({
-          id: req.body["itemId"],
-          props: {
-            isRoot: true,
-          },
-          select: {
-            userId: true,
-            verificationCode: true,
-            isVerified: true,
-          },
-        });
-
-        if (!item) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Item not found"),
-          );
-        }
-
-        if (item.isVerified) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("WhatsApp number already verified"),
-          );
-        }
-
-        if (
-          item.userId?.toString() !==
-          (req as OneUptimeRequest)?.userAuthorization?.userId?.toString()
-        ) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid user ID"),
-          );
-        }
-
-        if (item.verificationCode !== req.body["code"]) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid code"),
-          );
-        }
-
-        await this.service.updateOneById({
-          id: item.id!,
-          props: {
-            isRoot: true,
-          },
-          data: {
-            isVerified: true,
-          },
-        });
-
-        return Response.sendEmptySuccessResponse(req, res);
       },
     );
 
