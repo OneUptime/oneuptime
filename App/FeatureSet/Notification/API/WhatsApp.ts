@@ -4,6 +4,11 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
 import WhatsAppMessage from "Common/Types/WhatsApp/WhatsAppMessage";
+import {
+  WhatsAppTemplateId,
+  WhatsAppTemplateIds,
+  WhatsAppTemplateLanguage,
+} from "Common/Types/WhatsApp/WhatsAppTemplates";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import Express, {
   ExpressRequest,
@@ -116,16 +121,18 @@ router.post("/test", async (req: ExpressRequest, res: ExpressResponse) => {
 
   const toPhone: Phone = new Phone(body["toPhone"] as string);
 
+  const templateKey: WhatsAppTemplateId =
+    WhatsAppTemplateIds.TestNotification;
+
+  const templateLanguageCode: string =
+    WhatsAppTemplateLanguage[templateKey] || "en";
+
   const message: WhatsAppMessage = {
     to: toPhone,
-    body:
-      (body["message"] as string) ||
-      "This is a test WhatsApp message from OneUptime.",
-    templateKey: (body["templateKey"] as string) || undefined,
-    templateVariables: toTemplateVariables(
-      body["templateVariables"] as JSONObject | undefined,
-    ),
-    templateLanguageCode: (body["templateLanguageCode"] as string) || undefined,
+    body: "",
+    templateKey,
+    templateVariables: undefined,
+    templateLanguageCode,
   };
 
   try {
