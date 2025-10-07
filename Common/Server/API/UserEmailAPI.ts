@@ -23,11 +23,7 @@ export default class UserEmailAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/verify`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
 
@@ -110,11 +106,7 @@ export default class UserEmailAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/resend-verification-code`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
 

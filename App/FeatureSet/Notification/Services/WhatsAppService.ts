@@ -254,7 +254,7 @@ export default class WhatsAppService {
         to: message.to.toString(),
       } as JSONObject;
 
-      if(!message.templateKey){
+      if (!message.templateKey) {
         throw new BadDataException("WhatsApp message template key is required");
       }
 
@@ -388,7 +388,7 @@ export default class WhatsAppService {
       const errorMessage: string =
         error && error.message ? error.message.toString() : `${error}`;
       whatsAppLog.statusMessage = errorMessage;
-      
+
       sendError = error;
     }
 

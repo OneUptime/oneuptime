@@ -23,11 +23,7 @@ const router: ExpressRouter = Express.getRouter();
 router.post(
   "/make-call",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ) => {
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = JSONFunctions.deserialize(req.body);
 
@@ -64,11 +60,7 @@ router.post(
 
 router.post(
   "/test",
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ) => {
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body;
 

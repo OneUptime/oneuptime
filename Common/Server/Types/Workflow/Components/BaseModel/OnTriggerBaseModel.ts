@@ -64,11 +64,7 @@ export default class OnTriggerBaseModel<
     props.router.get(
       `/model/:projectId/${this.modelId}/${this.type}`,
       ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.initTrigger(req, res, props);
         } catch (err) {
@@ -80,11 +76,7 @@ export default class OnTriggerBaseModel<
     props.router.post(
       `/model/:projectId/${this.modelId}/${this.type}`,
       ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.initTrigger(req, res, props);
         } catch (err) {

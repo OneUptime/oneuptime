@@ -20,11 +20,7 @@ const router: ExpressRouter = Express.getRouter();
 router.post(
   "/send",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ) => {
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body;
 

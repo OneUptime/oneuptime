@@ -26,11 +26,7 @@ export default class ProjectSsoAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/:projectId/sso-list`,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const projectId: ObjectID = new ObjectID(
             req.params["projectId"] as string,

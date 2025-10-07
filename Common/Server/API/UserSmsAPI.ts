@@ -20,11 +20,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
     this.router.post(
       `/user-sms/verify`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
 
@@ -105,11 +101,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
     this.router.post(
       `/user-sms/resend-verification-code`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
 

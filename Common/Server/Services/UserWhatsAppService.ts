@@ -195,7 +195,7 @@ export class Service extends DatabaseService<Model> {
     );
 
     if (response instanceof HTTPErrorResponse) {
-      throw response; 
+      throw response;
     }
   }
 }

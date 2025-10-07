@@ -108,11 +108,7 @@ export default class UserPushAPI extends BaseAPI<
     this.router.post(
       `/user-push/:deviceId/test-notification`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
 
@@ -217,11 +213,7 @@ export default class UserPushAPI extends BaseAPI<
     this.router.post(
       `/user-push/:deviceId/verify`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
 
@@ -275,11 +267,7 @@ export default class UserPushAPI extends BaseAPI<
     this.router.post(
       `/user-push/:deviceId/unverify`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
 

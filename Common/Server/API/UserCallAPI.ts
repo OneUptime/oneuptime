@@ -24,11 +24,7 @@ export default class UserCallAPI extends BaseAPI<
     this.router.post(
       `/user-call/verify`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
 
@@ -109,11 +105,7 @@ export default class UserCallAPI extends BaseAPI<
     this.router.post(
       `/user-call/resend-verification-code`,
       UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
 

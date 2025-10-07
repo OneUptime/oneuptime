@@ -16,11 +16,7 @@ const router: ExpressRouter = Express.getRouter();
 router.post(
   "/send",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ) => {
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = JSONFunctions.deserialize(req.body);
 
@@ -31,9 +27,7 @@ router.post(
         // New format: devices as array of objects
         devices = body["devices"] as Array<{ token: string; name?: string }>;
       } else {
-        throw new Error(
-          "Invalid request format: 'devices' array is required.",
-        );
+        throw new Error("Invalid request format: 'devices' array is required.");
       }
 
       await PushService.send(
@@ -61,8 +55,7 @@ router.post(
           onCallDutyPolicyExecutionLogTimelineId:
             (body["onCallDutyPolicyExecutionLogTimelineId"] as ObjectID) ||
             undefined,
-          onCallScheduleId:
-            (body["onCallScheduleId"] as ObjectID) || undefined,
+          onCallScheduleId: (body["onCallScheduleId"] as ObjectID) || undefined,
           teamId: (body["teamId"] as ObjectID) || undefined,
         },
       );

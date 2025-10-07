@@ -22,11 +22,7 @@ export default class ShortLinkAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/redirect-to-shortlink/:id`,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           if (!req.params["id"]) {
             return Response.sendErrorResponse(
@@ -42,8 +38,9 @@ export default class ShortLinkAPI extends BaseAPI<
             });
           }
 
-          const link: ShortLink | null =
-            await ShortLinkService.getShortLinkFor(req.params["id"]);
+          const link: ShortLink | null = await ShortLinkService.getShortLinkFor(
+            req.params["id"],
+          );
 
           if (!link || !link.link) {
             return Response.sendErrorResponse(

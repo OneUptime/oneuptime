@@ -35,11 +35,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/call/gather-input/:itemId`,
       NotificationMiddleware.isValidCallNotificationRequest,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
 
@@ -111,11 +107,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/acknowledge-page/:itemId`,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
 
@@ -194,11 +186,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/acknowledge/:itemId`,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
 

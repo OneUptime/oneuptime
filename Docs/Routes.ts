@@ -26,11 +26,7 @@ const DocsFeatureSet: FeatureSet = {
     // Handle requests to specific documentation pages
     app.get(
       "/docs/as-markdown/:categorypath/:pagepath",
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const fullPath: string =
             `${req.params["categorypath"]}/${req.params["pagepath"]}`.toLowerCase();

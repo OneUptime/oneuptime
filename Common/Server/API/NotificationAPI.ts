@@ -19,11 +19,7 @@ const router: ExpressRouter = Express.getRouter();
 router.post(
   "/notification/recharge",
   UserMiddleware.getUserMiddleware,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ) => {
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       let amount: number | PositiveNumber = JSONFunctions.deserializeValue(
         req.body.amount,

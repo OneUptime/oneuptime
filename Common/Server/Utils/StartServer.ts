@@ -182,11 +182,7 @@ const init: InitFunction = async (
 
     app.get(
       [`/${appName}/env.js`, "/env.js"],
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           // ping api server for database config.
 

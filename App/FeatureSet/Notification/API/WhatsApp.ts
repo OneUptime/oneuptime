@@ -1,6 +1,5 @@
 import WhatsAppService from "../Services/WhatsAppService";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import Exception from "Common/Types/Exception/Exception";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
@@ -23,9 +22,9 @@ import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 const router: ExpressRouter = Express.getRouter();
 
 const toTemplateVariables: (
-  rawVariables: JSONObject | undefined
+  rawVariables: JSONObject | undefined,
 ) => Record<string, string> | undefined = (
-  rawVariables: JSONObject | undefined
+  rawVariables: JSONObject | undefined,
 ): Record<string, string> | undefined => {
   if (!rawVariables) {
     return undefined;
@@ -60,7 +59,7 @@ router.post(
       body: (body["body"] as string) || "",
       templateKey: (body["templateKey"] as string) || undefined,
       templateVariables: toTemplateVariables(
-        body["templateVariables"] as JSONObject | undefined
+        body["templateVariables"] as JSONObject | undefined,
       ),
       templateLanguageCode:
         (body["templateLanguageCode"] as string) || undefined,
@@ -103,7 +102,7 @@ router.post(
           "onCallDutyPolicyExecutionLogTimelineId"
         ]
           ? new ObjectID(
-              body["onCallDutyPolicyExecutionLogTimelineId"] as string
+              body["onCallDutyPolicyExecutionLogTimelineId"] as string,
             )
           : undefined,
         onCallScheduleId: body["onCallScheduleId"]
@@ -118,17 +117,12 @@ router.post(
     } catch (err) {
       return next(err);
     }
-  }
+  },
 );
 
 router.post(
   "/test",
-  UserMiddleware.getUserMiddleware,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ) => {
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
 
@@ -151,6 +145,7 @@ router.post(
         templateVariables: undefined,
         templateLanguageCode,
       };
+
 
       try {
         await WhatsAppService.sendWhatsApp(message, {
