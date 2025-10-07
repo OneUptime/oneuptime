@@ -225,6 +225,7 @@ billing:
   publicKey:
   privateKey:
   smsDefaultValueInCents:
+  whatsAppTextDefaultValueInCents:
   callDefaultValueInCentsPerMinute:
   smsHighRiskValueInCents:
   callHighRiskValueInCentsPerMinute:

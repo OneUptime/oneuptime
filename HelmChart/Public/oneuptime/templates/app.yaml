@@ -110,6 +110,8 @@ spec:
               value: {{ $.Values.billing.callHighRiskValueInCentsPerMinute | quote }}
             - name: SMS_DEFAULT_COST_IN_CENTS
               value: {{ $.Values.billing.smsDefaultValueInCents | quote }}
+            - name: WHATSAPP_TEXT_DEFAULT_COST_IN_CENTS
+              value: {{ $.Values.billing.whatsAppTextDefaultValueInCents | quote }}
             - name: CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE
               value: {{ $.Values.billing.callDefaultValueInCentsPerMinute | quote }}
             - name: DISABLE_TELEMETRY

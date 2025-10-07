@@ -582,6 +582,9 @@
         "smsDefaultValueInCents": {
           "type": ["integer", "null"]
         },
+        "whatsAppTextDefaultValueInCents": {
+          "type": ["integer", "null"]
+        },
         "callDefaultValueInCentsPerMinute": {
           "type": ["integer", "null"]
         },

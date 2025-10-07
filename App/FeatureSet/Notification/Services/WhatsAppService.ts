@@ -1,11 +1,9 @@
 import {
   WhatsAppTextDefaultCostInCents,
-  WhatsAppTextHighRiskCostInCents,
   getMetaWhatsAppConfig,
   MetaWhatsAppConfig,
   DEFAULT_META_WHATSAPP_API_VERSION,
 } from "../Config";
-import { isHighRiskPhoneNumber } from "Common/Types/Call/CallRequest";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
@@ -134,10 +132,6 @@ export default class WhatsAppService {
 
       if (shouldChargeForMessage) {
         messageCost = WhatsAppTextDefaultCostInCents / 100;
-
-        if (isHighRiskPhoneNumber(message.to)) {
-          messageCost = WhatsAppTextHighRiskCostInCents / 100;
-        }
       }
 
       let project: Project | null = null;
