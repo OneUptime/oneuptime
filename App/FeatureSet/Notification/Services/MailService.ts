@@ -37,11 +37,49 @@ class TransporterPool {
   private static semaphore: Map<string, number> = new Map();
   private static readonly MAX_CONCURRENT_CONNECTIONS = 100;
 
+  private static resolveConnectionSettings(emailServer: EmailServer): {
+    portNumber: number;
+    wantsSecureConnection: boolean;
+    secureConnection: boolean;
+    requireTLS: boolean;
+    mode: "implicit-tls" | "starttls" | "plain";
+  } {
+    const portNumber: number = emailServer.port.toNumber();
+    const wantsSecureConnection: boolean = emailServer.secure;
+    const isImplicitTLSPort: boolean = portNumber === 465;
+
+    const secureConnection: boolean = isImplicitTLSPort;
+    const requireTLS: boolean = wantsSecureConnection && !isImplicitTLSPort;
+
+    let mode: "implicit-tls" | "starttls" | "plain" = "plain";
+
+    if (secureConnection) {
+      mode = "implicit-tls";
+    } else if (requireTLS) {
+      mode = "starttls";
+    }
+
+    return {
+      portNumber,
+      wantsSecureConnection,
+      secureConnection,
+      requireTLS,
+      mode,
+    };
+  }
+
+  private static getPoolKey(emailServer: EmailServer): string {
+    const { portNumber, mode } = this.resolveConnectionSettings(emailServer);
+    const username: string = emailServer.username || "noauth";
+
+    return `${emailServer.host.toString()}:${portNumber}:${username}:${mode}`;
+  }
+
   public static getTransporter(
     emailServer: EmailServer,
     options: { timeout?: number | undefined },
   ): Transporter {
-    const key: string = `${emailServer.host.toString()}:${emailServer.port.toNumber()}:${emailServer.username || "noauth"}`;
+    const key: string = this.getPoolKey(emailServer);
 
     if (!this.pools.has(key)) {
       const transporter: Transporter = this.createTransporter(
@@ -59,9 +97,12 @@ class TransporterPool {
     emailServer: EmailServer,
     options: { timeout?: number | undefined },
   ): Transporter {
+    const { portNumber, wantsSecureConnection, secureConnection, requireTLS } =
+      this.resolveConnectionSettings(emailServer);
+
     let tlsOptions: tls.ConnectionOptions | undefined = undefined;
 
-    if (!emailServer.secure) {
+    if (!wantsSecureConnection) {
       tlsOptions = {
         rejectUnauthorized: false,
       };
@@ -69,8 +110,9 @@ class TransporterPool {
 
     return nodemailer.createTransport({
       host: emailServer.host.toString(),
-      port: emailServer.port.toNumber(),
-      secure: emailServer.secure,
+      port: portNumber,
+      secure: secureConnection,
+      requireTLS,
       tls: tlsOptions,
       auth:
         emailServer.username && emailServer.password
@@ -88,7 +130,7 @@ class TransporterPool {
   public static async acquireConnection(
     emailServer: EmailServer,
   ): Promise<void> {
-    const key: string = `${emailServer.host.toString()}:${emailServer.port.toNumber()}:${emailServer.username || "noauth"}`;
+    const key: string = this.getPoolKey(emailServer);
 
     while ((this.semaphore.get(key) || 0) >= this.MAX_CONCURRENT_CONNECTIONS) {
       await new Promise<void>((resolve: () => void) => {
@@ -100,7 +142,7 @@ class TransporterPool {
   }
 
   public static releaseConnection(emailServer: EmailServer): void {
-    const key: string = `${emailServer.host.toString()}:${emailServer.port.toNumber()}:${emailServer.username || "noauth"}`;
+    const key: string = this.getPoolKey(emailServer);
     const current: number = this.semaphore.get(key) || 0;
     this.semaphore.set(key, Math.max(0, current - 1));
   }

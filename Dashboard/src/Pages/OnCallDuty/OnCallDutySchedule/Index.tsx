@@ -257,7 +257,6 @@ const OnCallDutyScheduleView: FunctionComponent<
         onCallDutyPolicyScheduleId={modelId}
         projectId={ProjectUtil.getCurrentProjectId() as ObjectID}
       />
-
     </Fragment>
   );
 };

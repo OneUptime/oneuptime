@@ -236,8 +236,7 @@ export default tseslint.config(
         "NodeJS": true
       },
       parserOptions: {
-        project: ["./tsconfig.json"], // Specify it only for TypeScript files
-        // or `project: true` in typescript-eslint version >= 5.52.0
+        projectService: true,
         createDefaultProgram: false,
         tsconfigRootDir: __dirname,
       },

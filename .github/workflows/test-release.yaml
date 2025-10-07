@@ -176,17 +176,20 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push Docker images (test)
         uses: nick-fields/retry@v3
@@ -276,18 +279,21 @@ jobs:
 
       # Build and deploy nginx.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -347,18 +353,21 @@ jobs:
 
       # Build and deploy nginx.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -418,18 +427,21 @@ jobs:
 
       # Build and deploy e2e.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -487,18 +499,21 @@ jobs:
 
       # Build and deploy test-server.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -557,18 +572,21 @@ jobs:
 
       # Build and deploy otel-collector.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -627,18 +645,21 @@ jobs:
 
       # Build and deploy isolated-vm.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -697,18 +718,21 @@ jobs:
 
       # Build and deploy isolated-vm.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -769,18 +793,21 @@ jobs:
 
       # Build and deploy status-page.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -841,18 +868,21 @@ jobs:
 
       # Build and deploy test.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -911,18 +941,21 @@ jobs:
 
       # Build and deploy probe-ingest.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -983,18 +1016,21 @@ jobs:
 
       # Build and deploy ServerMonitorIngest.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -1056,18 +1092,21 @@ jobs:
 
       # Build and deploy incoming-request-ingest.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -1127,18 +1166,21 @@ jobs:
 
       # Build and deploy incoming-request-ingest.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -1197,18 +1239,21 @@ jobs:
 
       # Build and deploy probe-ingest.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -1267,18 +1312,21 @@ jobs:
 
       # Build and deploy probe.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -1337,18 +1385,21 @@ jobs:
 
       # Build and deploy dashboard.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -1407,18 +1458,21 @@ jobs:
 
       # Build and deploy admin-dashboard.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -1477,18 +1531,21 @@ jobs:
 
       # Build and deploy app.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -1550,18 +1607,21 @@ jobs:
 
       # Build and deploy app.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -1623,18 +1683,21 @@ jobs:
 
       # Build and deploy accounts.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -1694,18 +1757,21 @@ jobs:
 
       # Build and deploy accounts.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -1764,18 +1830,21 @@ jobs:
 
       # Build and deploy accounts.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -1835,18 +1904,21 @@ jobs:
 
       # Build and deploy accounts.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -1907,18 +1979,21 @@ jobs:
 
       # Build and deploy accounts.
 
-      - name: Login to Docker Hub 
-        uses: docker/login-action@v2.2.0
+      - name: Login to Docker Hub
+        uses: nick-fields/retry@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2.2.0
+        uses: nick-fields/retry@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
         uses: nick-fields/retry@v3
@@ -1997,6 +2072,7 @@ jobs:
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         uses: nick-fields/retry@v3
         with:
+          timeout_minutes: 90
           max_attempts: 3
           on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
           command: export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
@@ -2054,6 +2130,7 @@ jobs:
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         uses: nick-fields/retry@v3
         with:
+          timeout_minutes: 90
           max_attempts: 3
           on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
           command: export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
