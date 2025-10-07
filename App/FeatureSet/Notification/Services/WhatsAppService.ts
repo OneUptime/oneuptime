@@ -3,6 +3,7 @@ import {
   WhatsAppTextHighRiskCostInCents,
   getMetaWhatsAppConfig,
   MetaWhatsAppConfig,
+  DEFAULT_META_WHATSAPP_API_VERSION,
 } from "../Config";
 import { isHighRiskPhoneNumber } from "Common/Types/Call/CallRequest";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -20,11 +21,12 @@ import logger from "Common/Server/Utils/Logger";
 import Project from "Common/Models/DatabaseModels/Project";
 import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
 import API from "Common/Utils/API";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 
-const DEFAULT_META_WHATSAPP_API_VERSION: string = "v18.0";
 const SENSITIVE_MESSAGE_PLACEHOLDER: string =
   "This message is sensitive and is not logged";
 
@@ -53,7 +55,9 @@ export default class WhatsAppService {
 
     try {
       if (!message.to) {
-        throw new BadDataException("WhatsApp recipient phone number is required");
+        throw new BadDataException(
+          "WhatsApp recipient phone number is required",
+        );
       }
 
       if (!message.body && !message.templateKey) {
@@ -101,8 +105,7 @@ export default class WhatsAppService {
       }
 
       if (options.statusPageAnnouncementId) {
-        whatsAppLog.statusPageAnnouncementId =
-          options.statusPageAnnouncementId;
+        whatsAppLog.statusPageAnnouncementId = options.statusPageAnnouncementId;
       }
 
       if (options.userId) {
@@ -214,9 +217,7 @@ export default class WhatsAppService {
             return;
           }
 
-          if (
-            project.smsOrCallCurrentBalanceInUSDCents < messageCost * 100
-          ) {
+          if (project.smsOrCallCurrentBalanceInUSDCents < messageCost * 100) {
             whatsAppLog.status = WhatsAppStatus.LowBalance;
             whatsAppLog.statusMessage = `Project does not have enough balance to send WhatsApp message. Current balance is ${
               project.smsOrCallCurrentBalanceInUSDCents / 100
@@ -267,8 +268,10 @@ export default class WhatsAppService {
           },
         } as JSONObject;
 
-        if (message.templateVariables &&
-          Object.keys(message.templateVariables).length > 0) {
+        if (
+          message.templateVariables &&
+          Object.keys(message.templateVariables).length > 0
+        ) {
           const parameters: JSONArray = [];
 
           for (const value of Object.values(message.templateVariables)) {
@@ -306,14 +309,21 @@ export default class WhatsAppService {
         new Route(`${apiVersion}/${config.phoneNumberId}/messages`),
       );
 
-      const response = await API.post<JSONObject>({
-        url,
-        data: payload,
-        headers: {
-          Authorization: `Bearer ${config.accessToken}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url,
+          data: payload,
+          headers: {
+            Authorization: `Bearer ${config.accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw new BadDataException(
+          response.message || "Failed to send WhatsApp message.",
+        );
+      }
 
       const responseData: JSONObject = (response.jsonData || {}) as JSONObject;
 
@@ -322,7 +332,7 @@ export default class WhatsAppService {
         (responseData["messages"] as JSONArray) || undefined;
 
       if (Array.isArray(messagesArray) && messagesArray.length > 0) {
-        const firstMessage = messagesArray[0] as JSONObject;
+        const firstMessage: JSONObject = messagesArray[0] as JSONObject;
         if (firstMessage["id"]) {
           messageId = firstMessage["id"] as string;
         }

@@ -19,6 +19,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import User from "Common/Models/DatabaseModels/User";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "StatusPageOwner:SendAnnouncementCreatedEmail",
@@ -128,17 +129,18 @@ RunCron(
               requireInteraction: false,
             });
 
-          const eventType =
+          const eventType: NotificationSettingEventType =
             NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION;
 
-          const whatsAppMessage = createWhatsAppMessageFromTemplate({
-            eventType,
-            templateVariables: {
-              status_page_name: statusPage.name!,
-              announcement_title: announcement.title!,
-              action_link: statusPageLink || "",
-            },
-          });
+          const whatsAppMessage: WhatsAppMessagePayload =
+            createWhatsAppMessageFromTemplate({
+              eventType,
+              templateVariables: {
+                status_page_name: statusPage.name!,
+                announcement_title: announcement.title!,
+                status_page_link: statusPageLink || "",
+              },
+            });
 
           // Send notifications via settings service with context for logs
           await UserNotificationSettingService.sendUserNotification({

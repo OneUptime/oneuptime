@@ -26,6 +26,7 @@ import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "IncidentOwner:SendCreatedResourceEmail",
@@ -171,6 +172,11 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
             vars["isOwner"] = "true";
           }
 
+          const incidentIdentifier: string =
+            incident.incidentNumber !== undefined
+              ? `#${incident.incidentNumber} (${incident.title})`
+              : incident.title!;
+
           const emailMessage: EmailEnvelope = {
             templateType: EmailTemplateType.IncidentOwnerResourceCreated,
             vars: vars,
@@ -178,13 +184,13 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
           };
 
           const sms: SMSMessage = {
-            message: `This is a message from OneUptime. New incident created: ${incident.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+            message: `This is a message from OneUptime. New incident created: ${incidentIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
           };
 
           const callMessage: CallRequestMessage = {
             data: [
               {
-                sayMessage: `This is a message from OneUptime. New incident created: ${incident.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+                sayMessage: `This is a message from OneUptime. New incident created: ${incidentIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
               },
             ],
           };
@@ -201,17 +207,19 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
               ).toString(),
             });
 
-          const eventType =
+          const eventType: NotificationSettingEventType =
             NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION;
 
-          const whatsAppMessage = createWhatsAppMessageFromTemplate({
-            eventType,
-            templateVariables: {
-              incident_title: incident.title!,
-              project_name: incident.project!.name!,
-              action_link: vars["incidentViewLink"] || "",
-            },
-          });
+          const whatsAppMessage: WhatsAppMessagePayload =
+            createWhatsAppMessageFromTemplate({
+              eventType,
+              templateVariables: {
+                incident_title: incident.title!,
+                project_name: incident.project!.name!,
+                incident_link: vars["incidentViewLink"] || "",
+                incident_number: incidentNumber.toString(),
+              },
+            });
 
           await UserNotificationSettingService.sendUserNotification({
             userId: user.id!,

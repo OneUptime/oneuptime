@@ -351,20 +351,22 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       setUserPush(userPushDevices.data);
 
-      const userWhatsAppList: ListResult<UserWhatsApp> = await ModelAPI.getList({
-        modelType: UserWhatsApp,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          userId: User.getUserId(),
-          isVerified: true,
+      const userWhatsAppList: ListResult<UserWhatsApp> = await ModelAPI.getList(
+        {
+          modelType: UserWhatsApp,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: User.getUserId(),
+            isVerified: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            phone: true,
+          },
+          sort: {},
         },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          phone: true,
-        },
-        sort: {},
-      });
+      );
 
       setUserWhatsApps(userWhatsAppList.data);
 

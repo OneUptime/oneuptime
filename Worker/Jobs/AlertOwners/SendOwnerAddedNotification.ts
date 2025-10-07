@@ -21,6 +21,7 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import User from "Common/Models/DatabaseModels/User";
+import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
 RunCron(
   "AlertOwner:SendOwnerAddedEmail",
@@ -153,6 +154,7 @@ RunCron(
           monitor: {
             name: true,
           },
+          alertNumber: true,
         },
       });
 
@@ -179,6 +181,11 @@ RunCron(
       };
 
       for (const user of users) {
+        const alertIdentifier: string =
+          alert.alertNumber !== undefined
+            ? `#${alert.alertNumber} (${alert.title})`
+            : alert.title!;
+
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.AlertOwnerAdded,
           vars: vars,
@@ -186,13 +193,13 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. You have been added as the owner of the alert: ${alert.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: `This is a message from OneUptime. You have been added as the owner of the alert ${alertIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime. You have been added as the owner of the alert: ${alert.title}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
+              sayMessage: `This is a message from OneUptime. You have been added as the owner of the alert ${alertIdentifier}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
             },
           ],
         };
@@ -200,7 +207,7 @@ RunCron(
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
             title: "Added as Alert Owner",
-            body: `You have been added as the owner of the alert: ${alert.title}. Click to view details.`,
+            body: `You have been added as the owner of the alert ${alertIdentifier}. Click to view details.`,
             clickAction: (
               await AlertService.getAlertLinkInDashboard(
                 alert.projectId!,
@@ -211,16 +218,21 @@ RunCron(
             requireInteraction: false,
           });
 
-        const eventType =
+        const eventType: NotificationSettingEventType =
           NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION;
 
-        const whatsAppMessage = createWhatsAppMessageFromTemplate({
-          eventType,
-          templateVariables: {
-            alert_title: alert.title!,
-            action_link: vars["alertViewLink"] || "",
-          },
-        });
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              alert_title: alert.title!,
+              alert_link: vars["alertViewLink"] || "",
+              alert_number:
+                alert.alertNumber !== undefined
+                  ? alert.alertNumber.toString()
+                  : "",
+            },
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

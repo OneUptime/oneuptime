@@ -35,6 +35,7 @@ import {
   renderWhatsAppTemplate,
   WhatsAppTemplateIds,
   WhatsAppTemplateLanguage,
+  WhatsAppTemplateId,
 } from "../../Types/WhatsApp/WhatsAppTemplates";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
@@ -235,6 +236,7 @@ export class Service extends DatabaseService<Model> {
             name: true,
           },
           rootCause: true,
+          incidentNumber: true,
         },
       });
     }
@@ -263,6 +265,7 @@ export class Service extends DatabaseService<Model> {
           alertSeverity: {
             name: true,
           },
+          alertNumber: true,
         },
       });
     }
@@ -1060,11 +1063,14 @@ export class Service extends DatabaseService<Model> {
     );
     const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
 
+    const alertIdentifier: string =
+      alert.alertNumber !== undefined
+        ? `#${alert.alertNumber} (${alert.title || "Alert"})`
+        : alert.title || "Alert";
+
     const sms: SMS = {
       to,
-      message: `This is a message from OneUptime. A new alert has been created. ${
-        alert.title
-      }. To acknowledge this alert, please click on the following link ${url.toString()}`,
+      message: `This is a message from OneUptime. A new alert has been created: ${alertIdentifier}. To acknowledge this alert, please click on the following link ${url.toString()}`,
     };
 
     return sms;
@@ -1090,11 +1096,14 @@ export class Service extends DatabaseService<Model> {
     );
     const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
 
+    const incidentIdentifier: string =
+      incident.incidentNumber !== undefined
+        ? `#${incident.incidentNumber} (${incident.title || "Incident"})`
+        : incident.title || "Incident";
+
     const sms: SMS = {
       to,
-      message: `This is a message from OneUptime. A new incident has been created. ${
-        incident.title
-      }. To acknowledge this incident, please click on the following link ${url.toString()}`,
+      message: `This is a message from OneUptime. A new incident has been created: ${incidentIdentifier}. To acknowledge this incident, please click on the following link ${url.toString()}`,
     };
 
     return sms;
@@ -1123,17 +1132,27 @@ export class Service extends DatabaseService<Model> {
     const acknowledgeUrl: URL =
       await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
 
-    const templateKey = WhatsAppTemplateIds.AlertCreated;
+    const alertLinkOnDashboard: string =
+      alert.projectId && alert.id
+        ? (
+            await AlertService.getAlertLinkInDashboard(
+              alert.projectId,
+              alert.id,
+            )
+          ).toString()
+        : acknowledgeUrl.toString();
+
+    const templateKey: WhatsAppTemplateId = WhatsAppTemplateIds.AlertCreated;
     const templateVariables: Record<string, string> = {
       project_name: alert.project?.name || "OneUptime",
       alert_title: alert.title || "",
       acknowledge_url: acknowledgeUrl.toString(),
+      alert_number:
+        alert.alertNumber !== undefined ? alert.alertNumber.toString() : "",
+      alert_link: alertLinkOnDashboard,
     };
 
-    const body: string = renderWhatsAppTemplate(
-      templateKey,
-      templateVariables,
-    );
+    const body: string = renderWhatsAppTemplate(templateKey, templateVariables);
 
     return {
       to,
@@ -1167,17 +1186,29 @@ export class Service extends DatabaseService<Model> {
     const acknowledgeUrl: URL =
       await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
 
-    const templateKey = WhatsAppTemplateIds.IncidentCreated;
+    const incidentLinkOnDashboard: string =
+      incident.projectId && incident.id
+        ? (
+            await IncidentService.getIncidentLinkInDashboard(
+              incident.projectId,
+              incident.id,
+            )
+          ).toString()
+        : acknowledgeUrl.toString();
+
+    const templateKey: WhatsAppTemplateId = WhatsAppTemplateIds.IncidentCreated;
     const templateVariables: Record<string, string> = {
       project_name: incident.project?.name || "OneUptime",
       incident_title: incident.title || "",
       acknowledge_url: acknowledgeUrl.toString(),
+      incident_number:
+        incident.incidentNumber !== undefined
+          ? incident.incidentNumber.toString()
+          : "",
+      incident_link: incidentLinkOnDashboard,
     };
 
-    const body: string = renderWhatsAppTemplate(
-      templateKey,
-      templateVariables,
-    );
+    const body: string = renderWhatsAppTemplate(templateKey, templateVariables);
 
     return {
       to,

@@ -37,6 +37,7 @@ import { OnDelete } from "../Types/Database/Hooks";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
+import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 
 export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   private layerUtil = new LayerUtil();
@@ -266,17 +267,18 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
               requireInteraction: false,
             });
 
-          const eventType =
+          const eventType: NotificationSettingEventType =
             NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER;
 
-          const whatsAppMessage = createWhatsAppMessageFromTemplate({
-            eventType,
-            templateVariables: {
-              on_call_policy_name: onCallPolicy.name!,
-              schedule_name: onCallSchedule.name!,
-              action_link: vars["onCallPolicyViewLink"] || "",
-            },
-          });
+          const whatsAppMessage: WhatsAppMessagePayload =
+            createWhatsAppMessageFromTemplate({
+              eventType,
+              templateVariables: {
+                on_call_policy_name: onCallPolicy.name!,
+                schedule_name: onCallSchedule.name!,
+                schedule_link: vars["onCallPolicyViewLink"] || "",
+              },
+            });
 
           await UserNotificationSettingService.sendUserNotification({
             userId: sendEmailToUserId,
@@ -398,17 +400,18 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
               requireInteraction: true,
             });
 
-          const eventType =
+          const eventType: NotificationSettingEventType =
             NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER;
 
-          const whatsAppMessage = createWhatsAppMessageFromTemplate({
-            eventType,
-            templateVariables: {
-              on_call_policy_name: onCallPolicy.name!,
-              schedule_name: onCallSchedule.name!,
-              action_link: vars["onCallPolicyViewLink"] || "",
-            },
-          });
+          const whatsAppMessage: WhatsAppMessagePayload =
+            createWhatsAppMessageFromTemplate({
+              eventType,
+              templateVariables: {
+                on_call_policy_name: onCallPolicy.name!,
+                schedule_name: onCallSchedule.name!,
+                schedule_link: vars["onCallPolicyViewLink"] || "",
+              },
+            });
 
           await UserNotificationSettingService.sendUserNotification({
             userId: sendEmailToUserId,
@@ -550,17 +553,18 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
               requireInteraction: false,
             });
 
-          const eventType =
+          const eventType: NotificationSettingEventType =
             NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER;
 
-          const whatsAppMessage = createWhatsAppMessageFromTemplate({
-            eventType,
-            templateVariables: {
-              on_call_policy_name: onCallPolicy.name!,
-              schedule_name: onCallSchedule.name!,
-              action_link: vars["onCallPolicyViewLink"] || "",
-            },
-          });
+          const whatsAppMessage: WhatsAppMessagePayload =
+            createWhatsAppMessageFromTemplate({
+              eventType,
+              templateVariables: {
+                on_call_policy_name: onCallPolicy.name!,
+                schedule_name: onCallSchedule.name!,
+                schedule_link: vars["onCallPolicyViewLink"] || "",
+              },
+            });
 
           await UserNotificationSettingService.sendUserNotification({
             userId: sendEmailToUserId,

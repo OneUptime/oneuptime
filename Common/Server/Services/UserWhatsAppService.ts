@@ -19,7 +19,10 @@ import {
   renderWhatsAppTemplate,
   WhatsAppTemplateIds,
   WhatsAppTemplateLanguage,
+  WhatsAppTemplateId,
 } from "../../Types/WhatsApp/WhatsAppTemplates";
+
+const ONEUPTIME_DASHBOARD_URL: string = "https://oneuptime.com/dashboard";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -166,9 +169,11 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const templateKey = WhatsAppTemplateIds.VerificationCode;
+    const templateKey: WhatsAppTemplateId =
+      WhatsAppTemplateIds.VerificationCode;
     const templateVariables: Record<string, string> = {
       verification_code: item.verificationCode || "",
+      dashboard_link: ONEUPTIME_DASHBOARD_URL,
     };
 
     const whatsAppMessage: WhatsAppMessage = {

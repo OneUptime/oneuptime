@@ -12,6 +12,8 @@ import Phone from "Common/Types/Phone";
 
 type GetGlobalSMTPConfig = () => Promise<EmailServer | null>;
 
+export const DEFAULT_META_WHATSAPP_API_VERSION: string = "v18.0";
+
 export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
   async (): Promise<EmailServer | null> => {
     const globalConfig: GlobalConfig | null =
@@ -235,31 +237,61 @@ type GetMetaWhatsAppConfigFunction = () => Promise<MetaWhatsAppConfig>;
 
 export const getMetaWhatsAppConfig: GetMetaWhatsAppConfigFunction =
   async (): Promise<MetaWhatsAppConfig> => {
+    const globalConfig: GlobalConfig | null =
+      await GlobalConfigService.findOneBy({
+        query: {
+          _id: ObjectID.getZeroObjectID().toString(),
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          metaWhatsAppAccessToken: true,
+          metaWhatsAppPhoneNumberId: true,
+          metaWhatsAppBusinessAccountId: true,
+          metaWhatsAppAppId: true,
+          metaWhatsAppAppSecret: true,
+        },
+      });
+
+    if (!globalConfig) {
+      throw new BadDataException("Global Config not found");
+    }
+
     const accessToken: string | undefined =
-      process.env["META_WHATSAPP_ACCESS_TOKEN"];
+      globalConfig.metaWhatsAppAccessToken?.trim();
     const phoneNumberId: string | undefined =
-      process.env["META_WHATSAPP_PHONE_NUMBER_ID"];
+      globalConfig.metaWhatsAppPhoneNumberId?.trim();
 
     if (!accessToken) {
       throw new BadDataException(
-        "Meta WhatsApp access token not found. Please set META_WHATSAPP_ACCESS_TOKEN in environment variables.",
+        "Meta WhatsApp access token not configured. Please set it in the Admin Dashboard: " +
+          AdminDashboardClientURL.toString(),
       );
     }
 
     if (!phoneNumberId) {
       throw new BadDataException(
-        "Meta WhatsApp phone number ID not found. Please set META_WHATSAPP_PHONE_NUMBER_ID in environment variables.",
+        "Meta WhatsApp phone number ID not configured. Please set it in the Admin Dashboard: " +
+          AdminDashboardClientURL.toString(),
       );
     }
+
+    const businessAccountId: string | undefined =
+      globalConfig.metaWhatsAppBusinessAccountId?.trim() || undefined;
+    const appId: string | undefined =
+      globalConfig.metaWhatsAppAppId?.trim() || undefined;
+    const appSecret: string | undefined =
+      globalConfig.metaWhatsAppAppSecret?.trim() || undefined;
+    const apiVersion: string = DEFAULT_META_WHATSAPP_API_VERSION;
 
     return {
       accessToken,
       phoneNumberId,
-      businessAccountId:
-        process.env["META_WHATSAPP_BUSINESS_ACCOUNT_ID"] || undefined,
-      appId: process.env["META_WHATSAPP_APP_ID"] || undefined,
-      appSecret: process.env["META_WHATSAPP_APP_SECRET"] || undefined,
-      apiVersion: process.env["META_WHATSAPP_API_VERSION"] || undefined,
+      businessAccountId,
+      appId,
+      appSecret,
+      apiVersion,
     };
   };
 

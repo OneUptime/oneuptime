@@ -14,7 +14,9 @@ import Response from "Common/Server/Utils/Response";
 
 const router: ExpressRouter = Express.getRouter();
 
-const toTemplateVariables = (
+const toTemplateVariables: (
+  rawVariables: JSONObject | undefined,
+) => Record<string, string> | undefined = (
   rawVariables: JSONObject | undefined,
 ): Record<string, string> | undefined => {
   if (!rawVariables) {
@@ -57,7 +59,9 @@ router.post(
     };
 
     await WhatsAppService.sendWhatsApp(message, {
-      projectId: body["projectId"] ? new ObjectID(body["projectId"] as string) : undefined,
+      projectId: body["projectId"]
+        ? new ObjectID(body["projectId"] as string)
+        : undefined,
       isSensitive: (body["isSensitive"] as boolean) || false,
       userOnCallLogTimelineId: body["userOnCallLogTimelineId"]
         ? new ObjectID(body["userOnCallLogTimelineId"] as string)
@@ -77,23 +81,26 @@ router.post(
       statusPageAnnouncementId: body["statusPageAnnouncementId"]
         ? new ObjectID(body["statusPageAnnouncementId"] as string)
         : undefined,
-      userId: body["userId"] ? new ObjectID(body["userId"] as string) : undefined,
+      userId: body["userId"]
+        ? new ObjectID(body["userId"] as string)
+        : undefined,
       onCallPolicyId: body["onCallPolicyId"]
         ? new ObjectID(body["onCallPolicyId"] as string)
         : undefined,
       onCallPolicyEscalationRuleId: body["onCallPolicyEscalationRuleId"]
         ? new ObjectID(body["onCallPolicyEscalationRuleId"] as string)
         : undefined,
-      onCallDutyPolicyExecutionLogTimelineId:
-        body["onCallDutyPolicyExecutionLogTimelineId"]
-          ? new ObjectID(
-              body["onCallDutyPolicyExecutionLogTimelineId"] as string,
-            )
-          : undefined,
+      onCallDutyPolicyExecutionLogTimelineId: body[
+        "onCallDutyPolicyExecutionLogTimelineId"
+      ]
+        ? new ObjectID(body["onCallDutyPolicyExecutionLogTimelineId"] as string)
+        : undefined,
       onCallScheduleId: body["onCallScheduleId"]
         ? new ObjectID(body["onCallScheduleId"] as string)
         : undefined,
-      teamId: body["teamId"] ? new ObjectID(body["teamId"] as string) : undefined,
+      teamId: body["teamId"]
+        ? new ObjectID(body["teamId"] as string)
+        : undefined,
     });
 
     return Response.sendEmptySuccessResponse(req, res);
@@ -118,8 +125,7 @@ router.post("/test", async (req: ExpressRequest, res: ExpressResponse) => {
     templateVariables: toTemplateVariables(
       body["templateVariables"] as JSONObject | undefined,
     ),
-    templateLanguageCode:
-      (body["templateLanguageCode"] as string) || undefined,
+    templateLanguageCode: (body["templateLanguageCode"] as string) || undefined,
   };
 
   try {
@@ -135,11 +141,7 @@ router.post("/test", async (req: ExpressRequest, res: ExpressResponse) => {
         ? err.message
         : "Failed to send test WhatsApp message.";
 
-    return Response.sendErrorResponse(
-      req,
-      res,
-      new BadDataException(errorMsg),
-    );
+    return Response.sendErrorResponse(req, res, new BadDataException(errorMsg));
   }
 
   return Response.sendEmptySuccessResponse(req, res);
