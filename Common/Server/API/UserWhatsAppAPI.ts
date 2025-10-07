@@ -5,6 +5,7 @@ import UserWhatsAppService, {
 import {
   ExpressRequest,
   ExpressResponse,
+  NextFunction,
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
@@ -109,20 +110,28 @@ export default class UserWhatsAppAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/resend-verification-code`,
       UserMiddleware.getUserMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        req = req as OneUptimeRequest;
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
+        try {
+          req = req as OneUptimeRequest;
 
-        if (!req.body.itemId) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid item ID"),
-          );
+          if (!req.body.itemId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid item ID"),
+            );
+          }
+
+          await this.service.resendVerificationCode(req.body.itemId);
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          return next(err);
         }
-
-        await this.service.resendVerificationCode(req.body.itemId);
-
-        return Response.sendEmptySuccessResponse(req, res);
       },
     );
   }
