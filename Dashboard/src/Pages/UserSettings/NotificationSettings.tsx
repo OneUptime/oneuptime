@@ -10,6 +10,17 @@ import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificati
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
+import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
+import Color from "Common/Types/Color";
+import {
+  Blue500,
+  Gray500,
+  Green500,
+  Orange500,
+  Purple500,
+  Sky500,
+} from "Common/Types/BrandColors";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   type GetModelTableFunctionProps = {
@@ -129,37 +140,91 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             field: {
               alertByEmail: true,
-            },
-            title: "Email Alerts",
-            type: FieldType.Boolean,
-          },
-          {
-            field: {
               alertBySMS: true,
-            },
-            title: "SMS Alerts",
-            type: FieldType.Boolean,
-          },
-          {
-            field: {
               alertByWhatsApp: true,
-            },
-            title: "WhatsApp Alerts",
-            type: FieldType.Boolean,
-          },
-          {
-            field: {
               alertByCall: true,
-            },
-            title: "Call Alerts",
-            type: FieldType.Boolean,
-          },
-          {
-            field: {
               alertByPush: true,
             },
-            title: "Push Alerts",
-            type: FieldType.Boolean,
+            title: "Delivery Channels",
+            type: FieldType.Element,
+            getElement: (item: UserNotificationSetting): ReactElement => {
+              type ChannelDescriptor = {
+                key: string;
+                label: string;
+                enabled: boolean;
+                icon: IconProp;
+                color: Color;
+              };
+
+              const channels: Array<ChannelDescriptor> = [
+                {
+                  key: "email",
+                  label: "Email",
+                  enabled: Boolean(item.alertByEmail),
+                  icon: IconProp.Email,
+                  color: Blue500,
+                },
+                {
+                  key: "sms",
+                  label: "SMS",
+                  enabled: Boolean(item.alertBySMS),
+                  icon: IconProp.SMS,
+                  color: Purple500,
+                },
+                {
+                  key: "call",
+                  label: "Call",
+                  enabled: Boolean(item.alertByCall),
+                  icon: IconProp.Call,
+                  color: Orange500,
+                },
+                {
+                  key: "push",
+                  label: "Push",
+                  enabled: Boolean(item.alertByPush),
+                  icon: IconProp.Notification,
+                  color: Sky500,
+                },
+                {
+                  key: "whatsapp",
+                  label: "WhatsApp",
+                  enabled: Boolean(item.alertByWhatsApp),
+                  icon: IconProp.WhatsApp,
+                  color: Green500,
+                },
+              ];
+
+              return (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {channels.map((channel: ChannelDescriptor) => {
+                    const stateClasses: string = channel.enabled
+                      ? "border-emerald-500/60 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200"
+                      : "border-gray-200 bg-gray-100 text-gray-500 dark:border-gray-600 dark:bg-gray-700/60 dark:text-gray-300";
+
+                    return (
+                      <span
+                        key={channel.key}
+                        aria-label={`${channel.label} alerts ${channel.enabled ? "enabled" : "disabled"}`}
+                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${stateClasses}`}
+                      >
+                        <Icon
+                          icon={channel.icon}
+                          className="h-3 w-3"
+                          size={SizeProp.Small}
+                          color={channel.enabled ? channel.color : Gray500}
+                        />
+                        <span>{channel.label}</span>
+                        <span
+                          className={`text-[10px] font-semibold uppercase tracking-wide ${channel.enabled ? "text-emerald-600 dark:text-emerald-200" : "text-gray-400 dark:text-gray-400"}`}
+                        >
+                          {channel.enabled ? "On" : "Off"}
+                        </span>
+                      </span>
+                    );
+                  })}
+                </div>
+              );
+            },
           },
         ]}
       />
