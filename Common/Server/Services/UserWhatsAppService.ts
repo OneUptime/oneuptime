@@ -21,6 +21,8 @@ import {
   WhatsAppTemplateId,
 } from "../../Types/WhatsApp/WhatsAppTemplates";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
+import { JSONObject } from "../../Types/JSON";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -185,7 +187,7 @@ export class Service extends DatabaseService<Model> {
       templateLanguageCode: WhatsAppTemplateLanguage[templateKey],
     };
 
-    const response = await WhatsAppService.sendWhatsAppMessage(
+    const response: HTTPResponse<JSONObject> = await WhatsAppService.sendWhatsAppMessage(
       whatsAppMessage,
       {
         projectId: item.projectId,
