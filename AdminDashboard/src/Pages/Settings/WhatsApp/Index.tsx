@@ -17,7 +17,9 @@ import WhatsAppTemplateMessages, {
   WhatsAppTemplateLanguage,
 } from "Common/Types/WhatsApp/WhatsAppTemplates";
 
-const toFriendlyName = (value: string): string => {
+type ToFriendlyName = (value: string) => string;
+
+const toFriendlyName: ToFriendlyName = (value: string): string => {
   return value
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/_/g, " ")
@@ -25,7 +27,11 @@ const toFriendlyName = (value: string): string => {
     .trim();
 };
 
-const extractTemplateVariables = (template: string): Array<string> => {
+type ExtractTemplateVariables = (template: string) => Array<string>;
+
+const extractTemplateVariables: ExtractTemplateVariables = (
+  template: string,
+): Array<string> => {
   const matches: RegExpMatchArray | null = template.match(/\{\{(.*?)\}\}/g);
 
   if (!matches) {
@@ -47,7 +53,9 @@ const extractTemplateVariables = (template: string): Array<string> => {
   });
 };
 
-const buildWhatsAppSetupMarkdown = (): string => {
+type BuildWhatsAppSetupMarkdown = () => string;
+
+const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
   const templateKeys: Array<keyof typeof WhatsAppTemplateIds> = Object.keys(
     WhatsAppTemplateIds,
   ) as Array<keyof typeof WhatsAppTemplateIds>;
@@ -70,14 +78,16 @@ const buildWhatsAppSetupMarkdown = (): string => {
       const templateId: WhatsAppTemplateId = WhatsAppTemplateIds[enumKey];
       const friendlyName: string = toFriendlyName(enumKey.toString());
       const templateMessage: string = WhatsAppTemplateMessages[templateId];
-      const language: string =
-        WhatsAppTemplateLanguage[templateId] || "en";
-      const variables: Array<string> = extractTemplateVariables(
-        templateMessage,
-      );
+      const language: string = WhatsAppTemplateLanguage[templateId] || "en";
+      const variables: Array<string> =
+        extractTemplateVariables(templateMessage);
       const variableList: string =
         variables.length > 0
-          ? variables.map((variable: string) => `\`${variable}\``).join(", ")
+          ? variables
+              .map((variable: string) => {
+                return `\`${variable}\``;
+              })
+              .join(", ")
           : "_None_";
 
       return `| ${friendlyName} | \`${templateId}\` | ${language} | ${variableList} |`;
@@ -89,11 +99,9 @@ const buildWhatsAppSetupMarkdown = (): string => {
       const templateId: WhatsAppTemplateId = WhatsAppTemplateIds[enumKey];
       const friendlyName: string = toFriendlyName(enumKey.toString());
       const templateMessage: string = WhatsAppTemplateMessages[templateId];
-      const language: string =
-        WhatsAppTemplateLanguage[templateId] || "en";
-      const variables: Array<string> = extractTemplateVariables(
-        templateMessage,
-      );
+      const language: string = WhatsAppTemplateLanguage[templateId] || "en";
+      const variables: Array<string> =
+        extractTemplateVariables(templateMessage);
       const variableMarkdown: string =
         variables.length > 0
           ? variables

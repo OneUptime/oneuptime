@@ -129,7 +129,6 @@ const Settings: FunctionComponent = (): ReactElement => {
           modelId: ObjectID.getZeroObjectID(),
         }}
       />
-
     </Page>
   );
 };
