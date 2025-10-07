@@ -254,6 +254,10 @@ export default class WhatsAppService {
         to: message.to.toString(),
       } as JSONObject;
 
+      if(!message.templateKey){
+        throw new BadDataException("WhatsApp message template key is required");
+      }
+
       if (message.templateKey) {
         const template: JSONObject = {
           name: message.templateKey,
@@ -303,6 +307,8 @@ export default class WhatsAppService {
         new Route(`${apiVersion}/${config.phoneNumberId}/messages`),
       );
 
+      logger.debug(`WhatsApp API request: ${JSON.stringify(payload)}`);
+
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.post<JSONObject>({
           url,
@@ -314,8 +320,22 @@ export default class WhatsAppService {
         });
 
       if (response instanceof HTTPErrorResponse) {
+        logger.error("Failed to send WhatsApp message.");
+        logger.error(response);
+        const responseDataAsJSONObject: JSONObject = response.data;
+        const responseJsonAsJSONObject: JSONObject | undefined =
+          (response.jsonData as JSONObject | undefined) || undefined;
+
+        const detailedErrorMessage: string | undefined =
+          ((responseDataAsJSONObject["error"] as JSONObject | undefined)?.[
+            "message"
+          ] as string | undefined) ||
+          ((responseJsonAsJSONObject?.["error"] as JSONObject | undefined)?.[
+            "message"
+          ] as string | undefined);
+
         throw new BadDataException(
-          response.message || "Failed to send WhatsApp message.",
+          detailedErrorMessage || "Failed to send WhatsApp message.",
         );
       }
 
@@ -361,13 +381,14 @@ export default class WhatsAppService {
         });
       }
     } catch (error: any) {
+      logger.error("Failed to send WhatsApp message.");
+      logger.error(error);
       whatsAppLog.whatsAppCostInUSDCents = 0;
       whatsAppLog.status = WhatsAppStatus.Error;
       const errorMessage: string =
         error && error.message ? error.message.toString() : `${error}`;
       whatsAppLog.statusMessage = errorMessage;
-      logger.error("Failed to send WhatsApp message.");
-      logger.error(errorMessage);
+      
       sendError = error;
     }
 

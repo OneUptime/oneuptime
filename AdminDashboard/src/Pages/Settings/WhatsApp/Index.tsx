@@ -8,9 +8,17 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import Card from "Common/UI/Components/Card/Card";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import BasicForm from "Common/UI/Components/Forms/BasicForm";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import { JSONObject } from "Common/Types/JSON";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import URL from "Common/Types/API/URL";
+import API from "Common/UI/Utils/API/API";
+import { APP_API_URL } from "Common/UI/Config";
 import WhatsAppTemplateMessages, {
   WhatsAppTemplateId,
   WhatsAppTemplateIds,
@@ -72,6 +80,7 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
   const setupStepsList: Array<string> = [
     "Sign in to the [Meta Business Manager](https://business.facebook.com/) with admin access to your WhatsApp Business Account.",
     "From **Business Settings → Accounts → WhatsApp Accounts**, create or select the account that owns your sender phone number.",
+    "In Buisness Portfolio, create a system user and assign it to the WhatsApp Business Account with the role of **Admin**.",
     "Under **WhatsApp Manager → API Setup**, generate a long-lived access token and copy the phone number ID.",
     "Paste the access token and phone number ID into the **Meta WhatsApp Settings** card above, then save.",
     "For the **Business Account ID**, go to **Business Settings → Business Info** (or **Business Settings → WhatsApp Accounts → Settings**) and copy the **WhatsApp Business Account ID** value.",
@@ -179,6 +188,10 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
 const whatsappSetupMarkdown: string = buildWhatsAppSetupMarkdown();
 
 const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
+  const [isSendingTest, setIsSendingTest] = useState<boolean>(false);
+  const [testError, setTestError] = useState<string>("");
+  const [testSuccess, setTestSuccess] = useState<string>("");
+
   return (
     <Page
       title={"Admin Settings"}
@@ -331,6 +344,102 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
           modelId: ObjectID.getZeroObjectID(),
         }}
       />
+
+      <Card
+        title="Send Test WhatsApp Message"
+        description="Send a test WhatsApp template message to confirm your Meta configuration."
+      >
+        {testSuccess ? (
+          <Alert
+            type={AlertType.SUCCESS}
+            title={testSuccess}
+            className="mb-4"
+          />
+        ) : (
+          <></>
+        )}
+
+        <BasicForm
+          id="send-test-whatsapp-form"
+          name="Send Test WhatsApp Message"
+          isLoading={isSendingTest}
+          error={testError || ""}
+          submitButtonText="Send Test Message"
+          maxPrimaryButtonWidth={true}
+          initialValues={{
+            phoneNumber: "",
+          }}
+          fields={[
+            {
+              field: {
+                phoneNumber: true,
+              },
+              title: "Recipient WhatsApp Number",
+              description:
+                "Enter the full international phone number (including country code) that should receive the test message.",
+              placeholder: "+11234567890",
+              required: true,
+              fieldType: FormFieldSchemaType.Phone,
+              disableSpellCheck: true,
+            },
+          ]}
+          onSubmit={async (
+            values: JSONObject,
+            onSubmitSuccessful?: () => void,
+          ) => {
+            const toPhone: string = String(values["phoneNumber"] || "").trim();
+
+            if (!toPhone) {
+              setTestSuccess("");
+              setTestError(
+                "Please enter a WhatsApp number before sending a test message.",
+              );
+              return;
+            }
+
+            setIsSendingTest(true);
+            setTestError("");
+            setTestSuccess("");
+
+            try {
+              const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+                await API.post({
+                  url: URL.fromString(APP_API_URL.toString()).addRoute(
+                    "/notification/whatsapp/test",
+                  ),
+                  data: {
+                    toPhone,
+                    templateKey: WhatsAppTemplateIds.TestNotification,
+                    templateLanguageCode:
+                      WhatsAppTemplateLanguage[
+                        WhatsAppTemplateIds.TestNotification
+                      ],
+                  },
+                });
+
+              if (response instanceof HTTPErrorResponse) {
+                throw response;
+              }
+
+              if (response.isFailure()) {
+                throw new Error("Failed to send test WhatsApp message.");
+              }
+
+              setTestSuccess(
+                "Test WhatsApp message sent successfully. Check the recipient device to confirm delivery.",
+              );
+
+              if (onSubmitSuccessful) {
+                onSubmitSuccessful();
+              }
+            } catch (err) {
+              setTestError(API.getFriendlyMessage(err));
+            } finally {
+              setIsSendingTest(false);
+            }
+          }}
+        />
+      </Card>
 
       <Card
         title="Meta WhatsApp Setup Guide"

@@ -1,7 +1,7 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
-import UserEmailService, {
-  Service as UserEmailServiceType,
-} from "../Services/UserEmailService";
+import UserWhatsAppService, {
+  Service as UserWhatsAppServiceType,
+} from "../Services/UserWhatsAppService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -11,17 +11,19 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "../../Types/Exception/BadDataException";
-import UserEmail from "../../Models/DatabaseModels/UserEmail";
+import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 
-export default class UserEmailAPI extends BaseAPI<
-  UserEmail,
-  UserEmailServiceType
+export default class UserWhatsAppAPI extends BaseAPI<
+  UserWhatsApp,
+  UserWhatsAppServiceType
 > {
   public constructor() {
-    super(UserEmail, UserEmailService);
+    super(UserWhatsApp, UserWhatsAppService);
 
     this.router.post(
-      `${new this.entityType().getCrudApiPath()?.toString()}/verify`,
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/verify`,
       UserMiddleware.getUserMiddleware,
       async (
         req: ExpressRequest,
@@ -47,8 +49,7 @@ export default class UserEmailAPI extends BaseAPI<
             );
           }
 
-          // Check if the code matches and verify the email.
-          const item: UserEmail | null = await this.service.findOneById({
+          const item: UserWhatsApp | null = await this.service.findOneById({
             id: req.body["itemId"],
             props: {
               isRoot: true,
@@ -56,6 +57,7 @@ export default class UserEmailAPI extends BaseAPI<
             select: {
               userId: true,
               verificationCode: true,
+              isVerified: true,
             },
           });
 
@@ -67,7 +69,13 @@ export default class UserEmailAPI extends BaseAPI<
             );
           }
 
-          //check user id
+          if (item.isVerified) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("WhatsApp number already verified"),
+            );
+          }
 
           if (
             item.userId?.toString() !==

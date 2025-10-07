@@ -4,11 +4,11 @@ import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
+  NextFunction,
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
-import Exception from "../../Types/Exception/Exception";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
 import Permission, { UserPermission } from "../../Types/Permission";
@@ -19,7 +19,11 @@ const router: ExpressRouter = Express.getRouter();
 router.post(
   "/notification/recharge",
   UserMiddleware.getUserMiddleware,
-  async (req: ExpressRequest, res: ExpressResponse) => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => {
     try {
       let amount: number | PositiveNumber = JSONFunctions.deserializeValue(
         req.body.amount,
@@ -106,8 +110,8 @@ router.post(
           ),
         );
       }
-    } catch (err: any) {
-      return Response.sendErrorResponse(req, res, err as Exception);
+    } catch (err) {
+      return next(err);
     }
 
     return Response.sendEmptySuccessResponse(req, res);

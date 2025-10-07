@@ -151,13 +151,15 @@ function renderTemplateContent(
   return templateContent.replace(
     /\{\{(.*?)\}\}/g,
     (_match: string, key: string) => {
-      if (variables[key] === undefined) {
+      const value: string | undefined = variables[key];
+
+      if (value === undefined) {
         throw new Error(
           `Missing variable "${key}" for WhatsApp template ${context}.`,
         );
       }
 
-      return variables[key];
+      return value;
     },
   );
 }
