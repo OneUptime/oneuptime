@@ -25,7 +25,8 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
   const [showResendCodeModal, setShowResendCodeModal] =
     useState<boolean>(false);
 
-  const [error, setError] = useState<string>("");
+  const [verificationError, setVerificationError] = useState<string>("");
+  const [resendError, setResendError] = useState<string>("");
   const [currentItem, setCurrentItem] = useState<UserWhatsApp | null>(null);
   const [refreshToggle, setRefreshToggle] = useState<string>(
     OneUptimeDate.getCurrentDate().toString(),
@@ -36,8 +37,14 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
     useState<boolean>(false);
 
   useEffect(() => {
-    setError("");
+    setVerificationError("");
   }, [showVerificationCodeModal]);
+
+  useEffect(() => {
+    if (!showResendCodeModal) {
+      setResendError("");
+    }
+  }, [showResendCodeModal]);
 
   return (
     <>
@@ -75,6 +82,7 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
               try {
                 setCurrentItem(item);
                 setShowVerificationCodeModal(true);
+                setVerificationError("");
                 onCompleteAction();
               } catch (err) {
                 onCompleteAction();
@@ -100,6 +108,7 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
             ) => {
               try {
                 setCurrentItem(item);
+                setResendError("");
                 setShowResendCodeModal(true);
 
                 onCompleteAction();
@@ -164,10 +173,12 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
           onClose={() => {
             setShowVerificationCodeModal(false);
           }}
+          error={verificationError}
           isLoading={isLoading}
           submitButtonText={"Verify"}
           onSubmit={async (item: JSONObject) => {
             setIsLoading(true);
+            setVerificationError("");
             try {
               const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
                 await API.post({
@@ -182,7 +193,7 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
                 });
 
               if (response.isFailure()) {
-                setError(API.getFriendlyMessage(response));
+                setVerificationError(API.getFriendlyMessage(response));
                 setIsLoading(false);
               } else {
                 setIsLoading(false);
@@ -190,13 +201,13 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
                 setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
               }
             } catch (e) {
-              setError(API.getFriendlyMessage(e));
+              setVerificationError(API.getFriendlyMessage(e));
               setIsLoading(false);
             }
           }}
           formProps={{
             name: "Verify WhatsApp Number",
-            error: error || "",
+
             fields: [
               {
                 title: "Verification Code",
@@ -223,17 +234,19 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
       {showResendCodeModal && currentItem ? (
         <ConfirmModal
           title={`Resend Code`}
-          error={error}
+          error={resendError}
           description={
             "Are you sure you want to resend the WhatsApp verification code?"
           }
           submitButtonText={"Resend Code"}
           onClose={() => {
             setShowResendCodeModal(false);
-            setError("");
+            setResendError("");
           }}
           isLoading={isLoading}
           onSubmit={async () => {
+            setIsLoading(true);
+            setResendError("");
             try {
               const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
                 await API.post({
@@ -247,7 +260,7 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
                 });
 
               if (response.isFailure()) {
-                setError(API.getFriendlyMessage(response));
+                setResendError(API.getFriendlyMessage(response));
                 setIsLoading(false);
               } else {
                 setIsLoading(false);
@@ -255,7 +268,7 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
                 setShowVerificationCodeResentModal(true);
               }
             } catch (err) {
-              setError(API.getFriendlyMessage(err));
+              setResendError(API.getFriendlyMessage(err));
               setIsLoading(false);
             }
           }}
@@ -267,12 +280,12 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
       {showVerificationCodeResentModal ? (
         <ConfirmModal
           title={`Code sent successfully`}
-          error={error}
+          error={resendError}
           description={`We have sent a verification code via WhatsApp.`}
           submitButtonText={"Close"}
           onSubmit={async () => {
             setShowVerificationCodeResentModal(false);
-            setError("");
+            setResendError("");
           }}
         />
       ) : (
