@@ -1,7 +1,11 @@
 import ClusterKeyAuthorization from "../../../../Middleware/ClusterKeyAuthorization";
 import DatabaseService from "../../../../Services/DatabaseService";
 import WorkflowService from "../../../../Services/WorkflowService";
-import { ExpressRequest, ExpressResponse } from "../../../../Utils/Express";
+import {
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+} from "../../../../Utils/Express";
 import logger from "../../../../Utils/Logger";
 import Response from "../../../../Utils/Response";
 import Select from "../../../Database/Select";
@@ -60,16 +64,32 @@ export default class OnTriggerBaseModel<
     props.router.get(
       `/model/:projectId/${this.modelId}/${this.type}`,
       ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        await this.initTrigger(req, res, props);
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
+        try {
+          await this.initTrigger(req, res, props);
+        } catch (err) {
+          return next(err);
+        }
       },
     );
 
     props.router.post(
       `/model/:projectId/${this.modelId}/${this.type}`,
       ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        await this.initTrigger(req, res, props);
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
+        try {
+          await this.initTrigger(req, res, props);
+        } catch (err) {
+          return next(err);
+        }
       },
     );
   }

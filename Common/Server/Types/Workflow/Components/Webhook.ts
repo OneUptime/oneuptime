@@ -59,7 +59,7 @@ export default class WebhookTrigger extends TriggerCode {
         try {
           await this.initTrigger(req, res, props);
         } catch (e) {
-          next(e);
+          return next(e);
         }
       },
     );
@@ -70,7 +70,7 @@ export default class WebhookTrigger extends TriggerCode {
         try {
           await this.initTrigger(req, res, props);
         } catch (e) {
-          next(e);
+          return next(e);
         }
       },
     );

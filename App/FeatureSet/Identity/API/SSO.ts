@@ -47,7 +47,11 @@ const router: ExpressRouter = Express.getRouter();
 
 router.get(
   "/service-provider-login",
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       if (!req.query["email"]) {
         return Response.sendErrorResponse(
@@ -152,7 +156,11 @@ router.get(
     } catch (err) {
       logger.error(err);
 
-      Response.sendErrorResponse(req, res, err as Exception);
+      if (err instanceof Exception) {
+        return next(err);
+      }
+
+      return next(new ServerException());
     }
   },
 );
@@ -162,7 +170,7 @@ router.get(
   async (
     req: ExpressRequest,
     res: ExpressResponse,
-    _next: NextFunction,
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.params["projectId"]) {
@@ -238,22 +246,42 @@ router.get(
     } catch (err) {
       logger.error(err);
 
-      Response.sendErrorResponse(req, res, err as Exception);
+      if (err instanceof Exception) {
+        return next(err);
+      }
+
+      return next(new ServerException());
     }
   },
 );
 
 router.get(
   "/idp-login/:projectId/:projectSsoId",
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
-    return await loginUserWithSso(req, res);
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      await loginUserWithSso(req, res);
+    } catch (err) {
+      return next(err);
+    }
   },
 );
 
 router.post(
   "/idp-login/:projectId/:projectSsoId",
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
-    return await loginUserWithSso(req, res);
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      await loginUserWithSso(req, res);
+    } catch (err) {
+      return next(err);
+    }
   },
 );
 

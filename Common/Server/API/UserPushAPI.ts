@@ -108,104 +108,108 @@ export default class UserPushAPI extends BaseAPI<
     this.router.post(
       `/user-push/:deviceId/test-notification`,
       UserMiddleware.getUserMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        req = req as OneUptimeRequest;
-
-        if (!req.params["deviceId"]) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Device ID is required"),
-          );
-        }
-
-        // Get the device
-        const device: UserPush | null = await this.service.findOneById({
-          id: new ObjectID(req.params["deviceId"]),
-          props: {
-            isRoot: true,
-          },
-          select: {
-            userId: true,
-            deviceName: true,
-            deviceToken: true,
-            deviceType: true,
-            isVerified: true,
-            projectId: true,
-          },
-        });
-
-        if (!device) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Device not found"),
-          );
-        }
-
-        // Check if the device belongs to the current user
-        if (
-          device.userId?.toString() !==
-          (req as OneUptimeRequest).userAuthorization!.userId!.toString()
-        ) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Unauthorized access to device"),
-          );
-        }
-
-        if (!device.isVerified) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Device is not verified"),
-          );
-        }
-
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
         try {
-          // Send test notification
-          const testMessage: PushNotificationMessage =
-            PushNotificationUtil.createGenericNotification({
-              title: "Test Notification from OneUptime",
-              body: "This is a test notification to verify your device is working correctly.",
-              clickAction: "/dashboard",
-              tag: "test-notification",
-              requireInteraction: false,
-            });
+          req = req as OneUptimeRequest;
 
-          await PushNotificationService.sendPushNotification(
-            {
-              devices: [
-                {
-                  token: device.deviceToken!,
-                  ...(device.deviceName && {
-                    name: device.deviceName,
-                  }),
-                },
-              ],
-              message: testMessage,
-              deviceType: device.deviceType!,
+          if (!req.params["deviceId"]) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Device ID is required"),
+            );
+          }
+
+          // Get the device
+          const device: UserPush | null = await this.service.findOneById({
+            id: new ObjectID(req.params["deviceId"]),
+            props: {
+              isRoot: true,
             },
-            {
-              isSensitive: false,
-              projectId: device.projectId!,
-              userId: device.userId!,
+            select: {
+              userId: true,
+              deviceName: true,
+              deviceToken: true,
+              deviceType: true,
+              isVerified: true,
+              projectId: true,
             },
-          );
+          });
+
+          if (!device) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Device not found"),
+            );
+          }
+
+          // Check if the device belongs to the current user
+          if (
+            device.userId?.toString() !==
+            (req as OneUptimeRequest).userAuthorization!.userId!.toString()
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Unauthorized access to device"),
+            );
+          }
+
+          if (!device.isVerified) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Device is not verified"),
+            );
+          }
+
+          try {
+            // Send test notification
+            const testMessage: PushNotificationMessage =
+              PushNotificationUtil.createGenericNotification({
+                title: "Test Notification from OneUptime",
+                body: "This is a test notification to verify your device is working correctly.",
+                clickAction: "/dashboard",
+                tag: "test-notification",
+                requireInteraction: false,
+              });
+
+            await PushNotificationService.sendPushNotification(
+              {
+                devices: [
+                  {
+                    token: device.deviceToken!,
+                    ...(device.deviceName && {
+                      name: device.deviceName,
+                    }),
+                  },
+                ],
+                message: testMessage,
+                deviceType: device.deviceType!,
+              },
+              {
+                isSensitive: false,
+                projectId: device.projectId!,
+                userId: device.userId!,
+              },
+            );
+          } catch (error: any) {
+            throw new BadDataException(
+              `Failed to send test notification: ${error.message}`,
+            );
+          }
 
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
             message: "Test notification sent successfully",
           });
-        } catch (error: any) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException(
-              `Failed to send test notification: ${error.message}`,
-            ),
-          );
+        } catch (error) {
+          return next(error);
         }
       },
     );
@@ -213,100 +217,116 @@ export default class UserPushAPI extends BaseAPI<
     this.router.post(
       `/user-push/:deviceId/verify`,
       UserMiddleware.getUserMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        req = req as OneUptimeRequest;
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
+        try {
+          req = req as OneUptimeRequest;
 
-        if (!req.params["deviceId"]) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Device ID is required"),
-          );
+          if (!req.params["deviceId"]) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Device ID is required"),
+            );
+          }
+
+          const device: UserPush | null = await this.service.findOneById({
+            id: new ObjectID(req.params["deviceId"]),
+            props: {
+              isRoot: true,
+            },
+            select: {
+              userId: true,
+            },
+          });
+
+          if (!device) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Device not found"),
+            );
+          }
+
+          // Check if the device belongs to the current user
+          if (
+            device.userId?.toString() !==
+            (req as OneUptimeRequest).userAuthorization!.userId!.toString()
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Unauthorized access to device"),
+            );
+          }
+
+          await this.service.verifyDevice(device._id!.toString());
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (error) {
+          return next(error);
         }
-
-        const device: UserPush | null = await this.service.findOneById({
-          id: new ObjectID(req.params["deviceId"]),
-          props: {
-            isRoot: true,
-          },
-          select: {
-            userId: true,
-          },
-        });
-
-        if (!device) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Device not found"),
-          );
-        }
-
-        // Check if the device belongs to the current user
-        if (
-          device.userId?.toString() !==
-          (req as OneUptimeRequest).userAuthorization!.userId!.toString()
-        ) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Unauthorized access to device"),
-          );
-        }
-
-        await this.service.verifyDevice(device._id!.toString());
-
-        return Response.sendEmptySuccessResponse(req, res);
       },
     );
 
     this.router.post(
       `/user-push/:deviceId/unverify`,
       UserMiddleware.getUserMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        req = req as OneUptimeRequest;
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
+        try {
+          req = req as OneUptimeRequest;
 
-        if (!req.params["deviceId"]) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Device ID is required"),
-          );
+          if (!req.params["deviceId"]) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Device ID is required"),
+            );
+          }
+
+          const device: UserPush | null = await this.service.findOneById({
+            id: new ObjectID(req.params["deviceId"]),
+            props: {
+              isRoot: true,
+            },
+            select: {
+              userId: true,
+            },
+          });
+
+          if (!device) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Device not found"),
+            );
+          }
+
+          // Check if the device belongs to the current user
+          if (
+            device.userId?.toString() !==
+            (req as OneUptimeRequest).userAuthorization!.userId!.toString()
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Unauthorized access to device"),
+            );
+          }
+
+          await this.service.unverifyDevice(device._id!.toString());
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (error) {
+          return next(error);
         }
-
-        const device: UserPush | null = await this.service.findOneById({
-          id: new ObjectID(req.params["deviceId"]),
-          props: {
-            isRoot: true,
-          },
-          select: {
-            userId: true,
-          },
-        });
-
-        if (!device) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Device not found"),
-          );
-        }
-
-        // Check if the device belongs to the current user
-        if (
-          device.userId?.toString() !==
-          (req as OneUptimeRequest).userAuthorization!.userId!.toString()
-        ) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Unauthorized access to device"),
-          );
-        }
-
-        await this.service.unverifyDevice(device._id!.toString());
-
-        return Response.sendEmptySuccessResponse(req, res);
       },
     );
   }

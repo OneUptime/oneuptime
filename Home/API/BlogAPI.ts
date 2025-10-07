@@ -1,12 +1,12 @@
 import BlogPostUtil, { BlogPost, BlogPostHeader } from "../Utils/BlogPost";
 import { BlogRootPath, ViewsPath } from "../Utils/Config";
 import NotFoundUtil from "../Utils/NotFound";
-import ServerErrorUtil from "../Utils/ServerError";
 import Text from "Common/Types/Text";
 import Express, {
   ExpressApplication,
   ExpressRequest,
   ExpressResponse,
+  NextFunction,
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
@@ -19,7 +19,11 @@ const app: ExpressApplication = Express.getExpressApp();
 
 app.get(
   "/blog/post/:file",
-  async (req: ExpressRequest, res: ExpressResponse) => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => {
     try {
       const fileName: string = req.params["file"] as string;
 
@@ -30,14 +34,18 @@ app.get(
       );
     } catch (e) {
       logger.error(e);
-      return ServerErrorUtil.renderServerError(res);
+      return next(e);
     }
   },
 );
 
 app.get(
   "/blog/post/:file/view",
-  async (req: ExpressRequest, res: ExpressResponse) => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => {
     try {
       const fileName: string = req.params["file"] as string;
 
@@ -59,14 +67,18 @@ app.get(
       });
     } catch (e) {
       logger.error(e);
-      return ServerErrorUtil.renderServerError(res);
+      return next(e);
     }
   },
 );
 
 app.get(
   "/blog/post/:postName/:fileName",
-  async (req: ExpressRequest, res: ExpressResponse) => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => {
     /*
      * return static files for blog post images
      * the static files are stored in the /usr/src/blog/post/:file/:imageName
@@ -83,7 +95,7 @@ app.get(
       );
     } catch (e) {
       logger.error(e);
-      return ServerErrorUtil.renderServerError(res);
+      return next(e);
     }
   },
 );
@@ -92,7 +104,11 @@ app.get(
 
 app.get(
   "/blog/tag/:tagName",
-  async (req: ExpressRequest, res: ExpressResponse) => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => {
     try {
       const tagName: string = req.params["tagName"] as string;
       const tagSlug: string = tagName; // original slug
@@ -149,14 +165,20 @@ app.get(
       });
     } catch (e) {
       logger.error(e);
-      return ServerErrorUtil.renderServerError(res);
+      return next(e);
     }
   },
 );
 
 // main blog page
-app.get("/blog", async (_req: ExpressRequest, res: ExpressResponse) => {
-  try {
+app.get(
+  "/blog",
+  async (
+    _req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => {
+    try {
     const req: ExpressRequest = _req; // alias for clarity
     const pageParam: string | undefined = req.query["page"] as
       | string
@@ -205,8 +227,9 @@ app.get("/blog", async (_req: ExpressRequest, res: ExpressResponse) => {
       allTags: allTags,
       enableGoogleTagManager: IsBillingEnabled,
     });
-  } catch (e) {
-    logger.error(e);
-    return ServerErrorUtil.renderServerError(res);
-  }
-});
+    } catch (e) {
+      logger.error(e);
+      return next(e);
+    }
+  },
+);

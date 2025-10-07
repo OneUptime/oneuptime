@@ -120,45 +120,57 @@ router.post(
   }
 );
 
-router.post("/test", async (req: ExpressRequest, res: ExpressResponse) => {
-  const body: JSONObject = req.body as JSONObject;
+router.post(
+  "/test",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => {
+    try {
+      const body: JSONObject = req.body as JSONObject;
 
-  if (!body["toPhone"]) {
-    throw new BadDataException("toPhone is required");
-  }
+      if (!body["toPhone"]) {
+        throw new BadDataException("toPhone is required");
+      }
 
-  const toPhone: Phone = new Phone(body["toPhone"] as string);
+      const toPhone: Phone = new Phone(body["toPhone"] as string);
 
-  const templateKey: WhatsAppTemplateId = WhatsAppTemplateIds.TestNotification;
+      const templateKey: WhatsAppTemplateId =
+        WhatsAppTemplateIds.TestNotification;
 
-  const templateLanguageCode: string =
-    WhatsAppTemplateLanguage[templateKey] || "en";
+      const templateLanguageCode: string =
+        WhatsAppTemplateLanguage[templateKey] || "en";
 
-  const message: WhatsAppMessage = {
-    to: toPhone,
-    body: "",
-    templateKey,
-    templateVariables: undefined,
-    templateLanguageCode,
-  };
+      const message: WhatsAppMessage = {
+        to: toPhone,
+        body: "",
+        templateKey,
+        templateVariables: undefined,
+        templateLanguageCode,
+      };
 
-  try {
-    await WhatsAppService.sendWhatsApp(message, {
-      projectId: body["projectId"]
-        ? new ObjectID(body["projectId"] as string)
-        : undefined,
-      isSensitive: false,
-    });
-  } catch (err) {
-    const errorMsg: string =
-      err instanceof Error && err.message
-        ? err.message
-        : "Failed to send test WhatsApp message.";
+      try {
+        await WhatsAppService.sendWhatsApp(message, {
+          projectId: body["projectId"]
+            ? new ObjectID(body["projectId"] as string)
+            : undefined,
+          isSensitive: false,
+        });
+      } catch (err) {
+        const errorMsg: string =
+          err instanceof Error && err.message
+            ? err.message
+            : "Failed to send test WhatsApp message.";
 
-    return Response.sendErrorResponse(req, res, new BadDataException(errorMsg));
-  }
+        throw new BadDataException(errorMsg);
+      }
 
-  return Response.sendEmptySuccessResponse(req, res);
-});
+      return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
 
 export default router;

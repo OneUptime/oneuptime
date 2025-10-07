@@ -36,16 +36,24 @@ const router: ExpressRouter = Express.getRouter();
 router.post(
   "/alive",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
-    // Update last alive in probe and return success response.
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      // Update last alive in probe and return success response.
 
-    const data: JSONObject = req.body;
+      const data: JSONObject = req.body;
 
-    const probeId: ObjectID = new ObjectID(data["probeId"] as string);
+      const probeId: ObjectID = new ObjectID(data["probeId"] as string);
 
-    await ProbeService.updateLastAlive(probeId);
+      await ProbeService.updateLastAlive(probeId);
 
-    return Response.sendEmptySuccessResponse(req, res);
+      return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      return next(err);
+    }
   },
 );
 

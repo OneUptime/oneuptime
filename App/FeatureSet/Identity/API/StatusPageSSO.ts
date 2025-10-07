@@ -115,7 +115,11 @@ router.get(
 
 router.post(
   "/status-page-idp-login/:statusPageId/:statusPageSsoId",
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const samlResponseBase64: string = req.body.SAMLResponse;
 
@@ -312,7 +316,11 @@ router.post(
       );
     } catch (err) {
       logger.error(err);
-      Response.sendErrorResponse(req, res, new ServerException());
+      if (err instanceof Exception) {
+        return next(err);
+      }
+
+      return next(new ServerException());
     }
   },
 );

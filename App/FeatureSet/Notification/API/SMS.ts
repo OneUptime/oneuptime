@@ -66,99 +66,110 @@ router.post(
   },
 );
 
-router.post("/test", async (req: ExpressRequest, res: ExpressResponse) => {
-  const body: JSONObject = req.body;
+router.post(
+  "/test",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => {
+    try {
+      const body: JSONObject = req.body;
 
-  const callSMSConfigId: ObjectID = new ObjectID(
-    body["callSMSConfigId"] as string,
-  );
+      const callSMSConfigId: ObjectID = new ObjectID(
+        body["callSMSConfigId"] as string,
+      );
 
-  const config: ProjectCallSMSConfig | null =
-    await ProjectCallSMSConfigService.findOneById({
-      id: callSMSConfigId,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        twilioAccountSID: true,
-        twilioAuthToken: true,
-        twilioPrimaryPhoneNumber: true,
-        twilioSecondaryPhoneNumbers: true,
-        projectId: true,
-      },
-    });
+      const config: ProjectCallSMSConfig | null =
+        await ProjectCallSMSConfigService.findOneById({
+          id: callSMSConfigId,
+          props: {
+            isRoot: true,
+          },
+          select: {
+            _id: true,
+            twilioAccountSID: true,
+            twilioAuthToken: true,
+            twilioPrimaryPhoneNumber: true,
+            twilioSecondaryPhoneNumbers: true,
+            projectId: true,
+          },
+        });
 
-  if (!config) {
-    return Response.sendErrorResponse(
-      req,
-      res,
-      new BadDataException(
-        "call and sms config not found for id" + callSMSConfigId.toString(),
-      ),
-    );
-  }
+      if (!config) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "call and sms config not found for id" + callSMSConfigId.toString(),
+          ),
+        );
+      }
 
-  const toPhone: Phone = new Phone(body["toPhone"] as string);
+      const toPhone: Phone = new Phone(body["toPhone"] as string);
 
-  if (!toPhone) {
-    return Response.sendErrorResponse(
-      req,
-      res,
-      new BadDataException("toPhone is required"),
-    );
-  }
+      if (!toPhone) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("toPhone is required"),
+        );
+      }
 
-  // if any of the twilio config is missing, we will not send make the call
+      // if any of the twilio config is missing, we will not send make the call
 
-  if (!config.twilioAccountSID) {
-    return Response.sendErrorResponse(
-      req,
-      res,
-      new BadDataException("twilioAccountSID is required"),
-    );
-  }
+      if (!config.twilioAccountSID) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("twilioAccountSID is required"),
+        );
+      }
 
-  if (!config.twilioAuthToken) {
-    return Response.sendErrorResponse(
-      req,
-      res,
-      new BadDataException("twilioAuthToken is required"),
-    );
-  }
+      if (!config.twilioAuthToken) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("twilioAuthToken is required"),
+        );
+      }
 
-  if (!config.twilioPrimaryPhoneNumber) {
-    return Response.sendErrorResponse(
-      req,
-      res,
-      new BadDataException("twilioPrimaryPhoneNumber is required"),
-    );
-  }
+      if (!config.twilioPrimaryPhoneNumber) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("twilioPrimaryPhoneNumber is required"),
+        );
+      }
 
-  const twilioConfig: TwilioConfig | undefined =
-    ProjectCallSMSConfigService.toTwilioConfig(config);
+      const twilioConfig: TwilioConfig | undefined =
+        ProjectCallSMSConfigService.toTwilioConfig(config);
 
-  try {
-    if (!twilioConfig) {
-      throw new BadDataException("twilioConfig is undefined");
+      try {
+        if (!twilioConfig) {
+          throw new BadDataException("twilioConfig is undefined");
+        }
+
+        await SmsService.sendSms(
+          toPhone,
+          "This is a test SMS from OneUptime.",
+          {
+            projectId: config.projectId,
+            customTwilioConfig: twilioConfig,
+          },
+        );
+      } catch (err) {
+        logger.error(err);
+        throw new BadDataException(
+          "Failed to send test SMS. Please check the twilio logs for more details.",
+        );
+      }
+
+      return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      return next(err);
     }
-
-    await SmsService.sendSms(toPhone, "This is a test SMS from OneUptime.", {
-      projectId: config.projectId,
-      customTwilioConfig: twilioConfig,
-    });
-  } catch (err) {
-    logger.error(err);
-    return Response.sendErrorResponse(
-      req,
-      res,
-      new BadDataException(
-        "Failed to send test SMS. Please check the twilio logs for more details.",
-      ),
-    );
-  }
-
-  return Response.sendEmptySuccessResponse(req, res);
-});
+  },
+);
 
 export default router;

@@ -6,6 +6,7 @@ import UserOnCallLogTimelineService, {
 import {
   ExpressRequest,
   ExpressResponse,
+  NextFunction,
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
@@ -34,62 +35,70 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         .getCrudApiPath()
         ?.toString()}/call/gather-input/:itemId`,
       NotificationMiddleware.isValidCallNotificationRequest,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        req = req as OneUptimeRequest;
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
+        try {
+          req = req as OneUptimeRequest;
 
-        if (!req.params["itemId"]) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid item ID"),
-          );
+          if (!req.params["itemId"]) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid item ID"),
+            );
+          }
+
+          const token: JSONObject = (req as any).callTokenData;
+
+          const itemId: ObjectID = new ObjectID(req.params["itemId"]);
+
+          const timelineItem: UserOnCallLogTimeline | null =
+            await this.service.findOneById({
+              id: itemId,
+              select: {
+                _id: true,
+                projectId: true,
+                triggeredByIncidentId: true,
+                triggeredByAlertId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!timelineItem) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid item Id"),
+            );
+          }
+
+          // check digits.
+
+          if (req.body["Digits"] === "1") {
+            // then ack incident
+            await this.service.updateOneById({
+              id: itemId,
+              data: {
+                acknowledgedAt: OneUptimeDate.getCurrentDate(),
+                isAcknowledged: true,
+                status: UserNotificationStatus.Acknowledged,
+                statusMessage: "Notification Acknowledged",
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+          }
+
+          return NotificationMiddleware.sendResponse(req, res, token as any);
+        } catch (error) {
+          return next(error);
         }
-
-        const token: JSONObject = (req as any).callTokenData;
-
-        const itemId: ObjectID = new ObjectID(req.params["itemId"]);
-
-        const timelineItem: UserOnCallLogTimeline | null =
-          await this.service.findOneById({
-            id: itemId,
-            select: {
-              _id: true,
-              projectId: true,
-              triggeredByIncidentId: true,
-              triggeredByAlertId: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        if (!timelineItem) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid item Id"),
-          );
-        }
-
-        // check digits.
-
-        if (req.body["Digits"] === "1") {
-          // then ack incident
-          await this.service.updateOneById({
-            id: itemId,
-            data: {
-              acknowledgedAt: OneUptimeDate.getCurrentDate(),
-              isAcknowledged: true,
-              status: UserNotificationStatus.Acknowledged,
-              statusMessage: "Notification Acknowledged",
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-
-        return NotificationMiddleware.sendResponse(req, res, token as any);
       },
     );
 
@@ -102,73 +111,81 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/acknowledge-page/:itemId`,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        req = req as OneUptimeRequest;
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
+        try {
+          req = req as OneUptimeRequest;
 
-        if (!req.params["itemId"]) {
-          return Response.sendErrorResponse(
+          if (!req.params["itemId"]) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Item ID is required"),
+            );
+          }
+
+          const itemId: ObjectID = new ObjectID(req.params["itemId"]);
+
+          const timelineItem: UserOnCallLogTimeline | null =
+            await this.service.findOneById({
+              id: itemId,
+              select: {
+                _id: true,
+                projectId: true,
+                triggeredByIncidentId: true,
+                triggeredByIncident: {
+                  title: true,
+                  description: true,
+                },
+                triggeredByAlertId: true,
+                triggeredByAlert: {
+                  title: true,
+                  description: true,
+                },
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!timelineItem) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid item Id"),
+            );
+          }
+
+          const notificationType: string = timelineItem.triggeredByIncidentId
+            ? "Incident"
+            : "Alert";
+
+          const host: Hostname = await DatabaseConfig.getHost();
+          const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+          return Response.render(
             req,
             res,
-            new BadDataException("Item ID is required"),
-          );
-        }
-
-        const itemId: ObjectID = new ObjectID(req.params["itemId"]);
-
-        const timelineItem: UserOnCallLogTimeline | null =
-          await this.service.findOneById({
-            id: itemId,
-            select: {
-              _id: true,
-              projectId: true,
-              triggeredByIncidentId: true,
-              triggeredByIncident: {
-                title: true,
-                description: true,
-              },
-              triggeredByAlertId: true,
-              triggeredByAlert: {
-                title: true,
-                description: true,
-              },
+            "/usr/src/Common/Server/Views/AcknowledgeUserOnCallNotification.ejs",
+            {
+              title: `Acknowledge ${notificationType} - ${timelineItem.triggeredByIncident?.title || timelineItem.triggeredByAlert?.title}`,
+              message: `Do you want to acknowledge this ${notificationType}?`,
+              acknowledgeText: `Acknowledge ${notificationType}`,
+              acknowledgeUrl: new URL(
+                httpProtocol,
+                host,
+                new Route(AppApiRoute.toString())
+                  .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+                  .addRoute("/acknowledge/" + itemId.toString()),
+              ).toString(),
             },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        if (!timelineItem) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid item Id"),
           );
+        } catch (error) {
+          return next(error);
         }
-
-        const notificationType: string = timelineItem.triggeredByIncidentId
-          ? "Incident"
-          : "Alert";
-
-        const host: Hostname = await DatabaseConfig.getHost();
-        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-        return Response.render(
-          req,
-          res,
-          "/usr/src/Common/Server/Views/AcknowledgeUserOnCallNotification.ejs",
-          {
-            title: `Acknowledge ${notificationType} - ${timelineItem.triggeredByIncident?.title || timelineItem.triggeredByAlert?.title}`,
-            message: `Do you want to acknowledge this ${notificationType}?`,
-            acknowledgeText: `Acknowledge ${notificationType}`,
-            acknowledgeUrl: new URL(
-              httpProtocol,
-              host,
-              new Route(AppApiRoute.toString())
-                .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-                .addRoute("/acknowledge/" + itemId.toString()),
-            ).toString(),
-          },
-        );
       },
     );
 
@@ -177,124 +194,132 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/acknowledge/:itemId`,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        req = req as OneUptimeRequest;
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
+        try {
+          req = req as OneUptimeRequest;
 
-        if (!req.params["itemId"]) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Item ID is required"),
-          );
-        }
+          if (!req.params["itemId"]) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Item ID is required"),
+            );
+          }
 
-        const itemId: ObjectID = new ObjectID(req.params["itemId"]);
+          const itemId: ObjectID = new ObjectID(req.params["itemId"]);
 
-        const timelineItem: UserOnCallLogTimeline | null =
-          await this.service.findOneById({
+          const timelineItem: UserOnCallLogTimeline | null =
+            await this.service.findOneById({
+              id: itemId,
+              select: {
+                _id: true,
+                projectId: true,
+                triggeredByIncidentId: true,
+                triggeredByAlertId: true,
+                triggeredByAlert: {
+                  title: true,
+                },
+                triggeredByIncident: {
+                  title: true,
+                },
+                acknowledgedAt: true,
+                isAcknowledged: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!timelineItem) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid item Id"),
+            );
+          }
+
+          const host: Hostname = await DatabaseConfig.getHost();
+          const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+          if (timelineItem.isAcknowledged) {
+            // already acknowledged. Then show already acknowledged page with view details button.
+
+            const viewDetailsUrl: URL = new URL(
+              httpProtocol,
+              host,
+              DashboardRoute.addRoute(
+                `/${timelineItem.projectId?.toString()}/${timelineItem.triggeredByIncidentId ? "incidents" : "alerts"}/${timelineItem.triggeredByIncidentId ? timelineItem.triggeredByIncidentId!.toString() : timelineItem.triggeredByAlertId!.toString()}`,
+              ),
+            );
+
+            return Response.render(
+              req,
+              res,
+              "/usr/src/Common/Server/Views/ViewMessage.ejs",
+              {
+                title: `Notification Already Acknowledged - ${timelineItem.triggeredByIncident?.title || timelineItem.triggeredByAlert?.title}`,
+                message: `This notification has already been acknowledged.`,
+                viewDetailsText: `View ${timelineItem.triggeredByIncidentId ? "Incident" : "Alert"}`,
+                viewDetailsUrl: viewDetailsUrl.toString(),
+              },
+            );
+          }
+
+          await this.service.updateOneById({
             id: itemId,
-            select: {
-              _id: true,
-              projectId: true,
-              triggeredByIncidentId: true,
-              triggeredByAlertId: true,
-              triggeredByAlert: {
-                title: true,
-              },
-              triggeredByIncident: {
-                title: true,
-              },
-              acknowledgedAt: true,
+            data: {
+              acknowledgedAt: OneUptimeDate.getCurrentDate(),
               isAcknowledged: true,
+              status: UserNotificationStatus.Acknowledged,
+              statusMessage: "Notification Acknowledged",
             },
             props: {
               isRoot: true,
             },
           });
 
-        if (!timelineItem) {
+          // redirect to dashboard to incidents page.
+
+          if (timelineItem.triggeredByIncidentId) {
+            return Response.redirect(
+              req,
+              res,
+              new URL(
+                httpProtocol,
+                host,
+                DashboardRoute.addRoute(
+                  `/${timelineItem.projectId?.toString()}/incidents/${timelineItem.triggeredByIncidentId!.toString()}`,
+                ),
+              ),
+            );
+          }
+
+          if (timelineItem.triggeredByAlertId) {
+            return Response.redirect(
+              req,
+              res,
+              new URL(
+                httpProtocol,
+                host,
+                DashboardRoute.addRoute(
+                  `/${timelineItem.projectId?.toString()}/alerts/${timelineItem.triggeredByAlertId!.toString()}`,
+                ),
+              ),
+            );
+          }
+
           return Response.sendErrorResponse(
             req,
             res,
             new BadDataException("Invalid item Id"),
           );
+        } catch (error) {
+          return next(error);
         }
-
-        const host: Hostname = await DatabaseConfig.getHost();
-        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-        if (timelineItem.isAcknowledged) {
-          // already acknowledged. Then show already acknowledged page with view details button.
-
-          const viewDetailsUrl: URL = new URL(
-            httpProtocol,
-            host,
-            DashboardRoute.addRoute(
-              `/${timelineItem.projectId?.toString()}/${timelineItem.triggeredByIncidentId ? "incidents" : "alerts"}/${timelineItem.triggeredByIncidentId ? timelineItem.triggeredByIncidentId!.toString() : timelineItem.triggeredByAlertId!.toString()}`,
-            ),
-          );
-
-          return Response.render(
-            req,
-            res,
-            "/usr/src/Common/Server/Views/ViewMessage.ejs",
-            {
-              title: `Notification Already Acknowledged - ${timelineItem.triggeredByIncident?.title || timelineItem.triggeredByAlert?.title}`,
-              message: `This notification has already been acknowledged.`,
-              viewDetailsText: `View ${timelineItem.triggeredByIncidentId ? "Incident" : "Alert"}`,
-              viewDetailsUrl: viewDetailsUrl.toString(),
-            },
-          );
-        }
-
-        await this.service.updateOneById({
-          id: itemId,
-          data: {
-            acknowledgedAt: OneUptimeDate.getCurrentDate(),
-            isAcknowledged: true,
-            status: UserNotificationStatus.Acknowledged,
-            statusMessage: "Notification Acknowledged",
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        // redirect to dashboard to incidents page.
-
-        if (timelineItem.triggeredByIncidentId) {
-          return Response.redirect(
-            req,
-            res,
-            new URL(
-              httpProtocol,
-              host,
-              DashboardRoute.addRoute(
-                `/${timelineItem.projectId?.toString()}/incidents/${timelineItem.triggeredByIncidentId!.toString()}`,
-              ),
-            ),
-          );
-        }
-
-        if (timelineItem.triggeredByAlertId) {
-          return Response.redirect(
-            req,
-            res,
-            new URL(
-              httpProtocol,
-              host,
-              DashboardRoute.addRoute(
-                `/${timelineItem.projectId?.toString()}/alerts/${timelineItem.triggeredByAlertId!.toString()}`,
-              ),
-            ),
-          );
-        }
-
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException("Invalid item Id"),
-        );
       },
     );
   }

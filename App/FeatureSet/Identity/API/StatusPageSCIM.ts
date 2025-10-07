@@ -4,6 +4,7 @@ import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
+  NextFunction,
   OneUptimeRequest,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
@@ -29,7 +30,11 @@ const router: ExpressRouter = Express.getRouter();
 router.get(
   "/status-page-scim/v2/:statusPageScimId/ServiceProviderConfig",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `Status Page SCIM ServiceProviderConfig - scimId: ${req.params["statusPageScimId"]!}`,
@@ -44,7 +49,7 @@ router.get(
       return Response.sendJsonObjectResponse(req, res, serviceProviderConfig);
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -53,7 +58,11 @@ router.get(
 router.get(
   "/status-page-scim/v2/:statusPageScimId/Users",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `Status Page SCIM Users list request for statusPageScimId: ${req.params["statusPageScimId"]}`,
@@ -164,7 +173,7 @@ router.get(
       });
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -173,7 +182,11 @@ router.get(
 router.get(
   "/status-page-scim/v2/:statusPageScimId/Users/:userId",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `Status Page SCIM Get individual user request for userId: ${req.params["userId"]}, statusPageScimId: ${req.params["statusPageScimId"]}`,
@@ -231,7 +244,7 @@ router.get(
       return Response.sendJsonObjectResponse(req, res, user);
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -240,7 +253,11 @@ router.get(
 router.post(
   "/status-page-scim/v2/:statusPageScimId/Users",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `Status Page SCIM Create user request for statusPageScimId: ${req.params["statusPageScimId"]}`,
@@ -333,7 +350,7 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, createdUser);
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -342,7 +359,11 @@ router.post(
 router.put(
   "/status-page-scim/v2/:statusPageScimId/Users/:userId",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `Status Page SCIM Update user request for userId: ${req.params["userId"]}, statusPageScimId: ${req.params["statusPageScimId"]}`,
@@ -489,7 +510,7 @@ router.put(
       return Response.sendJsonObjectResponse(req, res, user);
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -498,7 +519,11 @@ router.put(
 router.delete(
   "/status-page-scim/v2/:statusPageScimId/Users/:userId",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `Status Page SCIM Delete user request for userId: ${req.params["userId"]}, statusPageScimId: ${req.params["statusPageScimId"]}`,
@@ -562,7 +587,7 @@ router.delete(
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );

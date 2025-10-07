@@ -6,6 +6,7 @@ import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
+  NextFunction,
   OneUptimeRequest,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
@@ -191,7 +192,11 @@ const formatTeamForSCIM: (
 router.get(
   "/scim/v2/:projectScimId/ServiceProviderConfig",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `Project SCIM ServiceProviderConfig - scimId: ${req.params["projectScimId"]!}`,
@@ -210,7 +215,7 @@ router.get(
       return Response.sendJsonObjectResponse(req, res, serviceProviderConfig);
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -219,7 +224,11 @@ router.get(
 router.get(
   "/scim/v2/:projectScimId/Users",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `Project SCIM Users list - scimId: ${req.params["projectScimId"]!}`,
@@ -392,7 +401,7 @@ router.get(
       );
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -401,7 +410,11 @@ router.get(
 router.get(
   "/scim/v2/:projectScimId/Users/:userId",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `SCIM Get individual user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`,
@@ -460,7 +473,7 @@ router.get(
       return Response.sendJsonObjectResponse(req, res, user);
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -469,7 +482,11 @@ router.get(
 router.put(
   "/scim/v2/:projectScimId/Users/:userId",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `SCIM Update user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`,
@@ -626,7 +643,7 @@ router.put(
       return Response.sendJsonObjectResponse(req, res, user);
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -635,7 +652,11 @@ router.put(
 router.get(
   "/scim/v2/:projectScimId/Groups",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `SCIM Groups list request for projectScimId: ${req.params["projectScimId"]}`,
@@ -715,7 +736,7 @@ router.get(
       });
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -724,7 +745,11 @@ router.get(
 router.get(
   "/scim/v2/:projectScimId/Groups/:groupId",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `SCIM Get individual group request for groupId: ${req.params["groupId"]}, projectScimId: ${req.params["projectScimId"]}`,
@@ -779,7 +804,7 @@ router.get(
       return Response.sendJsonObjectResponse(req, res, group);
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -788,7 +813,11 @@ router.get(
 router.post(
   "/scim/v2/:projectScimId/Groups",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `SCIM Create group request for projectScimId: ${req.params["projectScimId"]}`,
@@ -911,7 +940,7 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, createdGroup);
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -920,7 +949,11 @@ router.post(
 router.put(
   "/scim/v2/:projectScimId/Groups/:groupId",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `SCIM Update group request for groupId: ${req.params["groupId"]}, projectScimId: ${req.params["projectScimId"]}`,
@@ -1074,7 +1107,7 @@ router.put(
       throw new NotFoundException("Failed to retrieve updated group");
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -1083,7 +1116,11 @@ router.put(
 router.delete(
   "/scim/v2/:projectScimId/Groups/:groupId",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `SCIM Delete group request for groupId: ${req.params["groupId"]}, projectScimId: ${req.params["projectScimId"]}`,
@@ -1161,7 +1198,7 @@ router.delete(
       });
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -1170,7 +1207,11 @@ router.delete(
 router.patch(
   "/scim/v2/:projectScimId/Groups/:groupId",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `SCIM Patch group request for groupId: ${req.params["groupId"]}, projectScimId: ${req.params["projectScimId"]}`,
@@ -1405,7 +1446,7 @@ router.patch(
       throw new NotFoundException("Failed to retrieve updated group");
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -1414,7 +1455,11 @@ router.patch(
 router.post(
   "/scim/v2/:projectScimId/Users",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `SCIM Create user request for projectScimId: ${req.params["projectScimId"]}`,
@@ -1501,7 +1546,7 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, createdUser);
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );
@@ -1510,7 +1555,11 @@ router.post(
 router.delete(
   "/scim/v2/:projectScimId/Users/:userId",
   SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       logger.debug(
         `SCIM Delete user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`,
@@ -1562,7 +1611,7 @@ router.delete(
       });
     } catch (err) {
       logger.error(err);
-      return Response.sendErrorResponse(req, res, err as BadRequestException);
+      return next(err);
     }
   },
 );

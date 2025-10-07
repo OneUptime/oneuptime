@@ -1,7 +1,11 @@
 import ProjectSsoService, {
   Service as ProjectSsoServiceType,
 } from "../Services/ProjectSsoService";
-import { ExpressRequest, ExpressResponse } from "../Utils/Express";
+import {
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+} from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -22,43 +26,51 @@ export default class ProjectSsoAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/:projectId/sso-list`,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        const projectId: ObjectID = new ObjectID(
-          req.params["projectId"] as string,
-        );
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
+        try {
+          const projectId: ObjectID = new ObjectID(
+            req.params["projectId"] as string,
+          );
 
-        if (!projectId) {
-          return Response.sendErrorResponse(
+          if (!projectId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid project id."),
+            );
+          }
+
+          const sso: Array<ProjectSSO> = await this.service.findBy({
+            query: {
+              projectId: projectId,
+              isEnabled: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              name: true,
+              description: true,
+              _id: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          return Response.sendEntityArrayResponse(
             req,
             res,
-            new BadDataException("Invalid project id."),
+            sso,
+            new PositiveNumber(sso.length),
+            ProjectSSO,
           );
+        } catch (err) {
+          return next(err);
         }
-
-        const sso: Array<ProjectSSO> = await this.service.findBy({
-          query: {
-            projectId: projectId,
-            isEnabled: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            name: true,
-            description: true,
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        return Response.sendEntityArrayResponse(
-          req,
-          res,
-          sso,
-          new PositiveNumber(sso.length),
-          ProjectSSO,
-        );
       },
     );
   }

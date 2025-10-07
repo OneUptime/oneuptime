@@ -7,6 +7,7 @@ import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressStatic,
+  NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import LocalFile from "Common/Server/Utils/LocalFile";
@@ -25,7 +26,11 @@ const DocsFeatureSet: FeatureSet = {
     // Handle requests to specific documentation pages
     app.get(
       "/docs/as-markdown/:categorypath/:pagepath",
-      async (req: ExpressRequest, res: ExpressResponse) => {
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
         try {
           const fullPath: string =
             `${req.params["categorypath"]}/${req.params["pagepath"]}`.toLowerCase();
@@ -38,15 +43,18 @@ const DocsFeatureSet: FeatureSet = {
           return Response.sendMarkdownResponse(req, res, contentInMarkdown);
         } catch (err) {
           logger.error(err);
-          res.status(500);
-          return res.send("Internal Server Error");
+          return next(err);
         }
       },
     );
 
     app.get(
       "/docs/:categorypath/:pagepath",
-      async (_req: ExpressRequest, res: ExpressResponse) => {
+      async (
+        _req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
         try {
           const fullPath: string =
             `${_req.params["categorypath"]}/${_req.params["pagepath"]}`.toLowerCase();
@@ -114,12 +122,7 @@ const DocsFeatureSet: FeatureSet = {
           });
         } catch (err) {
           logger.error(err);
-          res.status(500);
-          return res.render(`${ViewsPath}/ServerError`, {
-            nav: DocsNav,
-            enableGoogleTagManager: IsBillingEnabled,
-            link: "",
-          });
+          return next(err);
         }
       },
     );

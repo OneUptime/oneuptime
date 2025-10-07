@@ -182,14 +182,19 @@ const init: InitFunction = async (
 
     app.get(
       [`/${appName}/env.js`, "/env.js"],
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        // ping api server for database config.
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
+        try {
+          // ping api server for database config.
 
-        const env: JSONObject = {
-          ...process.env,
-        };
+          const env: JSONObject = {
+            ...process.env,
+          };
 
-        const script: string = `
+          const script: string = `
     if(!window.process){
       window.process = {}
     }
@@ -201,7 +206,10 @@ const init: InitFunction = async (
     window.process.env = JSON.parse(envVars);
   `;
 
-        Response.sendJavaScriptResponse(req, res, script);
+          Response.sendJavaScriptResponse(req, res, script);
+        } catch (err) {
+          return next(err);
+        }
       },
     );
 
@@ -216,32 +224,40 @@ const init: InitFunction = async (
 
     app.get(
       ["/*", `/${appName}/*`],
-      async (_req: ExpressRequest, res: ExpressResponse) => {
-        logger.debug("Rendering index page");
+      async (
+        _req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
+        try {
+          logger.debug("Rendering index page");
 
-        let variables: JSONObject = {};
+          let variables: JSONObject = {};
 
-        if (data.getVariablesToRenderIndexPage) {
-          logger.debug("Getting variables to render index page");
-          try {
-            const variablesToRenderIndexPage: JSONObject =
-              await data.getVariablesToRenderIndexPage(_req, res);
-            variables = {
-              ...variables,
-              ...variablesToRenderIndexPage,
-            };
-          } catch (error) {
-            logger.error(error);
+          if (data.getVariablesToRenderIndexPage) {
+            logger.debug("Getting variables to render index page");
+            try {
+              const variablesToRenderIndexPage: JSONObject =
+                await data.getVariablesToRenderIndexPage(_req, res);
+              variables = {
+                ...variables,
+                ...variablesToRenderIndexPage,
+              };
+            } catch (error) {
+              logger.error(error);
+            }
           }
+
+          logger.debug("Rendering index page with variables: ");
+          logger.debug(variables);
+
+          return res.render("/usr/src/app/views/index.ejs", {
+            enableGoogleTagManager: IsBillingEnabled || false,
+            ...variables,
+          });
+        } catch (err) {
+          return next(err);
         }
-
-        logger.debug("Rendering index page with variables: ");
-        logger.debug(variables);
-
-        return res.render("/usr/src/app/views/index.ejs", {
-          enableGoogleTagManager: IsBillingEnabled || false,
-          ...variables,
-        });
       },
     );
   }
