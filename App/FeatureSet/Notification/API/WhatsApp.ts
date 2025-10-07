@@ -1,5 +1,6 @@
 import WhatsAppService from "../Services/WhatsAppService";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import Exception from "Common/Types/Exception/Exception";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
@@ -14,15 +15,16 @@ import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
+  NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 
 const router: ExpressRouter = Express.getRouter();
 
 const toTemplateVariables: (
-  rawVariables: JSONObject | undefined,
+  rawVariables: JSONObject | undefined
 ) => Record<string, string> | undefined = (
-  rawVariables: JSONObject | undefined,
+  rawVariables: JSONObject | undefined
 ): Record<string, string> | undefined => {
   if (!rawVariables) {
     return undefined;
@@ -43,7 +45,7 @@ const toTemplateVariables: (
 router.post(
   "/send",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-  async (req: ExpressRequest, res: ExpressResponse) => {
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     const body: JSONObject = req.body as JSONObject;
 
     if (!body["to"]) {
@@ -57,59 +59,65 @@ router.post(
       body: (body["body"] as string) || "",
       templateKey: (body["templateKey"] as string) || undefined,
       templateVariables: toTemplateVariables(
-        body["templateVariables"] as JSONObject | undefined,
+        body["templateVariables"] as JSONObject | undefined
       ),
       templateLanguageCode:
         (body["templateLanguageCode"] as string) || undefined,
     };
 
-    await WhatsAppService.sendWhatsApp(message, {
-      projectId: body["projectId"]
-        ? new ObjectID(body["projectId"] as string)
-        : undefined,
-      isSensitive: (body["isSensitive"] as boolean) || false,
-      userOnCallLogTimelineId: body["userOnCallLogTimelineId"]
-        ? new ObjectID(body["userOnCallLogTimelineId"] as string)
-        : undefined,
-      incidentId: body["incidentId"]
-        ? new ObjectID(body["incidentId"] as string)
-        : undefined,
-      alertId: body["alertId"]
-        ? new ObjectID(body["alertId"] as string)
-        : undefined,
-      scheduledMaintenanceId: body["scheduledMaintenanceId"]
-        ? new ObjectID(body["scheduledMaintenanceId"] as string)
-        : undefined,
-      statusPageId: body["statusPageId"]
-        ? new ObjectID(body["statusPageId"] as string)
-        : undefined,
-      statusPageAnnouncementId: body["statusPageAnnouncementId"]
-        ? new ObjectID(body["statusPageAnnouncementId"] as string)
-        : undefined,
-      userId: body["userId"]
-        ? new ObjectID(body["userId"] as string)
-        : undefined,
-      onCallPolicyId: body["onCallPolicyId"]
-        ? new ObjectID(body["onCallPolicyId"] as string)
-        : undefined,
-      onCallPolicyEscalationRuleId: body["onCallPolicyEscalationRuleId"]
-        ? new ObjectID(body["onCallPolicyEscalationRuleId"] as string)
-        : undefined,
-      onCallDutyPolicyExecutionLogTimelineId: body[
-        "onCallDutyPolicyExecutionLogTimelineId"
-      ]
-        ? new ObjectID(body["onCallDutyPolicyExecutionLogTimelineId"] as string)
-        : undefined,
-      onCallScheduleId: body["onCallScheduleId"]
-        ? new ObjectID(body["onCallScheduleId"] as string)
-        : undefined,
-      teamId: body["teamId"]
-        ? new ObjectID(body["teamId"] as string)
-        : undefined,
-    });
+    try {
+      await WhatsAppService.sendWhatsApp(message, {
+        projectId: body["projectId"]
+          ? new ObjectID(body["projectId"] as string)
+          : undefined,
+        isSensitive: (body["isSensitive"] as boolean) || false,
+        userOnCallLogTimelineId: body["userOnCallLogTimelineId"]
+          ? new ObjectID(body["userOnCallLogTimelineId"] as string)
+          : undefined,
+        incidentId: body["incidentId"]
+          ? new ObjectID(body["incidentId"] as string)
+          : undefined,
+        alertId: body["alertId"]
+          ? new ObjectID(body["alertId"] as string)
+          : undefined,
+        scheduledMaintenanceId: body["scheduledMaintenanceId"]
+          ? new ObjectID(body["scheduledMaintenanceId"] as string)
+          : undefined,
+        statusPageId: body["statusPageId"]
+          ? new ObjectID(body["statusPageId"] as string)
+          : undefined,
+        statusPageAnnouncementId: body["statusPageAnnouncementId"]
+          ? new ObjectID(body["statusPageAnnouncementId"] as string)
+          : undefined,
+        userId: body["userId"]
+          ? new ObjectID(body["userId"] as string)
+          : undefined,
+        onCallPolicyId: body["onCallPolicyId"]
+          ? new ObjectID(body["onCallPolicyId"] as string)
+          : undefined,
+        onCallPolicyEscalationRuleId: body["onCallPolicyEscalationRuleId"]
+          ? new ObjectID(body["onCallPolicyEscalationRuleId"] as string)
+          : undefined,
+        onCallDutyPolicyExecutionLogTimelineId: body[
+          "onCallDutyPolicyExecutionLogTimelineId"
+        ]
+          ? new ObjectID(
+              body["onCallDutyPolicyExecutionLogTimelineId"] as string
+            )
+          : undefined,
+        onCallScheduleId: body["onCallScheduleId"]
+          ? new ObjectID(body["onCallScheduleId"] as string)
+          : undefined,
+        teamId: body["teamId"]
+          ? new ObjectID(body["teamId"] as string)
+          : undefined,
+      });
 
-    return Response.sendEmptySuccessResponse(req, res);
-  },
+      return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      return next(err);
+    }
+  }
 );
 
 router.post("/test", async (req: ExpressRequest, res: ExpressResponse) => {
