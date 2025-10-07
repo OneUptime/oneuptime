@@ -361,13 +361,14 @@ export default class WhatsAppService {
         });
       }
     } catch (error: any) {
+      logger.error("Failed to send WhatsApp message.");
+      logger.error(error);
       whatsAppLog.whatsAppCostInUSDCents = 0;
       whatsAppLog.status = WhatsAppStatus.Error;
       const errorMessage: string =
         error && error.message ? error.message.toString() : `${error}`;
       whatsAppLog.statusMessage = errorMessage;
-      logger.error("Failed to send WhatsApp message.");
-      logger.error(errorMessage);
+      
       sendError = error;
     }
 
