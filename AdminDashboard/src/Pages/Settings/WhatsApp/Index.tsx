@@ -139,9 +139,9 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
         "**Variables**",
         variableMarkdown,
         "",
-        "**Body**",
+        "**Body** \n",
         "\`"+templateMessage+"\`",
-        "",
+        "---",
       ].join("\n");
     })
     .join("\n\n");
