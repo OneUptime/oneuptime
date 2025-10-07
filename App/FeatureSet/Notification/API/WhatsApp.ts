@@ -121,8 +121,7 @@ router.post("/test", async (req: ExpressRequest, res: ExpressResponse) => {
 
   const toPhone: Phone = new Phone(body["toPhone"] as string);
 
-  const templateKey: WhatsAppTemplateId =
-    WhatsAppTemplateIds.TestNotification;
+  const templateKey: WhatsAppTemplateId = WhatsAppTemplateIds.TestNotification;
 
   const templateLanguageCode: string =
     WhatsAppTemplateLanguage[templateKey] || "en";
