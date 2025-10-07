@@ -1,4 +1,4 @@
-type WhatsAppTemplateIdsDefinition = {
+type TemplateIdsMap = {
   readonly AlertCreated: "oneuptime_alert_created";
   readonly IncidentCreated: "oneuptime_incident_created";
   readonly VerificationCode: "oneuptime_verification_code";
@@ -31,7 +31,7 @@ type WhatsAppTemplateIdsDefinition = {
   readonly OnCallUserNoLongerActiveNotification: "oneuptime_oncall_user_no_longer_active_notification";
 };
 
-const rawWhatsAppTemplateIds: WhatsAppTemplateIdsDefinition = {
+const templateIds: TemplateIdsMap = {
   AlertCreated: "oneuptime_alert_created",
   IncidentCreated: "oneuptime_incident_created",
   VerificationCode: "oneuptime_verification_code",
@@ -83,21 +83,22 @@ const rawWhatsAppTemplateIds: WhatsAppTemplateIdsDefinition = {
     "oneuptime_oncall_user_removed_from_policy_notification",
   OnCallUserNoLongerActiveNotification:
     "oneuptime_oncall_user_no_longer_active_notification",
-};
+} as const;
+
+export const WhatsAppTemplateIds: TemplateIdsMap = templateIds;
+
+export type WhatsAppTemplateIdsDefinition = typeof WhatsAppTemplateIds;
 
 export type WhatsAppTemplateIdsMap = WhatsAppTemplateIdsDefinition;
 
-export const WhatsAppTemplateIds: WhatsAppTemplateIdsDefinition =
-  rawWhatsAppTemplateIds;
-
 export type WhatsAppTemplateId =
-  (typeof WhatsAppTemplateIds)[keyof typeof WhatsAppTemplateIds];
+  WhatsAppTemplateIdsDefinition[keyof WhatsAppTemplateIdsDefinition];
 
 type WhatsAppTemplateMessagesDefinition = Readonly<
   Record<WhatsAppTemplateId, string>
 >;
 
-const rawWhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
+export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
   [WhatsAppTemplateIds.AlertCreated]: `A new alert #{{alert_number}} ({{alert_title}}) has been created for project {{project_name}}. To acknowledge this alert, open {{acknowledge_url}} to respond. For more information, please check out this alert {{alert_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.IncidentCreated]: `A new incident #{{incident_number}} ({{incident_title}}) has been created for project {{project_name}}. To acknowledge this incident, open {{acknowledge_url}} to respond. For more information, please check out this incident {{incident_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.VerificationCode]: `{{1}} is your verification code. For your security, do not share this code.`,
@@ -129,9 +130,6 @@ const rawWhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
   [WhatsAppTemplateIds.OnCallUserRemovedFromPolicyNotification]: `You have been removed from on-call policy {{on_call_policy_name}} for {{on_call_context}}. View on-call policies using {{policy_link}} on the OneUptime dashboard for updates.`,
   [WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification]: `You are no longer on-call for policy {{on_call_policy_name}} on schedule {{schedule_name}}. Review your schedule using {{schedule_link}} on the OneUptime dashboard to stay informed.`,
 };
-
-export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition =
-  rawWhatsAppTemplateMessages;
 
 export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.AlertCreated]: "en",
@@ -183,7 +181,7 @@ export function renderWhatsAppTemplate(
       );
     }
 
-    return variables[key];
+    return variables[key] as string;
   });
 }
 

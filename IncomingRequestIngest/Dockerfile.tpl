@@ -16,6 +16,7 @@ ARG APP_VERSION
 
 ENV GIT_SHA=${GIT_SHA}
 ENV APP_VERSION=${APP_VERSION}
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 ENV NODE_OPTIONS="--use-openssl-ca"
 
 ## Add Intermediate Certs 
@@ -59,7 +60,7 @@ ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
 
-RUN npx playwright install --with-deps
+RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0 npx playwright install --with-deps
 
 # Install app dependencies
 COPY ./IncomingRequestIngest/package*.json /usr/src/app/
