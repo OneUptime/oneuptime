@@ -60,7 +60,6 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     WhatsAppTemplateIds,
   ) as Array<keyof typeof WhatsAppTemplateIds>;
 
-  const header: string = "# Configure Meta WhatsApp";
   const description: string =
     "Follow these steps to connect Meta WhatsApp with OneUptime so notifications can be delivered via WhatsApp.";
 
@@ -155,7 +154,6 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     .join("\n");
 
   return [
-    header,
     description,
     "### Prerequisites",
     prerequisitesMarkdown,
