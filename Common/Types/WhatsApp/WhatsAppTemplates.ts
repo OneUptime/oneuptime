@@ -1,4 +1,37 @@
-export const WhatsAppTemplateIds = {
+type TemplateIdsMap = {
+  readonly AlertCreated: "oneuptime_alert_created";
+  readonly IncidentCreated: "oneuptime_incident_created";
+  readonly VerificationCode: "oneuptime_verification_code";
+  readonly IncidentCreatedOwnerNotification: "oneuptime_incident_created_owner_notification";
+  readonly IncidentNotePostedOwnerNotification: "oneuptime_incident_note_posted_owner_notification";
+  readonly IncidentStateChangedOwnerNotification: "oneuptime_incident_state_changed_owner_notification";
+  readonly IncidentOwnerAddedNotification: "oneuptime_incident_owner_added_notification";
+  readonly AlertCreatedOwnerNotification: "oneuptime_alert_created_owner_notification";
+  readonly AlertNotePostedOwnerNotification: "oneuptime_alert_note_posted_owner_notification";
+  readonly AlertStateChangedOwnerNotification: "oneuptime_alert_state_changed_owner_notification";
+  readonly AlertOwnerAddedNotification: "oneuptime_alert_owner_added_notification";
+  readonly MonitorOwnerAddedNotification: "oneuptime_monitor_owner_added_notification";
+  readonly MonitorCreatedOwnerNotification: "oneuptime_monitor_created_owner_notification";
+  readonly MonitorStatusChangedOwnerNotification: "oneuptime_monitor_status_changed_owner_notification";
+  readonly MonitorProbeStatusChangedNotification: "oneuptime_monitor_probe_status_changed_notification";
+  readonly MonitorNoProbesMonitoringNotification: "oneuptime_monitor_no_probes_monitoring_notification";
+  readonly ScheduledMaintenanceCreatedOwnerNotification: "oneuptime_scheduled_maintenance_created_owner_notification";
+  readonly ScheduledMaintenanceNotePostedOwnerNotification: "oneuptime_scheduled_maintenance_note_posted_owner_notification";
+  readonly ScheduledMaintenanceOwnerAddedNotification: "oneuptime_scheduled_maintenance_owner_added_notification";
+  readonly ScheduledMaintenanceStateChangedOwnerNotification: "oneuptime_scheduled_maintenance_state_changed_owner_notification";
+  readonly StatusPageAnnouncementCreatedOwnerNotification: "oneuptime_status_page_announcement_created_owner_notification";
+  readonly StatusPageCreatedOwnerNotification: "oneuptime_status_page_created_owner_notification";
+  readonly StatusPageOwnerAddedNotification: "oneuptime_status_page_owner_added_notification";
+  readonly ProbeStatusChangedOwnerNotification: "oneuptime_probe_status_changed_owner_notification";
+  readonly ProbeOwnerAddedNotification: "oneuptime_probe_owner_added_notification";
+  readonly OnCallUserIsOnRosterNotification: "oneuptime_oncall_user_is_on_roster_notification";
+  readonly OnCallUserIsNextNotification: "oneuptime_oncall_user_is_next_notification";
+  readonly OnCallUserAddedToPolicyNotification: "oneuptime_oncall_user_added_to_policy_notification";
+  readonly OnCallUserRemovedFromPolicyNotification: "oneuptime_oncall_user_removed_from_policy_notification";
+  readonly OnCallUserNoLongerActiveNotification: "oneuptime_oncall_user_no_longer_active_notification";
+};
+
+const templateIds: TemplateIdsMap = {
   AlertCreated: "oneuptime_alert_created",
   IncidentCreated: "oneuptime_incident_created",
   VerificationCode: "oneuptime_verification_code",
@@ -51,6 +84,8 @@ export const WhatsAppTemplateIds = {
   OnCallUserNoLongerActiveNotification:
     "oneuptime_oncall_user_no_longer_active_notification",
 } as const;
+
+export const WhatsAppTemplateIds: TemplateIdsMap = templateIds;
 
 export type WhatsAppTemplateIdsDefinition = typeof WhatsAppTemplateIds;
 
