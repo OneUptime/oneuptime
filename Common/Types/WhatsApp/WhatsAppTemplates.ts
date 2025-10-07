@@ -2,6 +2,7 @@ type TemplateIdsMap = {
   readonly AlertCreated: "oneuptime_alert_created";
   readonly IncidentCreated: "oneuptime_incident_created";
   readonly VerificationCode: "oneuptime_verification_code";
+  readonly TestNotification: "oneuptime_test_notification";
   readonly IncidentCreatedOwnerNotification: "oneuptime_incident_created_owner_notification";
   readonly IncidentNotePostedOwnerNotification: "oneuptime_incident_note_posted_owner_notification";
   readonly IncidentStateChangedOwnerNotification: "oneuptime_incident_state_changed_owner_notification";
@@ -35,6 +36,7 @@ const templateIds: TemplateIdsMap = {
   AlertCreated: "oneuptime_alert_created",
   IncidentCreated: "oneuptime_incident_created",
   VerificationCode: "oneuptime_verification_code",
+  TestNotification: "oneuptime_test_notification",
   IncidentCreatedOwnerNotification:
     "oneuptime_incident_created_owner_notification",
   IncidentNotePostedOwnerNotification:
@@ -102,6 +104,7 @@ export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
   [WhatsAppTemplateIds.AlertCreated]: `A new alert #{{alert_number}} ({{alert_title}}) has been created for project {{project_name}}. To acknowledge this alert, open {{acknowledge_url}} to respond. For more information, please check out this alert {{alert_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.IncidentCreated]: `A new incident #{{incident_number}} ({{incident_title}}) has been created for project {{project_name}}. To acknowledge this incident, open {{acknowledge_url}} to respond. For more information, please check out this incident {{incident_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.VerificationCode]: `{{1}} is your verification code. For your security, do not share this code.`,
+  [WhatsAppTemplateIds.TestNotification]: `This is a WhatsApp test message from OneUptime to verify your integration. No action is required.`,
   [WhatsAppTemplateIds.IncidentCreatedOwnerNotification]: `Incident #{{incident_number}} ({{incident_title}}) has been created for project {{project_name}}. View incident details using {{incident_link}} on the OneUptime dashboard for complete context.`,
   [WhatsAppTemplateIds.IncidentNotePostedOwnerNotification]: `A new note was posted on incident #{{incident_number}} ({{incident_title}}). Review the incident using {{incident_link}} on the OneUptime dashboard for more context.`,
   [WhatsAppTemplateIds.IncidentStateChangedOwnerNotification]: `Incident #{{incident_number}} ({{incident_title}}) state changed to {{incident_state}}. Track the incident status using {{incident_link}} on the OneUptime dashboard for more context.`,
@@ -135,6 +138,7 @@ export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.AlertCreated]: "en",
   [WhatsAppTemplateIds.IncidentCreated]: "en",
   [WhatsAppTemplateIds.VerificationCode]: "en",
+  [WhatsAppTemplateIds.TestNotification]: "en",
   [WhatsAppTemplateIds.IncidentCreatedOwnerNotification]: "en",
   [WhatsAppTemplateIds.IncidentNotePostedOwnerNotification]: "en",
   [WhatsAppTemplateIds.IncidentStateChangedOwnerNotification]: "en",
