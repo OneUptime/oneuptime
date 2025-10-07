@@ -18,6 +18,7 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -122,6 +123,7 @@ router.post(
 
 router.post(
   "/test",
+  UserMiddleware.getUserMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
