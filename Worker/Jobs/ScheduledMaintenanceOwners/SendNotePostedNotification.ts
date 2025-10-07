@@ -219,7 +219,7 @@ RunCron(
             templateVariables: {
               event_title: scheduledMaintenance.title!,
               maintenance_link: vars["scheduledMaintenanceViewLink"] || "",
-              scheduled_maintenance_number:
+              event_number:
                 scheduledMaintenance.scheduledMaintenanceNumber?.toString() ??
                 "N/A",
             },
