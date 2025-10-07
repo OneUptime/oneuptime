@@ -183,7 +183,7 @@ export function renderWhatsAppTemplate(
       );
     }
 
-    return variables[key];
+    return variables[key] as string;
   });
 }
 

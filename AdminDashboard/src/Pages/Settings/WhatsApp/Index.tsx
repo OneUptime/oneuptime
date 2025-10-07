@@ -63,15 +63,34 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
   const header: string = "# Configure Meta WhatsApp";
   const description: string =
     "Follow these steps to connect Meta WhatsApp with OneUptime so notifications can be delivered via WhatsApp.";
-  const steps: string = [
-    "1. Sign in to the [Meta Business Manager](https://business.facebook.com/) with admin access to your WhatsApp Business Account.",
-    "2. From **Business Settings → Accounts → WhatsApp Accounts**, create or select the account that owns your sender phone number.",
-    "3. Under **WhatsApp Manager → API Setup**, generate a long-lived access token and copy the phone number ID.",
-    "4. Paste the access token and phone number ID into the **Meta WhatsApp Settings** card above, then save.",
-    "5. (Optional) Record the Business Account ID, App ID, and App Secret if you use signed webhooks or Meta app features.",
-    "6. Create each template listed below in the Meta WhatsApp Manager. Make sure the template name, language, and variables match exactly.",
-    "7. Send a test notification from OneUptime to confirm that WhatsApp delivery succeeds.",
-  ].join("\n");
+
+  const prerequisitesList: Array<string> = [
+    "Meta Business Manager admin access for the WhatsApp Business Account.",
+    "A WhatsApp Business phone number approved for API messaging.",
+    "Admin access to OneUptime with permission to edit global notification settings.",
+  ];
+
+  const setupStepsList: Array<string> = [
+    "Sign in to the [Meta Business Manager](https://business.facebook.com/) with admin access to your WhatsApp Business Account.",
+    "From **Business Settings → Accounts → WhatsApp Accounts**, create or select the account that owns your sender phone number.",
+    "Under **WhatsApp Manager → API Setup**, generate a long-lived access token and copy the phone number ID.",
+    "Paste the access token and phone number ID into the **Meta WhatsApp Settings** card above, then save.",
+    "(Optional) Record the Business Account ID, App ID, and App Secret if you use signed webhooks or Meta app features.",
+    "Create each template listed below in the Meta WhatsApp Manager. Make sure the template name, language, and variables match exactly.",
+    "Send a test notification from OneUptime to confirm that WhatsApp delivery succeeds.",
+  ];
+
+  const prerequisitesMarkdown: string = prerequisitesList
+    .map((item: string) => {
+      return `- ${item}`;
+    })
+    .join("\n");
+
+  const setupStepsMarkdown: string = setupStepsList
+    .map((item: string, index: number) => {
+      return `${index + 1}. ${item}`;
+    })
+    .join("\n");
 
   const tableRows: string = templateKeys
     .map((enumKey: keyof typeof WhatsAppTemplateIds) => {
@@ -112,14 +131,25 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
           : "- _None_";
       return `### ${friendlyName} (\`${templateId}\`)\n\n**Language:** ${language}\n\n**Variables:**\n${variableMarkdown}\n\n**Body:**\n\n\`\`\`\n${templateMessage}\n\`\`\`\n`;
     })
-    .join("\n\n");
+    .join("\n---\n\n");
 
-  return [
-    `${header}\n\n${description}\n\n${steps}`,
-    "## Required WhatsApp Templates",
+  const templateSummaryTable: string = [
     "| Friendly Name | Template Name | Language | Variables |",
     "| --- | --- | --- | --- |",
     tableRows,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return [
+    header,
+    description,
+    "## Prerequisites",
+    prerequisitesMarkdown,
+    "## Setup Steps",
+    setupStepsMarkdown,
+    "## Required WhatsApp Templates",
+    templateSummaryTable,
     "## Template Bodies",
     templateBodies,
   ]
