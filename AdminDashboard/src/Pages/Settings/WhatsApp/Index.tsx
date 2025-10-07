@@ -128,28 +128,23 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
                 return `- \`${variable}\``;
               })
               .join("\n")
-          : "- _None_";
+          : "_None_";
 
       return [
-        `### ${friendlyName}`,
+        `**${friendlyName}**`,
         "",
-        "| Field | Value |",
-        "| --- | --- |",
-        `| Template Name | \`${templateId}\` |`,
-        `| Language | ${language} |`,
+        `**Template Name:** \`${templateId}\`  `,
+        `**Language:** ${language}`,
         "",
-        "**Variables:**",
+        "**Variables**",
         variableMarkdown,
         "",
-        "**Body:**",
-        "```",
-        templateMessage,
-        "```",
-      ]
-        .filter(Boolean)
-        .join("\n");
+        "**Body**",
+        "\`"+templateMessage+"\`",
+        "",
+      ].join("\n");
     })
-    .join("\n---\n\n");
+    .join("\n\n");
 
   const templateSummaryTable: string = [
     "| Friendly Name | Template Name | Language | Variables |",
@@ -162,13 +157,13 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
   return [
     header,
     description,
-    "## Prerequisites",
+    "### Prerequisites",
     prerequisitesMarkdown,
-    "## Setup Steps",
+    "### Setup Steps",
     setupStepsMarkdown,
-    "## Required WhatsApp Templates",
+    "### Required WhatsApp Templates",
     templateSummaryTable,
-    "## Template Bodies",
+    "### Template Bodies",
     templateBodies,
   ]
     .filter(Boolean)
