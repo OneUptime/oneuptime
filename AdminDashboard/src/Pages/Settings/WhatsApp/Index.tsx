@@ -129,7 +129,25 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
               })
               .join("\n")
           : "- _None_";
-      return `### ${friendlyName} (\`${templateId}\`)\n\n**Language:** ${language}\n\n**Variables:**\n${variableMarkdown}\n\n**Body:**\n\n\`\`\`\n${templateMessage}\n\`\`\`\n`;
+
+      return [
+        `### ${friendlyName}`,
+        "",
+        "| Field | Value |",
+        "| --- | --- |",
+        `| Template Name | \`${templateId}\` |`,
+        `| Language | ${language} |`,
+        "",
+        "**Variables:**",
+        variableMarkdown,
+        "",
+        "**Body:**",
+        "```",
+        templateMessage,
+        "```",
+      ]
+        .filter(Boolean)
+        .join("\n");
     })
     .join("\n---\n\n");
 
