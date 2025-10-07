@@ -11,6 +11,7 @@ import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
+  NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 
@@ -19,70 +20,78 @@ const router: ExpressRouter = Express.getRouter();
 router.post(
   "/send",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-  async (req: ExpressRequest, res: ExpressResponse) => {
-    const body: JSONObject = req.body;
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => {
+    try {
+      const body: JSONObject = req.body;
 
-    const mail: EmailMessage = {
-      templateType: body["templateType"] as EmailTemplateType,
-      toEmail: new Email(body["toEmail"] as string),
-      subject: body["subject"] as string,
-      vars: body["vars"] as Dictionary<string>,
-      body: (body["body"] as string) || "",
-    };
+      const mail: EmailMessage = {
+        templateType: body["templateType"] as EmailTemplateType,
+        toEmail: new Email(body["toEmail"] as string),
+        subject: body["subject"] as string,
+        vars: body["vars"] as Dictionary<string>,
+        body: (body["body"] as string) || "",
+      };
 
-    let mailServer: EmailServer | undefined = undefined;
+      let mailServer: EmailServer | undefined = undefined;
 
-    if (hasMailServerSettingsInBody(body)) {
-      mailServer = MailService.getEmailServer(req.body);
+      if (hasMailServerSettingsInBody(body)) {
+        mailServer = MailService.getEmailServer(req.body);
+      }
+
+      await MailService.send(mail, {
+        projectId: body["projectId"]
+          ? new ObjectID(body["projectId"] as string)
+          : undefined,
+        emailServer: mailServer,
+        userOnCallLogTimelineId:
+          (body["userOnCallLogTimelineId"] as ObjectID) || undefined,
+        incidentId: body["incidentId"]
+          ? new ObjectID(body["incidentId"].toString())
+          : undefined,
+        alertId: body["alertId"]
+          ? new ObjectID(body["alertId"].toString())
+          : undefined,
+        scheduledMaintenanceId: body["scheduledMaintenanceId"]
+          ? new ObjectID(body["scheduledMaintenanceId"].toString())
+          : undefined,
+        statusPageId: body["statusPageId"]
+          ? new ObjectID(body["statusPageId"].toString())
+          : undefined,
+        statusPageAnnouncementId: body["statusPageAnnouncementId"]
+          ? new ObjectID(body["statusPageAnnouncementId"].toString())
+          : undefined,
+        userId: body["userId"]
+          ? new ObjectID(body["userId"].toString())
+          : undefined,
+        onCallPolicyId: body["onCallPolicyId"]
+          ? new ObjectID(body["onCallPolicyId"].toString())
+          : undefined,
+        onCallPolicyEscalationRuleId: body["onCallPolicyEscalationRuleId"]
+          ? new ObjectID(body["onCallPolicyEscalationRuleId"].toString())
+          : undefined,
+        onCallDutyPolicyExecutionLogTimelineId: body[
+          "onCallDutyPolicyExecutionLogTimelineId"
+        ]
+          ? new ObjectID(
+              body["onCallDutyPolicyExecutionLogTimelineId"].toString(),
+            )
+          : undefined,
+        onCallScheduleId: body["onCallScheduleId"]
+          ? new ObjectID(body["onCallScheduleId"].toString())
+          : undefined,
+        teamId: body["teamId"]
+          ? new ObjectID(body["teamId"].toString())
+          : undefined,
+      });
+
+      return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      return next(err);
     }
-
-    await MailService.send(mail, {
-      projectId: body["projectId"]
-        ? new ObjectID(body["projectId"] as string)
-        : undefined,
-      emailServer: mailServer,
-      userOnCallLogTimelineId:
-        (body["userOnCallLogTimelineId"] as ObjectID) || undefined,
-      incidentId: body["incidentId"]
-        ? new ObjectID(body["incidentId"].toString())
-        : undefined,
-      alertId: body["alertId"]
-        ? new ObjectID(body["alertId"].toString())
-        : undefined,
-      scheduledMaintenanceId: body["scheduledMaintenanceId"]
-        ? new ObjectID(body["scheduledMaintenanceId"].toString())
-        : undefined,
-      statusPageId: body["statusPageId"]
-        ? new ObjectID(body["statusPageId"].toString())
-        : undefined,
-      statusPageAnnouncementId: body["statusPageAnnouncementId"]
-        ? new ObjectID(body["statusPageAnnouncementId"].toString())
-        : undefined,
-      userId: body["userId"]
-        ? new ObjectID(body["userId"].toString())
-        : undefined,
-      onCallPolicyId: body["onCallPolicyId"]
-        ? new ObjectID(body["onCallPolicyId"].toString())
-        : undefined,
-      onCallPolicyEscalationRuleId: body["onCallPolicyEscalationRuleId"]
-        ? new ObjectID(body["onCallPolicyEscalationRuleId"].toString())
-        : undefined,
-      onCallDutyPolicyExecutionLogTimelineId: body[
-        "onCallDutyPolicyExecutionLogTimelineId"
-      ]
-        ? new ObjectID(
-            body["onCallDutyPolicyExecutionLogTimelineId"].toString(),
-          )
-        : undefined,
-      onCallScheduleId: body["onCallScheduleId"]
-        ? new ObjectID(body["onCallScheduleId"].toString())
-        : undefined,
-      teamId: body["teamId"]
-        ? new ObjectID(body["teamId"].toString())
-        : undefined,
-    });
-
-    return Response.sendEmptySuccessResponse(req, res);
   },
 );
 

@@ -11,6 +11,7 @@ import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
+  NextFunction,
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
@@ -21,34 +22,47 @@ const router: ExpressRouter = Express.getRouter();
 router.post(
   "/send",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-  async (req: ExpressRequest, res: ExpressResponse) => {
-    const body: JSONObject = JSONFunctions.deserialize(req.body);
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => {
+    try {
+      const body: JSONObject = JSONFunctions.deserialize(req.body);
 
-    await SmsService.sendSms(body["to"] as Phone, body["message"] as string, {
-      projectId: body["projectId"] as ObjectID,
-      isSensitive: (body["isSensitive"] as boolean) || false,
-      userOnCallLogTimelineId:
-        (body["userOnCallLogTimelineId"] as ObjectID) || undefined,
-      customTwilioConfig: body["customTwilioConfig"] as any,
-      incidentId: (body["incidentId"] as ObjectID) || undefined,
-      alertId: (body["alertId"] as ObjectID) || undefined,
-      scheduledMaintenanceId:
-        (body["scheduledMaintenanceId"] as ObjectID) || undefined,
-      statusPageId: (body["statusPageId"] as ObjectID) || undefined,
-      statusPageAnnouncementId:
-        (body["statusPageAnnouncementId"] as ObjectID) || undefined,
-      userId: (body["userId"] as ObjectID) || undefined,
-      onCallPolicyId: (body["onCallPolicyId"] as ObjectID) || undefined,
-      onCallPolicyEscalationRuleId:
-        (body["onCallPolicyEscalationRuleId"] as ObjectID) || undefined,
-      onCallDutyPolicyExecutionLogTimelineId:
-        (body["onCallDutyPolicyExecutionLogTimelineId"] as ObjectID) ||
-        undefined,
-      onCallScheduleId: (body["onCallScheduleId"] as ObjectID) || undefined,
-      teamId: (body["teamId"] as ObjectID) || undefined,
-    });
+      await SmsService.sendSms(
+        body["to"] as Phone,
+        body["message"] as string,
+        {
+          projectId: body["projectId"] as ObjectID,
+          isSensitive: (body["isSensitive"] as boolean) || false,
+          userOnCallLogTimelineId:
+            (body["userOnCallLogTimelineId"] as ObjectID) || undefined,
+          customTwilioConfig: body["customTwilioConfig"] as any,
+          incidentId: (body["incidentId"] as ObjectID) || undefined,
+          alertId: (body["alertId"] as ObjectID) || undefined,
+          scheduledMaintenanceId:
+            (body["scheduledMaintenanceId"] as ObjectID) || undefined,
+          statusPageId: (body["statusPageId"] as ObjectID) || undefined,
+          statusPageAnnouncementId:
+            (body["statusPageAnnouncementId"] as ObjectID) || undefined,
+          userId: (body["userId"] as ObjectID) || undefined,
+          onCallPolicyId: (body["onCallPolicyId"] as ObjectID) || undefined,
+          onCallPolicyEscalationRuleId:
+            (body["onCallPolicyEscalationRuleId"] as ObjectID) || undefined,
+          onCallDutyPolicyExecutionLogTimelineId:
+            (body["onCallDutyPolicyExecutionLogTimelineId"] as ObjectID) ||
+            undefined,
+          onCallScheduleId:
+            (body["onCallScheduleId"] as ObjectID) || undefined,
+          teamId: (body["teamId"] as ObjectID) || undefined,
+        },
+      );
 
-    return Response.sendEmptySuccessResponse(req, res);
+      return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      return next(err);
+    }
   },
 );
 
