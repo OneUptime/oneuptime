@@ -36,13 +36,6 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
       noValueMessage: "-",
     },
     {
-      field: { fromNumber: true },
-      title: "From",
-      type: FieldType.Phone,
-      hideOnMobile: true,
-      noValueMessage: "-",
-    },
-    {
       field: {
         user: {
           name: true,
