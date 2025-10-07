@@ -2146,7 +2146,7 @@ jobs:
         with:
           # this might remove tools that are actually needed,
           # if set to "true" but frees about 6 GB
-          tool-cache: false
+          tool-cache: true
           android: true
           dotnet: true
           haskell: true
@@ -2225,7 +2225,7 @@ jobs:
         with:
           # this might remove tools that are actually needed,
           # if set to "true" but frees about 6 GB
-          tool-cache: false
+          tool-cache: true
           android: true
           dotnet: true
           haskell: true
