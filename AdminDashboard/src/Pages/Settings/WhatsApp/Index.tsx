@@ -74,8 +74,8 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     "From **Business Settings → Accounts → WhatsApp Accounts**, create or select the account that owns your sender phone number.",
     "Under **WhatsApp Manager → API Setup**, generate a long-lived access token and copy the phone number ID.",
     "Paste the access token and phone number ID into the **Meta WhatsApp Settings** card above, then save.",
-    "(Optional) Record the Business Account ID, App ID, and App Secret if you use signed webhooks or Meta app features.",
-    "Create each template listed below in the Meta WhatsApp Manager. Make sure the template name, language, and variables match exactly.",
+    "Record the Business Account ID, App ID, and App Secret.",
+    "Create each template listed below in the Meta WhatsApp Manager. Make sure the template name, language, and variables match exactly. Please make sure it's approved by Meta.",
     "Send a test notification from OneUptime to confirm that WhatsApp delivery succeeds.",
   ];
 
@@ -128,18 +128,24 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
               })
               .join("\n")
           : "_None_";
+      const variablesHeading: string = variables.length
+        ? `**Variables (${variables.length})**`
+        : "**Variables**";
 
       return [
-        `**${friendlyName}**`,
+        `#### ${friendlyName}`,
         "",
-        `**Template Name:** \`${templateId}\`  `,
+        `**Template Name:** \`${templateId}\``,
         `**Language:** ${language}`,
         "",
-        "**Variables**",
+        variablesHeading,
         variableMarkdown,
         "",
-        "**Body** \n",
-        "\`"+templateMessage+"\`",
+        "**Body**",
+        "```plaintext",
+        templateMessage,
+        "```",
+        "",
         "---",
       ].join("\n");
     })
@@ -162,6 +168,7 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     "### Required WhatsApp Templates",
     templateSummaryTable,
     "### Template Bodies",
+    "> Copy the exact template body below—including punctuation and spacing—when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.",
     templateBodies,
   ]
     .filter(Boolean)
@@ -301,7 +308,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               },
               title: "Business Account ID",
               fieldType: FieldType.Text,
-              placeholder: "Optional",
+              placeholder: "Not Configured",
             },
             {
               field: {
@@ -309,7 +316,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               },
               title: "App ID",
               fieldType: FieldType.Text,
-              placeholder: "Optional",
+              placeholder: "Not Configured",
             },
             {
               field: {
