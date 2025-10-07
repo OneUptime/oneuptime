@@ -129,6 +129,12 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ]}
         showRefreshButton={true}
         filters={[]}
+        selectMoreFields={{
+          alertBySMS: true,
+              alertByWhatsApp: true,
+              alertByCall: true,
+              alertByPush: true,
+        }}
         columns={[
           {
             field: {
@@ -140,10 +146,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             field: {
               alertByEmail: true,
-              alertBySMS: true,
-              alertByWhatsApp: true,
-              alertByCall: true,
-              alertByPush: true,
+              
             },
             title: "Delivery Channels",
             type: FieldType.Element,
