@@ -74,7 +74,8 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     "From **Business Settings → Accounts → WhatsApp Accounts**, create or select the account that owns your sender phone number.",
     "Under **WhatsApp Manager → API Setup**, generate a long-lived access token and copy the phone number ID.",
     "Paste the access token and phone number ID into the **Meta WhatsApp Settings** card above, then save.",
-    "Record the Business Account ID, App ID, and App Secret.",
+    "For the **Business Account ID**, go to **Business Settings → Business Info** (or **Business Settings → WhatsApp Accounts → Settings**) and copy the **WhatsApp Business Account ID** value.",
+    "To locate the **App ID** and **App Secret**, open [Meta for Developers](https://developers.facebook.com/apps/), select your WhatsApp app, then navigate to **Settings → Basic**. The App ID is shown at the top; click **Show** next to **App Secret** to reveal and copy it.",
     "Create each template listed below in the Meta WhatsApp Manager. Make sure the template name, language, and variables match exactly. Please make sure it's approved by Meta.",
     "Send a test notification from OneUptime to confirm that WhatsApp delivery succeeds.",
   ];
