@@ -314,8 +314,22 @@ export default class WhatsAppService {
         });
 
       if (response instanceof HTTPErrorResponse) {
+        logger.error("Failed to send WhatsApp message.");
+        logger.error(response);
+        const responseDataAsJSONObject: JSONObject = response.data;
+        const responseJsonAsJSONObject: JSONObject | undefined =
+          (response.jsonData as JSONObject | undefined) || undefined;
+
+        const detailedErrorMessage: string | undefined =
+          ((responseDataAsJSONObject["error"] as JSONObject | undefined)?.[
+            "message"
+          ] as string | undefined) ||
+          ((responseJsonAsJSONObject?.["error"] as JSONObject | undefined)?.[
+            "message"
+          ] as string | undefined);
+
         throw new BadDataException(
-          response.message || "Failed to send WhatsApp message.",
+          detailedErrorMessage || "Failed to send WhatsApp message.",
         );
       }
 
