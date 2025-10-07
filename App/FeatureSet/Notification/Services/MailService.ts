@@ -97,12 +97,8 @@ class TransporterPool {
     emailServer: EmailServer,
     options: { timeout?: number | undefined },
   ): Transporter {
-    const {
-      portNumber,
-      wantsSecureConnection,
-      secureConnection,
-      requireTLS,
-    } = this.resolveConnectionSettings(emailServer);
+    const { portNumber, wantsSecureConnection, secureConnection, requireTLS } =
+      this.resolveConnectionSettings(emailServer);
 
     let tlsOptions: tls.ConnectionOptions | undefined = undefined;
 
