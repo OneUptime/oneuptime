@@ -16,13 +16,10 @@ import Model from "../../Models/DatabaseModels/UserWhatsApp";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import WhatsAppMessage from "../../Types/WhatsApp/WhatsAppMessage";
 import {
-  renderWhatsAppTemplate,
   WhatsAppTemplateIds,
   WhatsAppTemplateLanguage,
   WhatsAppTemplateId,
 } from "../../Types/WhatsApp/WhatsAppTemplates";
-
-const ONEUPTIME_DASHBOARD_URL: string = "https://oneuptime.com/dashboard";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -172,13 +169,12 @@ export class Service extends DatabaseService<Model> {
     const templateKey: WhatsAppTemplateId =
       WhatsAppTemplateIds.VerificationCode;
     const templateVariables: Record<string, string> = {
-      verification_code: item.verificationCode || "",
-      dashboard_link: ONEUPTIME_DASHBOARD_URL,
+      "1": item.verificationCode || "",
     };
 
     const whatsAppMessage: WhatsAppMessage = {
       to: item.phone,
-      body: renderWhatsAppTemplate(templateKey, templateVariables),
+      body: "",
       templateKey,
       templateVariables,
       templateLanguageCode: WhatsAppTemplateLanguage[templateKey],
