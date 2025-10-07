@@ -12,7 +12,7 @@ import Phone from "Common/Types/Phone";
 
 type GetGlobalSMTPConfig = () => Promise<EmailServer | null>;
 
-export const DEFAULT_META_WHATSAPP_API_VERSION: string = "v18.0";
+export const DEFAULT_META_WHATSAPP_API_VERSION: string = "v23.0";
 
 export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
   async (): Promise<EmailServer | null> => {
