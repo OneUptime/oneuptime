@@ -20,6 +20,7 @@ import "./Process";
 import Response from "./Response";
 import { api } from "@opentelemetry/sdk-node";
 import StatusCode from "../../Types/API/StatusCode";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import Exception from "../../Types/Exception/Exception";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ServerException from "../../Types/Exception/ServerException";
@@ -297,12 +298,13 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
   // Attach Error Handler.
   app.use(
     (
-      err: Error | Exception,
+      err: Error | Exception | HTTPErrorResponse,
       _req: ExpressRequest,
       res: ExpressResponse,
       next: NextFunction,
     ) => {
       logger.error(err);
+
 
       // Mark span as error.
       if (err) {
@@ -335,6 +337,19 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
             res.send({ error: "Server Error" });
           }
         });
+      } else if (err instanceof HTTPErrorResponse) {
+        const errorStatusCode: number = StatusCode.isValidStatusCode(
+          err.statusCode,
+        )
+          ? err.statusCode
+          : 500;
+
+        const payload: unknown = err.jsonData ?? {
+          error: err.message || "Server Error",
+        };
+
+        res.status(errorStatusCode);
+        res.send(payload);
       } else if (err instanceof Exception) {
         res.status((err as Exception).code);
         res.send({ error: (err as Exception).message });
