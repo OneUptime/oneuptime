@@ -4,9 +4,7 @@ export class MigrationName1759838763506 implements MigrationInterface {
   public name = "MigrationName1759838763506";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `ALTER TABLE "WhatsAppLog" DROP COLUMN "whatsAppText"`,
-    );
+
     await queryRunner.query(
       `ALTER TABLE "Project" ADD "enableWhatsAppNotifications" boolean NOT NULL DEFAULT false`,
     );
