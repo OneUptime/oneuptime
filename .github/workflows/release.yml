@@ -2158,11 +2158,10 @@ jobs:
         with:
           node-version: latest
       - name: Preinstall and enable billing
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun && bash ./Tests/Scripts/enable-billing-env-var.sh
+        run: |
+          set -euo pipefail
+          npm run prerun
+          bash ./Tests/Scripts/enable-billing-env-var.sh
       - name: Pin APP_TAG to versioned release
         run: |
           VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
@@ -2184,12 +2183,15 @@ jobs:
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
       - name: Run E2E Tests. Run docker container e2e in docker compose file
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 90
-          max_attempts: 3
-          on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
-          command: export $(grep -v '^#' config.env | xargs) && export APP_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} && docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
+          trap 'docker compose -f docker-compose.dev.yml down -v || true' EXIT
+          if ! docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e; then
+            docker compose -f docker-compose.dev.yml logs e2e
+            exit 1
+          fi
       - name: Upload test results
         uses: actions/upload-artifact@v4
         # Run this on failure
@@ -2237,11 +2239,9 @@ jobs:
         with:
           node-version: latest
       - name: Preinstall
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: |
+          set -euo pipefail
+          npm run prerun
       - name: Pin APP_TAG to versioned release
         run: |
           VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
@@ -2263,12 +2263,15 @@ jobs:
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
       - name: Run E2E Tests. Run docker container e2e in docker compose file
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 90
-          max_attempts: 3
-          on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
-          command: export $(grep -v '^#' config.env | xargs) && export APP_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} && docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
+          trap 'docker compose -f docker-compose.dev.yml down -v || true' EXIT
+          if ! docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e; then
+            docker compose -f docker-compose.dev.yml logs e2e
+            exit 1
+          fi
       - name: Upload test results
         uses: actions/upload-artifact@v4
         # Run this on failure
