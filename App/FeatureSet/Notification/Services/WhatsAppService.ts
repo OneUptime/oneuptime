@@ -279,9 +279,10 @@ export default class WhatsAppService {
         ) {
           const parameters: JSONArray = [];
 
-          for (const value of Object.values(message.templateVariables)) {
+          for (const [key, value] of Object.entries(message.templateVariables)) {
             parameters.push({
               type: "text",
+              parameter_name: key,
               text: value,
             } as JSONObject);
           }
