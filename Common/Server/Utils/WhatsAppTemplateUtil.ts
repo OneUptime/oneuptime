@@ -189,13 +189,11 @@ export function createWhatsAppMessageFromTemplate({
 
   const resolvedActionLink: string = (
     actionLink ??
-    templateVariables?.["action_link"] ??
     DEFAULT_ACTION_LINK
   ).trim();
 
   const templateVariablesWithDefaults: Record<string, string> = {
     ...(templateVariables ?? {}),
-    action_link: resolvedActionLink,
   };
 
   const dashboardLinkVariableName: string | undefined =
