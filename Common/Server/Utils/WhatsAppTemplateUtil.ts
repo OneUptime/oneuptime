@@ -187,10 +187,7 @@ export function createWhatsAppMessageFromTemplate({
     );
   }
 
-  const resolvedActionLink: string = (
-    actionLink ??
-    DEFAULT_ACTION_LINK
-  ).trim();
+  const resolvedActionLink: string = (actionLink ?? DEFAULT_ACTION_LINK).trim();
 
   const templateVariablesWithDefaults: Record<string, string> = {
     ...(templateVariables ?? {}),

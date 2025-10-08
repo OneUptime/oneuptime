@@ -382,7 +382,7 @@ export default class WhatsAppService {
           (response.jsonData as JSONObject | undefined) || undefined;
 
         // Log full error details for debugging
-        const errorObject =
+        const errorObject: JSONObject | undefined =
           (responseDataAsJSONObject["error"] as JSONObject | undefined) ||
           (responseJsonAsJSONObject?.["error"] as JSONObject | undefined);
 
