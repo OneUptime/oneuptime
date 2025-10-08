@@ -62,7 +62,7 @@ export default class MicrosoftTeamsAPI {
         : AppVersion,
       id: MicrosoftTeamsAppClientId,
       developer: {
-        name: "OneUptime",
+        name: "HackerBay Inc",
         websiteUrl: "https://oneuptime.com",
         privacyUrl: "https://oneuptime.com/legal/privacy",
         termsOfUseUrl: "https://oneuptime.com/legal/terms",
