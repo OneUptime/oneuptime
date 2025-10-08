@@ -187,14 +187,12 @@ export class Service extends DatabaseService<Model> {
       templateLanguageCode: WhatsAppTemplateLanguage[templateKey],
     };
 
-    const response: HTTPResponse<JSONObject> = await WhatsAppService.sendWhatsAppMessage(
-      whatsAppMessage,
-      {
+    const response: HTTPResponse<JSONObject> =
+      await WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
         projectId: item.projectId,
         isSensitive: true,
         userId: item.userId,
-      },
-    );
+      });
 
     if (response instanceof HTTPErrorResponse) {
       throw response;

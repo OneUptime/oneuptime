@@ -131,9 +131,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         filters={[]}
         selectMoreFields={{
           alertBySMS: true,
-              alertByWhatsApp: true,
-              alertByCall: true,
-              alertByPush: true,
+          alertByWhatsApp: true,
+          alertByCall: true,
+          alertByPush: true,
         }}
         columns={[
           {
@@ -146,7 +146,6 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             field: {
               alertByEmail: true,
-              
             },
             title: "Delivery Channels",
             type: FieldType.Element,

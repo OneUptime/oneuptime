@@ -305,7 +305,6 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
     ) => {
       logger.error(err);
 
-
       // Mark span as error.
       if (err) {
         const span: api.Span | undefined = api.trace.getSpan(
