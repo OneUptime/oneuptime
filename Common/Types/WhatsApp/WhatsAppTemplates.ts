@@ -168,6 +168,11 @@ export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification]: "en",
 };
 
+// Authentication templates that require OTP button components
+export const AuthenticationTemplates: Set<WhatsAppTemplateId> = new Set([
+  WhatsAppTemplateIds.VerificationCode,
+]);
+
 export function renderWhatsAppTemplate(
   templateId: WhatsAppTemplateId,
   variables: Record<string, string>,

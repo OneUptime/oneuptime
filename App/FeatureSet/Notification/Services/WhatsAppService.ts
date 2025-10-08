@@ -9,6 +9,10 @@ import ObjectID from "Common/Types/ObjectID";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import WhatsAppMessage from "Common/Types/WhatsApp/WhatsAppMessage";
 import WhatsAppStatus from "Common/Types/WhatsAppStatus";
+import { 
+  AuthenticationTemplates,
+  WhatsAppTemplateId,
+} from "Common/Types/WhatsApp/WhatsAppTemplates";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import NotificationService from "Common/Server/Services/NotificationService";
@@ -251,6 +255,7 @@ export default class WhatsAppService {
 
       const payload: JSONObject = {
         messaging_product: "whatsapp",
+        recipient_type: "individual",
         to: message.to.toString(),
       } as JSONObject;
 
@@ -266,6 +271,8 @@ export default class WhatsAppService {
           },
         } as JSONObject;
 
+        const components: JSONArray = [];
+
         if (
           message.templateVariables &&
           Object.keys(message.templateVariables).length > 0
@@ -280,13 +287,52 @@ export default class WhatsAppService {
           }
 
           if (parameters.length > 0) {
-            template["components"] = [
-              {
-                type: "body",
-                parameters,
-              },
-            ] as JSONArray;
+            components.push({
+              type: "body",
+              parameters,
+            } as JSONObject);
           }
+        }
+
+        // Check if this is an authentication template
+        // Authentication templates may have special requirements including button components
+        const isAuthTemplate: boolean = AuthenticationTemplates.has(
+          message.templateKey as WhatsAppTemplateId,
+        );
+
+        if (isAuthTemplate) {
+          logger.info(
+            `Sending authentication template: ${message.templateKey}`,
+          );
+          
+          // Authentication templates in WhatsApp may have a button component for "Copy Code"
+          // If the template was created with a button, we need to provide button parameters
+          if (message.templateVariables) {
+            const otpCode: string | undefined =
+              message.templateVariables["1"] ||
+              message.templateVariables["otp"] ||
+              message.templateVariables["code"];
+
+            if (otpCode) {
+              // Add button component - the index should match the button position in the template
+              // Usually authentication templates have the button as the first (and only) button
+              components.push({
+                type: "button",
+                sub_type: "url",
+                index: 0,
+                parameters: [
+                  {
+                    type: "text",
+                    text: otpCode,
+                  },
+                ],
+              } as JSONObject);
+            }
+          }
+        }
+
+        if (components.length > 0) {
+          template["components"] = components;
         }
 
         payload["type"] = "template";
@@ -325,6 +371,15 @@ export default class WhatsAppService {
         const responseDataAsJSONObject: JSONObject = response.data;
         const responseJsonAsJSONObject: JSONObject | undefined =
           (response.jsonData as JSONObject | undefined) || undefined;
+
+        // Log full error details for debugging
+        const errorObject = (responseDataAsJSONObject["error"] as JSONObject | undefined) || 
+                           (responseJsonAsJSONObject?.["error"] as JSONObject | undefined);
+        
+        if (errorObject) {
+          logger.error("WhatsApp API Error Details:");
+          logger.error(JSON.stringify(errorObject, null, 2));
+        }
 
         const detailedErrorMessage: string | undefined =
           ((responseDataAsJSONObject["error"] as JSONObject | undefined)?.[
