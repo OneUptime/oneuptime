@@ -66,7 +66,8 @@ export default class MicrosoftTeamsAPI {
         websiteUrl: "https://oneuptime.com",
         privacyUrl: "https://oneuptime.com/legal/privacy",
         termsOfUseUrl: "https://oneuptime.com/legal/terms",
-        publisherDocsUrl: "https://oneuptime.com/docs/workspace-connections/microsoft-teams",
+        publisherDocsUrl:
+          "https://oneuptime.com/docs/workspace-connections/microsoft-teams",
       },
       name: {
         short: "OneUptime",
