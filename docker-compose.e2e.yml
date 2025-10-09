@@ -1,0 +1,10 @@
+services:
+  e2e:
+    extends:
+      file: ./docker-compose.base.yml
+      service: e2e
+    image: ghcr.io/oneuptime/e2e:${APP_TAG}
+    pull_policy: always
+    volumes:
+      - ./E2E/playwright-report:/usr/src/app/playwright-report
+      - ./E2E/test-results:/usr/src/app/test-results

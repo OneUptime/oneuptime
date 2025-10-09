@@ -2182,14 +2182,20 @@ jobs:
           npm run status-check
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
+      - name: Pull E2E test image
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
+          docker compose -f docker-compose.e2e.yml pull e2e
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
-          trap 'docker compose -f docker-compose.dev.yml down -v || true' EXIT
-          if ! docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e; then
-            docker compose -f docker-compose.dev.yml logs e2e
+          trap 'docker compose -f docker-compose.e2e.yml down -v || true' EXIT
+          if ! docker compose -f docker-compose.e2e.yml up --exit-code-from e2e --abort-on-container-exit e2e; then
+            docker compose -f docker-compose.e2e.yml logs e2e
             exit 1
           fi
       - name: Upload test results
@@ -2262,14 +2268,20 @@ jobs:
           npm run status-check
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
+      - name: Pull E2E test image
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
+          docker compose -f docker-compose.e2e.yml pull e2e
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
-          trap 'docker compose -f docker-compose.dev.yml down -v || true' EXIT
-          if ! docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e; then
-            docker compose -f docker-compose.dev.yml logs e2e
+          trap 'docker compose -f docker-compose.e2e.yml down -v || true' EXIT
+          if ! docker compose -f docker-compose.e2e.yml up --exit-code-from e2e --abort-on-container-exit e2e; then
+            docker compose -f docker-compose.e2e.yml logs e2e
             exit 1
           fi
       - name: Upload test results
