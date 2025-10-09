@@ -89,6 +89,8 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+
+    // This is used to verify domain ownership with Microsoft for Microsoft Identity for Teams App Publishing.
     app.get(
       "/.well-known/microsoft-identity-association.json",
       (_req: ExpressRequest, res: ExpressResponse) => {
