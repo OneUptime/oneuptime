@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "OneUptime On-Call",
+    "slug": "oneuptime-on-call",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "oneuptime",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "00000000-0000-0000-0000-000000000000"
+      },
+      "appApiUrl": "https://app.oneuptime.com/api",
+      "identityApiUrl": "https://app.oneuptime.com/identity",
+      "realtimeUrl": "wss://app.oneuptime.com/realtime"
+    }
+  }
+}
