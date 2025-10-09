@@ -5,7 +5,7 @@ type TemplateIdsMap = {
   readonly TestNotification: "oneuptime_test_notification";
   readonly IncidentCreatedOwnerNotification: "oneuptime_incident_created_owner_notification";
   readonly IncidentNotePostedOwnerNotification: "oneuptime_incident_note_posted_owner_notification";
-  readonly IncidentStateChangedOwnerNotification: "oneuptime_incident_state_changed_owner_notification";
+  readonly IncidentStateChangedOwnerNotification: "oneuptime_incident_state_change_owner_notification";
   readonly IncidentOwnerAddedNotification: "oneuptime_incident_owner_added_notification";
   readonly AlertCreatedOwnerNotification: "oneuptime_alert_created_owner_notification";
   readonly AlertNotePostedOwnerNotification: "oneuptime_alert_note_posted_owner_notification";
@@ -42,7 +42,7 @@ const templateIds: TemplateIdsMap = {
   IncidentNotePostedOwnerNotification:
     "oneuptime_incident_note_posted_owner_notification",
   IncidentStateChangedOwnerNotification:
-    "oneuptime_incident_state_changed_owner_notification",
+    "oneuptime_incident_state_change_owner_notification",
   IncidentOwnerAddedNotification: "oneuptime_incident_owner_added_notification",
   AlertCreatedOwnerNotification: "oneuptime_alert_created_owner_notification",
   AlertNotePostedOwnerNotification:
