@@ -130,3 +130,4 @@ Dashboard/public/sw.js
 .claude/settings.local.json
 
 MobileApp/android/
+MobileApp/ios/
