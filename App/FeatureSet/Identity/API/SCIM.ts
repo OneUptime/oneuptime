@@ -167,11 +167,7 @@ const formatTeamForSCIM: (
   }
 
   return {
-    /*
-     * Include both SCIM 2.0 Group schema and SCIM 1.1 core schema for broader compatibility
-     * Some provisioning agents (e.g., Okta On-Prem) expect 'urn:scim:schemas:core:1.0'
-     * to be present even when using SCIM v2 endpoints.
-     */
+
     schemas: [
       "urn:ietf:params:scim:schemas:core:2.0:Group"
     ],
