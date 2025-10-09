@@ -1,0 +1,170 @@
+name: Mobile App Build & Publish
+
+on:
+  pull_request:
+    paths:
+      - 'MobileApp/**'
+  push:
+    branches:
+      - main
+      - release
+    paths:
+      - 'MobileApp/**'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build (android | ios | all)'
+        required: true
+        type: choice
+        options:
+          - all
+          - android
+          - ios
+        default: all
+      profile:
+        description: 'EAS build profile to use'
+        required: true
+        default: production
+      channel:
+        description: 'EAS Update channel (used when publish_update = yes)'
+        required: true
+        default: production
+      update_branch:
+        description: 'EAS Update branch (used when publish_update = yes)'
+        required: true
+        default: main
+      publish_update:
+        description: 'Publish an EAS Update after building'
+        required: true
+        type: choice
+        options:
+          - 'no'
+          - 'yes'
+        default: 'no'
+      submit:
+        description: 'Submit the latest build to the configured app store target'
+        required: true
+        type: choice
+        options:
+          - 'no'
+          - 'yes'
+        default: 'no'
+
+concurrency:
+  group: mobile-app-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: MobileApp
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: MobileApp/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint -- --max-warnings=0
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test -- --ci --watch=false
+
+  publish:
+    name: EAS publish
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    environment:
+      name: mobile-app-publish
+    defaults:
+      run:
+        working-directory: MobileApp
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      PLATFORM: ${{ inputs.platform }}
+      PROFILE: ${{ inputs.profile }}
+      CHANNEL: ${{ inputs.channel }}
+      UPDATE_BRANCH: ${{ inputs.update_branch }}
+      PUBLISH_UPDATE: ${{ inputs.publish_update }}
+      SUBMIT: ${{ inputs.submit }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: MobileApp/package-lock.json
+
+      - name: Setup Expo & EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          expo-version: latest
+          packager: npm
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create EAS build
+        run: |
+          if [ -z "${EXPO_TOKEN}" ]; then
+            echo "EXPO_TOKEN secret is required for publish job" >&2
+            exit 1
+          fi
+
+          if [ "${PLATFORM}" = "all" ]; then
+            PLATFORM_FLAG="--platform all"
+          else
+            PLATFORM_FLAG="--platform ${PLATFORM}"
+          fi
+
+          eas build ${PLATFORM_FLAG} --profile "${PROFILE}" --non-interactive --wait --json > build-result.json
+
+      - name: Summarize build artifacts
+        run: |
+          BUILD_TABLE=$(jq -r '
+            ("| Platform | Artifact |\n| --- | --- |"),
+            (.builds[] | "| " + .platform + " | [download](" + .artifacts.buildUrl + ") |" )
+          ' build-result.json)
+
+          echo "${BUILD_TABLE}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload build metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: eas-build-result
+          path: MobileApp/build-result.json
+
+      - name: Publish update to channel
+        if: env.PUBLISH_UPDATE == 'yes'
+        run: |
+          eas update --branch "${UPDATE_BRANCH}" --channel "${CHANNEL}" \
+            --message "Automated update from ${GITHUB_REF}" --non-interactive
+
+      - name: Submit latest build to store
+        if: env.SUBMIT == 'yes'
+        run: |
+          if [ "${PLATFORM}" = "all" ]; then
+            echo "Submitting requires a specific platform. Please re-run with platform=android or ios." >&2
+            exit 1
+          fi
+          eas submit --platform "${PLATFORM}" --profile "${PROFILE}" --latest --non-interactive
