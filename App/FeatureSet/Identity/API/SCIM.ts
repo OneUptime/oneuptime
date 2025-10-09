@@ -173,8 +173,7 @@ const formatTeamForSCIM: (
      * to be present even when using SCIM v2 endpoints.
      */
     schemas: [
-      "urn:ietf:params:scim:schemas:core:2.0:Group",
-      "urn:scim:schemas:core:1.0:meta",
+      "urn:ietf:params:scim:schemas:core:2.0:Group"
     ],
     id: team.id?.toString(),
     displayName: team.name?.toString(),
