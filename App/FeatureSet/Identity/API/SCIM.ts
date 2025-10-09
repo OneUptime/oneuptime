@@ -167,10 +167,7 @@ const formatTeamForSCIM: (
   }
 
   return {
-
-    schemas: [
-      "urn:ietf:params:scim:schemas:core:2.0:Group"
-    ],
+    schemas: ["urn:ietf:params:scim:schemas:core:2.0:Group"],
     id: team.id?.toString(),
     displayName: team.name?.toString(),
     members: members,
