@@ -44,6 +44,7 @@
     "@types/react": "18.3.12",
     "@types/react-native": "^0.73.0",
     "@types/react-test-renderer": "18.0.7",
+    "babel-plugin-module-resolver": "^5.0.2",
     "eslint": "^9.14.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.29.1",
