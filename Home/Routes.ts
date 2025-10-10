@@ -89,20 +89,6 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    app.get(
-      "/.well-known/microsoft-identity-association.json",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.type("application/json");
-        res.json({
-          associatedApplications: [
-            {
-              applicationId: "0e5480fd-a9c5-4ad3-9c0b-9f6045318daf",
-            },
-          ],
-        });
-      },
-    );
-
     app.get("/support", async (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/support`, {
         enableGoogleTagManager: IsBillingEnabled,
