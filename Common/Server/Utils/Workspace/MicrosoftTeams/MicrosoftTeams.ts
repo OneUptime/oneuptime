@@ -2378,29 +2378,23 @@ All monitoring checks are passing normally.`;
     logger.debug(`Channel data: ${JSON.stringify(channelData)}`);
 
     // Check if the bot was added
+    const recipientId: string | undefined =
+      data.turnContext.activity.recipient?.id;
+
     const botWasAdded: boolean = membersAdded.some((member: JSONObject) => {
-      return member["id"] === MicrosoftTeamsAppClientId;
+      return member["id"] === recipientId;
     });
 
     if (botWasAdded) {
       logger.debug("OneUptime bot was added to a Teams conversation");
-
-      const welcomeText: string =
-        "🎉 Welcome to OneUptime!\n\nI'm your monitoring and alerting assistant. I'll help you stay on top of your system's health and notify you about any incidents.\n\nType 'help' to see what I can do for you.";
-
-      try {
-        // Send welcome message directly using TurnContext
-        await data.turnContext.sendActivity(welcomeText);
-        logger.debug("Welcome message sent successfully using TurnContext");
-      } catch (error) {
-        logger.error("Error sending welcome message via TurnContext: " + error);
-      }
+      await this.sendWelcomeAdaptiveCard(data.turnContext);
     }
   }
 
   @CaptureSpan()
   public static async handleInstallationUpdateActivity(data: {
     activity: JSONObject;
+    turnContext: TurnContext;
   }): Promise<void> {
     // Handle bot installation/uninstallation
     const action: string = (data.activity["action"] as string) || "";
@@ -2412,6 +2406,7 @@ All monitoring checks are passing normally.`;
 
     if (action === "add") {
       logger.debug("OneUptime bot was installed");
+      await this.sendWelcomeAdaptiveCard(data.turnContext);
     } else if (action === "remove") {
       logger.debug("OneUptime bot was uninstalled");
     }
@@ -2482,6 +2477,20 @@ All monitoring checks are passing normally.`;
               await next();
             },
           );
+
+          this.onInstallationUpdateAdd(
+            async (context: TurnContext, next: () => Promise<void>) => {
+              logger.debug(
+                "Handling installation update add activity: " +
+                  JSON.stringify(context.activity),
+              );
+              await MicrosoftTeamsUtil.handleInstallationUpdateActivity({
+                activity: context.activity as unknown as JSONObject,
+                turnContext: context,
+              });
+              await next();
+            },
+          );
         }
 
         protected override async onInvokeActivity(
@@ -2525,6 +2534,136 @@ All monitoring checks are passing normally.`;
       if (!res.headersSent) {
         res.status(500).json({ error: "Failed to process bot activity" });
       }
+    }
+  }
+
+  private static buildWelcomeAdaptiveCard(): JSONObject {
+    return {
+      $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+      type: "AdaptiveCard",
+      version: "1.4",
+      body: [
+        {
+          type: "TextBlock",
+          text: "Welcome to OneUptime for Microsoft Teams",
+          weight: "Bolder",
+          size: "Large",
+          wrap: true,
+        },
+        {
+          type: "TextBlock",
+          text:
+            "OneUptime keeps your team ahead of incidents by streaming alerts, maintenance updates, and on-call context directly into Microsoft Teams.",
+          wrap: true,
+          spacing: "Small",
+        },
+        {
+          type: "TextBlock",
+          text: "Getting started",
+          weight: "Bolder",
+          size: "Medium",
+          spacing: "Large",
+          wrap: true,
+        },
+        {
+          type: "TextBlock",
+          text:
+            "1. Connect this Teams workspace to your OneUptime project from **Settings → Integrations → Microsoft Teams**.\n2. Choose which incidents, alerts, and maintenance events should sync into Teams.\n3. Try the commands below or automate workflows from the OneUptime dashboard.",
+          wrap: true,
+        },
+        {
+          type: "TextBlock",
+          text: "Bot commands",
+          weight: "Bolder",
+          size: "Medium",
+          spacing: "Large",
+          wrap: true,
+        },
+        {
+          type: "FactSet",
+          facts: [
+            {
+              title: "help",
+              value: "Show quick help and useful links",
+            },
+            {
+              title: "/incident",
+              value: "Create a new incident without leaving Teams",
+            },
+            {
+              title: "/maintenance",
+              value: "Schedule or review maintenance windows",
+            },
+            {
+              title: "show active incidents",
+              value: "List all incidents that are currently open",
+            },
+            {
+              title: "show scheduled maintenance",
+              value: "Display upcoming maintenance events",
+            },
+            {
+              title: "show active alerts",
+              value: "Summarize active alerts for your project",
+            },
+          ],
+        },
+        {
+          type: "TextBlock",
+          text:
+            "To use this app, each user must have an active OneUptime account. Please contact our support team for more details.",
+          wrap: true,
+          spacing: "Large",
+        },
+        {
+          type: "TextBlock",
+          text: "Need more help?",
+          weight: "Bolder",
+          size: "Medium",
+          spacing: "Large",
+          wrap: true,
+        },
+        {
+          type: "TextBlock",
+          text:
+            "Review our setup guide or reach out if you need assistance configuring notifications.",
+          wrap: true,
+        },
+      ],
+      actions: [
+        {
+          type: "Action.OpenUrl",
+          title: "View Setup Guide",
+          url: "https://oneuptime.com/docs/microsoft-teams",
+        },
+        {
+          type: "Action.OpenUrl",
+          title: "Contact Support",
+          url: "mailto:support@oneuptime.com?subject=OneUptime%20Microsoft%20Teams%20Bot",
+        },
+        {
+          type: "Action.OpenUrl",
+          title: "Open OneUptime Dashboard",
+          url: "https://oneuptime.com/dashboard",
+        },
+      ],
+    } as JSONObject;
+  }
+
+  private static async sendWelcomeAdaptiveCard(
+    turnContext: TurnContext,
+  ): Promise<void> {
+    try {
+      const welcomeCard: JSONObject = this.buildWelcomeAdaptiveCard();
+      const message: Partial<Activity> = MessageFactory.attachment({
+        contentType: "application/vnd.microsoft.card.adaptive",
+        content: welcomeCard,
+      });
+
+      await turnContext.sendActivity(message);
+      logger.debug("Welcome adaptive card sent successfully");
+    } catch (error) {
+      logger.error("Error sending welcome adaptive card: " + error);
     }
   }
 

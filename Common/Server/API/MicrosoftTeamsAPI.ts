@@ -74,8 +74,14 @@ export default class MicrosoftTeamsAPI {
         full: "OneUptime - Complete Observability Platform",
       },
       description: {
-        short: "Monitor your apps, websites, APIs, and more with OneUptime",
-        full: "OneUptime is a complete open-source observability platform that helps you monitor your applications, websites, APIs, and infrastructure. Get alerted when things go wrong and maintain your SLAs.",
+        short: "Complete open-source monitoring and observability platform. ",
+        full: `OneUptime is a comprehensive solution for monitoring and managing your online services. Whether you need to check the availability of your website, dashboard, API, or any other online resource, OneUptime can alert your team when downtime happens and keep your customers informed with a status page. OneUptime also helps you handle incidents, set up on-call rotations, run tests, secure your services, analyze logs, track performance, and debug errors.
+
+In order to use the app, you need to have an active account with OneUptime at https://oneuptime.com. Please send an email to support@oneupitme.com if you need more details. 
+
+Create a new OneUptime Account: If you wish to sign up for a new account, you can do so at https://oneuptime.com and click on Sign up. 
+Help and Support: You can reach out to help and support here: https://oneuptime.com/support or contact support@oneuptime.com
+`,
       },
       // Default to size-specific names; route will adjust if fallbacks are used
       icons: {
