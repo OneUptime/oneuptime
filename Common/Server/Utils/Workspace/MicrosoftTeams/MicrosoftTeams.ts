@@ -2552,8 +2552,7 @@ All monitoring checks are passing normally.`;
         },
         {
           type: "TextBlock",
-          text:
-            "OneUptime keeps your team ahead of incidents by streaming alerts, maintenance updates, and on-call context directly into Microsoft Teams.",
+          text: "OneUptime keeps your team ahead of incidents by streaming alerts, maintenance updates, and on-call context directly into Microsoft Teams.",
           wrap: true,
           spacing: "Small",
         },
@@ -2567,8 +2566,7 @@ All monitoring checks are passing normally.`;
         },
         {
           type: "TextBlock",
-          text:
-            "1. Connect this Teams workspace to your OneUptime project from **Settings → Integrations → Microsoft Teams**.\n2. Choose which incidents, alerts, and maintenance events should sync into Teams.\n3. Try the commands below or automate workflows from the OneUptime dashboard.",
+          text: "1. Connect this Teams workspace to your OneUptime project from **Settings → Integrations → Microsoft Teams**.\n2. Choose which incidents, alerts, and maintenance events should sync into Teams.\n3. Try the commands below or automate workflows from the OneUptime dashboard.",
           wrap: true,
         },
         {
@@ -2610,8 +2608,7 @@ All monitoring checks are passing normally.`;
         },
         {
           type: "TextBlock",
-          text:
-            "To use this app, each user must have an active OneUptime account. Please contact our support team for more details.",
+          text: "To use this app, each user must have an active OneUptime account. Please contact our support team for more details.",
           wrap: true,
           spacing: "Large",
         },
@@ -2625,8 +2622,7 @@ All monitoring checks are passing normally.`;
         },
         {
           type: "TextBlock",
-          text:
-            "Review our setup guide or reach out if you need assistance configuring notifications.",
+          text: "Review our setup guide or reach out if you need assistance configuring notifications.",
           wrap: true,
         },
       ],
