@@ -1,7 +1,8 @@
+import React from "react";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, ViewStyle, TextStyle } from "react-native";
 
-export default function App() {
+export default function App(): React.ReactElement {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome to OneUptime Mobile</Text>
@@ -11,7 +12,13 @@ export default function App() {
   );
 }
 
-const styles = StyleSheet.create({
+type StylesType = {
+  container: ViewStyle;
+  title: TextStyle;
+  subtitle: TextStyle;
+};
+
+const styles: StylesType = StyleSheet.create<StylesType>({
   container: {
     flex: 1,
     backgroundColor: "#fff",
