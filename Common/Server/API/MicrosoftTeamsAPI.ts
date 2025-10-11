@@ -148,8 +148,8 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
               req,
               res,
               new BadDataException(
-                "Microsoft Teams App Client ID must be a valid GUID. Update the environment variable."
-              )
+                "Microsoft Teams App Client ID must be a valid GUID. Update the environment variable.",
+              ),
             );
           }
 
@@ -161,7 +161,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
           res.setHeader("Content-Type", "application/zip");
           res.setHeader(
             "Content-Disposition",
-            'attachment; filename="oneuptime-teams-app.zip"'
+            'attachment; filename="oneuptime-teams-app.zip"',
           );
 
           // Create archive
@@ -180,11 +180,11 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
 
           const colorPath: string = path.join(
             __dirname,
-            "../Images/MicrosoftTeams/color.png"
+            "../Images/MicrosoftTeams/color.png",
           );
           const outlinePath: string = path.join(
             __dirname,
-            "../Images/MicrosoftTeams/outline.png"
+            "../Images/MicrosoftTeams/outline.png",
           );
 
           let colorIconBuffer: Buffer | null = null;
@@ -200,7 +200,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
             iconOutlineName = "outline.png";
           } else {
             throw new BadDataException(
-              "Microsoft Teams icons not found. Expected either pre-sized icon-color-192x192.png and icon-outline-32x32.png in Common/Server/Images/MicrosoftTeams, or fallback color.png and outline.png."
+              "Microsoft Teams icons not found. Expected either pre-sized icon-color-192x192.png and icon-outline-32x32.png in Common/Server/Images/MicrosoftTeams, or fallback color.png and outline.png.",
             );
           }
 
@@ -225,10 +225,10 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Failed to create Teams app manifest zip")
+            new BadDataException("Failed to create Teams app manifest zip"),
           );
         }
-      }
+      },
     );
 
     /*
@@ -243,7 +243,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Microsoft Teams App Client ID is not set")
+            new BadDataException("Microsoft Teams App Client ID is not set"),
           );
         }
 
@@ -251,7 +251,9 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Microsoft Teams App Client Secret is not set")
+            new BadDataException(
+              "Microsoft Teams App Client Secret is not set",
+            ),
           );
         }
 
@@ -262,7 +264,9 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
           return Response.sendErrorResponse(
             req,
             res,
-            new BadRequestException("Invalid request - state param not present")
+            new BadRequestException(
+              "Invalid request - state param not present",
+            ),
           );
         }
 
@@ -272,7 +276,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
           return Response.sendErrorResponse(
             req,
             res,
-            new BadRequestException("Invalid state param")
+            new BadRequestException("Invalid state param"),
           );
         }
 
@@ -281,14 +285,14 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
 
         const teamsIntegrationPageUrl: URL = URL.fromString(
           DashboardClientUrl.toString() +
-            `/${projectId.toString()}/settings/microsoft-teams-integration`
+            `/${projectId.toString()}/settings/microsoft-teams-integration`,
         );
 
         if (error) {
           return Response.redirect(
             req,
             res,
-            teamsIntegrationPageUrl.addQueryParam("error", error)
+            teamsIntegrationPageUrl.addQueryParam("error", error),
           );
         }
 
@@ -298,14 +302,14 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
           return Response.sendErrorResponse(
             req,
             res,
-            new BadRequestException("Invalid request - no authorization code")
+            new BadRequestException("Invalid request - no authorization code"),
           );
         }
 
         try {
           // Exchange code for access token
           const redirectUri: URL = URL.fromString(
-            `${AppApiClientUrl.toString()}/microsoft-teams/auth`
+            `${AppApiClientUrl.toString()}/microsoft-teams/auth`,
           );
 
           const tokenRequestBody: JSONObject = {
@@ -319,14 +323,14 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
           };
 
           logger.debug(
-            "Microsoft Teams Token Request Body (static redirect): "
+            "Microsoft Teams Token Request Body (static redirect): ",
           );
           logger.debug(tokenRequestBody);
 
           const tokenResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
             await API.post<JSONObject>({
               url: URL.fromString(
-                "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+                "https://login.microsoftonline.com/common/oauth2/v2.0/token",
               ),
               data: tokenRequestBody,
               headers: {
@@ -349,8 +353,8 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
               req,
               res,
               new BadRequestException(
-                "Failed to get access token from Microsoft Teams"
-              )
+                "Failed to get access token from Microsoft Teams",
+              ),
             );
           }
 
@@ -413,7 +417,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
           return Response.redirect(
             req,
             res,
-            teamsIntegrationPageUrl.addQueryParam("needAdminConsent", "true")
+            teamsIntegrationPageUrl.addQueryParam("needAdminConsent", "true"),
           );
         } catch (err) {
           logger.error("Error in static Microsoft Teams auth callback: ");
@@ -421,10 +425,10 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Failed to authenticate with Microsoft Teams")
+            new BadDataException("Failed to authenticate with Microsoft Teams"),
           );
         }
-      }
+      },
     );
 
     // Endpoint to finalize team selection when multiple teams are available.
@@ -441,8 +445,8 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
               req,
               res,
               new BadRequestException(
-                "projectId, userId and teamId are required"
-              )
+                "projectId, userId and teamId are required",
+              ),
             );
           }
 
@@ -462,8 +466,8 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
               req,
               res,
               new BadRequestException(
-                "User Microsoft Teams auth not found. Please re-authenticate."
-              )
+                "User Microsoft Teams auth not found. Please re-authenticate.",
+              ),
             );
           }
 
@@ -474,7 +478,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
               projectId: projectId,
             });
           const matchedTeam: MicrosoftTeamsTeam | undefined = Object.values(
-            availableTeams
+            availableTeams,
           ).find((t: MicrosoftTeamsTeam) => {
             return t.id === teamId;
           });
@@ -484,8 +488,8 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
               req,
               res,
               new BadRequestException(
-                "Selected teamId is not in availableTeams list"
-              )
+                "Selected teamId is not in availableTeams list",
+              ),
             );
           }
 
@@ -495,11 +499,11 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
             return Response.sendErrorResponse(
               req,
               res,
-              new BadRequestException("Invalid JWT token")
+              new BadRequestException("Invalid JWT token"),
             );
           }
           const payload: JSONObject = JSON.parse(
-            Buffer.from(tokenParts[1]!, "base64").toString("utf-8")
+            Buffer.from(tokenParts[1]!, "base64").toString("utf-8"),
           );
           const tenantId: string = payload["tid"] as string;
 
@@ -507,7 +511,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
             return Response.sendErrorResponse(
               req,
               res,
-              new BadRequestException("Tenant ID not found in token")
+              new BadRequestException("Tenant ID not found in token"),
             );
           }
 
@@ -567,10 +571,10 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Failed to select Microsoft Teams team")
+            new BadDataException("Failed to select Microsoft Teams team"),
           );
         }
-      }
+      },
     );
 
     /*
@@ -585,7 +589,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Microsoft Teams App Client ID is not set")
+              new BadDataException("Microsoft Teams App Client ID is not set"),
             );
           }
 
@@ -595,8 +599,8 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
               req,
               res,
               new BadRequestException(
-                "Invalid request - state param not present"
-              )
+                "Invalid request - state param not present",
+              ),
             );
           }
 
@@ -605,7 +609,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
             return Response.sendErrorResponse(
               req,
               res,
-              new BadRequestException("Invalid state param")
+              new BadRequestException("Invalid state param"),
             );
           }
 
@@ -629,17 +633,17 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
           }
 
           const redirectUri: URL = URL.fromString(
-            `${AppApiClientUrl.toString()}/microsoft-teams/admin-consent/callback`
+            `${AppApiClientUrl.toString()}/microsoft-teams/admin-consent/callback`,
           );
 
           const adminConsentUrl: string = `https://login.microsoftonline.com/${encodeURIComponent(
-            tenantForConsent
+            tenantForConsent,
           )}/v2.0/adminconsent?client_id=${encodeURIComponent(
-            MicrosoftTeamsAppClientId
+            MicrosoftTeamsAppClientId,
           )}&scope=${encodeURIComponent(
-            "https://graph.microsoft.com/.default"
+            "https://graph.microsoft.com/.default",
           )}&redirect_uri=${encodeURIComponent(redirectUri.toString())}&state=${encodeURIComponent(
-            stateParam
+            stateParam,
           )}`;
 
           return Response.redirect(req, res, URL.fromString(adminConsentUrl));
@@ -650,11 +654,11 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
             req,
             res,
             new BadDataException(
-              "Failed to start Microsoft Teams admin consent"
-            )
+              "Failed to start Microsoft Teams admin consent",
+            ),
           );
         }
-      }
+      },
     );
 
     /*
@@ -676,8 +680,8 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
               req,
               res,
               new BadRequestException(
-                "Invalid request - state param not present"
-              )
+                "Invalid request - state param not present",
+              ),
             );
           }
 
@@ -686,7 +690,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
             return Response.sendErrorResponse(
               req,
               res,
-              new BadRequestException("Invalid state param")
+              new BadRequestException("Invalid state param"),
             );
           }
 
@@ -694,7 +698,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
 
           const teamsIntegrationPageUrl: URL = URL.fromString(
             DashboardClientUrl.toString() +
-              `/${projectId.toString()}/settings/microsoft-teams-integration`
+              `/${projectId.toString()}/settings/microsoft-teams-integration`,
           );
 
           if (error) {
@@ -703,8 +707,8 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
               res,
               teamsIntegrationPageUrl.addQueryParam(
                 "error",
-                `${error}${errorDescription ? ": " + errorDescription : ""}`
-              )
+                `${error}${errorDescription ? ": " + errorDescription : ""}`,
+              ),
             );
           }
 
@@ -714,8 +718,8 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
               res,
               teamsIntegrationPageUrl.addQueryParam(
                 "error",
-                "Missing tenant information from admin consent callback"
-              )
+                "Missing tenant information from admin consent callback",
+              ),
             );
           }
 
@@ -725,8 +729,8 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
               res,
               teamsIntegrationPageUrl.addQueryParam(
                 "error",
-                "Microsoft Teams App credentials are not configured"
-              )
+                "Microsoft Teams App credentials are not configured",
+              ),
             );
           }
 
@@ -741,7 +745,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
           const tokenResp: HTTPErrorResponse | HTTPResponse<JSONObject> =
             await API.post<JSONObject>({
               url: URL.fromString(
-                `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`
+                `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
               ),
               data: {
                 client_id: MicrosoftTeamsAppClientId,
@@ -760,8 +764,8 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
               res,
               teamsIntegrationPageUrl.addQueryParam(
                 "error",
-                "Failed to get Graph app token after admin consent"
-              )
+                "Failed to get Graph app token after admin consent",
+              ),
             );
           }
 
@@ -770,7 +774,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
             (tokenData["access_token"] as string) || "";
           const expiresInSec: number = Number(tokenData["expires_in"] || 0);
           const expiresAtIso: string = new Date(
-            Date.now() + Math.max(0, (expiresInSec - 60) * 1000)
+            Date.now() + Math.max(0, (expiresInSec - 60) * 1000),
           ).toISOString();
 
           logger.debug("App Access Token acquired via admin consent: ");
@@ -797,7 +801,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
                 | HTTPErrorResponse
                 | HTTPResponse<JSONObject> = await API.get<JSONObject>({
                 url: URL.fromString(
-                  "https://graph.microsoft.com/v1.0/teams?$select=id,displayName"
+                  "https://graph.microsoft.com/v1.0/teams?$select=id,displayName",
                 ),
                 headers: {
                   Authorization: `Bearer ${appAccessToken}`,
@@ -812,8 +816,8 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
                   res,
                   teamsIntegrationPageUrl.addQueryParam(
                     "error",
-                    "Failed to retrieve teams from Microsoft Graph API after admin consent"
-                  )
+                    "Failed to retrieve teams from Microsoft Graph API after admin consent",
+                  ),
                 );
               }
 
@@ -827,8 +831,8 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
                   res,
                   teamsIntegrationPageUrl.addQueryParam(
                     "error",
-                    "No teams available in your Microsoft 365 tenant. Please create a team first."
-                  )
+                    "No teams available in your Microsoft 365 tenant. Please create a team first.",
+                  ),
                 );
               }
 
@@ -841,7 +845,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
                   acc[team.name] = team;
                   return acc;
                 },
-                {} as Record<string, MicrosoftTeamsTeam>
+                {} as Record<string, MicrosoftTeamsTeam>,
               );
             } catch (error) {
               logger.error("Error getting teams:");
@@ -851,8 +855,8 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
                 res,
                 teamsIntegrationPageUrl.addQueryParam(
                   "error",
-                  "Failed to retrieve teams from Microsoft Graph API"
-                )
+                  "Failed to retrieve teams from Microsoft Graph API",
+                ),
               );
             }
           }
@@ -882,7 +886,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
             res,
             teamsIntegrationPageUrl
               .addQueryParam("adminConsent", "success")
-              .addQueryParam("tenantId", tenantId)
+              .addQueryParam("tenantId", tenantId),
           );
         } catch (err) {
           logger.error("Error in Microsoft Teams admin consent callback: ");
@@ -895,15 +899,15 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
             if (projectId) {
               const teamsIntegrationPageUrl: URL = URL.fromString(
                 DashboardClientUrl.toString() +
-                  `/${projectId.toString()}/settings/microsoft-teams-integration`
+                  `/${projectId.toString()}/settings/microsoft-teams-integration`,
               );
               return Response.redirect(
                 req,
                 res,
                 teamsIntegrationPageUrl.addQueryParam(
                   "error",
-                  "Failed to finalize Microsoft Teams admin consent"
-                )
+                  "Failed to finalize Microsoft Teams admin consent",
+                ),
               );
             }
           } catch {
@@ -913,11 +917,11 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
             req,
             res,
             new BadDataException(
-              "Failed to finalize Microsoft Teams admin consent"
-            )
+              "Failed to finalize Microsoft Teams admin consent",
+            ),
           );
         }
-      }
+      },
     );
 
     /*
@@ -938,7 +942,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
             });
           }
         }
-      }
+      },
     );
 
     // Microsoft Teams webhook endpoint for interactive messages (legacy)
@@ -971,7 +975,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
               req,
               res,
               authResult,
-              activity
+              activity,
             );
           } else if (activityType === "invoke") {
             // Handle adaptive card actions
@@ -979,7 +983,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
               req,
               res,
               authResult,
-              activity
+              activity,
             );
           }
 
@@ -989,7 +993,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
           logger.error(error);
           return Response.sendTextResponse(req, res, "");
         }
-      }
+      },
     );
 
     // Test endpoint to verify Bot Framework setup
@@ -1013,7 +1017,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
           clientId: MicrosoftTeamsAppClientId,
           messagingEndpoint: `${AppApiClientUrl.toString()}/microsoft-bot/messages`,
         });
-      }
+      },
     );
 
     // Connector configuration endpoint
@@ -1055,7 +1059,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
 
         res.setHeader("Content-Type", "text/html");
         return res.send(html);
-      }
+      },
     );
 
     // Get available teams for a project
@@ -1082,13 +1086,13 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
                   id: team.id,
                   name: team.name,
                 };
-              }
+              },
             ),
           });
         } catch (err) {
           return Response.sendErrorResponse(req, res, err as Exception);
         }
-      }
+      },
     );
 
     // Endpoint to refresh teams list
@@ -1115,13 +1119,13 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
                   id: team.id,
                   name: team.name,
                 };
-              }
+              },
             ),
           });
         } catch (err) {
           return Response.sendErrorResponse(req, res, err as Exception);
         }
-      }
+      },
     );
 
     return router;
@@ -1131,7 +1135,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
     _req: ExpressRequest,
     res: ExpressResponse,
     authResult: MicrosoftTeamsRequest,
-    activity: JSONObject
+    activity: JSONObject,
   ): Promise<void> {
     // Handle direct messages to bot or @mentions
     const messageText: string = (activity["text"] as string) || "";
@@ -1158,7 +1162,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
     req: ExpressRequest,
     res: ExpressResponse,
     authResult: MicrosoftTeamsRequest,
-    _activity: JSONObject
+    _activity: JSONObject,
   ): Promise<void> {
     /*
      * Handle adaptive card button clicks
@@ -1208,7 +1212,7 @@ Help and Support: You can reach out to help and support here: https://oneuptime.
             action: action,
             req: req,
             res: res,
-          }
+          },
         );
       }
 
