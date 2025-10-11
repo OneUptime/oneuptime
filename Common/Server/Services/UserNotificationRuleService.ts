@@ -1058,7 +1058,7 @@ export class Service extends DatabaseService<Model> {
         host,
         new Route(AppApiRoute.toString())
           .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString()),
+          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
       ),
     );
     const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
@@ -1091,7 +1091,7 @@ export class Service extends DatabaseService<Model> {
         host,
         new Route(AppApiRoute.toString())
           .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString()),
+          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
       ),
     );
     const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
@@ -1125,7 +1125,9 @@ export class Service extends DatabaseService<Model> {
           host,
           new Route(AppApiRoute.toString())
             .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-            .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString()),
+            .addRoute(
+              "/acknowledge-page/" + userOnCallLogTimelineId.toString(),
+            ),
         ),
       );
 
@@ -1179,7 +1181,9 @@ export class Service extends DatabaseService<Model> {
           host,
           new Route(AppApiRoute.toString())
             .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-            .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString()),
+            .addRoute(
+              "/acknowledge-page/" + userOnCallLogTimelineId.toString(),
+            ),
         ),
       );
 

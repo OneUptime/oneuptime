@@ -81,11 +81,11 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     "Sign in to the [Meta Business Manager](https://business.facebook.com/) with admin access to your WhatsApp Business Account.",
     "From **Business Settings → Accounts → WhatsApp Accounts**, create or select the account that owns your sender phone number.",
     "In Buisness Portfolio, create a system user and assign it to the WhatsApp Business Account with the role of **Admin**.",
-    "Under **WhatsApp Manager → API Setup**, generate a long-lived access token and copy the phone number ID.",
+    "Generate a token for this system user and this will be your long-lived access token. Make sure to select the **whatsapp_business_management** and **whatsapp_business_messaging** permissions when generating the token.",
     "Paste the access token and phone number ID into the **Meta WhatsApp Settings** card above, then save.",
     "For the **Business Account ID**, go to **Business Settings → Business Info** (or **Business Settings → WhatsApp Accounts → Settings**) and copy the **WhatsApp Business Account ID** value.",
     "To locate the **App ID** and **App Secret**, open [Meta for Developers](https://developers.facebook.com/apps/), select your WhatsApp app, then navigate to **Settings → Basic**. The App ID is shown at the top; click **Show** next to **App Secret** to reveal and copy it.",
-    "Create each template listed below in the Meta WhatsApp Manager. Make sure the template name, language, and variables match exactly. Please make sure it's approved by Meta.",
+    "Create each template listed below in the Meta WhatsApp Manager. Make sure the template name, language, and variables match exactly. You can however change the content to your preference. Please make sure it's approved by Meta.",
     "Send a test notification from OneUptime to confirm that WhatsApp delivery succeeds.",
   ];
 
