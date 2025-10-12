@@ -1,0 +1,6 @@
+We're building the OneUptime mobile app in react native and expo. This mobile app is in MobileApp diretctory. 
+
+<PROMPT>
+
+Please make sure the code you write is clean, refactored well and not duplicated. If you like to refactor code into seperate files, please use as many files as you like. 
+Please make sure to use typescript and type all the variables and functions well. Please do not use "any" type.
