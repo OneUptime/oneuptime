@@ -1,16 +1,15 @@
 import 'react-native-get-random-values';
 import React from "react";
-import { StatusBar } from "expo-status-bar";
 import { Text, View } from "react-native";
-import Styles from "./Styles";
-
+import "./global.css"
+ 
 export default function App(): React.ReactElement {
 
   return (
-    <View style={Styles.container}>
-      <Text style={Styles.title}>Welcome to OneUptime Mobile</Text>
-      <Text style={Styles.subtitle}>Your monitoring app on the go</Text>
-      <StatusBar style="auto" />
+    <View className="flex-1 items-center justify-center bg-white">
+      <Text className="text-xl font-bold text-blue-500">
+        Welcome to Nativewind!
+      </Text>
     </View>
   );
 }
