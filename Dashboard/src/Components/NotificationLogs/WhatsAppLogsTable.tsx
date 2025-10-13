@@ -4,7 +4,14 @@ import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import {
+  Blue,
+  Green,
+  Grey,
+  Orange,
+  Red,
+  Yellow,
+} from "Common/Types/BrandColors";
 import WhatsAppStatus from "Common/Types/WhatsAppStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
@@ -15,6 +22,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
+import Color from "Common/Types/Color";
 
 export interface WhatsAppLogsTableProps {
   query?: Query<BaseModel>;
@@ -27,6 +35,41 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
+
+  const getStatusColor: (status?: WhatsAppStatus) => Color = (
+    status?: WhatsAppStatus,
+  ): Color => {
+    switch (status) {
+      case WhatsAppStatus.Success:
+      case WhatsAppStatus.Delivered:
+      case WhatsAppStatus.Read:
+        return Green;
+      case WhatsAppStatus.Sent:
+      case WhatsAppStatus.Queued:
+        return Blue;
+      case WhatsAppStatus.Warning:
+        return Yellow;
+      case WhatsAppStatus.LowBalance:
+        return Orange;
+      case WhatsAppStatus.NotVerified:
+      case WhatsAppStatus.Unknown:
+        return Grey;
+      default:
+        return Red;
+    }
+  };
+
+  const parseStatus: (status?: string) => WhatsAppStatus | undefined = (
+    status?: string,
+  ): WhatsAppStatus | undefined => {
+    if (!status) {
+      return undefined;
+    }
+
+    return (Object.values(WhatsAppStatus) as Array<string>).includes(status)
+      ? (status as WhatsAppStatus)
+      : undefined;
+  };
 
   const defaultColumns: Columns<WhatsAppLog> = [
     {
@@ -61,17 +104,19 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
       title: "Status",
       type: FieldType.Text,
       getElement: (item: WhatsAppLog): ReactElement => {
-        if (item["status"]) {
-          return (
-            <Pill
-              isMinimal={false}
-              color={item["status"] === WhatsAppStatus.Success ? Green : Red}
-              text={item["status"] as string}
-            />
-          );
+        const statusValue: string | undefined =
+          (item["status"] as string | undefined) || undefined;
+
+        if (!statusValue) {
+          return <></>;
         }
 
-        return <></>;
+        const normalizedStatus: WhatsAppStatus | undefined =
+          parseStatus(statusValue);
+
+        const pillColor: Color = getStatusColor(normalizedStatus);
+
+        return <Pill isMinimal={false} color={pillColor} text={statusValue} />;
       },
     },
   ];
@@ -108,6 +153,7 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
         selectMoreFields={{
           messageText: true,
           statusMessage: true,
+          whatsAppMessageId: true,
           user: {
             name: true,
           },
@@ -145,12 +191,26 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
             title: "View Status Message",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.Error,
-            onClick: async (
-              item: WhatsAppLog,
-              onCompleteAction: VoidFunction,
-            ) => {
-              setModalText(item["statusMessage"] as string);
+            onClick: (item: WhatsAppLog, onCompleteAction: VoidFunction) => {
+              const fallbackStatusMessage: string = (
+                (item["statusMessage"] as string) || "-"
+              )
+                .split(" | ")
+                .join("\n");
+              const fallbackMessageId: string | undefined =
+                (item["whatsAppMessageId"] as string) || undefined;
+              const messageParts: Array<string> = [];
+
+              if (fallbackStatusMessage && fallbackStatusMessage !== "-") {
+                messageParts.push(fallbackStatusMessage);
+              }
+
+              if (fallbackMessageId) {
+                messageParts.push(`Message ID: ${fallbackMessageId}`);
+              }
+
               setModalTitle("Status Message");
+              setModalText(messageParts.join("\n") || "-");
               setShowModal(true);
               onCompleteAction();
             },

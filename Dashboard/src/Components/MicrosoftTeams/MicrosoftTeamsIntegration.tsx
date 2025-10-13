@@ -601,7 +601,7 @@ The zip file contains the app manifest and required icons for Teams installation
               text={`
 ##### ⏳ App Approval Status
 
-**Please Note:** We're currently waiting for the OneUptime app to be approved by Microsoft. Once it's approved, you will be able to add it to your teams directly from the Microsoft Teams Store.
+**Please Note:** We're currently waiting for the OneUptime app to be approved by Microsoft. Once it's approved, you will be able to add it to your teams directly from the Microsoft Teams Store. In the meatime, you can follow the Manual Sideloading installation steps below to get started.
 
 ##### Installation Steps (Once Approved):
 

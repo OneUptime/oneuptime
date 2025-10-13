@@ -68,8 +68,6 @@ export default class WhatsAppService {
         );
       }
 
-      const config: MetaWhatsAppConfig = await getMetaWhatsAppConfig();
-
       const isSensitiveMessage: boolean = Boolean(options.isSensitive);
       const messageSummary: string = isSensitiveMessage
         ? SENSITIVE_MESSAGE_PLACEHOLDER
@@ -130,6 +128,8 @@ export default class WhatsAppService {
       if (options.onCallScheduleId) {
         whatsAppLog.onCallDutyPolicyScheduleId = options.onCallScheduleId;
       }
+
+      const config: MetaWhatsAppConfig = await getMetaWhatsAppConfig();
 
       let messageCost: number = 0;
       const shouldChargeForMessage: boolean = IsBillingEnabled;
@@ -417,7 +417,11 @@ export default class WhatsAppService {
         }
       }
 
-      whatsAppLog.status = WhatsAppStatus.Success;
+      if (messageId) {
+        whatsAppLog.whatsAppMessageId = messageId;
+      }
+
+      whatsAppLog.status = WhatsAppStatus.Sent;
       whatsAppLog.statusMessage = messageId
         ? `Message ID: ${messageId}`
         : "WhatsApp message sent successfully";
@@ -470,10 +474,14 @@ export default class WhatsAppService {
       await UserOnCallLogTimelineService.updateOneById({
         id: options.userOnCallLogTimelineId,
         data: {
-          status:
-            whatsAppLog.status === WhatsAppStatus.Success
-              ? UserNotificationStatus.Sent
-              : UserNotificationStatus.Error,
+          status: [
+            WhatsAppStatus.Success,
+            WhatsAppStatus.Sent,
+            WhatsAppStatus.Delivered,
+            WhatsAppStatus.Read,
+          ].includes(whatsAppLog.status || WhatsAppStatus.Error)
+            ? UserNotificationStatus.Sent
+            : UserNotificationStatus.Error,
           statusMessage: whatsAppLog.statusMessage,
         },
         props: {
