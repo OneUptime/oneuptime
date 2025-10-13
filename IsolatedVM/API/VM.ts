@@ -1,6 +1,7 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import Express, {
   ExpressRequest,
@@ -57,12 +58,12 @@ router.post(
 
       if (typeof result.returnValue === "object") {
         result.returnValue = JSONFunctions.removeCircularReferences(
-          result.returnValue,
+          result.returnValue as JSONObject,
         );
       }
 
       return Response.sendJsonObjectResponse(req, res, {
-        returnValue: result.returnValue,
+        returnValue: result.returnValue as JSONValue,
         logMessages: result.logMessages,
       });
     } catch (err) {
