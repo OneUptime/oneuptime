@@ -112,13 +112,7 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
 
         const pillColor = getStatusColor(normalizedStatus);
 
-        return (
-          <Pill
-            isMinimal={false}
-            color={pillColor}
-            text={statusValue}
-          />
-        );
+        return <Pill isMinimal={false} color={pillColor} text={statusValue} />;
       },
     },
   ];

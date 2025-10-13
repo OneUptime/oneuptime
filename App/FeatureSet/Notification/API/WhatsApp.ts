@@ -188,9 +188,8 @@ const updateWhatsAppLogStatus = async (
     ? String(statusPayload["status"])
     : undefined;
 
-  const derivedStatus: WhatsAppStatus = mapWebhookStatusToWhatsAppStatus(
-    rawStatus,
-  );
+  const derivedStatus: WhatsAppStatus =
+    mapWebhookStatusToWhatsAppStatus(rawStatus);
 
   const statusMessage: string | undefined = buildStatusMessage(statusPayload);
 
@@ -317,59 +316,56 @@ router.post(
   },
 );
 
-router.get(
-  "/webhook",
-  async (req: ExpressRequest, res: ExpressResponse) => {
-    const mode: string | undefined = req.query["hub.mode"]
-      ? String(req.query["hub.mode"])
-      : undefined;
-    const verifyToken: string | undefined = req.query["hub.verify_token"]
-      ? String(req.query["hub.verify_token"])
-      : undefined;
-    const challenge: string | undefined = req.query["hub.challenge"]
-      ? String(req.query["hub.challenge"])
-      : undefined;
+router.get("/webhook", async (req: ExpressRequest, res: ExpressResponse) => {
+  const mode: string | undefined = req.query["hub.mode"]
+    ? String(req.query["hub.mode"])
+    : undefined;
+  const verifyToken: string | undefined = req.query["hub.verify_token"]
+    ? String(req.query["hub.verify_token"])
+    : undefined;
+  const challenge: string | undefined = req.query["hub.challenge"]
+    ? String(req.query["hub.challenge"])
+    : undefined;
 
-    if (mode === "subscribe" && challenge) {
-      const globalConfigTokenResponse = await GlobalConfigService.findOneBy({
-        query: {
-          _id: ObjectID.getZeroObjectID().toString(),
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          metaWhatsAppWebhookVerifyToken: true,
-        },
-      });
+  if (mode === "subscribe" && challenge) {
+    const globalConfigTokenResponse = await GlobalConfigService.findOneBy({
+      query: {
+        _id: ObjectID.getZeroObjectID().toString(),
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        metaWhatsAppWebhookVerifyToken: true,
+      },
+    });
 
-      const configuredVerifyToken: string | undefined =
-        globalConfigTokenResponse?.metaWhatsAppWebhookVerifyToken?.trim() ||
-        undefined;
+    const configuredVerifyToken: string | undefined =
+      globalConfigTokenResponse?.metaWhatsAppWebhookVerifyToken?.trim() ||
+      undefined;
 
-      if (!configuredVerifyToken) {
-        logger.error(
-          "Meta WhatsApp webhook verify token is not configured. Rejecting verification request.",
-        );
-        res.sendStatus(403);
-        return;
-      }
-
-      if (verifyToken === configuredVerifyToken) {
-        res.status(200).send(challenge);
-        return;
-      }
-
-      logger.warn(
-        "Meta WhatsApp webhook verification failed due to token mismatch.",
+    if (!configuredVerifyToken) {
+      logger.error(
+        "Meta WhatsApp webhook verify token is not configured. Rejecting verification request.",
       );
       res.sendStatus(403);
       return;
     }
 
-    res.sendStatus(400);
-  },
-);
+    if (verifyToken === configuredVerifyToken) {
+      res.status(200).send(challenge);
+      return;
+    }
+
+    logger.warn(
+      "Meta WhatsApp webhook verification failed due to token mismatch.",
+    );
+    res.sendStatus(403);
+    return;
+  }
+
+  res.sendStatus(400);
+});
 
 router.post(
   "/webhook",
@@ -377,7 +373,9 @@ router.post(
     try {
       const body: JSONObject = req.body as JSONObject;
 
-      if ((body["object"] as string | undefined) !== "whatsapp_business_account") {
+      if (
+        (body["object"] as string | undefined) !== "whatsapp_business_account"
+      ) {
         logger.debug(
           `[Meta WhatsApp Webhook] Received event for unsupported object: ${JSON.stringify(body)}`,
         );
