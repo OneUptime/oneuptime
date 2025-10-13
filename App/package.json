@@ -35,7 +35,8 @@
     "@types/nodemailer": "^6.4.14",
     "@types/xml2js": "^0.4.14",
     "@types/xmldom": "^0.1.34",
-    "jest": "^28.1.0",
+  "jest": "^28.1.0",
+  "ts-jest": "^28.0.8",
     "nodemon": "^2.0.20"
   }
 }
