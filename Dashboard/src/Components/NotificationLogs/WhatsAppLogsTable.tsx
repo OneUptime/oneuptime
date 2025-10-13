@@ -15,10 +15,6 @@ import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
-import API from "Common/UI/Utils/API/API";
-import URL from "Common/Types/API/URL";
-import { APP_API_URL } from "Common/UI/Config";
-import { JSONObject } from "Common/Types/JSON";
 
 export interface WhatsAppLogsTableProps {
   query?: Query<BaseModel>;
@@ -150,83 +146,28 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
             title: "View Status Message",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.Error,
-            onClick: async (
-              item: WhatsAppLog,
-              onCompleteAction: VoidFunction,
-            ) => {
-              setModalTitle("Status Message");
-              setModalText("Fetching latest status...");
-              setShowModal(true);
-
-              const fallbackStatusMessage: string =
-                ((item["statusMessage"] as string) || "-")
-                  .split(" | ")
-                  .join("\n");
+            onClick: (item: WhatsAppLog, onCompleteAction: VoidFunction) => {
+              const fallbackStatusMessage: string = (
+                (item["statusMessage"] as string) || "-"
+              )
+                .split(" | ")
+                .join("\n");
               const fallbackMessageId: string | undefined =
                 (item["whatsAppMessageId"] as string) || undefined;
-              try {
-                if (!item._id) {
-                  throw new Error("WhatsApp log ID not found.");
-                }
+              const messageParts: Array<string> = [];
 
-                const response = await API.post<JSONObject>({
-                  url: URL.fromURL(APP_API_URL).addRoute(
-                    `/whatsapp-log/${item._id.toString()}/get-status`,
-                  ),
-                });
-
-                if (response.isFailure()) {
-                  const failureParts: Array<string> = [
-                    API.getFriendlyMessage(response),
-                  ];
-
-                  if (
-                    fallbackStatusMessage &&
-                    fallbackStatusMessage !== "-"
-                  ) {
-                    failureParts.push(
-                      `Last known status: ${fallbackStatusMessage}`,
-                    );
-                  }
-
-                  if (fallbackMessageId) {
-                    failureParts.push(`Message ID: ${fallbackMessageId}`);
-                  }
-
-                  setModalText(failureParts.join("\n"));
-                } else {
-                  const responseData: JSONObject = response.data as JSONObject;
-                  const statusMessageFromServer: string | undefined =
-                    (responseData["statusMessage"] as string) || undefined;
-
-                  const formattedStatusMessage: string | undefined =
-                    statusMessageFromServer
-                      ?.split(" | ")
-                      .join("\n");
-
-                  setModalText(
-                    formattedStatusMessage || fallbackStatusMessage,
-                  );
-                }
-              } catch (error) {
-                const messageParts: Array<string> = [
-                  API.getFriendlyMessage(error),
-                ];
-
-                if (fallbackStatusMessage && fallbackStatusMessage !== "-") {
-                  messageParts.push(
-                    `Last known status: ${fallbackStatusMessage}`,
-                  );
-                }
-
-                if (fallbackMessageId) {
-                  messageParts.push(`Message ID: ${fallbackMessageId}`);
-                }
-
-                setModalText(messageParts.join("\n"));
-              } finally {
-                onCompleteAction();
+              if (fallbackStatusMessage && fallbackStatusMessage !== "-") {
+                messageParts.push(fallbackStatusMessage);
               }
+
+              if (fallbackMessageId) {
+                messageParts.push(`Message ID: ${fallbackMessageId}`);
+              }
+
+              setModalTitle("Status Message");
+              setModalText(messageParts.join("\n") || "-");
+              setShowModal(true);
+              onCompleteAction();
             },
           },
         ]}
