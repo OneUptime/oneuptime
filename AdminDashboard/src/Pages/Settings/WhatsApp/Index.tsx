@@ -70,7 +70,6 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
 
   const appApiBaseUrl: string = APP_API_URL.toString().replace(/\/$/, "");
   const primaryWebhookUrl: string = `${appApiBaseUrl}/notification/whatsapp/webhook`;
-  const shorthandWebhookUrl: string = `${appApiBaseUrl.replace(/\/api$/, "")}/whatsapp/webhook`;
 
   const description: string =
     "Follow these steps to connect Meta WhatsApp with OneUptime so notifications can be delivered via WhatsApp.";
@@ -86,8 +85,8 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     "Sign in to the [Meta Business Manager](https://business.facebook.com/) with admin access to your WhatsApp Business Account.",
     "From **Business Settings → Accounts → WhatsApp Accounts**, create or select the account that owns your sender phone number.",
     "In Buisness Portfolio, create a system user and assign it to the WhatsApp Business Account with the role of **Admin**.",
-  "Generate a token for this system user and this will be your long-lived access token. Make sure to select the **whatsapp_business_management** and **whatsapp_business_messaging** permissions when generating the token.",
-  "Paste the access token, phone number ID, and webhook verify token into the **Meta WhatsApp Settings** card above, then save.",
+    "Generate a token for this system user and this will be your long-lived access token. Make sure to select the **whatsapp_business_management** and **whatsapp_business_messaging** permissions when generating the token.",
+    "Paste the access token, phone number ID, and webhook verify token into the **Meta WhatsApp Settings** card above, then save.",
     "For the **Business Account ID**, go to **Business Settings → Business Info** (or **Business Settings → WhatsApp Accounts → Settings**) and copy the **WhatsApp Business Account ID** value.",
     "To locate the **App ID** and **App Secret**, open [Meta for Developers](https://developers.facebook.com/apps/), select your WhatsApp app, then navigate to **Settings → Basic**. The App ID is shown at the top; click **Show** next to **App Secret** to reveal and copy it.",
     "Create each template listed below in the Meta WhatsApp Manager. Make sure the template name, language, and variables match exactly. You can however change the content to your preference. Please make sure it's approved by Meta.",
@@ -179,7 +178,7 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     "1. In the OneUptime Admin Dashboard, open **Settings → WhatsApp → Meta WhatsApp Settings** and enter a strong value in **Webhook Verify Token**. Save the form so the encrypted token is stored in Global Config.",
     "2. Keep that verify token handy—Meta does not generate one for you. You'll paste the exact same value when configuring the callback.",
     "3. In [Meta for Developers](https://developers.facebook.com/apps/), select your WhatsApp app and navigate to **WhatsApp → Configuration → Webhooks**.",
-    `4. Click **Configure**, then supply one of the following callback URLs when Meta asks for your endpoint:\n   - Primary (recommended): \`${primaryWebhookUrl}\`\n   - Alternate (short path): \`${shorthandWebhookUrl}\` (both routes hit the same listener).`,
+    `4. Click **Configure**, then supply one of the following callback URLs when Meta asks for your endpoint:\n   - \`${primaryWebhookUrl}\`\n `,
     "5. Paste the verify token from step 1 into Meta's **Verify Token** field and submit. Meta will call the callback URL and expect that value to match before it approves the subscription.",
     "6. After verification succeeds, subscribe to the **messages** field (and any other WhatsApp webhook categories you need) so delivery status updates are forwarded to OneUptime.",
   ]
