@@ -355,5 +355,5 @@ export default [
   MigrationName1759232954703,
   RenameUserTwoFactorAuthToUserTotpAuth1759234532998,
   MigrationName1759943124812,
-  MigrationName1760345757975
+  MigrationName1760345757975,
 ];
