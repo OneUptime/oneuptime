@@ -68,8 +68,6 @@ export default class WhatsAppService {
         );
       }
 
-      const config: MetaWhatsAppConfig = await getMetaWhatsAppConfig();
-
       const isSensitiveMessage: boolean = Boolean(options.isSensitive);
       const messageSummary: string = isSensitiveMessage
         ? SENSITIVE_MESSAGE_PLACEHOLDER
@@ -130,6 +128,8 @@ export default class WhatsAppService {
       if (options.onCallScheduleId) {
         whatsAppLog.onCallDutyPolicyScheduleId = options.onCallScheduleId;
       }
+
+      const config: MetaWhatsAppConfig = await getMetaWhatsAppConfig();
 
       let messageCost: number = 0;
       const shouldChargeForMessage: boolean = IsBillingEnabled;
