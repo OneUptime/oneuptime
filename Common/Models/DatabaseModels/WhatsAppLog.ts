@@ -226,6 +226,31 @@ export default class WhatsAppLog extends BaseModel {
     ],
     update: [],
   })
+  @Index()
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "WhatsApp Message ID",
+    description: "Message ID returned by Meta's API",
+    canReadOnRelationQuery: false,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public whatsAppMessageId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
