@@ -36,7 +36,9 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
 
-  const getStatusColor = (status?: WhatsAppStatus): Color => {
+  const getStatusColor: (status?: WhatsAppStatus) => Color = (
+    status?: WhatsAppStatus,
+  ): Color => {
     switch (status) {
       case WhatsAppStatus.Success:
       case WhatsAppStatus.Delivered:
@@ -57,7 +59,9 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
     }
   };
 
-  const parseStatus = (status?: string): WhatsAppStatus | undefined => {
+  const parseStatus: (status?: string) => WhatsAppStatus | undefined = (
+    status?: string,
+  ): WhatsAppStatus | undefined => {
     if (!status) {
       return undefined;
     }
@@ -110,7 +114,7 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
         const normalizedStatus: WhatsAppStatus | undefined =
           parseStatus(statusValue);
 
-        const pillColor = getStatusColor(normalizedStatus);
+        const pillColor: Color = getStatusColor(normalizedStatus);
 
         return <Pill isMinimal={false} color={pillColor} text={statusValue} />;
       },

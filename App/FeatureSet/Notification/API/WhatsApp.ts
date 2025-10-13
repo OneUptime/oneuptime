@@ -1,5 +1,6 @@
 import WhatsAppService from "../Services/WhatsAppService";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
@@ -170,9 +171,9 @@ export const buildStatusMessage: (payload: JSONObject) => string | undefined = (
   return `${statusMessage.substring(0, MAX_STATUS_MESSAGE_LENGTH - 3)}...`;
 };
 
-const updateWhatsAppLogStatus = async (
+const updateWhatsAppLogStatus: (
   statusPayload: JSONObject,
-): Promise<void> => {
+) => Promise<void> = async (statusPayload: JSONObject): Promise<void> => {
   const messageId: string | undefined = statusPayload["id"]
     ? String(statusPayload["id"])
     : undefined;
@@ -328,17 +329,18 @@ router.get("/webhook", async (req: ExpressRequest, res: ExpressResponse) => {
     : undefined;
 
   if (mode === "subscribe" && challenge) {
-    const globalConfigTokenResponse = await GlobalConfigService.findOneBy({
-      query: {
-        _id: ObjectID.getZeroObjectID().toString(),
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        metaWhatsAppWebhookVerifyToken: true,
-      },
-    });
+    const globalConfigTokenResponse: GlobalConfig | null =
+      await GlobalConfigService.findOneBy({
+        query: {
+          _id: ObjectID.getZeroObjectID().toString(),
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          metaWhatsAppWebhookVerifyToken: true,
+        },
+      });
 
     const configuredVerifyToken: string | undefined =
       globalConfigTokenResponse?.metaWhatsAppWebhookVerifyToken?.trim() ||
