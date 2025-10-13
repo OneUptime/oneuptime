@@ -33,17 +33,15 @@ export default class WhatsAppLogAPI extends BaseAPI<
         try {
           const logId: ObjectID = new ObjectID(req.params["id"] as string);
 
-          const databaseProps = await CommonAPI.getDatabaseCommonInteractionProps(
-            req,
-          );
-
           const log: WhatsAppLog | null = await this.service.findOneById({
             id: logId,
             select: {
               _id: true,
               whatsAppMessageId: true,
             },
-            props: databaseProps,
+            props: {
+              isRoot: true,
+            },
           });
 
           if (!log) {
