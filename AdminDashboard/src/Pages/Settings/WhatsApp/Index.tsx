@@ -68,6 +68,9 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     WhatsAppTemplateIds,
   ) as Array<keyof typeof WhatsAppTemplateIds>;
 
+  const appApiBaseUrl: string = APP_API_URL.toString().replace(/\/$/, "");
+  const primaryWebhookUrl: string = `${appApiBaseUrl}/notification/whatsapp/webhook`;
+
   const description: string =
     "Follow these steps to connect Meta WhatsApp with OneUptime so notifications can be delivered via WhatsApp.";
 
@@ -75,6 +78,7 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     "Meta Business Manager admin access for the WhatsApp Business Account.",
     "A WhatsApp Business phone number approved for API messaging.",
     "Admin access to OneUptime with permission to edit global notification settings.",
+    "A webhook verify token string that you'll configure identically in Meta and OneUptime.",
   ];
 
   const setupStepsList: Array<string> = [
@@ -82,7 +86,7 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     "From **Business Settings → Accounts → WhatsApp Accounts**, create or select the account that owns your sender phone number.",
     "In Buisness Portfolio, create a system user and assign it to the WhatsApp Business Account with the role of **Admin**.",
     "Generate a token for this system user and this will be your long-lived access token. Make sure to select the **whatsapp_business_management** and **whatsapp_business_messaging** permissions when generating the token.",
-    "Paste the access token and phone number ID into the **Meta WhatsApp Settings** card above, then save.",
+    "Paste the access token, phone number ID, and webhook verify token into the **Meta WhatsApp Settings** card above, then save.",
     "For the **Business Account ID**, go to **Business Settings → Business Info** (or **Business Settings → WhatsApp Accounts → Settings**) and copy the **WhatsApp Business Account ID** value.",
     "To locate the **App ID** and **App Secret**, open [Meta for Developers](https://developers.facebook.com/apps/), select your WhatsApp app, then navigate to **Settings → Basic**. The App ID is shown at the top; click **Show** next to **App Secret** to reveal and copy it.",
     "Create each template listed below in the Meta WhatsApp Manager. Make sure the template name, language, and variables match exactly. You can however change the content to your preference. Please make sure it's approved by Meta.",
@@ -169,12 +173,25 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     .filter(Boolean)
     .join("\n");
 
+  const webhookSection: string = [
+    "### Configure Meta Webhook Subscription",
+    "1. In the OneUptime Admin Dashboard, open **Settings → WhatsApp → Meta WhatsApp Settings** and enter a strong value in **Webhook Verify Token**. Save the form so the encrypted token is stored in Global Config.",
+    "2. Keep that verify token handy—Meta does not generate one for you. You'll paste the exact same value when configuring the callback.",
+    "3. In [Meta for Developers](https://developers.facebook.com/apps/), select your WhatsApp app and navigate to **WhatsApp → Configuration → Webhooks**.",
+    `4. Click **Configure**, then supply one of the following callback URLs when Meta asks for your endpoint:\n   - \`${primaryWebhookUrl}\`\n `,
+    "5. Paste the verify token from step 1 into Meta's **Verify Token** field and submit. Meta will call the callback URL and expect that value to match before it approves the subscription.",
+    "6. After verification succeeds, subscribe to the **messages** field (and any other WhatsApp webhook categories you need) so delivery status updates are forwarded to OneUptime.",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
   return [
     description,
     "### Prerequisites",
     prerequisitesMarkdown,
     "### Setup Steps",
     setupStepsMarkdown,
+    webhookSection,
     "### Required WhatsApp Templates",
     templateSummaryTable,
     "### Template Bodies",
@@ -273,6 +290,18 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
           },
           {
             field: {
+              metaWhatsAppWebhookVerifyToken: true,
+            },
+            title: "Webhook Verify Token",
+            stepId: "meta-credentials",
+            fieldType: FormFieldSchemaType.EncryptedText,
+            required: false,
+            description:
+              "Secret token configured in Meta to validate webhook subscription requests.",
+            placeholder: "Webhook verify token",
+          },
+          {
+            field: {
               metaWhatsAppAppId: true,
             },
             title: "App ID",
@@ -322,6 +351,14 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               },
               title: "Business Account ID",
               fieldType: FieldType.Text,
+              placeholder: "Not Configured",
+            },
+            {
+              field: {
+                metaWhatsAppWebhookVerifyToken: true,
+              },
+              title: "Webhook Verify Token",
+              fieldType: FieldType.HiddenText,
               placeholder: "Not Configured",
             },
             {

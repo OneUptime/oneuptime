@@ -359,6 +359,25 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ShortText,
+    title: "Meta WhatsApp Webhook Verify Token",
+    description:
+      "Verify token configured in Meta to validate webhook subscriptions.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public metaWhatsAppWebhookVerifyToken?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
     title: "Email Server Type",
     description: "Email Server Type",
   })

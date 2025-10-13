@@ -421,7 +421,7 @@ export default class WhatsAppService {
         whatsAppLog.whatsAppMessageId = messageId;
       }
 
-      whatsAppLog.status = WhatsAppStatus.Success;
+      whatsAppLog.status = WhatsAppStatus.Sent;
       whatsAppLog.statusMessage = messageId
         ? `Message ID: ${messageId}`
         : "WhatsApp message sent successfully";
@@ -474,10 +474,14 @@ export default class WhatsAppService {
       await UserOnCallLogTimelineService.updateOneById({
         id: options.userOnCallLogTimelineId,
         data: {
-          status:
-            whatsAppLog.status === WhatsAppStatus.Success
-              ? UserNotificationStatus.Sent
-              : UserNotificationStatus.Error,
+          status: [
+            WhatsAppStatus.Success,
+            WhatsAppStatus.Sent,
+            WhatsAppStatus.Delivered,
+            WhatsAppStatus.Read,
+          ].includes(whatsAppLog.status || WhatsAppStatus.Error)
+            ? UserNotificationStatus.Sent
+            : UserNotificationStatus.Error,
           statusMessage: whatsAppLog.statusMessage,
         },
         props: {
