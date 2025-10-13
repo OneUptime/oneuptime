@@ -176,6 +176,7 @@ import { MigrationName1759232954703 } from "./1759232954703-MigrationName";
 import { RenameUserTwoFactorAuthToUserTotpAuth1759234532998 } from "./1759234532998-MigrationName";
 import { MigrationName1759943124812 } from "./1759943124812-MigrationName";
 import { MigrationName1760345757975 } from "./1760345757975-MigrationName";
+import { MigrationName1760357680881 } from "./1760357680881-MigrationName";
 
 export default [
   InitialMigration,
@@ -356,4 +357,5 @@ export default [
   RenameUserTwoFactorAuthToUserTotpAuth1759234532998,
   MigrationName1759943124812,
   MigrationName1760345757975,
+  MigrationName1760357680881
 ];
