@@ -49,6 +49,7 @@ import React, {
 } from "react";
 import useAsyncEffect from "use-async-effect";
 import Countries from "Common/UI/Utils/Countries";
+import ObjectID from "Common/Types/ObjectID";
 
 export type ComponentProps = PageComponentProps;
 
@@ -77,6 +78,15 @@ const Settings: FunctionComponent<ComponentProps> = (
   const [balance, setBalance] = useState<number>(0);
 
   const formRef: any = useRef<any>(null);
+
+  const currentProjectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  const projectCrudRoute: Route | null = new Project().getCrudApiPath();
+  const changePlanApiUrl: URL | undefined =
+    currentProjectId && projectCrudRoute
+      ? URL.fromString(APP_API_URL.toString())
+          .addRoute(projectCrudRoute)
+          .addRoute(`/${currentProjectId.toString()}/change-plan`)
+      : undefined;
 
   useAsyncEffect(async () => {
     setIsModalLoading(true);
@@ -195,6 +205,7 @@ const Settings: FunctionComponent<ComponentProps> = (
               }}
               isEditable={true}
               editButtonText={"Change Plan"}
+              createOrUpdateApiUrl={changePlanApiUrl}
               formFields={[
                 {
                   field: {

@@ -13,6 +13,7 @@ import ModelFormModal from "../ModelFormModal/ModelFormModal";
 import ModelDetail, { ComponentProps as ModeDetailProps } from "./ModelDetail";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "../../../Types/Icon/IconProp";
+import URL from "../../../Types/API/URL";
 import {
   PermissionHelper,
   UserPermission,
@@ -32,6 +33,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   name: string;
   createEditModalWidth?: ModalWidth | undefined;
   refresher?: boolean;
+  createOrUpdateApiUrl?: URL | undefined;
 }
 
 const CardModelDetail: <TBaseModel extends BaseModel>(
@@ -128,6 +130,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
             formType: FormType.Update,
             modelType: props.modelDetailProps.modelType,
             steps: props.formSteps || [],
+            createOrUpdateApiUrl: props.createOrUpdateApiUrl,
           }}
           modelIdToEdit={item?.id || undefined}
         />
