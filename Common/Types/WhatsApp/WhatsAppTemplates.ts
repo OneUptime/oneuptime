@@ -1,6 +1,6 @@
 type TemplateIdsMap = {
-  readonly AlertCreated: "oneuptime_alert_created";
-  readonly IncidentCreated: "oneuptime_incident_created";
+  readonly AlertCreated: "oneuptime_created_alert";
+  readonly IncidentCreated: "oneuptime_created_incident";
   readonly VerificationCode: "oneuptime_verification_code";
   readonly TestNotification: "oneuptime_test_notification";
   readonly IncidentCreatedOwnerNotification: "oneuptime_incident_created_owner_notification";
@@ -33,8 +33,8 @@ type TemplateIdsMap = {
 };
 
 const templateIds: TemplateIdsMap = {
-  AlertCreated: "oneuptime_alert_created",
-  IncidentCreated: "oneuptime_incident_created",
+  AlertCreated: "oneuptime_created_alert",
+  IncidentCreated: "oneuptime_created_incident",
   VerificationCode: "oneuptime_verification_code",
   TestNotification: "oneuptime_test_notification",
   IncidentCreatedOwnerNotification:
