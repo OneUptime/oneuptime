@@ -2632,7 +2632,7 @@ All monitoring checks are passing normally.`;
         {
           type: "Action.OpenUrl",
           title: "View Setup Guide",
-          url: "https://oneuptime.com/docs/microsoft-teams",
+          url: "https://oneuptime.com/docs/workspace-connections/microsoft-teams",
         },
         {
           type: "Action.OpenUrl",
