@@ -134,7 +134,7 @@ export default class Project extends TenantModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
     ],
-    update: [Permission.ProjectOwner],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
   })
   @TableColumn({ type: TableColumnType.ShortText })
   @Column({
