@@ -20,10 +20,71 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import Project from "../../Models/DatabaseModels/Project";
 import Reseller from "../../Models/DatabaseModels/Reseller";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
+import BadDataException from "../../Types/Exception/BadDataException";
+import Permission, { UserPermission } from "../../Types/Permission";
+import ObjectID from "../../Types/ObjectID";
+import { JSONObject } from "../../Types/JSON";
 
 export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
   public constructor() {
     super(Project, ProjectService);
+
+    this.router.put(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/change-plan`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          if (!IsBillingEnabled) {
+            throw new BadDataException(
+              "Billing is not enabled for this server",
+            );
+          }
+
+          const projectId: ObjectID = new ObjectID(req.params["id"] as string);
+
+          const body: JSONObject = (req.body as JSONObject) || {};
+          const data: JSONObject = (body["data"] as JSONObject) || {};
+          const paymentProviderPlanId: string | undefined = data[
+            "paymentProviderPlanId"
+          ] as string | undefined;
+
+          if (!paymentProviderPlanId) {
+            throw new BadDataException("Plan ID is required to change plan");
+          }
+
+          const permissions: Array<UserPermission> =
+            await this.getPermissionsForTenant(req);
+
+          const hasBillingPermission: boolean =
+            permissions.filter((permission: UserPermission) => {
+              return (
+                permission.permission.toString() ===
+                  Permission.ProjectOwner.toString() ||
+                permission.permission.toString() ===
+                  Permission.ManageProjectBilling.toString()
+              );
+            }).length > 0;
+
+          if (
+            !hasBillingPermission &&
+            !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
+          ) {
+            throw new BadDataException(
+              `You need ${Permission.ProjectOwner} or ${Permission.ManageProjectBilling} permission to change project plan`,
+            );
+          }
+
+          await ProjectService.changePlan({
+            projectId: projectId,
+            paymentProviderPlanId: paymentProviderPlanId,
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
 
     /*
      * This API lists all the projects where user is its team member.
