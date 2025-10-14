@@ -88,6 +88,8 @@ import MicrosoftTeamsScheduledMaintenanceActions from "./Actions/ScheduledMainte
 import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
 
 export default class MicrosoftTeamsUtil extends WorkspaceBase {
+  private static readonly WELCOME_CARD_STATE_KEY: string =
+    "oneuptime.microsoftTeams.welcomeCardSent";
   // Get or create Bot Framework adapter for a specific tenant
   private static getBotAdapter(microsoftAppTenantId: string): CloudAdapter {
     if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
@@ -2650,6 +2652,17 @@ All monitoring checks are passing normally.`;
     turnContext: TurnContext,
   ): Promise<void> {
     try {
+      const hasAlreadySent: boolean = Boolean(
+        turnContext.turnState.get(this.WELCOME_CARD_STATE_KEY),
+      );
+
+      if (hasAlreadySent) {
+        logger.debug(
+          "Welcome adaptive card already sent earlier in this turn, skipping duplicate send",
+        );
+        return;
+      }
+
       const welcomeCard: JSONObject = this.buildWelcomeAdaptiveCard();
       const message: Partial<Activity> = MessageFactory.attachment({
         contentType: "application/vnd.microsoft.card.adaptive",
@@ -2657,6 +2670,7 @@ All monitoring checks are passing normally.`;
       });
 
       await turnContext.sendActivity(message);
+      turnContext.turnState.set(this.WELCOME_CARD_STATE_KEY, true);
       logger.debug("Welcome adaptive card sent successfully");
     } catch (error) {
       logger.error("Error sending welcome adaptive card: " + error);
