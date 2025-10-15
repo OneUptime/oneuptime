@@ -175,12 +175,6 @@ export default class TelemetryUtil {
         cacheKey,
         mergedKeys,
       );
-
-      await TelemetryAttributeService.refreshAttributes({
-        projectId: data.projectId,
-        telemetryType: data.telemetryType,
-        attributes: mergedKeys,
-      });
     }
   }
 

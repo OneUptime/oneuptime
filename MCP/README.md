@@ -32,7 +32,7 @@ The MCP server automatically generates tools for each OneUptime model with the f
 The server automatically generates tools for all OneUptime models including:
 
 **Database Models**: Incident, Alert, Monitor, Project, User, Team, StatusPage, and 100+ more
-**Analytics Models**: Log, Metric, Span, TelemetryAttribute, ExceptionInstance, MonitorLog
+**Analytics Models**: Log, Metric, Span, ExceptionInstance, MonitorLog
 
 ## Configuration
 

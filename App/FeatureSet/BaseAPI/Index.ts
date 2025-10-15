@@ -141,9 +141,6 @@ import LogService, {
   LogService as LogServiceType,
 } from "Common/Server/Services/LogService";
 
-import TelemetryAttributeService, {
-  TelemetryAttributeService as TelemetryAttributeServiceType,
-} from "Common/Server/Services/TelemetryAttributeService";
 import CopilotActionTypePriorityService, {
   Service as CopilotActionTypePriorityServiceType,
 } from "Common/Server/Services/CopilotActionTypePriorityService";
@@ -489,7 +486,6 @@ import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import ServiceCatalogDependency from "Common/Models/DatabaseModels/ServiceCatalogDependency";
-import TelemetryAttribute from "Common/Models/AnalyticsModels/TelemetryAttribute";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import TelemetyException from "Common/Models/DatabaseModels/TelemetryException";
 import CopilotActionTypePriority from "Common/Models/DatabaseModels/CopilotActionTypePriority";
@@ -612,14 +608,6 @@ const BaseAPIFeatureSet: FeatureSet = {
     const app: ExpressApplication = Express.getExpressApp();
 
     const APP_NAME: string = "api";
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAnalyticsAPI<TelemetryAttribute, TelemetryAttributeServiceType>(
-        TelemetryAttribute,
-        TelemetryAttributeService,
-      ).getRouter(),
-    );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OpenAPI.getRouter());
 

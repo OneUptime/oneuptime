@@ -135,7 +135,6 @@ import WorkflowVariablesService from "./WorkflowVariableService";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import CopilotPullRequestService from "./CopilotPullRequestService";
 import ServiceCatalogDependencyService from "./ServiceCatalogDependencyService";
-import TelemetryAttributeService from "./TelemetryAttributeService";
 import TelemetryExceptionService from "./TelemetryExceptionService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import CopilotActionTypePriorityService from "./CopilotActionTypePriorityService";
@@ -356,7 +355,6 @@ export const AnalyticsServices: Array<
   LogService,
   SpanService,
   MetricService,
-  TelemetryAttributeService,
   ExceptionInstanceService,
   MonitorLogService,
 ];

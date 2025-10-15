@@ -1,13 +1,46 @@
+import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
-import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
-import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
-import TelemetryAttribute from "../../Models/AnalyticsModels/TelemetryAttribute";
+import LogDatabaseService from "./LogService";
+import MetricDatabaseService from "./MetricService";
+import SpanDatabaseService from "./SpanService";
+import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import type AnalyticsDatabaseService from "./AnalyticsDatabaseService";
 
-export class TelemetryAttributeService extends AnalyticsDatabaseService<TelemetryAttribute> {
-  public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
-    super({ modelType: TelemetryAttribute, database: clickhouseDatabase });
+type TelemetrySource = {
+  service: AnalyticsDatabaseService<any>;
+  tableName: string;
+  attributesColumn: string;
+};
+
+export class TelemetryAttributeService {
+  private static readonly ATTRIBUTES_LIMIT: number = 5000;
+
+  private getTelemetrySource(telemetryType: TelemetryType): TelemetrySource | null {
+    switch (telemetryType) {
+      case TelemetryType.Log:
+        return {
+          service: LogDatabaseService,
+          tableName: LogDatabaseService.model.tableName,
+          attributesColumn: "attributes",
+        };
+      case TelemetryType.Metric:
+        return {
+          service: MetricDatabaseService,
+          tableName: MetricDatabaseService.model.tableName,
+          attributesColumn: "attributes",
+        };
+      case TelemetryType.Trace:
+        return {
+          service: SpanDatabaseService,
+          tableName: SpanDatabaseService.model.tableName,
+          attributesColumn: "attributes",
+        };
+      default:
+        return null;
+    }
   }
 
   @CaptureSpan()
@@ -15,58 +48,49 @@ export class TelemetryAttributeService extends AnalyticsDatabaseService<Telemetr
     projectId: ObjectID;
     telemetryType: TelemetryType;
   }): Promise<string[]> {
-    const telemetryAttribute: TelemetryAttribute | null = await this.findOneBy({
-      query: {
-        projectId: data.projectId,
-        telemetryType: data.telemetryType,
-      },
-      select: {
-        attributes: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const source: TelemetrySource | null = this.getTelemetrySource(
+      data.telemetryType,
+    );
 
-    return telemetryAttribute &&
-      telemetryAttribute.attributes &&
-      telemetryAttribute
-      ? telemetryAttribute.attributes
-      : [];
+    if (!source) {
+      return [];
+    }
+
+    const { service, tableName, attributesColumn } = source;
+
+    const statement: Statement = SQL`
+      SELECT DISTINCT arrayJoin(JSONExtractKeys(${attributesColumn})) AS attribute
+      FROM ${tableName}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }}
+        AND ${attributesColumn} IS NOT NULL
+        AND ${attributesColumn} != ''
+      ORDER BY attribute ASC
+      LIMIT ${{
+        type: TableColumnType.Number,
+        value: TelemetryAttributeService.ATTRIBUTES_LIMIT,
+      }}
+    `;
+
+    const dbResult = await service.executeQuery(statement);
+    const response = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const rows: Array<JSONObject> = response.data || [];
+
+    const attributeKeys: Array<string> = rows
+      .map((row: JSONObject) => {
+        const attribute: unknown = row["attribute"];
+        return typeof attribute === "string" ? attribute : null;
+      })
+      .filter((attribute): attribute is string => Boolean(attribute));
+
+    return Array.from(new Set(attributeKeys));
   }
 
-  @CaptureSpan()
-  public async refreshAttributes(data: {
-    projectId: ObjectID;
-    telemetryType: TelemetryType;
-    attributes: string[];
-  }): Promise<void> {
-    const { projectId, telemetryType, attributes } = data;
-
-    // delete existing attributes
-    await this.deleteBy({
-      query: {
-        projectId,
-        telemetryType,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const telemetryAttribute: TelemetryAttribute = new TelemetryAttribute();
-
-    telemetryAttribute.projectId = projectId;
-    telemetryAttribute.telemetryType = telemetryType;
-    telemetryAttribute.attributes = attributes;
-
-    await this.create({
-      data: telemetryAttribute,
-      props: {
-        isRoot: true,
-      },
-    });
-  }
 }
 
 export default new TelemetryAttributeService();
