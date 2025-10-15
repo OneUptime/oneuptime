@@ -1,10 +1,6 @@
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import TelemetryType from "../../../Types/Telemetry/TelemetryType";
-import GlobalCache from "../../Infrastructure/GlobalCache";
-import TelemetryAttributeService from "../../Services/TelemetryAttributeService";
 import CaptureSpan from "./CaptureSpan";
-import logger from "../Logger";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import MetricTypeService from "../../Services/MetricTypeService";
 import TelemetryService from "../../../Models/DatabaseModels/TelemetryService";
@@ -124,57 +120,6 @@ export default class TelemetryUtil {
           },
         });
       }
-    }
-  }
-
-  @CaptureSpan()
-  public static async indexAttributes(data: {
-    attributes: Array<string>;
-    projectId: ObjectID;
-    telemetryType: TelemetryType;
-  }): Promise<void> {
-    // index attributes
-
-    logger.debug("Indexing attributes");
-    logger.debug("data: " + JSON.stringify(data, null, 2));
-
-    const cacheKey: string =
-      data.projectId.toString() + "_" + data.telemetryType;
-
-    // get keys from cache
-    const cacheKeys: string[] =
-      (await GlobalCache.getStringArray("telemetryAttributesKeys", cacheKey)) ||
-      [];
-
-    let isKeysMissingInCache: boolean = false;
-
-    // check if keys are missing in cache
-
-    const attributeKeys: string[] = data.attributes;
-
-    for (const key of attributeKeys) {
-      if (!cacheKeys.includes(key)) {
-        isKeysMissingInCache = true;
-        break;
-      }
-    }
-
-    // merge keys and remove duplicates
-    if (isKeysMissingInCache) {
-      const dbKeys: string[] = await TelemetryAttributeService.fetchAttributes({
-        projectId: data.projectId,
-        telemetryType: data.telemetryType,
-      });
-
-      const mergedKeys: Array<string> = Array.from(
-        new Set([...dbKeys, ...attributeKeys, ...cacheKeys]),
-      );
-
-      await GlobalCache.setStringArray(
-        "telemetryAttributesKeys",
-        cacheKey,
-        mergedKeys,
-      );
     }
   }
 
