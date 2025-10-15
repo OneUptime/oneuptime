@@ -7,7 +7,10 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import type AnalyticsDatabaseService from "./AnalyticsDatabaseService";
+import AnalyticsDatabaseService, {
+  DbJSONResponse,
+  Results,
+} from "./AnalyticsDatabaseService";
 
 type TelemetrySource = {
   service: AnalyticsDatabaseService<any>;
@@ -18,7 +21,9 @@ type TelemetrySource = {
 export class TelemetryAttributeService {
   private static readonly ATTRIBUTES_LIMIT: number = 5000;
 
-  private getTelemetrySource(telemetryType: TelemetryType): TelemetrySource | null {
+  private getTelemetrySource(
+    telemetryType: TelemetryType,
+  ): TelemetrySource | null {
     switch (telemetryType) {
       case TelemetryType.Log:
         return {
@@ -74,8 +79,8 @@ export class TelemetryAttributeService {
       }}
     `;
 
-    const dbResult = await service.executeQuery(statement);
-    const response = await dbResult.json<{
+    const dbResult: Results = await service.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
       data?: Array<JSONObject>;
     }>();
 
@@ -86,11 +91,12 @@ export class TelemetryAttributeService {
         const attribute: unknown = row["attribute"];
         return typeof attribute === "string" ? attribute : null;
       })
-      .filter((attribute): attribute is string => Boolean(attribute));
+      .filter((attribute: string | null): attribute is string => {
+        return Boolean(attribute);
+      });
 
     return Array.from(new Set(attributeKeys));
   }
-
 }
 
 export default new TelemetryAttributeService();

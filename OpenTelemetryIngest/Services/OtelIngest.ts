@@ -260,7 +260,7 @@ export default class OtelIngestService {
         throw new BadRequestException("Invalid resourceLogs format");
       }
 
-  const dbLogs: Array<Log> = [];
+      const dbLogs: Array<Log> = [];
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
       let totalLogsProcessed: number = 0;
 
@@ -513,7 +513,7 @@ export default class OtelIngestService {
 
       // Memory cleanup: Clear large objects to help GC
       try {
-  dbLogs.length = 0;
+        dbLogs.length = 0;
 
         // Clear request body to free memory
         if (req.body) {
@@ -607,7 +607,7 @@ export default class OtelIngestService {
         throw new BadRequestException("Invalid resourceMetrics format");
       }
 
-  const dbMetrics: Array<Metric> = [];
+      const dbMetrics: Array<Metric> = [];
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
 
       /*
@@ -898,7 +898,7 @@ export default class OtelIngestService {
 
       // Memory cleanup: Clear large objects to help GC
       try {
-  dbMetrics.length = 0;
+        dbMetrics.length = 0;
 
         // Clear request body to free memory
         if (req.body) {
@@ -954,8 +954,8 @@ export default class OtelIngestService {
         throw new BadRequestException("Invalid resourceSpans format");
       }
 
-  const dbSpans: Array<Span> = [];
-  const dbExceptions: Array<ExceptionInstance> = [];
+      const dbSpans: Array<Span> = [];
+      const dbExceptions: Array<ExceptionInstance> = [];
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
       let totalSpansProcessed: number = 0;
 
