@@ -17,7 +17,7 @@ ARG APP_VERSION
 ENV GIT_SHA=${GIT_SHA}
 ENV APP_VERSION=${APP_VERSION}
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-ENV NODE_OPTIONS="--use-openssl-ca --expose-gc"
+ENV NODE_OPTIONS="--use-openssl-ca"
 
 ## Add Intermediate Certs 
 COPY ./SslCertificates /usr/local/share/ca-certificates
