@@ -53,24 +53,6 @@ import {
 } from "../Config";
 
 export default class OtelIngestService {
-  /**
-   * Helper method to trigger garbage collection if available
-   * This helps prevent memory leaks when processing large volumes of telemetry data
-   */
-  private static forceGarbageCollection(): void {
-    try {
-      if (global.gc) {
-        global.gc();
-      }
-    } catch (error) {
-      logger.error(error);
-      logger.debug(
-        "Garbage collection not triggered. Ensure Node.js is started with --expose-gc flag.",
-      );
-      // GC not available, ignore
-    }
-  }
-
   private static async flushLogsBuffer(
     logs: Array<Log>,
     force: boolean = false,
@@ -95,8 +77,6 @@ export default class OtelIngestService {
           isRoot: true,
         },
       });
-
-      this.forceGarbageCollection();
     }
   }
 
@@ -124,8 +104,6 @@ export default class OtelIngestService {
           isRoot: true,
         },
       });
-
-      this.forceGarbageCollection();
     }
   }
 
@@ -153,8 +131,6 @@ export default class OtelIngestService {
           isRoot: true,
         },
       });
-
-      this.forceGarbageCollection();
     }
   }
 
@@ -182,8 +158,6 @@ export default class OtelIngestService {
           isRoot: true,
         },
       });
-
-      this.forceGarbageCollection();
     }
   }
 
@@ -560,7 +534,6 @@ export default class OtelIngestService {
         }
 
         // Force garbage collection for large telemetry ingestion
-        this.forceGarbageCollection();
       } catch (cleanupError) {
         logger.error("Error during memory cleanup:");
         logger.error(cleanupError);
@@ -959,7 +932,6 @@ export default class OtelIngestService {
         }
 
         // Force garbage collection for large telemetry ingestion
-        this.forceGarbageCollection();
       } catch (cleanupError) {
         logger.error("Error during memory cleanup:");
         logger.error(cleanupError);
@@ -1338,7 +1310,6 @@ export default class OtelIngestService {
         }
 
         // Force garbage collection for large telemetry ingestion
-        this.forceGarbageCollection();
       } catch (cleanupError) {
         logger.error("Error during memory cleanup:");
         logger.error(cleanupError);
