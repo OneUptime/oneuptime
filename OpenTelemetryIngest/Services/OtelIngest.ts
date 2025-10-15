@@ -45,6 +45,12 @@ import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import LogsQueueService from "./Queue/LogsQueueService";
 import TracesQueueService from "./Queue/TracesQueueService";
 import MetricsQueueService from "./Queue/MetricsQueueService";
+import {
+  OPEN_TELEMETRY_INGEST_EXCEPTION_FLUSH_BATCH_SIZE,
+  OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE,
+  OPEN_TELEMETRY_INGEST_METRIC_FLUSH_BATCH_SIZE,
+  OPEN_TELEMETRY_INGEST_TRACE_FLUSH_BATCH_SIZE,
+} from "../Config";
 
 export default class OtelIngestService {
   /**
@@ -62,6 +68,122 @@ export default class OtelIngestService {
         "Garbage collection not triggered. Ensure Node.js is started with --expose-gc flag.",
       );
       // GC not available, ignore
+    }
+  }
+
+  private static async flushLogsBuffer(
+    logs: Array<Log>,
+    force: boolean = false,
+  ): Promise<void> {
+    while (
+      logs.length >= OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE ||
+      (force && logs.length > 0)
+    ) {
+      const batchSize: number = Math.min(
+        logs.length,
+        OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE,
+      );
+      const batch: Array<Log> = logs.splice(0, batchSize);
+
+      if (batch.length === 0) {
+        continue;
+      }
+
+      await LogService.createMany({
+        items: batch,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      this.forceGarbageCollection();
+    }
+  }
+
+  private static async flushMetricsBuffer(
+    metrics: Array<Metric>,
+    force: boolean = false,
+  ): Promise<void> {
+    while (
+      metrics.length >= OPEN_TELEMETRY_INGEST_METRIC_FLUSH_BATCH_SIZE ||
+      (force && metrics.length > 0)
+    ) {
+      const batchSize: number = Math.min(
+        metrics.length,
+        OPEN_TELEMETRY_INGEST_METRIC_FLUSH_BATCH_SIZE,
+      );
+      const batch: Array<Metric> = metrics.splice(0, batchSize);
+
+      if (batch.length === 0) {
+        continue;
+      }
+
+      await MetricService.createMany({
+        items: batch,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      this.forceGarbageCollection();
+    }
+  }
+
+  private static async flushSpansBuffer(
+    spans: Array<Span>,
+    force: boolean = false,
+  ): Promise<void> {
+    while (
+      spans.length >= OPEN_TELEMETRY_INGEST_TRACE_FLUSH_BATCH_SIZE ||
+      (force && spans.length > 0)
+    ) {
+      const batchSize: number = Math.min(
+        spans.length,
+        OPEN_TELEMETRY_INGEST_TRACE_FLUSH_BATCH_SIZE,
+      );
+      const batch: Array<Span> = spans.splice(0, batchSize);
+
+      if (batch.length === 0) {
+        continue;
+      }
+
+      await SpanService.createMany({
+        items: batch,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      this.forceGarbageCollection();
+    }
+  }
+
+  private static async flushExceptionsBuffer(
+    exceptions: Array<ExceptionInstance>,
+    force: boolean = false,
+  ): Promise<void> {
+    while (
+      exceptions.length >= OPEN_TELEMETRY_INGEST_EXCEPTION_FLUSH_BATCH_SIZE ||
+      (force && exceptions.length > 0)
+    ) {
+      const batchSize: number = Math.min(
+        exceptions.length,
+        OPEN_TELEMETRY_INGEST_EXCEPTION_FLUSH_BATCH_SIZE,
+      );
+      const batch: Array<ExceptionInstance> = exceptions.splice(0, batchSize);
+
+      if (batch.length === 0) {
+        continue;
+      }
+
+      await ExceptionInstanceService.createMany({
+        items: batch,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      this.forceGarbageCollection();
     }
   }
 
@@ -168,6 +290,7 @@ export default class OtelIngestService {
       const dbLogs: Array<Log> = [];
       const attributeKeySet: Set<string> = new Set<string>();
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
+      let totalLogsProcessed: number = 0;
 
       let resourceLogCounter: number = 0;
       for (const resourceLog of resourceLogs) {
@@ -373,6 +496,13 @@ export default class OtelIngestService {
                   }
 
                   dbLogs.push(dbLog);
+                  totalLogsProcessed++;
+
+                  if (
+                    dbLogs.length >= OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE
+                  ) {
+                    await this.flushLogsBuffer(dbLogs);
+                  }
                 } catch (logError) {
                   logger.error("Error processing individual log record:");
                   logger.error(logError);
@@ -395,18 +525,14 @@ export default class OtelIngestService {
         }
       }
 
-      if (dbLogs.length === 0) {
+      await this.flushLogsBuffer(dbLogs, true);
+
+      if (totalLogsProcessed === 0) {
         logger.warn("No valid logs were processed from the request");
         return;
       }
 
       await Promise.all([
-        LogService.createMany({
-          items: dbLogs,
-          props: {
-            isRoot: true,
-          },
-        }),
         TelemetryUtil.indexAttributes({
           attributes: Array.from(attributeKeySet),
           projectId: (req as TelemetryRequest).projectId,
@@ -420,7 +546,7 @@ export default class OtelIngestService {
       ]);
 
       logger.debug(
-        `Successfully processed ${dbLogs.length} logs for project: ${(req as TelemetryRequest).projectId}`,
+        `Successfully processed ${totalLogsProcessed} logs for project: ${(req as TelemetryRequest).projectId}`,
       );
 
       // Memory cleanup: Clear large objects to help GC
@@ -530,6 +656,7 @@ export default class OtelIngestService {
        * example: "cpu.usage" -> [serviceId1, serviceId2]
        */
       const metricNameServiceNameMap: Dictionary<MetricType> = {};
+      let totalMetricsProcessed: number = 0;
 
       let resourceMetricCounter: number = 0;
       for (const resourceMetric of resourceMetrics) {
@@ -746,6 +873,14 @@ export default class OtelIngestService {
 
                         dbMetricPoint.metricPointType = metricPointType;
                         dbMetrics.push(dbMetricPoint);
+                        totalMetricsProcessed++;
+
+                        if (
+                          dbMetrics.length >=
+                          OPEN_TELEMETRY_INGEST_METRIC_FLUSH_BATCH_SIZE
+                        ) {
+                          await this.flushMetricsBuffer(dbMetrics);
+                        }
                       } catch (datapointError) {
                         logger.warn(
                           `Error processing metric datapoint: ${datapointError instanceof Error ? datapointError.message : String(datapointError)}`,
@@ -780,7 +915,9 @@ export default class OtelIngestService {
         }
       }
 
-      if (dbMetrics.length === 0) {
+      await this.flushMetricsBuffer(dbMetrics, true);
+
+      if (totalMetricsProcessed === 0) {
         logger.warn("No valid metrics were processed from the request");
         return;
       }
@@ -795,12 +932,6 @@ export default class OtelIngestService {
       });
 
       await Promise.all([
-        MetricService.createMany({
-          items: dbMetrics,
-          props: {
-            isRoot: true,
-          },
-        }),
         TelemetryUtil.indexAttributes({
           attributes: Array.from(attributeKeySet),
           projectId: (req as TelemetryRequest).projectId,
@@ -814,7 +945,7 @@ export default class OtelIngestService {
       ]);
 
       logger.debug(
-        `Successfully processed ${dbMetrics.length} metrics for project: ${(req as TelemetryRequest).projectId}`,
+        `Successfully processed ${totalMetricsProcessed} metrics for project: ${(req as TelemetryRequest).projectId}`,
       );
 
       // Memory cleanup: Clear large objects to help GC
@@ -881,6 +1012,7 @@ export default class OtelIngestService {
       const dbExceptions: Array<ExceptionInstance> = [];
       const attributeKeySet: Set<string> = new Set<string>();
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
+      let totalSpansProcessed: number = 0;
 
       let resourceSpanCounter: number = 0;
       for (const resourceSpan of resourceSpans) {
@@ -1130,6 +1262,21 @@ export default class OtelIngestService {
                   );
 
                   dbSpans.push(dbSpan);
+                  totalSpansProcessed++;
+
+                  if (
+                    dbSpans.length >=
+                    OPEN_TELEMETRY_INGEST_TRACE_FLUSH_BATCH_SIZE
+                  ) {
+                    await this.flushSpansBuffer(dbSpans);
+                  }
+
+                  if (
+                    dbExceptions.length >=
+                    OPEN_TELEMETRY_INGEST_EXCEPTION_FLUSH_BATCH_SIZE
+                  ) {
+                    await this.flushExceptionsBuffer(dbExceptions);
+                  }
                 } catch (spanError) {
                   logger.error("Error processing individual span:");
                   logger.error(spanError);
@@ -1152,24 +1299,17 @@ export default class OtelIngestService {
         }
       }
 
-      if (dbSpans.length === 0) {
+      await Promise.all([
+        this.flushSpansBuffer(dbSpans, true),
+        this.flushExceptionsBuffer(dbExceptions, true),
+      ]);
+
+      if (totalSpansProcessed === 0) {
         logger.warn("No valid spans were processed from the request");
         return;
       }
 
       await Promise.all([
-        SpanService.createMany({
-          items: dbSpans,
-          props: {
-            isRoot: true,
-          },
-        }),
-        ExceptionInstanceService.createMany({
-          items: dbExceptions,
-          props: {
-            isRoot: true,
-          },
-        }),
         TelemetryUtil.indexAttributes({
           attributes: Array.from(attributeKeySet),
           projectId: (req as TelemetryRequest).projectId,
@@ -1183,7 +1323,7 @@ export default class OtelIngestService {
       ]);
 
       logger.debug(
-        `Successfully processed ${dbSpans.length} spans for project: ${(req as TelemetryRequest).projectId}`,
+        `Successfully processed ${totalSpansProcessed} spans for project: ${(req as TelemetryRequest).projectId}`,
       );
 
       // Memory cleanup: Clear large objects to help GC
