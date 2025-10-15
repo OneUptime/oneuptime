@@ -153,7 +153,6 @@ The OneUptime MCP Server provides access to 126 different resource types across 
 ### Telemetry Services
 - **TelemetryService**: Manage telemetry data sources
 - **TelemetryIngestionKey**: Keys for telemetry data ingestion
-- **TelemetryAttribute**: Manage telemetry attributes
 - **Log**: Access and manage log data
 - **Span**: Distributed tracing spans
 - **Metric**: Application and infrastructure metrics

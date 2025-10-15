@@ -55,6 +55,11 @@ import Sort from "../Types/AnalyticsDatabase/Sort";
 import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 
+export type Results = ResultSet<"JSON">;
+export type DbJSONResponse = ResponseJSON<{
+  data?: Array<JSONObject>;
+}>;
+
 export default class AnalyticsDatabaseService<
   TBaseModel extends AnalyticsBaseModel,
 > extends BaseService {

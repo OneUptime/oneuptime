@@ -30,7 +30,6 @@ import Span, {
   SpanStatus,
 } from "Common/Models/AnalyticsModels/Span";
 import ExceptionUtil from "../Utils/Exception";
-import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import logger from "Common/Server/Utils/Logger";
 import Metric, {
   MetricPointType,
@@ -262,7 +261,6 @@ export default class OtelIngestService {
       }
 
       const dbLogs: Array<Log> = [];
-      const attributeKeySet: Set<string> = new Set<string>();
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
       let totalLogsProcessed: number = 0;
 
@@ -376,9 +374,6 @@ export default class OtelIngestService {
                   }
 
                   dbLog.attributes = attributesObject;
-                  Object.keys(dbLog.attributes).forEach((key: string) => {
-                    return attributeKeySet.add(key);
-                  });
 
                   dbLog.projectId = (req as TelemetryRequest).projectId;
                   dbLog.serviceId = serviceDictionary[serviceName]!.serviceId!;
@@ -506,18 +501,11 @@ export default class OtelIngestService {
         return;
       }
 
-      await Promise.all([
-        TelemetryUtil.indexAttributes({
-          attributes: Array.from(attributeKeySet),
-          projectId: (req as TelemetryRequest).projectId,
-          telemetryType: TelemetryType.Log,
-        }),
-        OTelIngestService.recordDataIngestedUsgaeBilling({
-          services: serviceDictionary,
-          projectId: (req as TelemetryRequest).projectId,
-          productType: ProductType.Logs,
-        }),
-      ]);
+      await OTelIngestService.recordDataIngestedUsgaeBilling({
+        services: serviceDictionary,
+        projectId: (req as TelemetryRequest).projectId,
+        productType: ProductType.Logs,
+      });
 
       logger.debug(
         `Successfully processed ${totalLogsProcessed} logs for project: ${(req as TelemetryRequest).projectId}`,
@@ -526,7 +514,6 @@ export default class OtelIngestService {
       // Memory cleanup: Clear large objects to help GC
       try {
         dbLogs.length = 0;
-        attributeKeySet.clear();
 
         // Clear request body to free memory
         if (req.body) {
@@ -621,7 +608,6 @@ export default class OtelIngestService {
       }
 
       const dbMetrics: Array<Metric> = [];
-      const attributeKeySet: Set<string> = new Set<string>();
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
 
       /*
@@ -796,10 +782,6 @@ export default class OtelIngestService {
 
                   dbMetric.attributes = attributesObject;
 
-                  Object.keys(dbMetric.attributes).forEach((key: string) => {
-                    return attributeKeySet.add(key);
-                  });
-
                   const dataPoints: JSONArray = ((
                     metric["sum"] as JSONObject
                   )?.["dataPoints"] ||
@@ -904,18 +886,11 @@ export default class OtelIngestService {
         logger.error(err);
       });
 
-      await Promise.all([
-        TelemetryUtil.indexAttributes({
-          attributes: Array.from(attributeKeySet),
-          projectId: (req as TelemetryRequest).projectId,
-          telemetryType: TelemetryType.Metric,
-        }),
-        OTelIngestService.recordDataIngestedUsgaeBilling({
-          services: serviceDictionary,
-          projectId: (req as TelemetryRequest).projectId,
-          productType: ProductType.Metrics,
-        }),
-      ]);
+      await OTelIngestService.recordDataIngestedUsgaeBilling({
+        services: serviceDictionary,
+        projectId: (req as TelemetryRequest).projectId,
+        productType: ProductType.Metrics,
+      });
 
       logger.debug(
         `Successfully processed ${totalMetricsProcessed} metrics for project: ${(req as TelemetryRequest).projectId}`,
@@ -924,7 +899,6 @@ export default class OtelIngestService {
       // Memory cleanup: Clear large objects to help GC
       try {
         dbMetrics.length = 0;
-        attributeKeySet.clear();
 
         // Clear request body to free memory
         if (req.body) {
@@ -982,7 +956,6 @@ export default class OtelIngestService {
 
       const dbSpans: Array<Span> = [];
       const dbExceptions: Array<ExceptionInstance> = [];
-      const attributeKeySet: Set<string> = new Set<string>();
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
       let totalSpansProcessed: number = 0;
 
@@ -1098,10 +1071,6 @@ export default class OtelIngestService {
                   }
 
                   dbSpan.attributes = attributesObject;
-
-                  Object.keys(dbSpan.attributes).forEach((key: string) => {
-                    return attributeKeySet.add(key);
-                  });
 
                   dbSpan.projectId = (req as TelemetryRequest).projectId;
                   dbSpan.serviceId = serviceDictionary[serviceName]!.serviceId!;
@@ -1227,12 +1196,6 @@ export default class OtelIngestService {
                     dbSpan.links = [];
                   }
 
-                  Object.keys(dbSpan.attributes || {}).forEach(
-                    (key: string) => {
-                      return attributeKeySet.add(key);
-                    },
-                  );
-
                   dbSpans.push(dbSpan);
                   totalSpansProcessed++;
 
@@ -1281,18 +1244,11 @@ export default class OtelIngestService {
         return;
       }
 
-      await Promise.all([
-        TelemetryUtil.indexAttributes({
-          attributes: Array.from(attributeKeySet),
-          projectId: (req as TelemetryRequest).projectId,
-          telemetryType: TelemetryType.Trace,
-        }),
-        OTelIngestService.recordDataIngestedUsgaeBilling({
-          services: serviceDictionary,
-          projectId: (req as TelemetryRequest).projectId,
-          productType: ProductType.Traces,
-        }),
-      ]);
+      await OTelIngestService.recordDataIngestedUsgaeBilling({
+        services: serviceDictionary,
+        projectId: (req as TelemetryRequest).projectId,
+        productType: ProductType.Traces,
+      });
 
       logger.debug(
         `Successfully processed ${totalSpansProcessed} spans for project: ${(req as TelemetryRequest).projectId}`,
@@ -1302,8 +1258,6 @@ export default class OtelIngestService {
       try {
         dbSpans.length = 0;
         dbExceptions.length = 0;
-        attributeKeySet.clear();
-
         // Clear request body to free memory
         if (req.body) {
           req.body = null;

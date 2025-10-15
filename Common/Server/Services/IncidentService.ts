@@ -43,7 +43,6 @@ import Metric, {
 } from "../../Models/AnalyticsModels/Metric";
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
-import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import logger from "../Utils/Logger";
 import Semaphore, {
   SemaphoreMutex,
@@ -2160,15 +2159,6 @@ ${incidentSeverity.name}
       props: {
         isRoot: true,
       },
-    });
-
-    // index attributes.
-    TelemetryUtil.indexAttributes({
-      attributes: ["monitorIds", "projectId", "incidentId", "monitorNames"],
-      projectId: incident.projectId,
-      telemetryType: TelemetryType.Metric,
-    }).catch((err: Error) => {
-      logger.error(err);
     });
 
     TelemetryUtil.indexMetricNameServiceNameMap({

@@ -80,9 +80,6 @@ enum Permission {
   EditTelemetryServiceMetrics = "EditTelemetryServiceMetrics",
   ReadTelemetryServiceMetrics = "ReadTelemetryServiceMetrics",
 
-  // Telemetry Attributes
-  DeleteTelemetryAttributes = "DeleteTelemetryAttributes",
-
   // Billing Permissions (Owner Permission)
   ManageProjectBilling = "ManageProjectBilling",
 
