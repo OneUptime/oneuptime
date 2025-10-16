@@ -92,12 +92,18 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const [telemetryAttributes, setTelemetryAttributes] = useState<Array<string>>(
     [],
   );
+  const [telemetryAttributesLoaded, setTelemetryAttributesLoaded] =
+    useState<boolean>(false);
+  const [telemetryAttributesLoading, setTelemetryAttributesLoading] =
+    useState<boolean>(false);
+  const [telemetryAttributesError, setTelemetryAttributesError] =
+    useState<string>("");
 
   const metricViewDataRef: React.MutableRefObject<MetricViewData> =
     React.useRef(props.data);
 
   useEffect(() => {
-    loadAllMetricsTypes().catch((err: Error) => {
+    loadMetricTypes().catch((err: Error) => {
       setPageError(API.getFriendlyErrorMessage(err as Error));
     });
   }, []);
@@ -134,20 +140,23 @@ const MetricView: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
   const [metricResultsError, setMetricResultsError] = useState<string>("");
 
-  const loadAllMetricsTypes: PromiseVoidFunction = async (): Promise<void> => {
+  const loadMetricTypes: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsPageLoading(true);
 
       const {
         metricTypes,
-        telemetryAttributes,
       }: {
         metricTypes: Array<MetricType>;
-        telemetryAttributes: Array<string>;
-      } = await MetricUtil.loadAllMetricsTypes();
+      } = await MetricUtil.loadAllMetricsTypes({
+        includeAttributes: false,
+      });
 
       setMetricTypes(metricTypes);
-      setTelemetryAttributes(telemetryAttributes);
+      setTelemetryAttributes([]);
+      setTelemetryAttributesLoaded(false);
+      setTelemetryAttributesLoading(false);
+      setTelemetryAttributesError("");
 
       setIsPageLoading(false);
       setPageError("");
@@ -192,6 +201,40 @@ const MetricView: FunctionComponent<ComponentProps> = (
     } catch (err) {
       setIsPageLoading(false);
       setPageError(API.getFriendlyErrorMessage(err as Error));
+    }
+  };
+
+  const loadTelemetryAttributes: PromiseVoidFunction =
+    async (): Promise<void> => {
+      if (telemetryAttributesLoading || telemetryAttributesLoaded) {
+        return;
+      }
+
+      try {
+        setTelemetryAttributesLoading(true);
+        setTelemetryAttributesError("");
+
+        const attributes: Array<string> =
+          await MetricUtil.getTelemetryAttributes();
+
+        setTelemetryAttributes(attributes);
+        setTelemetryAttributesLoaded(true);
+      } catch (err) {
+        setTelemetryAttributes([]);
+        setTelemetryAttributesLoaded(false);
+        setTelemetryAttributesError(
+          `We couldn't load metric attributes. ${API.getFriendlyErrorMessage(err as Error)}`,
+        );
+      } finally {
+        setTelemetryAttributesLoading(false);
+      }
+    };
+
+  const handleAdvancedFiltersToggle: (show: boolean) => void = (
+    show: boolean,
+  ): void => {
+    if (show && !telemetryAttributesLoaded && !telemetryAttributesLoading) {
+      void loadTelemetryAttributes();
     }
   };
 
@@ -276,6 +319,13 @@ const MetricView: FunctionComponent<ComponentProps> = (
                     hideCard={props.hideCardInQueryElements}
                     telemetryAttributes={telemetryAttributes}
                     metricTypes={metricTypes}
+                    onAdvancedFiltersToggle={handleAdvancedFiltersToggle}
+                    attributesLoading={telemetryAttributesLoading}
+                    attributesError={telemetryAttributesError}
+                    onAttributesRetry={() => {
+                      setTelemetryAttributesLoaded(false);
+                      void loadTelemetryAttributes();
+                    }}
                     onRemove={() => {
                       if (props.data.queryConfigs.length === 1) {
                         setShowCannotRemoveOneRemainingQueryError(true);

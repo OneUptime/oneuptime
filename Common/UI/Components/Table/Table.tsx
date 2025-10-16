@@ -54,6 +54,9 @@ export interface ComponentProps<T extends GenericObject> {
   onFilterModalClose?: (() => void) | undefined;
   onFilterModalOpen?: (() => void) | undefined;
   filterData?: undefined | FilterData<T>;
+  onAdvancedFiltersToggle?:
+    | undefined
+    | ((showAdvancedFilters: boolean) => void);
 
   enableDragAndDrop?: boolean | undefined;
   dragDropIndexField?: keyof T | undefined;
@@ -242,6 +245,7 @@ const Table: TableFunction = <T extends GenericObject>(
         singularLabel={props.singularLabel}
         pluralLabel={props.pluralLabel}
         filterData={props.filterData}
+        onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
       />
       {props.bulkActions?.buttons && (
         <BulkUpdateForm

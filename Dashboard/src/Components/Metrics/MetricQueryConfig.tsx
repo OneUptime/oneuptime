@@ -23,6 +23,12 @@ export interface ComponentProps {
   onBlur?: (() => void) | undefined;
   tabIndex?: number | undefined;
   hideCard?: boolean | undefined;
+  onAdvancedFiltersToggle?:
+    | undefined
+    | ((showAdvancedFilters: boolean) => void);
+  attributesLoading?: boolean | undefined;
+  attributesError?: string | undefined;
+  onAttributesRetry?: (() => void) | undefined;
 }
 
 const MetricGraphConfig: FunctionComponent<ComponentProps> = (
@@ -56,6 +62,10 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
             }}
             metricTypes={props.metricTypes}
             telemetryAttributes={props.telemetryAttributes}
+            onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
+            isAttributesLoading={props.attributesLoading}
+            attributesError={props.attributesError}
+            onAttributesRetry={props.onAttributesRetry}
           />
         )}
         {props.onRemove && (

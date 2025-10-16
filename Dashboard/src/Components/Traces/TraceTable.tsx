@@ -11,6 +11,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useState,
 } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -46,6 +47,11 @@ const TraceTable: FunctionComponent<ComponentProps> = (
   const modelId: ObjectID | undefined = props.modelId;
 
   const [attributes, setAttributes] = React.useState<Array<string>>([]);
+  const [attributesLoaded, setAttributesLoaded] =
+    React.useState<boolean>(false);
+  const [attributesLoading, setAttributesLoading] =
+    React.useState<boolean>(false);
+  const [attributesError, setAttributesError] = React.useState<string>("");
 
   const [isPageLoading, setIsPageLoading] = React.useState<boolean>(true);
   const [pageError, setPageError] = React.useState<string>("");
@@ -58,17 +64,56 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     Array<TelemetryService>
   >([]);
 
+  const [areAdvancedFiltersVisible, setAreAdvancedFiltersVisible] =
+    useState<boolean>(false);
+
   useEffect(() => {
     if (props.spanQuery) {
       setSpanQuery(props.spanQuery);
     }
   }, [props.spanQuery]);
 
-  const loadItems: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      setIsPageLoading(true);
+  const loadTelemetryServices: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        setIsPageLoading(true);
+        setPageError("");
 
-      const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        const telemetryServicesResponse: ListResult<TelemetryService> =
+          await ModelAPI.getList({
+            modelType: TelemetryService,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            select: {
+              serviceColor: true,
+              name: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          });
+
+        setTelemetryServices(telemetryServicesResponse.data || []);
+      } catch (err) {
+        setPageError(API.getFriendlyErrorMessage(err as Error));
+      } finally {
+        setIsPageLoading(false);
+      }
+    };
+
+  const loadAttributes: PromiseVoidFunction = async (): Promise<void> => {
+    if (attributesLoading || attributesLoaded) {
+      return;
+    }
+
+    try {
+      setAttributesLoading(true);
+      setAttributesError("");
+
+      const attributeResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.post({
           url: URL.fromString(APP_API_URL.toString()).addRoute(
             "/telemetry/traces/get-attributes",
@@ -79,48 +124,39 @@ const TraceTable: FunctionComponent<ComponentProps> = (
           },
         });
 
-      if (attributeRepsonse instanceof HTTPErrorResponse) {
-        throw attributeRepsonse;
-      } else {
-        const attributes: Array<string> = attributeRepsonse.data[
-          "attributes"
-        ] as Array<string>;
-        setAttributes(attributes);
+      if (attributeResponse instanceof HTTPErrorResponse) {
+        throw attributeResponse;
       }
 
-      // Load telemetry services
-      const telemetryServices: ListResult<TelemetryService> =
-        await ModelAPI.getList({
-          modelType: TelemetryService,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          select: {
-            serviceColor: true,
-            name: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
-
-      setTelemetryServices(telemetryServices.data || []);
-
-      setIsPageLoading(false);
-      setPageError("");
+      const fetchedAttributes: Array<string> = (attributeResponse.data[
+        "attributes"
+      ] || []) as Array<string>;
+      setAttributes(fetchedAttributes);
+      setAttributesLoaded(true);
     } catch (err) {
-      setIsPageLoading(false);
-      setPageError(API.getFriendlyErrorMessage(err as Error));
+      setAttributes([]);
+      setAttributesLoaded(false);
+      setAttributesError(API.getFriendlyErrorMessage(err as Error));
+    } finally {
+      setAttributesLoading(false);
     }
   };
 
   useEffect(() => {
-    loadItems().catch((err: Error) => {
+    loadTelemetryServices().catch((err: Error) => {
       setPageError(API.getFriendlyErrorMessage(err as Error));
     });
   }, []);
+
+  const handleAdvancedFiltersToggle: (show: boolean) => void = (
+    show: boolean,
+  ): void => {
+    setAreAdvancedFiltersVisible(show);
+
+    if (show && !attributesLoaded && !attributesLoading) {
+      void loadAttributes();
+    }
+  };
 
   const spanKindDropdownOptions: Array<DropdownOption> =
     SpanUtil.getSpanKindDropdownOptions();
@@ -142,12 +178,31 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     return <PageLoader isVisible={true} />;
   }
 
-  if (pageError) {
-    return <ErrorMessage message={pageError} />;
-  }
-
   return (
     <Fragment>
+      {pageError && (
+        <div className="mb-4">
+          <ErrorMessage
+            message={`We couldn't load telemetry services. ${pageError}`}
+            onRefreshClick={() => {
+              void loadTelemetryServices();
+            }}
+          />
+        </div>
+      )}
+
+      {areAdvancedFiltersVisible && attributesError && (
+        <div className="mb-4">
+          <ErrorMessage
+            message={`We couldn't load trace attributes. ${attributesError}`}
+            onRefreshClick={() => {
+              setAttributesLoaded(false);
+              void loadAttributes();
+            }}
+          />
+        </div>
+      )}
+
       <div className="rounded">
         <AnalyticsModelTable<Span>
           userPreferencesKey="trace-table"
@@ -251,6 +306,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
               jsonKeys: attributes,
             },
           ]}
+          onAdvancedFiltersToggle={handleAdvancedFiltersToggle}
           selectMoreFields={{
             statusCode: true,
           }}

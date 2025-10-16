@@ -72,10 +72,15 @@ export default class MetricUtil {
     return results;
   }
 
-  public static async loadAllMetricsTypes(): Promise<{
+  public static async loadAllMetricsTypes(options?: {
+    includeAttributes?: boolean;
+  }): Promise<{
     metricTypes: Array<MetricType>;
     telemetryAttributes: Array<string>;
+    telemetryAttributesError?: string;
   }> {
+    const includeAttributes: boolean = options?.includeAttributes ?? true;
+
     const metrics: ListResult<MetricType> = await ModelAPI.getList({
       modelType: MetricType,
       select: {
@@ -94,6 +99,27 @@ export default class MetricUtil {
 
     const metricTypes: Array<MetricType> = metrics.data;
 
+    let telemetryAttributes: Array<string> = [];
+    let telemetryAttributesError: string | undefined;
+
+    if (includeAttributes) {
+      try {
+        telemetryAttributes = await MetricUtil.getTelemetryAttributes();
+      } catch (err) {
+        telemetryAttributesError = API.getFriendlyErrorMessage(err as Error);
+      }
+    }
+
+    return {
+      metricTypes: metricTypes,
+      telemetryAttributes,
+      ...(telemetryAttributesError !== undefined
+        ? { telemetryAttributesError }
+        : {}),
+    };
+  }
+
+  public static async getTelemetryAttributes(): Promise<Array<string>> {
     const metricAttributesResponse:
       | HTTPResponse<JSONObject>
       | HTTPErrorResponse = await API.post({
@@ -106,17 +132,10 @@ export default class MetricUtil {
       },
     });
 
-    let attributes: Array<string> = [];
-
     if (metricAttributesResponse instanceof HTTPErrorResponse) {
       throw metricAttributesResponse;
-    } else {
-      attributes = metricAttributesResponse.data["attributes"] as Array<string>;
     }
 
-    return {
-      metricTypes: metricTypes,
-      telemetryAttributes: attributes,
-    };
+    return (metricAttributesResponse.data["attributes"] || []) as Array<string>;
   }
 }

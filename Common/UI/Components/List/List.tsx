@@ -43,6 +43,9 @@ export interface ComponentProps<T extends GenericObject> {
   onFilterRefreshClick?: undefined | (() => void);
   onFilterModalClose?: (() => void) | undefined;
   onFilterModalOpen?: (() => void) | undefined;
+  onAdvancedFiltersToggle?:
+    | undefined
+    | ((showAdvancedFilters: boolean) => void);
 }
 
 type ListFunction = <T extends GenericObject>(
@@ -118,6 +121,7 @@ const List: ListFunction = <T extends GenericObject>(
             }}
             singularLabel={props.singularLabel}
             pluralLabel={props.pluralLabel}
+            onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
           />
         </div>
         <div className="">

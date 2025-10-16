@@ -224,6 +224,10 @@ export interface BaseTableProps<
 
   formSummary?: FormSummaryConfig | undefined;
 
+  onAdvancedFiltersToggle?:
+    | undefined
+    | ((showAdvancedFilters: boolean) => void);
+
   /*
    * this key is used to save table user preferences in local storage.
    * If you provide this key, the table will save the user preferences in local storage.
@@ -1516,6 +1520,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         onFilterModalOpen={() => {
           setShowFilterModal(true);
         }}
+        onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
         onSortChanged={(
           sortBy: keyof TBaseModel | null,
           sortOrder: SortOrder,
@@ -1662,6 +1667,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         onFilterModalOpen={() => {
           setShowFilterModal(true);
         }}
+        onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
         singularLabel={props.singularName || model.singularName || "Item"}
         pluralLabel={props.pluralName || model.pluralName || "Items"}
         error={error}

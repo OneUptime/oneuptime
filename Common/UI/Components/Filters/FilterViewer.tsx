@@ -30,6 +30,9 @@ export interface ComponentProps<T extends GenericObject> {
   isModalLoading?: boolean;
   onFilterRefreshClick?: undefined | (() => void);
   filterData?: FilterData<T> | undefined;
+  onAdvancedFiltersToggle?:
+    | undefined
+    | ((showAdvancedFilters: boolean) => void);
 }
 
 type FilterComponentFunction = <T extends GenericObject>(
@@ -355,7 +358,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     <div>
       {showViewer && (
         <div>
-          <div className="mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
+          <div className="mt-5 mb-5 bg-gray-50 rounded-xl p-5 border-2 border-gray-100">
             <div className="flex mt-1 mb-2">
               <div className="flex-auto py-0.5 text-sm leading-5">
                 <span className="font-semibold">
@@ -442,6 +445,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
             onFilterChanged={(filterData: FilterData<T>) => {
               setTempFilterDataForModal(filterData);
             }}
+            onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
           />
         </Modal>
       )}
