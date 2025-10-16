@@ -236,12 +236,16 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           if (timelineItem.isAcknowledged) {
             // already acknowledged. Then show already acknowledged page with view details button.
 
+            const viewDetailsRoute: Route = new Route(
+              DashboardRoute.toString(),
+            ).addRoute(
+              `/${timelineItem.projectId?.toString()}/${timelineItem.triggeredByIncidentId ? "incidents" : "alerts"}/${timelineItem.triggeredByIncidentId ? timelineItem.triggeredByIncidentId!.toString() : timelineItem.triggeredByAlertId!.toString()}`,
+            );
+
             const viewDetailsUrl: URL = new URL(
               httpProtocol,
               host,
-              DashboardRoute.addRoute(
-                `/${timelineItem.projectId?.toString()}/${timelineItem.triggeredByIncidentId ? "incidents" : "alerts"}/${timelineItem.triggeredByIncidentId ? timelineItem.triggeredByIncidentId!.toString() : timelineItem.triggeredByAlertId!.toString()}`,
-              ),
+              viewDetailsRoute,
             );
 
             return Response.render(
@@ -273,30 +277,30 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           // redirect to dashboard to incidents page.
 
           if (timelineItem.triggeredByIncidentId) {
+            const incidentRoute: Route = new Route(
+              DashboardRoute.toString(),
+            ).addRoute(
+              `/${timelineItem.projectId?.toString()}/incidents/${timelineItem.triggeredByIncidentId!.toString()}`,
+            );
+
             return Response.redirect(
               req,
               res,
-              new URL(
-                httpProtocol,
-                host,
-                DashboardRoute.addRoute(
-                  `/${timelineItem.projectId?.toString()}/incidents/${timelineItem.triggeredByIncidentId!.toString()}`,
-                ),
-              ),
+              new URL(httpProtocol, host, incidentRoute),
             );
           }
 
           if (timelineItem.triggeredByAlertId) {
+            const alertRoute: Route = new Route(
+              DashboardRoute.toString(),
+            ).addRoute(
+              `/${timelineItem.projectId?.toString()}/alerts/${timelineItem.triggeredByAlertId!.toString()}`,
+            );
+
             return Response.redirect(
               req,
               res,
-              new URL(
-                httpProtocol,
-                host,
-                DashboardRoute.addRoute(
-                  `/${timelineItem.projectId?.toString()}/alerts/${timelineItem.triggeredByAlertId!.toString()}`,
-                ),
-              ),
+              new URL(httpProtocol, host, alertRoute),
             );
           }
 
