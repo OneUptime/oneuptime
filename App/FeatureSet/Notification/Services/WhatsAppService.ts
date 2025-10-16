@@ -68,8 +68,6 @@ export default class WhatsAppService {
         );
       }
 
-      const config: MetaWhatsAppConfig = await getMetaWhatsAppConfig();
-
       const isSensitiveMessage: boolean = Boolean(options.isSensitive);
       const messageSummary: string = isSensitiveMessage
         ? SENSITIVE_MESSAGE_PLACEHOLDER
@@ -130,6 +128,8 @@ export default class WhatsAppService {
       if (options.onCallScheduleId) {
         whatsAppLog.onCallDutyPolicyScheduleId = options.onCallScheduleId;
       }
+
+      const config: MetaWhatsAppConfig = await getMetaWhatsAppConfig();
 
       let messageCost: number = 0;
       const shouldChargeForMessage: boolean = IsBillingEnabled;
@@ -421,7 +421,7 @@ export default class WhatsAppService {
         whatsAppLog.whatsAppMessageId = messageId;
       }
 
-      whatsAppLog.status = WhatsAppStatus.Success;
+      whatsAppLog.status = WhatsAppStatus.Sent;
       whatsAppLog.statusMessage = messageId
         ? `Message ID: ${messageId}`
         : "WhatsApp message sent successfully";
@@ -474,10 +474,14 @@ export default class WhatsAppService {
       await UserOnCallLogTimelineService.updateOneById({
         id: options.userOnCallLogTimelineId,
         data: {
-          status:
-            whatsAppLog.status === WhatsAppStatus.Success
-              ? UserNotificationStatus.Sent
-              : UserNotificationStatus.Error,
+          status: [
+            WhatsAppStatus.Success,
+            WhatsAppStatus.Sent,
+            WhatsAppStatus.Delivered,
+            WhatsAppStatus.Read,
+          ].includes(whatsAppLog.status || WhatsAppStatus.Error)
+            ? UserNotificationStatus.Sent
+            : UserNotificationStatus.Error,
           statusMessage: whatsAppLog.statusMessage,
         },
         props: {
@@ -489,82 +493,5 @@ export default class WhatsAppService {
     if (sendError) {
       throw sendError;
     }
-  }
-
-  public static async getWhatsAppMessageStatus(
-    messageId: string,
-  ): Promise<{
-    status?: string;
-    id?: string;
-    rawResponse: JSONObject;
-  }> {
-    if (!messageId) {
-      throw new BadDataException("WhatsApp message ID is required.");
-    }
-
-    const config: MetaWhatsAppConfig = await getMetaWhatsAppConfig();
-    const apiVersion: string =
-      config.apiVersion?.trim() || DEFAULT_META_WHATSAPP_API_VERSION;
-
-    const url: URL = new URL(
-      Protocol.HTTPS,
-      "graph.facebook.com",
-      new Route(`${apiVersion}/${messageId}`),
-    ).addQueryParam("fields", "status");
-
-    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-      await API.get<JSONObject>({
-        url,
-        headers: {
-          Authorization: `Bearer ${config.accessToken}`,
-        },
-      });
-
-    if (response.isFailure()) {
-      let errorMessage: string | undefined;
-
-      if (response.data && response.data["error"]) {
-        const error: JSONObject = response.data["error"] as JSONObject;
-        errorMessage = (error["message"] as string) || undefined;
-      }
-
-      throw new BadDataException(
-        errorMessage || "Failed to get WhatsApp message status from Meta.",
-      );
-    }
-
-    const responseData: JSONObject = response.data;
-
-    let status: string | undefined =
-      (responseData["status"] as string | undefined) || undefined;
-
-    if (!status && Array.isArray(responseData["messages"])) {
-      const messages: JSONArray = responseData["messages"] as JSONArray;
-      if (messages.length > 0) {
-        const firstMessage: JSONObject = messages[0] as JSONObject;
-        status = (firstMessage["status"] as string) || undefined;
-      }
-    }
-
-    const result: {
-      status?: string;
-      id?: string;
-      rawResponse: JSONObject;
-    } = {
-      rawResponse: responseData,
-    };
-
-    if (status) {
-      result.status = status;
-    }
-
-    const responseId: string | undefined =
-      (responseData["id"] as string) || undefined;
-
-    if (responseId) {
-      result.id = responseId;
-    }
-
-    return result;
   }
 }

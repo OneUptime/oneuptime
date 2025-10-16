@@ -28,7 +28,6 @@ import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import User from "../../Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
-import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import logger from "../Utils/Logger";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import MetricService from "./MetricService";
@@ -1327,15 +1326,6 @@ ${alertSeverity.name}
       props: {
         isRoot: true,
       },
-    });
-
-    // index attributes
-    TelemetryUtil.indexAttributes({
-      attributes: ["monitorId", "projectId", "alertId", "monitorName"],
-      projectId: alert.projectId,
-      telemetryType: TelemetryType.Metric,
-    }).catch((err: Error) => {
-      logger.error(err);
     });
 
     TelemetryUtil.indexMetricNameServiceNameMap({

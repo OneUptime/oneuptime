@@ -584,6 +584,17 @@ The zip file contains the app manifest and required icons for Teams installation
                   );
                 },
               },
+              {
+                title: "Download App Manifest for Sideloading",
+                buttonStyle: SharedButtonStyle.NORMAL,
+                icon: IconProp.Download,
+                onClick: () => {
+                  window.open(
+                    `${HOME_URL.toString()}api/microsoft-teams/app-manifest-zip`,
+                    "_blank",
+                  );
+                },
+              },
             ]}
           >
             <MarkdownViewer
@@ -604,6 +615,14 @@ The zip file contains the app manifest and required icons for Teams installation
 ##### Alternative Installation:
 
 You can also search for "OneUptime" in the Microsoft Teams App Store and install it from there.
+
+##### Manual Sideloading (Advanced):
+
+If you prefer to manually sideload the app:
+1. Download the app manifest using the "Download App Manifest for Sideloading" button above
+2. Go to Microsoft Teams → Apps → Manage your apps
+3. Click "Upload an app" → "Upload a custom app"
+4. Select the downloaded zip file and follow the installation prompts
               `}
             />
           </Card>

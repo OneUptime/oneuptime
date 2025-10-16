@@ -8,7 +8,6 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
-import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -44,12 +43,6 @@ import TelemetryService from "./TelemetryService";
     Permission.ProjectAdmin,
     Permission.EditTelemetryException,
   ],
-})
-@EnableWorkflow({
-  create: true,
-  delete: true,
-  update: true,
-  read: true,
 })
 @CrudApiEndpoint(new Route("/telemetry-exception-status"))
 @TableMetadata({

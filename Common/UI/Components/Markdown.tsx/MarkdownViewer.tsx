@@ -14,7 +14,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <div className="max-w-none p-3">
+    <div className="max-w-none">
       <ReactMarkdown
         components={{
           // because tailwind does not supply <h1 ... /> styles https://tailwindcss.com/docs/preflight#headings-are-unstyled

@@ -321,143 +321,132 @@ export class ProjectService extends DatabaseService<Model> {
         );
       }
 
-      if (updateBy.data.paymentProviderPlanId) {
-        // payment provider id changed.
-        const project: Model | null = await this.findOneById({
-          id: new ObjectID(updateBy.query._id! as string),
-          select: {
-            paymentProviderSubscriptionId: true,
-            paymentProviderMeteredSubscriptionId: true,
-            paymentProviderSubscriptionSeats: true,
-            paymentProviderPlanId: true,
-            trialEndsAt: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        if (!project) {
-          throw new BadDataException("Project not found");
-        }
-
-        if (
-          project.paymentProviderPlanId !== updateBy.data.paymentProviderPlanId
-        ) {
-          logger.debug("Changing plan for project " + project.id);
-
-          const plan: SubscriptionPlan | undefined =
-            SubscriptionPlan.getSubscriptionPlanById(
-              updateBy.data.paymentProviderPlanId! as string,
-              getAllEnvVars(),
-            );
-
-          if (!plan) {
-            throw new BadDataException("Invalid plan");
-          }
-
-          logger.debug(
-            "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName(),
-          );
-
-          if (!project.paymentProviderSubscriptionSeats) {
-            project.paymentProviderSubscriptionSeats =
-              await TeamMemberService.getUniqueTeamMemberCountInProject(
-                project.id!,
-              );
-          }
-
-          logger.debug(
-            "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName() +
-              " with seats " +
-              project.paymentProviderSubscriptionSeats,
-          );
-
-          const subscription: {
-            subscriptionId: string;
-            meteredSubscriptionId: string;
-            trialEndsAt?: Date | undefined;
-          } = await BillingService.changePlan({
-            projectId: project.id!,
-            subscriptionId: project.paymentProviderSubscriptionId as string,
-            meteredSubscriptionId:
-              project.paymentProviderMeteredSubscriptionId as string,
-            serverMeteredPlans: AllMeteredPlans,
-            newPlan: plan,
-            quantity: project.paymentProviderSubscriptionSeats as number,
-            isYearly:
-              plan.getYearlyPlanId() === updateBy.data.paymentProviderPlanId,
-            endTrialAt: project.trialEndsAt,
-          });
-
-          logger.debug(
-            "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName() +
-              " with seats " +
-              project.paymentProviderSubscriptionSeats +
-              " completed.",
-          );
-
-          // refresh subscription status.
-          const subscriptionState: SubscriptionStatus =
-            await BillingService.getSubscriptionStatus(
-              subscription.subscriptionId as string,
-            );
-
-          const meteredSubscriptionState: SubscriptionStatus =
-            await BillingService.getSubscriptionStatus(
-              subscription.meteredSubscriptionId as string,
-            );
-
-          await this.updateOneById({
-            id: new ObjectID(updateBy.query._id! as string),
-            data: {
-              paymentProviderSubscriptionId: subscription.subscriptionId,
-              paymentProviderMeteredSubscriptionId:
-                subscription.meteredSubscriptionId,
-              trialEndsAt: subscription.trialEndsAt || new Date(),
-              planName: SubscriptionPlan.getPlanType(
-                updateBy.data.paymentProviderPlanId! as string,
-              ),
-              paymentProviderMeteredSubscriptionStatus:
-                meteredSubscriptionState,
-              paymentProviderSubscriptionStatus: subscriptionState,
-            },
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
-          });
-
-          logger.debug(
-            "Changing plan for project " +
-              project.id?.toString() +
-              " to " +
-              plan.getName() +
-              " with seats " +
-              project.paymentProviderSubscriptionSeats +
-              " completed and project updated.",
-          );
-
-          if (project.id) {
-            // send slack message on plan change.
-            await this.sendSubscriptionChangeWebhookSlackNotification(
-              project.id,
-            );
-          }
-        }
+      if (
+        updateBy.data.paymentProviderPlanId &&
+        !updateBy.props.ignoreHooks &&
+        !updateBy.props.isRoot
+      ) {
+        throw new BadDataException(
+          "Project plan cannot be updated directly. Please use the change plan API.",
+        );
       }
     }
 
     return { updateBy, carryForward: [] };
+  }
+
+  @CaptureSpan()
+  public async changePlan(params: {
+    projectId: ObjectID;
+    paymentProviderPlanId: string;
+    endTrialAt?: Date | null;
+  }): Promise<void> {
+    if (!IsBillingEnabled) {
+      throw new BadDataException("Billing is not enabled for this server");
+    }
+
+    const project: Model | null = await this.findOneById({
+      id: params.projectId,
+      select: {
+        _id: true,
+        paymentProviderSubscriptionId: true,
+        paymentProviderMeteredSubscriptionId: true,
+        paymentProviderSubscriptionSeats: true,
+        paymentProviderPlanId: true,
+        trialEndsAt: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project) {
+      throw new BadDataException("Project not found");
+    }
+
+    if (!project.paymentProviderSubscriptionId) {
+      throw new BadDataException("Payment Provider subscription not found");
+    }
+
+    if (!project.paymentProviderMeteredSubscriptionId) {
+      throw new BadDataException(
+        "Payment Provider metered subscription not found",
+      );
+    }
+
+    const plan: SubscriptionPlan | undefined =
+      SubscriptionPlan.getSubscriptionPlanById(
+        params.paymentProviderPlanId,
+        getAllEnvVars(),
+      );
+
+    if (!plan) {
+      throw new BadDataException("Invalid plan");
+    }
+
+    let seats: number | undefined = project.paymentProviderSubscriptionSeats;
+
+    if (!seats || seats <= 0) {
+      seats = await TeamMemberService.getUniqueTeamMemberCountInProject(
+        project.id!,
+      );
+    }
+
+    logger.debug(
+      `Changing plan for project ${project.id?.toString()} to ${plan.getName()} with seats ${seats}`,
+    );
+
+    const endTrialAt: Date | undefined =
+      params.endTrialAt !== undefined
+        ? params.endTrialAt || undefined
+        : project.trialEndsAt || undefined;
+
+    const subscription: {
+      subscriptionId: string;
+      meteredSubscriptionId: string;
+      trialEndsAt?: Date | undefined;
+    } = await BillingService.changePlan({
+      projectId: project.id!,
+      subscriptionId: project.paymentProviderSubscriptionId,
+      meteredSubscriptionId: project.paymentProviderMeteredSubscriptionId,
+      serverMeteredPlans: AllMeteredPlans,
+      newPlan: plan,
+      quantity: seats,
+      isYearly: plan.getYearlyPlanId() === params.paymentProviderPlanId,
+      endTrialAt: endTrialAt,
+    });
+
+    const subscriptionState: SubscriptionStatus =
+      await BillingService.getSubscriptionStatus(subscription.subscriptionId);
+
+    const meteredSubscriptionState: SubscriptionStatus =
+      await BillingService.getSubscriptionStatus(
+        subscription.meteredSubscriptionId,
+      );
+
+    await this.updateOneById({
+      id: project.id!,
+      data: {
+        paymentProviderPlanId: params.paymentProviderPlanId,
+        paymentProviderSubscriptionId: subscription.subscriptionId,
+        paymentProviderMeteredSubscriptionId:
+          subscription.meteredSubscriptionId,
+        paymentProviderSubscriptionSeats: seats,
+        trialEndsAt: subscription.trialEndsAt || endTrialAt || new Date(),
+        planName: SubscriptionPlan.getPlanType(
+          params.paymentProviderPlanId,
+          getAllEnvVars(),
+        ),
+        paymentProviderMeteredSubscriptionStatus: meteredSubscriptionState,
+        paymentProviderSubscriptionStatus: subscriptionState,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    await this.sendSubscriptionChangeWebhookSlackNotification(project.id!);
   }
 
   private async sendSubscriptionChangeWebhookSlackNotification(

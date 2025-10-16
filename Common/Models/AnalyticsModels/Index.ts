@@ -2,7 +2,6 @@ import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Log from "./Log";
 import Metric from "./Metric";
 import Span from "./Span";
-import TelemetryAttribute from "./TelemetryAttribute";
 import ExceptionInstance from "./ExceptionInstance";
 import MonitorLog from "./MonitorLog";
 
@@ -10,7 +9,6 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   Log,
   Span,
   Metric,
-  TelemetryAttribute,
   ExceptionInstance,
   MonitorLog,
 ];

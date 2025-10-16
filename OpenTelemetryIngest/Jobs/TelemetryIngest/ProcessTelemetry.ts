@@ -2,7 +2,9 @@ import {
   TelemetryIngestJobData,
   TelemetryType,
 } from "../../Services/Queue/TelemetryQueueService";
-import OtelIngestService from "../../Services/OtelIngest";
+import OtelLogsIngestService from "../../Services/OtelLogsIngestService";
+import OtelTracesIngestService from "../../Services/OtelTracesIngestService";
+import OtelMetricsIngestService from "../../Services/OtelMetricsIngestService";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import logger from "Common/Server/Utils/Logger";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
@@ -33,21 +35,21 @@ QueueWorker.getWorker(
       // Process based on telemetry type
       switch (jobData.type) {
         case TelemetryType.Logs:
-          await OtelIngestService.processLogsFromQueue(mockRequest);
+          await OtelLogsIngestService.processLogsFromQueue(mockRequest);
           logger.debug(
             `Successfully processed logs for project: ${jobData.projectId}`,
           );
           break;
 
         case TelemetryType.Traces:
-          await OtelIngestService.processTracesFromQueue(mockRequest);
+          await OtelTracesIngestService.processTracesFromQueue(mockRequest);
           logger.debug(
             `Successfully processed traces for project: ${jobData.projectId}`,
           );
           break;
 
         case TelemetryType.Metrics:
-          await OtelIngestService.processMetricsFromQueue(mockRequest);
+          await OtelMetricsIngestService.processMetricsFromQueue(mockRequest);
           logger.debug(
             `Successfully processed metrics for project: ${jobData.projectId}`,
           );

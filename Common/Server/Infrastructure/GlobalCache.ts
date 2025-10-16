@@ -7,6 +7,10 @@ import { JSONArray, JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
+type CacheSetOptions = {
+  expiresInSeconds: number;
+};
+
 export default abstract class GlobalCache {
   @CaptureSpan()
   public static async getJSONObject(
@@ -56,8 +60,9 @@ export default abstract class GlobalCache {
     namespace: string,
     key: string,
     value: string[],
+    options?: CacheSetOptions,
   ): Promise<void> {
-    await this.setString(namespace, key, JSON.stringify(value));
+    await this.setString(namespace, key, JSON.stringify(value), options);
   }
 
   @CaptureSpan()
@@ -136,11 +141,13 @@ export default abstract class GlobalCache {
     namespace: string,
     key: string,
     value: JSONObject,
+    options?: CacheSetOptions,
   ): Promise<void> {
     await this.setString(
       namespace,
       key,
       JSON.stringify(JSONFunctions.serialize(value)),
+      options,
     );
   }
 
@@ -149,6 +156,7 @@ export default abstract class GlobalCache {
     namespace: string,
     key: string,
     value: string,
+    options?: CacheSetOptions,
   ): Promise<void> {
     const client: ClientType | null = Redis.getClient();
 
@@ -157,9 +165,8 @@ export default abstract class GlobalCache {
     }
 
     await client.set(`${namespace}-${key}`, value);
-    await client.expire(
-      `${namespace}-${key}`,
-      OneUptimeDate.getSecondsInDays(30),
-    );
+    const expiresInSeconds: number =
+      options?.expiresInSeconds ?? OneUptimeDate.getSecondsInDays(30);
+    await client.expire(`${namespace}-${key}`, expiresInSeconds);
   }
 }

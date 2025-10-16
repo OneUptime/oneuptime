@@ -21,6 +21,7 @@ import { AccountsRoute } from "../../ServiceRoute";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
+import Route from "../../Types/API/Route";
 import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
@@ -151,10 +152,18 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             templateType: EmailTemplateType.InviteMember,
             vars: {
               signInLink: URL.fromString(
-                new URL(httpProtocol, host, AccountsRoute).toString(),
+                new URL(
+                  httpProtocol,
+                  host,
+                  new Route(AccountsRoute.toString()),
+                ).toString(),
               ).toString(),
               registerLink: URL.fromString(
-                new URL(httpProtocol, host, AccountsRoute).toString(),
+                new URL(
+                  httpProtocol,
+                  host,
+                  new Route(AccountsRoute.toString()),
+                ).toString(),
               )
                 .addRoute("/register")
                 .addQueryParam("email", email.toString(), true)

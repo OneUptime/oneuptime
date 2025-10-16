@@ -1059,22 +1059,6 @@ export default class MonitorResourceUtil {
       logger.error(err);
     });
 
-    // index attributes.
-    TelemetryUtil.indexAttributes({
-      attributes: [
-        "monitorId",
-        "projectId",
-        "probeId",
-        "browserType",
-        "screenSizeType",
-        "diskPath",
-      ],
-      projectId: data.projectId,
-      telemetryType: TelemetryType.Metric,
-    }).catch((err: Error) => {
-      logger.error(err);
-    });
-
     // save monitor log.
     const monitorLog: MonitorLog = new MonitorLog();
     monitorLog.monitorId = data.monitorId;

@@ -3,6 +3,7 @@ import { AccountsRoute, DashboardRoute } from "../ServiceRoute";
 import Hostname from "../Types/API/Hostname";
 import Protocol from "../Types/API/Protocol";
 import URL from "../Types/API/URL";
+import Route from "../Types/API/Route";
 import BadDataException from "../Types/Exception/BadDataException";
 import { JSONValue } from "../Types/JSON";
 import GlobalConfig from "../Models/DatabaseModels/GlobalConfig";
@@ -56,7 +57,11 @@ export default class DatabaseConfig {
   @CaptureSpan()
   public static async getAccountsUrl(): Promise<URL> {
     const host: Hostname = await DatabaseConfig.getHost();
-    return new URL(await DatabaseConfig.getHttpProtocol(), host, AccountsRoute);
+    return new URL(
+      await DatabaseConfig.getHttpProtocol(),
+      host,
+      new Route(AccountsRoute.toString()),
+    );
   }
 
   @CaptureSpan()
@@ -65,7 +70,7 @@ export default class DatabaseConfig {
     return new URL(
       await DatabaseConfig.getHttpProtocol(),
       host,
-      DashboardRoute,
+      new Route(DashboardRoute.toString()),
     );
   }
 

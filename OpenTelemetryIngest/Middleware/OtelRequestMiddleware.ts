@@ -66,7 +66,6 @@ export default class OpenTelemetryRequestMiddleware {
 
       logger.debug("Product Type: " + productType);
       logger.debug("Is Protobuf: " + isProtobuf);
-      logger.debug("Request Body: " + JSON.stringify(req.body, null, 2));
 
       next();
     } catch (err) {

@@ -1,5 +1,4 @@
 import DataMigrationBase from "./DataMigrationBase";
-import TelemetryAttributeService from "Common/Server/Services/TelemetryAttributeService";
 
 export default class DeleteAllTelemetryAttributes extends DataMigrationBase {
   public constructor() {
@@ -7,12 +6,8 @@ export default class DeleteAllTelemetryAttributes extends DataMigrationBase {
   }
 
   public override async migrate(): Promise<void> {
-    await TelemetryAttributeService.deleteBy({
-      query: {},
-      props: {
-        isRoot: true,
-      },
-    });
+    // Telemetry attributes now reside directly within telemetry data tables.
+    return;
   }
 
   public override async rollback(): Promise<void> {

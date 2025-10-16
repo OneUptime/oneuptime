@@ -44,7 +44,7 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
     >
       <div
         data-testid="confirm-modal-description"
-        className="text-gray-500 mt-5 text-sm text-wrap"
+        className="text-gray-500 mt-5 text-sm whitespace-pre-wrap break-words max-h-96 overflow-y-auto pr-1"
       >
         {props.description}
       </div>
