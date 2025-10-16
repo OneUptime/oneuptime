@@ -51,3 +51,19 @@ SELECT
 FROM system.disks d
 ORDER BY used_percent DESC;
 ```
+
+
+### Get List of queries running in Clickhouse
+
+```sql
+SELECT
+*
+FROM system.processes
+ORDER BY elapsed DESC;
+```
+
+#### Kill a query in Clickhouse
+
+```sql
+KILL QUERY WHERE query_id = 'your_query_id';
+```
