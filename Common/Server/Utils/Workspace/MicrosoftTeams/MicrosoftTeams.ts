@@ -98,6 +98,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       );
     }
 
+    if(!microsoftAppTenantId) {
+      throw new BadDataException("Microsoft Teams tenant ID is required");
+    }
+
     logger.debug(
       "Creating Bot Framework adapter with authentication configuration",
     );
