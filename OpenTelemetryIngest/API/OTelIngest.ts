@@ -7,7 +7,9 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import OpenTelemetryRequestMiddleware from "../Middleware/OtelRequestMiddleware";
-import OtelIngestService from "../Services/OtelIngest";
+import OtelTracesIngestService from "../Services/OtelTracesIngestService";
+import OtelMetricsIngestService from "../Services/OtelMetricsIngestService";
+import OtelLogsIngestService from "../Services/OtelLogsIngestService";
 import TelemetryQueueService from "../Services/Queue/TelemetryQueueService";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import { JSONObject } from "Common/Types/JSON";
@@ -29,7 +31,7 @@ router.post(
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-    return OtelIngestService.ingestTraces(req, res, next);
+  return OtelTracesIngestService.ingestTraces(req, res, next);
   },
 );
 
@@ -42,7 +44,7 @@ router.post(
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-    return OtelIngestService.ingestMetrics(req, res, next);
+  return OtelMetricsIngestService.ingestMetrics(req, res, next);
   },
 );
 
@@ -55,7 +57,7 @@ router.post(
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-    return OtelIngestService.ingestLogs(req, res, next);
+  return OtelLogsIngestService.ingestLogs(req, res, next);
   },
 );
 
