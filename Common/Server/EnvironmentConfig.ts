@@ -10,6 +10,7 @@ import {
 import BillingConfig from "./BillingConfig";
 import Protocol from "../Types/API/Protocol";
 import URL from "../Types/API/URL";
+import Route from "../Types/API/Route";
 import SubscriptionPlan from "../Types/Billing/SubscriptionPlan";
 import Email from "../Types/Email";
 import { JSONObject } from "../Types/JSON";
@@ -303,32 +304,44 @@ export const NotificationSlackWebhookOnSubscriptionUpdate: string =
 export const AdminDashboardClientURL: URL = new URL(
   HttpProtocol,
   Host,
-  AdminDashboardRoute,
+  new Route(AdminDashboardRoute.toString()),
 );
 
-export const AppApiClientUrl: URL = new URL(HttpProtocol, Host, AppApiRoute);
+export const AppApiClientUrl: URL = new URL(
+  HttpProtocol,
+  Host,
+  new Route(AppApiRoute.toString()),
+);
 
 export const StatusPageApiClientUrl: URL = new URL(
   HttpProtocol,
   Host,
-  StatusPageApiRoute,
+  new Route(StatusPageApiRoute.toString()),
 );
 
 export const DashboardClientUrl: URL = new URL(
   HttpProtocol,
   Host,
-  DashboardRoute,
+  new Route(DashboardRoute.toString()),
 );
 
 export const AccountsClientUrl: URL = new URL(
   HttpProtocol,
   Host,
-  AccountsRoute,
+  new Route(AccountsRoute.toString()),
 );
 
-export const HomeClientUrl: URL = new URL(HttpProtocol, Host, HomeRoute);
+export const HomeClientUrl: URL = new URL(
+  HttpProtocol,
+  Host,
+  new Route(HomeRoute.toString()),
+);
 
-export const DocsClientUrl: URL = new URL(HttpProtocol, Host, DocsRoute);
+export const DocsClientUrl: URL = new URL(
+  HttpProtocol,
+  Host,
+  new Route(DocsRoute.toString()),
+);
 
 export const DisableTelemetry: boolean =
   process.env["DISABLE_TELEMETRY"] === "true";
