@@ -202,6 +202,10 @@ export class TelemetryAttributeService {
         TelemetryAttributeService.CACHE_NAMESPACE,
         cacheKey,
         payload,
+        {
+          expiresInSeconds:
+            TelemetryAttributeService.CACHE_STALE_AFTER_MINUTES * 60,
+        },
       );
     } catch (err) {
       return;
