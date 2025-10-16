@@ -10,7 +10,12 @@ import {
 } from "../../../Types/FunctionTypes";
 import Log from "../../../Models/AnalyticsModels/Log";
 import LogSeverity from "../../../Types/Log/LogSeverity";
-import React, { FunctionComponent, ReactElement, Ref } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  Ref,
+  useCallback,
+} from "react";
 import Toggle from "../Toggle/Toggle";
 import Card from "../Card/Card";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
@@ -58,6 +63,11 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     React.useRef<HTMLDivElement>(null);
 
   const [logAttributes, setLogAttributes] = React.useState<Array<string>>([]);
+  const [attributesLoaded, setAttributesLoaded] = React.useState<boolean>(false);
+  const [attributesLoading, setAttributesLoading] = React.useState<boolean>(false);
+  const [attributesError, setAttributesError] = React.useState<string>("");
+  const [areAdvancedFiltersVisible, setAreAdvancedFiltersVisible] =
+    React.useState<boolean>(false);
 
   const [isPageLoading, setIsPageLoading] = React.useState<boolean>(true);
   const [pageError, setPageError] = React.useState<string>("");
@@ -66,66 +76,87 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     Dictionary<TelemetryService>
   >({});
 
-  const loadAttributes: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      setIsPageLoading(true);
+  const loadTelemetryServices: PromiseVoidFunction = useCallback(
+    async (): Promise<void> => {
+      try {
+        setIsPageLoading(true);
+        setPageError("");
 
-      const telemetryServices: ListResult<TelemetryService> =
-        await ModelAPI.getList({
-          modelType: TelemetryService,
-          query: {},
-          select: {
-            name: true,
-            serviceColor: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
-      const services: Dictionary<TelemetryService> = {};
+        const telemetryServices: ListResult<TelemetryService> =
+          await ModelAPI.getList({
+            modelType: TelemetryService,
+            query: {},
+            select: {
+              name: true,
+              serviceColor: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          });
+        const services: Dictionary<TelemetryService> = {};
 
-      telemetryServices.data.forEach((service: TelemetryService) => {
-        services[service.id!.toString()!] = service;
-      });
-
-      setServiceMap(services);
-
-      const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            "/telemetry/logs/get-attributes",
-          ),
-          data: {},
-          headers: {
-            ...ModelAPI.getCommonHeaders(),
-          },
+        telemetryServices.data.forEach((service: TelemetryService) => {
+          services[service.id!.toString()!] = service;
         });
 
-      if (attributeRepsonse instanceof HTTPErrorResponse) {
-        throw attributeRepsonse;
-      } else {
-        const attributes: Array<string> = attributeRepsonse.data[
-          "attributes"
-        ] as Array<string>;
-        setLogAttributes(attributes);
+        setServiceMap(services);
+      } catch (err) {
+        setPageError(
+          `We couldn't load telemetry service metadata. ${API.getFriendlyErrorMessage(err as Error)}`,
+        );
+      } finally {
+        setIsPageLoading(false);
       }
+    },
+    [],
+  );
 
-      setIsPageLoading(false);
-      setPageError("");
-    } catch (err) {
-      setIsPageLoading(false);
-      setPageError(API.getFriendlyErrorMessage(err as Error));
-    }
-  };
+  const loadAttributes: PromiseVoidFunction = useCallback(
+    async (): Promise<void> => {
+      try {
+        setAttributesLoading(true);
+        setAttributesError("");
+
+        const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              "/telemetry/logs/get-attributes",
+            ),
+            data: {},
+            headers: {
+              ...ModelAPI.getCommonHeaders(),
+            },
+          });
+
+        if (attributeRepsonse instanceof HTTPErrorResponse) {
+          throw attributeRepsonse;
+        }
+
+        const attributes: Array<string> = (attributeRepsonse.data[
+          "attributes"
+        ] || []) as Array<string>;
+        setLogAttributes(attributes);
+        setAttributesLoaded(true);
+      } catch (err) {
+        setLogAttributes([]);
+        setAttributesLoaded(false);
+        setAttributesError(
+          `We couldn't load log attributes. Filters may be limited. ${API.getFriendlyErrorMessage(err as Error)}`,
+        );
+      } finally {
+        setAttributesLoading(false);
+      }
+    },
+    [],
+  );
 
   // Update the screen height when the window is resized
 
   React.useEffect(() => {
-    loadAttributes().catch((err: unknown) => {
-      setPageError(API.getFriendlyErrorMessage(err as Error));
-    });
+    void loadTelemetryServices();
 
     const handleResize: any = (): void => {
       setScreenHeight(window.innerHeight);
@@ -136,7 +167,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, []);
+  }, [loadTelemetryServices]);
 
   // Keep scroll to the bottom of the log
 
@@ -180,11 +211,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   if (isPageLoading) {
     return <PageLoader isVisible={true} />;
   }
-
-  if (pageError) {
+ if (pageError) {
     return <ErrorMessage message={pageError} />;
   }
-
   return (
     <div>
       {props.showFilters && (
@@ -198,6 +227,28 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 onFilterChanged={(filterData: Query<Log>) => {
                   setFilterData(filterData);
                 }}
+                onAdvancedFiltersToggle={(show: boolean) => {
+                  setAreAdvancedFiltersVisible(show);
+
+                  if (show && !attributesLoaded && !attributesLoading) {
+                    void loadAttributes();
+                  }
+                }}
+                isFilterLoading={
+                  areAdvancedFiltersVisible && attributesLoading
+                }
+                filterError={
+                  areAdvancedFiltersVisible && attributesError
+                    ? attributesError
+                    : undefined
+                }
+                onFilterRefreshClick={
+                  areAdvancedFiltersVisible && attributesError
+                    ? () => {
+                        void loadAttributes();
+                      }
+                    : undefined
+                }
                 filters={[
                   {
                     key: "body",

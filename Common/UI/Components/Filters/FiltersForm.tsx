@@ -24,6 +24,7 @@ export interface ComponentProps<T extends GenericObject> {
   isFilterLoading?: undefined | boolean;
   filterError?: string | undefined;
   onFilterRefreshClick?: undefined | (() => void);
+  onAdvancedFiltersToggle?: undefined | ((showAdvancedFilters: boolean) => void);
 }
 
 type FiltersFormFunction = <T extends GenericObject>(
@@ -131,7 +132,11 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
                 : "Show Advanced Filters"
             }
             onClick={() => {
-              setShowMoreFilters(!showMoreFilters);
+              setShowMoreFilters((currentValue: boolean) => {
+                const newValue: boolean = !currentValue;
+                props.onAdvancedFiltersToggle?.(newValue);
+                return newValue;
+              });
             }}
           />
         )}
