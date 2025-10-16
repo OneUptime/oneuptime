@@ -129,6 +129,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     projectId: ObjectID;
   }): Promise<string> {
     logger.debug("=== getValidAccessToken called ===");
+
+    if (!data.projectId) {
+      throw new BadDataException(
+        "projectId is required to get Microsoft Teams access token",
+      );
+    }
     logger.debug(`Project ID: ${data.projectId.toString()}`);
     logger.debug(
       `Auth token (first 20 chars): ${data.authToken?.substring(0, 20)}...`,
@@ -233,6 +239,19 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     miscData: MicrosoftTeamsMiscData;
   }): Promise<string | null> {
     logger.debug("=== refreshAccessToken called ===");
+
+    if (!data.projectId) {
+      throw new BadDataException(
+        "projectId is required to refresh Microsoft Teams access token",
+      );
+    }
+
+    if (!data.miscData) {
+      throw new BadDataException(
+        "miscData is required to refresh Microsoft Teams access token",
+      );
+    }
+
     logger.debug(`Project ID: ${data.projectId.toString()}`);
     logger.debug(`Tenant ID: ${data.miscData.tenantId}`);
 
@@ -784,6 +803,24 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     projectId: ObjectID;
     teamId: string;
   }): Promise<WorkspaceChannel | null> {
+    if (!data.projectId) {
+      throw new BadDataException(
+        "projectId is required to get Microsoft Teams channel by name",
+      );
+    }
+
+    if (!data.teamId) {
+      throw new BadDataException(
+        "teamId is required to get Microsoft Teams channel by name",
+      );
+    }
+
+    if (!data.channelName) {
+      throw new BadDataException(
+        "channelName is required to get Microsoft Teams channel by name",
+      );
+    }
+
     logger.debug(`Getting workspace channel by name: ${data.channelName}`);
 
     // Get project auth to get available teams
@@ -1008,6 +1045,36 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     adaptiveCard: JSONObject;
     projectId: ObjectID;
   }): Promise<WorkspaceThread> {
+    if (!data.projectId) {
+      throw new BadDataException(
+        "projectId is required to send Microsoft Teams adaptive card",
+      );
+    }
+
+    if (!data.teamId) {
+      throw new BadDataException(
+        "teamId is required to send Microsoft Teams adaptive card",
+      );
+    }
+
+    if (!data.workspaceChannel) {
+      throw new BadDataException(
+        "workspaceChannel is required to send Microsoft Teams adaptive card",
+      );
+    }
+
+    if (!data.workspaceChannel.id) {
+      throw new BadDataException(
+        "workspaceChannel.id is required to send Microsoft Teams adaptive card",
+      );
+    }
+
+    if (!data.adaptiveCard) {
+      throw new BadDataException(
+        "adaptiveCard is required to send Microsoft Teams adaptive card",
+      );
+    }
+
     logger.debug(
       `Sending adaptive card to channel via Bot Framework: ${data.workspaceChannel.name} (${data.workspaceChannel.id})`,
     );
@@ -1117,6 +1184,25 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     projectId: ObjectID;
   }): Promise<WorkspaceChannel> {
     logger.debug("=== getWorkspaceChannelFromChannelId called ===");
+
+    if (!data.projectId) {
+      throw new BadDataException(
+        "projectId is required to get Microsoft Teams channel by ID",
+      );
+    }
+
+    if (!data.teamId) {
+      throw new BadDataException(
+        "teamId is required to get Microsoft Teams channel by ID",
+      );
+    }
+
+    if (!data.channelId) {
+      throw new BadDataException(
+        "channelId is required to get Microsoft Teams channel by ID",
+      );
+    }
+
     logger.debug(`Channel ID: ${data.channelId}`);
     logger.debug(`Team ID: ${data.teamId}`);
     logger.debug(`Project ID: ${data.projectId.toString()}`);
@@ -2687,6 +2773,13 @@ All monitoring checks are passing normally.`;
     projectId: ObjectID;
   }): Promise<Record<string, { id: string; name: string }>> {
     logger.debug("=== refreshTeams called ===");
+
+    if (!data.projectId) {
+      throw new BadDataException(
+        "projectId is required to refresh Microsoft Teams teams",
+      );
+    }
+
     logger.debug(`Project ID: ${data.projectId.toString()}`);
 
     try {

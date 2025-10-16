@@ -5,6 +5,7 @@ import Model, {
   WorkspaceMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
@@ -17,6 +18,14 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
   }): Promise<Model | null> {
+    if (!data.projectId) {
+      throw new BadDataException("projectId is required");
+    }
+
+    if (!data.workspaceType) {
+      throw new BadDataException("workspaceType is required");
+    }
+
     return await this.findOneBy({
       query: {
         projectId: data.projectId,
@@ -38,6 +47,10 @@ export class Service extends DatabaseService<Model> {
   public async getProjectAuths(data: {
     projectId: ObjectID;
   }): Promise<Array<Model>> {
+    if (!data.projectId) {
+      throw new BadDataException("projectId is required");
+    }
+
     return await this.findBy({
       query: {
         projectId: data.projectId,
@@ -72,6 +85,26 @@ export class Service extends DatabaseService<Model> {
     workspaceProjectId: string;
     miscData: WorkspaceMiscData;
   }): Promise<void> {
+    if (!data.projectId) {
+      throw new BadDataException("projectId is required");
+    }
+
+    if (!data.workspaceType) {
+      throw new BadDataException("workspaceType is required");
+    }
+
+    if (!data.authToken) {
+      throw new BadDataException("authToken is required");
+    }
+
+    if (!data.workspaceProjectId) {
+      throw new BadDataException("workspaceProjectId is required");
+    }
+
+    if (!data.miscData) {
+      throw new BadDataException("miscData is required");
+    }
+
     let projectAuth: Model | null = await this.findOneBy({
       query: {
         projectId: data.projectId,
