@@ -26,9 +26,7 @@ import logger from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import LogsQueueService from "./Queue/LogsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
-import {
-  OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE,
-} from "../Config";
+import { OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE } from "../Config";
 
 export default class OtelLogsIngestService extends OtelIngestBaseService {
   private static async flushLogsBuffer(
@@ -84,9 +82,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
   }
 
   @CaptureSpan()
-  public static async processLogsFromQueue(
-    req: ExpressRequest,
-  ): Promise<void> {
+  public static async processLogsFromQueue(req: ExpressRequest): Promise<void> {
     await this.processLogsAsync(req);
   }
 

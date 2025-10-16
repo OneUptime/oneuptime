@@ -31,7 +31,7 @@ router.post(
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-  return OtelTracesIngestService.ingestTraces(req, res, next);
+    return OtelTracesIngestService.ingestTraces(req, res, next);
   },
 );
 
@@ -44,7 +44,7 @@ router.post(
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-  return OtelMetricsIngestService.ingestMetrics(req, res, next);
+    return OtelMetricsIngestService.ingestMetrics(req, res, next);
   },
 );
 
@@ -57,7 +57,7 @@ router.post(
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-  return OtelLogsIngestService.ingestLogs(req, res, next);
+    return OtelLogsIngestService.ingestLogs(req, res, next);
   },
 );
 

@@ -29,9 +29,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import MetricsQueueService from "./Queue/MetricsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
-import {
-  OPEN_TELEMETRY_INGEST_METRIC_FLUSH_BATCH_SIZE,
-} from "../Config";
+import { OPEN_TELEMETRY_INGEST_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 
 export default class OtelMetricsIngestService extends OtelIngestBaseService {
   private static async flushMetricsBuffer(
@@ -94,9 +92,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }
 
   @CaptureSpan()
-  private static async processMetricsAsync(
-    req: ExpressRequest,
-  ): Promise<void> {
+  private static async processMetricsAsync(req: ExpressRequest): Promise<void> {
     try {
       const resourceMetrics: JSONArray = req.body[
         "resourceMetrics"
