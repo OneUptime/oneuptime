@@ -30,7 +30,7 @@ export class TelemetryAttributeService {
   private static readonly ATTRIBUTES_LIMIT: number = 5000;
   private static readonly ROW_SCAN_LIMIT: number = 100000;
   private static readonly CACHE_NAMESPACE: string = "telemetry-attributes";
-  private static readonly CACHE_STALE_AFTER_MINUTES: number = 10;
+  private static readonly CACHE_STALE_AFTER_MINUTES: number = 5;
   private static readonly LOOKBACK_WINDOW_IN_DAYS: number = 30;
 
   private getTelemetrySource(
