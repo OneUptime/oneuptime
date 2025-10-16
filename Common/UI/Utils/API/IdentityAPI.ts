@@ -5,7 +5,11 @@ import Route from "../../../Types/API/Route";
 
 class IdentityAPI extends BaseAPI {
   public constructor() {
-    super(HTTP_PROTOCOL, IDENTITY_HOSTNAME, new Route(IdentityRoute.toString()));
+    super(
+      HTTP_PROTOCOL,
+      IDENTITY_HOSTNAME,
+      new Route(IdentityRoute.toString()),
+    );
   }
 }
 
