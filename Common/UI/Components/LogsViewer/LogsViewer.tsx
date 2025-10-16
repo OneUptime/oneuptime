@@ -63,8 +63,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     React.useRef<HTMLDivElement>(null);
 
   const [logAttributes, setLogAttributes] = React.useState<Array<string>>([]);
-  const [attributesLoaded, setAttributesLoaded] = React.useState<boolean>(false);
-  const [attributesLoading, setAttributesLoading] = React.useState<boolean>(false);
+  const [attributesLoaded, setAttributesLoaded] =
+    React.useState<boolean>(false);
+  const [attributesLoading, setAttributesLoading] =
+    React.useState<boolean>(false);
   const [attributesError, setAttributesError] = React.useState<string>("");
   const [areAdvancedFiltersVisible, setAreAdvancedFiltersVisible] =
     React.useState<boolean>(false);
@@ -76,8 +78,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     Dictionary<TelemetryService>
   >({});
 
-  const loadTelemetryServices: PromiseVoidFunction = useCallback(
-    async (): Promise<void> => {
+  const loadTelemetryServices: PromiseVoidFunction =
+    useCallback(async (): Promise<void> => {
       try {
         setIsPageLoading(true);
         setPageError("");
@@ -110,12 +112,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       } finally {
         setIsPageLoading(false);
       }
-    },
-    [],
-  );
+    }, []);
 
-  const loadAttributes: PromiseVoidFunction = useCallback(
-    async (): Promise<void> => {
+  const loadAttributes: PromiseVoidFunction =
+    useCallback(async (): Promise<void> => {
       try {
         setAttributesLoading(true);
         setAttributesError("");
@@ -149,9 +149,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       } finally {
         setAttributesLoading(false);
       }
-    },
-    [],
-  );
+    }, []);
 
   // Update the screen height when the window is resized
 
@@ -211,7 +209,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   if (isPageLoading) {
     return <PageLoader isVisible={true} />;
   }
- if (pageError) {
+  if (pageError) {
     return <ErrorMessage message={pageError} />;
   }
   return (
@@ -234,9 +232,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                     void loadAttributes();
                   }
                 }}
-                isFilterLoading={
-                  areAdvancedFiltersVisible && attributesLoading
-                }
+                isFilterLoading={areAdvancedFiltersVisible && attributesLoading}
                 filterError={
                   areAdvancedFiltersVisible && attributesError
                     ? attributesError

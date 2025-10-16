@@ -24,7 +24,9 @@ export interface ComponentProps<T extends GenericObject> {
   isFilterLoading?: undefined | boolean;
   filterError?: string | undefined;
   onFilterRefreshClick?: undefined | (() => void);
-  onAdvancedFiltersToggle?: undefined | ((showAdvancedFilters: boolean) => void);
+  onAdvancedFiltersToggle?:
+    | undefined
+    | ((showAdvancedFilters: boolean) => void);
 }
 
 type FiltersFormFunction = <T extends GenericObject>(

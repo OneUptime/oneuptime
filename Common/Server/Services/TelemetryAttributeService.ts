@@ -84,10 +84,7 @@ export class TelemetryAttributeService {
     const cachedEntry: TelemetryAttributesCacheEntry | null =
       await TelemetryAttributeService.getCachedAttributes(cacheKey);
 
-    if (
-      cachedEntry &&
-      TelemetryAttributeService.isCacheFresh(cachedEntry)
-    ) {
+    if (cachedEntry && TelemetryAttributeService.isCacheFresh(cachedEntry)) {
       return cachedEntry.attributes;
     }
 
@@ -142,7 +139,7 @@ export class TelemetryAttributeService {
         TelemetryAttributeService.CACHE_NAMESPACE,
         cacheKey,
       );
-    } catch (err) {
+    } catch {
       return null;
     }
 
@@ -153,11 +150,15 @@ export class TelemetryAttributeService {
     const attributesValue: JSONObject["attributes"] = payload["attributes"];
     const refreshedAtValue: JSONObject["refreshedAt"] = payload["refreshedAt"];
 
-    if (!Array.isArray(attributesValue) || typeof refreshedAtValue !== "string") {
+    if (
+      !Array.isArray(attributesValue) ||
+      typeof refreshedAtValue !== "string"
+    ) {
       return null;
     }
 
-    const attributeCandidates: Array<unknown> = attributesValue as Array<unknown>;
+    const attributeCandidates: Array<unknown> =
+      attributesValue as Array<unknown>;
 
     const attributes: Array<string> = attributeCandidates.filter(
       (attribute: unknown): attribute is string => {
@@ -176,15 +177,11 @@ export class TelemetryAttributeService {
   ): boolean {
     const now: Date = OneUptimeDate.getCurrentDate();
     const minutesSinceRefresh: number = Math.abs(
-      OneUptimeDate.getNumberOfMinutesBetweenDates(
-        cacheEntry.refreshedAt,
-        now,
-      ),
+      OneUptimeDate.getNumberOfMinutesBetweenDates(cacheEntry.refreshedAt, now),
     );
 
     return (
-      minutesSinceRefresh <=
-      TelemetryAttributeService.CACHE_STALE_AFTER_MINUTES
+      minutesSinceRefresh <= TelemetryAttributeService.CACHE_STALE_AFTER_MINUTES
     );
   }
 
@@ -207,7 +204,7 @@ export class TelemetryAttributeService {
             TelemetryAttributeService.CACHE_STALE_AFTER_MINUTES * 60,
         },
       );
-    } catch (err) {
+    } catch {
       return;
     }
   }
@@ -257,12 +254,13 @@ export class TelemetryAttributeService {
     projectId: ObjectID;
     source: TelemetrySource;
   }): Promise<Array<string>> {
-    const statement: Statement = TelemetryAttributeService.buildAttributesStatement({
-      projectId: data.projectId,
-      tableName: data.source.tableName,
-      attributesColumn: data.source.attributesColumn,
-      timeColumn: data.source.timeColumn,
-    });
+    const statement: Statement =
+      TelemetryAttributeService.buildAttributesStatement({
+        projectId: data.projectId,
+        tableName: data.source.tableName,
+        attributesColumn: data.source.attributesColumn,
+        timeColumn: data.source.timeColumn,
+      });
 
     const dbResult: Results = await data.source.service.executeQuery(statement);
     const response: DbJSONResponse = await dbResult.json<{
