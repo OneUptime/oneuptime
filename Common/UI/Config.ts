@@ -22,6 +22,7 @@ import {
 import Hostname from "../Types/API/Hostname";
 import Protocol from "../Types/API/Protocol";
 import URL from "../Types/API/URL";
+import Route from "../Types/API/Route";
 import SubscriptionPlan from "../Types/Billing/SubscriptionPlan";
 import Dictionary from "../Types/Dictionary";
 import { JSONObject } from "../Types/JSON";
@@ -94,106 +95,114 @@ export const FILE_HOSTNAME: Hostname = Hostname.fromString(HOST);
 export const APP_API_URL: URL = new URL(
   HTTP_PROTOCOL,
   APP_HOSTNAME,
-  AppApiRoute,
+  new Route(AppApiRoute.toString()),
 );
 
 export const REALTIME_URL: URL = new URL(
   HTTP_PROTOCOL,
   REALTIME_HOSTNAME,
-  RealtimeRoute,
+  new Route(RealtimeRoute.toString()),
 );
 
 export const DOCS_URL: URL = new URL(
   HTTP_PROTOCOL,
   REALTIME_HOSTNAME,
-  DocsRoute,
+  new Route(DocsRoute.toString()),
 );
 
 export const STATUS_PAGE_API_URL: URL = new URL(
   HTTP_PROTOCOL,
   STATUS_PAGE_HOSTNAME,
-  StatusPageApiRoute,
+  new Route(StatusPageApiRoute.toString()),
 );
 
 export const OPEN_TELEMETRY_INGEST_URL: URL = new URL(
   HTTP_PROTOCOL,
   OPEN_TELEMETRY_INGEST_HOSTNAME,
-  OpenTelemetryIngestRoute,
+  new Route(OpenTelemetryIngestRoute.toString()),
 );
 
 export const FLUENT_INGEST_URL: URL = new URL(
   HTTP_PROTOCOL,
   FLUENT_INGEST_HOSTNAME,
-  FluentIngestRoute,
+  new Route(FluentIngestRoute.toString()),
 );
 
 export const IDENTITY_URL: URL = new URL(
   HTTP_PROTOCOL,
   IDENTITY_HOSTNAME,
-  IdentityRoute,
+  new Route(IdentityRoute.toString()),
 );
 
 export const NOTIFICATION_URL: URL = new URL(
   HTTP_PROTOCOL,
   NOTIFICATION_HOSTNAME,
-  NotificationRoute,
+  new Route(NotificationRoute.toString()),
 );
 
 export const WORKFLOW_URL: URL = new URL(
   HTTP_PROTOCOL,
   WORKFLOW_HOSTNAME,
-  WorkflowRoute,
+  new Route(WorkflowRoute.toString()),
 );
 
 export const PROBE_INGEST_URL: URL = new URL(
   HTTP_PROTOCOL,
   PROBE_INGEST_HOSTNAME,
-  ProbeIngestRoute,
+  new Route(ProbeIngestRoute.toString()),
 );
 
 export const INCOMING_REQUEST_INGEST_URL: URL = new URL(
   HTTP_PROTOCOL,
   INCOMING_REQUEST_INGEST_HOSTNAME,
-  IncomingRequestIngestRoute,
+  new Route(IncomingRequestIngestRoute.toString()),
 );
 
 export const STATUS_PAGE_URL: URL = new URL(
   HTTP_PROTOCOL,
   STATUS_PAGE_HOSTNAME,
-  StatusPageRoute,
+  new Route(StatusPageRoute.toString()),
 );
 
-export const FILE_URL: URL = new URL(HTTP_PROTOCOL, FILE_HOSTNAME, FileRoute);
+export const FILE_URL: URL = new URL(
+  HTTP_PROTOCOL,
+  FILE_HOSTNAME,
+  new Route(FileRoute.toString()),
+);
 
 export const DASHBOARD_URL: URL = new URL(
   HTTP_PROTOCOL,
   DASHBOARD_HOSTNAME,
-  DashboardRoute,
+  new Route(DashboardRoute.toString()),
 );
 
 export const INTEGRATION_URL: URL = new URL(
   HTTP_PROTOCOL,
   INTEGRATION_HOSTNAME,
-  IntegrationRoute,
+  new Route(IntegrationRoute.toString()),
 );
 
 export const API_DOCS_URL: URL = new URL(
   HTTP_PROTOCOL,
   API_DOCS_HOSTNAME,
-  ApiReferenceRoute,
+  new Route(ApiReferenceRoute.toString()),
 );
 
 export const ADMIN_DASHBOARD_URL: URL = new URL(
   HTTP_PROTOCOL,
   ADMIN_DASHBOARD_HOSTNAME,
-  AdminDashboardRoute,
+  new Route(AdminDashboardRoute.toString()),
 );
 export const ACCOUNTS_URL: URL = new URL(
   HTTP_PROTOCOL,
   ACCOUNTS_HOSTNAME,
-  AccountsRoute,
+  new Route(AccountsRoute.toString()),
 );
-export const HOME_URL: URL = new URL(HTTP_PROTOCOL, HOME_HOSTNAME, HomeRoute);
+export const HOME_URL: URL = new URL(
+  HTTP_PROTOCOL,
+  HOME_HOSTNAME,
+  new Route(HomeRoute.toString()),
+);
 
 export const SubscriptionPlans: Array<SubscriptionPlan> =
   SubscriptionPlan.getSubscriptionPlans(getAllEnvVars());
