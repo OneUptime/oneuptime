@@ -98,7 +98,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       );
     }
 
-    if(!microsoftAppTenantId) {
+    if (!microsoftAppTenantId) {
       throw new BadDataException("Microsoft Teams tenant ID is required");
     }
 
@@ -165,8 +165,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     const miscData: MicrosoftTeamsMiscData =
       projectAuth.miscData as MicrosoftTeamsMiscData;
-    const tenantId: string | undefined =
-      projectAuth.workspaceProjectId 
+    const tenantId: string | undefined = projectAuth.workspaceProjectId;
 
     logger.debug(`Resolved tenant ID: ${tenantId}`);
 
@@ -1121,8 +1120,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         );
       }
 
-      const tenantId: string | undefined =
-        projectAuth.workspaceProjectId;
+      const tenantId: string | undefined = projectAuth.workspaceProjectId;
 
       if (!tenantId) {
         throw new BadDataException(
@@ -2825,8 +2823,7 @@ All monitoring checks are passing normally.`;
         );
       }
 
-      const tenantId: string | undefined =
-        projectAuth.workspaceProjectId;
+      const tenantId: string | undefined = projectAuth.workspaceProjectId;
 
       if (!tenantId) {
         throw new BadDataException(
