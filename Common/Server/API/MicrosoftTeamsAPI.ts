@@ -58,7 +58,7 @@ export default class MicrosoftTeamsAPI {
         "https://developer.microsoft.com/json-schemas/teams/v1.23/MicrosoftTeams.schema.json",
       manifestVersion: "1.23",
       version: AppVersion.toLowerCase().includes("unknown")
-        ? "1.3.0"
+        ? "1.5.0"
         : AppVersion,
       id: MicrosoftTeamsAppClientId,
       developer: {
