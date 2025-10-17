@@ -165,6 +165,20 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     const miscData: MicrosoftTeamsMiscData =
       projectAuth.miscData as MicrosoftTeamsMiscData;
+    const tenantId: string | undefined =
+      projectAuth.workspaceProjectId 
+
+    logger.debug(`Resolved tenant ID: ${tenantId}`);
+
+    if (!tenantId) {
+      logger.error(
+        "Microsoft Teams tenant ID missing from project auth configuration",
+      );
+      throw new BadDataException(
+        "Microsoft Teams tenant ID not found for this project",
+      );
+    }
+
     logger.debug(
       `MiscData appAccessToken exists: ${Boolean(miscData.appAccessToken)}`,
     );
@@ -194,6 +208,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           const newToken: string | null = await this.refreshAccessToken({
             projectId: data.projectId,
             miscData,
+            tenantId,
           });
           if (newToken) {
             logger.debug("Successfully refreshed token");
@@ -220,6 +235,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const newToken: string | null = await this.refreshAccessToken({
       projectId: data.projectId,
       miscData,
+      tenantId,
     });
     if (newToken) {
       logger.debug("Successfully refreshed token");
@@ -237,6 +253,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   private static async refreshAccessToken(data: {
     projectId: ObjectID;
     miscData: MicrosoftTeamsMiscData;
+    tenantId: string;
   }): Promise<string | null> {
     logger.debug("=== refreshAccessToken called ===");
 
@@ -253,7 +270,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
 
     logger.debug(`Project ID: ${data.projectId.toString()}`);
-    logger.debug(`Tenant ID: ${data.miscData.tenantId}`);
+    logger.debug(`Tenant ID: ${data.tenantId}`);
 
     try {
       // Check if we have the necessary client credentials
@@ -269,18 +286,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       logger.debug("Client credentials are configured");
 
-      if (!data.miscData.tenantId) {
-        logger.error("Tenant ID not found in miscData, cannot refresh token");
+      if (!data.tenantId) {
+        logger.error("Tenant ID not provided, cannot refresh token");
         return null;
       }
 
       logger.debug(
         `Attempting to refresh Microsoft Teams access token for project ${data.projectId.toString()}`,
       );
-      logger.debug(`Using tenant ID: ${data.miscData.tenantId}`);
+      logger.debug(`Using tenant ID: ${data.tenantId}`);
 
       // Use OAuth 2.0 client credentials flow to get a new app access token
-      const tokenUrl: string = `https://login.microsoftonline.com/${data.miscData.tenantId}/oauth2/v2.0/token`;
+      const tokenUrl: string = `https://login.microsoftonline.com/${data.tenantId}/oauth2/v2.0/token`;
       logger.debug(`Token URL: ${tokenUrl}`);
 
       const tokenRequestBody: JSONObject = {
@@ -337,6 +354,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         appAccessToken: newAccessToken,
         appAccessTokenExpiresAt: OneUptimeDate.toString(expiryDate),
         lastAppTokenIssuedAt: OneUptimeDate.toString(now),
+        tenantId: data.tenantId,
       };
 
       logger.debug("Saving updated token to database");
@@ -345,7 +363,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         projectId: data.projectId,
         workspaceType: WorkspaceType.MicrosoftTeams,
         authToken: newAccessToken,
-        workspaceProjectId: data.miscData.tenantId,
+        workspaceProjectId: data.tenantId,
         miscData: updatedMiscData as any,
       });
 
@@ -1103,6 +1121,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         );
       }
 
+      const tenantId: string | undefined =
+        projectAuth.workspaceProjectId;
+
+      if (!tenantId) {
+        throw new BadDataException(
+          "Tenant ID not found in Microsoft Teams integration",
+        );
+      }
+
       // Check if app client ID is configured
       if (!MicrosoftTeamsAppClientId) {
         throw new BadDataException(
@@ -1113,7 +1140,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug(`Using bot ID: ${miscData.botId}`);
 
       // Get Bot Framework adapter
-      const adapter: CloudAdapter = this.getBotAdapter(miscData.tenantId);
+      const adapter: CloudAdapter = this.getBotAdapter(tenantId);
 
       // Create conversation reference for the channel
       const conversationReference: ConversationReference = {
@@ -1126,7 +1153,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           name: data.workspaceChannel.name,
           isGroup: true,
           conversationType: "channel",
-          tenantId: miscData.tenantId,
+          tenantId: tenantId,
         },
         channelId: "msteams",
         serviceUrl: "https://smba.trafficmanager.net/teams/",
@@ -1728,13 +1755,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       await WorkspaceProjectAuthTokenService.findOneBy({
         query: {
           workspaceType: WorkspaceType.MicrosoftTeams,
-          miscData: {
-            tenantId: tenantId,
-          } as any,
+          workspaceProjectId: tenantId,
         },
         select: {
           projectId: true,
-          miscData: true,
+          workspaceProjectId: true,
         },
         props: {
           isRoot: true,
@@ -2321,9 +2346,13 @@ All monitoring checks are passing normally.`;
         await WorkspaceProjectAuthTokenService.findOneBy({
           query: {
             workspaceType: WorkspaceType.MicrosoftTeams,
-            miscData: { tenantId: tenantId } as any,
+            workspaceProjectId: tenantId,
           },
-          select: { projectId: true, authToken: true },
+          select: {
+            projectId: true,
+            authToken: true,
+            workspaceProjectId: true,
+          },
           props: { isRoot: true },
         });
 
@@ -2796,10 +2825,20 @@ All monitoring checks are passing normally.`;
         );
       }
 
+      const tenantId: string | undefined =
+        projectAuth.workspaceProjectId;
+
+      if (!tenantId) {
+        throw new BadDataException(
+          "Microsoft Teams tenant ID not found for this project",
+        );
+      }
+
       // Get a valid app access token
       const accessToken: string | null = await this.refreshAccessToken({
         projectId: data.projectId,
         miscData: projectAuth.miscData as MicrosoftTeamsMiscData,
+        tenantId,
       });
 
       if (!accessToken) {
@@ -2856,11 +2895,13 @@ All monitoring checks are passing normally.`;
       const miscData: MicrosoftTeamsMiscData =
         (projectAuth.miscData as MicrosoftTeamsMiscData) || {};
       miscData.availableTeams = availableTeams;
+      miscData.tenantId = tenantId;
 
       await WorkspaceProjectAuthTokenService.updateOneById({
         id: projectAuth.id!,
         data: {
           miscData: miscData,
+          workspaceProjectId: tenantId,
         },
         props: {
           isRoot: true,
