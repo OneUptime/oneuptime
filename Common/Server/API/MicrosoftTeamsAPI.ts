@@ -623,9 +623,8 @@ export default class MicrosoftTeamsAPI {
                 projectId: new ObjectID(projectId),
                 workspaceType: WorkspaceType.MicrosoftTeams,
               });
-            const existingTenant: string | undefined = (
-              existingAuth?.miscData as any
-            )?.tenantId;
+            const existingTenant: string | undefined =
+              existingAuth?.workspaceProjectId;
             if (existingTenant) {
               tenantForConsent = existingTenant;
             }
