@@ -31,7 +31,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
   public constructor() {
     super(IncidentStateTimeline);
     if (IsBillingEnabled) {
-      this.hardDeleteItemsOlderThanInDays("startsAt", 120);
+      this.hardDeleteItemsOlderThanInDays("startsAt", 3 * 365); // 3 years
     }
   }
 

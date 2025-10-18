@@ -36,7 +36,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
   public constructor() {
     super(ScheduledMaintenanceStateTimeline);
     if (IsBillingEnabled) {
-      this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+      this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
   }
 

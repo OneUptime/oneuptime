@@ -19,7 +19,7 @@ export class Service extends DatabaseService<Model> {
     super(Model);
 
     if (IsBillingEnabled) {
-      this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+      this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
   }
 

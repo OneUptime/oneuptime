@@ -29,7 +29,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
   public constructor() {
     super(AlertStateTimeline);
     if (IsBillingEnabled) {
-      this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+      this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
   }
 
