@@ -59,6 +59,9 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 // Microsoft Teams apps should always be single-tenant
 const MICROSOFT_TEAMS_APP_TYPE: string = "SingleTenant";
 
+// Maximum number of pages to fetch when paginating teams (configurable)
+const MICROSOFT_TEAMS_MAX_PAGES: number = parseInt(process.env.MICROSOFT_TEAMS_MAX_PAGES || "500", 10);
+
 // Bot Framework SDK imports
 import {
   CloudAdapter,
@@ -2849,7 +2852,7 @@ All monitoring checks are passing normally.`;
       let allTeams: Array<JSONObject> = [];
       let nextLink: string | null = "https://graph.microsoft.com/v1.0/teams";
       let pageCount: number = 0;
-      const MAX_PAGES = 500; // Prevent infinite loop, adjust as needed
+      const MAX_PAGES = MICROSOFT_TEAMS_MAX_PAGES; // Prevent infinite loop, configurable
 
       while (nextLink) {
         pageCount++;
@@ -2981,14 +2984,14 @@ All monitoring checks are passing normally.`;
       // Process teams
       const availableTeams: Record<string, MicrosoftTeamsTeam> = teams.reduce(
         (acc: Record<string, MicrosoftTeamsTeam>, t: JSONObject) => {
-          const team: { id: string; name: string } = {
+          const team: MicrosoftTeamsTeam = {
             id: t["id"] as string,
             name: (t["displayName"] as string) || "Unnamed Team",
           };
           acc[team.name] = team;
           return acc;
         },
-        {} as Record<string, MicrosoftTeamsTeam>,
+        {} as Record<string, MicrosoftTeamsTeam>
       );
 
       logger.debug(
