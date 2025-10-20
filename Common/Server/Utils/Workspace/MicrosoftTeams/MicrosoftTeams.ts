@@ -2849,9 +2849,16 @@ All monitoring checks are passing normally.`;
       let allTeams: Array<JSONObject> = [];
       let nextLink: string | null = "https://graph.microsoft.com/v1.0/teams";
       let pageCount: number = 0;
+      const MAX_PAGES = 500; // Prevent infinite loop, adjust as needed
 
       while (nextLink) {
         pageCount++;
+        if (pageCount > MAX_PAGES) {
+          logger.error(
+            `Maximum page limit (${MAX_PAGES}) reached while paginating teams. Breaking out to prevent infinite loop.`,
+          );
+          break;
+        }
         logger.debug(`Fetching teams page ${pageCount}: ${nextLink}`);
 
         const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -2872,7 +2879,7 @@ All monitoring checks are passing normally.`;
 
         const teams: Array<JSONObject> =
           (teamsResponse.data as any)["value"] || [];
-        allTeams = allTeams.concat(teams);
+        allTeams.push(...teams);
 
         // Check for next page
         nextLink = (teamsResponse.data as any)["@odata.nextLink"] || null;
