@@ -2845,33 +2845,55 @@ All monitoring checks are passing normally.`;
       }
 
       // Fetch all teams from Microsoft Graph API using app permissions
-      const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.get<JSONObject>({
-          url: URL.fromString("https://graph.microsoft.com/v1.0/teams"),
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
+      // Handle pagination to get all teams
+      let allTeams: Array<JSONObject> = [];
+      let nextLink: string | null = "https://graph.microsoft.com/v1.0/teams";
+      let pageCount: number = 0;
 
-      if (teamsResponse instanceof HTTPErrorResponse) {
-        logger.error("Error fetching teams from Microsoft Teams:");
-        logger.error(teamsResponse);
-        throw new BadDataException(
-          "Failed to fetch teams from Microsoft Teams",
+      while (nextLink) {
+        pageCount++;
+        logger.debug(`Fetching teams page ${pageCount}: ${nextLink}`);
+
+        const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+          await API.get<JSONObject>({
+            url: URL.fromString(nextLink),
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+
+        if (teamsResponse instanceof HTTPErrorResponse) {
+          logger.error("Error fetching teams from Microsoft Teams:");
+          logger.error(teamsResponse);
+          throw new BadDataException(
+            "Failed to fetch teams from Microsoft Teams",
+          );
+        }
+
+        const teams: Array<JSONObject> =
+          (teamsResponse.data as any)["value"] || [];
+        allTeams = allTeams.concat(teams);
+
+        // Check for next page
+        nextLink = (teamsResponse.data as any)["@odata.nextLink"] || null;
+        
+        logger.debug(
+          `Page ${pageCount}: Fetched ${teams.length} teams. Total so far: ${allTeams.length}`,
         );
       }
 
-      const teams: Array<JSONObject> =
-        (teamsResponse.data as any)["value"] || [];
-
-      if (teams.length === 0) {
+      if (allTeams.length === 0) {
         logger.debug("No teams found in organization");
         return {};
       }
 
+      logger.debug(
+        `Completed fetching all teams. Total pages: ${pageCount}, Total teams: ${allTeams.length}`,
+      );
+
       // Process teams
       const availableTeams: Record<string, { id: string; name: string }> =
-        teams.reduce(
+        allTeams.reduce(
           (
             acc: Record<string, { id: string; name: string }>,
             t: JSONObject,
@@ -2886,7 +2908,7 @@ All monitoring checks are passing normally.`;
           {} as Record<string, { id: string; name: string }>,
         );
 
-      logger.debug(`Fetched ${Object.keys(availableTeams).length} teams`);
+      logger.debug(`Processed ${Object.keys(availableTeams).length} teams`);
 
       // Update project auth token with new teams
       const miscData: MicrosoftTeamsMiscData =
