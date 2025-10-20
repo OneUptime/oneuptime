@@ -56,12 +56,6 @@ import AlertStateService from "../../../Services/AlertStateService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 
-// Microsoft Teams apps should always be single-tenant
-const MICROSOFT_TEAMS_APP_TYPE: string = "SingleTenant";
-
-// Maximum number of pages to fetch when paginating teams (configurable)
-const MICROSOFT_TEAMS_MAX_PAGES: number = parseInt(process.env.MICROSOFT_TEAMS_MAX_PAGES || "500", 10);
-
 // Bot Framework SDK imports
 import {
   CloudAdapter,
@@ -89,6 +83,12 @@ import MicrosoftTeamsAlertActions from "./Actions/Alert";
 import MicrosoftTeamsMonitorActions from "./Actions/Monitor";
 import MicrosoftTeamsScheduledMaintenanceActions from "./Actions/ScheduledMaintenance";
 import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
+
+// Microsoft Teams apps should always be single-tenant
+const MICROSOFT_TEAMS_APP_TYPE: string = "SingleTenant";
+
+// Maximum number of pages to fetch when paginating teams
+const MICROSOFT_TEAMS_MAX_PAGES: number = 500;
 
 export default class MicrosoftTeamsUtil extends WorkspaceBase {
   private static readonly WELCOME_CARD_STATE_KEY: string =
@@ -2847,12 +2847,14 @@ All monitoring checks are passing normally.`;
         );
       }
 
-      // Fetch all teams from Microsoft Graph API using app permissions
-      // Handle pagination to get all teams
-      let allTeams: Array<JSONObject> = [];
+      /*
+       * Fetch all teams from Microsoft Graph API using app permissions
+       * Handle pagination to get all teams
+       */
+      const allTeams: Array<JSONObject> = [];
       let nextLink: string | null = "https://graph.microsoft.com/v1.0/teams";
       let pageCount: number = 0;
-      const MAX_PAGES = MICROSOFT_TEAMS_MAX_PAGES; // Prevent infinite loop, configurable
+      const MAX_PAGES: number = MICROSOFT_TEAMS_MAX_PAGES; // Prevent infinite loop
 
       while (nextLink) {
         pageCount++;
@@ -2886,7 +2888,7 @@ All monitoring checks are passing normally.`;
 
         // Check for next page
         nextLink = (teamsResponse.data as any)["@odata.nextLink"] || null;
-        
+
         logger.debug(
           `Page ${pageCount}: Fetched ${teams.length} teams. Total so far: ${allTeams.length}`,
         );
@@ -2991,7 +2993,7 @@ All monitoring checks are passing normally.`;
           acc[team.name] = team;
           return acc;
         },
-        {} as Record<string, MicrosoftTeamsTeam>
+        {} as Record<string, MicrosoftTeamsTeam>,
       );
 
       logger.debug(
