@@ -1,5 +1,8 @@
 import { AnalyticsServices } from "Common/Server/Services/Index";
-import AnalyticsDatabaseService from "Common/Server/Services/AnalyticsDatabaseService";
+import AnalyticsDatabaseService, {
+  DbJSONResponse,
+  Results,
+} from "Common/Server/Services/AnalyticsDatabaseService";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Projection from "Common/Types/AnalyticsDatabase/Projection";
 import { JSONObject } from "Common/Types/JSON";
@@ -57,8 +60,10 @@ export default class AnalyticsTableManagement {
 
     const statement: string = `SELECT name FROM system.projections WHERE database = '${escapedDatabaseName}' AND table = '${escapedTableName}' AND name = '${escapedProjectionName}' LIMIT 1`;
 
-    const result = await service.executeQuery(statement);
-    const response = await result.json<{ data?: Array<JSONObject> }>();
+    const result: Results = await service.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
 
     return Boolean(response.data && response.data.length > 0);
   }
