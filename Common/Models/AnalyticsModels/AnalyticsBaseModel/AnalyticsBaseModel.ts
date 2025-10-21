@@ -40,6 +40,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     enableWorkflowOn?: EnableWorkflowOn | undefined;
     enableRealtimeEventsOn?: EnableRealtimeEventsOn | undefined;
     partitionKey: string;
+    projections: Array<string> | undefined;
   }) {
     super({
       tableColumns: data.tableColumns,
@@ -140,6 +141,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.crudApiPath = data.crudApiPath;
     this.enableRealtimeEventsOn = data.enableRealtimeEventsOn;
     this.partitionKey = data.partitionKey;
+    this.projections = data.projections || [];
   }
 
   private _enableWorkflowOn: EnableWorkflowOn | undefined;
@@ -248,6 +250,14 @@ export default class AnalyticsBaseModel extends CommonModel {
   }
   public set crudApiPath(v: Route) {
     this._crudApiPath = v;
+  }
+
+  private _projections: Array<string> = [];
+  public get projections(): Array<string> {
+    return this._projections;
+  }
+  public set projections(v: Array<string>) {
+    this._projections = v;
   }
 
   public getTenantColumn(): AnalyticsTableColumn | null {

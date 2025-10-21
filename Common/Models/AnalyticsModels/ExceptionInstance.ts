@@ -386,6 +386,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         spanNameColumn,
         attributesColumn,
       ],
+      projections: [],
       sortKeys: ["projectId", "time", "serviceId", "fingerprint"],
       primaryKeys: ["projectId", "time", "serviceId", "fingerprint"],
       partitionKey: "sipHash64(projectId) % 16",

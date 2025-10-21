@@ -532,6 +532,7 @@ export default class Metric extends AnalyticsBaseModel {
         bucketCountsColumn,
         explicitBoundsColumn,
       ],
+      projections: [],
       sortKeys: ["projectId", "time", "serviceId"],
       primaryKeys: ["projectId", "time", "serviceId"],
       partitionKey: "sipHash64(projectId) % 16",

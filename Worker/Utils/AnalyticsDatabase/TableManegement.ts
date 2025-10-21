@@ -7,6 +7,16 @@ export default class AnalyticsTableManagement {
       await service.execute(
         service.statementGenerator.toTableCreateStatement(),
       );
+
+      const projections: Array<string> = service.model.projections;
+
+      for (const projection of projections) {
+        if (!projection || projection.trim().length === 0) {
+          continue;
+        }
+
+        await service.execute(projection);
+      }
     }
   }
 }

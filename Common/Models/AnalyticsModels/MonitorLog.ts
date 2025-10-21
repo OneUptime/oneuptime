@@ -141,6 +141,7 @@ export default class MonitorLog extends AnalyticsBaseModel {
         timeColumn,
         logBodyColumn,
       ],
+      projections: [],
       sortKeys: ["projectId", "time", "monitorId"],
       primaryKeys: ["projectId", "time", "monitorId"],
       partitionKey: "sipHash64(projectId) % 16",
