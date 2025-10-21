@@ -4,10 +4,12 @@ import OneUptimeDate from "Common/Types/Date";
 import { EVERY_HOUR, EVERY_MINUTE } from "Common/Utils/CronTime";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import LogService from "Common/Server/Services/LogService";
+import MetricService from "Common/Server/Services/MetricService";
 import SpanService from "Common/Server/Services/SpanService";
 import TelemetryServiceService from "Common/Server/Services/TelemetryServiceService";
 import QueryHelper from "Common/Server/Types/AnalyticsDatabase/QueryHelper";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import { ServiceType } from "Common/Models/AnalyticsModels/Metric";
 
 RunCron(
   "TelemetryService:DeleteOldData",
@@ -51,13 +53,15 @@ RunCron(
         continue;
       }
 
-      // delete logs
+      const retentionCutOff: Date = OneUptimeDate.getSomeDaysAgo(
+        dataRetentionDays,
+      );
+
+      // delete logs using primary key column for efficient pruning
 
       await LogService.deleteBy({
         query: {
-          createdAt: QueryHelper.lessThan(
-            OneUptimeDate.getSomeDaysAgo(dataRetentionDays),
-          ),
+          time: QueryHelper.lessThan(retentionCutOff),
           serviceId: service.id!,
           projectId: service.projectId,
         },
@@ -66,13 +70,11 @@ RunCron(
         },
       });
 
-      // delete spans
+      // delete spans using primary key column for efficient pruning
 
       await SpanService.deleteBy({
         query: {
-          createdAt: QueryHelper.lessThan(
-            OneUptimeDate.getSomeDaysAgo(dataRetentionDays),
-          ),
+          startTime: QueryHelper.lessThan(retentionCutOff),
           serviceId: service.id!,
           projectId: service.projectId,
         },
@@ -81,7 +83,19 @@ RunCron(
         },
       });
 
-      // TODO: delete metrics.
+      // delete metrics using primary key column for efficient pruning
+
+      await MetricService.deleteBy({
+        query: {
+          time: QueryHelper.lessThan(retentionCutOff),
+          serviceId: service.id!,
+          projectId: service.projectId,
+          serviceType: ServiceType.OpenTelemetry,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
     }
   },
 );
