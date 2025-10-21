@@ -326,7 +326,7 @@ export default class Span extends AnalyticsBaseModel {
       key: "attributeKeys",
       title: "Attribute Keys",
       description: "Attribute keys extracted from attributes",
-      required: false,
+      required: true,
       defaultValue: [],
       type: TableColumnType.ArrayText,
       accessControl: {
