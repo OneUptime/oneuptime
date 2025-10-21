@@ -28,6 +28,457 @@ export enum ServiceType {
 
 export default class Metric extends AnalyticsBaseModel {
   public constructor() {
+    const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "projectId",
+      title: "Project ID",
+      description: "ID of project",
+      required: true,
+      type: TableColumnType.ObjectID,
+      isTenantId: true,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    // this can also be the monitor id or the telemetry service id.
+    const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "serviceId",
+      title: "Service ID",
+      description: "ID of the Service which created the Metric",
+      required: true,
+      type: TableColumnType.ObjectID,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    // this can also be the monitor id or the telemetry service id.
+    const serviceTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "serviceType",
+      title: "Service Type",
+      description: "Type of the service that this telemetry belongs to",
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    // add name and description
+    const nameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "name",
+      title: "Name",
+      description: "Name of the Metric",
+      required: true,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    const aggregationTemporalityColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "aggregationTemporality",
+        title: "Aggregation Temporality",
+        description: "Aggregation Temporality of this Metric",
+        required: false,
+        type: TableColumnType.Text,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
+
+    const metricPointTypeColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "metricPointType",
+        title: "Metric Point Type",
+        description: "Metric Point Type of this Metric",
+        required: false,
+        type: TableColumnType.Text,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
+
+    // this is end time.
+    const timeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "time",
+      title: "Time",
+      description: "When did the Metric happen?",
+      required: true,
+      type: TableColumnType.Date,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    const startTimeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "startTime",
+      title: "Start Time",
+      description: "When did the Metric happen?",
+      required: false,
+      type: TableColumnType.Date,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    // end time.
+    const timeUnixNanoColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "timeUnixNano",
+      title: "Time (in Unix Nano)",
+      description: "When did the Metric happen?",
+      required: true,
+      type: TableColumnType.LongNumber,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    const startTimeUnixNanoColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "startTimeUnixNano",
+        title: "Start Time (in Unix Nano)",
+        description: "When did the Metric happen?",
+        required: false,
+        type: TableColumnType.LongNumber,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
+
+    const attributesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "attributes",
+      title: "Attributes",
+      description: "Attributes",
+      required: true,
+      type: TableColumnType.JSON,
+      defaultValue: {},
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    const isMonotonicColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "isMonotonic",
+      title: "Is Monotonic",
+      description: "Is Monotonic",
+      required: false,
+      type: TableColumnType.Boolean,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    const countColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "count",
+      title: "Count",
+      description: "Count",
+      required: false,
+      type: TableColumnType.Number,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    const sumColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "sum",
+      title: "Sum",
+      description: "Sum",
+      required: false,
+      type: TableColumnType.Decimal,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    const valueColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "value",
+      title: "Value",
+      description: "Value",
+      required: false,
+      type: TableColumnType.Decimal,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    const minColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "min",
+      title: "Min",
+      description: "Min",
+      required: false,
+      type: TableColumnType.Decimal,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    const maxColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "max",
+      title: "Max",
+      description: "Max",
+      required: false,
+      type: TableColumnType.Decimal,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
+    const bucketCountsColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "bucketCounts",
+        title: "Bucket Counts",
+        description: "Bucket Counts",
+        required: true,
+        defaultValue: [],
+        type: TableColumnType.ArrayNumber,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
+
+    const explicitBoundsColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "explicitBounds",
+        title: "Explicit Bonds",
+        description: "Explicit Bonds",
+        required: true,
+        defaultValue: [],
+        type: TableColumnType.ArrayNumber,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceLog,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceLog,
+          ],
+          update: [],
+        },
+      });
+
     super({
       tableName: "MetricItem",
       tableEngine: AnalyticsTableEngine.MergeTree,
@@ -61,452 +512,25 @@ export default class Metric extends AnalyticsBaseModel {
         ],
       },
       tableColumns: [
-        new AnalyticsTableColumn({
-          key: "projectId",
-          title: "Project ID",
-          description: "ID of project",
-          required: true,
-          type: TableColumnType.ObjectID,
-          isTenantId: true,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        // this can also be the monitor id or the telemetry service id.
-        new AnalyticsTableColumn({
-          key: "serviceId",
-          title: "Service ID",
-          description: "ID of the Service which created the Metric",
-          required: true,
-          type: TableColumnType.ObjectID,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        // this can also be the monitor id or the telemetry service id.
-        new AnalyticsTableColumn({
-          key: "serviceType",
-          title: "Service Type",
-          description: "Type of the service that this telemetry belongs to",
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        // add name and description
-
-        new AnalyticsTableColumn({
-          key: "name",
-          title: "Name",
-          description: "Name of the Metric",
-          required: true,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "aggregationTemporality",
-          title: "Aggregation Temporality",
-          description: "Aggregation Temporality of this Metric",
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "metricPointType",
-          title: "Metric Point Type",
-          description: "Metric Point Type of this Metric",
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        // this is end time.
-        new AnalyticsTableColumn({
-          key: "time",
-          title: "Time",
-          description: "When did the Metric happen?",
-          required: true,
-          type: TableColumnType.Date,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "startTime",
-          title: "Start Time",
-          description: "When did the Metric happen?",
-          required: false,
-          type: TableColumnType.Date,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        // end time.
-        new AnalyticsTableColumn({
-          key: "timeUnixNano",
-          title: "Time (in Unix Nano)",
-          description: "When did the Metric happen?",
-          required: true,
-          type: TableColumnType.LongNumber,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "startTimeUnixNano",
-          title: "Start Time (in Unix Nano)",
-          description: "When did the Metric happen?",
-          required: false,
-          type: TableColumnType.LongNumber,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "attributes",
-          title: "Attributes",
-          description: "Attributes",
-          required: true,
-          type: TableColumnType.JSON,
-          defaultValue: {},
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "isMonotonic",
-          title: "Is Monotonic",
-          description: "Is Monotonic",
-          required: false,
-          type: TableColumnType.Boolean,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "count",
-          title: "Count",
-          description: "Count",
-          required: false,
-          type: TableColumnType.Number,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "sum",
-          title: "Sum",
-          description: "Sum",
-          required: false,
-          type: TableColumnType.Decimal,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "value",
-          title: "Value",
-          description: "Value",
-          required: false,
-          type: TableColumnType.Decimal,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "min",
-          title: "Min",
-          description: "Min",
-          required: false,
-          type: TableColumnType.Decimal,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "max",
-          title: "Max",
-          description: "Max",
-          required: false,
-          type: TableColumnType.Decimal,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "bucketCounts",
-          title: "Bucket Counts",
-          description: "Bucket Counts",
-          required: true,
-          defaultValue: [],
-          type: TableColumnType.ArrayNumber,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "explicitBounds",
-          title: "Explicit Bonds",
-          description: "Explicit Bonds",
-          required: true,
-          defaultValue: [],
-          type: TableColumnType.ArrayNumber,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
+        projectIdColumn,
+        serviceIdColumn,
+        serviceTypeColumn,
+        nameColumn,
+        aggregationTemporalityColumn,
+        metricPointTypeColumn,
+        timeColumn,
+        startTimeColumn,
+        timeUnixNanoColumn,
+        startTimeUnixNanoColumn,
+        attributesColumn,
+        isMonotonicColumn,
+        countColumn,
+        sumColumn,
+        valueColumn,
+        minColumn,
+        maxColumn,
+        bucketCountsColumn,
+        explicitBoundsColumn,
       ],
       sortKeys: ["projectId", "time", "serviceId"],
       primaryKeys: ["projectId", "time", "serviceId"],

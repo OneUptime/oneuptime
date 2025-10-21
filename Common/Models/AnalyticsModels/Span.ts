@@ -41,6 +41,428 @@ export interface SpanLink {
 
 export default class Span extends AnalyticsBaseModel {
   public constructor() {
+    const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "projectId",
+      title: "Project ID",
+      description: "ID of project",
+      required: true,
+      type: TableColumnType.ObjectID,
+      isTenantId: true,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "serviceId",
+      title: "Service ID",
+      description: "ID of the Service which created the log",
+      required: true,
+      type: TableColumnType.ObjectID,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const startTimeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "startTime",
+      title: "Start Time",
+      description: "When did the span start?",
+      required: true,
+      type: TableColumnType.Date,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const endTimeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "endTime",
+      title: "End Time",
+      description: "When did the span end?",
+      required: true,
+      type: TableColumnType.Date,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const startTimeUnixNanoColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "startTimeUnixNano",
+        title: "Start Time in Unix Nano",
+        description: "When did the span start?",
+        required: true,
+        type: TableColumnType.LongNumber,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceTraces,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceTraces,
+          ],
+          update: [],
+        },
+      });
+
+    const durationUnixNanoColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "durationUnixNano",
+        title: "Duration in Unix Nano",
+        description: "How long did the span last?",
+        required: true,
+        type: TableColumnType.LongNumber,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceTraces,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceTraces,
+          ],
+          update: [],
+        },
+      });
+
+    const endTimeUnixNanoColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "endTimeUnixNano",
+        title: "End Time",
+        description: "When did the span end?",
+        required: true,
+        type: TableColumnType.LongNumber,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceTraces,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceTraces,
+          ],
+          update: [],
+        },
+      });
+
+    const traceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "traceId",
+      title: "Trace ID",
+      description: "ID of the trace",
+      required: true,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const spanIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "spanId",
+      title: "Span ID",
+      description: "ID of the span",
+      required: true,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const parentSpanIdColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "parentSpanId",
+        title: "Parent Span ID",
+        description: "ID of the parent span",
+        required: false,
+        type: TableColumnType.Text,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryServiceTraces,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryServiceTraces,
+          ],
+          update: [],
+        },
+      });
+
+    const traceStateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "traceState",
+      title: "Trace State",
+      description: "Trace State",
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const attributesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "attributes",
+      title: "Attributes",
+      description: "Attributes",
+      required: true,
+      defaultValue: {},
+      type: TableColumnType.JSON,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const eventsColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "events",
+      title: "Events",
+      description: "Span Events",
+      required: true,
+      defaultValue: [],
+      type: TableColumnType.JSONArray,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const linksColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "links",
+      title: "Links",
+      description: "Span Links",
+      required: true,
+      defaultValue: {},
+      type: TableColumnType.JSON,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const statusCodeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "statusCode",
+      title: "Status Code",
+      description: "Status Code",
+      required: false,
+      type: TableColumnType.Number,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const statusMessageColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "statusMessage",
+      title: "Status Message",
+      description: "Status Message",
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const nameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "name",
+      title: "Name",
+      description: "Name of the span",
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const kindColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "kind",
+      title: "Kind",
+      description: "Kind of the span",
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
     super({
       tableName: "SpanItem",
       tableEngine: AnalyticsTableEngine.MergeTree,
@@ -74,423 +496,24 @@ export default class Span extends AnalyticsBaseModel {
         ],
       },
       tableColumns: [
-        new AnalyticsTableColumn({
-          key: "projectId",
-          title: "Project ID",
-          description: "ID of project",
-          required: true,
-          type: TableColumnType.ObjectID,
-          isTenantId: true,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "serviceId",
-          title: "Service ID",
-          description: "ID of the Service which created the log",
-          required: true,
-          type: TableColumnType.ObjectID,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "startTime",
-          title: "Start Time",
-          description: "When did the span start?",
-          required: true,
-          type: TableColumnType.Date,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "endTime",
-          title: "End Time",
-          description: "When did the span end?",
-          required: true,
-          type: TableColumnType.Date,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "startTimeUnixNano",
-          title: "Start Time in Unix Nano",
-          description: "When did the span start?",
-          required: true,
-          type: TableColumnType.LongNumber,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "durationUnixNano",
-          title: "Duration in Unix Nano",
-          description: "How long did the span last?",
-          required: true,
-          type: TableColumnType.LongNumber,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "endTimeUnixNano",
-          title: "End Time",
-          description: "When did the span end?",
-          required: true,
-          type: TableColumnType.LongNumber,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "traceId",
-          title: "Trace ID",
-          description: "ID of the trace",
-          required: true,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "spanId",
-          title: "Span ID",
-          description: "ID of the span",
-          required: true,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "parentSpanId",
-          title: "Parent Span ID",
-          description: "ID of the parent span",
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "traceState",
-          title: "Trace State",
-          description: "Trace State",
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "attributes",
-          title: "Attributes",
-          description: "Attributes",
-          required: true,
-          defaultValue: {},
-          type: TableColumnType.JSON,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "events",
-          title: "Events",
-          description: "Span Events",
-          required: true,
-          defaultValue: [],
-          type: TableColumnType.JSONArray,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "links",
-          title: "Links",
-          description: "Span Links",
-          required: true,
-          defaultValue: {},
-          type: TableColumnType.JSON,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "statusCode",
-          title: "Status Code",
-          description: "Status Code",
-          required: false,
-          type: TableColumnType.Number,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "statusMessage",
-          title: "Status Message",
-          description: "Status Message",
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "name",
-          title: "Name",
-          description: "Name of the span",
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "kind",
-          title: "Kind",
-          description: "Kind of the span",
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
+        projectIdColumn,
+        serviceIdColumn,
+        startTimeColumn,
+        endTimeColumn,
+        startTimeUnixNanoColumn,
+        durationUnixNanoColumn,
+        endTimeUnixNanoColumn,
+        traceIdColumn,
+        spanIdColumn,
+        parentSpanIdColumn,
+        traceStateColumn,
+        attributesColumn,
+        eventsColumn,
+        linksColumn,
+        statusCodeColumn,
+        statusMessageColumn,
+        nameColumn,
+        kindColumn,
       ],
       sortKeys: ["projectId", "startTime", "serviceId", "traceId"],
       primaryKeys: ["projectId", "startTime", "serviceId", "traceId"],
