@@ -3,6 +3,7 @@ import Route from "../../../Types/API/Route";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
+import Projection from "../../../Types/AnalyticsDatabase/Projection";
 import {
   ColumnAccessControl,
   TableAccessControl,
@@ -40,7 +41,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     enableWorkflowOn?: EnableWorkflowOn | undefined;
     enableRealtimeEventsOn?: EnableRealtimeEventsOn | undefined;
     partitionKey: string;
-    projections: Array<string> | undefined;
+    projections?: Array<Projection> | undefined;
   }) {
     super({
       tableColumns: data.tableColumns,
@@ -252,11 +253,11 @@ export default class AnalyticsBaseModel extends CommonModel {
     this._crudApiPath = v;
   }
 
-  private _projections: Array<string> = [];
-  public get projections(): Array<string> {
+  private _projections: Array<Projection> = [];
+  public get projections(): Array<Projection> {
     return this._projections;
   }
-  public set projections(v: Array<string>) {
+  public set projections(v: Array<Projection>) {
     this._projections = v;
   }
 

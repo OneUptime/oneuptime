@@ -1,4 +1,5 @@
 import { AnalyticsServices } from "Common/Server/Services/Index";
+import Projection from "Common/Types/AnalyticsDatabase/Projection";
 
 export default class AnalyticsTableManagement {
   public static async createTables(): Promise<void> {
@@ -8,14 +9,14 @@ export default class AnalyticsTableManagement {
         service.statementGenerator.toTableCreateStatement(),
       );
 
-      const projections: Array<string> = service.model.projections;
+      const projections: Array<Projection> = service.model.projections;
 
       for (const projection of projections) {
-        if (!projection || projection.trim().length === 0) {
+        if (!projection.query || projection.query.trim().length === 0) {
           continue;
         }
 
-        await service.execute(projection);
+        await service.execute(projection.query);
       }
     }
   }
