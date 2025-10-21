@@ -53,9 +53,8 @@ RunCron(
         continue;
       }
 
-      const retentionCutOff: Date = OneUptimeDate.getSomeDaysAgo(
-        dataRetentionDays,
-      );
+      const retentionCutOff: Date =
+        OneUptimeDate.getSomeDaysAgo(dataRetentionDays);
 
       // delete logs using primary key column for efficient pruning
 
