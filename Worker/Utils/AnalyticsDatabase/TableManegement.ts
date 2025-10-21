@@ -1,5 +1,8 @@
 import { AnalyticsServices } from "Common/Server/Services/Index";
+import AnalyticsDatabaseService from "Common/Server/Services/AnalyticsDatabaseService";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Projection from "Common/Types/AnalyticsDatabase/Projection";
+import { JSONObject } from "Common/Types/JSON";
 
 export default class AnalyticsTableManagement {
   public static async createTables(): Promise<void> {
@@ -16,8 +19,50 @@ export default class AnalyticsTableManagement {
           continue;
         }
 
+        if (!projection.name || projection.name.trim().length === 0) {
+          continue;
+        }
+
+        const projectionExists: boolean =
+          await AnalyticsTableManagement.doesProjectionExist(
+            service,
+            projection.name,
+          );
+
+        if (projectionExists) {
+          continue;
+        }
+
         await service.execute(projection.query);
       }
     }
+  }
+
+  private static async doesProjectionExist(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+    projectionName: string,
+  ): Promise<boolean> {
+    const databaseName: string | undefined =
+      service.database.getDatasourceOptions().database;
+
+    if (!databaseName) {
+      return false;
+    }
+
+    const escapedDatabaseName: string = this.escapeForQuery(databaseName);
+    const escapedTableName: string = this.escapeForQuery(service.model.tableName);
+    const escapedProjectionName: string =
+      this.escapeForQuery(projectionName);
+
+    const statement: string = `SELECT name FROM system.projections WHERE database = '${escapedDatabaseName}' AND table = '${escapedTableName}' AND name = '${escapedProjectionName}' LIMIT 1`;
+
+    const result = await service.executeQuery(statement);
+    const response = await result.json<{ data?: Array<JSONObject> }>();
+
+    return Boolean(response.data && response.data.length > 0);
+  }
+
+  private static escapeForQuery(value: string): string {
+    return value.replace(/'/g, "''");
   }
 }
