@@ -534,9 +534,9 @@ export default class Metric extends AnalyticsBaseModel {
       ],
       projections: [
         {
-          name: "MetricItemAttributesProjection",
+          name: "MetricItemAttributeProjection",
           query:
-            "ALTER TABLE oneuptime.MetricItem ADD PROJECTION MetricItemAttributesProjection (SELECT projectId, groupArrayDistinct(arrayJoin(JSONExtractKeys(attributes))) AS attributes GROUP BY projectId)",
+            "ALTER TABLE oneuptime.MetricItem ADD PROJECTION MetricItemAttributeProjection (SELECT projectId, groupArrayDistinct(arrayJoin(JSONExtractKeys(attributes))) AS attributes GROUP BY projectId)",
         },
       ],
       sortKeys: ["projectId", "time", "serviceId"],
