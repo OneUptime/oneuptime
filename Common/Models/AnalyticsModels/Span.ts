@@ -322,6 +322,30 @@ export default class Span extends AnalyticsBaseModel {
       },
     });
 
+    const attributeKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "attributeKeys",
+      title: "Attribute Keys",
+      description: "Attribute keys extracted from attributes",
+      required: false,
+      defaultValue: [],
+      type: TableColumnType.ArrayText,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
     const eventsColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "events",
       title: "Events",
@@ -507,6 +531,7 @@ export default class Span extends AnalyticsBaseModel {
         parentSpanIdColumn,
         traceStateColumn,
         attributesColumn,
+        attributeKeysColumn,
         eventsColumn,
         linksColumn,
         statusCodeColumn,
@@ -518,7 +543,7 @@ export default class Span extends AnalyticsBaseModel {
         {
           name: "SpanItemAttributeProjection",
           query:
-            "ALTER TABLE oneuptime.SpanItem ADD PROJECTION SpanItemAttributeProjection (SELECT projectId, groupArrayDistinct(arrayJoin(JSONExtractKeys(attributes))) AS attributes GROUP BY projectId)",
+            "ALTER TABLE oneuptime.SpanItem ADD PROJECTION SpanItemAttributeProjection (SELECT projectId, groupArrayDistinct(arrayJoin(attributeKeys)) AS attributeKeys GROUP BY projectId)",
         },
       ],
       sortKeys: ["projectId", "startTime", "serviceId", "traceId"],
@@ -637,6 +662,14 @@ export default class Span extends AnalyticsBaseModel {
 
   public set attributes(v: JSONObject | undefined) {
     this.setColumnValue("attributes", v);
+  }
+
+  public get attributeKeys(): Array<string> | undefined {
+    return this.getColumnValue("attributeKeys") as Array<string> | undefined;
+  }
+
+  public set attributeKeys(v: Array<string> | undefined) {
+    this.setColumnValue("attributeKeys", v);
   }
 
   public get events(): Array<SpanEvent> | undefined {

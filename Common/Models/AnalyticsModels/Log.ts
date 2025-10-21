@@ -175,6 +175,30 @@ export default class Log extends AnalyticsBaseModel {
       },
     });
 
+    const attributeKeysColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "attributeKeys",
+      title: "Attribute Keys",
+      description: "Attribute keys extracted from attributes",
+      required: false,
+      defaultValue: [],
+      type: TableColumnType.ArrayText,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
     const traceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "traceId",
       title: "Trace ID",
@@ -284,6 +308,7 @@ export default class Log extends AnalyticsBaseModel {
         severityTextColumn,
         severityNumberColumn,
         attributesColumn,
+        attributeKeysColumn,
         traceIdColumn,
         spanIdColumn,
         bodyColumn,
@@ -292,7 +317,7 @@ export default class Log extends AnalyticsBaseModel {
         {
           name: "LogItemAttributeProjection",
           query:
-            "ALTER TABLE oneuptime.LogItem ADD PROJECTION LogItemAttributeProjection (SELECT projectId, groupArrayDistinct(arrayJoin(JSONExtractKeys(attributes))) AS attributes GROUP BY projectId)",
+            "ALTER TABLE oneuptime.LogItem ADD PROJECTION LogItemAttributeProjection (SELECT projectId, groupArrayDistinct(arrayJoin(attributeKeys)) AS attributeKeys GROUP BY projectId)",
         },
       ],
       sortKeys: ["projectId", "time", "serviceId"],
@@ -363,6 +388,14 @@ export default class Log extends AnalyticsBaseModel {
 
   public set attributes(v: JSONObject | undefined) {
     this.setColumnValue("attributes", v);
+  }
+
+  public get attributeKeys(): Array<string> | undefined {
+    return this.getColumnValue("attributeKeys") as Array<string> | undefined;
+  }
+
+  public set attributeKeys(v: Array<string> | undefined) {
+    this.setColumnValue("attributeKeys", v);
   }
 
   public get traceId(): string | undefined {
