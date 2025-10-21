@@ -4,6 +4,7 @@ import AnalyticsDatabaseService, {
   Results,
 } from "Common/Server/Services/AnalyticsDatabaseService";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import logger from "Common/Server/Utils/Logger";
 import Projection from "Common/Types/AnalyticsDatabase/Projection";
 import { JSONObject } from "Common/Types/JSON";
 
@@ -17,14 +18,30 @@ export default class AnalyticsTableManagement {
 
       const projections: Array<Projection> = service.model.projections;
 
+      if (projections.length > 0) {
+        logger.debug(
+          `Processing ${projections.length} projections for ${service.model.tableName}`,
+        );
+      }
+
       for (const projection of projections) {
         if (!projection.query || projection.query.trim().length === 0) {
+          logger.debug(
+            `Skipping projection with empty query on ${service.model.tableName}`,
+          );
           continue;
         }
 
         if (!projection.name || projection.name.trim().length === 0) {
+          logger.debug(
+            `Skipping projection with empty name on ${service.model.tableName}`,
+          );
           continue;
         }
+
+        logger.debug(
+          `Ensuring projection ${projection.name} exists on ${service.model.tableName}`,
+        );
 
         const projectionExists: boolean =
           await AnalyticsTableManagement.doesProjectionExist(
@@ -33,8 +50,15 @@ export default class AnalyticsTableManagement {
           );
 
         if (projectionExists) {
+          logger.debug(
+            `Projection ${projection.name} already exists on ${service.model.tableName}`,
+          );
           continue;
         }
+
+        logger.debug(
+          `Creating projection ${projection.name} on ${service.model.tableName}`,
+        );
 
         await service.execute(projection.query);
       }
