@@ -514,7 +514,13 @@ export default class Span extends AnalyticsBaseModel {
         nameColumn,
         kindColumn,
       ],
-      projections: [],
+      projections: [
+        {
+          name: "SpanItemAttributesProjection",
+          query:
+            "ALTER TABLE oneuptime.SpanItem ADD PROJECTION SpanItemAttributesProjection (SELECT projectId, groupArrayDistinct(arrayJoin(JSONExtractKeys(attributes))) AS attributes GROUP BY projectId)",
+        },
+      ],
       sortKeys: ["projectId", "startTime", "serviceId", "traceId"],
       primaryKeys: ["projectId", "startTime", "serviceId", "traceId"],
       partitionKey: "sipHash64(projectId) % 16",

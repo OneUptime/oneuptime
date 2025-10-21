@@ -30,9 +30,7 @@ RunCron(
     try {
       // iterate through active projects and prune telemetry data per service.
       const projects: Array<Project> = await ProjectService.findBy({
-        query: {
-          
-        },
+        query: {},
         select: {
           _id: true,
         },
