@@ -50,9 +50,10 @@ export default class AnalyticsTableManagement {
     }
 
     const escapedDatabaseName: string = this.escapeForQuery(databaseName);
-    const escapedTableName: string = this.escapeForQuery(service.model.tableName);
-    const escapedProjectionName: string =
-      this.escapeForQuery(projectionName);
+    const escapedTableName: string = this.escapeForQuery(
+      service.model.tableName,
+    );
+    const escapedProjectionName: string = this.escapeForQuery(projectionName);
 
     const statement: string = `SELECT name FROM system.projections WHERE database = '${escapedDatabaseName}' AND table = '${escapedTableName}' AND name = '${escapedProjectionName}' LIMIT 1`;
 
