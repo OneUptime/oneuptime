@@ -171,8 +171,8 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       },
     });
 
-    const spanStatusCodeColumn: AnalyticsTableColumn =
-      new AnalyticsTableColumn({
+    const spanStatusCodeColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
+      {
         key: "spanStatusCode",
         title: "Span Status Code",
         description: "Span Status Code",
@@ -193,13 +193,13 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           ],
           update: [],
         },
-      });
+      },
+    );
 
     const escapedColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "escaped",
       title: "Exception Escaped",
-      description:
-        "Exception Escaped", // SHOULD be set to true if the exception event is recorded at a point where it is known that the exception is escaping the scope of the span.
+      description: "Exception Escaped", // SHOULD be set to true if the exception event is recorded at a point where it is known that the exception is escaping the scope of the span.
       required: false,
       type: TableColumnType.Boolean,
       accessControl: {

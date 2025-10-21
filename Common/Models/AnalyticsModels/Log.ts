@@ -126,8 +126,8 @@ export default class Log extends AnalyticsBaseModel {
       },
     });
 
-    const severityNumberColumn: AnalyticsTableColumn =
-      new AnalyticsTableColumn({
+    const severityNumberColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
+      {
         key: "severityNumber",
         title: "Severity Number",
         description: "Log Severity Number",
@@ -148,7 +148,8 @@ export default class Log extends AnalyticsBaseModel {
           ],
           update: [],
         },
-      });
+      },
+    );
 
     const attributesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributes",

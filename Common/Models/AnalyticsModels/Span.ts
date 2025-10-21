@@ -252,29 +252,28 @@ export default class Span extends AnalyticsBaseModel {
       },
     });
 
-    const parentSpanIdColumn: AnalyticsTableColumn =
-      new AnalyticsTableColumn({
-        key: "parentSpanId",
-        title: "Parent Span ID",
-        description: "ID of the parent span",
-        required: false,
-        type: TableColumnType.Text,
-        accessControl: {
-          read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.ReadTelemetryServiceTraces,
-          ],
-          create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CreateTelemetryServiceTraces,
-          ],
-          update: [],
-        },
-      });
+    const parentSpanIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "parentSpanId",
+      title: "Parent Span ID",
+      description: "ID of the parent span",
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
 
     const traceStateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "traceState",
@@ -515,7 +514,7 @@ export default class Span extends AnalyticsBaseModel {
         nameColumn,
         kindColumn,
       ],
-        projections: [],
+      projections: [],
       sortKeys: ["projectId", "startTime", "serviceId", "traceId"],
       primaryKeys: ["projectId", "startTime", "serviceId", "traceId"],
       partitionKey: "sipHash64(projectId) % 16",

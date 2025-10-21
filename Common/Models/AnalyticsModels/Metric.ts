@@ -429,33 +429,32 @@ export default class Metric extends AnalyticsBaseModel {
       },
     });
 
-    const bucketCountsColumn: AnalyticsTableColumn =
-      new AnalyticsTableColumn({
-        key: "bucketCounts",
-        title: "Bucket Counts",
-        description: "Bucket Counts",
-        required: true,
-        defaultValue: [],
-        type: TableColumnType.ArrayNumber,
-        accessControl: {
-          read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.ReadTelemetryServiceLog,
-          ],
-          create: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.CreateTelemetryServiceLog,
-          ],
-          update: [],
-        },
-      });
+    const bucketCountsColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "bucketCounts",
+      title: "Bucket Counts",
+      description: "Bucket Counts",
+      required: true,
+      defaultValue: [],
+      type: TableColumnType.ArrayNumber,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
 
-    const explicitBoundsColumn: AnalyticsTableColumn =
-      new AnalyticsTableColumn({
+    const explicitBoundsColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
+      {
         key: "explicitBounds",
         title: "Explicit Bonds",
         description: "Explicit Bonds",
@@ -477,7 +476,8 @@ export default class Metric extends AnalyticsBaseModel {
           ],
           update: [],
         },
-      });
+      },
+    );
 
     super({
       tableName: "MetricItem",
