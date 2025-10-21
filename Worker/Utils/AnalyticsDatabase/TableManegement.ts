@@ -94,7 +94,6 @@ export default class AnalyticsTableManagement {
     try {
       result = await service.executeQuery(statement);
     } catch (error) {
-    
       logger.error({
         message: `Failed to verify projection ${projectionName} on ${service.model.tableName}`,
         error: (error as Error).message,
