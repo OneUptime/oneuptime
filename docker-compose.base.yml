@@ -156,7 +156,7 @@ services:
                 max-size: "1000m"
 
     clickhouse:
-        image: clickhouse/clickhouse-server:23.7
+        image: clickhouse/clickhouse-server:25.7
         restart: always
         environment:
             CLICKHOUSE_USER: ${CLICKHOUSE_USER}
