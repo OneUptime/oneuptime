@@ -110,6 +110,7 @@ async function processFluentIngestFromQueue(
     }
 
     dbLog.body = logItem as string;
+    dbLog.attributeKeys = [];
 
     dbLogs.push(dbLog);
   }

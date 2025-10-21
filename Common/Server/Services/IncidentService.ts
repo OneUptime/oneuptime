@@ -1956,6 +1956,9 @@ ${incidentSeverity.name}
       incidentSeverityId: incident.incidentSeverity?._id?.toString(),
       incidentSeverityName: incident.incidentSeverity?.name?.toString(),
     };
+    incidentCountMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+      incidentCountMetric.attributes,
+    );
 
     incidentCountMetric.time = incidentStartsAt;
     incidentCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
@@ -2013,6 +2016,9 @@ ${incidentSeverity.name}
           incidentSeverityId: incident.incidentSeverity?._id?.toString(),
           incidentSeverityName: incident.incidentSeverity?.name?.toString(),
         };
+        timeToAcknowledgeMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          timeToAcknowledgeMetric.attributes,
+        );
 
         timeToAcknowledgeMetric.time =
           ackIncidentStateTimeline?.startsAt ||
@@ -2075,6 +2081,9 @@ ${incidentSeverity.name}
           incidentSeverityId: incident.incidentSeverity?._id?.toString(),
           incidentSeverityName: incident.incidentSeverity?.name?.toString(),
         };
+        timeToResolveMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          timeToResolveMetric.attributes,
+        );
 
         timeToResolveMetric.time =
           resolvedIncidentStateTimeline?.startsAt ||
@@ -2132,6 +2141,9 @@ ${incidentSeverity.name}
         incidentSeverityId: incident.incidentSeverity?._id?.toString(),
         incidentSeverityName: incident.incidentSeverity?.name?.toString(),
       };
+      incidentDurationMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+        incidentDurationMetric.attributes,
+      );
 
       incidentDurationMetric.time =
         lastIncidentStateTimeline?.startsAt ||

@@ -1155,6 +1155,9 @@ ${alertSeverity.name}
       alertSeverityId: alert.alertSeverity?._id?.toString(),
       alertSeverityName: alert.alertSeverity?.name?.toString(),
     };
+    alertCountMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+      alertCountMetric.attributes,
+    );
 
     alertCountMetric.time = alertStartsAt;
     alertCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
@@ -1203,6 +1206,9 @@ ${alertSeverity.name}
           alertSeverityId: alert.alertSeverity?._id?.toString(),
           alertSeverityName: alert.alertSeverity?.name?.toString(),
         };
+        timeToAcknowledgeMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          timeToAcknowledgeMetric.attributes,
+        );
 
         timeToAcknowledgeMetric.time =
           ackAlertStateTimeline?.startsAt ||
@@ -1256,6 +1262,9 @@ ${alertSeverity.name}
           alertSeverityId: alert.alertSeverity?._id?.toString(),
           alertSeverityName: alert.alertSeverity?.name?.toString(),
         };
+        timeToResolveMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          timeToResolveMetric.attributes,
+        );
 
         timeToResolveMetric.time =
           resolvedAlertStateTimeline?.startsAt ||
@@ -1302,6 +1311,9 @@ ${alertSeverity.name}
         alertSeverityId: alert.alertSeverity?._id?.toString(),
         alertSeverityName: alert.alertSeverity?.name?.toString(),
       };
+      alertDurationMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+        alertDurationMetric.attributes,
+      );
 
       alertDurationMetric.time =
         lastAlertStateTimeline?.startsAt ||

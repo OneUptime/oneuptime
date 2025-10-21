@@ -252,4 +252,18 @@ export default class TelemetryUtil {
 
     return finalObj;
   }
+
+  public static getAttributeKeys(
+    attributes:
+      | Dictionary<AttributeType | Array<AttributeType> | JSONObject>
+      | JSONObject
+      | undefined,
+  ): Array<string> {
+    if (!attributes || typeof attributes !== "object") {
+      return [];
+    }
+
+    return Object.keys(attributes)
+      .sort();
+  }
 }

@@ -18,6 +18,7 @@ type TelemetrySource = {
   service: AnalyticsDatabaseService<any>;
   tableName: string;
   attributesColumn: string;
+  attributeKeysColumn: string;
   timeColumn: string;
 };
 
@@ -42,6 +43,7 @@ export class TelemetryAttributeService {
           service: LogDatabaseService,
           tableName: LogDatabaseService.model.tableName,
           attributesColumn: "attributes",
+          attributeKeysColumn: "attributeKeys",
           timeColumn: "time",
         };
       case TelemetryType.Metric:
@@ -49,6 +51,7 @@ export class TelemetryAttributeService {
           service: MetricDatabaseService,
           tableName: MetricDatabaseService.model.tableName,
           attributesColumn: "attributes",
+          attributeKeysColumn: "attributeKeys",
           timeColumn: "time",
         };
       case TelemetryType.Trace:
@@ -56,6 +59,7 @@ export class TelemetryAttributeService {
           service: SpanDatabaseService,
           tableName: SpanDatabaseService.model.tableName,
           attributesColumn: "attributes",
+          attributeKeysColumn: "attributeKeys",
           timeColumn: "startTime",
         };
       default:
@@ -213,6 +217,7 @@ export class TelemetryAttributeService {
     projectId: ObjectID;
     tableName: string;
     attributesColumn: string;
+    attributeKeysColumn: string;
     timeColumn: string;
   }): Statement {
     const lookbackStartDate: Date =
@@ -220,14 +225,24 @@ export class TelemetryAttributeService {
 
     const statement: Statement = SQL`
       WITH filtered AS (
-        SELECT ${data.attributesColumn} AS attrs
+        SELECT arrayJoin(
+            if(
+              ${data.attributeKeysColumn} IS NULL OR empty(${data.attributeKeysColumn}),
+              JSONExtractKeys(${data.attributesColumn}),
+              ${data.attributeKeysColumn}
+            )
+          ) AS attribute
         FROM ${data.tableName}
         WHERE projectId = ${{
           type: TableColumnType.ObjectID,
           value: data.projectId,
         }}
-          AND ${data.attributesColumn} IS NOT NULL
-          AND ${data.attributesColumn} != ''
+          AND (
+            ${data.attributeKeysColumn} IS NOT NULL OR (
+              ${data.attributesColumn} IS NOT NULL AND
+              ${data.attributesColumn} != ''
+            )
+          )
           AND ${data.timeColumn} >= ${{
             type: TableColumnType.Date,
             value: lookbackStartDate,
@@ -238,8 +253,9 @@ export class TelemetryAttributeService {
           value: TelemetryAttributeService.ROW_SCAN_LIMIT,
         }}
       )
-      SELECT DISTINCT arrayJoin(JSONExtractKeys(attrs)) AS attribute
+      SELECT DISTINCT attribute
       FROM filtered
+      WHERE attribute IS NOT NULL AND attribute != ''
       ORDER BY attribute ASC
       LIMIT ${{
         type: TableColumnType.Number,
@@ -259,6 +275,7 @@ export class TelemetryAttributeService {
         projectId: data.projectId,
         tableName: data.source.tableName,
         attributesColumn: data.source.attributesColumn,
+        attributeKeysColumn: data.source.attributeKeysColumn,
         timeColumn: data.source.timeColumn,
       });
 
