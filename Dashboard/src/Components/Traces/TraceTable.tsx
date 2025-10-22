@@ -96,6 +96,25 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     setActiveTab("all");
   }, []);
 
+  const cardContent: {
+    title: string;
+    description: string;
+  } = useMemo(() => {
+    if (activeTab === "root") {
+      return {
+        title: "Root Spans",
+        description:
+          "Root spans act as entry points in a trace. They represent requests without a parent span and help you spot top-level operations quickly.",
+      };
+    }
+
+    return {
+      title: "All Spans",
+      description:
+        "Collection of spans make up a trace. Spans are the building blocks of a trace and represent individual units of work done in a distributed system.",
+    };
+  }, [activeTab]);
+
   const getQueryForActiveTab: Query<Span> = useMemo(() => {
     const baseQuery: Query<Span> = {
       ...(spanQuery || {}),
@@ -273,9 +292,8 @@ const TraceTable: FunctionComponent<ComponentProps> = (
             props.isMinimalTable
               ? undefined
               : {
-                  title: "Spans",
-                  description:
-                    "Collection of spans make up a trace. Spans are the building blocks of a trace and represent the individual units of work done in a distributed system.",
+                  title: cardContent.title,
+                  description: cardContent.description,
                 }
           }
           query={getQueryForActiveTab}
