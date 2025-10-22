@@ -21,6 +21,7 @@ import Card from "../Card/Card";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import IconProp from "../../../Types/Icon/IconProp";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
+import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
@@ -42,6 +43,9 @@ export interface ComponentProps {
   isLoading: boolean;
   showFilters?: boolean | undefined;
   noLogsMessage?: string | undefined;
+  getTraceRoute?:
+    | ((traceId: string, log: Log) => Route | URL | undefined)
+    | undefined;
 }
 
 const LogsViewer: FunctionComponent<ComponentProps> = (
@@ -334,7 +338,11 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 {props.logs.map((log: Log, i: number) => {
                   return (
                     <li key={i} className="py-1 first:pt-0 last:pb-0">
-                      <LogItem serviceMap={serviceMap} log={log} />
+                      <LogItem
+                        serviceMap={serviceMap}
+                        log={log}
+                        getTraceRoute={props.getTraceRoute}
+                      />
                     </li>
                   );
                 })}

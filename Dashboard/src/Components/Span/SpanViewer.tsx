@@ -34,6 +34,8 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import { JSONObject } from "Common/Types/JSON";
 import Text from "Common/Types/Text";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
 
 export interface ComponentProps {
   id: string;
@@ -183,6 +185,18 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
         logs={logs}
         showFilters={false}
         noLogsMessage={"No logs found for this span."}
+        getTraceRoute={(traceId: string) => {
+          if (!traceId) {
+            return undefined;
+          }
+
+          return RouteUtil.populateRouteParams(
+            RouteMap[PageMap.TELEMETRY_TRACE_VIEW]!,
+            {
+              modelId: traceId,
+            },
+          );
+        }}
       />
     );
   };

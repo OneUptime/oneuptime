@@ -17,10 +17,16 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import { Logger } from "../../Utils/Logger";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import Link from "../Link/Link";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
 
 export interface ComponentProps {
   log: Log;
   serviceMap: Dictionary<TelemetryService>;
+  getTraceRoute?:
+    | ((traceId: string, log: Log) => Route | URL | undefined)
+    | undefined;
 }
 
 const LogItem: FunctionComponent<ComponentProps> = (
@@ -54,6 +60,51 @@ const LogItem: FunctionComponent<ComponentProps> = (
         className="flex-none"
       />
     );
+  };
+
+  type RenderTraceIdFunction = () => ReactElement;
+
+  const renderTraceId: RenderTraceIdFunction = (): ReactElement => {
+    const traceId: string = props.log.traceId?.toString() || "";
+
+    const traceRoute: Route | URL | undefined =
+      traceId && props.getTraceRoute
+        ? props.getTraceRoute(traceId, props.log)
+        : undefined;
+
+    const traceContainerClassName: string = `${bodyColor} font-mono text-sm bg-slate-950 px-2.5 py-1.5 rounded border border-slate-800 flex-1 truncate transition-colors ${traceRoute ? "hover:border-blue-500/60 hover:text-blue-200" : ""}`;
+
+    const traceElement: ReactElement = (
+      <div
+        className={traceContainerClassName}
+        title={traceRoute ? `View trace ${traceId}` : traceId}
+      >
+        {traceId}
+      </div>
+    );
+
+    if (traceRoute) {
+      return (
+        <div
+          className="flex-1"
+          onClick={(event) => {
+            event.stopPropagation();
+          }}
+          onAuxClick={(event) => {
+            event.stopPropagation();
+          }}
+        >
+          <Link
+            to={traceRoute}
+            className="flex-1 min-w-0 block hover:no-underline"
+          >
+            {traceElement}
+          </Link>
+        </div>
+      );
+    }
+
+    return traceElement;
   };
 
   if (props.log.severityText === LogSeverity.Warning) {
@@ -295,11 +346,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
                 Trace ID
               </div>
               <div className="flex items-center space-x-2">
-                <div
-                  className={`${bodyColor} font-mono text-sm bg-slate-950 px-2.5 py-1.5 rounded border border-slate-800 flex-1 truncate`}
-                >
-                  {props.log.traceId?.toString()}
-                </div>
+                {renderTraceId()}
                 {getCopyButton(props.log.traceId?.toString() || "")}
               </div>
             </div>
