@@ -42,7 +42,6 @@ const LogItem: FunctionComponent<ComponentProps> = (
     setIsCollapsed(true);
   }, []);
 
-
   let bodyColor: string = "text-slate-200";
   let leftBorderColor: string = "border-l-slate-700";
   let severityDotClass: string = "bg-slate-400";
@@ -163,7 +162,6 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
     const baseContainerClassName: string = `${bodyColor} font-mono text-sm bg-slate-950 px-2.5 py-1.5 rounded border border-slate-800 flex-1 transition-colors`;
 
-
     if (spanRoute) {
       const linkContainerClassName: string = `${baseContainerClassName} flex items-center gap-1 min-w-0 hover:border-blue-500/60 hover:text-blue-200`;
 
@@ -185,9 +183,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
               className={linkContainerClassName}
               title={`View span ${spanId}`}
             >
-              <span
-                className={`truncate underline underline-offset-2`}
-              >
+              <span className={`truncate underline underline-offset-2`}>
                 {spanId}
               </span>
               <Icon
@@ -201,10 +197,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <div
-        className={`${baseContainerClassName} truncate`}
-        title={spanId}
-      >
+      <div className={`${baseContainerClassName} truncate`} title={spanId}>
         {spanId}
       </div>
     );

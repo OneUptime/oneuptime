@@ -263,7 +263,6 @@ export default class TelemetryUtil {
       return [];
     }
 
-    return Object.keys(attributes)
-      .sort();
+    return Object.keys(attributes).sort();
   }
 }

@@ -213,7 +213,7 @@ export default class OTelIngestService {
     }
 
     newDbMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
-      newDbMetric.attributes
+      newDbMetric.attributes,
     );
 
     // aggregationTemporality
