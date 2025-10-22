@@ -6,6 +6,7 @@ import AnalyticsDatabaseService, {
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import logger from "Common/Server/Utils/Logger";
 import Projection from "Common/Types/AnalyticsDatabase/Projection";
+import MaterializedView from "Common/Types/AnalyticsDatabase/MaterializedView";
 import { JSONObject } from "Common/Types/JSON";
 
 export default class AnalyticsTableManagement {
@@ -65,6 +66,57 @@ export default class AnalyticsTableManagement {
         await AnalyticsTableManagement.materializeProjection(
           service,
           projection.name,
+        );
+      }
+
+      const materializedViews: Array<MaterializedView> =
+        service.model.materializedViews;
+
+      if (materializedViews.length > 0) {
+        logger.debug(
+          `Processing ${materializedViews.length} materialized views for ${service.model.tableName}`,
+        );
+      }
+
+      for (const materializedView of materializedViews) {
+        if (!materializedView.query || materializedView.query.trim().length === 0) {
+          logger.debug(
+            `Skipping materialized view with empty query on ${service.model.tableName}`,
+          );
+          continue;
+        }
+
+        if (!materializedView.name || materializedView.name.trim().length === 0) {
+          logger.debug(
+            `Skipping materialized view with empty name on ${service.model.tableName}`,
+          );
+          continue;
+        }
+
+        logger.debug(
+          `Ensuring materialized view ${materializedView.name} exists on ${service.model.tableName}`,
+        );
+
+        const viewExists: boolean =
+          await AnalyticsTableManagement.doesMaterializedViewExist(
+            service,
+            materializedView.name,
+          );
+
+        if (viewExists) {
+          logger.debug(
+            `Materialized view ${materializedView.name} already exists on ${service.model.tableName}`,
+          );
+          continue;
+        }
+
+        logger.debug(
+          `Creating materialized view ${materializedView.name} on ${service.model.tableName}`,
+        );
+
+        await AnalyticsTableManagement.createMaterializedView(
+          service,
+          materializedView,
         );
       }
     }
@@ -154,5 +206,60 @@ export default class AnalyticsTableManagement {
 
   private static escapeIdentifier(value: string): string {
     return `\`${value.replace(/`/g, "``")}\``;
+  }
+
+  private static async doesMaterializedViewExist(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+    viewName: string,
+  ): Promise<boolean> {
+    const databaseName: string | undefined =
+      service.database.getDatasourceOptions().database;
+
+    if (!databaseName) {
+      return false;
+    }
+
+    const escapedDatabaseName: string = this.escapeForQuery(databaseName);
+    const escapedViewName: string = this.escapeForQuery(viewName);
+
+    const statement: string = `SELECT name FROM system.tables WHERE database = '${escapedDatabaseName}' AND name = '${escapedViewName}' AND engine = 'MaterializedView' LIMIT 1`;
+
+    let result: Results;
+
+    try {
+      result = await service.executeQuery(statement);
+    } catch (error) {
+      logger.error({
+        message: `Failed to verify materialized view ${viewName} on ${service.model.tableName}`,
+        error: (error as Error).message,
+      });
+      throw error;
+    }
+
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return Boolean(response.data && response.data.length > 0);
+  }
+
+  private static async createMaterializedView(
+    service: AnalyticsDatabaseService<AnalyticsBaseModel>,
+    materializedView: MaterializedView,
+  ): Promise<void> {
+    try {
+      await service.execute(materializedView.query);
+    } catch (error) {
+      const clickhouseError: { code?: string } = error as { code?: string };
+
+      logger.error({
+        message: `Failed to create materialized view ${materializedView.name} on ${service.model.tableName}`,
+        error: (error as Error).message,
+        code: clickhouseError?.code,
+        stack: (error as Error).stack,
+      });
+
+      throw error;
+    }
   }
 }
