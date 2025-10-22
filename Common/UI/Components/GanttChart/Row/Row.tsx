@@ -166,7 +166,9 @@ const Row: FunctionComponent<ComponentProps> = (
                 timelineWidth={props.timelineWidth}
                 areOtherBarsSelected={props.selectedBarIds.length > 0}
                 isSelected={props.selectedBarIds.includes(bar.id)}
-                isHighlighted={Boolean(highlightSet && highlightSet.has(bar.id))}
+                isHighlighted={Boolean(
+                  highlightSet && highlightSet.has(bar.id),
+                )}
                 onSelect={(barId: string) => {
                   // check if the bar is already selected
                   if (props.selectedBarIds.includes(barId)) {

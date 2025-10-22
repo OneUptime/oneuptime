@@ -1100,16 +1100,12 @@ export default class OneUptimeDate {
 
     const microseconds: number = nanoseconds / 1000;
     if (microseconds < 1000) {
-      return (
-        sign + OneUptimeDate.formatDurationValue(microseconds) + " μs"
-      );
+      return sign + OneUptimeDate.formatDurationValue(microseconds) + " μs";
     }
 
     const milliseconds: number = nanoseconds / 1000000;
     if (milliseconds < 1000) {
-      return (
-        sign + OneUptimeDate.formatDurationValue(milliseconds) + " ms"
-      );
+      return sign + OneUptimeDate.formatDurationValue(milliseconds) + " ms";
     }
 
     const seconds: number = nanoseconds / 1000000000;
@@ -1156,7 +1152,8 @@ export default class OneUptimeDate {
           parts[parts.length - 1]!.slice(0, -1),
         );
         const updatedSeconds: number = numericValue + leftoverSeconds;
-        parts[parts.length - 1] = `${OneUptimeDate.formatDurationValue(updatedSeconds)}s`;
+        parts[parts.length - 1] =
+          `${OneUptimeDate.formatDurationValue(updatedSeconds)}s`;
       } else if (parts.length < maxParts) {
         parts.push(`${OneUptimeDate.formatDurationValue(leftoverSeconds)}s`);
       }
