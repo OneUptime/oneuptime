@@ -33,7 +33,9 @@ import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const INITIAL_SPAN_FETCH_LIMIT: number = 500;
+const INITIAL_SPAN_FETCH_SIZE: number = 500;
+const SPAN_PAGE_SIZE: number = 500;
+const MAX_SPAN_FETCH_BATCH: number = LIMIT_PER_PROJECT;
 
 export interface ComponentProps {
   traceId: string;
@@ -85,8 +87,6 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     false,
   );
 
-  const spanLimitRef = React.useRef<number>(INITIAL_SPAN_FETCH_LIMIT);
-
   // UI State Enhancements
   const [showErrorsOnly, setShowErrorsOnly] = React.useState<boolean>(false);
 
@@ -129,16 +129,15 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     setTelemetryServices(telemetryServicesResult.data);
   }, []);
 
-  const fetchSpans = React.useCallback(
-    async (
-      limit: number,
-      options?: {
-        showPageLoader?: boolean;
-      },
-    ): Promise<void> => {
-      const showPageLoader: boolean = options?.showPageLoader ?? true;
+  type FetchSpansParams = {
+    limit: number;
+    skip: number;
+    mode: "replace" | "append";
+  };
 
-      if (showPageLoader) {
+  const fetchSpans = React.useCallback(
+    async ({ limit, skip, mode }: FetchSpansParams): Promise<number> => {
+      if (mode === "replace") {
         setIsLoading(true);
         setIsLoadingMoreSpans(false);
       } else {
@@ -162,7 +161,6 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         };
 
         const traceId: string = traceIdFromUrl;
-
         setTraceId(traceId);
 
         const spanResult: ListResult<Span> =
@@ -175,17 +173,38 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             sort: {
               startTimeUnixNano: SortOrder.Ascending,
             },
-            skip: 0,
-            limit: limit,
+            skip,
+            limit,
           });
 
         const fetchedSpans: Span[] = [...spanResult.data];
 
-        setSpans(fetchedSpans);
-        setTotalSpanCount(spanResult.count);
+        setTotalSpanCount((prevCount: number): number => {
+          if (spanResult.count && spanResult.count > 0) {
+            return spanResult.count;
+          }
 
-        const fetchedSpanIds: Set<string> = new Set(
-          fetchedSpans
+          if (mode === "replace") {
+            return fetchedSpans.length;
+          }
+
+          return Math.max(prevCount, skip + fetchedSpans.length);
+        });
+
+        let updatedSpans: Span[] = [];
+
+        setSpans((prevSpans: Span[]): Span[] => {
+          if (mode === "replace") {
+            updatedSpans = fetchedSpans;
+          } else {
+            updatedSpans = [...prevSpans, ...fetchedSpans];
+          }
+
+          return updatedSpans;
+        });
+
+        const availableSpanIds: Set<string> = new Set(
+          updatedSpans
             .map((span: Span) => {
               return span.spanId?.toString();
             })
@@ -200,13 +219,13 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           }
 
           return prevSelectedSpans.filter((spanId: string) => {
-            return fetchedSpanIds.has(spanId);
+            return availableSpanIds.has(spanId);
           });
         });
 
-        spanLimitRef.current = limit;
+        return fetchedSpans.length;
       } finally {
-        if (showPageLoader) {
+        if (mode === "replace") {
           setIsLoading(false);
         } else {
           setIsLoadingMoreSpans(false);
@@ -223,32 +242,17 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       try {
         await Promise.all([
           fetchTelemetryServices(),
-          fetchSpans(spanLimitRef.current, { showPageLoader: true }),
+          fetchSpans({
+            limit: INITIAL_SPAN_FETCH_SIZE,
+            skip: 0,
+            mode: "replace",
+          }),
         ]);
       } catch (err) {
         setError(API.getFriendlyMessage(err));
       }
     },
     [fetchTelemetryServices, fetchSpans],
-  );
-
-  const loadedSpanCount: number = spans.length;
-
-  const handleShowAllSpans: PromiseVoidFunction = React.useCallback(
-    async (): Promise<void> => {
-      if (totalSpanCount <= loadedSpanCount) {
-        return;
-      }
-
-      setError(null);
-
-      try {
-        await fetchSpans(LIMIT_PER_PROJECT, { showPageLoader: false });
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      }
-    },
-    [fetchSpans, totalSpanCount, loadedSpanCount],
   );
 
   const getBarTooltip: GetBarTooltipFunction = (
@@ -482,12 +486,14 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   };
 
   React.useEffect(() => {
-    spanLimitRef.current = INITIAL_SPAN_FETCH_LIMIT;
     setSpans([]);
     setSelectedSpans([]);
     setTotalSpanCount(0);
     setGanttChart(null);
     setTraceId(null);
+    setError(null);
+    setIsLoading(false);
+    setIsLoadingMoreSpans(false);
   }, [traceIdFromUrl]);
 
   React.useEffect(() => {
@@ -495,6 +501,107 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       setError(API.getFriendlyMessage(err));
     });
   }, [fetchItems]);
+
+  const loadedSpanCount: number = spans.length;
+
+  const hasMoreSpans: boolean =
+    totalSpanCount > 0 ? totalSpanCount > loadedSpanCount : false;
+
+  const remainingSpanCount: number = hasMoreSpans
+    ? totalSpanCount - loadedSpanCount
+    : 0;
+
+  const nextPageSpanCount: number = hasMoreSpans
+    ? Math.min(SPAN_PAGE_SIZE, remainingSpanCount)
+    : 0;
+
+  const isShowingAllSpans: boolean =
+    totalSpanCount > 0 &&
+    !hasMoreSpans &&
+    loadedSpanCount > INITIAL_SPAN_FETCH_SIZE;
+
+  const nextPageDisplayCount: number =
+    nextPageSpanCount > 0 ? nextPageSpanCount : SPAN_PAGE_SIZE;
+
+  const handleShowNextSpans: PromiseVoidFunction = React.useCallback(
+    async (): Promise<void> => {
+      if (!hasMoreSpans || isLoadingMoreSpans) {
+        return;
+      }
+
+      setError(null);
+
+      const remaining: number = Math.max(
+        totalSpanCount - loadedSpanCount,
+        0,
+      );
+      const nextBatchSize: number = Math.max(
+        1,
+        Math.min(SPAN_PAGE_SIZE, remaining),
+      );
+
+      try {
+        await fetchSpans({
+          limit: nextBatchSize,
+          skip: loadedSpanCount,
+          mode: "append",
+        });
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
+    },
+    [
+      fetchSpans,
+      hasMoreSpans,
+      isLoadingMoreSpans,
+      totalSpanCount,
+      loadedSpanCount,
+    ],
+  );
+
+  const handleShowAllSpans: PromiseVoidFunction = React.useCallback(
+    async (): Promise<void> => {
+      if (!hasMoreSpans || isLoadingMoreSpans) {
+        return;
+      }
+
+      setError(null);
+
+      let remaining: number = Math.max(totalSpanCount - loadedSpanCount, 0);
+      let nextSkip: number = loadedSpanCount;
+
+      try {
+        while (remaining > 0) {
+          const batchSize: number = Math.min(MAX_SPAN_FETCH_BATCH, remaining);
+          const fetchedCount: number = await fetchSpans({
+            limit: batchSize,
+            skip: nextSkip,
+            mode: "append",
+          });
+
+          if (fetchedCount === 0) {
+            break;
+          }
+
+          remaining -= fetchedCount;
+          nextSkip += fetchedCount;
+
+          if (fetchedCount < batchSize) {
+            break;
+          }
+        }
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
+    },
+    [
+      fetchSpans,
+      hasMoreSpans,
+      isLoadingMoreSpans,
+      totalSpanCount,
+      loadedSpanCount,
+    ],
+  );
 
   /*
    * Derived values for summary / filtering
@@ -782,15 +889,6 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   }
 
   const showInlineError: boolean = Boolean(error && spans.length > 0);
-
-  const hasMoreSpans: boolean = totalSpanCount > loadedSpanCount;
-  const remainingSpanCount: number = Math.max(
-    totalSpanCount - loadedSpanCount,
-    0,
-  );
-  const isShowingAllSpans: boolean =
-    totalSpanCount > 0 && !hasMoreSpans &&
-    spanLimitRef.current > INITIAL_SPAN_FETCH_LIMIT;
 
   const serviceLegend: ReactElement = (
     <div className="flex flex-wrap gap-2">
@@ -1100,22 +1198,36 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           )}
 
           {hasMoreSpans ? (
-            <div className="mb-4 flex flex-col gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 md:flex-row md:items-center md:justify-between">
-              <div className="text-xs text-amber-700">
-                Showing {loadedSpanCount.toLocaleString()} of {totalSpanCount.toLocaleString()} spans. Metrics and the chart reflect the spans currently loaded.
+            <div className="mb-4 flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 md:flex-row md:items-center md:justify-between">
+              <div className="text-xs text-amber-700 md:max-w-xl">
+                Showing {loadedSpanCount.toLocaleString()} of {totalSpanCount.toLocaleString()} spans. To keep Trace Explorer responsive, spans load in batches; metrics and the chart currently reflect the spans shown below.
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  void handleShowAllSpans();
-                }}
-                disabled={isLoadingMoreSpans}
-                className="inline-flex items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isLoadingMoreSpans
-                  ? "Loading spans..."
-                  : `Show ${remainingSpanCount.toLocaleString()} more span${remainingSpanCount === 1 ? "" : "s"}`}
-              </button>
+              <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleShowNextSpans();
+                  }}
+                  disabled={isLoadingMoreSpans}
+                  className="inline-flex items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isLoadingMoreSpans
+                    ? "Loading spans..."
+                    : `Show next ${nextPageDisplayCount.toLocaleString()} span${nextPageDisplayCount === 1 ? "" : "s"}`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleShowAllSpans();
+                  }}
+                  disabled={isLoadingMoreSpans}
+                  className="inline-flex items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isLoadingMoreSpans
+                    ? "Loading spans..."
+                    : `Show all remaining ${remainingSpanCount.toLocaleString()} span${remainingSpanCount === 1 ? "" : "s"}`}
+                </button>
+              </div>
             </div>
           ) : isShowingAllSpans ? (
             <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
