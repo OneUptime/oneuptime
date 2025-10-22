@@ -11,6 +11,7 @@ import React, {
   useState,
 } from "react";
 import AutocompleteTextInput from "../AutocompleteTextInput/AutocompleteTextInput";
+import FieldLabelElement from "../Forms/Fields/FieldLabel";
 
 export enum ValueType {
   Text = "Text",
@@ -143,6 +144,9 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
           return (
             <div key={index} className="flex">
               <div className="mr-1 w-1/2">
+                <div className="mb-1">
+                  <FieldLabelElement title="Key" required={true} hideOptionalLabel={true} />
+                </div>
                 <AutocompleteTextInput
                   value={item.key}
                   placeholder={props.keyPlaceholder}
@@ -165,6 +169,13 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
               </div>
               {valueTypes.length > 1 && (
                 <div className="ml-1 w-1/2">
+                    <div className="mb-1">
+                      <FieldLabelElement
+                        title="Type"
+                        hideOptionalLabel={true}
+                        required={true}
+                      />
+                    </div>
                   <Dropdown
                     value={dropdownOptionsForValueTypes.find(
                       (dropdownOption: DropdownOption) => {
@@ -191,6 +202,9 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                 </div>
               )}
               <div className="ml-1 w-1/2">
+                <div className="mb-1">
+                  <FieldLabelElement title="Value" hideOptionalLabel={true} required={true} />
+                </div>
                 {item.type === ValueType.Text && (
                   <Input
                     value={item.value.toString()}
