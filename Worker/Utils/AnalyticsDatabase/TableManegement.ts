@@ -5,7 +5,6 @@ import AnalyticsDatabaseService, {
 } from "Common/Server/Services/AnalyticsDatabaseService";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import logger from "Common/Server/Utils/Logger";
-import Projection from "Common/Types/AnalyticsDatabase/Projection";
 import MaterializedView from "Common/Types/AnalyticsDatabase/MaterializedView";
 import { JSONObject } from "Common/Types/JSON";
 
@@ -17,112 +16,11 @@ export default class AnalyticsTableManagement {
         service.statementGenerator.toTableCreateStatement(),
       );
 
-      const projections: Array<Projection> = service.model.projections;
-
-      if (projections.length > 0) {
-        logger.debug(
-          `Processing ${projections.length} projections for ${service.model.tableName}`,
-        );
-      }
-
-      for (const projection of projections) {
-        if (!projection.query || projection.query.trim().length === 0) {
-          logger.debug(
-            `Skipping projection with empty query on ${service.model.tableName}`,
-          );
-          continue;
-        }
-
-        if (!projection.name || projection.name.trim().length === 0) {
-          logger.debug(
-            `Skipping projection with empty name on ${service.model.tableName}`,
-          );
-          continue;
-        }
-
-        logger.debug(
-          `Ensuring projection ${projection.name} exists on ${service.model.tableName}`,
-        );
-
-        const projectionExists: boolean =
-          await AnalyticsTableManagement.doesProjectionExist(
-            service,
-            projection.name,
-          );
-
-        if (projectionExists) {
-          logger.debug(
-            `Projection ${projection.name} already exists on ${service.model.tableName}`,
-          );
-          continue;
-        }
-
-        logger.debug(
-          `Creating projection ${projection.name} on ${service.model.tableName}`,
-        );
-
-        await service.execute(projection.query);
-
-        await AnalyticsTableManagement.materializeProjection(
-          service,
-          projection.name,
-        );
-      }
-
-      const materializedViews: Array<MaterializedView> =
-        service.model.materializedViews;
-
-      if (materializedViews.length > 0) {
-        logger.debug(
-          `Processing ${materializedViews.length} materialized views for ${service.model.tableName}`,
-        );
-      }
-
-      for (const materializedView of materializedViews) {
-        if (!materializedView.query || materializedView.query.trim().length === 0) {
-          logger.debug(
-            `Skipping materialized view with empty query on ${service.model.tableName}`,
-          );
-          continue;
-        }
-
-        if (!materializedView.name || materializedView.name.trim().length === 0) {
-          logger.debug(
-            `Skipping materialized view with empty name on ${service.model.tableName}`,
-          );
-          continue;
-        }
-
-        logger.debug(
-          `Ensuring materialized view ${materializedView.name} exists on ${service.model.tableName}`,
-        );
-
-        const viewExists: boolean =
-          await AnalyticsTableManagement.doesMaterializedViewExist(
-            service,
-            materializedView.name,
-          );
-
-        if (viewExists) {
-          logger.debug(
-            `Materialized view ${materializedView.name} already exists on ${service.model.tableName}`,
-          );
-          continue;
-        }
-
-        logger.debug(
-          `Creating materialized view ${materializedView.name} on ${service.model.tableName}`,
-        );
-
-        await AnalyticsTableManagement.createMaterializedView(
-          service,
-          materializedView,
-        );
-      }
+      
     }
   }
 
-  private static async doesProjectionExist(
+  public static async doesProjectionExist(
     service: AnalyticsDatabaseService<AnalyticsBaseModel>,
     projectionName: string,
   ): Promise<boolean> {
@@ -160,7 +58,7 @@ export default class AnalyticsTableManagement {
     return Boolean(response.data && response.data.length > 0);
   }
 
-  private static async materializeProjection(
+  public static async materializeProjection(
     service: AnalyticsDatabaseService<AnalyticsBaseModel>,
     projectionName: string,
   ): Promise<void> {
@@ -200,15 +98,15 @@ export default class AnalyticsTableManagement {
     }
   }
 
-  private static escapeForQuery(value: string): string {
+  public static escapeForQuery(value: string): string {
     return value.replace(/'/g, "''");
   }
 
-  private static escapeIdentifier(value: string): string {
+  public static escapeIdentifier(value: string): string {
     return `\`${value.replace(/`/g, "``")}\``;
   }
 
-  private static async doesMaterializedViewExist(
+  public static async doesMaterializedViewExist(
     service: AnalyticsDatabaseService<AnalyticsBaseModel>,
     viewName: string,
   ): Promise<boolean> {
@@ -243,7 +141,7 @@ export default class AnalyticsTableManagement {
     return Boolean(response.data && response.data.length > 0);
   }
 
-  private static async createMaterializedView(
+  public static async createMaterializedView(
     service: AnalyticsDatabaseService<AnalyticsBaseModel>,
     materializedView: MaterializedView,
   ): Promise<void> {
