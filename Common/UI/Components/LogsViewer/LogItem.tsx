@@ -79,10 +79,10 @@ const LogItem: FunctionComponent<ComponentProps> = (
       return (
         <div
           className="flex-1"
-          onClick={(event) => {
+          onClick={(event: React.MouseEvent<HTMLDivElement>) => {
             event.stopPropagation();
           }}
-          onAuxClick={(event) => {
+          onAuxClick={(event: React.MouseEvent<HTMLDivElement>) => {
             event.stopPropagation();
           }}
         >
@@ -168,10 +168,10 @@ const LogItem: FunctionComponent<ComponentProps> = (
       return (
         <div
           className="flex-1"
-          onClick={(event) => {
+          onClick={(event: React.MouseEvent<HTMLDivElement>) => {
             event.stopPropagation();
           }}
-          onAuxClick={(event) => {
+          onAuxClick={(event: React.MouseEvent<HTMLDivElement>) => {
             event.stopPropagation();
           }}
         >

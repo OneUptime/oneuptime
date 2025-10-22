@@ -47,6 +47,14 @@ export interface ComponentProps {
   getSpanRoute?: (spanId: string, log: Log) => Route | URL | undefined;
 }
 
+type OptionalTraceRouteProps = {
+  getTraceRoute?: (traceId: string, log: Log) => Route | URL | undefined;
+};
+
+type OptionalSpanRouteProps = {
+  getSpanRoute?: (spanId: string, log: Log) => Route | URL | undefined;
+};
+
 const LogsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -335,12 +343,14 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             >
               <ul role="list" className="divide-y divide-slate-800">
                 {props.logs.map((log: Log, i: number) => {
-                  const traceRouteProps = props.getTraceRoute
-                    ? { getTraceRoute: props.getTraceRoute }
-                    : {};
-                  const spanRouteProps = props.getSpanRoute
-                    ? { getSpanRoute: props.getSpanRoute }
-                    : {};
+                  const traceRouteProps: OptionalTraceRouteProps =
+                    props.getTraceRoute
+                      ? { getTraceRoute: props.getTraceRoute }
+                      : {};
+                  const spanRouteProps: OptionalSpanRouteProps =
+                    props.getSpanRoute
+                      ? { getSpanRoute: props.getSpanRoute }
+                      : {};
                   return (
                     <li key={i} className="py-1 first:pt-0 last:pb-0">
                       <LogItem

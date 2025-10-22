@@ -83,9 +83,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
   const [totalSpanCount, setTotalSpanCount] = React.useState<number>(0);
 
-  const [isLoadingMoreSpans, setIsLoadingMoreSpans] = React.useState<boolean>(
-    false,
-  );
+  const [isLoadingMoreSpans, setIsLoadingMoreSpans] =
+    React.useState<boolean>(false);
 
   // UI State Enhancements
   const [showErrorsOnly, setShowErrorsOnly] = React.useState<boolean>(false);
@@ -107,27 +106,28 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     [],
   );
 
-  const fetchTelemetryServices = React.useCallback(async (): Promise<void> => {
-    const telemetryServicesResult: ListResult<TelemetryService> =
-      await ModelAPI.getList<TelemetryService>({
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        modelType: TelemetryService,
-        sort: {
-          name: SortOrder.Ascending,
-        },
-        select: {
-          name: true,
-          _id: true,
-          serviceColor: true,
-        },
-      });
+  const fetchTelemetryServices: PromiseVoidFunction =
+    React.useCallback(async (): Promise<void> => {
+      const telemetryServicesResult: ListResult<TelemetryService> =
+        await ModelAPI.getList<TelemetryService>({
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          modelType: TelemetryService,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+          select: {
+            name: true,
+            _id: true,
+            serviceColor: true,
+          },
+        });
 
-    setTelemetryServices(telemetryServicesResult.data);
-  }, []);
+      setTelemetryServices(telemetryServicesResult.data);
+    }, []);
 
   type FetchSpansParams = {
     limit: number;
@@ -135,7 +135,9 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     mode: "replace" | "append";
   };
 
-  const fetchSpans = React.useCallback(
+  type FetchSpansFunction = (params: FetchSpansParams) => Promise<number>;
+
+  const fetchSpans: FetchSpansFunction = React.useCallback(
     async ({ limit, skip, mode }: FetchSpansParams): Promise<number> => {
       if (mode === "replace") {
         setIsLoading(true);
@@ -235,8 +237,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     [traceIdFromUrl],
   );
 
-  const fetchItems: PromiseVoidFunction = React.useCallback(
-    async (): Promise<void> => {
+  const fetchItems: PromiseVoidFunction =
+    React.useCallback(async (): Promise<void> => {
       setError(null);
 
       try {
@@ -251,9 +253,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       } catch (err) {
         setError(API.getFriendlyMessage(err));
       }
-    },
-    [fetchTelemetryServices, fetchSpans],
-  );
+    }, [fetchTelemetryServices, fetchSpans]);
 
   const getBarTooltip: GetBarTooltipFunction = (
     data: BarTooltipFunctionProps,
@@ -523,18 +523,15 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   const nextPageDisplayCount: number =
     nextPageSpanCount > 0 ? nextPageSpanCount : SPAN_PAGE_SIZE;
 
-  const handleShowNextSpans: PromiseVoidFunction = React.useCallback(
-    async (): Promise<void> => {
+  const handleShowNextSpans: PromiseVoidFunction =
+    React.useCallback(async (): Promise<void> => {
       if (!hasMoreSpans || isLoadingMoreSpans) {
         return;
       }
 
       setError(null);
 
-      const remaining: number = Math.max(
-        totalSpanCount - loadedSpanCount,
-        0,
-      );
+      const remaining: number = Math.max(totalSpanCount - loadedSpanCount, 0);
       const nextBatchSize: number = Math.max(
         1,
         Math.min(SPAN_PAGE_SIZE, remaining),
@@ -549,18 +546,16 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       } catch (err) {
         setError(API.getFriendlyMessage(err));
       }
-    },
-    [
+    }, [
       fetchSpans,
       hasMoreSpans,
       isLoadingMoreSpans,
       totalSpanCount,
       loadedSpanCount,
-    ],
-  );
+    ]);
 
-  const handleShowAllSpans: PromiseVoidFunction = React.useCallback(
-    async (): Promise<void> => {
+  const handleShowAllSpans: PromiseVoidFunction =
+    React.useCallback(async (): Promise<void> => {
       if (!hasMoreSpans || isLoadingMoreSpans) {
         return;
       }
@@ -593,15 +588,13 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       } catch (err) {
         setError(API.getFriendlyMessage(err));
       }
-    },
-    [
+    }, [
       fetchSpans,
       hasMoreSpans,
       isLoadingMoreSpans,
       totalSpanCount,
       loadedSpanCount,
-    ],
-  );
+    ]);
 
   /*
    * Derived values for summary / filtering
@@ -1200,7 +1193,10 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           {hasMoreSpans ? (
             <div className="mb-4 flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 md:flex-row md:items-center md:justify-between">
               <div className="text-xs text-amber-700 md:max-w-xl">
-                Showing {loadedSpanCount.toLocaleString()} of {totalSpanCount.toLocaleString()} spans. To keep Trace Explorer responsive, spans load in batches; metrics and the chart currently reflect the spans shown below.
+                Showing {loadedSpanCount.toLocaleString()} of{" "}
+                {totalSpanCount.toLocaleString()} spans. To keep Trace Explorer
+                responsive, spans load in batches; metrics and the chart
+                currently reflect the spans shown below.
               </div>
               <div className="flex flex-wrap items-center gap-2 md:justify-end">
                 {isLoadingMoreSpans ? (
