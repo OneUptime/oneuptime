@@ -86,7 +86,9 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
       {getUnresolvedIcon()}
       {getArchivedIcon()}
       {!props.fingerprint && (
-        <div className="mt-0.5 ml-2 font-mono break-words">{props.message || "-"}</div>
+        <div className="mt-0.5 ml-2 font-mono break-words">
+          {props.message || "-"}
+        </div>
       )}
       {props.fingerprint && (
         <AppLink
