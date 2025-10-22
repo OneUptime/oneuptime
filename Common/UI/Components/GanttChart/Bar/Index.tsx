@@ -26,6 +26,7 @@ export interface ComponentProps {
   onSelect: (barId: string) => void;
   onDeselect: (barId: string) => void;
   isSelected?: boolean;
+  isHighlighted?: boolean;
 }
 
 const Bar: FunctionComponent<ComponentProps> = (
@@ -66,9 +67,17 @@ const Bar: FunctionComponent<ComponentProps> = (
     barOpacity = 0.5;
   }
 
+  if (props.isHighlighted) {
+    barOpacity = 1;
+  }
+
   if (isHovered) {
     barOpacity = 1;
   }
+
+  const highlightShadow: string | undefined = props.isHighlighted
+    ? "0 0 0 2px rgba(99, 102, 241, 0.8), 0 0 14px rgba(129, 140, 248, 0.55)"
+    : undefined;
 
   return (
     // rectangle div with curved corners and text inside in tailwindcss
@@ -84,6 +93,8 @@ const Bar: FunctionComponent<ComponentProps> = (
           width: `${barWidth}px`,
           backgroundColor: `${props.bar.barColor.toString()}`,
           opacity: barOpacity,
+          boxShadow: highlightShadow,
+          zIndex: props.isHighlighted ? 30 : undefined,
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -107,6 +118,8 @@ const Bar: FunctionComponent<ComponentProps> = (
         style={{
           marginLeft: `${barWidth + 15}px`,
           opacity: barOpacity,
+          fontWeight: props.isHighlighted ? 600 : undefined,
+          color: props.isHighlighted ? "#4338ca" : undefined,
         }}
       >
         <BarLabel label={props.bar.label} />

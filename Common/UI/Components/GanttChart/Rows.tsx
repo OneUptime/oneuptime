@@ -10,6 +10,7 @@ export interface ComponentProps {
   selectedBarIds: string[];
   onBarSelectChange: (barIds: string[]) => void;
   multiSelect?: boolean | undefined;
+  highlightBarIds?: string[];
 }
 
 const Rows: FunctionComponent<ComponentProps> = (
@@ -31,6 +32,7 @@ const Rows: FunctionComponent<ComponentProps> = (
         multiSelect={props.multiSelect}
         selectedBarIds={props.selectedBarIds}
         onBarSelectChange={props.onBarSelectChange}
+        highlightBarIds={props.highlightBarIds}
       />
     );
   };

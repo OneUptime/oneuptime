@@ -35,6 +35,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   traceId: string;
+  highlightSpanIds?: string[];
 }
 
 type BarTooltipFunctionProps = {
@@ -53,6 +54,20 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   >([]);
 
   const [selectedSpans, setSelectedSpans] = React.useState<string[]>([]);
+
+  const highlightSpanIds: string[] = React.useMemo(() => {
+    if (!props.highlightSpanIds || props.highlightSpanIds.length === 0) {
+      return [];
+    }
+
+    return props.highlightSpanIds
+      .map((spanId: string) => {
+        return spanId.trim();
+      })
+      .filter((spanId: string) => {
+        return spanId.length > 0;
+      });
+  }, [props.highlightSpanIds]);
 
   const traceIdFromUrl: string = props.traceId;
 
@@ -628,6 +643,22 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       });
     }
 
+    const displaySpanIds: Set<string> = new Set(
+      displaySpans
+        .map((span: Span) => {
+          return span.spanId?.toString();
+        })
+        .filter((id: string | undefined): id is string => {
+          return Boolean(id);
+        }),
+    );
+
+    const highlightableSpanIds: string[] = highlightSpanIds.filter(
+      (spanId: string) => {
+        return displaySpanIds.has(spanId);
+      },
+    );
+
     const ganttChart: GanttChartProps = {
       id: "chart",
       selectedBarIds: selectedSpans,
@@ -641,10 +672,11 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         interval: interval,
         intervalUnit: newDivisibilityFactor.intervalUnit,
       },
+      highlightBarIds: highlightableSpanIds,
     };
 
     setGanttChart(ganttChart);
-  }, [displaySpans, selectedSpans]);
+  }, [displaySpans, selectedSpans, highlightSpanIds]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

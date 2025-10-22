@@ -11,6 +11,7 @@ export interface GanttChartProps {
   onBarSelectChange: (barIds: string[]) => void;
   multiSelect?: boolean | undefined;
   selectedBarIds: string[];
+  highlightBarIds?: string[];
 }
 
 export interface ComponentProps {
@@ -72,6 +73,7 @@ const GanttChart: FunctionComponent<ComponentProps> = (
           rows={props.chart.rows}
           selectedBarIds={props.chart.selectedBarIds}
           multiSelect={props.chart.multiSelect}
+          highlightBarIds={props.chart.highlightBarIds}
           onBarSelectChange={(barIds: string[]) => {
             props.chart.onBarSelectChange(barIds);
           }}

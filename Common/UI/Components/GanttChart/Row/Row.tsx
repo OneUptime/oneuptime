@@ -2,7 +2,13 @@ import Icon from "../../Icon/Icon";
 import Bar, { GanttChartBar } from "../Bar/Index";
 import RowLabel from "./RowLabel";
 import IconProp from "../../../../Types/Icon/IconProp";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 export interface GanttChartRow {
   rowInfo: {
@@ -23,7 +29,25 @@ export interface ComponentProps {
   onBarSelectChange: (barIds: string[]) => void;
   level: number;
   multiSelect?: boolean | undefined;
+  highlightBarIds?: string[];
 }
+
+const doesRowContainHighlight: (
+  row: GanttChartRow,
+  highlightSet: Set<string>,
+) => boolean = (row: GanttChartRow, highlightSet: Set<string>): boolean => {
+  if (
+    row.bars.some((bar: GanttChartBar) => {
+      return highlightSet.has(bar.id);
+    })
+  ) {
+    return true;
+  }
+
+  return row.childRows.some((childRow: GanttChartRow) => {
+    return doesRowContainHighlight(childRow, highlightSet);
+  });
+};
 
 const Row: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -38,9 +62,41 @@ const Row: FunctionComponent<ComponentProps> = (
 
   const hasChildRows: boolean = row.childRows.length > 0;
 
-  const shouldShowChildRows: boolean = level < 2;
+  const highlightSet: Set<string> | null = useMemo(() => {
+    if (!props.highlightBarIds || props.highlightBarIds.length === 0) {
+      return null;
+    }
+
+    return new Set(props.highlightBarIds);
+  }, [props.highlightBarIds]);
+
+  const hasHighlightedDescendant: boolean = useMemo(() => {
+    if (!highlightSet) {
+      return false;
+    }
+
+    return row.childRows.some((childRow: GanttChartRow) => {
+      return doesRowContainHighlight(childRow, highlightSet);
+    });
+  }, [highlightSet, row]);
+
+  const shouldShowChildRows: boolean = level < 2 || hasHighlightedDescendant;
 
   const [showChildRows, setShowChildRows] = useState(shouldShowChildRows);
+
+  useEffect(() => {
+    if (hasHighlightedDescendant && !showChildRows) {
+      setShowChildRows(true);
+    }
+  }, [hasHighlightedDescendant, showChildRows]);
+
+  const rowIsHighlighted: boolean = useMemo(() => {
+    if (!highlightSet) {
+      return false;
+    }
+
+    return doesRowContainHighlight(row, highlightSet);
+  }, [highlightSet, row]);
 
   const paddingCount: number = level * 4;
 
@@ -48,11 +104,18 @@ const Row: FunctionComponent<ComponentProps> = (
     // rectangle div with curved corners and text inside in tailwindcss
     <div>
       <div
-        className={`flex w-full border-b-2 border-gray-200  border-l-2 border-l-gray-400 border-r-2 border-r-gray-400`}
+        className={`flex w-full border-b-2 border-gray-200  border-l-2 border-l-gray-400 border-r-2 border-r-gray-400 ${rowIsHighlighted ? "bg-indigo-50/40" : ""}`}
+        data-span-highlighted={rowIsHighlighted ? "true" : undefined}
       >
         <div className="flex w-1/4 border-r-2 border-gray-300 overflow-hidden">
           <div
             className={`pl-${paddingCount} pt-2 pb-2 pr-2 flex overflow-hidden`}
+            style={{
+              backgroundColor: rowIsHighlighted
+                ? "rgba(99, 102, 241, 0.08)"
+                : undefined,
+              borderRadius: rowIsHighlighted ? "0.5rem" : undefined,
+            }}
           >
             <div className="w-5 h-5 ml-3 mt-1">
               {hasChildRows && (
@@ -84,6 +147,7 @@ const Row: FunctionComponent<ComponentProps> = (
                 timelineWidth={props.timelineWidth}
                 areOtherBarsSelected={props.selectedBarIds.length > 0}
                 isSelected={props.selectedBarIds.includes(bar.id)}
+                isHighlighted={highlightSet?.has(bar.id)}
                 onSelect={(barId: string) => {
                   // check if the bar is already selected
                   if (props.selectedBarIds.includes(barId)) {
@@ -127,6 +191,8 @@ const Row: FunctionComponent<ComponentProps> = (
                   timelineWidth={props.timelineWidth}
                   selectedBarIds={props.selectedBarIds}
                   onBarSelectChange={props.onBarSelectChange}
+                  highlightBarIds={props.highlightBarIds}
+                  multiSelect={props.multiSelect}
                 />
               </div>
             );
