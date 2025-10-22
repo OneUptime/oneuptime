@@ -313,9 +313,7 @@ export default class Log extends AnalyticsBaseModel {
         spanIdColumn,
         bodyColumn,
       ],
-      projections: [
-       
-      ],
+      projections: [],
       sortKeys: ["projectId", "time", "serviceId"],
       primaryKeys: ["projectId", "time", "serviceId"],
       partitionKey: "sipHash64(projectId) % 16",

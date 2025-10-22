@@ -15,8 +15,6 @@ export default class AnalyticsTableManagement {
       await service.execute(
         service.statementGenerator.toTableCreateStatement(),
       );
-
-      
     }
   }
 

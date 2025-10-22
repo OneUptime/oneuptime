@@ -539,9 +539,7 @@ export default class Span extends AnalyticsBaseModel {
         nameColumn,
         kindColumn,
       ],
-      projections: [
-        
-      ],
+      projections: [],
       sortKeys: ["projectId", "startTime", "serviceId", "traceId"],
       primaryKeys: ["projectId", "startTime", "serviceId", "traceId"],
       partitionKey: "sipHash64(projectId) % 16",
