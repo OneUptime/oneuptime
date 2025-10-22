@@ -37,8 +37,9 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const containerRef: React.MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
-  const blurTimeoutRef: React.MutableRefObject<number | null> =
-    useRef<number | null>(null);
+  const blurTimeoutRef: React.MutableRefObject<number | null> = useRef<
+    number | null
+  >(null);
   const listboxIdRef: React.MutableRefObject<string> = useRef<string>(
     `autocomplete-suggestions-${Math.random().toString(36).slice(2, 10)}`,
   );
@@ -116,9 +117,9 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
     setHighlightedIndex(-1);
   };
 
-  const handleInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void = (
+  const handleInputChange: (
     event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  ) => void = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value: string = event.target.value;
     setInputValue(value);
     props.onChange?.(value);
@@ -141,9 +142,9 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
     }, 150);
   };
 
-  const handleKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void = (
+  const handleKeyDown: (
     event: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
+  ) => void = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showMenu) {
       return;
     }

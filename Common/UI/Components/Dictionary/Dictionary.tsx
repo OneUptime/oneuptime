@@ -126,9 +126,9 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
     value: "False",
   };
 
-  const getDefaultValueForType: (type: ValueType) => string | number | boolean = (
+  const getDefaultValueForType: (
     type: ValueType,
-  ) => {
+  ) => string | number | boolean = (type: ValueType) => {
     if (type === ValueType.Boolean) {
       return true;
     }
@@ -141,10 +141,14 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
       <div>
         {data.map((item: Item, index: number) => {
           return (
-              <div key={index} className="flex items-start mb-4 last:mb-0">
+            <div key={index} className="flex items-start mb-4 last:mb-0">
               <div className="mr-1 w-1/2">
                 <div className="mb-1">
-                  <FieldLabelElement title="Key" required={true} hideOptionalLabel={true} />
+                  <FieldLabelElement
+                    title="Key"
+                    required={true}
+                    hideOptionalLabel={true}
+                  />
                 </div>
                 <AutocompleteTextInput
                   value={item.key}
@@ -164,13 +168,13 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
               </div>
               {valueTypes.length > 1 && (
                 <div className="ml-1 w-1/2">
-                    <div className="mb-1">
-                      <FieldLabelElement
-                        title="Type"
-                        hideOptionalLabel={true}
-                        required={true}
-                      />
-                    </div>
+                  <div className="mb-1">
+                    <FieldLabelElement
+                      title="Type"
+                      hideOptionalLabel={true}
+                      required={true}
+                    />
+                  </div>
                   <Dropdown
                     value={dropdownOptionsForValueTypes.find(
                       (dropdownOption: DropdownOption) => {
@@ -198,7 +202,11 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
               )}
               <div className="ml-1 w-1/2">
                 <div className="mb-1">
-                  <FieldLabelElement title="Value" hideOptionalLabel={true} required={true} />
+                  <FieldLabelElement
+                    title="Value"
+                    hideOptionalLabel={true}
+                    required={true}
+                  />
                 </div>
                 {item.type === ValueType.Text && (
                   <Input
@@ -290,8 +298,8 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                 ...data,
                 {
                   key: "",
-                    value: getDefaultValueForType(valueTypes[0] as ValueType),
-                    type: valueTypes[0] as ValueType,
+                  value: getDefaultValueForType(valueTypes[0] as ValueType),
+                  type: valueTypes[0] as ValueType,
                 },
               ]);
             }}
