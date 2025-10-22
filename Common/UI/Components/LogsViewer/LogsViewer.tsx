@@ -43,9 +43,8 @@ export interface ComponentProps {
   isLoading: boolean;
   showFilters?: boolean | undefined;
   noLogsMessage?: string | undefined;
-  getTraceRoute?:
-    | ((traceId: string, log: Log) => Route | URL | undefined)
-    | undefined;
+  getTraceRoute?: (traceId: string, log: Log) => Route | URL | undefined;
+  getSpanRoute?: (spanId: string, log: Log) => Route | URL | undefined;
 }
 
 const LogsViewer: FunctionComponent<ComponentProps> = (
@@ -336,12 +335,19 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             >
               <ul role="list" className="divide-y divide-slate-800">
                 {props.logs.map((log: Log, i: number) => {
+                  const traceRouteProps = props.getTraceRoute
+                    ? { getTraceRoute: props.getTraceRoute }
+                    : {};
+                  const spanRouteProps = props.getSpanRoute
+                    ? { getSpanRoute: props.getSpanRoute }
+                    : {};
                   return (
                     <li key={i} className="py-1 first:pt-0 last:pb-0">
                       <LogItem
                         serviceMap={serviceMap}
                         log={log}
-                        getTraceRoute={props.getTraceRoute}
+                        {...traceRouteProps}
+                        {...spanRouteProps}
                       />
                     </li>
                   );
