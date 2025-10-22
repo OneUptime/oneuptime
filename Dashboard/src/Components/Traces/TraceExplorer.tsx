@@ -33,6 +33,8 @@ import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
+const INITIAL_SPAN_FETCH_LIMIT: number = 500;
+
 export interface ComponentProps {
   traceId: string;
   highlightSpanIds?: string[];
@@ -77,6 +79,14 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
   const [spans, setSpans] = React.useState<Span[]>([]);
 
+  const [totalSpanCount, setTotalSpanCount] = React.useState<number>(0);
+
+  const [isLoadingMoreSpans, setIsLoadingMoreSpans] = React.useState<boolean>(
+    false,
+  );
+
+  const spanLimitRef = React.useRef<number>(INITIAL_SPAN_FETCH_LIMIT);
+
   // UI State Enhancements
   const [showErrorsOnly, setShowErrorsOnly] = React.useState<boolean>(false);
 
@@ -97,75 +107,149 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     [],
   );
 
-  const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-
-      // get trace with this id and then get all the parentSpanId with this traceid.
-
-      const telemetryServices: ListResult<TelemetryService> =
-        await ModelAPI.getList<TelemetryService>({
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          modelType: TelemetryService,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-          select: {
-            name: true,
-            _id: true,
-            serviceColor: true,
-          },
-        });
-
-      setTelemetryServices(telemetryServices.data);
-
-      const select: Select<Span> = {
-        startTime: true,
-        endTime: true,
-        startTimeUnixNano: true,
-        endTimeUnixNano: true,
-        name: true,
-        traceId: true,
-        parentSpanId: true,
-        spanId: true,
-        kind: true,
-        serviceId: true,
-        durationUnixNano: true,
-        statusCode: true,
-      };
-
-      // now get all the spans with the traceId
-
-      const traceId: string = traceIdFromUrl;
-
-      setTraceId(traceId);
-
-      const allSpans: ListResult<Span> = await AnalyticsModelAPI.getList<Span>({
-        modelType: Span,
-        select: select,
+  const fetchTelemetryServices = React.useCallback(async (): Promise<void> => {
+    const telemetryServicesResult: ListResult<TelemetryService> =
+      await ModelAPI.getList<TelemetryService>({
         query: {
-          traceId: traceId,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         },
-        sort: {
-          startTimeUnixNano: SortOrder.Ascending,
-        },
-        skip: 0,
         limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        modelType: TelemetryService,
+        sort: {
+          name: SortOrder.Ascending,
+        },
+        select: {
+          name: true,
+          _id: true,
+          serviceColor: true,
+        },
       });
 
-      const spans: Span[] = [...allSpans.data];
+    setTelemetryServices(telemetryServicesResult.data);
+  }, []);
 
-      setSpans(spans);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
+  const fetchSpans = React.useCallback(
+    async (
+      limit: number,
+      options?: {
+        showPageLoader?: boolean;
+      },
+    ): Promise<void> => {
+      const showPageLoader: boolean = options?.showPageLoader ?? true;
 
-    setIsLoading(false);
-  };
+      if (showPageLoader) {
+        setIsLoading(true);
+        setIsLoadingMoreSpans(false);
+      } else {
+        setIsLoadingMoreSpans(true);
+      }
+
+      try {
+        const select: Select<Span> = {
+          startTime: true,
+          endTime: true,
+          startTimeUnixNano: true,
+          endTimeUnixNano: true,
+          name: true,
+          traceId: true,
+          parentSpanId: true,
+          spanId: true,
+          kind: true,
+          serviceId: true,
+          durationUnixNano: true,
+          statusCode: true,
+        };
+
+        const traceId: string = traceIdFromUrl;
+
+        setTraceId(traceId);
+
+        const spanResult: ListResult<Span> =
+          await AnalyticsModelAPI.getList<Span>({
+            modelType: Span,
+            select: select,
+            query: {
+              traceId: traceId,
+            },
+            sort: {
+              startTimeUnixNano: SortOrder.Ascending,
+            },
+            skip: 0,
+            limit: limit,
+          });
+
+        const fetchedSpans: Span[] = [...spanResult.data];
+
+        setSpans(fetchedSpans);
+        setTotalSpanCount(spanResult.count);
+
+        const fetchedSpanIds: Set<string> = new Set(
+          fetchedSpans
+            .map((span: Span) => {
+              return span.spanId?.toString();
+            })
+            .filter((spanId: string | undefined): spanId is string => {
+              return Boolean(spanId);
+            }),
+        );
+
+        setSelectedSpans((prevSelectedSpans: string[]): string[] => {
+          if (prevSelectedSpans.length === 0) {
+            return prevSelectedSpans;
+          }
+
+          return prevSelectedSpans.filter((spanId: string) => {
+            return fetchedSpanIds.has(spanId);
+          });
+        });
+
+        spanLimitRef.current = limit;
+      } finally {
+        if (showPageLoader) {
+          setIsLoading(false);
+        } else {
+          setIsLoadingMoreSpans(false);
+        }
+      }
+    },
+    [traceIdFromUrl],
+  );
+
+  const fetchItems: PromiseVoidFunction = React.useCallback(
+    async (): Promise<void> => {
+      setError(null);
+
+      try {
+        await Promise.all([
+          fetchTelemetryServices(),
+          fetchSpans(spanLimitRef.current, { showPageLoader: true }),
+        ]);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
+    },
+    [fetchTelemetryServices, fetchSpans],
+  );
+
+  const loadedSpanCount: number = spans.length;
+
+  const handleShowAllSpans: PromiseVoidFunction = React.useCallback(
+    async (): Promise<void> => {
+      if (totalSpanCount <= loadedSpanCount) {
+        return;
+      }
+
+      setError(null);
+
+      try {
+        await fetchSpans(LIMIT_PER_PROJECT, { showPageLoader: false });
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
+    },
+    [fetchSpans, totalSpanCount, loadedSpanCount],
+  );
 
   const getBarTooltip: GetBarTooltipFunction = (
     data: BarTooltipFunctionProps,
@@ -398,10 +482,19 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   };
 
   React.useEffect(() => {
+    spanLimitRef.current = INITIAL_SPAN_FETCH_LIMIT;
+    setSpans([]);
+    setSelectedSpans([]);
+    setTotalSpanCount(0);
+    setGanttChart(null);
+    setTraceId(null);
+  }, [traceIdFromUrl]);
+
+  React.useEffect(() => {
     fetchItems().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
-  }, []);
+  }, [fetchItems]);
 
   /*
    * Derived values for summary / filtering
@@ -678,13 +771,26 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     setGanttChart(ganttChart);
   }, [displaySpans, selectedSpans, highlightSpanIds]);
 
-  if (isLoading) {
+  if (isLoading && spans.length === 0) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  const hasBlockingError: boolean = Boolean(error && spans.length === 0);
+
+  if (hasBlockingError) {
+    return <ErrorMessage message={error!} />;
   }
+
+  const showInlineError: boolean = Boolean(error && spans.length > 0);
+
+  const hasMoreSpans: boolean = totalSpanCount > loadedSpanCount;
+  const remainingSpanCount: number = Math.max(
+    totalSpanCount - loadedSpanCount,
+    0,
+  );
+  const isShowingAllSpans: boolean =
+    totalSpanCount > 0 && !hasMoreSpans &&
+    spanLimitRef.current > INITIAL_SPAN_FETCH_LIMIT;
 
   const serviceLegend: ReactElement = (
     <div className="flex flex-wrap gap-2">
@@ -841,8 +947,15 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
                 Spans
               </div>
-              <div className="mt-1 text-lg font-semibold text-gray-800">
-                {spanStats.totalSpans}
+              <div className="mt-1 text-lg font-semibold text-gray-800 flex items-baseline space-x-2">
+                <span>{spanStats.totalSpans.toLocaleString()}</span>
+                {hasMoreSpans ? (
+                  <span className="text-xs font-medium text-gray-500">
+                    of {totalSpanCount.toLocaleString()}
+                  </span>
+                ) : (
+                  <></>
+                )}
               </div>
             </div>
             <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3">
@@ -973,6 +1086,40 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               ) : (
                 <></>
               )}
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {showInlineError ? (
+            <div className="mb-4">
+              <ErrorMessage message={error!} />
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {hasMoreSpans ? (
+            <div className="mb-4 flex flex-col gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 md:flex-row md:items-center md:justify-between">
+              <div className="text-xs text-amber-700">
+                Showing {loadedSpanCount.toLocaleString()} of {totalSpanCount.toLocaleString()} spans. Metrics and the chart reflect the spans currently loaded.
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleShowAllSpans();
+                }}
+                disabled={isLoadingMoreSpans}
+                className="inline-flex items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isLoadingMoreSpans
+                  ? "Loading spans..."
+                  : `Show ${remainingSpanCount.toLocaleString()} more span${remainingSpanCount === 1 ? "" : "s"}`}
+              </button>
+            </div>
+          ) : isShowingAllSpans ? (
+            <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
+              Showing all {totalSpanCount.toLocaleString()} spans.
             </div>
           ) : (
             <></>
