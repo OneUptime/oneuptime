@@ -314,11 +314,7 @@ export default class Log extends AnalyticsBaseModel {
         bodyColumn,
       ],
       projections: [
-        {
-          name: "LogItemAttributeProjection",
-          query:
-            "ALTER TABLE oneuptime.LogItem ADD PROJECTION LogItemAttributeProjection (SELECT projectId, groupArrayDistinct(arrayJoin(attributeKeys)) AS attributeKeys GROUP BY projectId)",
-        },
+       
       ],
       sortKeys: ["projectId", "time", "serviceId"],
       primaryKeys: ["projectId", "time", "serviceId"],
