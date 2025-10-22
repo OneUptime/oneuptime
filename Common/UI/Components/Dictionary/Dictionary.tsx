@@ -1,6 +1,5 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
-import Icon, { SizeProp } from "../Icon/Icon";
 import Input, { InputType } from "../Input/Input";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -142,7 +141,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
       <div>
         {data.map((item: Item, index: number) => {
           return (
-            <div key={index} className="flex">
+              <div key={index} className="flex items-start mb-4 last:mb-0">
               <div className="mr-1 w-1/2">
                 <div className="mb-1">
                   <FieldLabelElement title="Key" required={true} hideOptionalLabel={true} />
@@ -160,12 +159,8 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                 />
               </div>
 
-              <div className="mr-1 ml-1 mt-auto mb-auto">
-                <Icon
-                  className="h-3 w-3"
-                  icon={IconProp.Equals}
-                  size={SizeProp.Small}
-                />
+              <div className="mr-1 ml-1 flex items-center justify-center pt-8">
+                <span className="text-slate-500 text-2xl leading-none">=</span>
               </div>
               {valueTypes.length > 1 && (
                 <div className="ml-1 w-1/2">
@@ -268,7 +263,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                   />
                 )}
               </div>
-              <div className="ml-1 mt-1">
+              <div className="ml-1 flex flex-col justify-end pt-6">
                 <Button
                   dataTestId={`delete-${item.key}`}
                   title="Delete"
