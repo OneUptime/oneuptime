@@ -1,5 +1,6 @@
 import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
+import OneUptimeDate from "Common/Types/Date";
 import Span, { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -45,11 +46,15 @@ export default class SpanUtil {
     divisibilityFactor: DivisibilityFactor;
     spanDurationInUnixNano: number;
   }): string {
-    const { divisibilityFactor, spanDurationInUnixNano } = data;
+    const { spanDurationInUnixNano } = data;
 
-    return `${Math.round(
-      spanDurationInUnixNano / divisibilityFactor.divisibilityFactorNumber,
-    )} ${divisibilityFactor.intervalUnit}`;
+    if (!spanDurationInUnixNano) {
+      return "0 ms";
+    }
+
+    return OneUptimeDate.getHumanizedDurationFromNanoseconds({
+      nanoseconds: spanDurationInUnixNano,
+    });
   }
 
   public static getSpanStartsAtAsString(data: {

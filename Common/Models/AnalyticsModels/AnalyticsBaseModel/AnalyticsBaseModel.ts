@@ -3,6 +3,8 @@ import Route from "../../../Types/API/Route";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
+import Projection from "../../../Types/AnalyticsDatabase/Projection";
+import MaterializedView from "../../../Types/AnalyticsDatabase/MaterializedView";
 import {
   ColumnAccessControl,
   TableAccessControl,
@@ -40,6 +42,8 @@ export default class AnalyticsBaseModel extends CommonModel {
     enableWorkflowOn?: EnableWorkflowOn | undefined;
     enableRealtimeEventsOn?: EnableRealtimeEventsOn | undefined;
     partitionKey: string;
+    projections?: Array<Projection> | undefined;
+    materializedViews?: Array<MaterializedView> | undefined;
   }) {
     super({
       tableColumns: data.tableColumns,
@@ -140,6 +144,8 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.crudApiPath = data.crudApiPath;
     this.enableRealtimeEventsOn = data.enableRealtimeEventsOn;
     this.partitionKey = data.partitionKey;
+    this.projections = data.projections || [];
+    this.materializedViews = data.materializedViews || [];
   }
 
   private _enableWorkflowOn: EnableWorkflowOn | undefined;
@@ -248,6 +254,22 @@ export default class AnalyticsBaseModel extends CommonModel {
   }
   public set crudApiPath(v: Route) {
     this._crudApiPath = v;
+  }
+
+  private _projections: Array<Projection> = [];
+  public get projections(): Array<Projection> {
+    return this._projections;
+  }
+  public set projections(v: Array<Projection>) {
+    this._projections = v;
+  }
+
+  private _materializedViews: Array<MaterializedView> = [];
+  public get materializedViews(): Array<MaterializedView> {
+    return this._materializedViews;
+  }
+  public set materializedViews(v: Array<MaterializedView>) {
+    this._materializedViews = v;
   }
 
   public getTenantColumn(): AnalyticsTableColumn | null {

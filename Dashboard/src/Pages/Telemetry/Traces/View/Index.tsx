@@ -5,8 +5,22 @@ import TraceExplorer from "../../../../Components/Traces/TraceExplorer";
 
 const TraceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const traceId: string = Navigation.getLastParamAsString(0);
+  const spanIdQuery: string | null = Navigation.getQueryStringByName("spanId");
 
-  return <TraceExplorer traceId={traceId} />;
+  const highlightSpanIds: string[] = spanIdQuery
+    ? spanIdQuery
+        .split(",")
+        .map((spanId: string) => {
+          return spanId.trim();
+        })
+        .filter((spanId: string) => {
+          return spanId.length > 0;
+        })
+    : [];
+
+  return (
+    <TraceExplorer traceId={traceId} highlightSpanIds={highlightSpanIds} />
+  );
 };
 
 export default TraceView;

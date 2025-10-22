@@ -5,7 +5,7 @@ import CheckboxElement, {
   CategoryCheckboxValue,
 } from "../../Checkbox/Checkbox";
 import CodeEditor from "../../CodeEditor/CodeEditor";
-import DictionaryForm from "../../Dictionary/Dictionary";
+import DictionaryForm, { ValueType } from "../../Dictionary/Dictionary";
 import Dropdown, { DropdownValue } from "../../Dropdown/Dropdown";
 import FilePicker from "../../FilePicker/FilePicker";
 import Input, { InputType } from "../../Input/Input";
@@ -386,7 +386,7 @@ const FormField: <T extends GenericObject>(
               addButtonSuffix={props.field.title}
               keyPlaceholder={"Key"}
               valuePlaceholder={"Value"}
-              autoConvertValueTypes={true}
+              valueTypes={[ValueType.Text, ValueType.Number, ValueType.Boolean]}
               initialValue={
                 props.currentValues &&
                 (props.currentValues as any)[props.fieldName]

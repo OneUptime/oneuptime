@@ -1,5 +1,5 @@
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
-import DictionaryForm from "../Dictionary/Dictionary";
+import DictionaryForm, { ValueType } from "../Dictionary/Dictionary";
 import FieldType from "../Types/FieldType";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
@@ -31,7 +31,7 @@ const JSONFilter: JSONFilterFunction = <T extends GenericObject>(
         addButtonSuffix={filter.title}
         keyPlaceholder={"Key"}
         valuePlaceholder={"Value"}
-        autoConvertValueTypes={true}
+        valueTypes={[ValueType.Text, ValueType.Number, ValueType.Boolean]}
         initialValue={(filterData[filter.key] as Dictionary<string>) || {}}
         onChange={(value: Dictionary<string | number | boolean>) => {
           // if no keys in the dictionary, remove the filter

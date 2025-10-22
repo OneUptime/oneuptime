@@ -1,6 +1,5 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
-import Icon, { SizeProp } from "../Icon/Icon";
 import Input, { InputType } from "../Input/Input";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -10,8 +9,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import NumberUtil from "../../../Utils/Number";
-import BooleanUtil from "../../../Utils/Boolean";
+import AutocompleteTextInput from "../AutocompleteTextInput/AutocompleteTextInput";
+import FieldLabelElement from "../Forms/Fields/FieldLabel";
 
 export enum ValueType {
   Text = "Text",
@@ -28,7 +27,6 @@ export interface ComponentProps {
   valuePlaceholder?: string;
   addButtonSuffix?: string | undefined;
   valueTypes?: Array<ValueType>; // by default it'll be Text
-  autoConvertValueTypes?: boolean | undefined;
   keys?: Array<string> | undefined;
 }
 
@@ -83,9 +81,11 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
         }
       }
 
+      const value: string | number | boolean | undefined = json[key];
+
       return {
         key: key,
-        value: json[key] || "",
+        value: value === undefined || value === null ? "" : value,
         type: valueType,
       };
     });
@@ -109,15 +109,6 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
   const onDataChange: OnDataChangeFunction = (data: Array<Item>): void => {
     const result: Dictionary<string | number | boolean> = {};
     data.forEach((item: Item) => {
-      if (props.autoConvertValueTypes) {
-        if (NumberUtil.canBeConvertedToNumber(item.value)) {
-          item.value = Number(item.value);
-        }
-
-        if (BooleanUtil.canBeConvertedToBoolean(item.value)) {
-          item.value = Boolean(item.value);
-        }
-      }
       result[item.key] = item.value;
     });
     if (props.onChange) {
@@ -135,68 +126,55 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
     value: "False",
   };
 
-  const dropdownOptionsForKeys: Array<DropdownOption> = props.keys
-    ? props.keys.map((key: string) => {
-        return {
-          label: key,
-          value: key,
-        };
-      })
-    : [];
+  const getDefaultValueForType: (
+    type: ValueType,
+  ) => string | number | boolean = (type: ValueType) => {
+    if (type === ValueType.Boolean) {
+      return true;
+    }
+
+    return "";
+  };
 
   return (
     <div>
       <div>
         {data.map((item: Item, index: number) => {
           return (
-            <div key={index} className="flex">
+            <div key={index} className="flex items-start mb-4 last:mb-0">
               <div className="mr-1 w-1/2">
-                {!props.keys && (
-                  <Input
-                    value={item.key}
-                    placeholder={props.keyPlaceholder}
-                    onChange={(value: string) => {
-                      const newData: Array<Item> = [...data];
-                      newData[index]!.key = value;
-                      setData(newData);
-                      onDataChange(newData);
-                    }}
+                <div className="mb-1">
+                  <FieldLabelElement
+                    title="Key"
+                    required={true}
+                    hideOptionalLabel={true}
                   />
-                )}
-
-                {props.keys && (
-                  <Dropdown
-                    value={dropdownOptionsForKeys.find(
-                      (option: DropdownOption) => {
-                        return option.value === item.key;
-                      },
-                    )}
-                    options={dropdownOptionsForKeys}
-                    isMultiSelect={false}
-                    onChange={(
-                      selectedOption:
-                        | DropdownValue
-                        | Array<DropdownValue>
-                        | null,
-                    ) => {
-                      const newData: Array<Item> = [...data];
-                      newData[index]!.key = selectedOption as string;
-                      setData(newData);
-                      onDataChange(newData);
-                    }}
-                  />
-                )}
+                </div>
+                <AutocompleteTextInput
+                  value={item.key}
+                  placeholder={props.keyPlaceholder}
+                  suggestions={props.keys}
+                  onChange={(value: string) => {
+                    const newData: Array<Item> = [...data];
+                    newData[index]!.key = value;
+                    setData(newData);
+                    onDataChange(newData);
+                  }}
+                />
               </div>
 
-              <div className="mr-1 ml-1 mt-auto mb-auto">
-                <Icon
-                  className="h-3 w-3"
-                  icon={IconProp.Equals}
-                  size={SizeProp.Small}
-                />
+              <div className="mr-1 ml-1 flex items-center justify-center pt-8">
+                <span className="text-slate-500 text-2xl leading-none">=</span>
               </div>
               {valueTypes.length > 1 && (
                 <div className="ml-1 w-1/2">
+                  <div className="mb-1">
+                    <FieldLabelElement
+                      title="Type"
+                      hideOptionalLabel={true}
+                      required={true}
+                    />
+                  </div>
                   <Dropdown
                     value={dropdownOptionsForValueTypes.find(
                       (dropdownOption: DropdownOption) => {
@@ -212,8 +190,10 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                         | null,
                     ) => {
                       const newData: Array<Item> = [...data];
-                      newData[index]!.type =
+                      const newType: ValueType =
                         (selectedOption as ValueType) || valueTypes[0];
+                      newData[index]!.type = newType;
+                      newData[index]!.value = getDefaultValueForType(newType);
                       setData(newData);
                       onDataChange(newData);
                     }}
@@ -221,6 +201,13 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                 </div>
               )}
               <div className="ml-1 w-1/2">
+                <div className="mb-1">
+                  <FieldLabelElement
+                    title="Value"
+                    hideOptionalLabel={true}
+                    required={true}
+                  />
+                </div>
                 {item.type === ValueType.Text && (
                   <Input
                     value={item.value.toString()}
@@ -284,7 +271,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                   />
                 )}
               </div>
-              <div className="ml-1 mt-1">
+              <div className="ml-1 flex flex-col justify-end pt-6">
                 <Button
                   dataTestId={`delete-${item.key}`}
                   title="Delete"
@@ -311,7 +298,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                 ...data,
                 {
                   key: "",
-                  value: "",
+                  value: getDefaultValueForType(valueTypes[0] as ValueType),
                   type: valueTypes[0] as ValueType,
                 },
               ]);

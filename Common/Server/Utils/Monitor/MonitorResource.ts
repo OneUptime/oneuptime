@@ -61,6 +61,12 @@ import MonitorLogService from "../../Services/MonitorLogService";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 
 export default class MonitorResourceUtil {
+  private static setAttributeKeys(metric: Metric): void {
+    metric.attributeKeys = TelemetryUtil.getAttributeKeys(
+      metric.attributes as JSONObject,
+    );
+  }
+
   @CaptureSpan()
   public static async monitorResource(
     dataToProcess: DataToProcess,
@@ -683,6 +689,8 @@ export default class MonitorResourceUtil {
           monitorMetric.attributes["probeName"] = data.probeName.toString();
         }
 
+        MonitorResourceUtil.setAttributeKeys(monitorMetric);
+
         monitorMetric.time = OneUptimeDate.getCurrentDate();
         monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
         monitorMetric.metricPointType = MetricPointType.Sum;
@@ -730,6 +738,8 @@ export default class MonitorResourceUtil {
           monitorMetric.attributes["probeName"] = data.probeName.toString();
         }
 
+        MonitorResourceUtil.setAttributeKeys(monitorMetric);
+
         monitorMetric.time = OneUptimeDate.getCurrentDate();
         monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
         monitorMetric.metricPointType = MetricPointType.Sum;
@@ -767,6 +777,8 @@ export default class MonitorResourceUtil {
         if (data.probeName) {
           monitorMetric.attributes["probeName"] = data.probeName.toString();
         }
+
+        MonitorResourceUtil.setAttributeKeys(monitorMetric);
 
         monitorMetric.time = OneUptimeDate.getCurrentDate();
         monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
@@ -808,6 +820,8 @@ export default class MonitorResourceUtil {
           if (data.probeName) {
             monitorMetric.attributes["probeName"] = data.probeName.toString();
           }
+
+          MonitorResourceUtil.setAttributeKeys(monitorMetric);
 
           monitorMetric.time = OneUptimeDate.getCurrentDate();
           monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
@@ -856,6 +870,8 @@ export default class MonitorResourceUtil {
       if (data.probeName) {
         monitorMetric.attributes["probeName"] = data.probeName.toString();
       }
+
+      MonitorResourceUtil.setAttributeKeys(monitorMetric);
 
       monitorMetric.time = OneUptimeDate.getCurrentDate();
       monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
@@ -909,6 +925,8 @@ export default class MonitorResourceUtil {
           monitorMetric.attributes["probeName"] = data.probeName.toString();
         }
 
+        MonitorResourceUtil.setAttributeKeys(monitorMetric);
+
         monitorMetric.time = OneUptimeDate.getCurrentDate();
         monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
         monitorMetric.metricPointType = MetricPointType.Sum;
@@ -951,6 +969,8 @@ export default class MonitorResourceUtil {
       if (data.probeName) {
         monitorMetric.attributes["probeName"] = data.probeName.toString();
       }
+
+      MonitorResourceUtil.setAttributeKeys(monitorMetric);
 
       monitorMetric.time = OneUptimeDate.getCurrentDate();
       monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
@@ -995,6 +1015,8 @@ export default class MonitorResourceUtil {
         monitorMetric.attributes["probeName"] = data.probeName.toString();
       }
 
+      MonitorResourceUtil.setAttributeKeys(monitorMetric);
+
       monitorMetric.time = OneUptimeDate.getCurrentDate();
       monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
       monitorMetric.metricPointType = MetricPointType.Sum;
@@ -1028,6 +1050,8 @@ export default class MonitorResourceUtil {
           data.dataToProcess as ProbeMonitorResponse
         ).probeId.toString(),
       };
+
+      MonitorResourceUtil.setAttributeKeys(monitorMetric);
 
       monitorMetric.time = OneUptimeDate.getCurrentDate();
       monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();

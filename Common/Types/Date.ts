@@ -1076,6 +1076,114 @@ export default class OneUptimeDate {
     return formattedString;
   }
 
+  public static getHumanizedDurationFromNanoseconds(data: {
+    nanoseconds: number;
+    maxParts?: number;
+  }): string {
+    let { nanoseconds } = data;
+    const maxParts: number = data.maxParts ?? 2;
+
+    if (!Number.isFinite(nanoseconds)) {
+      return "-";
+    }
+
+    if (nanoseconds === 0) {
+      return "0 ms";
+    }
+
+    const sign: string = nanoseconds < 0 ? "-" : "";
+    nanoseconds = Math.abs(nanoseconds);
+
+    if (nanoseconds < 1000) {
+      return sign + Math.round(nanoseconds).toString() + " ns";
+    }
+
+    const microseconds: number = nanoseconds / 1000;
+    if (microseconds < 1000) {
+      return sign + OneUptimeDate.formatDurationValue(microseconds) + " μs";
+    }
+
+    const milliseconds: number = nanoseconds / 1000000;
+    if (milliseconds < 1000) {
+      return sign + OneUptimeDate.formatDurationValue(milliseconds) + " ms";
+    }
+
+    const seconds: number = nanoseconds / 1000000000;
+
+    if (seconds < 60) {
+      return sign + OneUptimeDate.formatDurationValue(seconds) + " s";
+    }
+
+    const units: Array<{ label: string; seconds: number }> = [
+      { label: "d", seconds: 86400 },
+      { label: "h", seconds: 3600 },
+      { label: "m", seconds: 60 },
+      { label: "s", seconds: 1 },
+    ];
+
+    let remainingSeconds: number = Math.floor(seconds);
+    const parts: string[] = [];
+
+    for (const unit of units) {
+      if (parts.length >= maxParts) {
+        break;
+      }
+
+      if (remainingSeconds < unit.seconds) {
+        continue;
+      }
+
+      const value: number = Math.floor(remainingSeconds / unit.seconds);
+
+      if (value > 0) {
+        parts.push(`${value}${unit.label}`);
+        remainingSeconds -= value * unit.seconds;
+      }
+    }
+
+    const fractionalSeconds: number = seconds - Math.floor(seconds);
+    const leftoverSeconds: number = remainingSeconds + fractionalSeconds;
+
+    if (leftoverSeconds > 0) {
+      if (parts.length === 0) {
+        parts.push(`${OneUptimeDate.formatDurationValue(leftoverSeconds)}s`);
+      } else if (parts[parts.length - 1]?.endsWith("s")) {
+        const numericValue: number = parseFloat(
+          parts[parts.length - 1]!.slice(0, -1),
+        );
+        const updatedSeconds: number = numericValue + leftoverSeconds;
+        parts[parts.length - 1] =
+          `${OneUptimeDate.formatDurationValue(updatedSeconds)}s`;
+      } else if (parts.length < maxParts) {
+        parts.push(`${OneUptimeDate.formatDurationValue(leftoverSeconds)}s`);
+      }
+    }
+
+    if (parts.length === 0) {
+      return sign + OneUptimeDate.formatDurationValue(seconds) + " s";
+    }
+
+    const trimmedParts: string[] = parts.slice(0, maxParts);
+
+    if (sign) {
+      trimmedParts[0] = sign + trimmedParts[0];
+    }
+
+    return trimmedParts.join(" ");
+  }
+
+  private static formatDurationValue(value: number): string {
+    const abs: number = Math.abs(value);
+
+    if (abs >= 100) {
+      return Math.round(value).toString();
+    }
+
+    const decimalPlaces: number = 2;
+    const fixed: string = value.toFixed(decimalPlaces);
+    return fixed.replace(/\.0+$/, "").replace(/(\.\d*?[1-9])0+$/, "$1");
+  }
+
   public static getGmtOffsetByTimezone(timezone: Timezone): number {
     return moment.tz(timezone).utcOffset();
   }

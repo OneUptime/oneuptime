@@ -269,6 +269,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   }
 
                   dbMetric.attributes = attributesObject;
+                  dbMetric.attributeKeys =
+                    TelemetryUtil.getAttributeKeys(attributesObject);
 
                   const dataPoints: JSONArray = ((
                     metric["sum"] as JSONObject

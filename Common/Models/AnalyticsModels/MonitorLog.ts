@@ -9,6 +9,100 @@ import Permission from "../../Types/Permission";
 
 export default class MonitorLog extends AnalyticsBaseModel {
   public constructor() {
+    const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "projectId",
+      title: "Project ID",
+      description: "ID of project",
+      required: true,
+      type: TableColumnType.ObjectID,
+      isTenantId: true,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadProjectMonitor,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateProjectMonitor,
+        ],
+        update: [],
+      },
+    });
+
+    const monitorIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "monitorId",
+      title: "Monitor ID",
+      description: "ID of the monitor which this logs belongs to",
+      required: true,
+      type: TableColumnType.ObjectID,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadProjectMonitor,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateProjectMonitor,
+        ],
+        update: [],
+      },
+    });
+
+    const timeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "time",
+      title: "Time",
+      description: "When was the log created?",
+      required: true,
+      type: TableColumnType.Date,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadProjectMonitor,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateProjectMonitor,
+        ],
+        update: [],
+      },
+    });
+
+    const logBodyColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "logBody",
+      title: "Log Body",
+      description: "The body of the log",
+      required: true,
+      defaultValue: {},
+      type: TableColumnType.JSON,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadProjectMonitor,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateProjectMonitor,
+        ],
+        update: [],
+      },
+    });
+
     super({
       tableName: "MonitorLog",
       tableEngine: AnalyticsTableEngine.MergeTree,
@@ -42,100 +136,12 @@ export default class MonitorLog extends AnalyticsBaseModel {
       pluralName: "Monitor Logs",
       crudApiPath: new Route("/monitor-log"),
       tableColumns: [
-        new AnalyticsTableColumn({
-          key: "projectId",
-          title: "Project ID",
-          description: "ID of project",
-          required: true,
-          type: TableColumnType.ObjectID,
-          isTenantId: true,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadProjectMonitor,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateProjectMonitor,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "monitorId",
-          title: "Monitor ID",
-          description: "ID of the monitor which this logs belongs to",
-          required: true,
-          type: TableColumnType.ObjectID,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadProjectMonitor,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateProjectMonitor,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "time",
-          title: "Time",
-          description: "When was the log created?",
-          required: true,
-          type: TableColumnType.Date,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadProjectMonitor,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateProjectMonitor,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "logBody",
-          title: "Log Body",
-          description: "The body of the log",
-          required: true,
-          defaultValue: {},
-          type: TableColumnType.JSON,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadProjectMonitor,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateProjectMonitor,
-            ],
-            update: [],
-          },
-        }),
+        projectIdColumn,
+        monitorIdColumn,
+        timeColumn,
+        logBodyColumn,
       ],
+      projections: [],
       sortKeys: ["projectId", "time", "monitorId"],
       primaryKeys: ["projectId", "time", "monitorId"],
       partitionKey: "sipHash64(projectId) % 16",

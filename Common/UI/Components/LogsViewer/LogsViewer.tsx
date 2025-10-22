@@ -21,6 +21,7 @@ import Card from "../Card/Card";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import IconProp from "../../../Types/Icon/IconProp";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
+import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
@@ -42,7 +43,17 @@ export interface ComponentProps {
   isLoading: boolean;
   showFilters?: boolean | undefined;
   noLogsMessage?: string | undefined;
+  getTraceRoute?: (traceId: string, log: Log) => Route | URL | undefined;
+  getSpanRoute?: (spanId: string, log: Log) => Route | URL | undefined;
 }
+
+type OptionalTraceRouteProps = {
+  getTraceRoute?: (traceId: string, log: Log) => Route | URL | undefined;
+};
+
+type OptionalSpanRouteProps = {
+  getSpanRoute?: (spanId: string, log: Log) => Route | URL | undefined;
+};
 
 const LogsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -332,9 +343,22 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             >
               <ul role="list" className="divide-y divide-slate-800">
                 {props.logs.map((log: Log, i: number) => {
+                  const traceRouteProps: OptionalTraceRouteProps =
+                    props.getTraceRoute
+                      ? { getTraceRoute: props.getTraceRoute }
+                      : {};
+                  const spanRouteProps: OptionalSpanRouteProps =
+                    props.getSpanRoute
+                      ? { getSpanRoute: props.getSpanRoute }
+                      : {};
                   return (
                     <li key={i} className="py-1 first:pt-0 last:pb-0">
-                      <LogItem serviceMap={serviceMap} log={log} />
+                      <LogItem
+                        serviceMap={serviceMap}
+                        log={log}
+                        {...traceRouteProps}
+                        {...spanRouteProps}
+                      />
                     </li>
                   );
                 })}

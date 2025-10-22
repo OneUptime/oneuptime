@@ -17,10 +17,15 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import { Logger } from "../../Utils/Logger";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import Link from "../Link/Link";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
 
 export interface ComponentProps {
   log: Log;
   serviceMap: Dictionary<TelemetryService>;
+  getTraceRoute?: (traceId: string, log: Log) => Route | URL | undefined;
+  getSpanRoute?: (spanId: string, log: Log) => Route | URL | undefined;
 }
 
 const LogItem: FunctionComponent<ComponentProps> = (
@@ -53,6 +58,148 @@ const LogItem: FunctionComponent<ComponentProps> = (
         title="Copy"
         className="flex-none"
       />
+    );
+  };
+
+  type RenderTraceIdFunction = () => ReactElement;
+
+  const renderTraceId: RenderTraceIdFunction = (): ReactElement => {
+    const traceId: string = props.log.traceId?.toString() || "";
+
+    const traceRoute: Route | URL | undefined =
+      traceId && props.getTraceRoute
+        ? props.getTraceRoute(traceId, props.log)
+        : undefined;
+
+    const baseContainerClassName: string = `${bodyColor} font-mono text-sm bg-slate-950 px-2.5 py-1.5 rounded border border-slate-800 flex-1 transition-colors`;
+
+    if (traceRoute) {
+      const linkContainerClassName: string = `${baseContainerClassName} flex items-center gap-1 min-w-0 hover:border-blue-500/60 hover:text-blue-200`;
+
+      return (
+        <div
+          className="flex-1"
+          onClick={(event: React.MouseEvent<HTMLDivElement>) => {
+            event.stopPropagation();
+          }}
+          onAuxClick={(event: React.MouseEvent<HTMLDivElement>) => {
+            event.stopPropagation();
+          }}
+        >
+          <Link
+            to={traceRoute}
+            className="group flex-1 min-w-0 block hover:no-underline"
+          >
+            <div
+              className={linkContainerClassName}
+              title={`View trace ${traceId}`}
+            >
+              <span className="truncate underline underline-offset-2 decoration-slate-500 group-hover:decoration-blue-300">
+                {traceId}
+              </span>
+              <Icon
+                icon={IconProp.ExternalLink}
+                className="w-3.5 h-3.5 flex-none text-slate-500 group-hover:text-blue-300"
+              />
+            </div>
+          </Link>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`${baseContainerClassName} truncate`} title={traceId}>
+        {traceId}
+      </div>
+    );
+  };
+
+  type RenderSpanIdFunction = () => ReactElement;
+
+  const renderSpanId: RenderSpanIdFunction = (): ReactElement => {
+    const spanId: string = props.log.spanId?.toString() || "";
+
+    if (!spanId) {
+      return (
+        <div className="text-slate-500 italic text-sm" title="No span id">
+          No span
+        </div>
+      );
+    }
+
+    const resolveSpanRoute: () => Route | URL | undefined = () => {
+      if (props.getSpanRoute) {
+        return props.getSpanRoute(spanId, props.log);
+      }
+
+      if (props.getTraceRoute && props.log.traceId) {
+        const baseRoute: Route | URL | undefined = props.getTraceRoute(
+          props.log.traceId.toString(),
+          props.log,
+        );
+
+        if (!baseRoute) {
+          return undefined;
+        }
+
+        if (baseRoute instanceof Route) {
+          const clonedRoute: Route = new Route(baseRoute.toString());
+          clonedRoute.addQueryParams({ spanId });
+          return clonedRoute;
+        }
+
+        if (baseRoute instanceof URL) {
+          const clonedURL: URL = URL.fromURL(baseRoute);
+          clonedURL.addQueryParam("spanId", spanId);
+          return clonedURL;
+        }
+      }
+
+      return undefined;
+    };
+
+    const spanRoute: Route | URL | undefined = resolveSpanRoute();
+
+    const baseContainerClassName: string = `${bodyColor} font-mono text-sm bg-slate-950 px-2.5 py-1.5 rounded border border-slate-800 flex-1 transition-colors`;
+
+    if (spanRoute) {
+      const linkContainerClassName: string = `${baseContainerClassName} flex items-center gap-1 min-w-0 hover:border-blue-500/60 hover:text-blue-200`;
+
+      return (
+        <div
+          className="flex-1"
+          onClick={(event: React.MouseEvent<HTMLDivElement>) => {
+            event.stopPropagation();
+          }}
+          onAuxClick={(event: React.MouseEvent<HTMLDivElement>) => {
+            event.stopPropagation();
+          }}
+        >
+          <Link
+            to={spanRoute}
+            className="group flex-1 min-w-0 block hover:no-underline"
+          >
+            <div
+              className={linkContainerClassName}
+              title={`View span ${spanId}`}
+            >
+              <span className={`truncate underline underline-offset-2`}>
+                {spanId}
+              </span>
+              <Icon
+                icon={IconProp.ExternalLink}
+                className={`w-3.5 h-3.5 flex-none`}
+              />
+            </div>
+          </Link>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`${baseContainerClassName} truncate`} title={spanId}>
+        {spanId}
+      </div>
     );
   };
 
@@ -295,11 +442,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
                 Trace ID
               </div>
               <div className="flex items-center space-x-2">
-                <div
-                  className={`${bodyColor} font-mono text-sm bg-slate-950 px-2.5 py-1.5 rounded border border-slate-800 flex-1 truncate`}
-                >
-                  {props.log.traceId?.toString()}
-                </div>
+                {renderTraceId()}
                 {getCopyButton(props.log.traceId?.toString() || "")}
               </div>
             </div>
@@ -311,11 +454,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
                 Span ID
               </div>
               <div className="flex items-center space-x-2">
-                <div
-                  className={`${bodyColor} font-mono text-sm bg-slate-950 px-2.5 py-1.5 rounded border border-slate-800 flex-1 truncate`}
-                >
-                  {props.log.spanId?.toString()}
-                </div>
+                {renderSpanId()}
                 {getCopyButton(props.log.spanId?.toString() || "")}
               </div>
             </div>

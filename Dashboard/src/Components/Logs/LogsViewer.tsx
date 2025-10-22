@@ -16,6 +16,9 @@ import Log from "Common/Models/AnalyticsModels/Log";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import Select from "Common/Types/BaseDatabase/Select";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
+import Route from "Common/Types/API/Route";
 
 export interface ComponentProps {
   id: string;
@@ -162,6 +165,37 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         logs={logs}
         showFilters={props.showFilters}
         noLogsMessage={props.noLogsMessage}
+        getTraceRoute={(traceId: string) => {
+          if (!traceId) {
+            return undefined;
+          }
+
+          return RouteUtil.populateRouteParams(
+            RouteMap[PageMap.TELEMETRY_TRACE_VIEW]!,
+            {
+              modelId: traceId,
+            },
+          );
+        }}
+        getSpanRoute={(spanId: string, log: Log) => {
+          const traceId: string | undefined = log.traceId?.toString();
+
+          if (!spanId || !traceId) {
+            return undefined;
+          }
+
+          const route: Route = RouteUtil.populateRouteParams(
+            RouteMap[PageMap.TELEMETRY_TRACE_VIEW]!,
+            {
+              modelId: traceId,
+            },
+          );
+
+          const routeWithQuery: Route = new Route(route.toString());
+          routeWithQuery.addQueryParams({ spanId });
+
+          return routeWithQuery;
+        }}
       />
     </div>
   );

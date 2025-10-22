@@ -9,6 +9,332 @@ import { SpanStatus } from "./Span";
 
 export default class ExceptionInstance extends AnalyticsBaseModel {
   public constructor() {
+    const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "projectId",
+      title: "Project ID",
+      description: "ID of project",
+      required: true,
+      type: TableColumnType.ObjectID,
+      isTenantId: true,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryException,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryException,
+        ],
+        update: [],
+      },
+    });
+
+    const serviceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "serviceId",
+      title: "Service ID",
+      description: "ID of the Service which created the log",
+      required: true,
+      type: TableColumnType.ObjectID,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryException,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryException,
+        ],
+        update: [],
+      },
+    });
+
+    const timeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "time",
+      title: "Time",
+      description: "When was the log created?",
+      required: true,
+      type: TableColumnType.Date,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryException,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryException,
+        ],
+        update: [],
+      },
+    });
+
+    const timeUnixNanoColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "timeUnixNano",
+      title: "Time (in Unix Nano)",
+      description: "When was the log created?",
+      required: true,
+      type: TableColumnType.LongNumber,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryException,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryException,
+        ],
+        update: [],
+      },
+    });
+
+    const exceptionTypeColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "exceptionType",
+      title: "Exception Type",
+      description: "Exception Type", // Examples: java.net.ConnectException; OSError; etc.
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryException,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryException,
+        ],
+        update: [],
+      },
+    });
+
+    const stackTraceColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "stackTrace",
+      title: "Stack Trace",
+      description: "Exception Stack Trace", // Examples: Division by zero; Can't convert 'int' object to str implicitly
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryException,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryException,
+        ],
+        update: [],
+      },
+    });
+
+    const messageColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "message",
+      title: "Exception Message",
+      description: "Exception Message", // Examples: Division by zero; Can't convert 'int' object to str implicitly
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryException,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryException,
+        ],
+        update: [],
+      },
+    });
+
+    const spanStatusCodeColumn: AnalyticsTableColumn = new AnalyticsTableColumn(
+      {
+        key: "spanStatusCode",
+        title: "Span Status Code",
+        description: "Span Status Code",
+        required: false,
+        type: TableColumnType.Number,
+        accessControl: {
+          read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.ReadTelemetryException,
+          ],
+          create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CreateTelemetryException,
+          ],
+          update: [],
+        },
+      },
+    );
+
+    const escapedColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "escaped",
+      title: "Exception Escaped",
+      description: "Exception Escaped", // SHOULD be set to true if the exception event is recorded at a point where it is known that the exception is escaping the scope of the span.
+      required: false,
+      type: TableColumnType.Boolean,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryException,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryException,
+        ],
+        update: [],
+      },
+    });
+
+    const traceIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "traceId",
+      title: "Trace ID",
+      description: "ID of the trace",
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryException,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryException,
+        ],
+        update: [],
+      },
+    });
+
+    const spanIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "spanId",
+      title: "Span ID",
+      description: "ID of the span",
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryException,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryException,
+        ],
+        update: [],
+      },
+    });
+
+    const fingerprintColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "fingerprint",
+      title: "Fingerprint",
+      description: "Fingerprint of the exception",
+      required: true,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryException,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryException,
+        ],
+        update: [],
+      },
+    });
+
+    const spanNameColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "spanName",
+      title: "Span Name",
+      description: "Name of the span",
+      required: false,
+      type: TableColumnType.Text,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    const attributesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "attributes",
+      title: "Attributes",
+      description: "Attributes",
+      required: true,
+      defaultValue: {},
+      type: TableColumnType.JSON,
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.ReadTelemetryException,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.CreateTelemetryException,
+        ],
+        update: [],
+      },
+    });
+
     super({
       tableName: "ExceptionItem",
       tableEngine: AnalyticsTableEngine.MergeTree,
@@ -45,330 +371,22 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       },
       crudApiPath: new Route("/exceptions"),
       tableColumns: [
-        new AnalyticsTableColumn({
-          key: "projectId",
-          title: "Project ID",
-          description: "ID of project",
-          required: true,
-          type: TableColumnType.ObjectID,
-          isTenantId: true,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryException,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryException,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "serviceId",
-          title: "Service ID",
-          description: "ID of the Service which created the log",
-          required: true,
-          type: TableColumnType.ObjectID,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryException,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryException,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "time",
-          title: "Time",
-          description: "When was the log created?",
-          required: true,
-          type: TableColumnType.Date,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryException,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryException,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "timeUnixNano",
-          title: "Time (in Unix Nano)",
-          description: "When was the log created?",
-          required: true,
-          type: TableColumnType.LongNumber,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryException,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryException,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "exceptionType",
-          title: "Exception Type",
-          description: "Exception Type", // Examples: java.net.ConnectException; OSError; etc.
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryException,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryException,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "stackTrace",
-          title: "Stack Trace",
-          description: "Exception Stack Trace", // Examples: Division by zero; Can't convert 'int' object to str implicitly
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryException,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryException,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "message",
-          title: "Exception Message",
-          description: "Exception Message", // Examples: Division by zero; Can't convert 'int' object to str implicitly
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryException,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryException,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "spanStatusCode",
-          title: "Span Status Code",
-          description: "Span Status Code",
-          required: false,
-          type: TableColumnType.Number,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryException,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryException,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "escaped",
-          title: "Exception Escaped",
-          description: "Exception Escaped", // SHOULD be set to true if the exception event is recorded at a point where it is known that the exception is escaping the scope of the span.
-          required: false,
-          type: TableColumnType.Boolean,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryException,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryException,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "traceId",
-          title: "Trace ID",
-          description: "ID of the trace",
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryException,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryException,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "spanId",
-          title: "Span ID",
-          description: "ID of the span",
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryException,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryException,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "fingerprint",
-          title: "Fingerprint",
-          description: "Fingerprint of the exception",
-          required: true,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryException,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryException,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "spanName",
-          title: "Span Name",
-          description: "Name of the span",
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceTraces,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceTraces,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "attributes",
-          title: "Attributes",
-          description: "Attributes",
-          required: true,
-          defaultValue: {},
-          type: TableColumnType.JSON,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryException,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryException,
-            ],
-            update: [],
-          },
-        }),
+        projectIdColumn,
+        serviceIdColumn,
+        timeColumn,
+        timeUnixNanoColumn,
+        exceptionTypeColumn,
+        stackTraceColumn,
+        messageColumn,
+        spanStatusCodeColumn,
+        escapedColumn,
+        traceIdColumn,
+        spanIdColumn,
+        fingerprintColumn,
+        spanNameColumn,
+        attributesColumn,
       ],
+      projections: [],
       sortKeys: ["projectId", "time", "serviceId", "fingerprint"],
       primaryKeys: ["projectId", "time", "serviceId", "fingerprint"],
       partitionKey: "sipHash64(projectId) % 16",

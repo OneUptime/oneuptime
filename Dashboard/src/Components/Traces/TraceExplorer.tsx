@@ -33,8 +33,13 @@ import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
+const INITIAL_SPAN_FETCH_SIZE: number = 500;
+const SPAN_PAGE_SIZE: number = 500;
+const MAX_SPAN_FETCH_BATCH: number = LIMIT_PER_PROJECT;
+
 export interface ComponentProps {
   traceId: string;
+  highlightSpanIds?: string[];
 }
 
 type BarTooltipFunctionProps = {
@@ -54,6 +59,20 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
   const [selectedSpans, setSelectedSpans] = React.useState<string[]>([]);
 
+  const highlightSpanIds: string[] = React.useMemo(() => {
+    if (!props.highlightSpanIds || props.highlightSpanIds.length === 0) {
+      return [];
+    }
+
+    return props.highlightSpanIds
+      .map((spanId: string) => {
+        return spanId.trim();
+      })
+      .filter((spanId: string) => {
+        return spanId.length > 0;
+      });
+  }, [props.highlightSpanIds]);
+
   const traceIdFromUrl: string = props.traceId;
 
   const [error, setError] = React.useState<string | null>(null);
@@ -61,6 +80,11 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
   const [spans, setSpans] = React.useState<Span[]>([]);
+
+  const [totalSpanCount, setTotalSpanCount] = React.useState<number>(0);
+
+  const [isLoadingMoreSpans, setIsLoadingMoreSpans] =
+    React.useState<boolean>(false);
 
   // UI State Enhancements
   const [showErrorsOnly, setShowErrorsOnly] = React.useState<boolean>(false);
@@ -82,13 +106,9 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     [],
   );
 
-  const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-
-      // get trace with this id and then get all the parentSpanId with this traceid.
-
-      const telemetryServices: ListResult<TelemetryService> =
+  const fetchTelemetryServices: PromiseVoidFunction =
+    React.useCallback(async (): Promise<void> => {
+      const telemetryServicesResult: ListResult<TelemetryService> =
         await ModelAPI.getList<TelemetryService>({
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -106,51 +126,134 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           },
         });
 
-      setTelemetryServices(telemetryServices.data);
+      setTelemetryServices(telemetryServicesResult.data);
+    }, []);
 
-      const select: Select<Span> = {
-        startTime: true,
-        endTime: true,
-        startTimeUnixNano: true,
-        endTimeUnixNano: true,
-        name: true,
-        traceId: true,
-        parentSpanId: true,
-        spanId: true,
-        kind: true,
-        serviceId: true,
-        durationUnixNano: true,
-        statusCode: true,
-      };
-
-      // now get all the spans with the traceId
-
-      const traceId: string = traceIdFromUrl;
-
-      setTraceId(traceId);
-
-      const allSpans: ListResult<Span> = await AnalyticsModelAPI.getList<Span>({
-        modelType: Span,
-        select: select,
-        query: {
-          traceId: traceId,
-        },
-        sort: {
-          startTimeUnixNano: SortOrder.Ascending,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-      });
-
-      const spans: Span[] = [...allSpans.data];
-
-      setSpans(spans);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-
-    setIsLoading(false);
+  type FetchSpansParams = {
+    limit: number;
+    skip: number;
+    mode: "replace" | "append";
   };
+
+  type FetchSpansFunction = (params: FetchSpansParams) => Promise<number>;
+
+  const fetchSpans: FetchSpansFunction = React.useCallback(
+    async ({ limit, skip, mode }: FetchSpansParams): Promise<number> => {
+      if (mode === "replace") {
+        setIsLoading(true);
+        setIsLoadingMoreSpans(false);
+      } else {
+        setIsLoadingMoreSpans(true);
+      }
+
+      try {
+        const select: Select<Span> = {
+          startTime: true,
+          endTime: true,
+          startTimeUnixNano: true,
+          endTimeUnixNano: true,
+          name: true,
+          traceId: true,
+          parentSpanId: true,
+          spanId: true,
+          kind: true,
+          serviceId: true,
+          durationUnixNano: true,
+          statusCode: true,
+        };
+
+        const traceId: string = traceIdFromUrl;
+        setTraceId(traceId);
+
+        const spanResult: ListResult<Span> =
+          await AnalyticsModelAPI.getList<Span>({
+            modelType: Span,
+            select: select,
+            query: {
+              traceId: traceId,
+            },
+            sort: {
+              startTimeUnixNano: SortOrder.Ascending,
+            },
+            skip,
+            limit,
+          });
+
+        const fetchedSpans: Span[] = [...spanResult.data];
+
+        setTotalSpanCount((prevCount: number): number => {
+          if (spanResult.count && spanResult.count > 0) {
+            return spanResult.count;
+          }
+
+          if (mode === "replace") {
+            return fetchedSpans.length;
+          }
+
+          return Math.max(prevCount, skip + fetchedSpans.length);
+        });
+
+        let updatedSpans: Span[] = [];
+
+        setSpans((prevSpans: Span[]): Span[] => {
+          if (mode === "replace") {
+            updatedSpans = fetchedSpans;
+          } else {
+            updatedSpans = [...prevSpans, ...fetchedSpans];
+          }
+
+          return updatedSpans;
+        });
+
+        const availableSpanIds: Set<string> = new Set(
+          updatedSpans
+            .map((span: Span) => {
+              return span.spanId?.toString();
+            })
+            .filter((spanId: string | undefined): spanId is string => {
+              return Boolean(spanId);
+            }),
+        );
+
+        setSelectedSpans((prevSelectedSpans: string[]): string[] => {
+          if (prevSelectedSpans.length === 0) {
+            return prevSelectedSpans;
+          }
+
+          return prevSelectedSpans.filter((spanId: string) => {
+            return availableSpanIds.has(spanId);
+          });
+        });
+
+        return fetchedSpans.length;
+      } finally {
+        if (mode === "replace") {
+          setIsLoading(false);
+        } else {
+          setIsLoadingMoreSpans(false);
+        }
+      }
+    },
+    [traceIdFromUrl],
+  );
+
+  const fetchItems: PromiseVoidFunction =
+    React.useCallback(async (): Promise<void> => {
+      setError(null);
+
+      try {
+        await Promise.all([
+          fetchTelemetryServices(),
+          fetchSpans({
+            limit: INITIAL_SPAN_FETCH_SIZE,
+            skip: 0,
+            mode: "replace",
+          }),
+        ]);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
+    }, [fetchTelemetryServices, fetchSpans]);
 
   const getBarTooltip: GetBarTooltipFunction = (
     data: BarTooltipFunctionProps,
@@ -383,10 +486,115 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   };
 
   React.useEffect(() => {
+    setSpans([]);
+    setSelectedSpans([]);
+    setTotalSpanCount(0);
+    setGanttChart(null);
+    setTraceId(null);
+    setError(null);
+    setIsLoading(false);
+    setIsLoadingMoreSpans(false);
+  }, [traceIdFromUrl]);
+
+  React.useEffect(() => {
     fetchItems().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
-  }, []);
+  }, [fetchItems]);
+
+  const loadedSpanCount: number = spans.length;
+
+  const hasMoreSpans: boolean =
+    totalSpanCount > 0 ? totalSpanCount > loadedSpanCount : false;
+
+  const remainingSpanCount: number = hasMoreSpans
+    ? totalSpanCount - loadedSpanCount
+    : 0;
+
+  const nextPageSpanCount: number = hasMoreSpans
+    ? Math.min(SPAN_PAGE_SIZE, remainingSpanCount)
+    : 0;
+
+  const isShowingAllSpans: boolean =
+    totalSpanCount > 0 &&
+    !hasMoreSpans &&
+    loadedSpanCount > INITIAL_SPAN_FETCH_SIZE;
+
+  const nextPageDisplayCount: number =
+    nextPageSpanCount > 0 ? nextPageSpanCount : SPAN_PAGE_SIZE;
+
+  const handleShowNextSpans: PromiseVoidFunction =
+    React.useCallback(async (): Promise<void> => {
+      if (!hasMoreSpans || isLoadingMoreSpans) {
+        return;
+      }
+
+      setError(null);
+
+      const remaining: number = Math.max(totalSpanCount - loadedSpanCount, 0);
+      const nextBatchSize: number = Math.max(
+        1,
+        Math.min(SPAN_PAGE_SIZE, remaining),
+      );
+
+      try {
+        await fetchSpans({
+          limit: nextBatchSize,
+          skip: loadedSpanCount,
+          mode: "append",
+        });
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
+    }, [
+      fetchSpans,
+      hasMoreSpans,
+      isLoadingMoreSpans,
+      totalSpanCount,
+      loadedSpanCount,
+    ]);
+
+  const handleShowAllSpans: PromiseVoidFunction =
+    React.useCallback(async (): Promise<void> => {
+      if (!hasMoreSpans || isLoadingMoreSpans) {
+        return;
+      }
+
+      setError(null);
+
+      let remaining: number = Math.max(totalSpanCount - loadedSpanCount, 0);
+      let nextSkip: number = loadedSpanCount;
+
+      try {
+        while (remaining > 0) {
+          const batchSize: number = Math.min(MAX_SPAN_FETCH_BATCH, remaining);
+          const fetchedCount: number = await fetchSpans({
+            limit: batchSize,
+            skip: nextSkip,
+            mode: "append",
+          });
+
+          if (fetchedCount === 0) {
+            break;
+          }
+
+          remaining -= fetchedCount;
+          nextSkip += fetchedCount;
+
+          if (fetchedCount < batchSize) {
+            break;
+          }
+        }
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
+    }, [
+      fetchSpans,
+      hasMoreSpans,
+      isLoadingMoreSpans,
+      totalSpanCount,
+      loadedSpanCount,
+    ]);
 
   /*
    * Derived values for summary / filtering
@@ -628,6 +836,22 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       });
     }
 
+    const displaySpanIds: Set<string> = new Set(
+      displaySpans
+        .map((span: Span) => {
+          return span.spanId?.toString();
+        })
+        .filter((id: string | undefined): id is string => {
+          return Boolean(id);
+        }),
+    );
+
+    const highlightableSpanIds: string[] = highlightSpanIds.filter(
+      (spanId: string) => {
+        return displaySpanIds.has(spanId);
+      },
+    );
+
     const ganttChart: GanttChartProps = {
       id: "chart",
       selectedBarIds: selectedSpans,
@@ -641,18 +865,23 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         interval: interval,
         intervalUnit: newDivisibilityFactor.intervalUnit,
       },
+      highlightBarIds: highlightableSpanIds,
     };
 
     setGanttChart(ganttChart);
-  }, [displaySpans, selectedSpans]);
+  }, [displaySpans, selectedSpans, highlightSpanIds]);
 
-  if (isLoading) {
+  if (isLoading && spans.length === 0) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  const hasBlockingError: boolean = Boolean(error && spans.length === 0);
+
+  if (hasBlockingError) {
+    return <ErrorMessage message={error!} />;
   }
+
+  const showInlineError: boolean = Boolean(error && spans.length > 0);
 
   const serviceLegend: ReactElement = (
     <div className="flex flex-wrap gap-2">
@@ -809,8 +1038,15 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
                 Spans
               </div>
-              <div className="mt-1 text-lg font-semibold text-gray-800">
-                {spanStats.totalSpans}
+              <div className="mt-1 text-lg font-semibold text-gray-800 flex items-baseline space-x-2">
+                <span>{spanStats.totalSpans.toLocaleString()}</span>
+                {hasMoreSpans ? (
+                  <span className="text-xs font-medium text-gray-500">
+                    of {totalSpanCount.toLocaleString()}
+                  </span>
+                ) : (
+                  <></>
+                )}
               </div>
             </div>
             <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3">
@@ -941,6 +1177,60 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               ) : (
                 <></>
               )}
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {showInlineError ? (
+            <div className="mb-4">
+              <ErrorMessage message={error!} />
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {hasMoreSpans ? (
+            <div className="mb-4 flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 md:flex-row md:items-center md:justify-between">
+              <div className="text-xs text-amber-700 md:max-w-xl">
+                Showing {loadedSpanCount.toLocaleString()} of{" "}
+                {totalSpanCount.toLocaleString()} spans. To keep Trace Explorer
+                responsive, spans load in batches; metrics and the chart
+                currently reflect the spans shown below.
+              </div>
+              <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                {isLoadingMoreSpans ? (
+                  <div className="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+                    <span>Loading spans...</span>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleShowNextSpans();
+                      }}
+                      className="inline-flex items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100"
+                    >
+                      {`Show next ${nextPageDisplayCount.toLocaleString()} span${nextPageDisplayCount === 1 ? "" : "s"}`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleShowAllSpans();
+                      }}
+                      className="inline-flex items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100"
+                    >
+                      {`Show all remaining ${remainingSpanCount.toLocaleString()} span${remainingSpanCount === 1 ? "" : "s"}`}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : isShowingAllSpans ? (
+            <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
+              Showing all {totalSpanCount.toLocaleString()} spans.
             </div>
           ) : (
             <></>

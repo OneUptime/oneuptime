@@ -205,6 +205,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   }
 
                   dbLog.attributes = attributesObject;
+                  dbLog.attributeKeys =
+                    TelemetryUtil.getAttributeKeys(attributesObject);
 
                   dbLog.projectId = (req as TelemetryRequest).projectId;
                   dbLog.serviceId = serviceDictionary[serviceName]!.serviceId!;

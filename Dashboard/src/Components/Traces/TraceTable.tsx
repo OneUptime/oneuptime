@@ -10,7 +10,9 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -33,6 +35,9 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import TelemetryServiceElement from "../TelemetryService/TelemetryServiceElement";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab } from "Common/UI/Components/Tabs/Tab";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
 
 export interface ComponentProps {
   modelId?: ObjectID | undefined;
@@ -66,6 +71,71 @@ const TraceTable: FunctionComponent<ComponentProps> = (
 
   const [areAdvancedFiltersVisible, setAreAdvancedFiltersVisible] =
     useState<boolean>(false);
+
+  const [activeTab, setActiveTab] = useState<"all" | "root">("all");
+
+  const tabItems: Array<Tab> = useMemo(() => {
+    return [
+      {
+        name: "All Spans",
+        children: <div className="hidden" />,
+      },
+      {
+        name: "Root Spans",
+        children: <div className="hidden" />,
+      },
+    ];
+  }, []);
+
+  const handleTabChange: (tab: Tab) => void = useCallback((tab: Tab) => {
+    if (tab.name === "Root Spans") {
+      setActiveTab("root");
+      return;
+    }
+
+    setActiveTab("all");
+  }, []);
+
+  const cardContent: {
+    title: string;
+    description: string;
+  } = useMemo(() => {
+    if (activeTab === "root") {
+      return {
+        title: "Root Spans",
+        description:
+          "Root spans act as entry points in a trace. They represent requests without a parent span and help you spot top-level operations quickly.",
+      };
+    }
+
+    return {
+      title: "All Spans",
+      description:
+        "Collection of spans make up a trace. Spans are the building blocks of a trace and represent individual units of work done in a distributed system.",
+    };
+  }, [activeTab]);
+
+  const getQueryForActiveTab: Query<Span> = useMemo(() => {
+    const baseQuery: Query<Span> = {
+      ...(spanQuery || {}),
+    };
+
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (projectId) {
+      baseQuery.projectId = projectId;
+    }
+
+    if (modelId) {
+      baseQuery.serviceId = modelId;
+    }
+
+    if (activeTab === "root") {
+      baseQuery.parentSpanId = new IsNull();
+    }
+
+    return baseQuery;
+  }, [spanQuery, modelId, activeTab]);
 
   useEffect(() => {
     if (props.spanQuery) {
@@ -203,6 +273,8 @@ const TraceTable: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
+      <Tabs tabs={tabItems} onTabChange={handleTabChange} />
+
       <div className="rounded">
         <AnalyticsModelTable<Span>
           userPreferencesKey="trace-table"
@@ -220,16 +292,11 @@ const TraceTable: FunctionComponent<ComponentProps> = (
             props.isMinimalTable
               ? undefined
               : {
-                  title: "Spans",
-                  description:
-                    "Collection of spans make up a trace. Spans are the building blocks of a trace and represent the individual units of work done in a distributed system.",
+                  title: cardContent.title,
+                  description: cardContent.description,
                 }
           }
-          query={{
-            projectId: ProjectUtil.getCurrentProjectId()!,
-            serviceId: modelId ? modelId : undefined,
-            ...spanQuery,
-          }}
+          query={getQueryForActiveTab}
           showViewIdButton={true}
           noItemsMessage={
             props.noItemsMessage ? props.noItemsMessage : "No spans found."

@@ -245,6 +245,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   }
 
                   dbSpan.attributes = attributesObject;
+                  dbSpan.attributeKeys =
+                    TelemetryUtil.getAttributeKeys(attributesObject);
 
                   dbSpan.projectId = (req as TelemetryRequest).projectId;
                   dbSpan.serviceId = serviceDictionary[serviceName]!.serviceId!;
