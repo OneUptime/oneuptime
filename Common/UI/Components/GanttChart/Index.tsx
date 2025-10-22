@@ -72,8 +72,12 @@ const GanttChart: FunctionComponent<ComponentProps> = (
           chartTimelineStart={props.chart.timeline.start}
           rows={props.chart.rows}
           selectedBarIds={props.chart.selectedBarIds}
-          multiSelect={props.chart.multiSelect}
-          highlightBarIds={props.chart.highlightBarIds}
+          {...(props.chart.multiSelect !== undefined
+            ? { multiSelect: props.chart.multiSelect }
+            : {})}
+          {...(props.chart.highlightBarIds
+            ? { highlightBarIds: props.chart.highlightBarIds }
+            : {})}
           onBarSelectChange={(barIds: string[]) => {
             props.chart.onBarSelectChange(barIds);
           }}

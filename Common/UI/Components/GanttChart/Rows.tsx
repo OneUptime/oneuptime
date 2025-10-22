@@ -29,10 +29,14 @@ const Rows: FunctionComponent<ComponentProps> = (
         chartTimelineEnd={props.chartTimelineEnd}
         timelineWidth={props.timelineWidth}
         row={row}
-        multiSelect={props.multiSelect}
         selectedBarIds={props.selectedBarIds}
         onBarSelectChange={props.onBarSelectChange}
-        highlightBarIds={props.highlightBarIds}
+        {...(props.multiSelect !== undefined
+          ? { multiSelect: props.multiSelect }
+          : {})}
+        {...(props.highlightBarIds
+          ? { highlightBarIds: props.highlightBarIds }
+          : {})}
       />
     );
   };
