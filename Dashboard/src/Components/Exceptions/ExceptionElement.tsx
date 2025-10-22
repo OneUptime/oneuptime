@@ -81,18 +81,18 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className={` flex truncate`}>
+    <div className={` flex`}>
       {getResolvedIcon()}
       {getUnresolvedIcon()}
       {getArchivedIcon()}
       {!props.fingerprint && (
-        <div className="mt-0.5 ml-2 font-mono">{props.message || "-"}</div>
+        <div className="mt-0.5 ml-2 font-mono break-words">{props.message || "-"}</div>
       )}
       {props.fingerprint && (
         <AppLink
           to={new Route(viewRoute.toString()).addRoute(props.fingerprint)}
         >
-          <div className="mt-0.5 ml-2 font-mono">
+          <div className="mt-0.5 ml-2 font-mono break-words">
             {props.message || props.fingerprint || "-"}
           </div>
         </AppLink>
