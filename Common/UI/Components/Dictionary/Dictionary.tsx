@@ -10,8 +10,6 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import NumberUtil from "../../../Utils/Number";
-import BooleanUtil from "../../../Utils/Boolean";
 import AutocompleteTextInput from "../AutocompleteTextInput/AutocompleteTextInput";
 
 export enum ValueType {
@@ -29,7 +27,6 @@ export interface ComponentProps {
   valuePlaceholder?: string;
   addButtonSuffix?: string | undefined;
   valueTypes?: Array<ValueType>; // by default it'll be Text
-  autoConvertValueTypes?: boolean | undefined;
   keys?: Array<string> | undefined;
 }
 
@@ -84,9 +81,11 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
         }
       }
 
+      const value: string | number | boolean | undefined = json[key];
+
       return {
         key: key,
-        value: json[key] || "",
+        value: value === undefined || value === null ? "" : value,
         type: valueType,
       };
     });
@@ -110,15 +109,6 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
   const onDataChange: OnDataChangeFunction = (data: Array<Item>): void => {
     const result: Dictionary<string | number | boolean> = {};
     data.forEach((item: Item) => {
-      if (props.autoConvertValueTypes) {
-        if (NumberUtil.canBeConvertedToNumber(item.value)) {
-          item.value = Number(item.value);
-        }
-
-        if (BooleanUtil.canBeConvertedToBoolean(item.value)) {
-          item.value = Boolean(item.value);
-        }
-      }
       result[item.key] = item.value;
     });
     if (props.onChange) {
@@ -134,6 +124,16 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
   const falseDropdownOption: DropdownOption = {
     label: "False",
     value: "False",
+  };
+
+  const getDefaultValueForType: (type: ValueType) => string | number | boolean = (
+    type: ValueType,
+  ) => {
+    if (type === ValueType.Boolean) {
+      return true;
+    }
+
+    return "";
   };
 
   return (
@@ -180,8 +180,10 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                         | null,
                     ) => {
                       const newData: Array<Item> = [...data];
-                      newData[index]!.type =
+                      const newType: ValueType =
                         (selectedOption as ValueType) || valueTypes[0];
+                      newData[index]!.type = newType;
+                      newData[index]!.value = getDefaultValueForType(newType);
                       setData(newData);
                       onDataChange(newData);
                     }}
@@ -279,8 +281,8 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                 ...data,
                 {
                   key: "",
-                  value: "",
-                  type: valueTypes[0] as ValueType,
+                    value: getDefaultValueForType(valueTypes[0] as ValueType),
+                    type: valueTypes[0] as ValueType,
                 },
               ]);
             }}
