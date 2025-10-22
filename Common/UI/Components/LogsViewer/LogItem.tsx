@@ -72,18 +72,11 @@ const LogItem: FunctionComponent<ComponentProps> = (
         ? props.getTraceRoute(traceId, props.log)
         : undefined;
 
-    const traceContainerClassName: string = `${bodyColor} font-mono text-sm bg-slate-950 px-2.5 py-1.5 rounded border border-slate-800 flex-1 truncate transition-colors ${traceRoute ? "hover:border-blue-500/60 hover:text-blue-200" : ""}`;
-
-    const traceElement: ReactElement = (
-      <div
-        className={traceContainerClassName}
-        title={traceRoute ? `View trace ${traceId}` : traceId}
-      >
-        {traceId}
-      </div>
-    );
+    const baseContainerClassName: string = `${bodyColor} font-mono text-sm bg-slate-950 px-2.5 py-1.5 rounded border border-slate-800 flex-1 transition-colors`;
 
     if (traceRoute) {
+      const linkContainerClassName: string = `${baseContainerClassName} flex items-center gap-1 min-w-0 hover:border-blue-500/60 hover:text-blue-200`;
+
       return (
         <div
           className="flex-1"
@@ -96,15 +89,30 @@ const LogItem: FunctionComponent<ComponentProps> = (
         >
           <Link
             to={traceRoute}
-            className="flex-1 min-w-0 block hover:no-underline"
+            className="group flex-1 min-w-0 block hover:no-underline"
           >
-            {traceElement}
+            <div
+              className={linkContainerClassName}
+              title={`View trace ${traceId}`}
+            >
+              <span className="truncate underline underline-offset-2">
+                {traceId}
+              </span>
+              <Icon
+                icon={IconProp.ExternalLink}
+                className="w-3.5 h-3.5 flex-none"
+              />
+            </div>
           </Link>
         </div>
       );
     }
 
-    return traceElement;
+    return (
+      <div className={`${baseContainerClassName} truncate`} title={traceId}>
+        {traceId}
+      </div>
+    );
   };
 
   if (props.log.severityText === LogSeverity.Warning) {
