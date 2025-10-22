@@ -1203,30 +1203,33 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                 Showing {loadedSpanCount.toLocaleString()} of {totalSpanCount.toLocaleString()} spans. To keep Trace Explorer responsive, spans load in batches; metrics and the chart currently reflect the spans shown below.
               </div>
               <div className="flex flex-wrap items-center gap-2 md:justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleShowNextSpans();
-                  }}
-                  disabled={isLoadingMoreSpans}
-                  className="inline-flex items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isLoadingMoreSpans
-                    ? "Loading spans..."
-                    : `Show next ${nextPageDisplayCount.toLocaleString()} span${nextPageDisplayCount === 1 ? "" : "s"}`}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleShowAllSpans();
-                  }}
-                  disabled={isLoadingMoreSpans}
-                  className="inline-flex items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isLoadingMoreSpans
-                    ? "Loading spans..."
-                    : `Show all remaining ${remainingSpanCount.toLocaleString()} span${remainingSpanCount === 1 ? "" : "s"}`}
-                </button>
+                {isLoadingMoreSpans ? (
+                  <div className="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+                    <span>Loading spans...</span>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleShowNextSpans();
+                      }}
+                      className="inline-flex items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100"
+                    >
+                      {`Show next ${nextPageDisplayCount.toLocaleString()} span${nextPageDisplayCount === 1 ? "" : "s"}`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleShowAllSpans();
+                      }}
+                      className="inline-flex items-center justify-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100"
+                    >
+                      {`Show all remaining ${remainingSpanCount.toLocaleString()} span${remainingSpanCount === 1 ? "" : "s"}`}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ) : isShowingAllSpans ? (
