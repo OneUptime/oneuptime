@@ -105,12 +105,12 @@ app.get(
         | string
         | undefined;
       let page: number = pageParam ? parseInt(pageParam, 10) : 1;
-      let pageSize: number = pageSizeParam ? parseInt(pageSizeParam, 10) : 24;
+      let pageSize: number = pageSizeParam ? parseInt(pageSizeParam, 10) : 25;
       if (isNaN(page) || page < 1) {
         page = 1;
       }
       if (isNaN(pageSize) || pageSize < 1) {
-        pageSize = 24;
+        pageSize = 25;
       }
       if (pageSize > 100) {
         pageSize = 100;
@@ -167,12 +167,12 @@ app.get(
         | string
         | undefined;
       let page: number = pageParam ? parseInt(pageParam, 10) : 1;
-      let pageSize: number = pageSizeParam ? parseInt(pageSizeParam, 10) : 24;
+      let pageSize: number = pageSizeParam ? parseInt(pageSizeParam, 10) : 25;
       if (isNaN(page) || page < 1) {
         page = 1;
       }
       if (isNaN(pageSize) || pageSize < 1) {
-        pageSize = 24;
+        pageSize = 25;
       }
       if (pageSize > 100) {
         pageSize = 100;
