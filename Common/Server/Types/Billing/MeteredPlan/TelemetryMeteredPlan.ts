@@ -56,6 +56,11 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
   ): Promise<void> {
     // get all unreported logs
 
+    await TelemetryUsageBillingService.stageTelemetryUsageForProject({
+      projectId: projectId,
+      productType: this.productType,
+    });
+
     const usageBillings: Array<TelemetryUsageBilling> =
       await TelemetryUsageBillingService.getUnreportedUsageBilling({
         projectId: projectId,
