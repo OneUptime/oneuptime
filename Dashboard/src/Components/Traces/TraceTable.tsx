@@ -371,6 +371,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
               type: FieldType.JSON,
               title: "Attributes",
               jsonKeys: attributes,
+              isAdvancedFilter: true,
             },
           ]}
           onAdvancedFiltersToggle={handleAdvancedFiltersToggle}

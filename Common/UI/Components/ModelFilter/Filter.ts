@@ -26,4 +26,5 @@ export default interface Filter<
   filterDropdownOptions?: Array<DropdownOption> | undefined;
   fetchFilterDropdownOptions?: () => Promise<Array<DropdownOption>> | undefined;
   jsonKeys?: Array<string> | undefined;
+  isAdvancedFilter?: boolean | undefined;
 }

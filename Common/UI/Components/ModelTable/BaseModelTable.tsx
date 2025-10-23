@@ -682,6 +682,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               key: key,
               type: filter.type,
               jsonKeys: filter.jsonKeys,
+              isAdvancedFilter: filter.isAdvancedFilter,
             };
           })
           .filter((filter: ClassicFilterType<TBaseModel> | null) => {
@@ -782,7 +783,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setTableFilterError(API.getFriendlyMessage(err));
       });
     }
-  }, [showFilterModal]);
+  }, [showFilterModal, props.filters]);
 
   type GetSelectFunction = () => Select<TBaseModel>;
 
