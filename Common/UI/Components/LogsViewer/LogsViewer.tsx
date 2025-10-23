@@ -15,6 +15,7 @@ import React, {
   ReactElement,
   Ref,
   useCallback,
+  useMemo,
 } from "react";
 import Toggle from "../Toggle/Toggle";
 import Card from "../Card/Card";
@@ -66,8 +67,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     typeof window !== "undefined" ? window.innerHeight : 900,
   );
   const [autoScroll, setAutoScroll] = React.useState<boolean>(true);
-  const [showScrollToBottom, setShowScrollToBottom] =
+  const [showScrollToLatest, setShowScrollToLatest] =
     React.useState<boolean>(false);
+  const [isDescending, setIsDescending] = React.useState<boolean>(false);
   // removed wrapLines toggle for a cleaner toolbar
   const logsViewerRef: Ref<HTMLDivElement> = React.useRef<HTMLDivElement>(null);
   const scrollContainerRef: Ref<HTMLDivElement> =
@@ -88,6 +90,14 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [serviceMap, setServiceMap] = React.useState<
     Dictionary<TelemetryService>
   >({});
+
+  const displayLogs: Array<Log> = useMemo(() => {
+    if (isDescending) {
+      return [...props.logs].reverse();
+    }
+
+    return props.logs;
+  }, [props.logs, isDescending]);
 
   const loadTelemetryServices: PromiseVoidFunction =
     useCallback(async (): Promise<void> => {
@@ -178,33 +188,43 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     };
   }, [loadTelemetryServices]);
 
-  // Keep scroll to the bottom of the log
+  // Keep scroll aligned with the latest log entry
 
-  const scrollToBottom: VoidFunction = (): void => {
+  const scrollToLatest: VoidFunction = (): void => {
     const scrollContainer: HTMLDivElement | null = scrollContainerRef.current;
 
-    if (scrollContainer) {
-      scrollContainer.scrollTop = scrollContainer.scrollHeight;
+    if (!scrollContainer) {
+      return;
     }
+
+    if (isDescending) {
+      scrollContainer.scrollTop = 0;
+      return;
+    }
+
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
   };
 
-  const handleScroll: VoidFunction = (): void => {
+  const handleScroll: VoidFunction = React.useCallback((): void => {
     const scrollContainer: HTMLDivElement | null = scrollContainerRef.current;
-    if (scrollContainer) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-      const isNearBottom: boolean =
-        scrollHeight - scrollTop - clientHeight < 100;
-      setShowScrollToBottom(!isNearBottom && props.logs.length > 0);
+    if (!scrollContainer) {
+      return;
     }
-  };
+
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+    const isNearLatest: boolean = isDescending
+      ? scrollTop < 100
+      : scrollHeight - scrollTop - clientHeight < 100;
+    setShowScrollToLatest(!isNearLatest && displayLogs.length > 0);
+  }, [isDescending, displayLogs.length]);
 
   React.useEffect(() => {
     if (!autoScroll) {
       return;
     }
 
-    scrollToBottom();
-  }, [props.logs]);
+    scrollToLatest();
+  }, [props.logs, autoScroll, isDescending]);
 
   React.useEffect(() => {
     const scrollContainer: HTMLDivElement | null = scrollContainerRef.current;
@@ -215,7 +235,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       };
     }
     return () => {}; // Return empty cleanup function if no scrollContainer
-  }, []);
+  }, [handleScroll]);
 
   if (isPageLoading) {
     return <PageLoader isVisible={true} />;
@@ -305,12 +325,48 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                   </div>
                   <span className="hidden sm:block h-4 w-px bg-slate-200" />
                   <span className="text-xs text-slate-500">
-                    {props.logs.length} result
-                    {props.logs.length !== 1 ? "s" : ""}
+                    {displayLogs.length} result
+                    {displayLogs.length !== 1 ? "s" : ""}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <Button
+                    title={
+                      isDescending ? "Show oldest first" : "Show newest first"
+                    }
+                    icon={IconProp.ArrowUpDown}
+                    buttonStyle={
+                      isDescending
+                        ? ButtonStyleType.PRIMARY
+                        : ButtonStyleType.OUTLINE
+                    }
+                    buttonSize={ButtonSize.Small}
+                    onClick={() => {
+                      setShowScrollToLatest(false);
+                      setIsDescending((previous: boolean) => {
+                        const next: boolean = !previous;
+                        // Allow DOM updates before recalculating scroll position.
+                        setTimeout(() => {
+                          const scrollContainer: HTMLDivElement | null =
+                            scrollContainerRef.current;
+
+                          if (!scrollContainer) {
+                            return;
+                          }
+
+                          if (next) {
+                            scrollContainer.scrollTop = 0;
+                            return;
+                          }
+
+                          scrollContainer.scrollTop =
+                            scrollContainer.scrollHeight;
+                        }, 0);
+                        return next;
+                      });
+                    }}
+                  />
                   <Button
                     title="Apply Filters"
                     icon={IconProp.Search}
@@ -342,7 +398,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               onScroll={handleScroll}
             >
               <ul role="list" className="divide-y divide-slate-800">
-                {props.logs.map((log: Log, i: number) => {
+                {displayLogs.map((log: Log, i: number) => {
                   const traceRouteProps: OptionalTraceRouteProps =
                     props.getTraceRoute
                       ? { getTraceRoute: props.getTraceRoute }
@@ -364,7 +420,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 })}
               </ul>
 
-              {props.logs.length === 0 && (
+              {displayLogs.length === 0 && (
                 <div className="flex items-center justify-center h-full px-4">
                   <div className="text-center">
                     <h3 className="text-sm font-medium text-slate-300 mb-1">
@@ -380,12 +436,12 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             </div>
           </div>
 
-          {/* Floating Scroll to Bottom Button */}
-          {showScrollToBottom && (
+          {/* Floating Scroll to Latest Button */}
+          {showScrollToLatest && (
             <button
-              onClick={scrollToBottom}
+              onClick={scrollToLatest}
               className="absolute bottom-3 right-3 bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-md shadow transition-all"
-              title="Scroll to bottom"
+              title={isDescending ? "Scroll to top" : "Scroll to bottom"}
             >
               <svg
                 className="w-5 h-5"
@@ -393,12 +449,21 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                />
+                {isDescending ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 14l7-7 7 7m-7-7v18"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 10l-7 7-7-7m7 7V3"
+                  />
+                )}
               </svg>
             </button>
           )}

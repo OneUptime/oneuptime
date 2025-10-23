@@ -116,7 +116,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         requestOptions: {},
       });
 
-      // reverse the logs so that the newest logs are at the bottom
+      // Default to showing oldest logs first; the viewer can flip the order on demand.
       listResult.data.reverse();
 
       setLogs(listResult.data);
