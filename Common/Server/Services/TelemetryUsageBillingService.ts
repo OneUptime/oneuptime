@@ -71,8 +71,9 @@ export class Service extends DatabaseService<Model> {
       ? OneUptimeDate.fromString(data.usageDate)
       : OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -1);
 
-    const averageRowSizeInBytes: number =
-      this.getAverageRowSizeForProduct(data.productType);
+    const averageRowSizeInBytes: number = this.getAverageRowSizeForProduct(
+      data.productType,
+    );
 
     if (averageRowSizeInBytes <= 0) {
       return;
@@ -133,10 +134,7 @@ export class Service extends DatabaseService<Model> {
             query: {
               projectId: data.projectId,
               serviceId: telemetryService.id,
-              startTime: AnalyticsQueryHelper.inBetween(
-                startOfDay,
-                endOfDay,
-              ),
+              startTime: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
             },
             skip: 0,
             limit: LIMIT_INFINITY,
@@ -197,7 +195,8 @@ export class Service extends DatabaseService<Model> {
       }
 
       const dataRetentionInDays: number =
-        telemetryService.retainTelemetryDataForDays || DEFAULT_RETENTION_IN_DAYS;
+        telemetryService.retainTelemetryDataForDays ||
+        DEFAULT_RETENTION_IN_DAYS;
 
       await this.updateUsageBilling({
         projectId: data.projectId,
@@ -319,6 +318,15 @@ export class Service extends DatabaseService<Model> {
 
   private getAverageRowSizeForProduct(productType: ProductType): number {
     const fallbackSize: number = 1024;
+
+    // Narrow to telemetry product types before indexing to satisfy TypeScript
+    if (
+      productType !== ProductType.Traces &&
+      productType !== ProductType.Logs &&
+      productType !== ProductType.Metrics
+    ) {
+      return fallbackSize;
+    }
 
     const value: number =
       {

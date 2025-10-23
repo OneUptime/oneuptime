@@ -365,14 +365,20 @@ export const DocsClientUrl: URL = new URL(
 export const DisableTelemetry: boolean =
   process.env["DISABLE_TELEMETRY"] === "true";
 
-export const AverageSpanRowSizeInBytes: number =
-  parsePositiveNumberFromEnv("AVERAGE_SPAN_ROW_SIZE_IN_BYTES", 1024);
+export const AverageSpanRowSizeInBytes: number = parsePositiveNumberFromEnv(
+  "AVERAGE_SPAN_ROW_SIZE_IN_BYTES",
+  1024,
+);
 
-export const AverageLogRowSizeInBytes: number =
-  parsePositiveNumberFromEnv("AVERAGE_LOG_ROW_SIZE_IN_BYTES", 1024);
+export const AverageLogRowSizeInBytes: number = parsePositiveNumberFromEnv(
+  "AVERAGE_LOG_ROW_SIZE_IN_BYTES",
+  1024,
+);
 
-export const AverageMetricRowSizeInBytes: number =
-  parsePositiveNumberFromEnv("AVERAGE_METRIC_ROW_SIZE_IN_BYTES", 1024);
+export const AverageMetricRowSizeInBytes: number = parsePositiveNumberFromEnv(
+  "AVERAGE_METRIC_ROW_SIZE_IN_BYTES",
+  1024,
+);
 
 export const SlackAppClientId: string | null =
   process.env["SLACK_APP_CLIENT_ID"] || null;
