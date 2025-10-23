@@ -23,10 +23,10 @@ export const getAllEnvVars: () => JSONObject = (): JSONObject => {
   return process.env;
 };
 
-const parsePositiveNumberFromEnv = (
+const parsePositiveNumberFromEnv: (
   envKey: string,
   fallback: number,
-): number => {
+) => number = (envKey: string, fallback: number): number => {
   const rawValue: string | undefined = process.env[envKey];
 
   if (!rawValue) {

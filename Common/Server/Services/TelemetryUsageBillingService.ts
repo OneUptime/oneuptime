@@ -18,6 +18,8 @@ import MetricService from "./MetricService";
 import AnalyticsQueryHelper from "../Types/AnalyticsDatabase/QueryHelper";
 import DiskSize from "../../Types/DiskSize";
 import logger from "../Utils/Logger";
+import PositiveNumber from "../../Types/PositiveNumber";
+import TelemetryServiceModel from "../../Models/DatabaseModels/TelemetryService";
 import {
   AverageSpanRowSizeInBytes,
   AverageLogRowSizeInBytes,
@@ -83,20 +85,21 @@ export class Service extends DatabaseService<Model> {
     const startOfDay: Date = OneUptimeDate.getStartOfDay(usageDate);
     const endOfDay: Date = OneUptimeDate.getEndOfDay(usageDate);
 
-    const telemetryServices = await TelemetryServiceService.findBy({
-      query: {
-        projectId: data.projectId,
-      },
-      select: {
-        _id: true,
-        retainTelemetryDataForDays: true,
-      },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: {
-        isRoot: true,
-      },
-    });
+    const telemetryServices: Array<TelemetryServiceModel> =
+      await TelemetryServiceService.findBy({
+        query: {
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          retainTelemetryDataForDays: true,
+        },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: {
+          isRoot: true,
+        },
+      });
 
     if (!telemetryServices || telemetryServices.length === 0) {
       return;
@@ -130,7 +133,7 @@ export class Service extends DatabaseService<Model> {
 
       try {
         if (data.productType === ProductType.Traces) {
-          const count = await SpanService.countBy({
+          const count: PositiveNumber = await SpanService.countBy({
             query: {
               projectId: data.projectId,
               serviceId: telemetryService.id,
@@ -145,7 +148,7 @@ export class Service extends DatabaseService<Model> {
 
           rowCount = count.toNumber();
         } else if (data.productType === ProductType.Logs) {
-          const count = await LogService.countBy({
+          const count: PositiveNumber = await LogService.countBy({
             query: {
               projectId: data.projectId,
               serviceId: telemetryService.id,
@@ -160,7 +163,7 @@ export class Service extends DatabaseService<Model> {
 
           rowCount = count.toNumber();
         } else if (data.productType === ProductType.Metrics) {
-          const count = await MetricService.countBy({
+          const count: PositiveNumber = await MetricService.countBy({
             query: {
               projectId: data.projectId,
               serviceId: telemetryService.id,
