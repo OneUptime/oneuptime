@@ -14,7 +14,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
 import { APP_API_URL } from "Common/UI/Config";
@@ -48,8 +48,8 @@ const StatusPageEmbeddedStatus: FunctionComponent<
         },
       });
 
+      setToken(newToken);
       setShowRegenerateTokenModal(false);
-      window.location.reload();
     } catch {
       // Error will be handled by ModelAPI
     } finally {
@@ -148,69 +148,81 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
         }}
       />
 
-      <Card
-        title="Security Token"
-        description="Review and copy the token required to access the embedded badge. Keep it confidential to prevent unauthorized access."
-      >
-        <div className="space-y-3">
-          {token ? (
-            <HiddenText text={token} isCopyable={true} />
-          ) : (
-            <p className="text-sm text-gray-500">
-              No token has been generated yet. Enable the embedded badge to
-              create one.
-            </p>
-          )}
-          <div className="space-y-2">
-            <Button
-              title="Regenerate Token"
-              buttonStyle={ButtonStyleType.NORMAL}
-              icon={IconProp.Refresh}
-              onClick={() => {
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card
+          className="h-full"
+          bodyClassName="mt-6 space-y-4"
+          title="Security Token"
+          description="Review and copy the token required to access the embedded badge. Keep it confidential to prevent unauthorized access."
+          buttons={[
+            {
+              title: "Regenerate Token",
+              buttonStyle: ButtonStyleType.NORMAL,
+              icon: IconProp.Refresh,
+              onClick: () => {
                 setShowRegenerateTokenModal(true);
-              }}
-            />
+              },
+              isLoading: isRegenerating,
+              disabled: isRegenerating,
+            },
+          ]}
+        >
+          <>
+            {token ? (
+              <HiddenText text={token} isCopyable={true} />
+            ) : (
+              <p className="text-sm text-gray-500">
+                No token has been generated yet. Enable the embedded badge and
+                use "Regenerate Token" to create one.
+              </p>
+            )}
             <p className="text-sm text-gray-500">
               Regenerating the token will invalidate any existing embedded
               badges.
             </p>
-          </div>
-          <p className="text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-md p-3">
-            Anyone with this token can render your badge. Rotate it immediately
-            if you suspect exposure.
-          </p>
-        </div>
-      </Card>
-
-      <Card
-        title="Badge Preview"
-        description="Preview the live badge rendering using the current security token."
-      >
-        {isEmbeddedStatusEnabled ? (
-          badgeUrlWithToken ? (
-            <img
-              src={badgeUrlWithToken}
-              alt="Status Badge"
-              className="rounded-md border border-gray-200"
-            />
-          ) : (
-            <p className="text-sm text-gray-500">
-              Generate a security token to see the live preview.
+            <p className="text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-md p-3">
+              Anyone with this token can render your badge. Rotate it
+              immediately if you suspect exposure.
             </p>
-          )
-        ) : (
-          <p className="text-sm text-gray-500">
-            Enable the embedded status badge to view the live preview.
-          </p>
-        )}
-      </Card>
+          </>
+        </Card>
 
-      <Card
-        title="Badge Documentation"
-        description="Review the rendered documentation before sharing with your team."
-      >
-        <MarkdownViewer text={documentationMarkdown} />
-      </Card>
+        <Card
+          className="h-full"
+          bodyClassName="mt-6"
+          title="Badge Preview"
+          description="Preview the live badge rendering using the current security token."
+        >
+          <div className="flex min-h-[160px] items-center justify-center rounded-md border border-dashed border-gray-200 bg-gray-50">
+            {isEmbeddedStatusEnabled ? (
+              badgeUrlWithToken ? (
+                <img
+                  src={badgeUrlWithToken}
+                  alt="Status Badge"
+                  className="max-h-24 rounded"
+                />
+              ) : (
+                <p className="text-sm text-gray-500 text-center">
+                  Generate a security token to see the live preview.
+                </p>
+              )
+            ) : (
+              <p className="text-sm text-gray-500 text-center">
+                Enable the embedded status badge to view the live preview.
+              </p>
+            )}
+          </div>
+        </Card>
+
+        <Card
+          className="lg:col-span-2"
+          bodyClassName="mt-6"
+          title="Badge Documentation"
+          description="Review the rendered documentation before sharing with your team."
+        >
+          <MarkdownViewer text={documentationMarkdown} />
+        </Card>
+      </div>
 
       {showRegenerateTokenModal && (
         <ConfirmModal
