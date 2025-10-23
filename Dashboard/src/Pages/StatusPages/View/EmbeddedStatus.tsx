@@ -1,10 +1,5 @@
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
-import SideMenu from "./SideMenu";
-import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import ModelPage from "Common/UI/Components/Page/ModelPage";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, {
@@ -60,42 +55,7 @@ const StatusPageEmbeddedStatus: FunctionComponent<
   const badgeUrl: string = `${APP_API_URL}/status-page/badge/${modelId.toString()}?token={TOKEN_PLACEHOLDER}`;
 
   return (
-    <ModelPage
-      title="Status Page"
-      modelType={StatusPage}
-      modelId={modelId}
-      modelNameField="name"
-      breadcrumbLinks={[
-        {
-          title: "Project",
-          to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route, {
-            modelId,
-          }),
-        },
-        {
-          title: "Status Pages",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.STATUS_PAGES] as Route,
-            { modelId },
-          ),
-        },
-        {
-          title: "View Status Page",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
-            { modelId },
-          ),
-        },
-        {
-          title: "Embedded Status",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.STATUS_PAGE_VIEW_EMBEDDED] as Route,
-            { modelId },
-          ),
-        },
-      ]}
-      sideMenu={<SideMenu modelId={modelId} />}
-    >
+
       <Fragment>
         <CardModelDetail<StatusPage>
           name="Status Page > Embedded Status Badge"
@@ -228,7 +188,7 @@ const StatusPageEmbeddedStatus: FunctionComponent<
           />
         )}
       </Fragment>
-    </ModelPage>
+   
   );
 };
 
