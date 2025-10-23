@@ -27,7 +27,9 @@ const StatusPageEmbeddedStatus: FunctionComponent<
   const [showRegenerateTokenModal, setShowRegenerateTokenModal] =
     useState<boolean>(false);
   const [isRegenerating, setIsRegenerating] = useState<boolean>(false);
-  const [statusPage, setStatusPage] = useState<StatusPage | null>(null);
+  const [token, setToken] = useState<string | undefined>(undefined);
+  const [isEmbeddedStatusEnabled, setIsEmbeddedStatusEnabled] =
+    useState<boolean>(false);
 
   const regenerateToken: () => Promise<void> = async (): Promise<void> => {
     setIsRegenerating(true);
@@ -52,10 +54,6 @@ const StatusPageEmbeddedStatus: FunctionComponent<
     }
   };
 
-  const token: string | undefined = statusPage?.embeddedOverallStatusToken;
-  const isEmbeddedStatusEnabled: boolean = Boolean(
-    statusPage?.enableEmbeddedOverallStatus,
-  );
   const badgeUrlWithToken: string | null = token
     ? `${APP_API_URL}/status-page/badge/${modelId.toString()}?token=${token}`
     : null;
@@ -139,7 +137,10 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
           ],
           modelId: modelId,
           onItemLoaded: (item: StatusPage) => {
-            setStatusPage(item);
+            setToken(item.embeddedOverallStatusToken || undefined);
+            setIsEmbeddedStatusEnabled(
+              Boolean(item.enableEmbeddedOverallStatus),
+            );
           },
         }}
       />
@@ -209,24 +210,9 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
 
       <Card
         title="Badge Documentation"
-        description="Copy the Markdown reference or review the rendered documentation before sharing with your team."
+        description="Review the rendered documentation before sharing with your team."
       >
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">
-              Markdown Source
-            </h3>
-            <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto text-sm">
-              <code>{documentationMarkdown}</code>
-            </pre>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">
-              Markdown Preview
-            </h3>
-            <MarkdownViewer text={documentationMarkdown} />
-          </div>
-        </div>
+        <MarkdownViewer text={documentationMarkdown} />
       </Card>
 
       {showRegenerateTokenModal && (
