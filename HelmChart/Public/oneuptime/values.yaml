@@ -230,6 +230,10 @@ billing:
   smsHighRiskValueInCents:
   callHighRiskValueInCentsPerMinute:
   allowedActiveMonitorCountInFreePlan: 10
+  telemetry:
+    averageSpanRowSizeInBytes: 1024
+    averageLogRowSizeInBytes: 1024
+    averageMetricRowSizeInBytes: 1024
 
 subscriptionPlan:
   basic:

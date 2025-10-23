@@ -596,6 +596,24 @@
         },
         "allowedActiveMonitorCountInFreePlan": {
           "type": "integer"
+        },
+        "telemetry": {
+          "type": "object",
+          "properties": {
+            "averageSpanRowSizeInBytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "averageLogRowSizeInBytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "averageMetricRowSizeInBytes": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
