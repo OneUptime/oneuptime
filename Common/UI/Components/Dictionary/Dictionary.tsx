@@ -148,6 +148,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                     title="Key"
                     required={true}
                     hideOptionalLabel={true}
+                    className="block text-xs text-gray-500 font-normal flex justify-between"
                   />
                 </div>
                 <AutocompleteTextInput
@@ -173,6 +174,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                       title="Type"
                       hideOptionalLabel={true}
                       required={true}
+                      className="block text-xs text-gray-500 font-normal flex justify-between"
                     />
                   </div>
                   <Dropdown
@@ -206,6 +208,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                     title="Value"
                     hideOptionalLabel={true}
                     required={true}
+                    className="block text-xs text-gray-500 font-normal flex justify-between"
                   />
                 </div>
                 {item.type === ValueType.Text && (

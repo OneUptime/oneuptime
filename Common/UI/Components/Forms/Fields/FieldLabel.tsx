@@ -9,6 +9,7 @@ export interface ComponentProps {
   description?: string | ReactElement | undefined;
   isHeading?: boolean | undefined;
   hideOptionalLabel?: boolean | undefined;
+  className?: string | undefined;
 }
 
 const FieldLabelElement: FunctionComponent<ComponentProps> = (
@@ -17,9 +18,12 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
   return (
     <>
       <label
-        className={`block ${
-          props.isHeading ? "text-lg" : "text-sm"
-        }  font-medium text-gray-700 flex justify-between`}
+        className={
+          props.className ||
+          `block ${
+            props.isHeading ? "text-lg" : "text-sm"
+          }  font-medium text-gray-700 flex justify-between`
+        }
       >
         <span>
           {props.title}{" "}
