@@ -289,7 +289,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Code}
+          icon={IconProp.Circle}
         />
 
         <SideMenuItem

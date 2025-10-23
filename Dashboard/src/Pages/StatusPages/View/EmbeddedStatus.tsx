@@ -6,6 +6,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useMemo,
   useState,
 } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -23,7 +24,9 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 const StatusPageEmbeddedStatus: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const modelId: ObjectID = useMemo(() => {
+    return Navigation.getLastParamAsObjectID(1);
+  }, []);
   const [showRegenerateTokenModal, setShowRegenerateTokenModal] =
     useState<boolean>(false);
   const [isRegenerating, setIsRegenerating] = useState<boolean>(false);
@@ -158,29 +161,23 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
               create one.
             </p>
           )}
+          <div className="space-y-2">
+            <Button
+              title="Regenerate Token"
+              buttonStyle={ButtonStyleType.NORMAL}
+              icon={IconProp.Refresh}
+              onClick={() => {
+                setShowRegenerateTokenModal(true);
+              }}
+            />
+            <p className="text-sm text-gray-500">
+              Regenerating the token will invalidate any existing embedded
+              badges.
+            </p>
+          </div>
           <p className="text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-md p-3">
             Anyone with this token can render your badge. Rotate it immediately
             if you suspect exposure.
-          </p>
-        </div>
-      </Card>
-
-      <Card
-        title="Token Rotation"
-        description="Regenerate the security token to invalidate all existing embedded badges."
-      >
-        <div className="space-y-2">
-          <Button
-            title="Regenerate Token"
-            buttonStyle={ButtonStyleType.NORMAL}
-            icon={IconProp.Refresh}
-            onClick={() => {
-              setShowRegenerateTokenModal(true);
-            }}
-          />
-          <p className="text-sm text-gray-500">
-            Regenerating the token will invalidate any existing embedded
-            badges.
           </p>
         </div>
       </Card>
