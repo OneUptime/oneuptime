@@ -1,11 +1,9 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import OTelIngestService, {
-  TelemetryServiceDataIngested,
+  TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import OneUptimeDate from "Common/Types/Date";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import ProductType from "Common/Types/MeteredPlan/ProductType";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -136,7 +134,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
       const dbSpans: Array<Span> = [];
       const dbExceptions: Array<ExceptionInstance> = [];
-      const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
+      const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
       let totalSpansProcessed: number = 0;
 
       let resourceSpanCounter: number = 0;
@@ -166,7 +164,6 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               serviceName: serviceName,
               serviceId: service.serviceId,
               dataRententionInDays: service.dataRententionInDays,
-              dataIngestedInGB: 0,
             };
           }
 
@@ -185,10 +182,6 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               prefixKeysWithString: "resource",
             }),
           };
-
-          const sizeInGb: number =
-            JSONFunctions.getSizeOfJSONinGB(resourceSpan);
-          serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
 
           const scopeSpans: JSONArray = resourceSpan["scopeSpans"] as JSONArray;
 
@@ -411,12 +404,6 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         logger.warn("No valid spans were processed from the request");
         return;
       }
-
-      await OTelIngestService.recordDataIngestedUsgaeBilling({
-        services: serviceDictionary,
-        projectId: (req as TelemetryRequest).projectId,
-        productType: ProductType.Traces,
-      });
 
       logger.debug(
         `Successfully processed ${totalSpansProcessed} spans for project: ${(req as TelemetryRequest).projectId}`,
