@@ -302,6 +302,9 @@ probes:
       # Example: http://proxy.example.com:8080
       # Example with auth: http://username:password@proxy.example.com:8080
       httpsProxyUrl:
+      # Comma-separated list of hosts that should bypass the proxy (optional)
+      # Example: localhost,.internal.example.com,10.0.0.0/8
+      noProxy:
     # KEDA autoscaling configuration based on monitor queue metrics
     keda:
       enabled: false
@@ -337,6 +340,8 @@ probes:
 #     httpProxyUrl:
 #     # HTTPS proxy URL for HTTPS requests (optional)
 #     httpsProxyUrl:
+#     # Hosts that should bypass the proxy (optional)
+#     noProxy:
 #   resources:
 #   additionalContainers:
   # KEDA autoscaling configuration based on monitor queue metrics

@@ -126,6 +126,10 @@ spec:
             - name: HTTPS_PROXY_URL
               value: {{ $val.proxy.httpsProxyUrl | squote }}
             {{- end }}
+            {{- if and $val.proxy $val.proxy.noProxy }}
+            - name: NO_PROXY
+              value: {{ $val.proxy.noProxy | squote }}
+            {{- end }}
             {{- include "oneuptime.env.oneuptimeSecret" $ | nindent 12 }}
           ports:
             - containerPort: {{ if and $val.ports $val.ports.http }}{{ $val.ports.http }}{{ else }}3874{{ end }}

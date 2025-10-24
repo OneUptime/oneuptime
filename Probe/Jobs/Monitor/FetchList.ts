@@ -101,7 +101,7 @@ class FetchListAndProbe {
             limit: PROBE_MONITOR_FETCH_LIMIT || 100,
           },
           headers: {},
-          options: { ...ProxyConfig.getRequestProxyAgents() },
+          options: { ...ProxyConfig.getRequestProxyAgents(monitorListUrl) },
         });
 
       logger.debug("Fetched monitor list");

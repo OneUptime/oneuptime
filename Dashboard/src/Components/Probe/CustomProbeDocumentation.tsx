@@ -41,6 +41,7 @@ docker run --name oneuptime-probe --network host \\
   -e ONEUPTIME_URL=${host.toString()} \\
   -e HTTP_PROXY_URL=http://proxy.example.com:8080 \\
   -e HTTPS_PROXY_URL=http://proxy.example.com:8080 \\
+  -e NO_PROXY=localhost,.internal.example.com \
   -d oneuptime/probe:release
 
 # With proxy authentication
@@ -50,6 +51,7 @@ docker run --name oneuptime-probe --network host \\
   -e ONEUPTIME_URL=${host.toString()} \\
   -e HTTP_PROXY_URL=http://username:password@proxy.example.com:8080 \\
   -e HTTPS_PROXY_URL=http://username:password@proxy.example.com:8080 \\
+  -e NO_PROXY=localhost,.internal.example.com \
   -d oneuptime/probe:release
 `}
               />

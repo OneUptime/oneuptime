@@ -1,13 +1,18 @@
-import { HTTP_PROXY_URL, HTTPS_PROXY_URL } from "../Config";
+import { HTTP_PROXY_URL, HTTPS_PROXY_URL, NO_PROXY } from "../Config";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { HttpProxyAgent } from "http-proxy-agent";
 import logger from "Common/Server/Utils/Logger";
+import type OneUptimeURL from "Common/Types/API/URL";
+import Protocol from "Common/Types/API/Protocol";
+import { URL as NodeURL } from "url";
 
 // Exported interface for proxy agents
 export interface ProxyAgents {
   httpAgent?: HttpProxyAgent<string>;
   httpsAgent?: HttpsProxyAgent<string>;
 }
+
+type TargetUrl = OneUptimeURL | string;
 
 export default class ProxyConfig {
   private static isConfigured: boolean = false;
@@ -31,6 +36,9 @@ export default class ProxyConfig {
       }
       if (HTTPS_PROXY_URL) {
         logger.info(`  HTTPS proxy: ${HTTPS_PROXY_URL}`);
+      }
+      if (NO_PROXY.length > 0) {
+        logger.info(`  NO_PROXY: ${NO_PROXY.join(", ")}`);
       }
 
       // Create proxy agents for HTTP and HTTPS
@@ -64,21 +72,370 @@ export default class ProxyConfig {
     return HTTPS_PROXY_URL;
   }
 
-  public static getHttpProxyAgent(): HttpProxyAgent<string> | null {
+  public static getHttpProxyAgent(
+    targetUrl?: TargetUrl,
+  ): HttpProxyAgent<string> | null {
+    if (this.shouldBypassProxy(targetUrl)) {
+      return null;
+    }
+
     return this.httpProxyAgent;
   }
 
-  public static getHttpsProxyAgent(): HttpsProxyAgent<string> | null {
+  public static getHttpsProxyAgent(
+    targetUrl?: TargetUrl,
+  ): HttpsProxyAgent<string> | null {
+    if (this.shouldBypassProxy(targetUrl)) {
+      return null;
+    }
+
     return this.httpsProxyAgent;
   }
 
-  public static getRequestProxyAgents(): Readonly<ProxyAgents> {
+  public static getRequestProxyAgents(
+    targetUrl: TargetUrl,
+  ): Readonly<ProxyAgents> {
+    if (this.shouldBypassProxy(targetUrl)) {
+      return {};
+    }
+
     if (!this.isProxyConfigured()) {
       return {};
     }
+
     return {
       ...(this.httpProxyAgent ? { httpAgent: this.httpProxyAgent } : {}),
       ...(this.httpsProxyAgent ? { httpsAgent: this.httpsProxyAgent } : {}),
     } as const;
+  }
+
+  private static shouldBypassProxy(targetUrl?: TargetUrl): boolean {
+    if (!targetUrl) {
+      return false;
+    }
+
+    if (!this.isProxyConfigured()) {
+      return false;
+    }
+
+    if (NO_PROXY.length === 0) {
+      return false;
+    }
+
+    const { hostname, port, protocol } = this.extractHostnameAndPort(targetUrl);
+
+    if (!hostname) {
+      return false;
+    }
+
+    const normalizedHost: string = this.normalizeHost(hostname);
+    const normalizedPort: string | undefined = this.normalizePort(
+      this.resolveEffectivePort(targetUrl, port, protocol),
+    );
+
+    for (const pattern of NO_PROXY) {
+      if (this.matchesNoProxyPattern(normalizedHost, normalizedPort, pattern)) {
+        logger.debug(
+          `Bypassing proxy for ${hostname}${normalizedPort ? `:${normalizedPort}` : ""} because it matches NO_PROXY entry '${pattern}'.`,
+        );
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private static extractHostnameAndPort(target: TargetUrl): {
+    hostname: string | null;
+    port?: string;
+    protocol?: string;
+  } {
+    const value: string =
+      typeof target === "string" ? target.trim() : target.toString().trim();
+
+    if (!value) {
+      return {
+        hostname: null,
+      };
+    }
+
+    try {
+      const valueForParsing: string = value.includes("://")
+        ? value
+        : `http://${value}`;
+      const parsedUrl: NodeURL = new NodeURL(valueForParsing);
+
+      const hostnameResult: string | null = parsedUrl.hostname || null;
+      const portValue: string | undefined = parsedUrl.port
+        ? parsedUrl.port.trim()
+        : undefined;
+
+      const result: {
+        hostname: string | null;
+        port?: string;
+        protocol?: string;
+      } = {
+        hostname: hostnameResult,
+      };
+
+      if (portValue) {
+        result.port = portValue;
+      }
+
+      if (parsedUrl.protocol) {
+        result.protocol = parsedUrl.protocol;
+      }
+
+      return result;
+    } catch {
+      if (value.startsWith("[") && value.includes("]")) {
+        const closingIndex: number = value.indexOf("]");
+        const hostPart: string = value.substring(1, closingIndex);
+        const remainder: string = value.substring(closingIndex + 1).trim();
+        const portCandidate: string | undefined = remainder.startsWith(":")
+          ? remainder.substring(1).trim() || undefined
+          : undefined;
+
+        const result: {
+          hostname: string | null;
+          port?: string;
+          protocol?: string;
+        } = {
+          hostname: hostPart,
+        };
+
+        if (portCandidate) {
+          result.port = portCandidate;
+        }
+
+        return result;
+      }
+
+      const firstColonIndex: number = value.indexOf(":");
+      const lastColonIndex: number = value.lastIndexOf(":");
+
+      if (firstColonIndex > -1 && firstColonIndex === lastColonIndex) {
+        const hostPart: string = value.substring(0, firstColonIndex).trim();
+        const portPart: string = value.substring(firstColonIndex + 1).trim();
+
+        const result: {
+          hostname: string | null;
+          port?: string;
+          protocol?: string;
+        } = {
+          hostname: hostPart,
+        };
+
+        if (portPart) {
+          result.port = portPart;
+        }
+
+        return result;
+      }
+
+      return {
+        hostname: value,
+      };
+    }
+  }
+
+  private static normalizeHost(host: string): string {
+    return host.trim().toLowerCase().replace(/^\[/, "").replace(/\]$/, "");
+  }
+
+  private static normalizePort(port?: string | null): string | undefined {
+    if (!port) {
+      return undefined;
+    }
+
+    return port.trim().toLowerCase();
+  }
+
+  private static splitHostAndPort(value: string): {
+    host: string;
+    port?: string;
+  } {
+    const trimmedValue: string = value.trim();
+
+    if (!trimmedValue) {
+      return {
+        host: "",
+      };
+    }
+
+    if (trimmedValue.startsWith("[") && trimmedValue.includes("]")) {
+      const closingIndex: number = trimmedValue.indexOf("]");
+      const hostPart: string = trimmedValue.substring(0, closingIndex + 1);
+      const remainder: string = trimmedValue.substring(closingIndex + 1).trim();
+      const portCandidate: string | undefined = remainder.startsWith(":")
+        ? remainder.substring(1).trim() || undefined
+        : undefined;
+
+      const result: { host: string; port?: string } = {
+        host: hostPart,
+      };
+
+      if (portCandidate) {
+        result.port = portCandidate;
+      }
+
+      return result;
+    }
+
+    const firstColonIndex: number = trimmedValue.indexOf(":");
+    const lastColonIndex: number = trimmedValue.lastIndexOf(":");
+
+    if (firstColonIndex > -1 && firstColonIndex === lastColonIndex) {
+      const hostPart: string = trimmedValue
+        .substring(0, firstColonIndex)
+        .trim();
+      const portPart: string = trimmedValue
+        .substring(firstColonIndex + 1)
+        .trim();
+
+      const result: { host: string; port?: string } = {
+        host: hostPart,
+      };
+
+      if (portPart) {
+        result.port = portPart;
+      }
+
+      return result;
+    }
+
+    return {
+      host: trimmedValue,
+    };
+  }
+
+  private static matchesNoProxyPattern(
+    hostname: string,
+    port: string | undefined,
+    rawPattern: string,
+  ): boolean {
+    const trimmedPattern: string = rawPattern.trim().toLowerCase();
+
+    if (!trimmedPattern) {
+      return false;
+    }
+
+    if (trimmedPattern === "*") {
+      return true;
+    }
+
+    let pattern: string = trimmedPattern;
+
+    if (pattern.includes("://")) {
+      try {
+        const parsedPattern: NodeURL = new NodeURL(pattern);
+        const hostnamePart: string = parsedPattern.hostname.includes(":")
+          ? `[${parsedPattern.hostname}]`
+          : parsedPattern.hostname;
+
+        pattern = `${hostnamePart}${
+          parsedPattern.port ? `:${parsedPattern.port}` : ""
+        }`;
+      } catch {
+        // Ignore parsing errors and fall back to raw pattern handling.
+      }
+    }
+
+    let matchSubdomains: boolean = false;
+
+    if (pattern.startsWith("*.")) {
+      matchSubdomains = true;
+      pattern = pattern.substring(2);
+    } else if (pattern.startsWith(".")) {
+      matchSubdomains = true;
+      pattern = pattern.substring(1);
+    }
+
+    const { host, port: patternPort } = this.splitHostAndPort(pattern);
+    const normalizedPatternHost: string = this.normalizeHost(host);
+
+    if (!normalizedPatternHost) {
+      return false;
+    }
+
+    const normalizedPatternPort: string | undefined = patternPort
+      ? patternPort.trim().toLowerCase()
+      : undefined;
+
+    if (
+      normalizedPatternPort !== undefined &&
+      normalizedPatternPort !== (port ?? "")
+    ) {
+      return false;
+    }
+
+    if (matchSubdomains) {
+      return (
+        hostname === normalizedPatternHost ||
+        hostname.endsWith(`.${normalizedPatternHost}`)
+      );
+    }
+
+    return hostname === normalizedPatternHost;
+  }
+
+  private static resolveEffectivePort(
+    target: TargetUrl,
+    parsedPort?: string,
+    parsedProtocol?: string,
+  ): string | undefined {
+    if (parsedPort && parsedPort.trim()) {
+      return parsedPort.trim();
+    }
+
+    const resolvedProtocol: string | undefined = this.resolveProtocol(
+      target,
+      parsedProtocol,
+    );
+
+    switch (resolvedProtocol) {
+      case "http:":
+      case "ws:":
+        return "80";
+      case "https:":
+      case "wss:":
+        return "443";
+      default:
+        return undefined;
+    }
+  }
+
+  private static resolveProtocol(
+    target: TargetUrl,
+    parsedProtocol?: string,
+  ): string | undefined {
+    if (parsedProtocol) {
+      return parsedProtocol.toLowerCase();
+    }
+
+    if (typeof target !== "string") {
+      switch (target.protocol) {
+        case Protocol.HTTP:
+          return "http:";
+        case Protocol.HTTPS:
+          return "https:";
+        case Protocol.WS:
+          return "ws:";
+        case Protocol.WSS:
+          return "wss:";
+        default:
+          return undefined;
+      }
+    }
+
+    if (typeof target === "string" && target.includes("://")) {
+      try {
+        return new NodeURL(target).protocol.toLowerCase();
+      } catch {
+        return undefined;
+      }
+    }
+
+    return undefined;
   }
 }

@@ -67,7 +67,7 @@ export default class ApiMonitor {
         options: {
           timeout: options.timeout?.toNumber() || 5000,
           doNotFollowRedirects: options.doNotFollowRedirects || false,
-          ...ProxyConfig.getRequestProxyAgents(),
+          ...ProxyConfig.getRequestProxyAgents(url),
         },
       };
 
@@ -91,7 +91,7 @@ export default class ApiMonitor {
           options: {
             timeout: options.timeout?.toNumber() || 5000,
             doNotFollowRedirects: options.doNotFollowRedirects || false,
-            ...ProxyConfig.getRequestProxyAgents(),
+            ...ProxyConfig.getRequestProxyAgents(url),
           },
         };
 

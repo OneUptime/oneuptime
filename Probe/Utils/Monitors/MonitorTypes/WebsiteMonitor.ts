@@ -65,7 +65,7 @@ export default class WebsiteMonitor {
         isHeadRequest: options.isHeadRequest,
         timeout: options.timeout?.toNumber() || 5000,
         doNotFollowRedirects: options.doNotFollowRedirects || false,
-        ...ProxyConfig.getRequestProxyAgents(),
+        ...ProxyConfig.getRequestProxyAgents(url),
       });
 
       if (
@@ -78,7 +78,7 @@ export default class WebsiteMonitor {
           isHeadRequest: false,
           timeout: options.timeout?.toNumber() || 5000,
           doNotFollowRedirects: options.doNotFollowRedirects || false,
-          ...ProxyConfig.getRequestProxyAgents(),
+          ...ProxyConfig.getRequestProxyAgents(url),
         });
       }
 

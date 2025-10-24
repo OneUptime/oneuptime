@@ -43,7 +43,7 @@ router.get(
           url: queueSizeUrl,
           data: requestBody,
           headers: {},
-          options: { ...ProxyConfig.getRequestProxyAgents() },
+          options: { ...ProxyConfig.getRequestProxyAgents(queueSizeUrl) },
         });
 
       if (result instanceof HTTPErrorResponse) {
