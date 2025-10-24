@@ -2,10 +2,12 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -17,10 +19,13 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
-import { APP_API_URL } from "Common/UI/Config";
+import { APP_API_URL, STATUS_PAGE_URL } from "Common/UI/Config";
 import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import Query from "Common/Types/BaseDatabase/Query";
+import Sort from "Common/Types/BaseDatabase/Sort";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import URL from "Common/Types/API/URL";
 
 const StatusPageEmbeddedStatus: FunctionComponent<
   PageComponentProps
@@ -35,10 +40,54 @@ const StatusPageEmbeddedStatus: FunctionComponent<
   const [isEmbeddedStatusEnabled, setIsEmbeddedStatusEnabled] =
     useState<boolean>(false);
 
+  const fallbackStatusPageUrl: string = useMemo(() => {
+    return URL.fromString(STATUS_PAGE_URL.toString())
+      .addRoute(`/${modelId.toString()}`)
+      .toString();
+  }, [modelId]);
+
+  const [statusPageUrl, setStatusPageUrl] = useState<string>(
+    fallbackStatusPageUrl,
+  );
+
+  useEffect(() => {
+    const fetchStatusPageUrl: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const domains = await ModelAPI.getList<StatusPageDomain>({
+          modelType: StatusPageDomain,
+          query: {
+            statusPageId: modelId,
+            isSslProvisioned: true,
+          } as Query<StatusPageDomain>,
+          select: {
+            fullDomain: true,
+          },
+          sort: {
+            createdAt: SortOrder.Descending,
+          } as Sort<StatusPageDomain>,
+          limit: 1,
+          skip: 0,
+        });
+
+        const domain: StatusPageDomain | undefined = domains.data[0];
+
+        if (domain?.fullDomain) {
+          setStatusPageUrl(`https://${domain.fullDomain}`);
+          return;
+        }
+      } catch {
+        // Ignore error and fall back to default route.
+      }
+
+      setStatusPageUrl(fallbackStatusPageUrl);
+    };
+
+    void fetchStatusPageUrl();
+  }, [fallbackStatusPageUrl, modelId]);
+
   const regenerateToken: () => Promise<void> = async (): Promise<void> => {
     setIsRegenerating(true);
     try {
-      // Generate a cryptographically safe token based on ObjectID
       const newToken: string = ObjectID.generate().toString();
 
       await ModelAPI.updateById<StatusPage>({
@@ -71,7 +120,6 @@ const StatusPageEmbeddedStatus: FunctionComponent<
       : "Enable the embedded status badge and generate a security token to activate the snippets below.";
 
   const documentationMarkdown: string = `
-
 ${introMessage}
 
 #### Badge URL
@@ -89,7 +137,7 @@ ${introMessage}
 
 #### Markdown with Link
 \`\`\`markdown
-[![Status](${badgeUrlDocumentation})](https://your-status-page-url.com)
+[![Status](${badgeUrlDocumentation})](${statusPageUrl})
 \`\`\`
 
 #### Use Cases
@@ -152,8 +200,9 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
         }}
       />
 
-     
+      
         <Card
+          
           bodyClassName="mt-6 space-y-4"
           title="Security Token"
           description="Review and copy the token required to access the embedded badge. Keep it confidential to prevent unauthorized access."
@@ -179,12 +228,19 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
                 use "Regenerate Token" to create one.
               </p>
             )}
-            <Alert title="Regenerating the token will invalidate any existing embedded
-              badges." type={AlertType.INFO} />
+            <p className="text-sm text-gray-500">
+              Regenerating the token will invalidate any existing embedded
+              badges.
+            </p>
+            <p className="text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-md p-3">
+              Anyone with this token can render your badge. Rotate it
+              immediately if you suspect exposure.
+            </p>
           </>
         </Card>
 
         <Card
+          
           bodyClassName="mt-6"
           title="Badge Preview"
           description="Preview the live badge rendering using the current security token."
@@ -208,16 +264,17 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
               </p>
             )}
           </div>
-        </Card>
+
 
         <Card
+          className="lg:col-span-2"
           bodyClassName="mt-6"
           title="Badge Documentation"
           description="Review the rendered documentation before sharing with your team."
         >
           <MarkdownViewer text={documentationMarkdown} />
         </Card>
-
+      </div>
 
       {showRegenerateTokenModal && (
         <ConfirmModal
