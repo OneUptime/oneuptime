@@ -3,6 +3,7 @@ import { HttpsProxyAgent } from "https-proxy-agent";
 import { HttpProxyAgent } from "http-proxy-agent";
 import logger from "Common/Server/Utils/Logger";
 import type OneUptimeURL from "Common/Types/API/URL";
+import Protocol from "Common/Types/API/Protocol";
 import { URL as NodeURL } from "url";
 
 // Exported interface for proxy agents
@@ -121,16 +122,16 @@ export default class ProxyConfig {
       return false;
     }
 
-    const { hostname, port } = this.extractHostnameAndPort(targetUrl);
+    const { hostname, port, protocol } = this.extractHostnameAndPort(targetUrl);
 
     if (!hostname) {
       return false;
     }
 
     const normalizedHost: string = this.normalizeHost(hostname);
-    const normalizedPort: string | undefined = port
-      ? port.trim().toLowerCase()
-      : undefined;
+    const normalizedPort: string | undefined = this.normalizePort(
+      this.resolveEffectivePort(targetUrl, port, protocol),
+    );
 
     for (const pattern of NO_PROXY) {
       if (this.matchesNoProxyPattern(normalizedHost, normalizedPort, pattern)) {
@@ -147,6 +148,7 @@ export default class ProxyConfig {
   private static extractHostnameAndPort(target: TargetUrl): {
     hostname: string | null;
     port?: string;
+    protocol?: string;
   } {
     const value: string =
       typeof target === "string" ? target.trim() : target.toString().trim();
@@ -168,12 +170,20 @@ export default class ProxyConfig {
         ? parsedUrl.port.trim()
         : undefined;
 
-      const result: { hostname: string | null; port?: string } = {
+      const result: {
+        hostname: string | null;
+        port?: string;
+        protocol?: string;
+      } = {
         hostname: hostnameResult,
       };
 
       if (portValue) {
         result.port = portValue;
+      }
+
+      if (parsedUrl.protocol) {
+        result.protocol = parsedUrl.protocol;
       }
 
       return result;
@@ -186,7 +196,11 @@ export default class ProxyConfig {
           ? remainder.substring(1).trim() || undefined
           : undefined;
 
-        const result: { hostname: string | null; port?: string } = {
+        const result: {
+          hostname: string | null;
+          port?: string;
+          protocol?: string;
+        } = {
           hostname: hostPart,
         };
 
@@ -204,7 +218,11 @@ export default class ProxyConfig {
         const hostPart: string = value.substring(0, firstColonIndex).trim();
         const portPart: string = value.substring(firstColonIndex + 1).trim();
 
-        const result: { hostname: string | null; port?: string } = {
+        const result: {
+          hostname: string | null;
+          port?: string;
+          protocol?: string;
+        } = {
           hostname: hostPart,
         };
 
@@ -223,6 +241,14 @@ export default class ProxyConfig {
 
   private static normalizeHost(host: string): string {
     return host.trim().toLowerCase().replace(/^\[/, "").replace(/\]$/, "");
+  }
+
+  private static normalizePort(port?: string | null): string | undefined {
+    if (!port) {
+      return undefined;
+    }
+
+    return port.trim().toLowerCase();
   }
 
   private static splitHostAndPort(value: string): {
@@ -338,7 +364,7 @@ export default class ProxyConfig {
 
     if (
       normalizedPatternPort !== undefined &&
-      normalizedPatternPort !== (port || "")
+      normalizedPatternPort !== (port ?? "")
     ) {
       return false;
     }
@@ -351,5 +377,65 @@ export default class ProxyConfig {
     }
 
     return hostname === normalizedPatternHost;
+  }
+
+  private static resolveEffectivePort(
+    target: TargetUrl,
+    parsedPort?: string,
+    parsedProtocol?: string,
+  ): string | undefined {
+    if (parsedPort && parsedPort.trim()) {
+      return parsedPort.trim();
+    }
+
+    const resolvedProtocol: string | undefined = this.resolveProtocol(
+      target,
+      parsedProtocol,
+    );
+
+    switch (resolvedProtocol) {
+      case "http:":
+      case "ws:":
+        return "80";
+      case "https:":
+      case "wss:":
+        return "443";
+      default:
+        return undefined;
+    }
+  }
+
+  private static resolveProtocol(
+    target: TargetUrl,
+    parsedProtocol?: string,
+  ): string | undefined {
+    if (parsedProtocol) {
+      return parsedProtocol.toLowerCase();
+    }
+
+    if (typeof target !== "string") {
+      switch (target.protocol) {
+        case Protocol.HTTP:
+          return "http:";
+        case Protocol.HTTPS:
+          return "https:";
+        case Protocol.WS:
+          return "ws:";
+        case Protocol.WSS:
+          return "wss:";
+        default:
+          return undefined;
+      }
+    }
+
+    if (typeof target === "string" && target.includes("://")) {
+      try {
+        return new NodeURL(target).protocol.toLowerCase();
+      } catch {
+        return undefined;
+      }
+    }
+
+    return undefined;
   }
 }
