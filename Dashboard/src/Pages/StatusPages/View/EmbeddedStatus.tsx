@@ -231,10 +231,6 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
               Regenerating the token will invalidate any existing embedded
               badges.
             </p>
-            <p className="text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-md p-3">
-              Anyone with this token can render your badge. Rotate it
-              immediately if you suspect exposure.
-            </p>
           </>
         </Card>
 
