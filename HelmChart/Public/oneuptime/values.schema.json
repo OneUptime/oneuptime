@@ -776,6 +776,9 @@
                 },
                 "httpsProxyUrl": {
                   "type": ["string", "null"]
+                },
+                "noProxy": {
+                  "type": ["string", "null"]
                 }
               },
               "additionalProperties": false
