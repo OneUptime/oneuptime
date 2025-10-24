@@ -152,7 +152,7 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
         }}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+     
         <Card
           className="h-full"
           bodyClassName="mt-6 space-y-4"
@@ -213,14 +213,13 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
         </Card>
 
         <Card
-          className="lg:col-span-2"
           bodyClassName="mt-6"
           title="Badge Documentation"
           description="Review the rendered documentation before sharing with your team."
         >
           <MarkdownViewer text={documentationMarkdown} />
         </Card>
-      </div>
+
 
       {showRegenerateTokenModal && (
         <ConfirmModal
