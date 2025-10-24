@@ -70,7 +70,7 @@ const StatusPageEmbeddedStatus: FunctionComponent<
       ? "Your embedded status badge is currently enabled and can be embedded using the snippets below."
       : "Enable the embedded status badge and generate a security token to activate the snippets below.";
 
-  const documentationMarkdown: string = `## Badge Usage
+  const documentationMarkdown: string = `
 
 ${introMessage}
 
@@ -154,7 +154,6 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
 
      
         <Card
-          className="h-full"
           bodyClassName="mt-6 space-y-4"
           title="Security Token"
           description="Review and copy the token required to access the embedded badge. Keep it confidential to prevent unauthorized access."
@@ -186,7 +185,6 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
         </Card>
 
         <Card
-          className="h-full"
           bodyClassName="mt-6"
           title="Badge Preview"
           description="Preview the live badge rendering using the current security token."
