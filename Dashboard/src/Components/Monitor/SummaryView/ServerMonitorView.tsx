@@ -22,6 +22,9 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
 
   const fields: Array<Field<ServerMonitorResponse>> = [];
 
+  const cpuCores: number | undefined =
+    props.serverMonitorResponse?.basicInfrastructureMetrics?.cpuMetrics?.cores;
+
   if (props.serverMonitorResponse?.processes) {
     fields.push({
       key: "processes",
@@ -49,11 +52,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
         <InfoCard
           className="w-1/2 shadow-none border-2 border-gray-100 "
           title="CPU Cores"
-          value={
-            props.serverMonitorResponse?.basicInfrastructureMetrics?.cpuMetrics?.cores?.toString() ||
-            "-" ||
-            "-"
-          }
+          value={cpuCores !== undefined ? cpuCores.toString() : "-"}
         />
       </div>
     );

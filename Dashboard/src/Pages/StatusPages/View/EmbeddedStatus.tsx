@@ -14,7 +14,7 @@ import React, {
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { type ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -53,21 +53,22 @@ const StatusPageEmbeddedStatus: FunctionComponent<
   useEffect(() => {
     const fetchStatusPageUrl: () => Promise<void> = async (): Promise<void> => {
       try {
-        const domains = await ModelAPI.getList<StatusPageDomain>({
-          modelType: StatusPageDomain,
-          query: {
-            statusPageId: modelId,
-            isSslProvisioned: true,
-          } as Query<StatusPageDomain>,
-          select: {
-            fullDomain: true,
-          },
-          sort: {
-            createdAt: SortOrder.Descending,
-          } as Sort<StatusPageDomain>,
-          limit: 1,
-          skip: 0,
-        });
+        const domains: ListResult<StatusPageDomain> =
+          await ModelAPI.getList<StatusPageDomain>({
+            modelType: StatusPageDomain,
+            query: {
+              statusPageId: modelId,
+              isSslProvisioned: true,
+            } as Query<StatusPageDomain>,
+            select: {
+              fullDomain: true,
+            },
+            sort: {
+              createdAt: SortOrder.Descending,
+            } as Sort<StatusPageDomain>,
+            limit: 1,
+            skip: 0,
+          });
 
         const domain: StatusPageDomain | undefined = domains.data[0];
 
@@ -224,7 +225,7 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
             ) : (
               <p className="text-sm text-gray-500">
                 No token has been generated yet. Enable the embedded badge and
-                use "Regenerate Token" to create one.
+                use &ldquo;Regenerate Token&rdquo; to create one.
               </p>
             )}
             <p className="text-sm text-gray-500">

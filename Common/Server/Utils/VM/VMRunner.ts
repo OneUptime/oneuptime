@@ -48,10 +48,9 @@ export default class VMRunner {
 
     vm.createContext(sandbox); // Contextify the object.
 
-    const script: string =
-      `(async()=>{
-            ${code}
-        })()` || "";
+    const script: string = `(async()=>{
+        ${code}
+      })()`;
 
     const returnVal: any = await vm.runInContext(script, sandbox, {
       timeout: options.timeout || 5000,

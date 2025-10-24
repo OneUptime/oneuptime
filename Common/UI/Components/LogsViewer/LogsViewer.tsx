@@ -206,7 +206,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     scrollContainer.scrollTop = scrollContainer.scrollHeight;
   };
 
-  const applySortDirection = (nextDescending: boolean): void => {
+  const applySortDirection: (nextDescending: boolean) => void = (
+    nextDescending: boolean,
+  ) => {
     setShowScrollToLatest(false);
     setIsDescending((previous: boolean) => {
       if (previous === nextDescending) {
