@@ -114,7 +114,9 @@ const rawNoProxy: string | undefined =
 export const NO_PROXY: Array<string> = rawNoProxy
   ? rawNoProxy
       .split(",")
-      .map((value: string) => value.trim())
+      .map((value: string) => {
+        return value.trim();
+      })
       .reduce<Array<string>>((accumulator: Array<string>, current: string) => {
         if (!current) {
           return accumulator;
@@ -122,8 +124,12 @@ export const NO_PROXY: Array<string> = rawNoProxy
 
         const parts: Array<string> = current
           .split(/\s+/)
-          .map((item: string) => item.trim())
-          .filter((item: string) => item.length > 0);
+          .map((item: string) => {
+            return item.trim();
+          })
+          .filter((item: string) => {
+            return item.length > 0;
+          });
 
         return accumulator.concat(parts);
       }, [])

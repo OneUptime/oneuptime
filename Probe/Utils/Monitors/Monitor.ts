@@ -66,8 +66,7 @@ export default class MonitorUtil {
         const monitorTestIngestUrl: URL = URL.fromString(
           PROBE_INGEST_URL.toString(),
         ).addRoute(
-          "/probe/response/monitor-test-ingest/" +
-            monitorTest.id?.toString(),
+          "/probe/response/monitor-test-ingest/" + monitorTest.id?.toString(),
         );
 
         await API.fetch<JSONObject>({

@@ -36,9 +36,9 @@ const InitJob: VoidFunction = (): void => {
 
       logger.debug("Probe ID: " + probeId.toString());
 
-      const aliveUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
-        "/alive",
-      );
+      const aliveUrl: URL = URL.fromString(
+        PROBE_INGEST_URL.toString(),
+      ).addRoute("/alive");
 
       const result: HTTPResponse<JSONObject> = await API.post({
         url: aliveUrl,

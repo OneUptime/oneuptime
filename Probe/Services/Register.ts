@@ -153,9 +153,9 @@ export default class Register {
         return process.exit();
       }
 
-      const aliveUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
-        "/alive",
-      );
+      const aliveUrl: URL = URL.fromString(
+        PROBE_INGEST_URL.toString(),
+      ).addRoute("/alive");
 
       await API.post({
         url: aliveUrl,

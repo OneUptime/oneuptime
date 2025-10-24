@@ -1,8 +1,4 @@
-import {
-  HTTP_PROXY_URL,
-  HTTPS_PROXY_URL,
-  NO_PROXY,
-} from "../Config";
+import { HTTP_PROXY_URL, HTTPS_PROXY_URL, NO_PROXY } from "../Config";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { HttpProxyAgent } from "http-proxy-agent";
 import logger from "Common/Server/Utils/Logger";
@@ -75,7 +71,9 @@ export default class ProxyConfig {
     return HTTPS_PROXY_URL;
   }
 
-  public static getHttpProxyAgent(targetUrl?: TargetUrl): HttpProxyAgent<string> | null {
+  public static getHttpProxyAgent(
+    targetUrl?: TargetUrl,
+  ): HttpProxyAgent<string> | null {
     if (this.shouldBypassProxy(targetUrl)) {
       return null;
     }
@@ -83,7 +81,9 @@ export default class ProxyConfig {
     return this.httpProxyAgent;
   }
 
-  public static getHttpsProxyAgent(targetUrl?: TargetUrl): HttpsProxyAgent<string> | null {
+  public static getHttpsProxyAgent(
+    targetUrl?: TargetUrl,
+  ): HttpsProxyAgent<string> | null {
     if (this.shouldBypassProxy(targetUrl)) {
       return null;
     }
@@ -91,7 +91,9 @@ export default class ProxyConfig {
     return this.httpsProxyAgent;
   }
 
-  public static getRequestProxyAgents(targetUrl: TargetUrl): Readonly<ProxyAgents> {
+  public static getRequestProxyAgents(
+    targetUrl: TargetUrl,
+  ): Readonly<ProxyAgents> {
     if (this.shouldBypassProxy(targetUrl)) {
       return {};
     }
@@ -161,31 +163,56 @@ export default class ProxyConfig {
         : `http://${value}`;
       const parsedUrl: NodeURL = new NodeURL(valueForParsing);
 
-      return {
-        hostname: parsedUrl.hostname || null,
-        port: parsedUrl.port || undefined,
+      const hostnameResult: string | null = parsedUrl.hostname || null;
+      const portValue: string | undefined = parsedUrl.port
+        ? parsedUrl.port.trim()
+        : undefined;
+
+      const result: { hostname: string | null; port?: string } = {
+        hostname: hostnameResult,
       };
+
+      if (portValue) {
+        result.port = portValue;
+      }
+
+      return result;
     } catch {
       if (value.startsWith("[") && value.includes("]")) {
         const closingIndex: number = value.indexOf("]");
         const hostPart: string = value.substring(1, closingIndex);
         const remainder: string = value.substring(closingIndex + 1).trim();
-        const port: string | undefined = remainder.startsWith(":")
+        const portCandidate: string | undefined = remainder.startsWith(":")
           ? remainder.substring(1).trim() || undefined
           : undefined;
 
-        return {
+        const result: { hostname: string | null; port?: string } = {
           hostname: hostPart,
-          port,
         };
+
+        if (portCandidate) {
+          result.port = portCandidate;
+        }
+
+        return result;
       }
 
-      const parts: Array<string> = value.split(":");
-      if (parts.length === 2) {
-        return {
-          hostname: parts[0],
-          port: parts[1],
+      const firstColonIndex: number = value.indexOf(":");
+      const lastColonIndex: number = value.lastIndexOf(":");
+
+      if (firstColonIndex > -1 && firstColonIndex === lastColonIndex) {
+        const hostPart: string = value.substring(0, firstColonIndex).trim();
+        const portPart: string = value.substring(firstColonIndex + 1).trim();
+
+        const result: { hostname: string | null; port?: string } = {
+          hostname: hostPart,
         };
+
+        if (portPart) {
+          result.port = portPart;
+        }
+
+        return result;
       }
 
       return {
@@ -214,22 +241,41 @@ export default class ProxyConfig {
       const closingIndex: number = trimmedValue.indexOf("]");
       const hostPart: string = trimmedValue.substring(0, closingIndex + 1);
       const remainder: string = trimmedValue.substring(closingIndex + 1).trim();
-      const port: string | undefined = remainder.startsWith(":")
+      const portCandidate: string | undefined = remainder.startsWith(":")
         ? remainder.substring(1).trim() || undefined
         : undefined;
 
-      return {
+      const result: { host: string; port?: string } = {
         host: hostPart,
-        port,
       };
+
+      if (portCandidate) {
+        result.port = portCandidate;
+      }
+
+      return result;
     }
 
-    const segments: Array<string> = trimmedValue.split(":");
-    if (segments.length === 2) {
-      return {
-        host: segments[0],
-        port: segments[1].trim() || undefined,
+    const firstColonIndex: number = trimmedValue.indexOf(":");
+    const lastColonIndex: number = trimmedValue.lastIndexOf(":");
+
+    if (firstColonIndex > -1 && firstColonIndex === lastColonIndex) {
+      const hostPart: string = trimmedValue
+        .substring(0, firstColonIndex)
+        .trim();
+      const portPart: string = trimmedValue
+        .substring(firstColonIndex + 1)
+        .trim();
+
+      const result: { host: string; port?: string } = {
+        host: hostPart,
       };
+
+      if (portPart) {
+        result.port = portPart;
+      }
+
+      return result;
     }
 
     return {
