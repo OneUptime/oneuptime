@@ -73,17 +73,19 @@ export default class Register {
         hostname: HOSTNAME,
       };
 
+      const statusReportUrl: URL = URL.fromString(
+        PROBE_INGEST_URL.toString(),
+      ).addRoute("/probe/status-report/offline");
+
       await API.fetch<JSONObject>({
         method: HTTPMethod.POST,
-        url: URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
-          "/probe/status-report/offline",
-        ),
+        url: statusReportUrl,
         data: {
           ...ProbeAPIRequest.getDefaultRequestBody(),
           statusReport: stausReport as any,
         },
         headers: {},
-        options: { ...ProxyConfig.getRequestProxyAgents() },
+        options: { ...ProxyConfig.getRequestProxyAgents(statusReportUrl) },
       });
     }
   }
@@ -131,7 +133,9 @@ export default class Register {
           probeDescription: PROBE_DESCRIPTION,
           clusterKey: ClusterKeyAuthorization.getClusterKey(),
         },
-        options: { ...ProxyConfig.getRequestProxyAgents() },
+        options: {
+          ...ProxyConfig.getRequestProxyAgents(probeRegistrationUrl),
+        },
       });
 
       if (result.isSuccess()) {
@@ -149,13 +153,17 @@ export default class Register {
         return process.exit();
       }
 
+      const aliveUrl: URL = URL.fromString(
+        PROBE_INGEST_URL.toString(),
+      ).addRoute("/alive");
+
       await API.post({
-        url: URL.fromString(PROBE_INGEST_URL.toString()).addRoute("/alive"),
+        url: aliveUrl,
         data: {
           probeKey: PROBE_KEY.toString(),
           probeId: PROBE_ID.toString(),
         },
-        options: { ...ProxyConfig.getRequestProxyAgents() },
+        options: { ...ProxyConfig.getRequestProxyAgents(aliveUrl) },
       });
 
       LocalCache.setString("PROBE", "PROBE_ID", PROBE_ID.toString() as string);
