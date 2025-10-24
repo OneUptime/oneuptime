@@ -20,6 +20,7 @@ import Card from "Common/UI/Components/Card/Card";
 import { APP_API_URL } from "Common/UI/Config";
 import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 
 const StatusPageEmbeddedStatus: FunctionComponent<
   PageComponentProps
@@ -73,32 +74,32 @@ const StatusPageEmbeddedStatus: FunctionComponent<
 
 ${introMessage}
 
-### Badge URL
+#### Badge URL
 \`${badgeUrlDocumentation}\`
 
-### HTML Embed
+#### HTML Embed
 \`\`\`html
 <img src="${badgeUrlDocumentation}" alt="Status Badge" />
 \`\`\`
 
-### Markdown Embed
+#### Markdown Embed
 \`\`\`markdown
 ![Status](${badgeUrlDocumentation})
 \`\`\`
 
-### Markdown with Link
+#### Markdown with Link
 \`\`\`markdown
 [![Status](${badgeUrlDocumentation})](https://your-status-page-url.com)
 \`\`\`
 
-### Use Cases
+#### Use Cases
 - Add to your company website to show real-time status
 - Include in project README.md files on GitHub
 - Embed in documentation sites
 - Display on internal dashboards
 - Include in status emails or reports
 
-### Security
+#### Security
 Regenerating the token invalidates all existing embeds. Rotate the token whenever you suspect the URL has been shared publicly.
 `;
 
@@ -179,14 +180,8 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
                 use "Regenerate Token" to create one.
               </p>
             )}
-            <p className="text-sm text-gray-500">
-              Regenerating the token will invalidate any existing embedded
-              badges.
-            </p>
-            <p className="text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-md p-3">
-              Anyone with this token can render your badge. Rotate it
-              immediately if you suspect exposure.
-            </p>
+            <Alert title="Regenerating the token will invalidate any existing embedded
+              badges." type={AlertType.INFO} />
           </>
         </Card>
 
