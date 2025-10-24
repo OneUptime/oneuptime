@@ -128,6 +128,9 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
           modelType: StatusPage,
+          selectMoreFields: {
+            embeddedOverallStatusToken: true,
+          },
           id: "model-detail-status-page-embedded-badge",
           fields: [
             {
