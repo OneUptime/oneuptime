@@ -8,6 +8,37 @@ const path = require('path');
 const fs = require('fs');
 const dotenv = require('dotenv');
 
+function createRefractorCompatibilityPlugin() {
+  const candidateRoots = [
+    path.resolve(__dirname, '../node_modules/refractor'),
+    path.resolve(__dirname, '../../node_modules/refractor'),
+  ];
+
+  const refractorRoot = candidateRoots.find((packagePath) => fs.existsSync(packagePath));
+
+  if (!refractorRoot) {
+    throw new Error('Unable to locate refractor package for esbuild compatibility plugin.');
+  }
+
+  return {
+    name: 'refractor-compatibility',
+    setup(build) {
+      build.onResolve({ filter: /^refractor\/lib\// }, (args) => {
+        const relativePath = args.path.replace(/^refractor\/lib\//, '');
+        const candidatePath = path.join(refractorRoot, 'lib', `${relativePath}.js`);
+        return { path: candidatePath };
+      });
+
+      build.onResolve({ filter: /^refractor\/lang\// }, (args) => {
+        const relativePath = args.path.replace(/^refractor\/lang\//, '');
+        const filename = relativePath.endsWith('.js') ? relativePath : `${relativePath}.js`;
+        const candidatePath = path.join(refractorRoot, 'lang', filename);
+        return { path: candidatePath };
+      });
+    },
+  };
+}
+
 // CSS Plugin to handle CSS/SCSS files
 function createCSSPlugin() {
   return {
@@ -146,7 +177,7 @@ function createConfig(options) {
       'react': path.resolve('./node_modules/react'),
       ...additionalAlias,
     },
-    plugins: [createCSSPlugin(), createFileLoaderPlugin()],
+    plugins: [createRefractorCompatibilityPlugin(), createCSSPlugin(), createFileLoaderPlugin()],
     loader: {
       '.tsx': 'tsx',
       '.ts': 'ts',
