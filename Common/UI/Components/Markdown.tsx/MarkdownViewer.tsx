@@ -98,7 +98,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
 
             const baseClass: string = isSyntaxHighlighter
               ? "mt-4 mb-4 rounded-lg overflow-hidden"
-              : "bg-gray-900 text-gray-100 mt-4 mb-4 p-4 rounded-lg text-sm overflow-x-auto border border-gray-700";
+              : "bg-gray-900 text-gray-100 mt-4 mb-4 p-2 rounded-lg text-sm overflow-x-auto border border-gray-700";
 
             return (
               <pre className={baseClass} {...rest}>
@@ -201,7 +201,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
                 children={content}
                 language={match[1]}
                 style={a11yDark}
-                className="rounded-lg mt-4 mb-4 !bg-gray-900 !p-4 text-sm"
+                className="rounded-lg mt-4 mb-4 !bg-gray-900 !p-2 text-sm"
                 codeTagProps={{ className: "font-mono" }}
               />
             ) : (

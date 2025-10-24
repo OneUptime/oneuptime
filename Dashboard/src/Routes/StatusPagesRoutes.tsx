@@ -62,7 +62,7 @@ const StatusPagesViewWebhookSubscribers: LazyExoticComponent<
 const StatusPagesViewEmbedded: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/StatusPages/View/Embedded");
+  return import("../Pages/StatusPages/View/EmbeddedStatus");
 });
 const StatusPagesViewDomains: LazyExoticComponent<
   FunctionComponent<ComponentProps>

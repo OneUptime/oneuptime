@@ -455,6 +455,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
               message: true,
             },
             title: "Exception Message",
+            contentClassName: "max-w-3xl whitespace-normal break-words",
             type: FieldType.Element,
             getElement: (exception: TelemetryException) => {
               return (

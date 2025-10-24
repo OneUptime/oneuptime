@@ -283,6 +283,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
+            title: "Embedded Status",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW_EMBEDDED] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Circle}
+        />
+
+        <SideMenuItem
+          link={{
             title: "Reports",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.STATUS_PAGE_VIEW_REPORTS] as Route,
