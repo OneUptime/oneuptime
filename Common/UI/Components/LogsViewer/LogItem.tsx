@@ -342,7 +342,12 @@ const LogItem: FunctionComponent<ComponentProps> = (
       className={`group relative text-slate-200 bg-slate-950/70 border ${leftBorderColor} border-l border-slate-900 rounded-sm p-2 hover:border-slate-700 transition-colors`}
     >
       {/* Header with Service Name and Close Indicator */}
-      <div className="flex items-center justify-between mb-1 pb-1 border-b border-slate-800/80">
+      <div
+        className="flex items-center justify-between mb-1 pb-1 border-b border-slate-800/80"
+        onClick={() => {
+          toggleCollapsed();
+        }}
+      >
         {serviceName && (
           <div
             className="text-[13px] font-semibold"
@@ -351,12 +356,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
             {serviceName}
           </div>
         )}
-        <div
-          className="flex items-center gap-2"
-          onClick={() => {
-            toggleCollapsed();
-          }}
-        >
+        <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-2">
             <span
               className={`inline-block w-1.5 h-1.5 rounded-full ${severityDotClass}`}
