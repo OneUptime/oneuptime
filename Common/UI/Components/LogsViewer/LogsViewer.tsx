@@ -19,6 +19,7 @@ import React, {
 } from "react";
 import Toggle from "../Toggle/Toggle";
 import Card from "../Card/Card";
+import Icon from "../Icon/Icon";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import IconProp from "../../../Types/Icon/IconProp";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
@@ -205,6 +206,34 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     scrollContainer.scrollTop = scrollContainer.scrollHeight;
   };
 
+  const applySortDirection = (nextDescending: boolean): void => {
+    setShowScrollToLatest(false);
+    setIsDescending((previous: boolean) => {
+      if (previous === nextDescending) {
+        return previous;
+      }
+
+      // Apply scroll alignment after the DOM reorders log entries.
+      setTimeout(() => {
+        const scrollContainer: HTMLDivElement | null =
+          scrollContainerRef.current;
+
+        if (!scrollContainer) {
+          return;
+        }
+
+        if (nextDescending) {
+          scrollContainer.scrollTop = 0;
+          return;
+        }
+
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }, 0);
+
+      return nextDescending;
+    });
+  };
+
   const handleScroll: VoidFunction = React.useCallback((): void => {
     const scrollContainer: HTMLDivElement | null = scrollContainerRef.current;
     if (!scrollContainer) {
@@ -331,42 +360,52 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button
-                    title={
-                      isDescending ? "Show oldest first" : "Show newest first"
-                    }
-                    icon={IconProp.ArrowUpDown}
-                    buttonStyle={
-                      isDescending
-                        ? ButtonStyleType.PRIMARY
-                        : ButtonStyleType.OUTLINE
-                    }
-                    buttonSize={ButtonSize.Small}
-                    onClick={() => {
-                      setShowScrollToLatest(false);
-                      setIsDescending((previous: boolean) => {
-                        const next: boolean = !previous;
-                        // Allow DOM updates before recalculating scroll position.
-                        setTimeout(() => {
-                          const scrollContainer: HTMLDivElement | null =
-                            scrollContainerRef.current;
-
-                          if (!scrollContainer) {
-                            return;
-                          }
-
-                          if (next) {
-                            scrollContainer.scrollTop = 0;
-                            return;
-                          }
-
-                          scrollContainer.scrollTop =
-                            scrollContainer.scrollHeight;
-                        }, 0);
-                        return next;
-                      });
-                    }}
-                  />
+                  <div className="inline-flex items-center rounded-full border border-slate-200 bg-white/80 p-1 shadow-sm ring-1 ring-slate-200/60">
+                    <button
+                      type="button"
+                      aria-pressed={isDescending}
+                      className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tracking-wide transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
+                        isDescending
+                          ? "bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-500/40"
+                          : "text-slate-500 hover:text-indigo-600"
+                      }`}
+                      onClick={() => {
+                        applySortDirection(true);
+                      }}
+                    >
+                      <Icon
+                        icon={IconProp.BarsArrowDown}
+                        className={`h-4 w-4 ${
+                          isDescending
+                            ? "text-white/90"
+                            : "text-slate-400"
+                        }`}
+                      />
+                      <span>Newest first</span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={!isDescending}
+                      className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tracking-wide transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
+                        !isDescending
+                          ? "bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-500/40"
+                          : "text-slate-500 hover:text-indigo-600"
+                      }`}
+                      onClick={() => {
+                        applySortDirection(false);
+                      }}
+                    >
+                      <Icon
+                        icon={IconProp.BarsArrowUp}
+                        className={`h-4 w-4 ${
+                          !isDescending
+                            ? "text-white/90"
+                            : "text-slate-400"
+                        }`}
+                      />
+                      <span>Oldest first</span>
+                    </button>
+                  </div>
                   <Button
                     title="Apply Filters"
                     icon={IconProp.Search}
