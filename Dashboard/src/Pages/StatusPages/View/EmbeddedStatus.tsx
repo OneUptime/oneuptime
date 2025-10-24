@@ -153,56 +153,55 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
 
   return (
     <Fragment>
-      <CardModelDetail<StatusPage>
-        name="Status Page > Embedded Status Badge"
-        cardProps={{
-          title: "Embedded Status Badge",
-          description:
-            "Enable a lightweight status badge that can be embedded on external websites. The badge displays the current overall status of your status page.",
-        }}
-        editButtonText="Edit Settings"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              enableEmbeddedOverallStatus: true,
-            },
-            title: "Enable Embedded Status Badge",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
+      <div>
+        <CardModelDetail<StatusPage>
+          name="Status Page > Embedded Status Badge"
+          cardProps={{
+            title: "Embedded Status Badge",
             description:
-              "When enabled, you can embed a status badge on external websites using the badge URL with the security token.",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          selectMoreFields: {
-            embeddedOverallStatusToken: true,
-          },
-          id: "model-detail-status-page-embedded-badge",
-          fields: [
+              "Enable a lightweight status badge that can be embedded on external websites. The badge displays the current overall status of your status page.",
+          }}
+          editButtonText="Edit Settings"
+          isEditable={true}
+          formFields={[
             {
               field: {
                 enableEmbeddedOverallStatus: true,
               },
-              fieldType: FieldType.Boolean,
               title: "Enable Embedded Status Badge",
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+              description:
+                "When enabled, you can embed a status badge on external websites using the badge URL with the security token.",
             },
-          ],
-          modelId: modelId,
-          onItemLoaded: (item: StatusPage) => {
-            setToken(item.embeddedOverallStatusToken || undefined);
-            setIsEmbeddedStatusEnabled(
-              Boolean(item.enableEmbeddedOverallStatus),
-            );
-          },
-        }}
-      />
+          ]}
+          modelDetailProps={{
+            showDetailsInNumberOfColumns: 1,
+            modelType: StatusPage,
+            selectMoreFields: {
+              embeddedOverallStatusToken: true,
+            },
+            id: "model-detail-status-page-embedded-badge",
+            fields: [
+              {
+                field: {
+                  enableEmbeddedOverallStatus: true,
+                },
+                fieldType: FieldType.Boolean,
+                title: "Enable Embedded Status Badge",
+              },
+            ],
+            modelId: modelId,
+            onItemLoaded: (item: StatusPage) => {
+              setToken(item.embeddedOverallStatusToken || undefined);
+              setIsEmbeddedStatusEnabled(
+                Boolean(item.enableEmbeddedOverallStatus),
+              );
+            },
+          }}
+        />
 
-      
         <Card
-          
           bodyClassName="mt-6 space-y-4"
           title="Security Token"
           description="Review and copy the token required to access the embedded badge. Keep it confidential to prevent unauthorized access."
@@ -240,7 +239,6 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
         </Card>
 
         <Card
-          
           bodyClassName="mt-6"
           title="Badge Preview"
           description="Preview the live badge rendering using the current security token."
@@ -264,7 +262,7 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
               </p>
             )}
           </div>
-
+        </Card>
 
         <Card
           className="lg:col-span-2"
