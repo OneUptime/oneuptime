@@ -56,7 +56,7 @@ export default tseslint.config(
       "react/prop-types": "off", // TODO: Remove this rule
       "no-control-regex": "off", // TODO: Remove this rule
       "@typescript-eslint/no-explicit-any": "off", // TODO: Remove this rule
-      "@typescript-eslint/no-var-requires": "off", // TODO: Remove this rule
+      "@typescript-eslint/no-var-requires": "error",
       "@typescript-eslint/no-duplicate-enum-values": "off", // TODO: Remove this rule
       "no-constant-binary-expression": "off", // TODO: Remove this rule
       "@typescript-eslint/ban-ts-comment": "error",

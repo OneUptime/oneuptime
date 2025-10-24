@@ -13,6 +13,7 @@ export interface ComponentProps {
   isResolved?: boolean | undefined;
   isArchived?: boolean | undefined;
   fingerprint?: string | undefined;
+  className?: string;
 }
 
 const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
@@ -81,7 +82,7 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className={` flex`}>
+    <div className={` ${props.className || ""} flex`}>
       {getResolvedIcon()}
       {getUnresolvedIcon()}
       {getArchivedIcon()}

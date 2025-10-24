@@ -463,6 +463,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
                   message={exception.message || exception.exceptionType || ""}
                   isResolved={exception.isResolved || false}
                   isArchived={exception.isArchived || false}
+                  className={"max-w-3xl"}
                 />
               );
             },
