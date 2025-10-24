@@ -39,7 +39,7 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
     return (
       <Tooltip text="Resolved Exception">
         <div className="rounded bg-emerald-200 h-6 w-6 p-1">
-          <Icon icon={IconProp.Check} className="text-emerald-600 h-6 w-6" />
+          <Icon icon={IconProp.Check} className="text-emerald-600" />
         </div>
       </Tooltip>
     );
@@ -54,7 +54,7 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
       return (
         <Tooltip text="Unresolved Exception">
           <div className="rounded bg-red-200 h-6 w-6 p-1">
-            <Icon icon={IconProp.Alert} className="text-red-600 h-6 w-6" />
+            <Icon icon={IconProp.Alert} className="text-red-600" />
           </div>
         </Tooltip>
       );
@@ -75,14 +75,14 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
     return (
       <Tooltip text="Archived Exception">
         <div className="rounded bg-gray-200 h-6 w-6 p-1">
-          <Icon icon={IconProp.Archive} className="text-gray-600 h-6 w-6" />
+          <Icon icon={IconProp.Archive} className="text-gray-600" />
         </div>
       </Tooltip>
     );
   };
 
   return (
-    <div className={` ${props.className || ""} flex`}>
+    <div className={` ${props.className} flex`}>
       {getResolvedIcon()}
       {getUnresolvedIcon()}
       {getArchivedIcon()}
