@@ -1150,5 +1150,122 @@ export class Service extends DatabaseService<StatusPage> {
       },
     );
   }
+
+  @CaptureSpan()
+  public async getMonitorGroupCurrentStatuses(data: {
+    statusPageResources: Array<StatusPageResource>;
+    monitorStatuses: Array<MonitorStatus>;
+  }): Promise<Dictionary<ObjectID>> {
+    const monitorGroupCurrentStatuses: Dictionary<ObjectID> = {};
+
+    for (const resource of data.statusPageResources) {
+      if (resource.monitorGroupId) {
+        const monitorGroupResources: Array<MonitorGroupResource> =
+          await MonitorGroupResourceService.findBy({
+            query: {
+              monitorGroupId: resource.monitorGroupId,
+            },
+            select: {
+              monitorId: true,
+              monitor: {
+                currentMonitorStatusId: true,
+              },
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const statuses: Array<ObjectID> = monitorGroupResources
+          .filter((item: MonitorGroupResource) => {
+            return (
+              item.monitor &&
+              item.monitor.currentMonitorStatusId &&
+              item.monitorId
+            );
+          })
+          .map((item: MonitorGroupResource) => {
+            return item.monitor!.currentMonitorStatusId!;
+          });
+
+        let worstStatus: MonitorStatus | null = null;
+
+        for (const statusId of statuses) {
+          const status: MonitorStatus | undefined = data.monitorStatuses.find(
+            (status: MonitorStatus) => {
+              return status._id?.toString() === statusId.toString();
+            },
+          );
+
+          if (
+            status &&
+            (!worstStatus || status.priority! < worstStatus.priority!)
+          ) {
+            worstStatus = status;
+          }
+        }
+
+        if (worstStatus && worstStatus._id) {
+          monitorGroupCurrentStatuses[resource.monitorGroupId.toString()] =
+            new ObjectID(worstStatus._id);
+        }
+      }
+    }
+
+    return monitorGroupCurrentStatuses;
+  }
+
+  @CaptureSpan()
+  public getOverallMonitorStatus(data: {
+    statusPageResources: Array<StatusPageResource>;
+    monitorStatuses: Array<MonitorStatus>;
+    monitorGroupCurrentStatuses: Dictionary<ObjectID>;
+  }): MonitorStatus | null {
+    let currentStatus: MonitorStatus | null =
+      data.monitorStatuses.length > 0 && data.monitorStatuses[0]
+        ? data.monitorStatuses[0]
+        : null;
+
+    const dict: Dictionary<number> = {};
+
+    for (const resource of data.statusPageResources) {
+      if (resource.monitor?.currentMonitorStatusId) {
+        if (
+          !Object.keys(dict).includes(
+            resource.monitor?.currentMonitorStatusId.toString() || "",
+          )
+        ) {
+          dict[resource.monitor?.currentMonitorStatusId?.toString()] = 1;
+        } else {
+          dict[resource.monitor!.currentMonitorStatusId!.toString()]!++;
+        }
+      }
+    }
+
+    // check status of monitor groups.
+
+    for (const groupId in data.monitorGroupCurrentStatuses) {
+      const statusId: ObjectID | undefined =
+        data.monitorGroupCurrentStatuses[groupId];
+
+      if (statusId) {
+        if (!Object.keys(dict).includes(statusId.toString() || "")) {
+          dict[statusId.toString()] = 1;
+        } else {
+          dict[statusId.toString()]!++;
+        }
+      }
+    }
+
+    for (const monitorStatus of data.monitorStatuses) {
+      if (monitorStatus._id && dict[monitorStatus._id]) {
+        currentStatus = monitorStatus;
+      }
+    }
+
+    return currentStatus;
+  }
 }
 export default new Service();

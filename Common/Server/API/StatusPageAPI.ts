@@ -276,6 +276,142 @@ export default class StatusPageAPI extends BaseAPI<
       },
     );
 
+    // embedded overall status badge api
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/badge/:statusPageId`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const statusPageId: ObjectID = new ObjectID(
+            req.params["statusPageId"] as string,
+          );
+
+          const token: string = req.query["token"] as string;
+
+          if (!token) {
+            return res.status(400).send("Token is required");
+          }
+
+          // Fetch status page with security token
+          const statusPage: StatusPage | null =
+            await StatusPageService.findOneBy({
+              query: {
+                _id: statusPageId,
+                enableEmbeddedOverallStatus: true,
+                embeddedOverallStatusToken: token,
+              },
+              select: {
+                _id: true,
+                projectId: true,
+                downtimeMonitorStatuses: {
+                  _id: true,
+                },
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!statusPage) {
+            return res.status(404).send("Status badge not found or disabled");
+          }
+
+          // Get status page resources and current statuses
+          const statusPageResources: Array<StatusPageResource> =
+            await StatusPageResourceService.findBy({
+              query: {
+                statusPageId: statusPageId,
+              },
+              select: {
+                _id: true,
+                monitor: {
+                  _id: true,
+                  currentMonitorStatusId: true,
+                },
+                monitorGroupId: true,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
+
+          // Get monitor statuses
+          const monitorStatuses: Array<MonitorStatus> =
+            await MonitorStatusService.findBy({
+              query: {
+                projectId: statusPage.projectId!,
+              },
+              select: {
+                _id: true,
+                name: true,
+                color: true,
+                priority: true,
+                isOperationalState: true,
+              },
+              sort: {
+                priority: SortOrder.Ascending,
+              },
+              skip: 0,
+              limit: LIMIT_PER_PROJECT,
+              props: {
+                isRoot: true,
+              },
+            });
+
+          // Get monitor group current statuses
+          const monitorGroupCurrentStatuses: Dictionary<ObjectID> =
+            await StatusPageService.getMonitorGroupCurrentStatuses({
+              statusPageResources,
+              monitorStatuses,
+            });
+
+          // Calculate overall status
+          const overallStatus: MonitorStatus | null =
+            StatusPageService.getOverallMonitorStatus({
+              statusPageResources,
+              monitorStatuses,
+              monitorGroupCurrentStatuses,
+            });
+
+          // Generate SVG badge
+          const statusName: string = overallStatus?.name || "Unknown";
+          const statusColor: string =
+            overallStatus?.color?.toString() || "#808080";
+
+          const svg: string = `<svg xmlns="http://www.w3.org/2000/svg" width="150" height="20">
+  <linearGradient id="b" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <mask id="a">
+    <rect width="150" height="20" rx="3" fill="#fff"/>
+  </mask>
+  <g mask="url(#a)">
+    <path fill="#555" d="M0 0h50v20H0z"/>
+    <path fill="${statusColor}" d="M50 0h100v20H50z"/>
+    <path fill="url(#b)" d="M0 0h150v20H0z"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+    <text x="25" y="15" fill="#010101" fill-opacity=".3">status</text>
+    <text x="25" y="14">status</text>
+    <text x="100" y="15" fill="#010101" fill-opacity=".3">${statusName}</text>
+    <text x="100" y="14">${statusName}</text>
+  </g>
+</svg>`;
+
+          res.setHeader("Content-Type", "image/svg+xml");
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+          return res.send(svg);
+        } catch (err) {
+          logger.error(err);
+          return res.status(500).send("Internal Server Error");
+        }
+      },
+    );
+
     // confirm subscription api
     this.router.get(
       `${new this.entityType()
@@ -1392,11 +1528,11 @@ export default class StatusPageAPI extends BaseAPI<
             });
 
           const overallStatus: MonitorStatus | null =
-            this.getOverallMonitorStatus(
+            StatusPageService.getOverallMonitorStatus({
               statusPageResources,
               monitorStatuses,
               monitorGroupCurrentStatuses,
-            );
+            });
 
           const response: JSONObject = {
             overallStatus: overallStatus
@@ -3097,56 +3233,6 @@ export default class StatusPageAPI extends BaseAPI<
     };
 
     return response;
-  }
-
-  public getOverallMonitorStatus(
-    statusPageResources: Array<StatusPageResource>,
-    monitorStatuses: Array<MonitorStatus>,
-    monitorGroupCurrentStatuses: Dictionary<ObjectID>,
-  ): MonitorStatus | null {
-    let currentStatus: MonitorStatus | null =
-      monitorStatuses.length > 0 && monitorStatuses[0]
-        ? monitorStatuses[0]
-        : null;
-
-    const dict: Dictionary<number> = {};
-
-    for (const resource of statusPageResources) {
-      if (resource.monitor?.currentMonitorStatusId) {
-        if (
-          !Object.keys(dict).includes(
-            resource.monitor?.currentMonitorStatusId.toString() || "",
-          )
-        ) {
-          dict[resource.monitor?.currentMonitorStatusId?.toString()] = 1;
-        } else {
-          dict[resource.monitor!.currentMonitorStatusId!.toString()]!++;
-        }
-      }
-    }
-
-    // check status of monitor groups.
-
-    for (const groupId in monitorGroupCurrentStatuses) {
-      const statusId: ObjectID | undefined =
-        monitorGroupCurrentStatuses[groupId];
-
-      if (statusId) {
-        if (!Object.keys(dict).includes(statusId.toString() || "")) {
-          dict[statusId.toString()] = 1;
-        } else {
-          dict[statusId.toString()]!++;
-        }
-      }
-    }
-
-    for (const monitorStatus of monitorStatuses) {
-      if (monitorStatus._id && dict[monitorStatus._id]) {
-        currentStatus = monitorStatus;
-      }
-    }
-
-    return currentStatus;
   }
 
   @CaptureSpan()

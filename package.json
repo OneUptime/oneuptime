@@ -9,7 +9,7 @@
         "eslint-plugin-unused-imports": "^4.1.0",
         "globals": "^15.6.0",
         "jest": "^30.0.0",
-        "mailparser": "^3.7.1",
+        "mailparser": "^3.7.5",
         "ts-node": "^10.9.2",
         "typeorm": "^0.3.20"
     },
