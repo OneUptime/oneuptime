@@ -103,3 +103,28 @@ export const HTTP_PROXY_URL: string | null =
  */
 export const HTTPS_PROXY_URL: string | null =
   process.env["HTTPS_PROXY_URL"] || process.env["https_proxy"] || null;
+
+/*
+ * NO_PROXY: Comma-separated list of hosts that should bypass the configured proxy.
+ * Hosts can include optional ports (example.com:8080) or leading dots for subdomains (.example.com).
+ */
+const rawNoProxy: string | undefined =
+  process.env["NO_PROXY"] || process.env["no_proxy"] || undefined;
+
+export const NO_PROXY: Array<string> = rawNoProxy
+  ? rawNoProxy
+      .split(",")
+      .map((value: string) => value.trim())
+      .reduce<Array<string>>((accumulator: Array<string>, current: string) => {
+        if (!current) {
+          return accumulator;
+        }
+
+        const parts: Array<string> = current
+          .split(/\s+/)
+          .map((item: string) => item.trim())
+          .filter((item: string) => item.length > 0);
+
+        return accumulator.concat(parts);
+      }, [])
+  : [];

@@ -27,6 +27,7 @@ docker run --name oneuptime-probe --network host \
   -e PROBE_ID=<probe-id> \
   -e ONEUPTIME_URL=https://oneuptime.com \
   -e HTTP_PROXY_URL=http://proxy.example.com:8080 \
+  -e NO_PROXY=localhost,.internal.example.com \
   -d oneuptime/probe:release
 
 # For HTTPS proxy
@@ -35,6 +36,7 @@ docker run --name oneuptime-probe --network host \
   -e PROBE_ID=<probe-id> \
   -e ONEUPTIME_URL=https://oneuptime.com \
   -e HTTPS_PROXY_URL=http://proxy.example.com:8080 \
+  -e NO_PROXY=localhost,.internal.example.com \
   -d oneuptime/probe:release
 
 # With proxy authentication
@@ -44,6 +46,7 @@ docker run --name oneuptime-probe --network host \
   -e ONEUPTIME_URL=https://oneuptime.com \
   -e HTTP_PROXY_URL=http://username:password@proxy.example.com:8080 \
   -e HTTPS_PROXY_URL=http://username:password@proxy.example.com:8080 \
+  -e NO_PROXY=localhost,.internal.example.com \
   -d oneuptime/probe:release
 ```
 
@@ -84,9 +87,11 @@ services:
       # Proxy configuration (optional)
       - HTTP_PROXY_URL=http://proxy.example.com:8080
       - HTTPS_PROXY_URL=http://proxy.example.com:8080
+      - NO_PROXY=localhost,.internal.example.com
       # For proxy with authentication:
       # - HTTP_PROXY_URL=http://username:password@proxy.example.com:8080
       # - HTTPS_PROXY_URL=http://username:password@proxy.example.com:8080
+      # - NO_PROXY=localhost,.internal.example.com
     network_mode: host
     restart: always
 ```
@@ -162,11 +167,15 @@ spec:
             value: "http://proxy.example.com:8080"
           - name: HTTPS_PROXY_URL
             value: "http://proxy.example.com:8080"
+          - name: NO_PROXY
+            value: "localhost,.internal.example.com"
           # For proxy with authentication, use:
           # - name: HTTP_PROXY_URL
           #   value: "http://username:password@proxy.example.com:8080"
           # - name: HTTPS_PROXY_URL
           #   value: "http://username:password@proxy.example.com:8080"
+          # - name: NO_PROXY
+          #   value: "localhost,.internal.example.com"
 ```
 
 Then run the following command:
@@ -189,6 +198,7 @@ The probe supports the following environment variables:
 #### Optional Variables
 - `HTTP_PROXY_URL` - HTTP proxy server URL for HTTP requests
 - `HTTPS_PROXY_URL` - HTTP proxy server URL for HTTPS requests
+- `NO_PROXY` - Comma-separated hosts or domains that should bypass the proxy
 - `PROBE_NAME` - Custom name for the probe
 - `PROBE_DESCRIPTION` - Description for the probe
 - `PROBE_MONITORING_WORKERS` - Number of monitoring workers (default: 1)
@@ -199,7 +209,7 @@ The probe supports the following environment variables:
 
 #### Proxy Configuration
 
-The probe supports both HTTP and HTTPS proxy servers. When configured, the probe will route all monitoring traffic through the specified proxy servers.
+The probe supports both HTTP and HTTPS proxy servers. When configured, the probe will route all monitoring traffic through the specified proxy servers. You can also provide a comma-separated `NO_PROXY` list to bypass the proxy for internal hosts or networks.
 
 **Proxy URL Format:**
 ```
@@ -214,9 +224,10 @@ http://[username:password@]proxy.server.com:port
 - HTTP and HTTPS proxy support
 - Proxy authentication (username/password)
 - Automatic fallback between HTTP and HTTPS proxies
+- Selective proxy bypass using `NO_PROXY`
 - Works with all monitor types (Website, API, SSL, Synthetic, etc.)
 
-**Note:** Both standard environment variables (`HTTP_PROXY_URL`, `HTTPS_PROXY_URL`) and lowercase variants (`http_proxy`, `https_proxy`) are supported for compatibility.
+**Note:** Both standard environment variables (`HTTP_PROXY_URL`, `HTTPS_PROXY_URL`, `NO_PROXY`) and lowercase variants (`http_proxy`, `https_proxy`, `no_proxy`) are supported for compatibility.
 
 ### Verify
 

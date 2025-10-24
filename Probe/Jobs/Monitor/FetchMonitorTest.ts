@@ -65,7 +65,7 @@ class FetchMonitorTestAndProbe {
             limit: 100,
           },
           headers: {},
-          options: { ...ProxyConfig.getRequestProxyAgents() },
+          options: { ...ProxyConfig.getRequestProxyAgents(monitorListUrl) },
         });
 
       logger.debug("MONITOR TEST: Fetched monitor test list");
