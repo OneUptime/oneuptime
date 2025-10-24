@@ -485,6 +485,15 @@ Usage:
 - name: WORKFLOW_TIMEOUT_IN_MS
   value: {{ $.Values.workflow.workflowTimeoutInMs | squote }}
 
+- name: AVERAGE_SPAN_ROW_SIZE_IN_BYTES
+  value: {{ $.Values.billing.telemetry.averageSpanRowSizeInBytes | quote }}
+
+- name: AVERAGE_LOG_ROW_SIZE_IN_BYTES
+  value: {{ $.Values.billing.telemetry.averageLogRowSizeInBytes | quote }}
+
+- name: AVERAGE_METRIC_ROW_SIZE_IN_BYTES
+  value: {{ $.Values.billing.telemetry.averageMetricRowSizeInBytes | quote }}
+
 {{- end }}
 
 {{- define "oneuptime.env.pod" }}

@@ -23,6 +23,25 @@ export const getAllEnvVars: () => JSONObject = (): JSONObject => {
   return process.env;
 };
 
+const parsePositiveNumberFromEnv: (
+  envKey: string,
+  fallback: number,
+) => number = (envKey: string, fallback: number): number => {
+  const rawValue: string | undefined = process.env[envKey];
+
+  if (!rawValue) {
+    return fallback;
+  }
+
+  const parsedValue: number = parseFloat(rawValue);
+
+  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+    return fallback;
+  }
+
+  return parsedValue;
+};
+
 export const IsBillingEnabled: boolean = BillingConfig.IsBillingEnabled;
 export const BillingPublicKey: string = BillingConfig.BillingPublicKey;
 export const BillingPrivateKey: string = BillingConfig.BillingPrivateKey;
@@ -345,6 +364,21 @@ export const DocsClientUrl: URL = new URL(
 
 export const DisableTelemetry: boolean =
   process.env["DISABLE_TELEMETRY"] === "true";
+
+export const AverageSpanRowSizeInBytes: number = parsePositiveNumberFromEnv(
+  "AVERAGE_SPAN_ROW_SIZE_IN_BYTES",
+  1024,
+);
+
+export const AverageLogRowSizeInBytes: number = parsePositiveNumberFromEnv(
+  "AVERAGE_LOG_ROW_SIZE_IN_BYTES",
+  1024,
+);
+
+export const AverageMetricRowSizeInBytes: number = parsePositiveNumberFromEnv(
+  "AVERAGE_METRIC_ROW_SIZE_IN_BYTES",
+  1024,
+);
 
 export const SlackAppClientId: string | null =
   process.env["SLACK_APP_CLIENT_ID"] || null;

@@ -1,16 +1,31 @@
 import { MeteredPlanUtil } from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import TelemetryMeteredPlan from "../Types/Billing/MeteredPlan/TelemetryMeteredPlan";
-import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_INFINITY } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import Decimal from "../../Types/Decimal";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ProductType from "../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../Types/ObjectID";
-import Model from "../../Models/DatabaseModels/TelemetryUsageBilling";
-import { IsBillingEnabled } from "../EnvironmentConfig";
+import Model, {
+  DEFAULT_RETENTION_IN_DAYS,
+} from "../../Models/DatabaseModels/TelemetryUsageBilling";
+import TelemetryServiceService from "./TelemetryServiceService";
+import SpanService from "./SpanService";
+import LogService from "./LogService";
+import MetricService from "./MetricService";
+import AnalyticsQueryHelper from "../Types/AnalyticsDatabase/QueryHelper";
+import DiskSize from "../../Types/DiskSize";
+import logger from "../Utils/Logger";
+import PositiveNumber from "../../Types/PositiveNumber";
+import TelemetryServiceModel from "../../Models/DatabaseModels/TelemetryService";
+import {
+  AverageSpanRowSizeInBytes,
+  AverageLogRowSizeInBytes,
+  AverageMetricRowSizeInBytes,
+  IsBillingEnabled,
+} from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
@@ -31,9 +46,6 @@ export class Service extends DatabaseService<Model> {
         projectId: data.projectId,
         productType: data.productType,
         isReportedToBillingProvider: false,
-        createdAt: QueryHelper.lessThan(
-          OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -1),
-        ), // we need to get everything that's not today.
       },
       skip: 0,
       limit: LIMIT_MAX, /// because a project can have MANY telemetry services.
@@ -48,12 +60,166 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  public async stageTelemetryUsageForProject(data: {
+    projectId: ObjectID;
+    productType: ProductType;
+    usageDate?: Date;
+  }): Promise<void> {
+    if (!IsBillingEnabled) {
+      return;
+    }
+
+    const usageDate: Date = data.usageDate
+      ? OneUptimeDate.fromString(data.usageDate)
+      : OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -1);
+
+    const averageRowSizeInBytes: number = this.getAverageRowSizeForProduct(
+      data.productType,
+    );
+
+    if (averageRowSizeInBytes <= 0) {
+      return;
+    }
+
+    const usageDayString: string = OneUptimeDate.getDateString(usageDate);
+    const startOfDay: Date = OneUptimeDate.getStartOfDay(usageDate);
+    const endOfDay: Date = OneUptimeDate.getEndOfDay(usageDate);
+
+    const telemetryServices: Array<TelemetryServiceModel> =
+      await TelemetryServiceService.findBy({
+        query: {
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          retainTelemetryDataForDays: true,
+        },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!telemetryServices || telemetryServices.length === 0) {
+      return;
+    }
+
+    for (const telemetryService of telemetryServices) {
+      if (!telemetryService?.id) {
+        continue;
+      }
+
+      const existingEntry: Model | null = await this.findOneBy({
+        query: {
+          projectId: data.projectId,
+          productType: data.productType,
+          telemetryServiceId: telemetryService.id,
+          day: usageDayString,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (existingEntry) {
+        continue;
+      }
+
+      let rowCount: number = 0;
+
+      try {
+        if (data.productType === ProductType.Traces) {
+          const count: PositiveNumber = await SpanService.countBy({
+            query: {
+              projectId: data.projectId,
+              serviceId: telemetryService.id,
+              startTime: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
+            },
+            skip: 0,
+            limit: LIMIT_INFINITY,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          rowCount = count.toNumber();
+        } else if (data.productType === ProductType.Logs) {
+          const count: PositiveNumber = await LogService.countBy({
+            query: {
+              projectId: data.projectId,
+              serviceId: telemetryService.id,
+              time: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
+            },
+            skip: 0,
+            limit: LIMIT_INFINITY,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          rowCount = count.toNumber();
+        } else if (data.productType === ProductType.Metrics) {
+          const count: PositiveNumber = await MetricService.countBy({
+            query: {
+              projectId: data.projectId,
+              serviceId: telemetryService.id,
+              time: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
+            },
+            skip: 0,
+            limit: LIMIT_INFINITY,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          rowCount = count.toNumber();
+        }
+      } catch (error) {
+        logger.error(
+          `Failed to compute telemetry usage for service ${telemetryService.id?.toString()}:`,
+        );
+        logger.error(error as Error);
+        continue;
+      }
+
+      if (rowCount <= 0) {
+        continue;
+      }
+
+      const estimatedBytes: number = rowCount * averageRowSizeInBytes;
+      const estimatedGigabytes: number = DiskSize.byteSizeToGB(estimatedBytes);
+
+      if (!Number.isFinite(estimatedGigabytes) || estimatedGigabytes <= 0) {
+        continue;
+      }
+
+      const dataRetentionInDays: number =
+        telemetryService.retainTelemetryDataForDays ||
+        DEFAULT_RETENTION_IN_DAYS;
+
+      await this.updateUsageBilling({
+        projectId: data.projectId,
+        productType: data.productType,
+        telemetryServiceId: telemetryService.id,
+        dataIngestedInGB: estimatedGigabytes,
+        retentionInDays: dataRetentionInDays,
+        usageDate: usageDate,
+      });
+    }
+  }
+
+  @CaptureSpan()
   public async updateUsageBilling(data: {
     projectId: ObjectID;
     productType: ProductType;
     telemetryServiceId: ObjectID;
     dataIngestedInGB: number;
     retentionInDays: number;
+    usageDate?: Date;
   }): Promise<void> {
     if (
       data.productType !== ProductType.Traces &&
@@ -70,6 +236,12 @@ export class Service extends DatabaseService<Model> {
         data.productType,
       ) as TelemetryMeteredPlan;
 
+    const usageDate: Date = data.usageDate
+      ? OneUptimeDate.fromString(data.usageDate)
+      : OneUptimeDate.getCurrentDate();
+
+    const usageDayString: string = OneUptimeDate.getDateString(usageDate);
+
     const totalCostOfThisOperationInUSD: number =
       serverMeteredPlan.getTotalCostInUSD({
         dataIngestedInGB: data.dataIngestedInGB,
@@ -82,10 +254,7 @@ export class Service extends DatabaseService<Model> {
         productType: data.productType,
         telemetryServiceId: data.telemetryServiceId,
         isReportedToBillingProvider: false,
-        createdAt: QueryHelper.inBetween(
-          OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -1),
-          OneUptimeDate.getCurrentDate(),
-        ),
+        day: usageDayString,
       },
       select: {
         _id: true,
@@ -135,11 +304,9 @@ export class Service extends DatabaseService<Model> {
       usageBilling.telemetryServiceId = data.telemetryServiceId;
       usageBilling.retainTelemetryDataForDays = data.retentionInDays;
       usageBilling.isReportedToBillingProvider = false;
-      usageBilling.createdAt = OneUptimeDate.getCurrentDate();
+      usageBilling.createdAt = usageDate;
 
-      usageBilling.day = OneUptimeDate.getDateString(
-        OneUptimeDate.getCurrentDate(),
-      );
+      usageBilling.day = usageDayString;
 
       usageBilling.totalCostInUSD = new Decimal(totalCostOfThisOperationInUSD);
 
@@ -150,6 +317,32 @@ export class Service extends DatabaseService<Model> {
         },
       });
     }
+  }
+
+  private getAverageRowSizeForProduct(productType: ProductType): number {
+    const fallbackSize: number = 1024;
+
+    // Narrow to telemetry product types before indexing to satisfy TypeScript
+    if (
+      productType !== ProductType.Traces &&
+      productType !== ProductType.Logs &&
+      productType !== ProductType.Metrics
+    ) {
+      return fallbackSize;
+    }
+
+    const value: number =
+      {
+        [ProductType.Traces]: AverageSpanRowSizeInBytes,
+        [ProductType.Logs]: AverageLogRowSizeInBytes,
+        [ProductType.Metrics]: AverageMetricRowSizeInBytes,
+      }[productType] ?? fallbackSize;
+
+    if (!Number.isFinite(value) || value <= 0) {
+      return fallbackSize;
+    }
+
+    return value;
   }
 }
 

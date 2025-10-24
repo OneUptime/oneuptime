@@ -1,11 +1,9 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import OTelIngestService, {
   OtelAggregationTemporality,
-  TelemetryServiceDataIngested,
+  TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import ProductType from "Common/Types/MeteredPlan/ProductType";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -104,7 +102,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       }
 
       const dbMetrics: Array<Metric> = [];
-      const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
+      const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
 
       const metricNameServiceNameMap: Dictionary<MetricType> = {};
       let totalMetricsProcessed: number = 0;
@@ -136,7 +134,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               serviceName: serviceName,
               serviceId: service.serviceId,
               dataRententionInDays: service.dataRententionInDays,
-              dataIngestedInGB: 0,
             };
           }
 
@@ -155,11 +152,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               prefixKeysWithString: "resource",
             }),
           };
-
-          const sizeInGb: number =
-            JSONFunctions.getSizeOfJSONinGB(resourceMetric);
-          serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
-
           const scopeMetrics: JSONArray = resourceMetric[
             "scopeMetrics"
           ] as JSONArray;
@@ -370,12 +362,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       }).catch((err: Error) => {
         logger.error("Error indexing metric name service name map");
         logger.error(err);
-      });
-
-      await OTelIngestService.recordDataIngestedUsgaeBilling({
-        services: serviceDictionary,
-        projectId: (req as TelemetryRequest).projectId,
-        productType: ProductType.Metrics,
       });
 
       logger.debug(

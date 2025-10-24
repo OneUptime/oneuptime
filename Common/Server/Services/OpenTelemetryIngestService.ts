@@ -4,11 +4,6 @@ import ObjectID from "../../Types/ObjectID";
 import Metric, {
   AggregationTemporality,
 } from "../../Models/AnalyticsModels/Metric";
-import Dictionary from "../../Types/Dictionary";
-import ProductType from "../../Types/MeteredPlan/ProductType";
-import { IsBillingEnabled } from "../../Server/EnvironmentConfig";
-import TelemetryUsageBillingService from "../../Server/Services/TelemetryUsageBillingService";
-import logger from "../../Server/Utils/Logger";
 import TelemetryService from "../../Models/DatabaseModels/TelemetryService";
 import TelemetryServiceService from "../../Server/Services/TelemetryServiceService";
 import { DEFAULT_RETENTION_IN_DAYS } from "../../Models/DatabaseModels/TelemetryUsageBilling";
@@ -20,10 +15,9 @@ export enum OtelAggregationTemporality {
   Delta = "AGGREGATION_TEMPORALITY_DELTA",
 }
 
-export interface TelemetryServiceDataIngested {
+export interface TelemetryServiceMetadata {
   serviceName: string;
   serviceId: ObjectID;
-  dataIngestedInGB: number;
   dataRententionInDays: number;
 }
 
@@ -80,38 +74,6 @@ export default class OTelIngestService {
         service.retainTelemetryDataForDays || DEFAULT_RETENTION_IN_DAYS,
     };
   }
-
-  @CaptureSpan()
-  public static async recordDataIngestedUsgaeBilling(data: {
-    services: Dictionary<TelemetryServiceDataIngested>;
-    projectId: ObjectID;
-    productType: ProductType;
-  }): Promise<void> {
-    if (!IsBillingEnabled) {
-      return;
-    }
-
-    for (const serviceName in data.services) {
-      const serviceData: TelemetryServiceDataIngested | undefined =
-        data.services[serviceName];
-
-      if (!serviceData) {
-        continue;
-      }
-
-      TelemetryUsageBillingService.updateUsageBilling({
-        projectId: data.projectId,
-        productType: data.productType,
-        dataIngestedInGB: serviceData.dataIngestedInGB || 0,
-        telemetryServiceId: serviceData.serviceId,
-        retentionInDays: serviceData.dataRententionInDays,
-      }).catch((err: Error) => {
-        logger.error("Failed to update usage billing for OTel");
-        logger.error(err);
-      });
-    }
-  }
-
   @CaptureSpan()
   public static getMetricFromDatapoint(data: {
     dbMetric: Metric;

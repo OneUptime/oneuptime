@@ -5,11 +5,9 @@ import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
-import ProductType from "Common/Types/MeteredPlan/ProductType";
 import LogService from "Common/Server/Services/LogService";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import OTelIngestService from "Common/Server/Services/OpenTelemetryIngestService";
-import JSONFunctions from "Common/Types/JSONFunctions";
 import Log from "Common/Models/AnalyticsModels/Log";
 import { FLUENT_INGEST_CONCURRENCY } from "../../Config";
 
@@ -120,23 +118,6 @@ async function processFluentIngestFromQueue(
     props: {
       isRoot: true,
     },
-  });
-
-  OTelIngestService.recordDataIngestedUsgaeBilling({
-    services: {
-      [oneuptimeServiceName as string]: {
-        dataIngestedInGB: JSONFunctions.getSizeOfJSONinGB(
-          data.requestBody as JSONObject,
-        ),
-        dataRententionInDays: telemetryService.dataRententionInDays,
-        serviceId: telemetryService.serviceId,
-        serviceName: oneuptimeServiceName as string,
-      },
-    },
-    projectId: data.projectId,
-    productType: ProductType.Logs,
-  }).catch((err: Error) => {
-    logger.error(err);
   });
 }
 

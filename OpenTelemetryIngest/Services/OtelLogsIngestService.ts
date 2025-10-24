@@ -1,11 +1,9 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import OTelIngestService, {
-  TelemetryServiceDataIngested,
+  TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import OneUptimeDate from "Common/Types/Date";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import ProductType from "Common/Types/MeteredPlan/ProductType";
 import Text from "Common/Types/Text";
 import LogService from "Common/Server/Services/LogService";
 import {
@@ -97,7 +95,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       }
 
       const dbLogs: Array<Log> = [];
-      const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
+      const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
       let totalLogsProcessed: number = 0;
 
       let resourceLogCounter: number = 0;
@@ -127,7 +125,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               serviceName: serviceName,
               serviceId: service.serviceId,
               dataRententionInDays: service.dataRententionInDays,
-              dataIngestedInGB: 0,
             };
           }
 
@@ -146,10 +143,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               prefixKeysWithString: "resource",
             }),
           };
-
-          const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceLog);
-          serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
-
           const scopeLogs: JSONArray = resourceLog["scopeLogs"] as JSONArray;
 
           if (!scopeLogs || !Array.isArray(scopeLogs)) {
@@ -325,12 +318,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         logger.warn("No valid logs were processed from the request");
         return;
       }
-
-      await OTelIngestService.recordDataIngestedUsgaeBilling({
-        services: serviceDictionary,
-        projectId: (req as TelemetryRequest).projectId,
-        productType: ProductType.Logs,
-      });
 
       logger.debug(
         `Successfully processed ${totalLogsProcessed} logs for project: ${(req as TelemetryRequest).projectId}`,
