@@ -350,90 +350,6 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                   className =
                     "whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6 align-top";
                 }
-
-                let columnContent: React.ReactNode = null;
-
-                if (column.key && !column.getElement) {
-                  columnContent =
-                    column.type === FieldType.Date ? (
-                      props.item[column.key] ? (
-                        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                          props.item[column.key] as string,
-                          true,
-                        )
-                      ) : (
-                        column.noValueMessage || ""
-                      )
-                    ) : column.type === FieldType.DateTime ? (
-                      props.item[column.key] ? (
-                        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                          props.item[column.key] as string,
-                          false,
-                        )
-                      ) : (
-                        column.noValueMessage || ""
-                      )
-                    ) : column.type === FieldType.USDCents ? (
-                      props.item[column.key] ? (
-                        ((props.item[column.key] as number) || 0) / 100 + " USD"
-                      ) : (
-                        column.noValueMessage || "0 USD"
-                      )
-                    ) : column.type === FieldType.Percent ? (
-                      props.item[column.key] ? (
-                        props.item[column.key] + "%"
-                      ) : (
-                        column.noValueMessage || "0%"
-                      )
-                    ) : column.type === FieldType.Color ? (
-                      props.item[column.key] ? (
-                        <ColorInput value={props.item[column.key] as Color} />
-                      ) : (
-                        column.noValueMessage || "0%"
-                      )
-                    ) : column.type === FieldType.LongText ? (
-                      props.item[column.key] ? (
-                        <LongTextViewer
-                          text={props.item[column.key] as string}
-                        />
-                      ) : (
-                        column.noValueMessage || ""
-                      )
-                    ) : column.type === FieldType.Boolean ? (
-                      props.item[column.key] ? (
-                        <Icon
-                          icon={IconProp.Check}
-                          className={"h-5 w-5 text-gray-500"}
-                          thick={ThickProp.Thick}
-                        />
-                      ) : (
-                        <Icon
-                          icon={IconProp.False}
-                          className={"h-5 w-5 text-gray-500"}
-                          thick={ThickProp.Thick}
-                        />
-                      )
-                    ) : (
-                      getNestedValue(
-                        props.item,
-                        String(column.key),
-                      )?.toString() ||
-                      column.noValueMessage ||
-                      ""
-                    );
-                } else if (column.key && column.getElement) {
-                  columnContent = column.getElement(props.item);
-                }
-
-                const contentWrapperClassName: string = column.contentClassName
-                  ? column.contentClassName
-                  : "";
-
-                const actionsContainerClassName: string =
-                  column.contentClassName
-                    ? `flex justify-end ${column.contentClassName}`
-                    : "flex justify-end";
-
                 return (
                   <td
                     key={i}
@@ -448,13 +364,85 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                       }
                     }}
                   >
-                    {columnContent !== null && columnContent !== undefined && (
-                      <div className={contentWrapperClassName}>
-                        {columnContent}
-                      </div>
+                    {column.key && !column.getElement ? (
+                      column.type === FieldType.Date ? (
+                        props.item[column.key] ? (
+                          OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                            props.item[column.key] as string,
+                            true,
+                          )
+                        ) : (
+                          column.noValueMessage || ""
+                        )
+                      ) : column.type === FieldType.DateTime ? (
+                        props.item[column.key] ? (
+                          OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                            props.item[column.key] as string,
+                            false,
+                          )
+                        ) : (
+                          column.noValueMessage || ""
+                        )
+                      ) : column.type === FieldType.USDCents ? (
+                        props.item[column.key] ? (
+                          ((props.item[column.key] as number) || 0) / 100 +
+                          " USD"
+                        ) : (
+                          column.noValueMessage || "0 USD"
+                        )
+                      ) : column.type === FieldType.Percent ? (
+                        props.item[column.key] ? (
+                          props.item[column.key] + "%"
+                        ) : (
+                          column.noValueMessage || "0%"
+                        )
+                      ) : column.type === FieldType.Color ? (
+                        props.item[column.key] ? (
+                          <ColorInput value={props.item[column.key] as Color} />
+                        ) : (
+                          column.noValueMessage || "0%"
+                        )
+                      ) : column.type === FieldType.LongText ? (
+                        props.item[column.key] ? (
+                          <LongTextViewer
+                            text={props.item[column.key] as string}
+                          />
+                        ) : (
+                          column.noValueMessage || ""
+                        )
+                      ) : column.type === FieldType.Boolean ? (
+                        props.item[column.key] ? (
+                          <Icon
+                            icon={IconProp.Check}
+                            className={"h-5 w-5 text-gray-500"}
+                            thick={ThickProp.Thick}
+                          />
+                        ) : (
+                          <Icon
+                            icon={IconProp.False}
+                            className={"h-5 w-5 text-gray-500"}
+                            thick={ThickProp.Thick}
+                          />
+                        )
+                      ) : (
+                        getNestedValue(
+                          props.item,
+                          String(column.key),
+                        )?.toString() ||
+                        column.noValueMessage ||
+                        ""
+                      )
+                    ) : (
+                      <></>
+                    )}
+
+                    {column.key && column.getElement ? (
+                      column.getElement(props.item)
+                    ) : (
+                      <></>
                     )}
                     {column.type === FieldType.Actions && (
-                      <div className={actionsContainerClassName}>
+                      <div className="flex justify-end">
                         {error && (
                           <div className="text-align-left">
                             <ConfirmModal
