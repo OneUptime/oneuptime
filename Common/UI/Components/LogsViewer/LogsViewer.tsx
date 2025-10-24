@@ -376,9 +376,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                       <Icon
                         icon={IconProp.BarsArrowDown}
                         className={`h-4 w-4 ${
-                          isDescending
-                            ? "text-white/90"
-                            : "text-slate-400"
+                          isDescending ? "text-white/90" : "text-slate-400"
                         }`}
                       />
                       <span>Newest first</span>
@@ -398,9 +396,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                       <Icon
                         icon={IconProp.BarsArrowUp}
                         className={`h-4 w-4 ${
-                          !isDescending
-                            ? "text-white/90"
-                            : "text-slate-400"
+                          !isDescending ? "text-white/90" : "text-slate-400"
                         }`}
                       />
                       <span>Oldest first</span>
