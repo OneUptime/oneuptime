@@ -265,7 +265,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
   if (isCollapsed) {
     return (
       <div
-        className={`group relative text-slate-200 flex items-center gap-2 cursor-pointer hover:bg-slate-800/40 px-2 py-0.5 border border-transparent border-l ${leftBorderColor} rounded-sm transition-colors duration-100`}
+        className={`group relative text-slate-200 flex items-center gap-2 cursor-pointer hover:bg-slate-800/40 px-2 py-0.5 border border-transparent border-l ${leftBorderColor} rounded-sm transition-colors duration-100 font-mono`}
         onClick={toggleCollapsed}
         role="button"
         aria-expanded={!isCollapsed}
@@ -311,11 +311,14 @@ const LogItem: FunctionComponent<ComponentProps> = (
           className={`${bodyColor} font-mono text-[13px] md:text-sm leading-5 tracking-tight subpixel-antialiased flex-1 min-w-0`}
         >
           {isBodyInJSON ? (
-            <div className="truncate" title={logBodyMinified}>
+            <div className="truncate font-mono" title={logBodyMinified}>
               {logBodyMinified}
             </div>
           ) : (
-            <div className="truncate" title={props.log.body?.toString()}>
+            <div
+              className="truncate font-mono"
+              title={props.log.body?.toString()}
+            >
               {props.log.body?.toString()}
             </div>
           )}
@@ -348,7 +351,12 @@ const LogItem: FunctionComponent<ComponentProps> = (
             {serviceName}
           </div>
         )}
-        <div className="flex items-center gap-2">
+        <div
+          className="flex items-center gap-2"
+          onClick={() => {
+            toggleCollapsed();
+          }}
+        >
           <span className="inline-flex items-center gap-2">
             <span
               className={`inline-block w-1.5 h-1.5 rounded-full ${severityDotClass}`}
