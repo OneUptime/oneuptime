@@ -11,7 +11,7 @@
         "jest": "^30.0.0",
         "mailparser": "^3.7.5",
         "ts-node": "^10.9.2",
-        "typeorm": "^0.3.20"
+        "typeorm": "^0.3.27"
     },
     "devDependencies": {
         "@babel/core": "^7.17.8",
