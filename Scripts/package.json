@@ -6,7 +6,7 @@
     "compile": "tsc"
   },
   "dependencies": {
-    "@readme/openapi-parser": "^4.1.0",
+    "@readme/openapi-parser": "^4.1.2",
     "@types/js-yaml": "^4.0.9",
     "Common": "file:../Common",
     "ejs": "^3.1.10",
