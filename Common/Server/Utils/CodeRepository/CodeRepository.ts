@@ -1,9 +1,11 @@
+import path from "path";
 import Execute from "../Execute";
 import LocalFile from "../LocalFile";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import CodeRepositoryFile from "./CodeRepositoryFile";
 import Dictionary from "../../../Types/Dictionary";
+import BadDataException from "../../../Types/Exception/BadDataException";
 
 export default class CodeRepositoryUtil {
   @CaptureSpan()
@@ -112,15 +114,12 @@ export default class CodeRepositoryUtil {
     repoPath: string;
     filePath: string;
   }): Promise<string> {
-    const path: string = LocalFile.sanitizeFilePath(
-      `${data.repoPath}/${data.filePath}`,
+    const absolutePath: string = this.resolvePathWithinRepo(
+      data.repoPath,
+      data.filePath,
     );
 
-    const command: string = `cat ${path}`;
-
-    logger.debug("Executing command: " + command);
-
-    return Execute.executeCommand(`${command}`);
+    return LocalFile.read(absolutePath);
   }
 
   // discard all changes in the working directory
@@ -432,5 +431,25 @@ export default class CodeRepositoryUtil {
     }
 
     return files;
+  }
+
+  private static resolvePathWithinRepo(
+    repoPath: string,
+    targetPath: string,
+  ): string {
+    const root: string = path.resolve(repoPath);
+    const sanitizedTarget: string = LocalFile.sanitizeFilePath(targetPath).replace(
+      /^\/+/, "",
+    );
+    const absoluteTarget: string = path.resolve(root, sanitizedTarget);
+
+    if (
+      absoluteTarget !== root &&
+      !absoluteTarget.startsWith(root + path.sep)
+    ) {
+      throw new BadDataException("File path is outside the repository");
+    }
+
+    return absoluteTarget;
   }
 }
