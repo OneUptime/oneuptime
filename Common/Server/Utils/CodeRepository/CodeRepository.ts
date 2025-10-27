@@ -317,7 +317,9 @@ export default class CodeRepositoryUtil {
 
     const entries = await LocalFile.readDirectory(totalPath);
 
-    return entries.map((entry) => entry.name);
+    return entries.map((entry) => {
+      return entry.name;
+    });
   }
 
   @CaptureSpan()
@@ -440,9 +442,9 @@ export default class CodeRepositoryUtil {
     targetPath: string,
   ): string {
     const root: string = path.resolve(repoPath);
-    const sanitizedTarget: string = LocalFile.sanitizeFilePath(targetPath).replace(
-      /^\/+/, "",
-    );
+    const sanitizedTarget: string = LocalFile.sanitizeFilePath(
+      targetPath,
+    ).replace(/^\/+/, "");
     const absoluteTarget: string = path.resolve(root, sanitizedTarget);
 
     if (

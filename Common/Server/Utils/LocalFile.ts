@@ -90,9 +90,7 @@ export default class LocalFile {
   }
 
   @CaptureSpan()
-  public static async readDirectory(
-    path: string,
-  ): Promise<Array<fs.Dirent>> {
+  public static async readDirectory(path: string): Promise<Array<fs.Dirent>> {
     return new Promise(
       (
         resolve: (entries: Array<fs.Dirent>) => void,
