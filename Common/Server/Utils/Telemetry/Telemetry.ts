@@ -143,10 +143,10 @@ export default class TelemetryUtil {
     let { prefixKeysWithString } = data;
 
     if (prefixKeysWithString) {
-      prefixKeysWithString = prefixKeysWithString + ".";
+      prefixKeysWithString = `${prefixKeysWithString}.`;
     }
 
-    let finalObj: Dictionary<AttributeType | Array<AttributeType>> = {};
+    const finalObj: Dictionary<AttributeType | Array<AttributeType>> = {};
     const attributes: JSONArray = items;
 
     if (!attributes) {
@@ -154,25 +154,40 @@ export default class TelemetryUtil {
     }
 
     for (const attribute of attributes) {
-      if (attribute["key"] && typeof attribute["key"] === "string") {
-        const keyWithPrefix: string = `${prefixKeysWithString}${attribute["key"]}`;
-
-        const value:
-          | AttributeType
-          | Dictionary<AttributeType>
-          | Array<AttributeType> = this.getAttributeValues(
-          keyWithPrefix,
-          attribute["value"],
-        );
-
-        if (Array.isArray(value)) {
-          finalObj = { ...finalObj, [keyWithPrefix]: value };
-        } else if (typeof value === "object" && value !== null) {
-          finalObj = { ...finalObj, ...(value as Dictionary<AttributeType>) };
-        } else {
-          finalObj[keyWithPrefix] = value;
-        }
+      if (!attribute["key"] || typeof attribute["key"] !== "string") {
+        continue;
       }
+
+      const keyWithPrefix: string = `${prefixKeysWithString}${attribute["key"]}`;
+
+      const value = this.getAttributeValues(
+        keyWithPrefix,
+        attribute["value"],
+      );
+
+      if (value === null) {
+        finalObj[keyWithPrefix] = null;
+        continue;
+      }
+
+      if (Array.isArray(value)) {
+        finalObj[keyWithPrefix] = value;
+        continue;
+      }
+
+      if (typeof value === "object") {
+        for (const [nestedKey, nestedValue] of Object.entries(
+          value as Dictionary<AttributeType | Array<AttributeType>>,
+        )) {
+          finalObj[nestedKey] = nestedValue as
+            | AttributeType
+            | Array<AttributeType>;
+        }
+
+        continue;
+      }
+
+      finalObj[keyWithPrefix] = value as AttributeType;
     }
 
     return finalObj;
@@ -181,73 +196,106 @@ export default class TelemetryUtil {
   public static getAttributeValues(
     prefixKeysWithString: string,
     value: JSONValue,
-  ): AttributeType | Dictionary<AttributeType> | Array<AttributeType> {
+  ):
+    | AttributeType
+    | Dictionary<AttributeType | Array<AttributeType>>
+    | Array<AttributeType>
+    | null {
     let finalObj:
-      | Dictionary<AttributeType>
+      | Dictionary<AttributeType | Array<AttributeType>>
       | AttributeType
-      | Array<AttributeType> = null;
-    value = value as JSONObject;
+      | Array<AttributeType>
+      | null = null;
+    const jsonValue: JSONObject = value as JSONObject;
 
-    if (value["stringValue"]) {
-      finalObj = value["stringValue"] as string;
-    } else if (value["intValue"]) {
-      finalObj = value["intValue"] as number;
-    } else if (value["doubleValue"]) {
-      finalObj = value["doubleValue"] as number;
-    } else if (value["boolValue"]) {
-      finalObj = value["boolValue"] as boolean;
-    } else if (
-      value["arrayValue"] &&
-      (value["arrayValue"] as JSONObject)["values"]
-    ) {
-      const values: JSONArray = (value["arrayValue"] as JSONObject)[
-        "values"
-      ] as JSONArray;
-      finalObj = values.map((v: JSONObject) => {
-        return this.getAttributeValues(
-          prefixKeysWithString,
-          v,
-        ) as AttributeType;
-      }) as Array<AttributeType>;
-    } else if (
-      value["mapValue"] &&
-      (value["mapValue"] as JSONObject)["fields"]
-    ) {
-      const fields: JSONObject = (value["mapValue"] as JSONObject)?.[
-        "fields"
-      ] as JSONObject;
-
-      const flattenedFields: Dictionary<AttributeType> = {};
-      for (const key in fields) {
-        const prefixKey: string = `${prefixKeysWithString}.${key}`;
-        const nestedValue: AttributeType | Dictionary<AttributeType> =
-          this.getAttributeValues(prefixKey, fields[key]) as AttributeType;
-        if (typeof nestedValue === "object" && nestedValue !== null) {
-          for (const nestedKey in nestedValue as Dictionary<AttributeType>) {
-            flattenedFields[`${prefixKey}.${nestedKey}`] = (
-              nestedValue as Dictionary<AttributeType>
-            )[nestedKey] as AttributeType;
-          }
-        } else {
-          flattenedFields[prefixKey] = nestedValue;
+    if (jsonValue && typeof jsonValue === "object") {
+      if (Object.prototype.hasOwnProperty.call(jsonValue, "stringValue")) {
+        const stringValue: JSONValue = jsonValue["stringValue"];
+        finalObj =
+          stringValue !== undefined && stringValue !== null
+            ? (stringValue as string)
+            : "";
+      } else if (Object.prototype.hasOwnProperty.call(jsonValue, "intValue")) {
+        const intValue: JSONValue = jsonValue["intValue"];
+        if (intValue !== undefined && intValue !== null) {
+          finalObj = intValue as number;
         }
+      } else if (
+        Object.prototype.hasOwnProperty.call(jsonValue, "doubleValue")
+      ) {
+        const doubleValue: JSONValue = jsonValue["doubleValue"];
+        if (doubleValue !== undefined && doubleValue !== null) {
+          finalObj = doubleValue as number;
+        }
+      } else if (Object.prototype.hasOwnProperty.call(jsonValue, "boolValue")) {
+        finalObj = jsonValue["boolValue"] as boolean;
+      } else if (
+        jsonValue["arrayValue"] &&
+        (jsonValue["arrayValue"] as JSONObject)["values"]
+      ) {
+        const values: JSONArray = (jsonValue["arrayValue"] as JSONObject)[
+          "values"
+        ] as JSONArray;
+        finalObj = values.map((v: JSONObject) => {
+          return this.getAttributeValues(prefixKeysWithString, v) as AttributeType;
+        }) as Array<AttributeType>;
+      } else if (
+        jsonValue["mapValue"] &&
+        (jsonValue["mapValue"] as JSONObject)["fields"]
+      ) {
+        const fields: JSONObject = (jsonValue["mapValue"] as JSONObject)[
+          "fields"
+        ] as JSONObject;
+
+        const flattenedFields: Dictionary<AttributeType | Array<AttributeType>> =
+          {};
+        for (const key in fields) {
+          const nestedPrefix: string = `${prefixKeysWithString}.${key}`;
+          const nestedValue = this.getAttributeValues(
+            nestedPrefix,
+            fields[key],
+          );
+
+          if (nestedValue === null) {
+            flattenedFields[nestedPrefix] = null;
+            continue;
+          }
+
+          if (Array.isArray(nestedValue)) {
+            flattenedFields[nestedPrefix] = nestedValue;
+            continue;
+          }
+
+          if (typeof nestedValue === "object") {
+            for (const [nestedKey, nestedEntry] of Object.entries(
+              nestedValue as Dictionary<AttributeType | Array<AttributeType>>,
+            )) {
+              flattenedFields[nestedKey] = nestedEntry as
+                | AttributeType
+                | Array<AttributeType>;
+            }
+
+            continue;
+          }
+
+          flattenedFields[nestedPrefix] = nestedValue as AttributeType;
+        }
+
+        finalObj = flattenedFields;
+      } else if (
+        jsonValue["kvlistValue"] &&
+        (jsonValue["kvlistValue"] as JSONObject)["values"]
+      ) {
+        const values: JSONArray = (jsonValue["kvlistValue"] as JSONObject)[
+          "values"
+        ] as JSONArray;
+        finalObj = this.getAttributes({
+          prefixKeysWithString,
+          items: values,
+        });
+      } else if ("nullValue" in jsonValue) {
+        finalObj = null;
       }
-      finalObj = flattenedFields;
-    }
-    // kvlistValue
-    else if (
-      value["kvlistValue"] &&
-      (value["kvlistValue"] as JSONObject)["values"]
-    ) {
-      const values: JSONArray = (value["kvlistValue"] as JSONObject)[
-        "values"
-      ] as JSONArray;
-      finalObj = this.getAttributes({
-        prefixKeysWithString,
-        items: values,
-      }) as Dictionary<AttributeType>;
-    } else if (value["nullValue"]) {
-      finalObj = null;
     }
 
     return finalObj;
