@@ -1,4 +1,5 @@
 import path from "path";
+import fs from "fs";
 import Execute from "../Execute";
 import LocalFile from "../LocalFile";
 import logger from "../Logger";
@@ -315,9 +316,9 @@ export default class CodeRepositoryUtil {
 
     totalPath = LocalFile.sanitizeFilePath(totalPath); // clean up the path
 
-    const entries = await LocalFile.readDirectory(totalPath);
+    const entries: Array<fs.Dirent> = await LocalFile.readDirectory(totalPath);
 
-    return entries.map((entry) => {
+    return entries.map((entry: fs.Dirent) => {
       return entry.name;
     });
   }
@@ -349,7 +350,7 @@ export default class CodeRepositoryUtil {
     const files: Dictionary<CodeRepositoryFile> = {};
     const subDirectories: Array<string> = [];
 
-    const entries = await LocalFile.readDirectory(totalPath);
+    const entries: Array<fs.Dirent> = await LocalFile.readDirectory(totalPath);
 
     for (const entry of entries) {
       const fileName: string = entry.name;

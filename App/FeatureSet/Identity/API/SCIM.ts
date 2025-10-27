@@ -995,10 +995,6 @@ router.put(
         );
       }
 
-      if (!team.isTeamEditable) {
-        throw new BadRequestException("This group cannot be updated");
-      }
-
       // Update team name if provided
       const displayName: string = scimGroup["displayName"] as string;
       if (displayName && displayName !== team.name) {
@@ -1247,10 +1243,6 @@ router.patch(
         throw new NotFoundException(
           "Group not found or not part of this project",
         );
-      }
-
-      if (!team.isTeamEditable) {
-        throw new BadRequestException("This group cannot be updated");
       }
 
       // Handle SCIM patch operations
