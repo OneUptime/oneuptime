@@ -42,6 +42,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
+import ExceptionCode from "../../Types/Exception/ExceptionCode";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -88,6 +89,47 @@ export default class AnalyticsDatabaseService<
       modelType: this.modelType,
       database: this.database,
     });
+  }
+
+  @CaptureSpan()
+  public async insertJsonRows(rows: Array<JSONObject>): Promise<void> {
+    if (!rows || rows.length === 0) {
+      return;
+    }
+
+    if (!this.databaseClient) {
+      throw new Exception(
+        ExceptionCode.DatabaseNotConnectedException,
+        "ClickHouse client is not connected",
+      );
+    }
+
+    const tableName: string = this.model.tableName;
+
+    if (!tableName) {
+      throw new Exception(
+        ExceptionCode.BadDataException,
+        "Analytics model table name not configured",
+      );
+    }
+
+    try {
+      await this.databaseClient.insert({
+        table: tableName,
+        values: rows,
+        format: "JSONEachRow",
+        clickhouse_settings: {
+          async_insert: 1,
+          wait_for_async_insert: 0,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `ClickHouse insert failed for table ${tableName} at ${OneUptimeDate.toString(OneUptimeDate.getCurrentDate())}`,
+      );
+      logger.error(error);
+      throw error;
+    }
   }
 
   @CaptureSpan()

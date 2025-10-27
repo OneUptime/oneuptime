@@ -10,7 +10,7 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import Metric, {
+import {
   MetricPointType,
   ServiceType,
 } from "Common/Models/AnalyticsModels/Metric";
@@ -21,17 +21,18 @@ import TelemetryUtil, {
 } from "Common/Server/Utils/Telemetry/Telemetry";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
-import MetricService from "Common/Server/Services/MetricService";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import MetricsQueueService from "./Queue/MetricsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import { OPEN_TELEMETRY_INGEST_METRIC_FLUSH_BATCH_SIZE } from "../Config";
+import OneUptimeDate from "Common/Types/Date";
+import MetricService from "Common/Server/Services/MetricService";
 
 export default class OtelMetricsIngestService extends OtelIngestBaseService {
   private static async flushMetricsBuffer(
-    metrics: Array<Metric>,
+    metrics: Array<JSONObject>,
     force: boolean = false,
   ): Promise<void> {
     while (
@@ -42,18 +43,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         metrics.length,
         OPEN_TELEMETRY_INGEST_METRIC_FLUSH_BATCH_SIZE,
       );
-      const batch: Array<Metric> = metrics.splice(0, batchSize);
+      const batch: Array<JSONObject> = metrics.splice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      await MetricService.createMany({
-        items: batch,
-        props: {
-          isRoot: true,
-        },
-      });
+      await MetricService.insertJsonRows(batch);
     }
   }
 
@@ -101,11 +97,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         throw new BadRequestException("Invalid resourceMetrics format");
       }
 
-      const dbMetrics: Array<Metric> = [];
+      const dbMetrics: Array<JSONObject> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
 
       const metricNameServiceNameMap: Dictionary<MetricType> = {};
       let totalMetricsProcessed: number = 0;
+      const projectId: ObjectID = (req as TelemetryRequest).projectId;
 
       let resourceMetricCounter: number = 0;
       for (const resourceMetric of resourceMetrics) {
@@ -137,11 +134,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             };
           }
 
+          const serviceMetadata: TelemetryServiceMetadata =
+            serviceDictionary[serviceName]!;
+
           const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
             ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-              serviceId: serviceDictionary[serviceName]!.serviceId!,
+              serviceId: serviceMetadata.serviceId!,
               serviceName: serviceName,
             }),
             ...TelemetryUtil.getAttributes({
@@ -184,12 +184,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                     await Promise.resolve();
                   }
                   metricCounter++;
-                  const dbMetric: Metric = new Metric();
-                  dbMetric.projectId = (req as TelemetryRequest).projectId;
-                  dbMetric.serviceId =
-                    serviceDictionary[serviceName]!.serviceId!;
-                  dbMetric.serviceType = ServiceType.OpenTelemetry;
-                  dbMetric.name = (metric["name"] || "")
+                  const metricName: string = (metric["name"] || "")
                     .toString()
                     .toLowerCase();
                   const metricDescription: string = metric[
@@ -197,46 +192,39 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   ] as string;
                   const metricUnit: string = metric["unit"] as string;
 
-                  if (dbMetric.name) {
-                    if (!metricNameServiceNameMap[dbMetric.name]) {
-                      metricNameServiceNameMap[dbMetric.name] =
-                        new MetricType();
-                      metricNameServiceNameMap[dbMetric.name]!.name =
-                        dbMetric.name;
-                      metricNameServiceNameMap[dbMetric.name]!.description =
+                  if (metricName) {
+                    if (!metricNameServiceNameMap[metricName]) {
+                      metricNameServiceNameMap[metricName] = new MetricType();
+                      metricNameServiceNameMap[metricName]!.name = metricName;
+                      metricNameServiceNameMap[metricName]!.description =
                         metricDescription;
-                      metricNameServiceNameMap[dbMetric.name]!.unit =
-                        metricUnit;
-                      metricNameServiceNameMap[
-                        dbMetric.name
-                      ]!.telemetryServices = [];
+                      metricNameServiceNameMap[metricName]!.unit = metricUnit;
+                      metricNameServiceNameMap[metricName]!.telemetryServices =
+                        [];
                     }
 
                     if (
                       metricNameServiceNameMap[
-                        dbMetric.name
+                        metricName
                       ]!.telemetryServices!.filter(
                         (service: TelemetryService) => {
                           return (
                             service.id?.toString() ===
-                            serviceDictionary[
-                              serviceName
-                            ]!.serviceId!.toString()
+                            serviceMetadata.serviceId!.toString()
                           );
                         },
                       ).length === 0
                     ) {
                       const telemetryService: TelemetryService =
                         new TelemetryService();
-                      telemetryService.id =
-                        serviceDictionary[serviceName]!.serviceId!;
+                      telemetryService.id = serviceMetadata.serviceId!;
                       metricNameServiceNameMap[
-                        dbMetric.name
+                        metricName
                       ]!.telemetryServices!.push(telemetryService);
                     }
                   }
 
-                  const attributesObject: Dictionary<
+                  const metricAttributes: Dictionary<
                     AttributeType | Array<AttributeType>
                   > = {
                     ...resourceAttributes,
@@ -254,15 +242,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                       "scope"
                     ] as JSONObject;
                     for (const key of Object.keys(scopeAttributes)) {
-                      attributesObject[`scope.${key}`] = scopeAttributes[
+                      metricAttributes[`scope.${key}`] = scopeAttributes[
                         key
                       ] as AttributeType;
                     }
                   }
-
-                  dbMetric.attributes = attributesObject;
-                  dbMetric.attributeKeys =
-                    TelemetryUtil.getAttributeKeys(attributesObject);
 
                   const dataPoints: JSONArray = ((
                     metric["sum"] as JSONObject
@@ -273,43 +257,51 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                     ]) as JSONArray;
 
                   if (dataPoints && Array.isArray(dataPoints)) {
+                    const aggregationTemporality: OtelAggregationTemporality =
+                      ((metric["sum"] as JSONObject)?.[
+                        "aggregationTemporality"
+                      ] as OtelAggregationTemporality) ||
+                      ((metric["gauge"] as JSONObject)?.[
+                        "aggregationTemporality"
+                      ] as OtelAggregationTemporality) ||
+                      ((metric["histogram"] as JSONObject)?.[
+                        "aggregationTemporality"
+                      ] as OtelAggregationTemporality);
+
+                    const isMonotonic: boolean | undefined =
+                      ((metric["sum"] as JSONObject)?.["isMonotonic"] as
+                        | boolean
+                        | undefined) ||
+                      ((metric["gauge"] as JSONObject)?.["isMonotonic"] as
+                        | boolean
+                        | undefined) ||
+                      ((metric["histogram"] as JSONObject)?.["isMonotonic"] as
+                        | boolean
+                        | undefined);
+
+                    const metricPointType: MetricPointType = metric["sum"]
+                      ? MetricPointType.Sum
+                      : metric["gauge"]
+                        ? MetricPointType.Gauge
+                        : MetricPointType.Histogram;
+
                     for (const datapoint of dataPoints) {
                       try {
-                        const metricPointType: MetricPointType = metric["sum"]
-                          ? MetricPointType.Sum
-                          : metric["gauge"]
-                            ? MetricPointType.Gauge
-                            : MetricPointType.Histogram;
-                        const dbMetricPoint: Metric =
-                          OTelIngestService.getMetricFromDatapoint({
-                            dbMetric: dbMetric,
-                            datapoint: datapoint,
-                            aggregationTemporality:
-                              ((metric["sum"] as JSONObject)?.[
-                                "aggregationTemporality"
-                              ] as OtelAggregationTemporality) ||
-                              ((metric["gauge"] as JSONObject)?.[
-                                "aggregationTemporality"
-                              ] as OtelAggregationTemporality) ||
-                              ((metric["histogram"] as JSONObject)?.[
-                                "aggregationTemporality"
-                              ] as OtelAggregationTemporality),
-                            isMonotonic: ((metric["sum"] as JSONObject)?.[
-                              "isMonotonic"
-                            ] ||
-                              (metric["gauge"] as JSONObject)?.[
-                                "isMonotonic"
-                              ] ||
-                              (metric["histogram"] as JSONObject)?.[
-                                "isMonotonic"
-                              ]) as boolean,
-                            telemetryServiceId:
-                              serviceDictionary[serviceName]!.serviceId!,
-                            telemetryServiceName: serviceName,
-                          });
+                        const metricRow: JSONObject = this.buildMetricRow({
+                          datapoint: datapoint as JSONObject,
+                          baseAttributes: metricAttributes,
+                          projectId: projectId,
+                          serviceId: serviceMetadata.serviceId!,
+                          serviceName: serviceName,
+                          metricName: metricName,
+                          metricPointType: metricPointType,
+                          aggregationTemporality: aggregationTemporality,
+                          ...(typeof isMonotonic === "boolean"
+                            ? { isMonotonic: isMonotonic }
+                            : {}),
+                        });
 
-                        dbMetricPoint.metricPointType = metricPointType;
-                        dbMetrics.push(dbMetricPoint);
+                        dbMetrics.push(metricRow);
                         totalMetricsProcessed++;
 
                         if (
@@ -358,7 +350,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
       TelemetryUtil.indexMetricNameServiceNameMap({
         metricNameServiceNameMap: metricNameServiceNameMap,
-        projectId: (req as TelemetryRequest).projectId,
+        projectId: projectId,
       }).catch((err: Error) => {
         logger.error("Error indexing metric name service name map");
         logger.error(err);
@@ -383,5 +375,202 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       logger.error(error);
       throw error;
     }
+  }
+
+  private static buildMetricRow(data: {
+    datapoint: JSONObject;
+    baseAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+    projectId: ObjectID;
+    serviceId: ObjectID;
+    serviceName: string;
+    metricName: string;
+    metricPointType: MetricPointType;
+    aggregationTemporality?: OtelAggregationTemporality;
+    isMonotonic?: boolean;
+  }): JSONObject {
+    const ingestionDate: Date = OneUptimeDate.getCurrentDate();
+    const ingestionIso: string = OneUptimeDate.toString(ingestionDate);
+
+    const timeFields: { nano: string; iso: string } = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "metric datapoint timeUnixNano",
+    );
+
+    const startTimeRaw: string | number | undefined = data.datapoint[
+      "startTimeUnixNano"
+    ] as string | number | undefined;
+
+    const startTimeFields: { nano: string; iso: string } | null = startTimeRaw
+      ? this.safeParseUnixNano(
+          startTimeRaw,
+          "metric datapoint startTimeUnixNano",
+        )
+      : null;
+
+    const attributes: Dictionary<AttributeType | Array<AttributeType>> = {
+      ...data.baseAttributes,
+    };
+
+    if (data.datapoint["attributes"]) {
+      Object.assign(
+        attributes,
+        TelemetryUtil.getAttributes({
+          items: (data.datapoint["attributes"] as JSONArray) || [],
+          prefixKeysWithString: "metricAttributes",
+        }),
+      );
+    }
+
+    const attributeKeys: Array<string> =
+      TelemetryUtil.getAttributeKeys(attributes);
+
+    const valueFromInt: number | null = this.toNumberOrNull(
+      data.datapoint["asInt"],
+    );
+    const valueFromDouble: number | null = this.toNumberOrNull(
+      data.datapoint["asDouble"],
+    );
+    const count: number | null = this.toNumberOrNull(data.datapoint["count"]);
+    const sum: number | null = this.toNumberOrNull(data.datapoint["sum"]);
+    const min: number | null = this.toNumberOrNull(data.datapoint["min"]);
+    const max: number | null = this.toNumberOrNull(data.datapoint["max"]);
+
+    const bucketCounts: Array<number> = Array.isArray(
+      data.datapoint["bucketCounts"],
+    )
+      ? (data.datapoint["bucketCounts"] as Array<number | string>).map(
+          (entry: number | string) => {
+            const parsed: number | null = this.toNumberOrNull(entry);
+            return parsed === null ? 0 : parsed;
+          },
+        )
+      : [];
+
+    const explicitBoundsRaw: Array<number | string> | undefined = Array.isArray(
+      data.datapoint["explicitBounds"],
+    )
+      ? (data.datapoint["explicitBounds"] as Array<number | string>)
+      : undefined;
+
+    const explicitBounds: Array<number> = explicitBoundsRaw
+      ? explicitBoundsRaw
+          .map((entry: number | string) => {
+            return this.toNumberOrNull(entry);
+          })
+          .filter((entry: number | null): entry is number => {
+            return entry !== null;
+          })
+      : [];
+
+    const row: JSONObject = {
+      _id: ObjectID.generate().toString(),
+      createdAt: ingestionIso,
+      updatedAt: ingestionIso,
+      projectId: data.projectId.toString(),
+      serviceId: data.serviceId.toString(),
+      serviceType: ServiceType.OpenTelemetry,
+      name: data.metricName,
+      time: timeFields.iso,
+      timeUnixNano: timeFields.nano,
+      metricPointType: data.metricPointType,
+      aggregationTemporality: this.mapAggregationTemporality(
+        data.aggregationTemporality,
+      ),
+      isMonotonic:
+        data.isMonotonic === undefined ? null : Boolean(data.isMonotonic),
+      attributes: attributes,
+      attributeKeys: attributeKeys,
+      value:
+        valueFromInt !== null
+          ? valueFromInt
+          : valueFromDouble !== null
+            ? valueFromDouble
+            : sum,
+      count: count,
+      sum: sum,
+      min: min,
+      max: max,
+      bucketCounts: bucketCounts,
+      explicitBounds: explicitBounds,
+    };
+
+    if (startTimeFields) {
+      row["startTime"] = startTimeFields.iso;
+      row["startTimeUnixNano"] = startTimeFields.nano;
+    } else {
+      row["startTime"] = null;
+      row["startTimeUnixNano"] = null;
+    }
+
+    return row;
+  }
+
+  private static safeParseUnixNano(
+    value: string | number | undefined,
+    context: string,
+  ): { nano: string; iso: string } {
+    let numericValue: number = OneUptimeDate.getCurrentDateAsUnixNano();
+
+    if (value !== undefined && value !== null) {
+      try {
+        if (typeof value === "string") {
+          const parsed: number = Number.parseFloat(value);
+          if (isNaN(parsed)) {
+            throw new Error(`Invalid timestamp string: ${value}`);
+          }
+          numericValue = parsed;
+        } else if (typeof value === "number") {
+          if (!Number.isFinite(value)) {
+            throw new Error(`Invalid timestamp number: ${value}`);
+          }
+          numericValue = value;
+        }
+      } catch (error) {
+        logger.warn(
+          `Error processing ${context}: ${error instanceof Error ? error.message : String(error)}, using current time`,
+        );
+        numericValue = OneUptimeDate.getCurrentDateAsUnixNano();
+      }
+    }
+
+    const dateIso: string = OneUptimeDate.toString(
+      OneUptimeDate.fromUnixNano(numericValue),
+    );
+
+    return {
+      nano: Math.trunc(numericValue).toString(),
+      iso: dateIso,
+    };
+  }
+
+  private static toNumberOrNull(value: unknown): number | null {
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? value : null;
+    }
+
+    if (typeof value === "string") {
+      const parsed: number = Number.parseFloat(value);
+      return isNaN(parsed) ? null : parsed;
+    }
+
+    return null;
+  }
+
+  private static mapAggregationTemporality(
+    temporality?: OtelAggregationTemporality,
+  ): string | null {
+    if (!temporality) {
+      return null;
+    }
+
+    if (temporality === OtelAggregationTemporality.Cumulative) {
+      return "Cumulative";
+    }
+
+    if (temporality === OtelAggregationTemporality.Delta) {
+      return "Delta";
+    }
+
+    return null;
   }
 }
