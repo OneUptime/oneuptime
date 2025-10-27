@@ -259,11 +259,13 @@ export default class CodeRepositoryUtil {
     repoPath: string;
     message: string;
   }): Promise<void> {
-    const command: string = `cd ${data.repoPath} && git commit -m "${data.message}"`;
+    logger.debug("Executing git commit");
 
-    logger.debug("Executing command: " + command);
-
-    const stdout: string = await Execute.executeCommand(command);
+    const stdout: string = await Execute.executeCommandFile({
+      command: "git",
+      args: ["commit", "-m", data.message],
+      cwd: data.repoPath,
+    });
 
     logger.debug(stdout);
   }
