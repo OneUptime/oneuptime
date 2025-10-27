@@ -16,7 +16,6 @@ import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import {
   SpanEventType,
   SpanKind,
@@ -40,6 +39,22 @@ type ParsedUnixNano = {
   nano: string;
   iso: string;
   date: Date;
+};
+
+type ExceptionEventPayload = {
+  projectId: ObjectID;
+  serviceId: ObjectID;
+  spanId: string;
+  traceId: string;
+  spanStatusCode: SpanStatus;
+  spanName: string;
+  message: string;
+  stackTrace: string;
+  exceptionType: string;
+  escaped: boolean | null;
+  attributes: JSONObject;
+  time: ParsedUnixNano;
+  fingerprint: string;
 };
 
 export default class OtelTracesIngestService extends OtelIngestBaseService {
@@ -466,26 +481,17 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
           if (eventName === SpanEventType.Exception) {
             try {
-              const exception: ExceptionInstance = new ExceptionInstance();
-              exception.projectId = spanContext.projectId;
-              exception.serviceId = spanContext.serviceId;
-              exception.spanId = spanContext.spanId;
-              exception.traceId = spanContext.traceId;
-              exception.time = parsedTime.date;
-              exception.timeUnixNano = parsedTime.unixNano;
-              exception.spanStatusCode = spanContext.spanStatusCode;
-              exception.spanName = spanContext.spanName;
-              exception.message =
+              const message: string =
                 (eventAttributes["exception.message"] as string) || "";
-              exception.stackTrace =
+              const stackTrace: string =
                 (eventAttributes["exception.stacktrace"] as string) || "";
-              exception.exceptionType =
+              const exceptionType: string =
                 (eventAttributes["exception.type"] as string) || "";
 
               const escapedParsed: boolean | null = this.toBoolean(
                 eventAttributes["exception.escaped"],
               );
-              exception.escaped =
+              const escaped: boolean | null =
                 escapedParsed === null ? false : escapedParsed;
 
               const exceptionAttributes: JSONObject = { ...eventAttributes };
@@ -495,16 +501,52 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                 }
               }
 
-              exception.attributes = exceptionAttributes;
-              exception.fingerprint = ExceptionUtil.getFingerprint(exception);
+              const fingerprint: string = ExceptionUtil.getFingerprint({
+                projectId: spanContext.projectId,
+                serviceId: spanContext.serviceId,
+                message: message,
+                stackTrace: stackTrace,
+                exceptionType: exceptionType,
+              });
 
-              dbExceptions.push(
-                this.buildExceptionRow({
-                  exception: exception,
-                }),
-              );
+              const exceptionData: ExceptionEventPayload = {
+                projectId: spanContext.projectId,
+                serviceId: spanContext.serviceId,
+                spanId: spanContext.spanId,
+                traceId: spanContext.traceId,
+                spanStatusCode: spanContext.spanStatusCode,
+                spanName: spanContext.spanName,
+                message: message,
+                stackTrace: stackTrace,
+                exceptionType: exceptionType,
+                escaped: escaped,
+                attributes: exceptionAttributes,
+                time: parsedTime,
+                fingerprint: fingerprint,
+              };
 
-              ExceptionUtil.saveOrUpdateTelemetryException(exception).catch(
+              dbExceptions.push(this.buildExceptionRow(exceptionData));
+
+              ExceptionUtil.saveOrUpdateTelemetryException({
+                fingerprint: fingerprint,
+                projectId: spanContext.projectId,
+                serviceId: spanContext.serviceId,
+                ...(exceptionType
+                  ? {
+                      exceptionType: exceptionType,
+                    }
+                  : {}),
+                ...(message
+                  ? {
+                      message: message,
+                    }
+                  : {}),
+                ...(stackTrace
+                  ? {
+                      stackTrace: stackTrace,
+                    }
+                  : {}),
+              }).catch(
                 (err: Error) => {
                   logger.error("Error saving/updating telemetry exception:");
                   logger.error(err);
@@ -605,45 +647,31 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     };
   }
 
-  private static buildExceptionRow(data: {
-    exception: ExceptionInstance;
-  }): JSONObject {
+  private static buildExceptionRow(data: ExceptionEventPayload): JSONObject {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
     const ingestionIso: string = OneUptimeDate.toString(ingestionDate);
-
-    const time: Date = data.exception.time || OneUptimeDate.getCurrentDate();
-    const timeIso: string = OneUptimeDate.toString(time);
-    const timeUnixNano: number =
-      data.exception.timeUnixNano || OneUptimeDate.getCurrentDateAsUnixNano();
 
     return {
       _id: ObjectID.generate().toString(),
       createdAt: ingestionIso,
       updatedAt: ingestionIso,
-      projectId: data.exception.projectId
-        ? data.exception.projectId.toString()
-        : "",
-      serviceId: data.exception.serviceId
-        ? data.exception.serviceId.toString()
-        : "",
-      time: timeIso,
-      timeUnixNano: Math.trunc(timeUnixNano).toString(),
-      exceptionType: data.exception.exceptionType || "",
-      stackTrace: data.exception.stackTrace || "",
-      message: data.exception.message || "",
-      spanStatusCode:
-        data.exception.spanStatusCode === undefined
-          ? null
-          : Number(data.exception.spanStatusCode),
+      projectId: data.projectId.toString(),
+      serviceId: data.serviceId.toString(),
+      time: data.time.iso,
+      timeUnixNano: data.time.nano,
+      exceptionType: data.exceptionType || "",
+      stackTrace: data.stackTrace || "",
+      message: data.message || "",
+      spanStatusCode: Number(data.spanStatusCode),
       escaped:
-        data.exception.escaped === undefined
+        data.escaped === null || data.escaped === undefined
           ? null
-          : Boolean(data.exception.escaped),
-      traceId: data.exception.traceId || "",
-      spanId: data.exception.spanId || "",
-      fingerprint: data.exception.fingerprint || "",
-      spanName: data.exception.spanName || "",
-      attributes: data.exception.attributes || {},
+          : Boolean(data.escaped),
+      traceId: data.traceId || "",
+      spanId: data.spanId || "",
+      fingerprint: data.fingerprint,
+      spanName: data.spanName || "",
+      attributes: data.attributes || {},
     };
   }
 

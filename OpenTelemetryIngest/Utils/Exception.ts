@@ -1,17 +1,34 @@
-import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ObjectID from "Common/Types/ObjectID";
 import Crypto from "Common/Utils/Crypto";
 
+export interface ExceptionFingerprintInput {
+  message?: string;
+  stackTrace?: string;
+  exceptionType?: string;
+  projectId?: ObjectID;
+  serviceId?: ObjectID;
+}
+
+export interface TelemetryExceptionPayload {
+  fingerprint: string;
+  projectId: ObjectID;
+  serviceId: ObjectID;
+  exceptionType?: string;
+  stackTrace?: string;
+  message?: string;
+}
+
 export default class ExceptionUtil {
-  public static getFingerprint(exception: ExceptionInstance): string {
-    const message: string = exception.message || "";
-    const stackTrace: string = exception.stackTrace || "";
-    const type: string = exception.exceptionType || "";
-    const projectId: string = exception.projectId?.toString() || "";
-    const serviceId: string = exception.serviceId?.toString() || "";
+  public static getFingerprint(data: ExceptionFingerprintInput): string {
+    const message: string = data.message || "";
+    const stackTrace: string = data.stackTrace || "";
+    const type: string = data.exceptionType || "";
+    const projectId: string = data.projectId?.toString() || "";
+    const serviceId: string = data.serviceId?.toString() || "";
 
     const hash: string = Crypto.getSha256Hash(
       projectId + serviceId + message + stackTrace + type,
@@ -21,7 +38,7 @@ export default class ExceptionUtil {
   }
 
   public static async saveOrUpdateTelemetryException(
-    exception: ExceptionInstance,
+    exception: TelemetryExceptionPayload,
   ): Promise<void> {
     // Exception is saved to main database as well (not just analytics db), so users can assgin it, resolve it, etc.
 
