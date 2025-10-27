@@ -160,7 +160,11 @@ export default class TelemetryUtil {
 
       const keyWithPrefix: string = `${prefixKeysWithString}${attribute["key"]}`;
 
-      const value = this.getAttributeValues(keyWithPrefix, attribute["value"]);
+      const value:
+        | AttributeType
+        | Dictionary<AttributeType | Array<AttributeType>>
+        | Array<AttributeType>
+        | null = this.getAttributeValues(keyWithPrefix, attribute["value"]);
 
       if (value === null) {
         finalObj[keyWithPrefix] = null;
@@ -252,10 +256,11 @@ export default class TelemetryUtil {
         > = {};
         for (const key in fields) {
           const nestedPrefix: string = `${prefixKeysWithString}.${key}`;
-          const nestedValue = this.getAttributeValues(
-            nestedPrefix,
-            fields[key],
-          );
+          const nestedValue:
+            | AttributeType
+            | Dictionary<AttributeType | Array<AttributeType>>
+            | Array<AttributeType>
+            | null = this.getAttributeValues(nestedPrefix, fields[key]);
 
           if (nestedValue === null) {
             flattenedFields[nestedPrefix] = null;
