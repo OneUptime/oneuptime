@@ -67,7 +67,7 @@ export default class AnalyticsDatabaseService<
   public modelType!: { new (): TBaseModel };
   public database!: ClickhouseDatabase;
   public model!: TBaseModel;
-  public databaseClient!: ClickhouseClient;
+  public databaseClient!: ClickhouseClient | null;
   public statementGenerator!: StatementGenerator<TBaseModel>;
 
   public constructor(data: {
@@ -83,7 +83,7 @@ export default class AnalyticsDatabaseService<
       this.database = ClickhouseAppInstance; // default database
     }
 
-    this.databaseClient = this.database.getDataSource() as ClickhouseClient;
+    this.databaseClient = this.database.getDataSource();
 
     this.statementGenerator = new StatementGenerator<TBaseModel>({
       modelType: this.modelType,
@@ -97,12 +97,7 @@ export default class AnalyticsDatabaseService<
       return;
     }
 
-    if (!this.databaseClient) {
-      throw new Exception(
-        ExceptionCode.DatabaseNotConnectedException,
-        "ClickHouse client is not connected",
-      );
-    }
+    const client: ClickhouseClient = this.getDatabaseClient();
 
     const tableName: string = this.model.tableName;
 
@@ -114,7 +109,7 @@ export default class AnalyticsDatabaseService<
     }
 
     try {
-      await this.databaseClient.insert({
+      await client.insert({
         table: tableName,
         values: rows,
         format: "JSONEachRow",
@@ -849,23 +844,21 @@ export default class AnalyticsDatabaseService<
 
   public useDefaultDatabase(): void {
     this.database = ClickhouseAppInstance;
-    this.databaseClient = this.database.getDataSource() as ClickhouseClient;
+    this.databaseClient = this.database.getDataSource();
   }
 
   @CaptureSpan()
   public async execute(
     statement: Statement | string
   ): Promise<ExecResult<Stream>> {
-    if (!this.databaseClient) {
-      this.useDefaultDatabase();
-    }
+    const client: ClickhouseClient = this.getDatabaseClient();
 
     const query: string =
       statement instanceof Statement ? statement.query : statement;
     const queryParams: Record<string, unknown> | undefined =
       statement instanceof Statement ? statement.query_params : undefined;
 
-    return (await this.databaseClient.exec({
+    return (await client.exec({
       query: query,
       query_params: queryParams || (undefined as any), // undefined is not specified in the type for query_params, but its ok to pass undefined.
     })) as ExecResult<Stream>;
@@ -875,20 +868,39 @@ export default class AnalyticsDatabaseService<
   public async executeQuery(
     statement: Statement | string
   ): Promise<ResultSet<"JSON">> {
-    if (!this.databaseClient) {
-      this.useDefaultDatabase();
-    }
+    const client: ClickhouseClient = this.getDatabaseClient();
 
     const query: string =
       statement instanceof Statement ? statement.query : statement;
     const queryParams: Record<string, unknown> | undefined =
       statement instanceof Statement ? statement.query_params : undefined;
 
-    return await this.databaseClient.query({
+    return await client.query({
       query: query,
       format: "JSON",
       query_params: queryParams || (undefined as any), // undefined is not specified in the type for query_params, but its ok to pass undefined.
     });
+  }
+
+  private getDatabaseClient(): ClickhouseClient {
+    // Refresh the ClickHouse client lazily so services created before the
+    // ClickHouse connection was established pick up the live client.
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    if (!this.databaseClient && this.database) {
+      this.databaseClient = this.database.getDataSource();
+    }
+
+    if (!this.databaseClient) {
+      throw new Exception(
+        ExceptionCode.DatabaseNotConnectedException,
+        "ClickHouse client is not connected",
+      );
+    }
+
+    return this.databaseClient;
   }
 
   protected async onUpdateSuccess(
