@@ -109,15 +109,19 @@ export default class AnalyticsDatabaseService<
     }
 
     try {
-      await client.insert({
+      const result = await client.insert({
         table: tableName,
         values: rows,
         format: "JSONEachRow",
         clickhouse_settings: {
           async_insert: 1,
-          wait_for_async_insert: 0,
+          wait_for_async_insert: 1,
         },
       });
+
+
+      logger.debug(`ClickHouse insert succeeded for table ${tableName} at ${OneUptimeDate.toString(OneUptimeDate.getCurrentDate())}`);
+      logger.debug(result);
     } catch (error) {
       logger.error(
         `ClickHouse insert failed for table ${tableName} at ${OneUptimeDate.toString(OneUptimeDate.getCurrentDate())}`,
