@@ -380,6 +380,9 @@ export const AverageMetricRowSizeInBytes: number = parsePositiveNumberFromEnv(
   1024,
 );
 
+export const AverageExceptionRowSizeInBytes: number =
+  parsePositiveNumberFromEnv("AVERAGE_EXCEPTION_ROW_SIZE_IN_BYTES", 1024);
+
 export const SlackAppClientId: string | null =
   process.env["SLACK_APP_CLIENT_ID"] || null;
 export const SlackAppClientSecret: string | null =

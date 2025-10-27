@@ -15,6 +15,7 @@ import TelemetryServiceService from "./TelemetryServiceService";
 import SpanService from "./SpanService";
 import LogService from "./LogService";
 import MetricService from "./MetricService";
+import ExceptionInstanceService from "./ExceptionInstanceService";
 import AnalyticsQueryHelper from "../Types/AnalyticsDatabase/QueryHelper";
 import DiskSize from "../../Types/DiskSize";
 import logger from "../Utils/Logger";
@@ -24,6 +25,7 @@ import {
   AverageSpanRowSizeInBytes,
   AverageLogRowSizeInBytes,
   AverageMetricRowSizeInBytes,
+  AverageExceptionRowSizeInBytes,
   IsBillingEnabled,
 } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -76,8 +78,21 @@ export class Service extends DatabaseService<Model> {
     const averageRowSizeInBytes: number = this.getAverageRowSizeForProduct(
       data.productType,
     );
+    const averageExceptionRowSizeInBytes: number =
+      this.getAverageExceptionRowSize();
 
-    if (averageRowSizeInBytes <= 0) {
+    if (
+      data.productType !== ProductType.Traces &&
+      averageRowSizeInBytes <= 0
+    ) {
+      return;
+    }
+
+    if (
+      data.productType === ProductType.Traces &&
+      averageRowSizeInBytes <= 0 &&
+      averageExceptionRowSizeInBytes <= 0
+    ) {
       return;
     }
 
@@ -129,11 +144,11 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      let rowCount: number = 0;
+      let estimatedBytes: number = 0;
 
       try {
         if (data.productType === ProductType.Traces) {
-          const count: PositiveNumber = await SpanService.countBy({
+          const spanCount: PositiveNumber = await SpanService.countBy({
             query: {
               projectId: data.projectId,
               serviceId: telemetryService.id,
@@ -146,7 +161,30 @@ export class Service extends DatabaseService<Model> {
             },
           });
 
-          rowCount = count.toNumber();
+          const exceptionCount: PositiveNumber =
+            await ExceptionInstanceService.countBy({
+              query: {
+                projectId: data.projectId,
+                serviceId: telemetryService.id,
+                time: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
+              },
+              skip: 0,
+              limit: LIMIT_INFINITY,
+              props: {
+                isRoot: true,
+              },
+            });
+
+          const totalSpanCount: number = spanCount.toNumber();
+          const totalExceptionCount: number = exceptionCount.toNumber();
+
+          if (totalSpanCount <= 0 && totalExceptionCount <= 0) {
+            continue;
+          }
+
+          estimatedBytes =
+            totalSpanCount * averageRowSizeInBytes +
+            totalExceptionCount * averageExceptionRowSizeInBytes;
         } else if (data.productType === ProductType.Logs) {
           const count: PositiveNumber = await LogService.countBy({
             query: {
@@ -161,7 +199,13 @@ export class Service extends DatabaseService<Model> {
             },
           });
 
-          rowCount = count.toNumber();
+          const totalRowCount: number = count.toNumber();
+
+          if (totalRowCount <= 0) {
+            continue;
+          }
+
+          estimatedBytes = totalRowCount * averageRowSizeInBytes;
         } else if (data.productType === ProductType.Metrics) {
           const count: PositiveNumber = await MetricService.countBy({
             query: {
@@ -176,7 +220,13 @@ export class Service extends DatabaseService<Model> {
             },
           });
 
-          rowCount = count.toNumber();
+          const totalRowCount: number = count.toNumber();
+
+          if (totalRowCount <= 0) {
+            continue;
+          }
+
+          estimatedBytes = totalRowCount * averageRowSizeInBytes;
         }
       } catch (error) {
         logger.error(
@@ -186,11 +236,10 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      if (rowCount <= 0) {
+      if (estimatedBytes <= 0) {
         continue;
       }
 
-      const estimatedBytes: number = rowCount * averageRowSizeInBytes;
       const estimatedGigabytes: number = DiskSize.byteSizeToGB(estimatedBytes);
 
       if (!Number.isFinite(estimatedGigabytes) || estimatedGigabytes <= 0) {
@@ -343,6 +392,20 @@ export class Service extends DatabaseService<Model> {
     }
 
     return value;
+  }
+
+  private getAverageExceptionRowSize(): number {
+    const fallbackSize: number = 1024;
+
+    if (!Number.isFinite(AverageExceptionRowSizeInBytes)) {
+      return fallbackSize;
+    }
+
+    if (AverageExceptionRowSizeInBytes <= 0) {
+      return fallbackSize;
+    }
+
+    return AverageExceptionRowSizeInBytes;
   }
 }
 

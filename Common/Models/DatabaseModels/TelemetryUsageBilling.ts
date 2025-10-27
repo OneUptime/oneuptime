@@ -39,7 +39,7 @@ export const DEFAULT_RETENTION_IN_DAYS: number = 15;
   pluralName: "Telemetry Usage Billings",
   icon: IconProp.Billing,
   tableDescription:
-    "Stores historical usage billing data for your telemetry data like Logs, Metrics, and Traces.",
+    "Stores historical usage billing data for your telemetry data like Logs, Metrics, Traces, and Exceptions.",
 })
 @Entity({
   name: "TelemetryUsageBilling",

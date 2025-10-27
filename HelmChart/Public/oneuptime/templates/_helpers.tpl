@@ -493,6 +493,8 @@ Usage:
 
 - name: AVERAGE_METRIC_ROW_SIZE_IN_BYTES
   value: {{ $.Values.billing.telemetry.averageMetricRowSizeInBytes | quote }}
+- name: AVERAGE_EXCEPTION_ROW_SIZE_IN_BYTES
+  value: {{ $.Values.billing.telemetry.averageExceptionRowSizeInBytes | quote }}
 
 {{- end }}
 

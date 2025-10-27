@@ -611,6 +611,10 @@
             "averageMetricRowSizeInBytes": {
               "type": "integer",
               "minimum": 1
+            },
+            "averageExceptionRowSizeInBytes": {
+              "type": "integer",
+              "minimum": 1
             }
           },
           "additionalProperties": false
