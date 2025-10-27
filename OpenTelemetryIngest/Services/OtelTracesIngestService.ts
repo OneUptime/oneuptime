@@ -546,12 +546,10 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       stackTrace: stackTrace,
                     }
                   : {}),
-              }).catch(
-                (err: Error) => {
-                  logger.error("Error saving/updating telemetry exception:");
-                  logger.error(err);
-                },
-              );
+              }).catch((err: Error) => {
+                logger.error("Error saving/updating telemetry exception:");
+                logger.error(err);
+              });
             } catch (exceptionError) {
               logger.warn(
                 `Error processing span exception event: ${exceptionError instanceof Error ? exceptionError.message : String(exceptionError)}`,
