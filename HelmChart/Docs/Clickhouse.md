@@ -67,3 +67,20 @@ ORDER BY elapsed DESC;
 ```sql
 KILL QUERY WHERE query_id = 'your_query_id';
 ```
+
+
+#### Get size of avg row in bytes by table. 
+
+```
+SELECT
+  c.table,
+  sum(c.data_uncompressed_bytes) AS total_uncompressed_bytes,
+  t.total_rows,
+  sum(c.data_uncompressed_bytes) / t.total_rows AS avg_uncompressed_row_size_bytes
+FROM system.columns c
+JOIN system.tables t
+  ON c.database = t.database AND c.table = t.name
+WHERE c.database = 'oneuptime'
+GROUP BY c.table, t.total_rows
+ORDER BY avg_uncompressed_row_size_bytes DESC;
+```
