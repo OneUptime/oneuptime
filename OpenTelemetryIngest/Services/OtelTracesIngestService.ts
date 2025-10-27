@@ -617,16 +617,17 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     links: Array<JSONObject>;
   }): JSONObject {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
-    const ingestionIso: string = OneUptimeDate.toString(ingestionDate);
+    const ingestionTimestamp: string =
+      OneUptimeDate.toClickhouseDateTime(ingestionDate);
 
     return {
       _id: ObjectID.generate().toString(),
-      createdAt: ingestionIso,
-      updatedAt: ingestionIso,
+      createdAt: ingestionTimestamp,
+      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       serviceId: data.serviceId.toString(),
-      startTime: data.startTime.iso,
-      endTime: data.endTime.iso,
+      startTime: OneUptimeDate.toClickhouseDateTime(data.startTime.date),
+      endTime: OneUptimeDate.toClickhouseDateTime(data.endTime.date),
       startTimeUnixNano: data.startTime.nano,
       endTimeUnixNano: data.endTime.nano,
       durationUnixNano: data.durationUnixNano,
@@ -647,15 +648,16 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
   private static buildExceptionRow(data: ExceptionEventPayload): JSONObject {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
-    const ingestionIso: string = OneUptimeDate.toString(ingestionDate);
+    const ingestionTimestamp: string =
+      OneUptimeDate.toClickhouseDateTime(ingestionDate);
 
     return {
       _id: ObjectID.generate().toString(),
-      createdAt: ingestionIso,
-      updatedAt: ingestionIso,
+      createdAt: ingestionTimestamp,
+      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       serviceId: data.serviceId.toString(),
-      time: data.time.iso,
+      time: OneUptimeDate.toClickhouseDateTime(data.time.date),
       timeUnixNano: data.time.nano,
       exceptionType: data.exceptionType || "",
       stackTrace: data.stackTrace || "",

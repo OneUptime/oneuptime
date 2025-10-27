@@ -30,6 +30,13 @@ import { OPEN_TELEMETRY_INGEST_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 import OneUptimeDate from "Common/Types/Date";
 import MetricService from "Common/Server/Services/MetricService";
 
+type MetricTimestamp = {
+  nano: string;
+  iso: string;
+  db: string;
+  date: Date;
+};
+
 export default class OtelMetricsIngestService extends OtelIngestBaseService {
   private static async flushMetricsBuffer(
     metrics: Array<JSONObject>,
@@ -389,9 +396,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     isMonotonic?: boolean;
   }): JSONObject {
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
-    const ingestionIso: string = OneUptimeDate.toString(ingestionDate);
+    const ingestionTimestamp: string =
+      OneUptimeDate.toClickhouseDateTime(ingestionDate);
 
-    const timeFields: { nano: string; iso: string } = this.safeParseUnixNano(
+    const timeFields: MetricTimestamp = this.safeParseUnixNano(
       data.datapoint["timeUnixNano"] as string | number | undefined,
       "metric datapoint timeUnixNano",
     );
@@ -400,7 +408,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       "startTimeUnixNano"
     ] as string | number | undefined;
 
-    const startTimeFields: { nano: string; iso: string } | null = startTimeRaw
+    const startTimeFields: MetricTimestamp | null = startTimeRaw
       ? this.safeParseUnixNano(
           startTimeRaw,
           "metric datapoint startTimeUnixNano",
@@ -464,13 +472,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
     const row: JSONObject = {
       _id: ObjectID.generate().toString(),
-      createdAt: ingestionIso,
-      updatedAt: ingestionIso,
+      createdAt: ingestionTimestamp,
+      updatedAt: ingestionTimestamp,
       projectId: data.projectId.toString(),
       serviceId: data.serviceId.toString(),
       serviceType: ServiceType.OpenTelemetry,
       name: data.metricName,
-      time: timeFields.iso,
+      time: timeFields.db,
       timeUnixNano: timeFields.nano,
       metricPointType: data.metricPointType,
       aggregationTemporality: this.mapAggregationTemporality(
@@ -495,7 +503,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     };
 
     if (startTimeFields) {
-      row["startTime"] = startTimeFields.iso;
+      row["startTime"] = startTimeFields.db;
       row["startTimeUnixNano"] = startTimeFields.nano;
     } else {
       row["startTime"] = null;
@@ -508,7 +516,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   private static safeParseUnixNano(
     value: string | number | undefined,
     context: string,
-  ): { nano: string; iso: string } {
+  ): MetricTimestamp {
     let numericValue: number = OneUptimeDate.getCurrentDateAsUnixNano();
 
     if (value !== undefined && value !== null) {
@@ -533,13 +541,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       }
     }
 
-    const dateIso: string = OneUptimeDate.toString(
-      OneUptimeDate.fromUnixNano(numericValue),
-    );
+    const date: Date = OneUptimeDate.fromUnixNano(numericValue);
+    const iso: string = OneUptimeDate.toString(date);
+    const db: string = OneUptimeDate.toClickhouseDateTime(date);
 
     return {
       nano: Math.trunc(numericValue).toString(),
-      iso: dateIso,
+      iso: iso,
+      db: db,
+      date: date,
     };
   }
 

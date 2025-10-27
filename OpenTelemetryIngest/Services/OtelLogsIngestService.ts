@@ -200,9 +200,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
                   let timeUnixNanoNumeric: number =
                     OneUptimeDate.getCurrentDateAsUnixNano();
-                  let timeIsoString: string = OneUptimeDate.toString(
-                    OneUptimeDate.getCurrentDate(),
-                  );
+                  let timeDate: Date = OneUptimeDate.getCurrentDate();
 
                   if (log["timeUnixNano"]) {
                     try {
@@ -221,23 +219,19 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                       }
 
                       timeUnixNanoNumeric = timeUnixNano;
-                      timeIsoString = OneUptimeDate.toString(
-                        OneUptimeDate.fromUnixNano(timeUnixNano),
-                      );
+                      timeDate = OneUptimeDate.fromUnixNano(timeUnixNano);
                     } catch (timeError) {
                       logger.warn(
                         `Error processing timestamp ${log["timeUnixNano"]}: ${timeError instanceof Error ? timeError.message : String(timeError)}, using current time`,
                       );
-                      const currentTime: Date = OneUptimeDate.getCurrentDate();
                       timeUnixNanoNumeric =
                         OneUptimeDate.getCurrentDateAsUnixNano();
-                      timeIsoString = OneUptimeDate.toString(currentTime);
+                      timeDate = OneUptimeDate.getCurrentDate();
                     }
                   } else {
-                    const currentTime: Date = OneUptimeDate.getCurrentDate();
                     timeUnixNanoNumeric =
                       OneUptimeDate.getCurrentDateAsUnixNano();
-                    timeIsoString = OneUptimeDate.toString(currentTime);
+                    timeDate = OneUptimeDate.getCurrentDate();
                   }
 
                   let logSeverityNumber: number =
@@ -287,16 +281,18 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   }
 
                   const ingestionDate: Date = OneUptimeDate.getCurrentDate();
-                  const timestampIso: string =
-                    OneUptimeDate.toString(ingestionDate);
+                  const ingestionTimestamp: string =
+                    OneUptimeDate.toClickhouseDateTime(ingestionDate);
+                  const logTimestamp: string =
+                    OneUptimeDate.toClickhouseDateTime(timeDate);
 
                   const logRow: JSONObject = {
                     _id: ObjectID.generate().toString(),
-                    createdAt: timestampIso,
-                    updatedAt: timestampIso,
+                    createdAt: ingestionTimestamp,
+                    updatedAt: ingestionTimestamp,
                     projectId: projectId.toString(),
                     serviceId: serviceId.toString(),
-                    time: timeIsoString,
+                    time: logTimestamp,
                     timeUnixNano: Math.trunc(timeUnixNanoNumeric).toString(),
                     severityNumber: logSeverityNumber,
                     severityText: severityText,
