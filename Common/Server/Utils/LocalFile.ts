@@ -72,6 +72,24 @@ export default class LocalFile {
   }
 
   @CaptureSpan()
+  public static async deleteDirectory(path: string): Promise<void> {
+    if ((await this.doesDirectoryExist(path)) === false) {
+      return;
+    }
+
+    return new Promise(
+      (resolve: VoidFunction, reject: PromiseRejectErrorFunction) => {
+        fs.rm(path, { recursive: true, force: true }, (err: Error | null) => {
+          if (err) {
+            return reject(err);
+          }
+          resolve();
+        });
+      },
+    );
+  }
+
+  @CaptureSpan()
   public static async getListOfDirectories(path: string): Promise<string[]> {
     return new Promise(
       (

@@ -183,13 +183,9 @@ export default class CodeRepositoryUtil {
       `${data.repoPath}/${data.directoryPath}`,
     );
 
-    const command: string = `rm -rf ${totalPath}`;
+    logger.debug("Deleting directory: " + totalPath);
 
-    logger.debug("Executing command: " + command);
-
-    const stdout: string = await Execute.executeCommand(command);
-
-    logger.debug(stdout);
+    await LocalFile.deleteDirectory(totalPath);
   }
 
   @CaptureSpan()
