@@ -42,6 +42,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
+import ExceptionCode from "../../Types/Exception/ExceptionCode";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -66,7 +67,7 @@ export default class AnalyticsDatabaseService<
   public modelType!: { new (): TBaseModel };
   public database!: ClickhouseDatabase;
   public model!: TBaseModel;
-  public databaseClient!: ClickhouseClient;
+  public databaseClient!: ClickhouseClient | null;
   public statementGenerator!: StatementGenerator<TBaseModel>;
 
   public constructor(data: {
@@ -82,12 +83,52 @@ export default class AnalyticsDatabaseService<
       this.database = ClickhouseAppInstance; // default database
     }
 
-    this.databaseClient = this.database.getDataSource() as ClickhouseClient;
+    this.databaseClient = this.database.getDataSource();
 
     this.statementGenerator = new StatementGenerator<TBaseModel>({
       modelType: this.modelType,
       database: this.database,
     });
+  }
+
+  @CaptureSpan()
+  public async insertJsonRows(rows: Array<JSONObject>): Promise<void> {
+    if (!rows || rows.length === 0) {
+      return;
+    }
+
+    const client: ClickhouseClient = this.getDatabaseClient();
+
+    const tableName: string = this.model.tableName;
+
+    if (!tableName) {
+      throw new Exception(
+        ExceptionCode.BadDataException,
+        "Analytics model table name not configured",
+      );
+    }
+
+    try {
+      await client.insert({
+        table: tableName,
+        values: rows,
+        format: "JSONEachRow",
+        clickhouse_settings: {
+          async_insert: 1,
+          wait_for_async_insert: 0,
+        },
+      });
+
+      logger.debug(
+        `ClickHouse insert succeeded for table ${tableName} at ${OneUptimeDate.toString(OneUptimeDate.getCurrentDate())}`,
+      );
+    } catch (error) {
+      logger.error(
+        `ClickHouse insert failed for table ${tableName} at ${OneUptimeDate.toString(OneUptimeDate.getCurrentDate())}`,
+      );
+      logger.error(error);
+      throw error;
+    }
   }
 
   @CaptureSpan()
@@ -807,23 +848,21 @@ export default class AnalyticsDatabaseService<
 
   public useDefaultDatabase(): void {
     this.database = ClickhouseAppInstance;
-    this.databaseClient = this.database.getDataSource() as ClickhouseClient;
+    this.databaseClient = this.database.getDataSource();
   }
 
   @CaptureSpan()
   public async execute(
     statement: Statement | string
   ): Promise<ExecResult<Stream>> {
-    if (!this.databaseClient) {
-      this.useDefaultDatabase();
-    }
+    const client: ClickhouseClient = this.getDatabaseClient();
 
     const query: string =
       statement instanceof Statement ? statement.query : statement;
     const queryParams: Record<string, unknown> | undefined =
       statement instanceof Statement ? statement.query_params : undefined;
 
-    return (await this.databaseClient.exec({
+    return (await client.exec({
       query: query,
       query_params: queryParams || (undefined as any), // undefined is not specified in the type for query_params, but its ok to pass undefined.
     })) as ExecResult<Stream>;
@@ -833,20 +872,41 @@ export default class AnalyticsDatabaseService<
   public async executeQuery(
     statement: Statement | string
   ): Promise<ResultSet<"JSON">> {
-    if (!this.databaseClient) {
-      this.useDefaultDatabase();
-    }
+    const client: ClickhouseClient = this.getDatabaseClient();
 
     const query: string =
       statement instanceof Statement ? statement.query : statement;
     const queryParams: Record<string, unknown> | undefined =
       statement instanceof Statement ? statement.query_params : undefined;
 
-    return await this.databaseClient.query({
+    return await client.query({
       query: query,
       format: "JSON",
       query_params: queryParams || (undefined as any), // undefined is not specified in the type for query_params, but its ok to pass undefined.
     });
+  }
+
+  private getDatabaseClient(): ClickhouseClient {
+    /*
+     * Refresh the ClickHouse client lazily so services created before the
+     * ClickHouse connection was established pick up the live client.
+     */
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    if (!this.databaseClient && this.database) {
+      this.databaseClient = this.database.getDataSource();
+    }
+
+    if (!this.databaseClient) {
+      throw new Exception(
+        ExceptionCode.DatabaseNotConnectedException,
+        "ClickHouse client is not connected",
+      );
+    }
+
+    return this.databaseClient;
   }
 
   protected async onUpdateSuccess(

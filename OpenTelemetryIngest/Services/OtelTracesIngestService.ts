@@ -16,8 +16,7 @@ import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
-import Span, {
+import {
   SpanEventType,
   SpanKind,
   SpanStatus,
@@ -35,9 +34,32 @@ import {
   OPEN_TELEMETRY_INGEST_TRACE_FLUSH_BATCH_SIZE,
 } from "../Config";
 
+type ParsedUnixNano = {
+  unixNano: number;
+  nano: string;
+  iso: string;
+  date: Date;
+};
+
+type ExceptionEventPayload = {
+  projectId: ObjectID;
+  serviceId: ObjectID;
+  spanId: string;
+  traceId: string;
+  spanStatusCode: SpanStatus;
+  spanName: string;
+  message: string;
+  stackTrace: string;
+  exceptionType: string;
+  escaped: boolean | null;
+  attributes: JSONObject;
+  time: ParsedUnixNano;
+  fingerprint: string;
+};
+
 export default class OtelTracesIngestService extends OtelIngestBaseService {
   private static async flushSpansBuffer(
-    spans: Array<Span>,
+    spans: Array<JSONObject>,
     force: boolean = false,
   ): Promise<void> {
     while (
@@ -48,23 +70,18 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         spans.length,
         OPEN_TELEMETRY_INGEST_TRACE_FLUSH_BATCH_SIZE,
       );
-      const batch: Array<Span> = spans.splice(0, batchSize);
+      const batch: Array<JSONObject> = spans.splice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      await SpanService.createMany({
-        items: batch,
-        props: {
-          isRoot: true,
-        },
-      });
+      await SpanService.insertJsonRows(batch);
     }
   }
 
   private static async flushExceptionsBuffer(
-    exceptions: Array<ExceptionInstance>,
+    exceptions: Array<JSONObject>,
     force: boolean = false,
   ): Promise<void> {
     while (
@@ -75,18 +92,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         exceptions.length,
         OPEN_TELEMETRY_INGEST_EXCEPTION_FLUSH_BATCH_SIZE,
       );
-      const batch: Array<ExceptionInstance> = exceptions.splice(0, batchSize);
+      const batch: Array<JSONObject> = exceptions.splice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      await ExceptionInstanceService.createMany({
-        items: batch,
-        props: {
-          isRoot: true,
-        },
-      });
+      await ExceptionInstanceService.insertJsonRows(batch);
     }
   }
 
@@ -132,8 +144,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         throw new BadRequestException("Invalid resourceSpans format");
       }
 
-      const dbSpans: Array<Span> = [];
-      const dbExceptions: Array<ExceptionInstance> = [];
+      const dbSpans: Array<JSONObject> = [];
+      const dbExceptions: Array<JSONObject> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
       let totalSpansProcessed: number = 0;
 
@@ -211,9 +223,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     await Promise.resolve();
                   }
                   spanCounter++;
-                  const dbSpan: Span = new Span();
 
-                  const attributesObject: Dictionary<
+                  const spanAttributes: Dictionary<
                     AttributeType | Array<AttributeType>
                   > = {
                     ...resourceAttributes,
@@ -231,136 +242,123 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       "scope"
                     ] as JSONObject;
                     for (const key of Object.keys(scopeAttributes)) {
-                      attributesObject[`scope.${key}`] = scopeAttributes[
+                      spanAttributes[`scope.${key}`] = scopeAttributes[
                         key
                       ] as AttributeType;
                     }
                   }
 
-                  dbSpan.attributes = attributesObject;
-                  dbSpan.attributeKeys =
-                    TelemetryUtil.getAttributeKeys(attributesObject);
+                  const attributeKeys: Array<string> =
+                    TelemetryUtil.getAttributeKeys(spanAttributes);
 
-                  dbSpan.projectId = (req as TelemetryRequest).projectId;
-                  dbSpan.serviceId = serviceDictionary[serviceName]!.serviceId!;
+                  const projectId: ObjectID = (req as TelemetryRequest)
+                    .projectId;
+                  const serviceId: ObjectID =
+                    serviceDictionary[serviceName]!.serviceId!;
 
+                  const spanId: string = this.convertBase64ToHexSafe(
+                    span["spanId"] as string | undefined,
+                  );
+                  const traceId: string = this.convertBase64ToHexSafe(
+                    span["traceId"] as string | undefined,
+                  );
+                  const parentSpanId: string = this.convertBase64ToHexSafe(
+                    span["parentSpanId"] as string | undefined,
+                  );
+
+                  const startTime: ParsedUnixNano = this.safeParseUnixNano(
+                    (span as JSONObject)["startTimeUnixNano"] as
+                      | string
+                      | number
+                      | undefined,
+                    "span startTimeUnixNano",
+                  );
+                  const endTime: ParsedUnixNano = this.safeParseUnixNano(
+                    (span as JSONObject)["endTimeUnixNano"] as
+                      | string
+                      | number
+                      | undefined,
+                    "span endTimeUnixNano",
+                  );
+
+                  const durationUnixNano: string = this.calculateDurationNano(
+                    startTime,
+                    endTime,
+                  );
+
+                  let statusCode: SpanStatus = SpanStatus.Unset;
+                  let statusMessage: string = "";
                   try {
-                    dbSpan.spanId = Text.convertBase64ToHex(
-                      span["spanId"] as string,
-                    );
-                  } catch {
-                    dbSpan.spanId = "";
-                  }
-
-                  try {
-                    dbSpan.traceId = Text.convertBase64ToHex(
-                      span["traceId"] as string,
-                    );
-                  } catch {
-                    dbSpan.traceId = "";
-                  }
-
-                  try {
-                    dbSpan.parentSpanId = Text.convertBase64ToHex(
-                      span["parentSpanId"] as string,
-                    );
-                  } catch {
-                    dbSpan.parentSpanId = "";
-                  }
-
-                  try {
-                    let startTimeUnixNano: number;
-                    if (typeof span["startTimeUnixNano"] === "string") {
-                      startTimeUnixNano = parseFloat(span["startTimeUnixNano"]);
-                      if (isNaN(startTimeUnixNano)) {
-                        throw new Error(
-                          `Invalid start timestamp string: ${span["startTimeUnixNano"]}`,
-                        );
-                      }
-                    } else {
-                      startTimeUnixNano =
-                        (span["startTimeUnixNano"] as number) ||
-                        OneUptimeDate.getCurrentDateAsUnixNano();
-                    }
-
-                    let endTimeUnixNano: number;
-                    if (typeof span["endTimeUnixNano"] === "string") {
-                      endTimeUnixNano = parseFloat(span["endTimeUnixNano"]);
-                      if (isNaN(endTimeUnixNano)) {
-                        throw new Error(
-                          `Invalid end timestamp string: ${span["endTimeUnixNano"]}`,
-                        );
-                      }
-                    } else {
-                      endTimeUnixNano =
-                        (span["endTimeUnixNano"] as number) ||
-                        OneUptimeDate.getCurrentDateAsUnixNano();
-                    }
-
-                    dbSpan.startTimeUnixNano = startTimeUnixNano;
-                    dbSpan.endTimeUnixNano = endTimeUnixNano;
-
-                    dbSpan.startTime =
-                      OneUptimeDate.fromUnixNano(startTimeUnixNano);
-                    dbSpan.endTime =
-                      OneUptimeDate.fromUnixNano(endTimeUnixNano);
-
-                    dbSpan.durationUnixNano =
-                      endTimeUnixNano - startTimeUnixNano;
-                  } catch (timeError) {
-                    logger.warn(
-                      `Error processing span timestamps: ${timeError instanceof Error ? timeError.message : String(timeError)}, using current time`,
-                    );
-                    const currentNano: number =
-                      OneUptimeDate.getCurrentDateAsUnixNano();
-                    const currentTime: Date = OneUptimeDate.getCurrentDate();
-                    dbSpan.startTimeUnixNano = currentNano;
-                    dbSpan.endTimeUnixNano = currentNano;
-                    dbSpan.startTime = currentTime;
-                    dbSpan.endTime = currentTime;
-                    dbSpan.durationUnixNano = 0;
-                  }
-
-                  try {
-                    dbSpan.statusCode = this.getSpanStatusCode(
+                    statusCode = this.getSpanStatusCode(
                       span["status"] as JSONObject,
                     );
-                    dbSpan.statusMessage = (span["status"] as JSONObject)?.[
-                      "message"
-                    ] as string;
-                  } catch {
-                    dbSpan.statusCode = SpanStatus.Unset;
-                    dbSpan.statusMessage = "";
+                    statusMessage =
+                      ((span["status"] as JSONObject)?.["message"] as string) ||
+                      "";
+                  } catch (statusError) {
+                    logger.warn(
+                      `Error processing span status: ${statusError instanceof Error ? statusError.message : String(statusError)}`,
+                    );
                   }
 
-                  dbSpan.name = (span["name"] as string) || "";
-                  dbSpan.kind = (span["kind"] as SpanKind) || SpanKind.Internal;
+                  const spanName: string = (span["name"] as string) || "";
+                  const spanKind: SpanKind =
+                    (span["kind"] as SpanKind) || SpanKind.Internal;
+                  const traceState: string =
+                    (span["traceState"] as string) || "";
 
+                  let spanEvents: Array<JSONObject> = [];
                   try {
-                    dbSpan.events = this.getSpanEvents(
+                    spanEvents = this.getSpanEvents(
                       span["events"] as JSONArray,
-                      dbSpan,
+                      {
+                        projectId: projectId,
+                        serviceId: serviceId,
+                        spanId: spanId,
+                        traceId: traceId,
+                        spanStatusCode: statusCode,
+                        spanName: spanName,
+                      },
                       dbExceptions,
                     );
                   } catch (eventsError) {
                     logger.warn(
                       `Error processing span events: ${eventsError instanceof Error ? eventsError.message : String(eventsError)}`,
                     );
-                    dbSpan.events = [];
+                    spanEvents = [];
                   }
 
+                  let spanLinks: Array<JSONObject> = [];
                   try {
-                    dbSpan.links = this.getSpanLinks(
-                      span["links"] as JSONArray,
-                    );
+                    spanLinks = this.getSpanLinks(span["links"] as JSONArray);
                   } catch (linksError) {
                     logger.warn(
                       `Error processing span links: ${linksError instanceof Error ? linksError.message : String(linksError)}`,
                     );
-                    dbSpan.links = [];
+                    spanLinks = [];
                   }
 
-                  dbSpans.push(dbSpan);
+                  const spanRow: JSONObject = this.buildSpanRow({
+                    projectId: projectId,
+                    serviceId: serviceId,
+                    attributes: spanAttributes,
+                    attributeKeys: attributeKeys,
+                    traceId: traceId,
+                    spanId: spanId,
+                    parentSpanId: parentSpanId,
+                    traceState: traceState,
+                    statusCode: statusCode,
+                    statusMessage: statusMessage,
+                    name: spanName,
+                    kind: spanKind,
+                    startTime: startTime,
+                    endTime: endTime,
+                    durationUnixNano: durationUnixNano,
+                    events: spanEvents,
+                    links: spanLinks,
+                  });
+
+                  dbSpans.push(spanRow);
                   totalSpansProcessed++;
 
                   if (
@@ -446,78 +444,112 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
   private static getSpanEvents(
     events: JSONArray,
-    dbSpan: Span,
-    dbExceptions: Array<ExceptionInstance>,
-  ): Array<any> {
-    const spanEvents: Array<any> = [];
+    spanContext: {
+      projectId: ObjectID;
+      serviceId: ObjectID;
+      spanId: string;
+      traceId: string;
+      spanStatusCode: SpanStatus;
+      spanName: string;
+    },
+    dbExceptions: Array<JSONObject>,
+  ): Array<JSONObject> {
+    const spanEvents: Array<JSONObject> = [];
 
-    if (events && events instanceof Array) {
+    if (events && Array.isArray(events)) {
       for (const event of events) {
         try {
-          let eventTimeUnixNano: number;
-          if (typeof event["timeUnixNano"] === "string") {
-            eventTimeUnixNano = parseFloat(event["timeUnixNano"]);
-            if (isNaN(eventTimeUnixNano)) {
-              eventTimeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
-            }
-          } else {
-            eventTimeUnixNano =
-              (event["timeUnixNano"] as number) ||
-              OneUptimeDate.getCurrentDateAsUnixNano();
-          }
-
-          const eventTime: Date = OneUptimeDate.fromUnixNano(eventTimeUnixNano);
+          const eventObject: JSONObject = event as JSONObject;
+          const parsedTime: ParsedUnixNano = this.safeParseUnixNano(
+            eventObject["timeUnixNano"] as string | number | undefined,
+            "span event timeUnixNano",
+          );
 
           const eventAttributes: JSONObject = TelemetryUtil.getAttributes({
-            items: (event["attributes"] as JSONArray) || [],
+            items: (eventObject["attributes"] as JSONArray) || [],
             prefixKeysWithString: "",
           });
 
+          const eventName: string = (eventObject["name"] as string) || "";
+
           spanEvents.push({
-            time: eventTime,
-            timeUnixNano: eventTimeUnixNano,
-            name: (event["name"] as string) || "",
+            time: parsedTime.iso,
+            timeUnixNano: parsedTime.nano,
+            name: eventName,
             attributes: eventAttributes,
           });
 
-          if (event["name"] === SpanEventType.Exception) {
+          if (eventName === SpanEventType.Exception) {
             try {
-              const exception: ExceptionInstance = new ExceptionInstance();
-              exception.projectId = dbSpan.projectId;
-              exception.serviceId = dbSpan.serviceId;
-              exception.spanId = dbSpan.spanId;
-              exception.traceId = dbSpan.traceId;
-              exception.time = eventTime;
-              exception.timeUnixNano = eventTimeUnixNano;
-              exception.spanStatusCode = dbSpan.statusCode;
-              exception.spanName = dbSpan.name;
-              exception.message =
+              const message: string =
                 (eventAttributes["exception.message"] as string) || "";
-              exception.stackTrace =
+              const stackTrace: string =
                 (eventAttributes["exception.stacktrace"] as string) || "";
-              exception.exceptionType =
+              const exceptionType: string =
                 (eventAttributes["exception.type"] as string) || "";
-              exception.escaped =
-                (eventAttributes["exception.escaped"] as boolean) || false;
-              const exceptionAttributes: JSONObject = { ...eventAttributes };
 
-              for (const keys of Object.keys(exceptionAttributes)) {
-                if (keys.startsWith("exception.")) {
-                  delete exceptionAttributes[keys];
+              const escapedParsed: boolean | null = this.toBoolean(
+                eventAttributes["exception.escaped"],
+              );
+              const escaped: boolean | null =
+                escapedParsed === null ? false : escapedParsed;
+
+              const exceptionAttributes: JSONObject = { ...eventAttributes };
+              for (const key of Object.keys(exceptionAttributes)) {
+                if (key.startsWith("exception.")) {
+                  delete exceptionAttributes[key];
                 }
               }
 
-              exception.attributes = exceptionAttributes;
-              exception.fingerprint = ExceptionUtil.getFingerprint(exception);
+              const fingerprint: string = ExceptionUtil.getFingerprint({
+                projectId: spanContext.projectId,
+                serviceId: spanContext.serviceId,
+                message: message,
+                stackTrace: stackTrace,
+                exceptionType: exceptionType,
+              });
 
-              dbExceptions.push(exception);
+              const exceptionData: ExceptionEventPayload = {
+                projectId: spanContext.projectId,
+                serviceId: spanContext.serviceId,
+                spanId: spanContext.spanId,
+                traceId: spanContext.traceId,
+                spanStatusCode: spanContext.spanStatusCode,
+                spanName: spanContext.spanName,
+                message: message,
+                stackTrace: stackTrace,
+                exceptionType: exceptionType,
+                escaped: escaped,
+                attributes: exceptionAttributes,
+                time: parsedTime,
+                fingerprint: fingerprint,
+              };
 
-              ExceptionUtil.saveOrUpdateTelemetryException(exception).catch(
-                (err: Error) => {
-                  logger.error("Error saving/updating telemetry exception:");
-                  logger.error(err);
-                },
-              );
+              dbExceptions.push(this.buildExceptionRow(exceptionData));
+
+              ExceptionUtil.saveOrUpdateTelemetryException({
+                fingerprint: fingerprint,
+                projectId: spanContext.projectId,
+                serviceId: spanContext.serviceId,
+                ...(exceptionType
+                  ? {
+                      exceptionType: exceptionType,
+                    }
+                  : {}),
+                ...(message
+                  ? {
+                      message: message,
+                    }
+                  : {}),
+                ...(stackTrace
+                  ? {
+                      stackTrace: stackTrace,
+                    }
+                  : {}),
+              }).catch((err: Error) => {
+                logger.error("Error saving/updating telemetry exception:");
+                logger.error(err);
+              });
             } catch (exceptionError) {
               logger.warn(
                 `Error processing span exception event: ${exceptionError instanceof Error ? exceptionError.message : String(exceptionError)}`,
@@ -535,22 +567,193 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     return spanEvents;
   }
 
-  private static getSpanLinks(links: JSONArray): Array<any> {
-    const spanLinks: Array<any> = [];
+  private static getSpanLinks(links: JSONArray): Array<JSONObject> {
+    const spanLinks: Array<JSONObject> = [];
 
-    if (links && links instanceof Array) {
+    if (links && Array.isArray(links)) {
       for (const link of links) {
-        spanLinks.push({
-          traceId: Text.convertBase64ToHex(link["traceId"] as string),
-          spanId: Text.convertBase64ToHex(link["spanId"] as string),
-          attributes: TelemetryUtil.getAttributes({
-            items: link["attributes"] as JSONArray,
-            prefixKeysWithString: "",
-          }),
-        });
+        try {
+          const linkObject: JSONObject = link as JSONObject;
+          spanLinks.push({
+            traceId: this.convertBase64ToHexSafe(
+              linkObject["traceId"] as string | undefined,
+            ),
+            spanId: this.convertBase64ToHexSafe(
+              linkObject["spanId"] as string | undefined,
+            ),
+            attributes: TelemetryUtil.getAttributes({
+              items: (linkObject["attributes"] as JSONArray) || [],
+              prefixKeysWithString: "",
+            }),
+          });
+        } catch (linkError) {
+          logger.warn(
+            `Error processing span link: ${linkError instanceof Error ? linkError.message : String(linkError)}`,
+          );
+        }
       }
     }
 
     return spanLinks;
+  }
+
+  private static buildSpanRow(data: {
+    projectId: ObjectID;
+    serviceId: ObjectID;
+    attributes: Dictionary<AttributeType | Array<AttributeType>>;
+    attributeKeys: Array<string>;
+    traceId: string;
+    spanId: string;
+    parentSpanId: string;
+    traceState: string;
+    statusCode: SpanStatus;
+    statusMessage: string;
+    name: string;
+    kind: SpanKind;
+    startTime: ParsedUnixNano;
+    endTime: ParsedUnixNano;
+    durationUnixNano: string;
+    events: Array<JSONObject>;
+    links: Array<JSONObject>;
+  }): JSONObject {
+    const ingestionDate: Date = OneUptimeDate.getCurrentDate();
+    const ingestionTimestamp: string =
+      OneUptimeDate.toClickhouseDateTime(ingestionDate);
+
+    return {
+      _id: ObjectID.generate().toString(),
+      createdAt: ingestionTimestamp,
+      updatedAt: ingestionTimestamp,
+      projectId: data.projectId.toString(),
+      serviceId: data.serviceId.toString(),
+      startTime: OneUptimeDate.toClickhouseDateTime(data.startTime.date),
+      endTime: OneUptimeDate.toClickhouseDateTime(data.endTime.date),
+      startTimeUnixNano: data.startTime.nano,
+      endTimeUnixNano: data.endTime.nano,
+      durationUnixNano: data.durationUnixNano,
+      traceId: data.traceId,
+      spanId: data.spanId,
+      parentSpanId: data.parentSpanId,
+      traceState: data.traceState || "",
+      attributes: data.attributes,
+      attributeKeys: data.attributeKeys,
+      statusCode: Number(data.statusCode),
+      statusMessage: data.statusMessage || "",
+      name: data.name,
+      kind: data.kind,
+      events: data.events,
+      links: data.links,
+    };
+  }
+
+  private static buildExceptionRow(data: ExceptionEventPayload): JSONObject {
+    const ingestionDate: Date = OneUptimeDate.getCurrentDate();
+    const ingestionTimestamp: string =
+      OneUptimeDate.toClickhouseDateTime(ingestionDate);
+
+    return {
+      _id: ObjectID.generate().toString(),
+      createdAt: ingestionTimestamp,
+      updatedAt: ingestionTimestamp,
+      projectId: data.projectId.toString(),
+      serviceId: data.serviceId.toString(),
+      time: OneUptimeDate.toClickhouseDateTime(data.time.date),
+      timeUnixNano: data.time.nano,
+      exceptionType: data.exceptionType || "",
+      stackTrace: data.stackTrace || "",
+      message: data.message || "",
+      spanStatusCode: Number(data.spanStatusCode),
+      escaped:
+        data.escaped === null || data.escaped === undefined
+          ? null
+          : Boolean(data.escaped),
+      traceId: data.traceId || "",
+      spanId: data.spanId || "",
+      fingerprint: data.fingerprint,
+      spanName: data.spanName || "",
+      attributes: data.attributes || {},
+    };
+  }
+
+  private static safeParseUnixNano(
+    value: string | number | undefined,
+    context: string,
+  ): ParsedUnixNano {
+    let numericValue: number = OneUptimeDate.getCurrentDateAsUnixNano();
+
+    if (value !== undefined && value !== null) {
+      try {
+        if (typeof value === "string") {
+          const parsed: number = Number.parseFloat(value);
+          if (!Number.isNaN(parsed)) {
+            numericValue = parsed;
+          } else {
+            throw new Error(`Invalid timestamp string: ${value}`);
+          }
+        } else if (typeof value === "number") {
+          if (!Number.isFinite(value)) {
+            throw new Error(`Invalid timestamp number: ${value}`);
+          }
+          numericValue = value;
+        }
+      } catch (error) {
+        logger.warn(
+          `Error processing ${context}: ${error instanceof Error ? error.message : String(error)}, using current time`,
+        );
+        numericValue = OneUptimeDate.getCurrentDateAsUnixNano();
+      }
+    }
+
+    numericValue = Math.trunc(numericValue);
+    const date: Date = OneUptimeDate.fromUnixNano(numericValue);
+    const iso: string = OneUptimeDate.toString(date);
+
+    return {
+      unixNano: numericValue,
+      nano: numericValue.toString(),
+      iso: iso,
+      date: date,
+    };
+  }
+
+  private static calculateDurationNano(
+    start: ParsedUnixNano,
+    end: ParsedUnixNano,
+  ): string {
+    const duration: number = Math.max(
+      0,
+      Math.trunc(end.unixNano - start.unixNano),
+    );
+    return duration.toString();
+  }
+
+  private static convertBase64ToHexSafe(value: string | undefined): string {
+    if (!value) {
+      return "";
+    }
+
+    try {
+      return Text.convertBase64ToHex(value);
+    } catch {
+      return "";
+    }
+  }
+
+  private static toBoolean(value: unknown): boolean | null {
+    if (typeof value === "boolean") {
+      return value;
+    }
+
+    if (typeof value === "string") {
+      const normalized: string = value.trim().toLowerCase();
+      if (normalized === "true") {
+        return true;
+      }
+      if (normalized === "false") {
+        return false;
+      }
+    }
+
+    return null;
   }
 }

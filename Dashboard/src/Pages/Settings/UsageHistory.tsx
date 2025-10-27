@@ -35,7 +35,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             "Here is the telemetry usage history for this project. Please refer to the pricing page for more details.",
         }}
         noItemsMessage={
-          "No usage history found. Maybe you have not used Telemetry features yet?"
+          "No usage history found. Maybe you have not used Telemetry features yet or you're checking this before the end of the day. Please wait until the end of the day for usage to show up."
         }
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,

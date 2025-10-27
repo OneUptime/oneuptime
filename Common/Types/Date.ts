@@ -1453,4 +1453,9 @@ export default class OneUptimeDate {
     date = this.fromString(date);
     return moment(date).format("YYYY-MM-DD HH:mm:ss");
   }
+
+  public static toClickhouseDateTime(date: Date | string): string {
+    const parsedDate: Date = this.fromString(date);
+    return moment(parsedDate).utc().format("YYYY-MM-DD HH:mm:ss");
+  }
 }

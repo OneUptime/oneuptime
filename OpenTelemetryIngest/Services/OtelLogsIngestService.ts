@@ -5,14 +5,12 @@ import OTelIngestService, {
 import OneUptimeDate from "Common/Types/Date";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Text from "Common/Types/Text";
-import LogService from "Common/Server/Services/LogService";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import Log from "Common/Models/AnalyticsModels/Log";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import LogSeverity from "Common/Types/Log/LogSeverity";
@@ -25,10 +23,11 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import LogsQueueService from "./Queue/LogsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import { OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE } from "../Config";
+import LogService from "Common/Server/Services/LogService";
 
 export default class OtelLogsIngestService extends OtelIngestBaseService {
   private static async flushLogsBuffer(
-    logs: Array<Log>,
+    logs: Array<JSONObject>,
     force: boolean = false,
   ): Promise<void> {
     while (
@@ -39,18 +38,13 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         logs.length,
         OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE,
       );
-      const batch: Array<Log> = logs.splice(0, batchSize);
+      const batch: Array<JSONObject> = logs.splice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      await LogService.createMany({
-        items: batch,
-        props: {
-          isRoot: true,
-        },
-      });
+      await LogService.insertJsonRows(batch);
     }
   }
 
@@ -94,7 +88,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         throw new BadRequestException("Invalid resourceLogs format");
       }
 
-      const dbLogs: Array<Log> = [];
+      const dbLogs: Array<JSONObject> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
       let totalLogsProcessed: number = 0;
 
@@ -171,7 +165,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     await Promise.resolve();
                   }
                   logRecordCounter++;
-                  const dbLog: Log = new Log();
 
                   const attributesObject: Dictionary<
                     AttributeType | Array<AttributeType>
@@ -197,12 +190,17 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     }
                   }
 
-                  dbLog.attributes = attributesObject;
-                  dbLog.attributeKeys =
+                  const attributeKeys: Array<string> =
                     TelemetryUtil.getAttributeKeys(attributesObject);
 
-                  dbLog.projectId = (req as TelemetryRequest).projectId;
-                  dbLog.serviceId = serviceDictionary[serviceName]!.serviceId!;
+                  const projectId: ObjectID = (req as TelemetryRequest)
+                    .projectId;
+                  const serviceId: ObjectID =
+                    serviceDictionary[serviceName]!.serviceId!;
+
+                  let timeUnixNanoNumeric: number =
+                    OneUptimeDate.getCurrentDateAsUnixNano();
+                  let timeDate: Date = OneUptimeDate.getCurrentDate();
 
                   if (log["timeUnixNano"]) {
                     try {
@@ -220,22 +218,20 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                           OneUptimeDate.getCurrentDateAsUnixNano();
                       }
 
-                      dbLog.timeUnixNano = timeUnixNano;
-                      dbLog.time = OneUptimeDate.fromUnixNano(timeUnixNano);
+                      timeUnixNanoNumeric = timeUnixNano;
+                      timeDate = OneUptimeDate.fromUnixNano(timeUnixNano);
                     } catch (timeError) {
                       logger.warn(
                         `Error processing timestamp ${log["timeUnixNano"]}: ${timeError instanceof Error ? timeError.message : String(timeError)}, using current time`,
                       );
-                      const currentTime: Date = OneUptimeDate.getCurrentDate();
-                      dbLog.timeUnixNano =
+                      timeUnixNanoNumeric =
                         OneUptimeDate.getCurrentDateAsUnixNano();
-                      dbLog.time = currentTime;
+                      timeDate = OneUptimeDate.getCurrentDate();
                     }
                   } else {
-                    const currentTime: Date = OneUptimeDate.getCurrentDate();
-                    dbLog.timeUnixNano =
+                    timeUnixNanoNumeric =
                       OneUptimeDate.getCurrentDateAsUnixNano();
-                    dbLog.time = currentTime;
+                    timeDate = OneUptimeDate.getCurrentDate();
                   }
 
                   let logSeverityNumber: number =
@@ -246,9 +242,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                       this.convertSeverityNumber(logSeverityNumber);
                   }
 
-                  dbLog.severityNumber = logSeverityNumber;
-                  dbLog.severityText = this.getSeverityText(logSeverityNumber);
+                  const severityText: LogSeverity =
+                    this.getSeverityText(logSeverityNumber);
 
+                  let body: string = "";
                   try {
                     const logBody: JSONObject = log["body"] as JSONObject;
                     if (
@@ -256,36 +253,57 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                       typeof logBody === "object" &&
                       logBody["stringValue"]
                     ) {
-                      dbLog.body = logBody["stringValue"] as string;
+                      body = logBody["stringValue"] as string;
                     } else if (typeof log["body"] === "string") {
-                      dbLog.body = log["body"] as string;
+                      body = log["body"] as string;
                     } else {
-                      dbLog.body = JSON.stringify(log["body"] || "");
+                      body = JSON.stringify(log["body"] || "");
                     }
                   } catch (bodyError) {
                     logger.warn(
                       `Error processing log body: ${bodyError instanceof Error ? bodyError.message : String(bodyError)}`,
                     );
-                    dbLog.body = String(log["body"] || "");
+                    body = String(log["body"] || "");
                   }
 
+                  let traceId: string = "";
                   try {
-                    dbLog.traceId = Text.convertBase64ToHex(
-                      log["traceId"] as string,
-                    );
+                    traceId = Text.convertBase64ToHex(log["traceId"] as string);
                   } catch {
-                    dbLog.traceId = "";
+                    traceId = "";
                   }
 
+                  let spanId: string = "";
                   try {
-                    dbLog.spanId = Text.convertBase64ToHex(
-                      log["spanId"] as string,
-                    );
+                    spanId = Text.convertBase64ToHex(log["spanId"] as string);
                   } catch {
-                    dbLog.spanId = "";
+                    spanId = "";
                   }
 
-                  dbLogs.push(dbLog);
+                  const ingestionDate: Date = OneUptimeDate.getCurrentDate();
+                  const ingestionTimestamp: string =
+                    OneUptimeDate.toClickhouseDateTime(ingestionDate);
+                  const logTimestamp: string =
+                    OneUptimeDate.toClickhouseDateTime(timeDate);
+
+                  const logRow: JSONObject = {
+                    _id: ObjectID.generate().toString(),
+                    createdAt: ingestionTimestamp,
+                    updatedAt: ingestionTimestamp,
+                    projectId: projectId.toString(),
+                    serviceId: serviceId.toString(),
+                    time: logTimestamp,
+                    timeUnixNano: Math.trunc(timeUnixNanoNumeric).toString(),
+                    severityNumber: logSeverityNumber,
+                    severityText: severityText,
+                    attributes: attributesObject,
+                    attributeKeys: attributeKeys,
+                    traceId: traceId,
+                    spanId: spanId,
+                    body: body,
+                  };
+
+                  dbLogs.push(logRow);
                   totalLogsProcessed++;
 
                   if (
