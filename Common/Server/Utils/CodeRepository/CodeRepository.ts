@@ -314,11 +314,9 @@ export default class CodeRepositoryUtil {
 
     totalPath = LocalFile.sanitizeFilePath(totalPath); // clean up the path
 
-    const output: string = await Execute.executeCommand(`ls ${totalPath}`);
+    const entries = await LocalFile.readDirectory(totalPath);
 
-    const fileNames: Array<string> = output.split("\n");
-
-    return fileNames;
+    return entries.map((entry) => entry.name);
   }
 
   @CaptureSpan()
@@ -346,16 +344,12 @@ export default class CodeRepositoryUtil {
     totalPath = LocalFile.sanitizeFilePath(totalPath); // clean up the path
 
     const files: Dictionary<CodeRepositoryFile> = {};
-    const output: string = await Execute.executeCommand(`ls ${totalPath}`);
-
-    const fileNames: Array<string> = output.split("\n");
-
     const subDirectories: Array<string> = [];
 
-    for (const fileName of fileNames) {
-      if (fileName === "") {
-        continue;
-      }
+    const entries = await LocalFile.readDirectory(totalPath);
+
+    for (const entry of entries) {
+      const fileName: string = entry.name;
 
       const filePath: string = LocalFile.sanitizeFilePath(
         `${directoryPath}/${fileName}`,
@@ -365,13 +359,7 @@ export default class CodeRepositoryUtil {
         continue;
       }
 
-      const isDirectory: boolean = (
-        await Execute.executeCommand(
-          `file "${LocalFile.sanitizeFilePath(`${totalPath}/${fileName}`)}"`,
-        )
-      ).includes("directory");
-
-      if (isDirectory) {
+      if (entry.isDirectory()) {
         subDirectories.push(
           LocalFile.sanitizeFilePath(`${directoryPath}/${fileName}`),
         );

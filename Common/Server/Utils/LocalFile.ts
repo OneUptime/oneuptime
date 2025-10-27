@@ -90,6 +90,30 @@ export default class LocalFile {
   }
 
   @CaptureSpan()
+  public static async readDirectory(
+    path: string,
+  ): Promise<Array<fs.Dirent>> {
+    return new Promise(
+      (
+        resolve: (entries: Array<fs.Dirent>) => void,
+        reject: PromiseRejectErrorFunction,
+      ) => {
+        fs.readdir(
+          path,
+          { withFileTypes: true },
+          (err: Error | null, entries: Array<fs.Dirent>) => {
+            if (err) {
+              return reject(err);
+            }
+
+            resolve(entries);
+          },
+        );
+      },
+    );
+  }
+
+  @CaptureSpan()
   public static async getListOfDirectories(path: string): Promise<string[]> {
     return new Promise(
       (
