@@ -81,10 +81,7 @@ export class Service extends DatabaseService<Model> {
     const averageExceptionRowSizeInBytes: number =
       this.getAverageExceptionRowSize();
 
-    if (
-      data.productType !== ProductType.Traces &&
-      averageRowSizeInBytes <= 0
-    ) {
+    if (data.productType !== ProductType.Traces && averageRowSizeInBytes <= 0) {
       return;
     }
 
