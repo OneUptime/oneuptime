@@ -271,9 +271,7 @@ export default class CodeRepositoryUtil {
     repoPath: string;
     username: string;
   }): Promise<void> {
-    logger.debug(
-      `Setting git user.name in ${path.resolve(data.repoPath)}`,
-    );
+    logger.debug(`Setting git user.name in ${path.resolve(data.repoPath)}`);
 
     const stdout: string = await this.runGitCommand(data.repoPath, [
       "config",
@@ -316,13 +314,16 @@ export default class CodeRepositoryUtil {
     const { repoPath, filePath } = data;
 
     const repoRoot: string = path.resolve(repoPath);
-    const absoluteTarget: string = this.resolvePathWithinRepo(repoPath, filePath);
-    const relativeTarget: string = path.relative(repoRoot, absoluteTarget);
-    const gitArgument: string = LocalFile.sanitizeFilePath(`./${relativeTarget}`);
-
-    logger.debug(
-      `Getting last commit hash for ${gitArgument} in ${repoRoot}`,
+    const absoluteTarget: string = this.resolvePathWithinRepo(
+      repoPath,
+      filePath,
     );
+    const relativeTarget: string = path.relative(repoRoot, absoluteTarget);
+    const gitArgument: string = LocalFile.sanitizeFilePath(
+      `./${relativeTarget}`,
+    );
+
+    logger.debug(`Getting last commit hash for ${gitArgument} in ${repoRoot}`);
 
     const hash: string = await this.runGitCommand(repoRoot, [
       "log",
