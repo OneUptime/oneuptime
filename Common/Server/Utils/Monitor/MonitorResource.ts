@@ -44,7 +44,7 @@ import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
 import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
-import Metric, {
+import {
   MetricPointType,
   ServiceType,
 } from "../../../Models/AnalyticsModels/Metric";
@@ -56,15 +56,80 @@ import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMo
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
-import MonitorLog from "../../../Models/AnalyticsModels/MonitorLog";
 import MonitorLogService from "../../Services/MonitorLogService";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 
 export default class MonitorResourceUtil {
-  private static setAttributeKeys(metric: Metric): void {
-    metric.attributeKeys = TelemetryUtil.getAttributeKeys(
-      metric.attributes as JSONObject,
-    );
+  private static buildMonitorMetricAttributes(data: {
+    monitorId: ObjectID;
+    projectId: ObjectID;
+    monitorName?: string | undefined;
+    probeName?: string | undefined;
+    extraAttributes?: JSONObject;
+  }): JSONObject {
+    const attributes: JSONObject = {
+      monitorId: data.monitorId.toString(),
+      projectId: data.projectId.toString(),
+    };
+
+    if (data.extraAttributes) {
+      Object.assign(attributes, data.extraAttributes);
+    }
+
+    if (data.monitorName) {
+      attributes["monitorName"] = data.monitorName;
+    }
+
+    if (data.probeName) {
+      attributes["probeName"] = data.probeName;
+    }
+
+    return attributes;
+  }
+
+  private static buildMonitorMetricRow(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID;
+    metricName: string;
+    value: number | null | undefined;
+    attributes: JSONObject;
+    metricPointType?: MetricPointType;
+  }): JSONObject {
+    const ingestionDate: Date = OneUptimeDate.getCurrentDate();
+    const ingestionTimestamp: string =
+      OneUptimeDate.toClickhouseDateTime(ingestionDate);
+    const timeUnixNano: string =
+      OneUptimeDate.toUnixNano(ingestionDate).toString();
+
+    const attributes: JSONObject = { ...data.attributes };
+    const attributeKeys: Array<string> =
+      TelemetryUtil.getAttributeKeys(attributes);
+
+    return {
+      _id: ObjectID.generate().toString(),
+      createdAt: ingestionTimestamp,
+      updatedAt: ingestionTimestamp,
+      projectId: data.projectId.toString(),
+      serviceId: data.monitorId.toString(),
+      serviceType: ServiceType.Monitor,
+      name: data.metricName,
+      aggregationTemporality: null,
+      metricPointType: data.metricPointType || MetricPointType.Sum,
+      time: ingestionTimestamp,
+      startTime: null,
+      timeUnixNano: timeUnixNano,
+      startTimeUnixNano: null,
+      attributes: attributes,
+      attributeKeys: attributeKeys,
+      isMonotonic: null,
+      count: null,
+      sum: null,
+      min: null,
+      max: null,
+      bucketCounts: [],
+      explicitBounds: [],
+      value: data.value ?? null,
+    } as JSONObject;
   }
 
   @CaptureSpan()
@@ -640,7 +705,7 @@ export default class MonitorResourceUtil {
       return;
     }
 
-    const itemsToSave: Array<Metric> = [];
+    const metricRows: Array<JSONObject> = [];
 
     /*
      * Metric name to serviceId map
@@ -667,35 +732,23 @@ export default class MonitorResourceUtil {
           isOnline = false;
         }
 
-        const monitorMetric: Metric = new Metric();
+        const attributes: JSONObject = this.buildMonitorMetricAttributes({
+          monitorId: data.monitorId,
+          projectId: data.projectId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+        });
 
-        monitorMetric.projectId = data.projectId;
-        monitorMetric.serviceId = data.monitorId;
-        monitorMetric.serviceType = ServiceType.Monitor;
-        monitorMetric.name = MonitorMetricType.IsOnline;
+        const metricRow: JSONObject = this.buildMonitorMetricRow({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          metricName: MonitorMetricType.IsOnline,
+          value: isOnline ? 1 : 0,
+          attributes: attributes,
+          metricPointType: MetricPointType.Sum,
+        });
 
-        monitorMetric.value = isOnline ? 1 : 0;
-
-        monitorMetric.attributes = {
-          monitorId: data.monitorId.toString(),
-          projectId: data.projectId.toString(),
-        };
-
-        if (data.monitorName) {
-          monitorMetric.attributes["monitorName"] = data.monitorName.toString();
-        }
-
-        if (data.probeName) {
-          monitorMetric.attributes["probeName"] = data.probeName.toString();
-        }
-
-        MonitorResourceUtil.setAttributeKeys(monitorMetric);
-
-        monitorMetric.time = OneUptimeDate.getCurrentDate();
-        monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
-        monitorMetric.metricPointType = MetricPointType.Sum;
-
-        itemsToSave.push(monitorMetric);
+        metricRows.push(metricRow);
 
         // add MetricType
         const metricType: MetricType = new MetricType();
@@ -716,35 +769,23 @@ export default class MonitorResourceUtil {
       }
 
       if (basicMetrics.cpuMetrics) {
-        const monitorMetric: Metric = new Metric();
+        const attributes: JSONObject = this.buildMonitorMetricAttributes({
+          monitorId: data.monitorId,
+          projectId: data.projectId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+        });
 
-        monitorMetric.projectId = data.projectId;
-        monitorMetric.serviceId = data.monitorId;
-        monitorMetric.serviceType = ServiceType.Monitor;
-        monitorMetric.name = MonitorMetricType.CPUUsagePercent;
+        const metricRow: JSONObject = this.buildMonitorMetricRow({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          metricName: MonitorMetricType.CPUUsagePercent,
+          value: basicMetrics.cpuMetrics.percentUsed ?? null,
+          attributes: attributes,
+          metricPointType: MetricPointType.Sum,
+        });
 
-        monitorMetric.value = basicMetrics.cpuMetrics.percentUsed;
-
-        monitorMetric.attributes = {
-          monitorId: data.monitorId.toString(),
-          projectId: data.projectId.toString(),
-        };
-
-        if (data.monitorName) {
-          monitorMetric.attributes["monitorName"] = data.monitorName.toString();
-        }
-
-        if (data.probeName) {
-          monitorMetric.attributes["probeName"] = data.probeName.toString();
-        }
-
-        MonitorResourceUtil.setAttributeKeys(monitorMetric);
-
-        monitorMetric.time = OneUptimeDate.getCurrentDate();
-        monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
-        monitorMetric.metricPointType = MetricPointType.Sum;
-
-        itemsToSave.push(monitorMetric);
+        metricRows.push(metricRow);
 
         const metricType: MetricType = new MetricType();
         metricType.name = MonitorMetricType.CPUUsagePercent;
@@ -756,35 +797,23 @@ export default class MonitorResourceUtil {
       }
 
       if (basicMetrics.memoryMetrics) {
-        const monitorMetric: Metric = new Metric();
+        const attributes: JSONObject = this.buildMonitorMetricAttributes({
+          monitorId: data.monitorId,
+          projectId: data.projectId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+        });
 
-        monitorMetric.projectId = data.projectId;
-        monitorMetric.serviceId = data.monitorId;
-        monitorMetric.serviceType = ServiceType.Monitor;
-        monitorMetric.name = MonitorMetricType.MemoryUsagePercent;
+        const metricRow: JSONObject = this.buildMonitorMetricRow({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          metricName: MonitorMetricType.MemoryUsagePercent,
+          value: basicMetrics.memoryMetrics.percentUsed ?? null,
+          attributes: attributes,
+          metricPointType: MetricPointType.Sum,
+        });
 
-        monitorMetric.value = basicMetrics.memoryMetrics.percentUsed;
-
-        monitorMetric.attributes = {
-          monitorId: data.monitorId.toString(),
-          projectId: data.projectId.toString(),
-        };
-
-        if (data.monitorName) {
-          monitorMetric.attributes["monitorName"] = data.monitorName.toString();
-        }
-
-        if (data.probeName) {
-          monitorMetric.attributes["probeName"] = data.probeName.toString();
-        }
-
-        MonitorResourceUtil.setAttributeKeys(monitorMetric);
-
-        monitorMetric.time = OneUptimeDate.getCurrentDate();
-        monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
-        monitorMetric.metricPointType = MetricPointType.Sum;
-
-        itemsToSave.push(monitorMetric);
+        metricRows.push(metricRow);
 
         const metricType: MetricType = new MetricType();
         metricType.name = MonitorMetricType.MemoryUsagePercent;
@@ -797,37 +826,30 @@ export default class MonitorResourceUtil {
 
       if (basicMetrics.diskMetrics && basicMetrics.diskMetrics.length > 0) {
         for (const diskMetric of basicMetrics.diskMetrics) {
-          const monitorMetric: Metric = new Metric();
+          const extraAttributes: JSONObject = {};
 
-          monitorMetric.projectId = data.projectId;
-          monitorMetric.serviceId = data.monitorId;
-          monitorMetric.serviceType = ServiceType.Monitor;
-          monitorMetric.name = MonitorMetricType.DiskUsagePercent;
-
-          monitorMetric.value = diskMetric.percentUsed;
-
-          monitorMetric.attributes = {
-            monitorId: data.monitorId.toString(),
-            projectId: data.projectId.toString(),
-            diskPath: diskMetric.diskPath,
-          };
-
-          if (data.monitorName) {
-            monitorMetric.attributes["monitorName"] =
-              data.monitorName.toString();
+          if (diskMetric.diskPath) {
+            extraAttributes["diskPath"] = diskMetric.diskPath;
           }
 
-          if (data.probeName) {
-            monitorMetric.attributes["probeName"] = data.probeName.toString();
-          }
+          const attributes: JSONObject = this.buildMonitorMetricAttributes({
+            monitorId: data.monitorId,
+            projectId: data.projectId,
+            monitorName: data.monitorName,
+            probeName: data.probeName,
+            extraAttributes: extraAttributes,
+          });
 
-          MonitorResourceUtil.setAttributeKeys(monitorMetric);
+          const metricRow: JSONObject = this.buildMonitorMetricRow({
+            projectId: data.projectId,
+            monitorId: data.monitorId,
+            metricName: MonitorMetricType.DiskUsagePercent,
+            value: diskMetric.percentUsed ?? null,
+            attributes: attributes,
+            metricPointType: MetricPointType.Sum,
+          });
 
-          monitorMetric.time = OneUptimeDate.getCurrentDate();
-          monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
-          monitorMetric.metricPointType = MetricPointType.Sum;
-
-          itemsToSave.push(monitorMetric);
+          metricRows.push(metricRow);
 
           const metricType: MetricType = new MetricType();
           metricType.name = MonitorMetricType.DiskUsagePercent;
@@ -844,40 +866,30 @@ export default class MonitorResourceUtil {
       (data.dataToProcess as ProbeMonitorResponse).customCodeMonitorResponse
         ?.executionTimeInMS
     ) {
-      const monitorMetric: Metric = new Metric();
-
-      monitorMetric.projectId = data.projectId;
-      monitorMetric.serviceId = data.monitorId;
-      monitorMetric.serviceType = ServiceType.Monitor;
-      monitorMetric.name = MonitorMetricType.ExecutionTime;
-
-      monitorMetric.value = (
-        data.dataToProcess as ProbeMonitorResponse
-      ).customCodeMonitorResponse?.executionTimeInMS;
-
-      monitorMetric.attributes = {
-        monitorId: data.monitorId.toString(),
-        projectId: data.projectId.toString(),
+      const extraAttributes: JSONObject = {
         probeId: (
           data.dataToProcess as ProbeMonitorResponse
         ).probeId.toString(),
       };
 
-      if (data.monitorName) {
-        monitorMetric.attributes["monitorName"] = data.monitorName.toString();
-      }
+      const attributes: JSONObject = this.buildMonitorMetricAttributes({
+        monitorId: data.monitorId,
+        projectId: data.projectId,
+        extraAttributes: extraAttributes,
+      });
 
-      if (data.probeName) {
-        monitorMetric.attributes["probeName"] = data.probeName.toString();
-      }
+      const metricRow: JSONObject = this.buildMonitorMetricRow({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        metricName: MonitorMetricType.ExecutionTime,
+        value:
+          (data.dataToProcess as ProbeMonitorResponse).customCodeMonitorResponse
+            ?.executionTimeInMS ?? null,
+        attributes: attributes,
+        metricPointType: MetricPointType.Sum,
+      });
 
-      MonitorResourceUtil.setAttributeKeys(monitorMetric);
-
-      monitorMetric.time = OneUptimeDate.getCurrentDate();
-      monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
-      monitorMetric.metricPointType = MetricPointType.Sum;
-
-      itemsToSave.push(monitorMetric);
+      metricRows.push(metricRow);
 
       const metricType: MetricType = new MetricType();
       metricType.name = MonitorMetricType.ExecutionTime;
@@ -898,40 +910,39 @@ export default class MonitorResourceUtil {
       for (const syntheticMonitorResponse of (
         data.dataToProcess as ProbeMonitorResponse
       ).syntheticMonitorResponse || []) {
-        const monitorMetric: Metric = new Metric();
-
-        monitorMetric.projectId = data.projectId;
-        monitorMetric.serviceId = data.monitorId;
-        monitorMetric.serviceType = ServiceType.Monitor;
-        monitorMetric.name = MonitorMetricType.ExecutionTime;
-
-        monitorMetric.value = syntheticMonitorResponse.executionTimeInMS;
-
-        monitorMetric.attributes = {
-          monitorId: data.monitorId.toString(),
-          projectId: data.projectId.toString(),
+        const extraAttributes: JSONObject = {
           probeId: (
             data.dataToProcess as ProbeMonitorResponse
           ).probeId.toString(),
-          browserType: syntheticMonitorResponse.browserType,
-          screenSizeType: syntheticMonitorResponse.screenSizeType,
         };
 
-        if (data.monitorName) {
-          monitorMetric.attributes["monitorName"] = data.monitorName.toString();
+        if (syntheticMonitorResponse.browserType) {
+          extraAttributes["browserType"] = syntheticMonitorResponse.browserType;
         }
 
-        if (data.probeName) {
-          monitorMetric.attributes["probeName"] = data.probeName.toString();
+        if (syntheticMonitorResponse.screenSizeType) {
+          extraAttributes["screenSizeType"] =
+            syntheticMonitorResponse.screenSizeType;
         }
 
-        MonitorResourceUtil.setAttributeKeys(monitorMetric);
+        const attributes: JSONObject = this.buildMonitorMetricAttributes({
+          monitorId: data.monitorId,
+          projectId: data.projectId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          extraAttributes: extraAttributes,
+        });
 
-        monitorMetric.time = OneUptimeDate.getCurrentDate();
-        monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
-        monitorMetric.metricPointType = MetricPointType.Sum;
+        const metricRow: JSONObject = this.buildMonitorMetricRow({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          metricName: MonitorMetricType.ExecutionTime,
+          value: syntheticMonitorResponse.executionTimeInMS ?? null,
+          attributes: attributes,
+          metricPointType: MetricPointType.Sum,
+        });
 
-        itemsToSave.push(monitorMetric);
+        metricRows.push(metricRow);
 
         const metricType: MetricType = new MetricType();
         metricType.name = MonitorMetricType.ExecutionTime;
@@ -943,40 +954,31 @@ export default class MonitorResourceUtil {
     }
 
     if ((data.dataToProcess as ProbeMonitorResponse).responseTimeInMs) {
-      const monitorMetric: Metric = new Metric();
-
-      monitorMetric.projectId = data.projectId;
-      monitorMetric.serviceId = data.monitorId;
-      monitorMetric.serviceType = ServiceType.Monitor;
-      monitorMetric.name = MonitorMetricType.ResponseTime;
-
-      monitorMetric.value = (
-        data.dataToProcess as ProbeMonitorResponse
-      ).responseTimeInMs;
-
-      monitorMetric.attributes = {
-        monitorId: data.monitorId.toString(),
-        projectId: data.projectId.toString(),
+      const extraAttributes: JSONObject = {
         probeId: (
           data.dataToProcess as ProbeMonitorResponse
         ).probeId.toString(),
       };
 
-      if (data.monitorName) {
-        monitorMetric.attributes["monitorName"] = data.monitorName.toString();
-      }
+      const attributes: JSONObject = this.buildMonitorMetricAttributes({
+        monitorId: data.monitorId,
+        projectId: data.projectId,
+        monitorName: data.monitorName,
+        probeName: data.probeName,
+        extraAttributes: extraAttributes,
+      });
 
-      if (data.probeName) {
-        monitorMetric.attributes["probeName"] = data.probeName.toString();
-      }
+      const metricRow: JSONObject = this.buildMonitorMetricRow({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        metricName: MonitorMetricType.ResponseTime,
+        value:
+          (data.dataToProcess as ProbeMonitorResponse).responseTimeInMs ?? null,
+        attributes: attributes,
+        metricPointType: MetricPointType.Sum,
+      });
 
-      MonitorResourceUtil.setAttributeKeys(monitorMetric);
-
-      monitorMetric.time = OneUptimeDate.getCurrentDate();
-      monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
-      monitorMetric.metricPointType = MetricPointType.Sum;
-
-      itemsToSave.push(monitorMetric);
+      metricRows.push(metricRow);
 
       const metricType: MetricType = new MetricType();
       metricType.name = MonitorMetricType.ResponseTime;
@@ -987,41 +989,30 @@ export default class MonitorResourceUtil {
     }
 
     if ((data.dataToProcess as ProbeMonitorResponse).isOnline !== undefined) {
-      const monitorMetric: Metric = new Metric();
-
-      monitorMetric.projectId = data.projectId;
-      monitorMetric.serviceId = data.monitorId;
-      monitorMetric.serviceType = ServiceType.Monitor;
-      monitorMetric.name = MonitorMetricType.IsOnline;
-
-      monitorMetric.value = (data.dataToProcess as ProbeMonitorResponse)
-        .isOnline
-        ? 1
-        : 0;
-
-      monitorMetric.attributes = {
-        monitorId: data.monitorId.toString(),
-        projectId: data.projectId.toString(),
+      const extraAttributes: JSONObject = {
         probeId: (
           data.dataToProcess as ProbeMonitorResponse
         ).probeId.toString(),
       };
 
-      if (data.monitorName) {
-        monitorMetric.attributes["monitorName"] = data.monitorName.toString();
-      }
+      const attributes: JSONObject = this.buildMonitorMetricAttributes({
+        monitorId: data.monitorId,
+        projectId: data.projectId,
+        monitorName: data.monitorName,
+        probeName: data.probeName,
+        extraAttributes: extraAttributes,
+      });
 
-      if (data.probeName) {
-        monitorMetric.attributes["probeName"] = data.probeName.toString();
-      }
+      const metricRow: JSONObject = this.buildMonitorMetricRow({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        metricName: MonitorMetricType.IsOnline,
+        value: (data.dataToProcess as ProbeMonitorResponse).isOnline ? 1 : 0,
+        attributes: attributes,
+        metricPointType: MetricPointType.Sum,
+      });
 
-      MonitorResourceUtil.setAttributeKeys(monitorMetric);
-
-      monitorMetric.time = OneUptimeDate.getCurrentDate();
-      monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
-      monitorMetric.metricPointType = MetricPointType.Sum;
-
-      itemsToSave.push(monitorMetric);
+      metricRows.push(metricRow);
 
       const metricType: MetricType = new MetricType();
       metricType.name = MonitorMetricType.IsOnline;
@@ -1032,32 +1023,31 @@ export default class MonitorResourceUtil {
     }
 
     if ((data.dataToProcess as ProbeMonitorResponse).responseCode) {
-      const monitorMetric: Metric = new Metric();
-
-      monitorMetric.projectId = data.projectId;
-      monitorMetric.serviceId = data.monitorId;
-      monitorMetric.serviceType = ServiceType.Monitor;
-      monitorMetric.name = MonitorMetricType.ResponseStatusCode;
-
-      monitorMetric.value = (
-        data.dataToProcess as ProbeMonitorResponse
-      ).responseCode;
-
-      monitorMetric.attributes = {
-        monitorId: data.monitorId.toString(),
-        projectId: data.projectId.toString(),
+      const extraAttributes: JSONObject = {
         probeId: (
           data.dataToProcess as ProbeMonitorResponse
         ).probeId.toString(),
       };
 
-      MonitorResourceUtil.setAttributeKeys(monitorMetric);
+      const attributes: JSONObject = this.buildMonitorMetricAttributes({
+        monitorId: data.monitorId,
+        projectId: data.projectId,
+        monitorName: data.monitorName,
+        probeName: data.probeName,
+        extraAttributes: extraAttributes,
+      });
 
-      monitorMetric.time = OneUptimeDate.getCurrentDate();
-      monitorMetric.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
-      monitorMetric.metricPointType = MetricPointType.Sum;
+      const metricRow: JSONObject = this.buildMonitorMetricRow({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        metricName: MonitorMetricType.ResponseStatusCode,
+        value:
+          (data.dataToProcess as ProbeMonitorResponse).responseCode ?? null,
+        attributes: attributes,
+        metricPointType: MetricPointType.Sum,
+      });
 
-      itemsToSave.push(monitorMetric);
+      metricRows.push(metricRow);
 
       const metricType: MetricType = new MetricType();
       metricType.name = MonitorMetricType.ResponseStatusCode;
@@ -1068,12 +1058,9 @@ export default class MonitorResourceUtil {
         metricType;
     }
 
-    await MetricService.createMany({
-      items: itemsToSave,
-      props: {
-        isRoot: true,
-      },
-    });
+    if (metricRows.length > 0) {
+      await MetricService.insertJsonRows(metricRows);
+    }
 
     // index metrics
     TelemetryUtil.indexMetricNameServiceNameMap({
@@ -1084,18 +1071,21 @@ export default class MonitorResourceUtil {
     });
 
     // save monitor log.
-    const monitorLog: MonitorLog = new MonitorLog();
-    monitorLog.monitorId = data.monitorId;
-    monitorLog.projectId = data.projectId;
-    monitorLog.logBody = JSON.parse(JSON.stringify(data.dataToProcess));
-    monitorLog.time = OneUptimeDate.getCurrentDate();
+    const logIngestionDate: Date = OneUptimeDate.getCurrentDate();
+    const logTimestamp: string =
+      OneUptimeDate.toClickhouseDateTime(logIngestionDate);
 
-    MonitorLogService.create({
-      data: monitorLog,
-      props: {
-        isRoot: true,
-      },
-    }).catch((err: Error) => {
+    const monitorLogRow: JSONObject = {
+      _id: ObjectID.generate().toString(),
+      createdAt: logTimestamp,
+      updatedAt: logTimestamp,
+      projectId: data.projectId.toString(),
+      monitorId: data.monitorId.toString(),
+      time: logTimestamp,
+      logBody: JSON.parse(JSON.stringify(data.dataToProcess)),
+    };
+
+    MonitorLogService.insertJsonRows([monitorLogRow]).catch((err: Error) => {
       logger.error(err);
     });
   }
