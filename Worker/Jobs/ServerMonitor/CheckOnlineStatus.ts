@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -11,6 +10,8 @@ import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
+
+const SERVER_MONITOR_BATCH_SIZE: number = 100;
 RunCron(
   "ServerMonitor:CheckOnlineStatus",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -18,7 +19,7 @@ RunCron(
     try {
       const threeMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(3);
 
-      const serverMonitors: Array<Monitor> = await MonitorService.findBy({
+      const serverMonitors: Array<Monitor> = await MonitorService.findAllBy({
         query: {
           monitorType: MonitorType.Server,
           serverMonitorRequestReceivedAt:
@@ -35,8 +36,8 @@ RunCron(
           _id: true,
           monitorSteps: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
+        batchSize: SERVER_MONITOR_BATCH_SIZE,
       });
 
       // Prepare all monitor resource tasks for parallel processing

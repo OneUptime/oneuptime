@@ -3,7 +3,7 @@ import { FileRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
@@ -36,12 +36,14 @@ import { Blue500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 
+const INCIDENT_SUBSCRIBER_BATCH_SIZE: number = 100;
+
 RunCron(
   "Incident:SendNotificationToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     // First, mark incidents as Skipped if they should not be notified
-    const incidentsToSkip: Array<Incident> = await IncidentService.findBy({
+    const incidentsToSkip: Array<Incident> = await IncidentService.findAllBy({
       query: {
         subscriberNotificationStatusOnIncidentCreated:
           StatusPageSubscriberNotificationStatus.Pending,
@@ -50,11 +52,11 @@ RunCron(
       props: {
         isRoot: true,
       },
-      limit: LIMIT_MAX,
       skip: 0,
       select: {
         _id: true,
       },
+      batchSize: INCIDENT_SUBSCRIBER_BATCH_SIZE,
     });
 
     logger.debug(
@@ -84,7 +86,7 @@ RunCron(
     }
 
     // get all scheduled events of all the projects.
-    const incidents: Array<Incident> = await IncidentService.findBy({
+    const incidents: Array<Incident> = await IncidentService.findAllBy({
       query: {
         subscriberNotificationStatusOnIncidentCreated:
           StatusPageSubscriberNotificationStatus.Pending,
@@ -93,7 +95,6 @@ RunCron(
       props: {
         isRoot: true,
       },
-      limit: LIMIT_MAX,
       skip: 0,
       select: {
         _id: true,
@@ -109,6 +110,7 @@ RunCron(
         },
         incidentNumber: true,
       },
+      batchSize: INCIDENT_SUBSCRIBER_BATCH_SIZE,
     });
 
     logger.debug(
@@ -180,7 +182,7 @@ RunCron(
         // get status page resources from monitors.
 
         const statusPageResources: Array<StatusPageResource> =
-          await StatusPageResourceService.findBy({
+          await StatusPageResourceService.findAllBy({
             query: {
               monitorId: QueryHelper.any(
                 incident.monitors
@@ -197,12 +199,12 @@ RunCron(
               ignoreHooks: true,
             },
             skip: 0,
-            limit: LIMIT_PER_PROJECT,
             select: {
               _id: true,
               displayName: true,
               statusPageId: true,
             },
+            batchSize: LIMIT_PER_PROJECT,
           });
 
         logger.debug(

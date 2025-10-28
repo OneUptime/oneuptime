@@ -31,16 +31,22 @@ RunCron(
 
         try {
           // Retain data for 30 days for accidental deletion, and then hard delete.
-          await service.hardDeleteBy({
-            query: {
-              deletedAt: QueryHelper.lessThan(OneUptimeDate.getSomeDaysAgo(30)),
-            },
-            props: {
-              isRoot: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-          });
+          let deletedCount: number = 0;
+
+          do {
+            deletedCount = await service.hardDeleteBy({
+              query: {
+                deletedAt: QueryHelper.lessThan(
+                  OneUptimeDate.getSomeDaysAgo(30),
+                ),
+              },
+              props: {
+                isRoot: true,
+              },
+              limit: LIMIT_MAX,
+              skip: 0,
+            });
+          } while (deletedCount > 0);
         } catch (err) {
           logger.error(err);
         }
@@ -64,20 +70,24 @@ RunCron(
 
         try {
           // Retain data for 30 days for accidental deletion, and then hard delete.
-          await service.hardDeleteBy({
-            query: {
-              [service.hardDeleteItemByColumnName]: QueryHelper.lessThan(
-                OneUptimeDate.getSomeDaysAgo(
-                  service.hardDeleteItemsOlderThanDays,
+          let deletedCount: number = 0;
+
+          do {
+            deletedCount = await service.hardDeleteBy({
+              query: {
+                [service.hardDeleteItemByColumnName]: QueryHelper.lessThan(
+                  OneUptimeDate.getSomeDaysAgo(
+                    service.hardDeleteItemsOlderThanDays,
+                  ),
                 ),
-              ),
-            },
-            props: {
-              isRoot: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-          });
+              },
+              props: {
+                isRoot: true,
+              },
+              limit: LIMIT_MAX,
+              skip: 0,
+            });
+          } while (deletedCount > 0);
         } catch (err) {
           logger.error(err);
         }

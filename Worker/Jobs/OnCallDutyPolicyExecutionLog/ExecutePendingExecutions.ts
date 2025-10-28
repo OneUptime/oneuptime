@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
@@ -21,7 +20,7 @@ RunCron(
     // get all pending on-call executions and execute them all at once.
 
     const pendingExecutions: Array<OnCallDutyPolicyExecutionLog> =
-      await OnCallDutyPolicyExecutionLogService.findBy({
+      await OnCallDutyPolicyExecutionLogService.findAllBy({
         query: {
           status: OnCallDutyPolicyStatus.Executing,
         },
@@ -42,8 +41,6 @@ RunCron(
           },
           onCallPolicyExecutionRepeatCount: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
         props: {
           isRoot: true,
         },

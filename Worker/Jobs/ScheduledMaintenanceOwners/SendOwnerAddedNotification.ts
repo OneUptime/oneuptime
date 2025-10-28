@@ -1,6 +1,5 @@
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -23,25 +22,27 @@ import User from "Common/Models/DatabaseModels/User";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
+const OWNER_BATCH_SIZE: number = 100;
+
 RunCron(
   "ScheduledMaintenanceOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     const scheduledMaintenanceOwnerTeams: Array<ScheduledMaintenanceOwnerTeam> =
-      await ScheduledMaintenanceOwnerTeamService.findBy({
+      await ScheduledMaintenanceOwnerTeamService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
           scheduledMaintenanceId: true,
           teamId: true,
         },
+        batchSize: OWNER_BATCH_SIZE,
       });
 
     const scheduledMaintenanceOwnersMap: Dictionary<Array<User>> = {};
@@ -83,14 +84,13 @@ RunCron(
     }
 
     const scheduledMaintenanceOwnerUsers: Array<ScheduledMaintenanceOwnerUser> =
-      await ScheduledMaintenanceOwnerUserService.findBy({
+      await ScheduledMaintenanceOwnerUserService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
@@ -101,6 +101,7 @@ RunCron(
             name: true,
           },
         },
+        batchSize: OWNER_BATCH_SIZE,
       });
 
     for (const scheduledMaintenanceOwnerUser of scheduledMaintenanceOwnerUsers) {

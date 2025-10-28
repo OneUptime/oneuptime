@@ -1,5 +1,5 @@
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
@@ -23,7 +23,7 @@ RunCron(
   },
   async () => {
     const pendingNotificationLogs: Array<UserOnCallLog> =
-      await UserOnCallLogService.findBy({
+      await UserOnCallLogService.findAllBy({
         query: {
           status: UserNotificationExecutionStatus.Executing,
         },
@@ -46,8 +46,7 @@ RunCron(
         props: {
           isRoot: true,
         },
-        skip: 0,
-        limit: LIMIT_MAX,
+        batchSize: LIMIT_PER_PROJECT,
       });
 
     const promises: Array<Promise<void>> = [];

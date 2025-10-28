@@ -1,6 +1,5 @@
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -24,25 +23,27 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
+const INCIDENT_OWNER_BATCH_SIZE: number = 100;
+
 RunCron(
   "IncidentOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     const incidentOwnerTeams: Array<IncidentOwnerTeam> =
-      await IncidentOwnerTeamService.findBy({
+      await IncidentOwnerTeamService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
           incidentId: true,
           teamId: true,
         },
+        batchSize: INCIDENT_OWNER_BATCH_SIZE,
       });
 
     const incidentOwnersMap: Dictionary<Array<User>> = {};
@@ -76,14 +77,13 @@ RunCron(
     }
 
     const incidentOwnerUsers: Array<IncidentOwnerUser> =
-      await IncidentOwnerUserService.findBy({
+      await IncidentOwnerUserService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
@@ -94,6 +94,7 @@ RunCron(
             name: true,
           },
         },
+        batchSize: INCIDENT_OWNER_BATCH_SIZE,
       });
 
     for (const incidentOwnerUser of incidentOwnerUsers) {

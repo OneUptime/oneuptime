@@ -1,6 +1,5 @@
 import RunCron from "../../Utils/Cron";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { EVERY_DAY, EVERY_MINUTE } from "Common/Utils/CronTime";
 import {
   IsBillingEnabled,
@@ -13,6 +12,8 @@ import User from "Common/Models/DatabaseModels/User";
 import MailService from "Common/Server/Services/MailService";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 
+const SUBSCRIPTION_BATCH_SIZE: number = 100;
+
 RunCron(
   "PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue",
   { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: false },
@@ -23,7 +24,7 @@ RunCron(
     }
 
     const merteredSubscriptionPastdue: Array<Project> =
-      await ProjectService.findBy({
+      await ProjectService.findAllBy({
         query: {
           paymentProviderMeteredSubscriptionStatus: SubscriptionStatus.PastDue,
         },
@@ -32,15 +33,16 @@ RunCron(
           paymentProviderSubscriptionId: true,
           paymentProviderMeteredSubscriptionId: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
         props: {
           isRoot: true,
           ignoreHooks: true,
         },
+        skip: 0,
+        batchSize: SUBSCRIPTION_BATCH_SIZE,
       });
 
-    const subscriptionPastdue: Array<Project> = await ProjectService.findBy({
+    const subscriptionPastdue: Array<Project> =
+      await ProjectService.findAllBy({
       query: {
         paymentProviderSubscriptionStatus: SubscriptionStatus.PastDue,
       },
@@ -49,12 +51,12 @@ RunCron(
         paymentProviderSubscriptionId: true,
         paymentProviderMeteredSubscriptionId: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
       props: {
         isRoot: true,
         ignoreHooks: true,
       },
+        skip: 0,
+        batchSize: SUBSCRIPTION_BATCH_SIZE,
     });
 
     const allPastDueProjects: Array<Project> = [

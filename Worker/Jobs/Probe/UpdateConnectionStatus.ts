@@ -1,6 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ProbeService from "Common/Server/Services/ProbeService";
 import logger from "Common/Server/Utils/Logger";
@@ -14,7 +13,7 @@ RunCron(
   async () => {
     logger.debug("Checking Probe:UpdateConnectionStatus");
 
-    const probes: Array<Probe> = await ProbeService.findBy({
+    const probes: Array<Probe> = await ProbeService.findAllBy({
       query: {},
       props: {
         isRoot: true,
@@ -25,8 +24,6 @@ RunCron(
         connectionStatus: true,
         projectId: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
     });
 
     logger.debug(`Found ${probes.length} probes`);

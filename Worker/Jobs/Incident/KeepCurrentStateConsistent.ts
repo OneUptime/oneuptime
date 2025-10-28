@@ -2,10 +2,12 @@ import { EVERY_DAY } from "Common/Utils/CronTime";
 import RunCron from "../../Utils/Cron";
 import logger from "Common/Server/Utils/Logger";
 import ProjectService from "Common/Server/Services/ProjectService";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import IncidentService from "Common/Server/Services/IncidentService";
 import Project from "Common/Models/DatabaseModels/Project";
 import Incident from "Common/Models/DatabaseModels/Incident";
+
+const INCIDENT_PROJECT_BATCH_SIZE: number = 100;
+const INCIDENT_BATCH_SIZE: number = 100;
 
 RunCron(
   "Incident:KeepCurrentStateConsistent",
@@ -13,18 +15,12 @@ RunCron(
   async () => {
     try {
       // get all projects, then get all incidents for each project, then refresh the current state of each incident.
-      const projects: Array<Project> = await ProjectService.findBy({
-        query: {
-          ...ProjectService.getActiveProjectStatusQuery(),
-        },
+      const projects: Array<Project> = await ProjectService.getAllActiveProjects({
         select: {
           _id: true,
         },
         skip: 0,
-        limit: LIMIT_MAX,
-        props: {
-          isRoot: true,
-        },
+        batchSize: INCIDENT_PROJECT_BATCH_SIZE,
       });
 
       for (const project of projects) {
@@ -33,7 +29,7 @@ RunCron(
             continue;
           }
 
-          const incidents: Array<Incident> = await IncidentService.findBy({
+          const incidents: Array<Incident> = await IncidentService.findAllBy({
             query: {
               projectId: project.id,
             },
@@ -41,10 +37,10 @@ RunCron(
               _id: true,
             },
             skip: 0,
-            limit: LIMIT_MAX,
             props: {
               isRoot: true,
             },
+            batchSize: INCIDENT_BATCH_SIZE,
           });
 
           for (const incident of incidents) {

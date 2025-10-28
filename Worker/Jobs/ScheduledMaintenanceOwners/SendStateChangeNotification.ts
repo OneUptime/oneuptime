@@ -1,6 +1,5 @@
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -28,6 +27,8 @@ import UserService from "Common/Server/Services/UserService";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
+const STATE_CHANGE_BATCH_SIZE: number = 100;
+
 RunCron(
   "ScheduledMaintenanceOwner:SendStateChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -35,14 +36,13 @@ RunCron(
     // get all scheduled events of all the projects.
 
     const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
-      await ScheduledMaintenanceStateTimelineService.findBy({
+      await ScheduledMaintenanceStateTimelineService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
@@ -63,6 +63,7 @@ RunCron(
             name: true,
           },
         },
+        batchSize: STATE_CHANGE_BATCH_SIZE,
       });
 
     for (const scheduledMaintenanceStateTimeline of scheduledMaintenanceStateTimelines) {

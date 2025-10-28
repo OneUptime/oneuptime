@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -25,7 +24,7 @@ RunCron(
     );
 
     const newIncomingRequestMonitors: Array<Monitor> =
-      await MonitorService.findBy({
+      await MonitorService.findAllBy({
         query: {
           ...MonitorService.getEnabledMonitorQuery(),
           monitorType: MonitorType.IncomingRequest,
@@ -48,11 +47,9 @@ RunCron(
         sort: {
           createdAt: SortOrder.Ascending,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
       });
 
-    const incomingRequestMonitors: Array<Monitor> = await MonitorService.findBy(
+    const incomingRequestMonitors: Array<Monitor> = await MonitorService.findAllBy(
       {
         query: {
           ...MonitorService.getEnabledMonitorQuery(),
@@ -76,8 +73,6 @@ RunCron(
         sort: {
           incomingRequestMonitorHeartbeatCheckedAt: SortOrder.Ascending,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
       },
     );
 

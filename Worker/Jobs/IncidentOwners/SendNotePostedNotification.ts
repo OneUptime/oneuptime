@@ -1,7 +1,6 @@
 import RunCron from "../../Utils/Cron";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -28,19 +27,20 @@ import { Blue500 } from "Common/Types/BrandColors";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
+const INCIDENT_NOTE_BATCH_SIZE: number = 100;
+
 RunCron(
   "IncidentOwner:SendsNotePostedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     const publicNotes: Array<IncidentPublicNote> =
-      await IncidentPublicNoteService.findBy({
+      await IncidentPublicNoteService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
@@ -48,17 +48,17 @@ RunCron(
           incidentId: true,
           projectId: true,
         },
+        batchSize: INCIDENT_NOTE_BATCH_SIZE,
       });
 
     const privateNotes: Array<IncidentInternalNote> =
-      await IncidentInternalNoteService.findBy({
+      await IncidentInternalNoteService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
@@ -66,6 +66,7 @@ RunCron(
           incidentId: true,
           projectId: true,
         },
+        batchSize: INCIDENT_NOTE_BATCH_SIZE,
       });
 
     const privateNoteIds: Array<string> = privateNotes.map(

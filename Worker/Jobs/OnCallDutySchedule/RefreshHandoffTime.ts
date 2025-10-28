@@ -1,11 +1,12 @@
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import logger from "Common/Server/Utils/Logger";
 import OneUptimeDate from "Common/Types/Date";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleService from "Common/Server/Services/OnCallDutyPolicyScheduleService";
+
+const ON_CALL_SCHEDULE_BATCH_SIZE: number = 100;
 
 RunCron(
   "OnCallDutySchedule:RefreshHandoffTime",
@@ -14,7 +15,7 @@ RunCron(
     logger.debug("Starting cron job: OnCallDutySchedule:RefreshHandoffTime");
 
     const onCallScheduleWithHandoffTimeInPast: Array<OnCallDutyPolicySchedule> =
-      await OnCallDutyPolicyScheduleService.findBy({
+      await OnCallDutyPolicyScheduleService.findAllBy({
         query: {
           rosterHandoffAt: QueryHelper.lessThanEqualTo(
             OneUptimeDate.getCurrentDate(),
@@ -31,10 +32,10 @@ RunCron(
           nextUserIdOnRoster: true,
         },
         skip: 0,
-        limit: LIMIT_MAX,
         props: {
           isRoot: true,
         },
+        batchSize: ON_CALL_SCHEDULE_BATCH_SIZE,
       });
 
     logger.debug(
@@ -42,7 +43,7 @@ RunCron(
     );
 
     const nextRosterStartTimeInPastSchedules: Array<OnCallDutyPolicySchedule> =
-      await OnCallDutyPolicyScheduleService.findBy({
+      await OnCallDutyPolicyScheduleService.findAllBy({
         query: {
           rosterNextStartAt: QueryHelper.lessThanEqualTo(
             OneUptimeDate.getCurrentDate(),
@@ -60,10 +61,10 @@ RunCron(
           nextUserIdOnRoster: true,
         },
         skip: 0,
-        limit: LIMIT_MAX,
         props: {
           isRoot: true,
         },
+        batchSize: ON_CALL_SCHEDULE_BATCH_SIZE,
       });
 
     logger.debug(

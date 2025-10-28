@@ -1,6 +1,5 @@
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -22,20 +21,21 @@ import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
+const OWNER_NOTIFICATION_BATCH_SIZE: number = 100;
+
 RunCron(
   "ScheduledMaintenanceOwner:SendCreatedResourceEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     // get all scheduled events of all the projects.
     const scheduledMaintenances: Array<ScheduledMaintenance> =
-      await ScheduledMaintenanceService.findBy({
+      await ScheduledMaintenanceService.findAllBy({
         query: {
           isOwnerNotifiedOfResourceCreation: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
@@ -50,6 +50,7 @@ RunCron(
           },
           scheduledMaintenanceNumber: true,
         },
+        batchSize: OWNER_NOTIFICATION_BATCH_SIZE,
       });
 
     for (const scheduledMaintenance of scheduledMaintenances) {

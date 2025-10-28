@@ -71,6 +71,8 @@ import URL from "../../Types/API/URL";
 import Exception from "../../Types/Exception/Exception";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseConfig from "../DatabaseConfig";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import PositiveNumber from "../../Types/PositiveNumber";
 
 export interface CurrentPlan {
   plan: PlanType | null;
@@ -1433,6 +1435,29 @@ export class ProjectService extends DatabaseService<Model> {
         SubscriptionStatus.Trialing,
       ]),
     };
+  }
+
+  @CaptureSpan()
+  public async getAllActiveProjects(params?: {
+    select?: Select<Model>;
+    props?: DatabaseCommonInteractionProps;
+    batchSize?: PositiveNumber | number;
+    skip?: PositiveNumber | number;
+    limit?: PositiveNumber | number;
+  }): Promise<Array<Model>> {
+    const select: Select<Model> | undefined =
+      params?.select || ({ _id: true } as Select<Model>);
+    const props: DatabaseCommonInteractionProps =
+      params?.props || { isRoot: true };
+
+    return await this.findAllBy({
+      query: this.getActiveProjectStatusQuery(),
+      select,
+      props,
+      batchSize: params?.batchSize,
+      skip: params?.skip,
+      limit: params?.limit,
+    });
   }
 
   @CaptureSpan()

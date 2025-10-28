@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
@@ -7,6 +6,8 @@ import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import UserOnCallLogService from "Common/Server/Services/UserOnCallLogService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
+
+const ON_CALL_TIMEOUT_BATCH_SIZE: number = 100;
 
 /**
  * Jobs move from Started to Executing in seconds. If it takes more than 5 minutes, it's stuck. So, mark them as error
@@ -23,7 +24,7 @@ RunCron(
     const fiveMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(5);
 
     const stuckExecutions: Array<UserOnCallLog> =
-      await UserOnCallLogService.findBy({
+      await UserOnCallLogService.findAllBy({
         query: {
           status: UserNotificationExecutionStatus.Started,
           createdAt: QueryHelper.lessThan(fiveMinsAgo),
@@ -32,16 +33,16 @@ RunCron(
           _id: true,
           createdAt: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         props: {
           isRoot: true,
         },
+        batchSize: ON_CALL_TIMEOUT_BATCH_SIZE,
       });
 
     // check for executing logs more than 3 hours ago and mark them as timed out.
     const stuckExecutingLogs: Array<UserOnCallLog> =
-      await UserOnCallLogService.findBy({
+      await UserOnCallLogService.findAllBy({
         query: {
           status: UserNotificationExecutionStatus.Executing,
           createdAt: QueryHelper.lessThan(OneUptimeDate.getSomeHoursAgo(3)),
@@ -50,11 +51,11 @@ RunCron(
           _id: true,
           createdAt: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         props: {
           isRoot: true,
         },
+        batchSize: ON_CALL_TIMEOUT_BATCH_SIZE,
       });
 
     const totalStuckExecutions: Array<UserOnCallLog> = [

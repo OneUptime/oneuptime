@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
@@ -25,7 +24,7 @@ RunCron(
 
     // get all scheduled events of all the projects.
     const recurringTemplates: Array<ScheduledMaintenanceTemplate> =
-      await ScheduledMaintenanceTemplateService.findBy({
+      await ScheduledMaintenanceTemplateService.findAllBy({
         query: {
           isRecurringEvent: true,
           scheduleNextEventAt: QueryHelper.lessThanEqualTo(
@@ -35,8 +34,6 @@ RunCron(
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
         select: {
           _id: true,
           projectId: true,
@@ -92,15 +89,13 @@ RunCron(
 
         // get owner users for this template.
         const ownerUsers: Array<ScheduledMaintenanceTemplateOwnerUser> =
-          await ScheduledMaintenanceTemplateOwnerUserService.findBy({
+          await ScheduledMaintenanceTemplateOwnerUserService.findAllBy({
             query: {
               scheduledMaintenanceTemplateId: recurringTemplate.id!,
             },
             props: {
               isRoot: true,
             },
-            limit: LIMIT_MAX,
-            skip: 0,
             select: {
               userId: true,
             },
@@ -108,15 +103,13 @@ RunCron(
 
         // owner teams.
         const ownerTeams: Array<ScheduledMaintenanceOwnerTeam> =
-          await ScheduledMaintenanceTemplateOwnerTeamService.findBy({
+          await ScheduledMaintenanceTemplateOwnerTeamService.findAllBy({
             query: {
               scheduledMaintenanceTemplateId: recurringTemplate.id!,
             },
             props: {
               isRoot: true,
             },
-            limit: LIMIT_MAX,
-            skip: 0,
             select: {
               teamId: true,
             },

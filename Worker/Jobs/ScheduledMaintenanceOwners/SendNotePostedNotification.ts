@@ -1,7 +1,6 @@
 import RunCron from "../../Utils/Cron";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -27,19 +26,20 @@ import { Blue500 } from "Common/Types/BrandColors";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
+const NOTE_NOTIFICATION_BATCH_SIZE: number = 100;
+
 RunCron(
   "ScheduledMaintenanceOwner:SendsNotePostedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     const publicNotes: Array<ScheduledMaintenancePublicNote> =
-      await ScheduledMaintenancePublicNoteService.findBy({
+      await ScheduledMaintenancePublicNoteService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
@@ -47,17 +47,17 @@ RunCron(
           scheduledMaintenanceId: true,
           projectId: true,
         },
+        batchSize: NOTE_NOTIFICATION_BATCH_SIZE,
       });
 
     const privateNotes: Array<ScheduledMaintenanceInternalNote> =
-      await ScheduledMaintenanceInternalNoteService.findBy({
+      await ScheduledMaintenanceInternalNoteService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
@@ -65,6 +65,7 @@ RunCron(
           scheduledMaintenanceId: true,
           projectId: true,
         },
+        batchSize: NOTE_NOTIFICATION_BATCH_SIZE,
       });
 
     const privateNoteIds: Array<string> = privateNotes.map(

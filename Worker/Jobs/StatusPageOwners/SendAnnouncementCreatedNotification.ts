@@ -1,6 +1,5 @@
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -21,19 +20,20 @@ import User from "Common/Models/DatabaseModels/User";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
+const ANNOUNCEMENT_OWNER_BATCH_SIZE: number = 100;
+
 RunCron(
   "StatusPageOwner:SendAnnouncementCreatedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     const announcements: Array<StatusPageAnnouncement> =
-      await StatusPageAnnouncementService.findBy({
+      await StatusPageAnnouncementService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
@@ -46,6 +46,7 @@ RunCron(
             projectId: true,
           },
         },
+        batchSize: ANNOUNCEMENT_OWNER_BATCH_SIZE,
       });
 
     for (const announcement of announcements) {

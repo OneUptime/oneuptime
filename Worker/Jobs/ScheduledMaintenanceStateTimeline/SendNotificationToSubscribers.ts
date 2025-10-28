@@ -3,7 +3,7 @@ import { FileRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -47,7 +47,7 @@ RunCron(
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
     const scheduledEventStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
-      await ScheduledMaintenanceStateTimelineService.findBy({
+      await ScheduledMaintenanceStateTimelineService.findAllBy({
         query: {
           subscriberNotificationStatus:
             StatusPageSubscriberNotificationStatus.Pending,
@@ -56,8 +56,6 @@ RunCron(
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
         select: {
           _id: true,
           scheduledMaintenanceId: true,

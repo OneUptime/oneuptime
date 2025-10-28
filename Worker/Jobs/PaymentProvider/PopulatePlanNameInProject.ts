@@ -2,7 +2,6 @@ import RunCron from "../../Utils/Cron";
 import SubscriptionPlan, {
   PlanType,
 } from "Common/Types/Billing/SubscriptionPlan";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { EVERY_WEEK } from "Common/Utils/CronTime";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import ProjectService from "Common/Server/Services/ProjectService";
@@ -19,7 +18,7 @@ RunCron(
       return;
     }
 
-    const projects: Array<Project> = await ProjectService.findBy({
+    const projects: Array<Project> = await ProjectService.findAllBy({
       query: {
         planName: QueryHelper.isNull(),
       },
@@ -27,8 +26,6 @@ RunCron(
         _id: true,
         paymentProviderPlanId: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
       props: {
         isRoot: true,
         ignoreHooks: true,

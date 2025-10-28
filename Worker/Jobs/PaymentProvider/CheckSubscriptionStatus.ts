@@ -1,6 +1,5 @@
 import RunCron from "../../Utils/Cron";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Sleep from "Common/Types/Sleep";
 import { EVERY_DAY, EVERY_MINUTE } from "Common/Utils/CronTime";
 import {
@@ -21,7 +20,7 @@ RunCron(
       return;
     }
 
-    const projects: Array<Project> = await ProjectService.findBy({
+    const projects: Array<Project> = await ProjectService.findAllBy({
       query: {},
       select: {
         _id: true,
@@ -29,8 +28,6 @@ RunCron(
         paymentProviderMeteredSubscriptionId: true,
         paymentProviderCustomerId: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
       props: {
         isRoot: true,
         ignoreHooks: true,

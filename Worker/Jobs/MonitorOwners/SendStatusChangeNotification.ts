@@ -1,6 +1,5 @@
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -29,15 +28,13 @@ RunCron(
     // get all scheduled events of all the projects.
 
     const monitorStatusTimelines: Array<MonitorStatusTimeline> =
-      await MonitorStatusTimelineService.findBy({
+      await MonitorStatusTimelineService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
         select: {
           _id: true,
           projectId: true,

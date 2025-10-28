@@ -1,6 +1,5 @@
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Sleep from "Common/Types/Sleep";
 import { EVERY_DAY, EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import {
@@ -31,13 +30,11 @@ RunCron(
       return;
     }
 
-    const projects: Array<Project> = await ProjectService.findBy({
+    const projects: Array<Project> = await ProjectService.findAllBy({
       query: {},
       select: {
         _id: true,
       },
-      skip: 0,
-      limit: LIMIT_MAX,
       props: {
         isRoot: true,
       },

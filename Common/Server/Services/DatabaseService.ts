@@ -2,6 +2,7 @@ import { EncryptionSecret, WorkflowHostname } from "../EnvironmentConfig";
 import PostgresAppInstance from "../Infrastructure/PostgresDatabase";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import CountBy from "../Types/Database/CountBy";
+import FindAllBy from "../Types/Database/FindAllBy";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import DeleteById from "../Types/Database/DeleteById";
@@ -1166,6 +1167,82 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       await this.onDeleteError(error as Exception);
       throw this.getException(error as Exception);
     }
+  }
+
+  @CaptureSpan()
+  public async findAllBy(
+    findAllBy: FindAllBy<TBaseModel>,
+  ): Promise<Array<TBaseModel>> {
+    const { batchSize, limit, skip, ...rest } = findAllBy;
+
+    const batchSizeValue: number =
+      this.normalizePositiveNumber(batchSize) || LIMIT_MAX;
+
+    let remaining: number | undefined = this.normalizePositiveNumber(limit);
+    let currentSkip: number = this.normalizePositiveNumber(skip) || 0;
+
+    if (batchSizeValue <= 0) {
+      throw new BadDataException("batchSize must be greater than 0");
+    }
+
+    const results: Array<TBaseModel> = [];
+
+    while (true) {
+      const currentBatchSize: number =
+        remaining !== undefined
+          ? Math.min(batchSizeValue, Math.max(remaining, 0))
+          : batchSizeValue;
+
+      if (currentBatchSize <= 0) {
+        break;
+      }
+
+      const page: Array<TBaseModel> = await this.findBy({
+        ...rest,
+        skip: currentSkip,
+        limit: currentBatchSize,
+      });
+
+      if (page.length === 0) {
+        break;
+      }
+
+      results.push(...page);
+
+      currentSkip += page.length;
+
+      if (remaining !== undefined) {
+        remaining -= page.length;
+
+        if (remaining <= 0) {
+          break;
+        }
+      }
+
+      if (page.length < currentBatchSize) {
+        break;
+      }
+    }
+
+    return results;
+  }
+
+  private normalizePositiveNumber(
+    value?: PositiveNumber | number,
+  ): number | undefined {
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+
+    if (value instanceof PositiveNumber) {
+      return value.toNumber();
+    }
+
+    if (typeof value === "number") {
+      return value;
+    }
+
+    return undefined;
   }
 
   @CaptureSpan()

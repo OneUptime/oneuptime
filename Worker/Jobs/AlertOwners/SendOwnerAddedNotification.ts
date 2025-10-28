@@ -1,6 +1,5 @@
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -23,25 +22,27 @@ import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import User from "Common/Models/DatabaseModels/User";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
+const ALERT_OWNER_BATCH_SIZE: number = 100;
+
 RunCron(
   "AlertOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     const alertOwnerTeams: Array<AlertOwnerTeam> =
-      await AlertOwnerTeamService.findBy({
+      await AlertOwnerTeamService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
           alertId: true,
           teamId: true,
         },
+        batchSize: ALERT_OWNER_BATCH_SIZE,
       });
 
     const alertOwnersMap: Dictionary<Array<User>> = {};
@@ -75,14 +76,13 @@ RunCron(
     }
 
     const alertOwnerUsers: Array<AlertOwnerUser> =
-      await AlertOwnerUserService.findBy({
+      await AlertOwnerUserService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
@@ -93,6 +93,7 @@ RunCron(
             name: true,
           },
         },
+        batchSize: ALERT_OWNER_BATCH_SIZE,
       });
 
     for (const alertOwnerUser of alertOwnerUsers) {

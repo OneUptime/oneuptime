@@ -1,6 +1,5 @@
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
@@ -28,19 +27,20 @@ import { Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
+const INCIDENT_OWNER_BATCH_SIZE: number = 100;
+
 RunCron(
   "IncidentOwner:SendCreatedResourceEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     // get all scheduled events of all the projects.
-    const incidents: Array<Incident> = await IncidentService.findBy({
+    const incidents: Array<Incident> = await IncidentService.findAllBy({
       query: {
         isOwnerNotifiedOfResourceCreation: false,
       },
       props: {
         isRoot: true,
       },
-      limit: LIMIT_MAX,
       skip: 0,
       select: {
         _id: true,
@@ -70,6 +70,7 @@ RunCron(
         },
         incidentNumber: true,
       },
+      batchSize: INCIDENT_OWNER_BATCH_SIZE,
     });
 
     for (const incident of incidents) {

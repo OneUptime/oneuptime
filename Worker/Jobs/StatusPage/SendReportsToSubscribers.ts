@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import Recurring from "Common/Types/Events/Recurring";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
@@ -7,6 +6,8 @@ import StatusPageService from "Common/Server/Services/StatusPageService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+
+const STATUS_PAGE_REPORT_BATCH_SIZE: number = 100;
 
 RunCron(
   "StatusPage:SendReportToSubscribers",
@@ -17,7 +18,7 @@ RunCron(
   async () => {
     // get all scheduled events of all the projects.
     const statusPageToSendReports: Array<StatusPage> =
-      await StatusPageService.findBy({
+      await StatusPageService.findAllBy({
         query: {
           isReportEnabled: true,
           sendNextReportBy: QueryHelper.lessThan(
@@ -27,13 +28,13 @@ RunCron(
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
           sendNextReportBy: true,
           reportRecurringInterval: true,
         },
+        batchSize: STATUS_PAGE_REPORT_BATCH_SIZE,
       });
 
     for (const statusPageToSendReport of statusPageToSendReports) {

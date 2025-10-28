@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
@@ -15,7 +14,7 @@ RunCron(
   async () => {
     // get all scheduled events of all the projects.
     const scheduledEvents: Array<ScheduledMaintenance> =
-      await ScheduledMaintenanceService.findBy({
+      await ScheduledMaintenanceService.findAllBy({
         query: {
           subscriberNotificationStatusOnEventScheduled:
             StatusPageSubscriberNotificationStatus.Pending,
@@ -24,8 +23,6 @@ RunCron(
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
         select: {
           _id: true,
           title: true,

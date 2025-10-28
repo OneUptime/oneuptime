@@ -3,7 +3,7 @@ import { FileRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -39,6 +39,8 @@ import { Blue500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 
+const PUBLIC_NOTE_BATCH_SIZE: number = 100;
+
 RunCron(
   "ScheduledMaintenancePublicNote:SendNotificationToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -49,7 +51,7 @@ RunCron(
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
     const publicNotes: Array<ScheduledMaintenancePublicNote> =
-      await ScheduledMaintenancePublicNoteService.findBy({
+      await ScheduledMaintenancePublicNoteService.findAllBy({
         query: {
           subscriberNotificationStatusOnNoteCreated:
             StatusPageSubscriberNotificationStatus.Pending,
@@ -58,13 +60,13 @@ RunCron(
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
           note: true,
           scheduledMaintenanceId: true,
         },
+        batchSize: PUBLIC_NOTE_BATCH_SIZE,
       });
 
     logger.debug(
@@ -160,7 +162,7 @@ RunCron(
         let statusPageResources: Array<StatusPageResource> = [];
 
         if (event.monitors && event.monitors.length > 0) {
-          statusPageResources = await StatusPageResourceService.findBy({
+          statusPageResources = await StatusPageResourceService.findAllBy({
             query: {
               monitorId: QueryHelper.any(
                 event.monitors
@@ -177,12 +179,12 @@ RunCron(
               ignoreHooks: true,
             },
             skip: 0,
-            limit: LIMIT_PER_PROJECT,
             select: {
               _id: true,
               displayName: true,
               statusPageId: true,
             },
+            batchSize: LIMIT_PER_PROJECT,
           });
         }
 

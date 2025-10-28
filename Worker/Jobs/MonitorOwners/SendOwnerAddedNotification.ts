@@ -1,6 +1,5 @@
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -28,15 +27,13 @@ RunCron(
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     const monitorOwnerTeams: Array<MonitorOwnerTeam> =
-      await MonitorOwnerTeamService.findBy({
+      await MonitorOwnerTeamService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
         select: {
           _id: true,
           monitorId: true,
@@ -75,15 +72,13 @@ RunCron(
     }
 
     const monitorOwnerUsers: Array<MonitorOwnerUser> =
-      await MonitorOwnerUserService.findBy({
+      await MonitorOwnerUserService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
         select: {
           _id: true,
           monitorId: true,

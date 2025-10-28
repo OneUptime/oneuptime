@@ -1,6 +1,5 @@
 import RunCron from "../../Utils/Cron";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -23,25 +22,27 @@ import User from "Common/Models/DatabaseModels/User";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
+const STATUS_PAGE_OWNER_BATCH_SIZE: number = 100;
+
 RunCron(
   "StatusPageOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     const statusPageOwnerTeams: Array<StatusPageOwnerTeam> =
-      await StatusPageOwnerTeamService.findBy({
+      await StatusPageOwnerTeamService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
           statusPageId: true,
           teamId: true,
         },
+        batchSize: STATUS_PAGE_OWNER_BATCH_SIZE,
       });
 
     const statusPageOwnersMap: Dictionary<Array<User>> = {};
@@ -77,14 +78,13 @@ RunCron(
     }
 
     const statusPageOwnerUsers: Array<StatusPageOwnerUser> =
-      await StatusPageOwnerUserService.findBy({
+      await StatusPageOwnerUserService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
@@ -95,6 +95,7 @@ RunCron(
             name: true,
           },
         },
+        batchSize: STATUS_PAGE_OWNER_BATCH_SIZE,
       });
 
     for (const statusPageOwnerUser of statusPageOwnerUsers) {

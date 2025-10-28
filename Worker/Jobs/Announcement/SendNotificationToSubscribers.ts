@@ -3,7 +3,6 @@ import { FileRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import SMS from "Common/Types/SMS/SMS";
@@ -33,13 +32,15 @@ import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/Stat
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 
+const ANNOUNCEMENT_BATCH_SIZE: number = 100;
+
 RunCron(
   "Announcement:SendNotificationToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     // First, mark announcements as Skipped if they should not be notified
     const announcementsToSkip: Array<StatusPageAnnouncement> =
-      await StatusPageAnnouncementService.findBy({
+      await StatusPageAnnouncementService.findAllBy({
         query: {
           subscriberNotificationStatus:
             StatusPageSubscriberNotificationStatus.Pending,
@@ -51,11 +52,11 @@ RunCron(
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
         },
+        batchSize: ANNOUNCEMENT_BATCH_SIZE,
       });
 
     logger.debug(
@@ -84,7 +85,7 @@ RunCron(
 
     // get all scheduled events of all the projects.
     const announcements: Array<StatusPageAnnouncement> =
-      await StatusPageAnnouncementService.findBy({
+      await StatusPageAnnouncementService.findAllBy({
         query: {
           subscriberNotificationStatus:
             StatusPageSubscriberNotificationStatus.Pending,
@@ -96,7 +97,6 @@ RunCron(
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
@@ -110,6 +110,7 @@ RunCron(
           },
           showAnnouncementAt: true,
         },
+        batchSize: ANNOUNCEMENT_BATCH_SIZE,
       });
 
     logger.debug(
@@ -213,7 +214,7 @@ RunCron(
                 `Announcement ${announcement.id} has ${announcement.monitors.length} monitor(s) specified. Filtering subscribers by affected resources.`,
               );
 
-              statusPageResources = await StatusPageResourceService.findBy({
+              statusPageResources = await StatusPageResourceService.findAllBy({
                 query: {
                   statusPageId: statuspage.id!,
                   monitorId: QueryHelper.any(
@@ -230,13 +231,13 @@ RunCron(
                   isRoot: true,
                   ignoreHooks: true,
                 },
-                skip: 0,
-                limit: LIMIT_MAX,
                 select: {
                   _id: true,
                   displayName: true,
                   statusPageId: true,
                 },
+                skip: 0,
+                batchSize: ANNOUNCEMENT_BATCH_SIZE,
               });
 
               logger.debug(

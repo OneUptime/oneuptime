@@ -2,7 +2,6 @@ import { EVERY_DAY } from "Common/Utils/CronTime";
 import RunCron from "../../Utils/Cron";
 import logger from "Common/Server/Utils/Logger";
 import ProjectService from "Common/Server/Services/ProjectService";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import Project from "Common/Models/DatabaseModels/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
@@ -17,19 +16,12 @@ RunCron(
        * if they are different, then update the current state of the scheduled maintenance.
        */
 
-      const projects: Array<Project> = await ProjectService.findBy({
-        query: {
-          ...ProjectService.getActiveProjectStatusQuery(),
-        },
-        select: {
-          _id: true,
-        },
-        skip: 0,
-        limit: LIMIT_MAX,
-        props: {
-          isRoot: true,
-        },
-      });
+      const projects: Array<Project> =
+        await ProjectService.getAllActiveProjects({
+          select: {
+            _id: true,
+          },
+        });
 
       for (const project of projects) {
         try {
@@ -42,15 +34,13 @@ RunCron(
           }
 
           const scheduledMaintenances: Array<ScheduledMaintenance> =
-            await ScheduledMaintenanceService.findBy({
+            await ScheduledMaintenanceService.findAllBy({
               query: {
                 projectId: project.id,
               },
               select: {
                 _id: true,
               },
-              skip: 0,
-              limit: LIMIT_MAX,
               props: {
                 isRoot: true,
               },

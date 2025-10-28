@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
@@ -23,7 +22,7 @@ RunCron(
     const fiveMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(5);
 
     const stuckExecutions: Array<OnCallDutyPolicyExecutionLog> =
-      await OnCallDutyPolicyExecutionLogService.findBy({
+      await OnCallDutyPolicyExecutionLogService.findAllBy({
         query: {
           status: OnCallDutyPolicyStatus.Started,
           createdAt: QueryHelper.lessThan(fiveMinsAgo),
@@ -32,8 +31,6 @@ RunCron(
           _id: true,
           createdAt: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
         props: {
           isRoot: true,
         },
@@ -41,7 +38,7 @@ RunCron(
 
     // check for executing logs more than 3 hours ago and mark them as timed out.
     const stuckExecutingLogs: Array<OnCallDutyPolicyExecutionLog> =
-      await OnCallDutyPolicyExecutionLogService.findBy({
+      await OnCallDutyPolicyExecutionLogService.findAllBy({
         query: {
           status: OnCallDutyPolicyStatus.Executing,
           createdAt: QueryHelper.lessThan(OneUptimeDate.getSomeHoursAgo(3)),
@@ -50,8 +47,6 @@ RunCron(
           _id: true,
           createdAt: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
         props: {
           isRoot: true,
         },

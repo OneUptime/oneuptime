@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
@@ -19,7 +18,7 @@ RunCron(
     );
     // get all scheduled events of all the projects.
     const scheduledEvents: Array<ScheduledMaintenance> =
-      await ScheduledMaintenanceService.findBy({
+      await ScheduledMaintenanceService.findAllBy({
         query: {
           nextSubscriberNotificationBeforeTheEventAt: QueryHelper.lessThan(
             OneUptimeDate.getCurrentDate(),
@@ -28,8 +27,6 @@ RunCron(
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
         select: {
           _id: true,
           title: true,

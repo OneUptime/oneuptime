@@ -1,6 +1,6 @@
 import OneUptimeDate from "Common/Types/Date";
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorService from "Common/Server/Services/MonitorService";
@@ -43,7 +43,7 @@ RunCron(
   async () => {
     logger.debug("Checking TelemetryMonitor:MonitorTelemetryMonitor");
 
-    const telemetryMonitors: Array<Monitor> = await MonitorService.findBy({
+    const telemetryMonitors: Array<Monitor> = await MonitorService.findAllBy({
       query: {
         disableActiveMonitoring: false,
         disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
@@ -70,8 +70,6 @@ RunCron(
         monitorType: true,
         projectId: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
     });
 
     const updatePromises: Array<Promise<void>> = [];

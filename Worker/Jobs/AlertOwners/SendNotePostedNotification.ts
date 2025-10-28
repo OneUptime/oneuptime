@@ -1,7 +1,6 @@
 import RunCron from "../../Utils/Cron";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -25,19 +24,20 @@ import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
+const ALERT_NOTE_BATCH_SIZE: number = 100;
+
 RunCron(
   "AlertOwner:SendsNotePostedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     const privateNotes: Array<AlertInternalNote> =
-      await AlertInternalNoteService.findBy({
+      await AlertInternalNoteService.findAllBy({
         query: {
           isOwnerNotified: false,
         },
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
         skip: 0,
         select: {
           _id: true,
@@ -45,6 +45,7 @@ RunCron(
           alertId: true,
           projectId: true,
         },
+        batchSize: ALERT_NOTE_BATCH_SIZE,
       });
 
     const privateNoteIds: Array<string> = privateNotes.map(

@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
@@ -14,7 +13,7 @@ RunCron(
   async () => {
     // get all scheduled events of all the projects.
     const events: Array<ScheduledMaintenance> =
-      await ScheduledMaintenanceService.findBy({
+      await ScheduledMaintenanceService.findAllBy({
         query: {
           currentScheduledMaintenanceState: {
             isOngoingState: true,
@@ -24,8 +23,6 @@ RunCron(
         props: {
           isRoot: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
         select: {
           _id: true,
           projectId: true,
