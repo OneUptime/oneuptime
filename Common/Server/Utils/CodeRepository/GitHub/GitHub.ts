@@ -170,13 +170,15 @@ export default class GitHubUtil extends HostedCodeRepository {
       `https://github.com/${data.organizationName}/${data.repositoryName}.git`,
     );
 
-    const command: string = `git remote add ${
-      data.remoteName
-    } ${url.toString()}`;
+    logger.debug(
+      `Adding remote '${data.remoteName}' for ${data.organizationName}/${data.repositoryName}`,
+    );
 
-    logger.debug("Executing command: " + command);
-
-    const result: string = await Execute.executeCommand(command);
+    const result: string = await Execute.executeCommandFile({
+      command: "git",
+      args: ["remote", "add", data.remoteName, url.toString()],
+      cwd: process.cwd(),
+    });
 
     logger.debug(result);
   }
@@ -197,10 +199,19 @@ export default class GitHubUtil extends HostedCodeRepository {
       "Pushing changes to remote repository with username: " + username,
     );
 
-    const command: string = `cd ${data.repoPath} && git push -u https://${username}:${password}@github.com/${data.organizationName}/${data.repositoryName}.git ${branchName}`;
-    logger.debug("Executing command: " + command);
+    const encodedUsername: string = encodeURIComponent(username);
+    const encodedPassword: string = encodeURIComponent(password);
+    const remoteUrl: string = `https://${encodedUsername}:${encodedPassword}@github.com/${data.organizationName}/${data.repositoryName}.git`;
 
-    const result: string = await Execute.executeCommand(command);
+    logger.debug(
+      `Pushing branch '${branchName}' to ${data.organizationName}/${data.repositoryName}`,
+    );
+
+    const result: string = await Execute.executeCommandFile({
+      command: "git",
+      args: ["push", "-u", remoteUrl, branchName],
+      cwd: data.repoPath,
+    });
 
     logger.debug(result);
   }

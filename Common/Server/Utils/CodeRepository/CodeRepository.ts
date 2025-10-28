@@ -182,11 +182,15 @@ export default class CodeRepositoryUtil {
     repoPath: string;
     branchName: string;
   }): Promise<void> {
-    const command: string = `cd ${data.repoPath} && git checkout -b ${data.branchName}`;
+    logger.debug(
+      `Creating git branch '${data.branchName}' in ${path.resolve(data.repoPath)}`,
+    );
 
-    logger.debug("Executing command: " + command);
-
-    const stdout: string = await Execute.executeCommand(command);
+    const stdout: string = await this.runGitCommand(data.repoPath, [
+      "checkout",
+      "-b",
+      data.branchName,
+    ]);
 
     logger.debug(stdout);
   }
@@ -196,11 +200,14 @@ export default class CodeRepositoryUtil {
     repoPath: string;
     branchName: string;
   }): Promise<void> {
-    const command: string = `cd ${data.repoPath} && git checkout ${data.branchName}`;
+    logger.debug(
+      `Checking out git branch '${data.branchName}' in ${path.resolve(data.repoPath)}`,
+    );
 
-    logger.debug("Executing command: " + command);
-
-    const stdout: string = await Execute.executeCommand(command);
+    const stdout: string = await this.runGitCommand(data.repoPath, [
+      "checkout",
+      data.branchName,
+    ]);
 
     logger.debug(stdout);
   }
@@ -210,22 +217,51 @@ export default class CodeRepositoryUtil {
     repoPath: string;
     filePaths: Array<string>;
   }): Promise<void> {
-    const filePaths: Array<string> = data.filePaths.map((filePath: string) => {
-      if (filePath.startsWith("/")) {
-        // remove the leading slash and return
-        return filePath.substring(1);
+    const repoRoot: string = path.resolve(data.repoPath);
+
+    const sanitizedRelativeFilePaths: Array<string> = [];
+
+    for (const inputFilePath of data.filePaths) {
+      const normalizedPath: string = inputFilePath.startsWith("/")
+        ? inputFilePath.substring(1)
+        : inputFilePath;
+
+      if (normalizedPath.trim() === "") {
+        continue;
       }
 
-      return filePath;
-    });
+      const absoluteFilePath: string = this.resolvePathWithinRepo(
+        data.repoPath,
+        normalizedPath,
+      );
 
-    const command: string = `cd ${
-      data.repoPath
-    } && git add ${filePaths.join(" ")}`;
+      const relativeFilePath: string = path.relative(
+        repoRoot,
+        absoluteFilePath,
+      );
 
-    logger.debug("Executing command: " + command);
+      if (relativeFilePath.trim() === "") {
+        continue;
+      }
 
-    const stdout: string = await Execute.executeCommand(command);
+      sanitizedRelativeFilePaths.push(
+        LocalFile.sanitizeFilePath(relativeFilePath),
+      );
+    }
+
+    if (sanitizedRelativeFilePaths.length === 0) {
+      logger.debug("git add skipped because no file paths were provided");
+      return;
+    }
+
+    logger.debug(
+      `Adding ${sanitizedRelativeFilePaths.length} file(s) to git in ${path.resolve(data.repoPath)}`,
+    );
+
+    const stdout: string = await this.runGitCommand(data.repoPath, [
+      "add",
+      ...sanitizedRelativeFilePaths,
+    ]);
 
     logger.debug(stdout);
   }
@@ -235,11 +271,15 @@ export default class CodeRepositoryUtil {
     repoPath: string;
     username: string;
   }): Promise<void> {
-    const command: string = `cd ${data.repoPath} && git config user.name "${data.username}"`;
+    logger.debug(
+      `Setting git user.name in ${path.resolve(data.repoPath)}`,
+    );
 
-    logger.debug("Executing command: " + command);
-
-    const stdout: string = await Execute.executeCommand(command);
+    const stdout: string = await this.runGitCommand(data.repoPath, [
+      "config",
+      "user.name",
+      data.username,
+    ]);
 
     logger.debug(stdout);
   }
@@ -275,15 +315,25 @@ export default class CodeRepositoryUtil {
 
     const { repoPath, filePath } = data;
 
-    const command: string = `cd ${repoPath} && git log -1 --pretty=format:"%H" ".${filePath}"`;
+    const repoRoot: string = path.resolve(repoPath);
+    const absoluteTarget: string = this.resolvePathWithinRepo(repoPath, filePath);
+    const relativeTarget: string = path.relative(repoRoot, absoluteTarget);
+    const gitArgument: string = LocalFile.sanitizeFilePath(`./${relativeTarget}`);
 
-    logger.debug("Executing command: " + command);
+    logger.debug(
+      `Getting last commit hash for ${gitArgument} in ${repoRoot}`,
+    );
 
-    const hash: string = await Execute.executeCommand(command);
+    const hash: string = await this.runGitCommand(repoRoot, [
+      "log",
+      "-1",
+      "--pretty=format:%H",
+      gitArgument,
+    ]);
 
     logger.debug(hash);
 
-    return hash;
+    return hash.trim();
   }
 
   @CaptureSpan()
