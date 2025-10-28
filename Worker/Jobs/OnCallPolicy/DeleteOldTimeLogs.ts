@@ -24,16 +24,17 @@ RunCron(
     // get time logs older than 6 months. EndsAt is more than 6 months ago.
 
     while (true) {
-      const deletedCount: number = await OnCallDutyPolicyTimeLogService.deleteBy({
-        query: {
-          endsAt: QueryHelper.lessThanEqualTo(sixMonthsAgo),
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: TIME_LOG_DELETE_BATCH_SIZE,
-        skip: 0,
-      });
+      const deletedCount: number =
+        await OnCallDutyPolicyTimeLogService.deleteBy({
+          query: {
+            endsAt: QueryHelper.lessThanEqualTo(sixMonthsAgo),
+          },
+          props: {
+            isRoot: true,
+          },
+          limit: TIME_LOG_DELETE_BATCH_SIZE,
+          skip: 0,
+        });
 
       if (deletedCount === 0) {
         break;

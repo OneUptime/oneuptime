@@ -13,6 +13,7 @@ import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationR
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertService from "Common/Server/Services/AlertService";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 
 RunCron(
   "UserOnCallLog:ExecutePendingExecutions",

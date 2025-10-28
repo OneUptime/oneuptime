@@ -49,8 +49,8 @@ RunCron(
         },
       });
 
-    const incomingRequestMonitors: Array<Monitor> = await MonitorService.findAllBy(
-      {
+    const incomingRequestMonitors: Array<Monitor> =
+      await MonitorService.findAllBy({
         query: {
           ...MonitorService.getEnabledMonitorQuery(),
           monitorType: MonitorType.IncomingRequest,
@@ -73,8 +73,7 @@ RunCron(
         sort: {
           incomingRequestMonitorHeartbeatCheckedAt: SortOrder.Ascending,
         },
-      },
-    );
+      });
 
     const totalIncomingRequestMonitors: Array<Monitor> = [
       ...newIncomingRequestMonitors,

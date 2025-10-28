@@ -38,22 +38,21 @@ RunCron(
         skip: 0,
       });
 
-    const subscriptionPastdue: Array<Project> =
-      await ProjectService.findAllBy({
-        query: {
-          paymentProviderSubscriptionStatus: SubscriptionStatus.PastDue,
-        },
-        select: {
-          _id: true,
-          paymentProviderSubscriptionId: true,
-          paymentProviderMeteredSubscriptionId: true,
-        },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-        skip: 0,
-      });
+    const subscriptionPastdue: Array<Project> = await ProjectService.findAllBy({
+      query: {
+        paymentProviderSubscriptionStatus: SubscriptionStatus.PastDue,
+      },
+      select: {
+        _id: true,
+        paymentProviderSubscriptionId: true,
+        paymentProviderMeteredSubscriptionId: true,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+      skip: 0,
+    });
 
     const allPastDueProjects: Array<Project> = [
       ...merteredSubscriptionPastdue,

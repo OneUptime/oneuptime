@@ -1446,8 +1446,9 @@ export class ProjectService extends DatabaseService<Model> {
   }): Promise<Array<Model>> {
     const select: Select<Model> | undefined =
       params?.select || ({ _id: true } as Select<Model>);
-    const props: DatabaseCommonInteractionProps =
-      params?.props || { isRoot: true };
+    const props: DatabaseCommonInteractionProps = params?.props || {
+      isRoot: true,
+    };
 
     return await this.findAllBy({
       query: this.getActiveProjectStatusQuery(),

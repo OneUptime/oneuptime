@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import { FileRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";

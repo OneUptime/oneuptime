@@ -12,12 +12,13 @@ RunCron(
   async () => {
     try {
       // get all projects, then get all incidents for each project, then refresh the current state of each incident.
-      const projects: Array<Project> = await ProjectService.getAllActiveProjects({
-        select: {
-          _id: true,
-        },
-        skip: 0,
-      });
+      const projects: Array<Project> =
+        await ProjectService.getAllActiveProjects({
+          select: {
+            _id: true,
+          },
+          skip: 0,
+        });
 
       for (const project of projects) {
         try {
