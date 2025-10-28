@@ -305,9 +305,9 @@ export default class CodeRepositoryUtil {
 
     for (const command of commands) {
       logger.info(`Executing command: ${command}`);
-      const commandResult: string = await Execute.executeCommand(
-        `cd ${this.getLocalRepositoryPath()} && ${command}`,
-      );
+      const commandResult: string = await Execute.executeCommand(command, {
+        cwd: this.getLocalRepositoryPath(),
+      });
       if (commandResult) {
         logger.info(`Command result: ${commandResult}`);
         results.push(commandResult);
