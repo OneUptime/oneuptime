@@ -13,24 +13,14 @@ export default class CodeRepositoryUtil {
   public static getCurrentCommitHash(data: {
     repoPath: string;
   }): Promise<string> {
-    const command: string = `cd ${data.repoPath} && git rev-parse HEAD`;
-
-    logger.debug("Executing command: " + command);
-
-    return Execute.executeCommand(command);
+    return this.runGitCommand(data.repoPath, ["rev-parse", "HEAD"]);
   }
 
   @CaptureSpan()
   public static async addAllChangedFilesToGit(data: {
     repoPath: string;
   }): Promise<void> {
-    const command: string = `cd ${data.repoPath} && git add -A`;
-
-    logger.debug("Executing command: " + command);
-
-    const stdout: string = await Execute.executeCommand(command);
-
-    logger.debug(stdout);
+    await this.runGitCommand(data.repoPath, ["add", "-A"]);
   }
 
   @CaptureSpan()
@@ -39,26 +29,26 @@ export default class CodeRepositoryUtil {
     authorName: string;
     authorEmail: string;
   }): Promise<void> {
-    const command: string = `cd ${data.repoPath} && git config --global user.name "${data.authorName}" && git config --global user.email "${data.authorEmail}"`;
+    await this.runGitCommand(data.repoPath, [
+      "config",
+      "--global",
+      "user.name",
+      data.authorName,
+    ]);
 
-    logger.debug("Executing command: " + command);
-
-    const stdout: string = await Execute.executeCommand(command);
-
-    logger.debug(stdout);
+    await this.runGitCommand(data.repoPath, [
+      "config",
+      "--global",
+      "user.email",
+      data.authorEmail,
+    ]);
   }
 
   @CaptureSpan()
   public static async discardAllChangesOnCurrentBranch(data: {
     repoPath: string;
   }): Promise<void> {
-    const command: string = `cd ${data.repoPath} && git checkout .`;
-
-    logger.debug("Executing command: " + command);
-
-    const stdout: string = await Execute.executeCommand(command);
-
-    logger.debug(stdout);
+    await this.runGitCommand(data.repoPath, ["checkout", "."]);
   }
 
   // returns the folder name of the cloned repository
@@ -67,33 +57,25 @@ export default class CodeRepositoryUtil {
     repoPath: string;
     repoUrl: string;
   }): Promise<string> {
-    const command: string = `cd ${data.repoPath} && git clone ${data.repoUrl}`;
+    await this.runGitCommand(data.repoPath, ["clone", data.repoUrl]);
 
-    logger.debug("Executing command: " + command);
+    const normalizedUrl: string = data.repoUrl.trim().replace(/\/+$/g, "");
+    const lastSegment: string =
+      normalizedUrl.split("/").pop() || normalizedUrl.split(":").pop() || "";
+    const folderName: string = lastSegment.replace(/\.git$/i, "");
 
-    const stdout: string = await Execute.executeCommand(command);
-
-    logger.debug(stdout);
-
-    // get the folder name of the repository from the disk.
-
-    const getFolderNameCommand: string = `cd ${data.repoPath} && ls`;
-
-    const folderName: string =
-      await Execute.executeCommand(getFolderNameCommand);
+    if (!folderName) {
+      throw new BadDataException(
+        "Unable to determine repository folder name after cloning.",
+      );
+    }
 
     return folderName.trim();
   }
 
   @CaptureSpan()
   public static async pullChanges(data: { repoPath: string }): Promise<void> {
-    const command: string = `cd ${data.repoPath} && git pull`;
-
-    logger.debug("Executing command: " + command);
-
-    const stdout: string = await Execute.executeCommand(command);
-
-    logger.debug(stdout);
+    await this.runGitCommand(data.repoPath, ["pull"]);
   }
 
   @CaptureSpan()
@@ -101,13 +83,26 @@ export default class CodeRepositoryUtil {
     repoPath: string;
     branchName: string;
   }): Promise<void> {
-    const command: string = `cd ${data.repoPath} && git checkout ${data.branchName} || git checkout -b ${data.branchName}`;
+    try {
+      await this.runGitCommand(data.repoPath, [
+        "rev-parse",
+        "--verify",
+        data.branchName,
+      ]);
+      await this.runGitCommand(data.repoPath, ["checkout", data.branchName]);
+    } catch (error) {
+      logger.debug(
+        `Branch ${data.branchName} not found. Creating a new branch instead.`,
+      );
 
-    logger.debug("Executing command: " + command);
+      logger.debug(error);
 
-    const stdout: string = await Execute.executeCommand(command);
-
-    logger.debug(stdout);
+      await this.runGitCommand(data.repoPath, [
+        "checkout",
+        "-b",
+        data.branchName,
+      ]);
+    }
   }
 
   @CaptureSpan()
@@ -128,13 +123,7 @@ export default class CodeRepositoryUtil {
   public static async discardChanges(data: {
     repoPath: string;
   }): Promise<void> {
-    const command: string = `cd ${data.repoPath} && git checkout .`;
-
-    logger.debug("Executing command: " + command);
-
-    const stdout: string = await Execute.executeCommand(command);
-
-    logger.debug(stdout);
+    await this.runGitCommand(data.repoPath, ["checkout", "."]);
   }
 
   @CaptureSpan()
@@ -436,6 +425,27 @@ export default class CodeRepositoryUtil {
     }
 
     return files;
+  }
+
+  private static runGitCommand(
+    repoPath: string,
+    args: Array<string>,
+  ): Promise<string> {
+    const cwd: string = path.resolve(repoPath);
+
+    logger.debug(
+      `Executing git command in ${cwd}: git ${args
+        .map((arg: string) => {
+          return arg.includes(" ") ? `"${arg}"` : arg;
+        })
+        .join(" ")}`,
+    );
+
+    return Execute.executeCommandFile({
+      command: "git",
+      args,
+      cwd,
+    });
   }
 
   private static resolvePathWithinRepo(
