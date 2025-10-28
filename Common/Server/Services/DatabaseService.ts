@@ -1173,25 +1173,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public async findAllBy(
     findAllBy: FindAllBy<TBaseModel>,
   ): Promise<Array<TBaseModel>> {
-    const { batchSize, limit, skip, ...rest } = findAllBy;
-
-    const batchSizeValue: number =
-      this.normalizePositiveNumber(batchSize) || LIMIT_MAX;
+    const { limit, skip, ...rest } = findAllBy;
 
     let remaining: number | undefined = this.normalizePositiveNumber(limit);
     let currentSkip: number = this.normalizePositiveNumber(skip) || 0;
-
-    if (batchSizeValue <= 0) {
-      throw new BadDataException("batchSize must be greater than 0");
-    }
 
     const results: Array<TBaseModel> = [];
 
     while (true) {
       const currentBatchSize: number =
         remaining !== undefined
-          ? Math.min(batchSizeValue, Math.max(remaining, 0))
-          : batchSizeValue;
+          ? Math.min(LIMIT_MAX, Math.max(remaining, 0))
+          : LIMIT_MAX;
 
       if (currentBatchSize <= 0) {
         break;

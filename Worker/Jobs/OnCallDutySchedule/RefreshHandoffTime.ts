@@ -6,8 +6,6 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleService from "Common/Server/Services/OnCallDutyPolicyScheduleService";
 
-const ON_CALL_SCHEDULE_BATCH_SIZE: number = 100;
-
 RunCron(
   "OnCallDutySchedule:RefreshHandoffTime",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -35,7 +33,6 @@ RunCron(
         props: {
           isRoot: true,
         },
-        batchSize: ON_CALL_SCHEDULE_BATCH_SIZE,
       });
 
     logger.debug(
@@ -64,7 +61,6 @@ RunCron(
         props: {
           isRoot: true,
         },
-        batchSize: ON_CALL_SCHEDULE_BATCH_SIZE,
       });
 
     logger.debug(

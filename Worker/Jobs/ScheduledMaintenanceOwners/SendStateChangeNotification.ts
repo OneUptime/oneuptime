@@ -27,8 +27,6 @@ import UserService from "Common/Server/Services/UserService";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-const STATE_CHANGE_BATCH_SIZE: number = 100;
-
 RunCron(
   "ScheduledMaintenanceOwner:SendStateChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -63,7 +61,6 @@ RunCron(
             name: true,
           },
         },
-        batchSize: STATE_CHANGE_BATCH_SIZE,
       });
 
     for (const scheduledMaintenanceStateTimeline of scheduledMaintenanceStateTimelines) {

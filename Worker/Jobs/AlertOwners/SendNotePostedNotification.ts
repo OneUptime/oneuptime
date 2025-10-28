@@ -24,8 +24,6 @@ import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-const ALERT_NOTE_BATCH_SIZE: number = 100;
-
 RunCron(
   "AlertOwner:SendsNotePostedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -45,7 +43,6 @@ RunCron(
           alertId: true,
           projectId: true,
         },
-        batchSize: ALERT_NOTE_BATCH_SIZE,
       });
 
     const privateNoteIds: Array<string> = privateNotes.map(

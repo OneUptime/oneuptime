@@ -22,8 +22,6 @@ import User from "Common/Models/DatabaseModels/User";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-const STATUS_PAGE_OWNER_BATCH_SIZE: number = 100;
-
 RunCron(
   "StatusPageOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -42,7 +40,6 @@ RunCron(
           statusPageId: true,
           teamId: true,
         },
-        batchSize: STATUS_PAGE_OWNER_BATCH_SIZE,
       });
 
     const statusPageOwnersMap: Dictionary<Array<User>> = {};
@@ -95,7 +92,6 @@ RunCron(
             name: true,
           },
         },
-        batchSize: STATUS_PAGE_OWNER_BATCH_SIZE,
       });
 
     for (const statusPageOwnerUser of statusPageOwnerUsers) {

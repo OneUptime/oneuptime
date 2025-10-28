@@ -17,8 +17,6 @@ import User from "Common/Models/DatabaseModels/User";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-const STATUS_PAGE_OWNER_BATCH_SIZE: number = 100;
-
 RunCron(
   "StatusPageOwner:SendCreatedResourceEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -41,7 +39,6 @@ RunCron(
           name: true,
         },
       },
-      batchSize: STATUS_PAGE_OWNER_BATCH_SIZE,
     });
 
     for (const statusPage of statusPages) {

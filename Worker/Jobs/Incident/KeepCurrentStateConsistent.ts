@@ -6,9 +6,6 @@ import IncidentService from "Common/Server/Services/IncidentService";
 import Project from "Common/Models/DatabaseModels/Project";
 import Incident from "Common/Models/DatabaseModels/Incident";
 
-const INCIDENT_PROJECT_BATCH_SIZE: number = 100;
-const INCIDENT_BATCH_SIZE: number = 100;
-
 RunCron(
   "Incident:KeepCurrentStateConsistent",
   { schedule: EVERY_DAY, runOnStartup: true },
@@ -20,7 +17,6 @@ RunCron(
           _id: true,
         },
         skip: 0,
-        batchSize: INCIDENT_PROJECT_BATCH_SIZE,
       });
 
       for (const project of projects) {
@@ -40,7 +36,6 @@ RunCron(
             props: {
               isRoot: true,
             },
-            batchSize: INCIDENT_BATCH_SIZE,
           });
 
           for (const incident of incidents) {

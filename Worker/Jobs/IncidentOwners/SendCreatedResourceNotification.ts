@@ -27,8 +27,6 @@ import { Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-const INCIDENT_OWNER_BATCH_SIZE: number = 100;
-
 RunCron(
   "IncidentOwner:SendCreatedResourceEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -70,7 +68,6 @@ RunCron(
         },
         incidentNumber: true,
       },
-      batchSize: INCIDENT_OWNER_BATCH_SIZE,
     });
 
     for (const incident of incidents) {

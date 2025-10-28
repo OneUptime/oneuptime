@@ -26,8 +26,6 @@ import { Blue500 } from "Common/Types/BrandColors";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-const NOTE_NOTIFICATION_BATCH_SIZE: number = 100;
-
 RunCron(
   "ScheduledMaintenanceOwner:SendsNotePostedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -47,7 +45,6 @@ RunCron(
           scheduledMaintenanceId: true,
           projectId: true,
         },
-        batchSize: NOTE_NOTIFICATION_BATCH_SIZE,
       });
 
     const privateNotes: Array<ScheduledMaintenanceInternalNote> =
@@ -65,7 +62,6 @@ RunCron(
           scheduledMaintenanceId: true,
           projectId: true,
         },
-        batchSize: NOTE_NOTIFICATION_BATCH_SIZE,
       });
 
     const privateNoteIds: Array<string> = privateNotes.map(

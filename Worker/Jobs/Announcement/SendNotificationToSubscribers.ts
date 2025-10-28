@@ -32,8 +32,6 @@ import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/Stat
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 
-const ANNOUNCEMENT_BATCH_SIZE: number = 100;
-
 RunCron(
   "Announcement:SendNotificationToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -56,7 +54,6 @@ RunCron(
         select: {
           _id: true,
         },
-        batchSize: ANNOUNCEMENT_BATCH_SIZE,
       });
 
     logger.debug(
@@ -110,7 +107,6 @@ RunCron(
           },
           showAnnouncementAt: true,
         },
-        batchSize: ANNOUNCEMENT_BATCH_SIZE,
       });
 
     logger.debug(
@@ -237,7 +233,6 @@ RunCron(
                   statusPageId: true,
                 },
                 skip: 0,
-                batchSize: ANNOUNCEMENT_BATCH_SIZE,
               });
 
               logger.debug(
@@ -377,7 +372,6 @@ RunCron(
                         statusPageUrl: statusPageURL,
                         logoUrl: statuspage.logoFileId
                           ? new URL(httpProtocol, host)
-                              .addRoute(FileRoute)
                               .addRoute("/image/" + statuspage.logoFileId)
                               .toString()
                           : "",

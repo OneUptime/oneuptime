@@ -27,8 +27,6 @@ import UserService from "Common/Server/Services/UserService";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-const INCIDENT_STATE_BATCH_SIZE: number = 100;
-
 RunCron(
   "IncidentOwner:SendStateChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -57,7 +55,6 @@ RunCron(
             isResolvedState: true,
           },
         },
-        batchSize: INCIDENT_STATE_BATCH_SIZE,
       });
 
     for (const incidentStateTimeline of incidentStateTimelines) {

@@ -3,7 +3,6 @@ import { FileRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
@@ -36,8 +35,6 @@ import { Blue500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 
-const INCIDENT_SUBSCRIBER_BATCH_SIZE: number = 100;
-
 RunCron(
   "Incident:SendNotificationToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -56,7 +53,6 @@ RunCron(
       select: {
         _id: true,
       },
-      batchSize: INCIDENT_SUBSCRIBER_BATCH_SIZE,
     });
 
     logger.debug(
@@ -110,7 +106,6 @@ RunCron(
         },
         incidentNumber: true,
       },
-      batchSize: INCIDENT_SUBSCRIBER_BATCH_SIZE,
     });
 
     logger.debug(
@@ -204,7 +199,6 @@ RunCron(
               displayName: true,
               statusPageId: true,
             },
-            batchSize: LIMIT_PER_PROJECT,
           });
 
         logger.debug(

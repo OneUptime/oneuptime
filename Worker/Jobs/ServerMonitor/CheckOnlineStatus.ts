@@ -10,8 +10,6 @@ import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
-
-const SERVER_MONITOR_BATCH_SIZE: number = 100;
 RunCron(
   "ServerMonitor:CheckOnlineStatus",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -37,7 +35,6 @@ RunCron(
           monitorSteps: true,
         },
         skip: 0,
-        batchSize: SERVER_MONITOR_BATCH_SIZE,
       });
 
       // Prepare all monitor resource tasks for parallel processing

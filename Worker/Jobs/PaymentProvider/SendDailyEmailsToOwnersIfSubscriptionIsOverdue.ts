@@ -12,8 +12,6 @@ import User from "Common/Models/DatabaseModels/User";
 import MailService from "Common/Server/Services/MailService";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 
-const SUBSCRIPTION_BATCH_SIZE: number = 100;
-
 RunCron(
   "PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue",
   { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: false },
@@ -38,26 +36,24 @@ RunCron(
           ignoreHooks: true,
         },
         skip: 0,
-        batchSize: SUBSCRIPTION_BATCH_SIZE,
       });
 
     const subscriptionPastdue: Array<Project> =
       await ProjectService.findAllBy({
-      query: {
-        paymentProviderSubscriptionStatus: SubscriptionStatus.PastDue,
-      },
-      select: {
-        _id: true,
-        paymentProviderSubscriptionId: true,
-        paymentProviderMeteredSubscriptionId: true,
-      },
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
+        query: {
+          paymentProviderSubscriptionStatus: SubscriptionStatus.PastDue,
+        },
+        select: {
+          _id: true,
+          paymentProviderSubscriptionId: true,
+          paymentProviderMeteredSubscriptionId: true,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
         skip: 0,
-        batchSize: SUBSCRIPTION_BATCH_SIZE,
-    });
+      });
 
     const allPastDueProjects: Array<Project> = [
       ...merteredSubscriptionPastdue,

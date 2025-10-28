@@ -6,8 +6,6 @@ import CopilotActionService from "Common/Server/Services/CopilotActionService";
 import CopilotActionStatus from "Common/Types/Copilot/CopilotActionStatus";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
-const COPILOT_ACTION_BATCH_SIZE: number = 100;
-
 RunCron(
   "CopilotAction:MoveThemBackToQueueIfProcessingForLongtime",
   { schedule: EVERY_THIRTY_MINUTES, runOnStartup: false },
@@ -32,7 +30,6 @@ RunCron(
         props: {
           isRoot: true,
         },
-        batchSize: COPILOT_ACTION_BATCH_SIZE,
       });
 
     for (const stalledAction of stalledActions) {

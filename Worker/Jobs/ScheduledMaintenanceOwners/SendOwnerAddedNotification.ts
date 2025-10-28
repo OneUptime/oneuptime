@@ -22,8 +22,6 @@ import User from "Common/Models/DatabaseModels/User";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-const OWNER_BATCH_SIZE: number = 100;
-
 RunCron(
   "ScheduledMaintenanceOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -42,7 +40,6 @@ RunCron(
           scheduledMaintenanceId: true,
           teamId: true,
         },
-        batchSize: OWNER_BATCH_SIZE,
       });
 
     const scheduledMaintenanceOwnersMap: Dictionary<Array<User>> = {};
@@ -101,7 +98,6 @@ RunCron(
             name: true,
           },
         },
-        batchSize: OWNER_BATCH_SIZE,
       });
 
     for (const scheduledMaintenanceOwnerUser of scheduledMaintenanceOwnerUsers) {

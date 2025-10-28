@@ -7,8 +7,6 @@ import UserOnCallLogService from "Common/Server/Services/UserOnCallLogService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 
-const ON_CALL_TIMEOUT_BATCH_SIZE: number = 100;
-
 /**
  * Jobs move from Started to Executing in seconds. If it takes more than 5 minutes, it's stuck. So, mark them as error
  */
@@ -37,7 +35,6 @@ RunCron(
         props: {
           isRoot: true,
         },
-        batchSize: ON_CALL_TIMEOUT_BATCH_SIZE,
       });
 
     // check for executing logs more than 3 hours ago and mark them as timed out.
@@ -55,7 +52,6 @@ RunCron(
         props: {
           isRoot: true,
         },
-        batchSize: ON_CALL_TIMEOUT_BATCH_SIZE,
       });
 
     const totalStuckExecutions: Array<UserOnCallLog> = [

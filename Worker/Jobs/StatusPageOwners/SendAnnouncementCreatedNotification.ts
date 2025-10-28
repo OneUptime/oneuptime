@@ -20,8 +20,6 @@ import User from "Common/Models/DatabaseModels/User";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-const ANNOUNCEMENT_OWNER_BATCH_SIZE: number = 100;
-
 RunCron(
   "StatusPageOwner:SendAnnouncementCreatedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -46,7 +44,6 @@ RunCron(
             projectId: true,
           },
         },
-        batchSize: ANNOUNCEMENT_OWNER_BATCH_SIZE,
       });
 
     for (const announcement of announcements) {

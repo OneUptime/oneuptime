@@ -23,8 +23,6 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import User from "Common/Models/DatabaseModels/User";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-const INCIDENT_OWNER_BATCH_SIZE: number = 100;
-
 RunCron(
   "IncidentOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -43,7 +41,6 @@ RunCron(
           incidentId: true,
           teamId: true,
         },
-        batchSize: INCIDENT_OWNER_BATCH_SIZE,
       });
 
     const incidentOwnersMap: Dictionary<Array<User>> = {};
@@ -94,7 +91,6 @@ RunCron(
             name: true,
           },
         },
-        batchSize: INCIDENT_OWNER_BATCH_SIZE,
       });
 
     for (const incidentOwnerUser of incidentOwnerUsers) {

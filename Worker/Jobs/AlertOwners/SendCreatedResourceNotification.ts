@@ -26,8 +26,6 @@ import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-const ALERT_OWNER_BATCH_SIZE: number = 100;
-
 RunCron(
   "AlertOwner:SendCreatedResourceEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -69,7 +67,6 @@ RunCron(
         },
         alertNumber: true,
       },
-      batchSize: ALERT_OWNER_BATCH_SIZE,
     });
 
     for (const alert of alerts) {

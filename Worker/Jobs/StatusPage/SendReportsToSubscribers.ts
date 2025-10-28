@@ -7,8 +7,6 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 
-const STATUS_PAGE_REPORT_BATCH_SIZE: number = 100;
-
 RunCron(
   "StatusPage:SendReportToSubscribers",
   {
@@ -34,7 +32,6 @@ RunCron(
           sendNextReportBy: true,
           reportRecurringInterval: true,
         },
-        batchSize: STATUS_PAGE_REPORT_BATCH_SIZE,
       });
 
     for (const statusPageToSendReport of statusPageToSendReports) {

@@ -27,8 +27,6 @@ import { Blue500 } from "Common/Types/BrandColors";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-const INCIDENT_NOTE_BATCH_SIZE: number = 100;
-
 RunCron(
   "IncidentOwner:SendsNotePostedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -48,7 +46,6 @@ RunCron(
           incidentId: true,
           projectId: true,
         },
-        batchSize: INCIDENT_NOTE_BATCH_SIZE,
       });
 
     const privateNotes: Array<IncidentInternalNote> =
@@ -66,7 +63,6 @@ RunCron(
           incidentId: true,
           projectId: true,
         },
-        batchSize: INCIDENT_NOTE_BATCH_SIZE,
       });
 
     const privateNoteIds: Array<string> = privateNotes.map(

@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
@@ -46,7 +45,6 @@ RunCron(
         props: {
           isRoot: true,
         },
-        batchSize: LIMIT_PER_PROJECT,
       });
 
     const promises: Array<Promise<void>> = [];

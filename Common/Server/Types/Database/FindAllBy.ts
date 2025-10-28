@@ -22,8 +22,4 @@ export default interface FindAllBy<TBaseModel extends BaseModel> {
    * When omitted, the method keeps fetching until no more data is returned.
    */
   limit?: PositiveNumber | number | undefined;
-  /**
-   * Size of each batch fetched from the database. Defaults to LIMIT_MAX when not provided.
-   */
-  batchSize?: PositiveNumber | number | undefined;
 }

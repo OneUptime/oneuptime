@@ -21,8 +21,6 @@ import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-const OWNER_NOTIFICATION_BATCH_SIZE: number = 100;
-
 RunCron(
   "ScheduledMaintenanceOwner:SendCreatedResourceEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -50,7 +48,6 @@ RunCron(
           },
           scheduledMaintenanceNumber: true,
         },
-        batchSize: OWNER_NOTIFICATION_BATCH_SIZE,
       });
 
     for (const scheduledMaintenance of scheduledMaintenances) {

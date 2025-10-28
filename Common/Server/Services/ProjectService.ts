@@ -1441,7 +1441,6 @@ export class ProjectService extends DatabaseService<Model> {
   public async getAllActiveProjects(params?: {
     select?: Select<Model>;
     props?: DatabaseCommonInteractionProps;
-    batchSize?: PositiveNumber | number;
     skip?: PositiveNumber | number;
     limit?: PositiveNumber | number;
   }): Promise<Array<Model>> {
@@ -1454,7 +1453,6 @@ export class ProjectService extends DatabaseService<Model> {
       query: this.getActiveProjectStatusQuery(),
       select,
       props,
-      batchSize: params?.batchSize,
       skip: params?.skip,
       limit: params?.limit,
     });

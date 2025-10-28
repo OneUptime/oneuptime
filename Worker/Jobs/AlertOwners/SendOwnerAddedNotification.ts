@@ -22,8 +22,6 @@ import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import User from "Common/Models/DatabaseModels/User";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
-const ALERT_OWNER_BATCH_SIZE: number = 100;
-
 RunCron(
   "AlertOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -42,7 +40,6 @@ RunCron(
           alertId: true,
           teamId: true,
         },
-        batchSize: ALERT_OWNER_BATCH_SIZE,
       });
 
     const alertOwnersMap: Dictionary<Array<User>> = {};
@@ -93,7 +90,6 @@ RunCron(
             name: true,
           },
         },
-        batchSize: ALERT_OWNER_BATCH_SIZE,
       });
 
     for (const alertOwnerUser of alertOwnerUsers) {

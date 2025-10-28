@@ -6,8 +6,6 @@ import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 
-const WORKFLOW_TIMEOUT_BATCH_SIZE: number = 100;
-
 RunCron(
   "Workflow:TimeoutJobs",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -27,7 +25,6 @@ RunCron(
         props: {
           isRoot: true,
         },
-        batchSize: WORKFLOW_TIMEOUT_BATCH_SIZE,
       });
 
     for (const stalledWorkflowLog of stalledWorkflowLogs) {
