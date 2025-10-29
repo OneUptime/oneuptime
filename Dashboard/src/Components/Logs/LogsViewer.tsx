@@ -1,10 +1,11 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import LogsViewer from "Common/UI/Components/LogsViewer/LogsViewer";
+import LogsViewer, {
+  LogsSortField,
+} from "Common/UI/Components/LogsViewer/LogsViewer";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI, {
   ListResult,
@@ -61,37 +62,26 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     return query;
   };
 
+  const DEFAULT_PAGE_SIZE: number = 100;
+
   const [logs, setLogs] = React.useState<Array<Log>>([]);
   const [error, setError] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [filterOptions, setFilterOptions] =
     React.useState<Query<Log>>(refreshQuery());
-
-  const select: Select<Log> = {
-    body: true,
-    time: true,
-    projectId: true,
-    serviceId: true,
-    spanId: true,
-    traceId: true,
-    severityText: true,
-    attributes: true,
-  };
-
-  type GetQueryFunction = () => Query<Log>;
-
-  const getQuery: GetQueryFunction = (): Query<Log> => {
-    return filterOptions;
-  };
-
-  useEffect(() => {
-    fetchItems().catch((err: unknown) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, [filterOptions]);
+  const [page, setPage] = React.useState<number>(1);
+  const [pageSize, setPageSize] = React.useState<number>(
+    props.limit || DEFAULT_PAGE_SIZE,
+  );
+  const [totalCount, setTotalCount] = React.useState<number>(0);
+  const [sortField, setSortField] = React.useState<LogsSortField>("time");
+  const [sortOrder, setSortOrder] = React.useState<SortOrder>(
+    SortOrder.Descending,
+  );
 
   useEffect(() => {
     setFilterOptions(refreshQuery());
+    setPage(1);
   }, [
     props.telemetryServiceIds,
     props.traceIds,
@@ -99,33 +89,61 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     props.logQuery,
   ]);
 
-  const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
-    setError("");
-    setIsLoading(true);
+  const select: Select<Log> = React.useMemo(() => {
+    return {
+      body: true,
+      time: true,
+      projectId: true,
+      serviceId: true,
+      spanId: true,
+      traceId: true,
+      severityText: true,
+      attributes: true,
+    };
+  }, []);
 
-    try {
-      const listResult: ListResult<Log> = await AnalyticsModelAPI.getList<Log>({
-        modelType: Log,
-        query: getQuery(),
-        limit: props.limit || LIMIT_PER_PROJECT,
-        skip: 0,
-        select: select,
-        sort: {
-          time: SortOrder.Descending,
-        },
-        requestOptions: {},
-      });
+  const fetchItems: PromiseVoidFunction =
+    React.useCallback(async (): Promise<void> => {
+      setError("");
+      setIsLoading(true);
 
-      // Default to showing oldest logs first; the viewer can flip the order on demand.
-      listResult.data.reverse();
+      try {
+        const listResult: ListResult<Log> =
+          await AnalyticsModelAPI.getList<Log>({
+            modelType: Log,
+            query: filterOptions,
+            limit: pageSize,
+            skip: (page - 1) * pageSize,
+            select: select,
+            sort: {
+              [sortField]: sortOrder,
+            } as Record<string, SortOrder>,
+            requestOptions: {},
+          });
 
-      setLogs(listResult.data);
-    } catch (err) {
+        setLogs(listResult.data);
+        setTotalCount(listResult.count);
+
+        const maximumPage: number = Math.max(
+          1,
+          Math.ceil(listResult.count / Math.max(pageSize, 1)),
+        );
+
+        if (page > maximumPage) {
+          setPage(maximumPage);
+        }
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      }
+
+      setIsLoading(false);
+    }, [filterOptions, page, pageSize, select, sortField, sortOrder]);
+
+  useEffect(() => {
+    fetchItems().catch((err: unknown) => {
       setError(API.getFriendlyMessage(err));
-    }
-
-    setIsLoading(false);
-  };
+    });
+  }, [fetchItems]);
 
   useEffect(() => {
     if (!props.enableRealtime) {
@@ -138,17 +156,23 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         eventType: ModelEventType.Create,
         tenantId: ProjectUtil.getCurrentProjectId()!,
       },
-      (model: Log) => {
-        setLogs((logs: Array<Log>) => {
-          return [...logs, model];
-        });
+      (_model: Log) => {
+        if (
+          page === 1 &&
+          sortField === "time" &&
+          sortOrder === SortOrder.Descending
+        ) {
+          fetchItems().catch((err: unknown) => {
+            setError(API.getFriendlyMessage(err));
+          });
+        }
       },
     );
 
     return () => {
       disconnectFunction();
     };
-  }, []);
+  }, [fetchItems, page, sortField, sortOrder]);
 
   if (error) {
     return <ErrorMessage message={error} />;
@@ -160,11 +184,29 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         isLoading={isLoading}
         onFilterChanged={(filterOptions: Query<Log>) => {
           setFilterOptions(filterOptions);
+          setPage(1);
         }}
         filterData={filterOptions}
         logs={logs}
         showFilters={props.showFilters}
         noLogsMessage={props.noLogsMessage}
+        totalCount={totalCount}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={(nextPage: number) => {
+          setPage(nextPage);
+        }}
+        onPageSizeChange={(nextSize: number) => {
+          setPageSize(nextSize);
+          setPage(1);
+        }}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSortChange={(field: LogsSortField, order: SortOrder) => {
+          setSortField(field);
+          setSortOrder(order);
+          setPage(1);
+        }}
         getTraceRoute={(traceId: string) => {
           if (!traceId) {
             return undefined;
