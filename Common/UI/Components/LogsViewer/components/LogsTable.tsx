@@ -85,7 +85,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
 
   return (
     <div className="relative">
-      <div className="overflow-x-auto border-b border-slate-900 bg-slate-950">
+      <div className="overflow-x-auto overflow-y-hidden border-b border-slate-900 bg-slate-950">
         <table className="min-w-full divide-y divide-slate-900/80">
           <thead className="bg-slate-950">
             <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-200">
