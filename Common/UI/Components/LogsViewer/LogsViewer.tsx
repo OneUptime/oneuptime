@@ -317,7 +317,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-800/70 bg-gradient-to-b from-slate-950 via-slate-950/70 to-slate-950/40 shadow-xl">
+      <div className="overflow-hidden rounded-2xl border border-slate-800/70 bg-slate-950/60 shadow-xl">
         {!props.showFilters && (
           <div className="border-b border-slate-800/70 bg-slate-950/70 px-4 py-3">
             <LogsViewerToolbar {...toolbarProps} />

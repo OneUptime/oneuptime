@@ -99,7 +99,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                     }}
                     className={`group cursor-pointer align-top transition-colors duration-150 hover:bg-slate-900/60 ${
                       isSelected
-                        ? "bg-gradient-to-r from-indigo-950/60 via-slate-950/60 to-slate-950/30 ring-1 ring-inset ring-indigo-500/40"
+                        ? "bg-slate-900/80 ring-1 ring-inset ring-indigo-500/40"
                         : ""
                     }`}
                     aria-selected={isSelected}
@@ -131,7 +131,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 flex-1 flex-col gap-1">
                           <p
-                            className={`truncate text-sm text-slate-100 transition-colors duration-150 group-hover:text-slate-50 ${severityTheme.textClass}`}
+                            className={`whitespace-pre-wrap break-words text-sm text-slate-100 transition-colors duration-150 group-hover:text-slate-50 ${severityTheme.textClass}`}
                             title={message}
                           >
                             {message || "—"}
