@@ -22,6 +22,7 @@ export interface LogDetailsPanelProps {
   getSpanRoute?:
     | ((spanId: string, log: Log) => Route | URL | undefined)
     | undefined;
+  variant?: "floating" | "embedded";
 }
 
 interface PreparedBody {
@@ -66,6 +67,7 @@ const prepareBody: (body: string | undefined) => PreparedBody = (
 const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
   props: LogDetailsPanelProps,
 ): ReactElement => {
+  const variant: "floating" | "embedded" = props.variant || "floating";
   const serviceId: string = props.log.serviceId?.toString() || "";
   const service: TelemetryService | undefined = props.serviceMap[serviceId];
   const serviceName: string = service?.name || serviceId || "Unknown service";
@@ -135,11 +137,24 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
     return undefined;
   }, [spanId, props, traceId]);
 
+  const containerClassName: string =
+    variant === "embedded"
+      ? "rounded-lg border border-slate-800/60 bg-slate-950/60 p-4 shadow-inner ring-1 ring-indigo-500/10"
+      : "rounded-xl border border-slate-800 bg-slate-950/80 p-4 shadow-sm ring-1 ring-inset ring-transparent";
+
+  const headerBorderClass: string =
+    variant === "embedded" ? "border-slate-800/60" : "border-slate-800";
+
+  const cardBackgroundClass: string =
+    variant === "embedded"
+      ? "border-slate-800/60 bg-slate-950/70"
+      : "border-slate-800 bg-slate-950/80";
+
   return (
-    <div
-      className={`rounded-xl border border-slate-800 bg-slate-950/80 p-4 shadow-sm ring-1 ring-inset ring-transparent`}
-    >
-      <div className="flex flex-col gap-4 border-b border-slate-800 pb-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className={containerClassName}>
+      <div
+        className={`flex flex-col gap-4 border-b ${headerBorderClass} pb-3 sm:flex-row sm:items-start sm:justify-between`}
+      >
         <div className="flex items-start gap-3">
           <span
             className="mt-1 h-3 w-3 flex-none rounded-full border border-slate-900/40"
@@ -188,7 +203,9 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
             />
           </header>
 
-          <div className="rounded-md border border-slate-800 bg-slate-950/80 p-3">
+          <div
+            className={`rounded-md border ${cardBackgroundClass} p-3`}
+          >
             {bodyDetails.isJson ? (
               <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words font-mono text-xs text-slate-100">
                 {bodyDetails.pretty}
@@ -303,7 +320,9 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                 title="Copy attributes"
               />
             </header>
-            <div className="rounded-md border border-slate-800 bg-slate-950/80 p-3">
+            <div
+              className={`rounded-md border ${cardBackgroundClass} p-3`}
+            >
               <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-xs text-slate-100">
                 {prettyAttributes}
               </pre>

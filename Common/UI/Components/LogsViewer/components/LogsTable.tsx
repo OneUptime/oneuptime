@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Log from "../../../../Models/AnalyticsModels/Log";
 import TelemetryService from "../../../../Models/DatabaseModels/TelemetryService";
 import Dictionary from "../../../../Types/Dictionary";
@@ -15,6 +15,7 @@ export interface LogsTableProps {
   emptyMessage?: string | undefined;
   onRowClick: (log: Log, rowId: string) => void;
   selectedLogId?: string | null;
+  renderExpandedContent?: (log: Log) => ReactElement | null;
 }
 
 export const resolveLogIdentifier: (log: Log, index: number) => string = (
@@ -52,9 +53,9 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
   return (
     <div className="relative">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-800">
-          <thead className="bg-slate-900/70">
-            <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        <table className="min-w-full divide-y divide-slate-800/60">
+          <thead className="bg-slate-950/90 backdrop-blur">
+            <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-300">
               <th scope="col" className="px-4 py-3">
                 Time
               </th>
@@ -69,7 +70,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800 bg-slate-950/50">
+          <tbody className="divide-y divide-slate-800/60 bg-slate-950/40">
             {props.logs.map((log: Log, index: number) => {
               const rowId: string = resolveLogIdentifier(log, index);
               const serviceId: string = log.serviceId?.toString() || "";
@@ -91,66 +92,76 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
               );
 
               return (
-                <tr
-                  key={rowId}
-                  onClick={() => {
-                    props.onRowClick(log, rowId);
-                  }}
-                  className={`cursor-pointer align-top transition-colors duration-150 hover:bg-slate-900/70 ${
-                    isSelected
-                      ? "bg-slate-900/80 ring-1 ring-inset ring-indigo-400/40"
-                      : ""
-                  }`}
-                  aria-selected={isSelected}
-                >
-                  <td className="whitespace-nowrap px-4 py-3 text-[13px] font-mono text-slate-300">
-                    {log.time
-                      ? OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                          log.time,
-                        )
-                      : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3 text-sm text-slate-200">
-                      <span
-                        className="h-2.5 w-2.5 flex-none rounded-full border border-slate-900/40"
-                        style={{ backgroundColor: serviceColor }}
-                        aria-hidden="true"
-                      />
-                      <span className="truncate" title={serviceName}>
-                        {serviceName}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <SeverityBadge severity={log.severityText} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 flex-1 flex-col gap-1">
-                        <p
-                          className={`truncate text-sm text-slate-100 ${severityTheme.textClass}`}
-                          title={message}
-                        >
-                          {message || "—"}
-                        </p>
-                        {(traceId || spanId) && (
-                          <div className="flex flex-wrap gap-3 text-[11px] tracking-wide text-slate-500">
-                            {traceId && <span>Trace: {traceId}</span>}
-                            {spanId && <span>Span: {spanId}</span>}
-                          </div>
-                        )}
+                <Fragment key={rowId}>
+                  <tr
+                    onClick={() => {
+                      props.onRowClick(log, rowId);
+                    }}
+                    className={`group cursor-pointer align-top transition-colors duration-150 hover:bg-slate-900/60 ${
+                      isSelected
+                        ? "bg-gradient-to-r from-indigo-950/60 via-slate-950/60 to-slate-950/30 ring-1 ring-inset ring-indigo-500/40"
+                        : ""
+                    }`}
+                    aria-selected={isSelected}
+                    aria-expanded={isSelected}
+                  >
+                    <td className="whitespace-nowrap px-4 py-3 text-[13px] font-mono text-slate-200">
+                      {log.time
+                        ? OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                            log.time,
+                          )
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3 text-sm text-slate-100">
+                        <span
+                          className="h-2.5 w-2.5 flex-none rounded-full border border-slate-900/40 shadow-sm"
+                          style={{ backgroundColor: serviceColor }}
+                          aria-hidden="true"
+                        />
+                        <span className="truncate" title={serviceName}>
+                          {serviceName}
+                        </span>
                       </div>
-                      <CopyTextButton
-                        textToBeCopied={message}
-                        size="xs"
-                        variant="ghost"
-                        iconOnly={true}
-                        title="Copy log message"
-                      />
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                    <td className="px-4 py-3">
+                      <SeverityBadge severity={log.severityText} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 flex-1 flex-col gap-1">
+                          <p
+                            className={`truncate text-sm text-slate-100 transition-colors duration-150 group-hover:text-slate-50 ${severityTheme.textClass}`}
+                            title={message}
+                          >
+                            {message || "—"}
+                          </p>
+                          {(traceId || spanId) && (
+                            <div className="flex flex-wrap gap-3 text-[11px] tracking-wide text-slate-400">
+                              {traceId && <span>Trace: {traceId}</span>}
+                              {spanId && <span>Span: {spanId}</span>}
+                            </div>
+                          )}
+                        </div>
+                        <CopyTextButton
+                          textToBeCopied={message}
+                          size="xs"
+                          variant="ghost"
+                          iconOnly={true}
+                          title="Copy log message"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+
+                  {isSelected && props.renderExpandedContent && (
+                    <tr className="bg-slate-950/70">
+                      <td colSpan={4} className="px-6 pb-6 pt-3">
+                        {props.renderExpandedContent(log)}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
           </tbody>

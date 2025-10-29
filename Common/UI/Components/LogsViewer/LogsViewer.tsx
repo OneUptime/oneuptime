@@ -258,20 +258,6 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     setCurrentPage(1);
   };
 
-  const selectedLog: Log | null = useMemo(() => {
-    if (!selectedLogId) {
-      return null;
-    }
-
-    const match: Log | undefined = props.logs.find(
-      (log: Log, index: number) => {
-        return resolveLogIdentifier(log, index) === selectedLogId;
-      },
-    );
-
-    return match || null;
-  }, [props.logs, selectedLogId]);
-
   if (isPageLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -331,10 +317,16 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950/60 shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-800/70 bg-gradient-to-b from-slate-950 via-slate-950/70 to-slate-950/40 shadow-xl">
         {!props.showFilters && (
-          <div className="border-b border-slate-800 px-4 py-3">
+          <div className="border-b border-slate-800/70 bg-slate-950/70 px-4 py-3">
             <LogsViewerToolbar {...toolbarProps} />
+          </div>
+        )}
+
+        {!selectedLogId && totalItems > 0 && (
+          <div className="border-b border-slate-800/60 bg-indigo-500/5 px-4 py-2 text-[12px] text-indigo-200/90">
+            Click any row to open its details inline.
           </div>
         )}
 
@@ -353,6 +345,18 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             });
           }}
           selectedLogId={selectedLogId}
+          renderExpandedContent={(log: Log) => (
+            <LogDetailsPanel
+              log={log}
+              serviceMap={serviceMap}
+              onClose={() => {
+                setSelectedLogId(null);
+              }}
+              getTraceRoute={props.getTraceRoute}
+              getSpanRoute={props.getSpanRoute}
+              variant="embedded"
+            />
+          )}
         />
 
         <LogsPagination
@@ -365,22 +369,6 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           isDisabled={props.isLoading || totalItems === 0}
         />
       </div>
-
-      {selectedLog ? (
-        <LogDetailsPanel
-          log={selectedLog}
-          serviceMap={serviceMap}
-          onClose={() => {
-            setSelectedLogId(null);
-          }}
-          getTraceRoute={props.getTraceRoute}
-          getSpanRoute={props.getSpanRoute}
-        />
-      ) : totalItems > 0 ? (
-        <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-6 text-center text-sm text-slate-400">
-          Select a log row to preview its details.
-        </div>
-      ) : null}
     </div>
   );
 };
