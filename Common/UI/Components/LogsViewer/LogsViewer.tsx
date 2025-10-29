@@ -51,10 +51,7 @@ export interface ComponentProps {
   onPageSizeChange?: (size: number) => void;
   sortField?: LogsTableSortField | undefined;
   sortOrder?: SortOrder | undefined;
-  onSortChange?: (
-    field: LogsTableSortField,
-    order: SortOrder,
-  ) => void;
+  onSortChange?: (field: LogsTableSortField, order: SortOrder) => void;
 }
 
 export type LogsSortField = LogsTableSortField;
@@ -161,11 +158,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     cloned.sort((a: Log, b: Log) => {
       if (sortField === "time") {
         const aTime: number =
-          Number(a.timeUnixNano) ||
-          (a.time ? new Date(a.time).getTime() : 0);
+          Number(a.timeUnixNano) || (a.time ? new Date(a.time).getTime() : 0);
         const bTime: number =
-          Number(b.timeUnixNano) ||
-          (b.time ? new Date(b.time).getTime() : 0);
+          Number(b.timeUnixNano) || (b.time ? new Date(b.time).getTime() : 0);
 
         if (aTime === bTime) {
           return 0;
@@ -176,12 +171,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           : aTime - bTime;
       }
 
-      const aSeverity: number = getSeverityWeight(
-        a.severityText?.toString(),
-      );
-      const bSeverity: number = getSeverityWeight(
-        b.severityText?.toString(),
-      );
+      const aSeverity: number = getSeverityWeight(a.severityText?.toString());
+      const bSeverity: number = getSeverityWeight(b.severityText?.toString());
 
       if (aSeverity === bSeverity) {
         return 0;
@@ -234,7 +225,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
 
     const stillExists: boolean = displayedLogs.some(
       (log: Log, index: number) => {
-      return resolveLogIdentifier(log, index) === selectedLogId;
+        return resolveLogIdentifier(log, index) === selectedLogId;
       },
     );
 
@@ -466,18 +457,20 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           sortField={sortField}
           sortOrder={sortOrder}
           onSortChange={handleSortChange}
-          renderExpandedContent={(log: Log) => (
-            <LogDetailsPanel
-              log={log}
-              serviceMap={serviceMap}
-              onClose={() => {
-                setSelectedLogId(null);
-              }}
-              getTraceRoute={props.getTraceRoute}
-              getSpanRoute={props.getSpanRoute}
-              variant="embedded"
-            />
-          )}
+          renderExpandedContent={(log: Log) => {
+            return (
+              <LogDetailsPanel
+                log={log}
+                serviceMap={serviceMap}
+                onClose={() => {
+                  setSelectedLogId(null);
+                }}
+                getTraceRoute={props.getTraceRoute}
+                getSpanRoute={props.getSpanRoute}
+                variant="embedded"
+              />
+            );
+          }}
         />
 
         <LogsPagination

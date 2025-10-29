@@ -221,8 +221,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
             />
           </header>
 
-          <div className={`rounded-lg border ${surfaceCardClass} p-4`}
-          >
+          <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
             {bodyDetails.isJson ? (
               <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words font-mono text-[13px] leading-6 text-slate-100">
                 {bodyDetails.pretty}
@@ -238,8 +237,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
         {(traceId || spanId) && (
           <section className="grid gap-4 md:grid-cols-2">
             {traceId && (
-              <div className={`rounded-lg border ${surfaceCardClass} p-4`}
-              >
+              <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
                 <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-slate-500">
                   <span>Trace ID</span>
                   <CopyTextButton
@@ -278,8 +276,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
             )}
 
             {spanId && (
-              <div className={`rounded-lg border ${surfaceCardClass} p-4`}
-              >
+              <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
                 <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-slate-500">
                   <span>Span ID</span>
                   <CopyTextButton
@@ -331,8 +328,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                 title="Copy attributes"
               />
             </header>
-            <div className={`rounded-lg border ${surfaceCardClass} p-4`}
-            >
+            <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
               <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words font-mono text-[13px] leading-6 text-slate-100">
                 {prettyAttributes}
               </pre>

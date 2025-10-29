@@ -102,41 +102,42 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  const fetchItems: PromiseVoidFunction = React.useCallback(async (): Promise<void> => {
-    setError("");
-    setIsLoading(true);
+  const fetchItems: PromiseVoidFunction =
+    React.useCallback(async (): Promise<void> => {
+      setError("");
+      setIsLoading(true);
 
-    try {
-      const listResult: ListResult<Log> =
-        await AnalyticsModelAPI.getList<Log>({
-          modelType: Log,
-          query: filterOptions,
-          limit: pageSize,
-          skip: (page - 1) * pageSize,
-          select: select,
-          sort: {
-            [sortField]: sortOrder,
-          } as Record<string, SortOrder>,
-          requestOptions: {},
-        });
+      try {
+        const listResult: ListResult<Log> =
+          await AnalyticsModelAPI.getList<Log>({
+            modelType: Log,
+            query: filterOptions,
+            limit: pageSize,
+            skip: (page - 1) * pageSize,
+            select: select,
+            sort: {
+              [sortField]: sortOrder,
+            } as Record<string, SortOrder>,
+            requestOptions: {},
+          });
 
-      setLogs(listResult.data);
-      setTotalCount(listResult.count);
+        setLogs(listResult.data);
+        setTotalCount(listResult.count);
 
-      const maximumPage: number = Math.max(
-        1,
-        Math.ceil(listResult.count / Math.max(pageSize, 1)),
-      );
+        const maximumPage: number = Math.max(
+          1,
+          Math.ceil(listResult.count / Math.max(pageSize, 1)),
+        );
 
-      if (page > maximumPage) {
-        setPage(maximumPage);
+        if (page > maximumPage) {
+          setPage(maximumPage);
+        }
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
       }
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
 
-    setIsLoading(false);
-  }, [filterOptions, page, pageSize, select, sortField, sortOrder]);
+      setIsLoading(false);
+    }, [filterOptions, page, pageSize, select, sortField, sortOrder]);
 
   useEffect(() => {
     fetchItems().catch((err: unknown) => {
@@ -149,25 +150,24 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const disconnectFunction: () => void =
-      Realtime.listenToAnalyticsModelEvent(
-        {
-          modelType: Log,
-          eventType: ModelEventType.Create,
-          tenantId: ProjectUtil.getCurrentProjectId()!,
-        },
-        (_model: Log) => {
-          if (
-            page === 1 &&
-            sortField === "time" &&
-            sortOrder === SortOrder.Descending
-          ) {
-            fetchItems().catch((err: unknown) => {
-              setError(API.getFriendlyMessage(err));
-            });
-          }
-        },
-      );
+    const disconnectFunction: () => void = Realtime.listenToAnalyticsModelEvent(
+      {
+        modelType: Log,
+        eventType: ModelEventType.Create,
+        tenantId: ProjectUtil.getCurrentProjectId()!,
+      },
+      (_model: Log) => {
+        if (
+          page === 1 &&
+          sortField === "time" &&
+          sortOrder === SortOrder.Descending
+        ) {
+          fetchItems().catch((err: unknown) => {
+            setError(API.getFriendlyMessage(err));
+          });
+        }
+      },
+    );
 
     return () => {
       disconnectFunction();

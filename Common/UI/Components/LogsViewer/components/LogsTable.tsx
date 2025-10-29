@@ -121,9 +121,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                 <button
                   type="button"
                   className={`flex items-center gap-2 text-left font-semibold tracking-wider text-slate-300 transition-colors hover:text-slate-100 focus:outline-none ${
-                    activeSortField === "severityText"
-                      ? "text-slate-100"
-                      : ""
+                    activeSortField === "severityText" ? "text-slate-100" : ""
                   }`}
                   onClick={() => {
                     props.onSortChange?.("severityText");
