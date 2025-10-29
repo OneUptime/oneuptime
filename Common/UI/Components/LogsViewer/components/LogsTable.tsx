@@ -8,6 +8,8 @@ import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import SeverityBadge from "./SeverityBadge";
 import { getSeverityTheme, SeverityTheme } from "./severityTheme";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import Icon from "../../Icon/Icon";
+import IconProp from "../../../../Types/Icon/IconProp";
 
 export interface LogsTableProps {
   logs: Array<Log>;
@@ -58,12 +60,35 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
   const activeSortField: LogsTableSortField | undefined = props.sortField;
   const activeSortOrder: SortOrder = props.sortOrder || SortOrder.Descending;
 
+  const resolveSortIcon: (field: LogsTableSortField) => IconProp = (
+    field: LogsTableSortField,
+  ): IconProp => {
+    if (activeSortField !== field) {
+      return IconProp.ArrowUpDown;
+    }
+
+    return activeSortOrder === SortOrder.Descending
+      ? IconProp.ChevronDown
+      : IconProp.ChevronUp;
+  };
+
+  const resolveSortIconClass: (field: LogsTableSortField) => string = (
+    field: LogsTableSortField,
+  ): string => {
+    const base: string = "h-3.5 w-3.5 flex-none transition-colors";
+    if (activeSortField === field) {
+      return `${base} text-indigo-300`;
+    }
+
+    return `${base} text-slate-600`;
+  };
+
   return (
     <div className="relative">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-800/60">
-          <thead className="bg-slate-950/90 backdrop-blur">
-            <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-300">
+      <div className="overflow-x-auto border-b border-slate-900 bg-slate-950">
+        <table className="min-w-full divide-y divide-slate-900/80">
+          <thead className="bg-slate-950">
+            <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-200">
               <th scope="col" className="px-4 py-3">
                 <button
                   type="button"
@@ -82,13 +107,11 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                   }
                 >
                   <span>Time</span>
-                  <span className="text-[10px] text-slate-500">
-                    {activeSortField === "time"
-                      ? activeSortOrder === SortOrder.Descending
-                        ? "v"
-                        : "^"
-                      : ""}
-                  </span>
+                  <Icon
+                    icon={resolveSortIcon("time")}
+                    className={resolveSortIconClass("time")}
+                    aria-hidden="true"
+                  />
                 </button>
               </th>
               <th scope="col" className="px-4 py-3">
@@ -114,13 +137,11 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                   }
                 >
                   <span>Severity</span>
-                  <span className="text-[10px] text-slate-500">
-                    {activeSortField === "severityText"
-                      ? activeSortOrder === SortOrder.Descending
-                        ? "v"
-                        : "^"
-                      : ""}
-                  </span>
+                  <Icon
+                    icon={resolveSortIcon("severityText")}
+                    className={resolveSortIconClass("severityText")}
+                    aria-hidden="true"
+                  />
                 </button>
               </th>
               <th scope="col" className="px-4 py-3">
@@ -128,7 +149,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/60 bg-slate-950/40">
+          <tbody className="divide-y divide-slate-900/70 bg-slate-950">
             {props.logs.map((log: Log, index: number) => {
               const rowId: string = resolveLogIdentifier(log, index);
               const serviceId: string = log.serviceId?.toString() || "";
@@ -155,9 +176,9 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                     onClick={() => {
                       props.onRowClick(log, rowId);
                     }}
-                    className={`group cursor-pointer align-top transition-colors duration-150 hover:bg-slate-900/90 ${
+                    className={`group cursor-pointer align-top transition-colors duration-150 hover:bg-slate-900 ${
                       isSelected
-                        ? "bg-slate-900/95 ring-1 ring-inset ring-indigo-500/40"
+                        ? "bg-slate-900 ring-1 ring-inset ring-indigo-500/40"
                         : ""
                     }`}
                     aria-selected={isSelected}
@@ -171,7 +192,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                         : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-3 text-sm text-slate-100">
+                      <div className="flex items-center gap-3 text-sm text-slate-300">
                         <span
                           className="h-2.5 w-2.5 flex-none rounded-full border border-slate-900/40 shadow-sm"
                           style={{ backgroundColor: serviceColor }}
@@ -189,13 +210,13 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 flex-1 flex-col gap-1">
                           <p
-                            className={`whitespace-pre-wrap break-words text-sm text-slate-100 transition-colors duration-150 group-hover:text-slate-50 ${severityTheme.textClass}`}
+                            className={`whitespace-pre-wrap break-words text-sm text-slate-200 transition-colors duration-150 group-hover:text-slate-50 ${severityTheme.textClass}`}
                             title={message}
                           >
                             {message || "—"}
                           </p>
                           {(traceId || spanId) && (
-                            <div className="flex flex-wrap gap-3 text-[11px] tracking-wide text-slate-400">
+                            <div className="flex flex-wrap gap-3 text-[11px] tracking-wide text-slate-500">
                               {traceId && <span>Trace: {traceId}</span>}
                               {spanId && <span>Span: {spanId}</span>}
                             </div>
