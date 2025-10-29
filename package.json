@@ -38,6 +38,7 @@
         "uninstall": "bash uninstall.sh",
         "clean-modules": "bash remove-node-modules.sh",
         "install-modules": "bash install-node-modules.sh",
+        "audit-fix": "bash npm-audit-fix.sh",
         "lint": "export NODE_OPTIONS='--max-old-space-size=32768' && npx eslint . --cache",
         "fix-lint": "export NODE_OPTIONS='--max-old-space-size=32768' && npx eslint . --fix --cache --debug",
         "fix": "npm run fix-lint",

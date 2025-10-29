@@ -1,0 +1,48 @@
+name: NPM Audit Fix
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  npm-audit-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run npm audit fix across packages
+        run: npm run audit-fix
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if git status --porcelain | grep .; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: npm audit fix"
+
+      - name: Push changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git push origin HEAD
