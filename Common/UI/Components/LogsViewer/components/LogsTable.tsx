@@ -252,12 +252,12 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
       )}
 
       {showEmptyState && (
-        <div className="flex items-center justify-center px-6 py-12 text-center">
-          <div>
-            <p className="text-sm font-semibold text-slate-200">
-              No logs found
+        <div className="flex h-full items-center justify-center px-6 py-12 text-center bg-slate-950">
+          <div className="w-full max-w-xl rounded-md border border-slate-900/70 bg-slate-950 p-6 text-left shadow-inner">
+            <p className="font-mono text-sm uppercase tracking-wide text-emerald-400">
+              &gt; No logs found
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-3 font-mono text-xs text-slate-400">
               {props.emptyMessage || "Adjust filters or check again later."}
             </p>
           </div>
