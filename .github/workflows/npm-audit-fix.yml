@@ -1,0 +1,49 @@
+name: NPM Audit Fix
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  npm-audit-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run npm audit fix across packages
+        run: npm run audit-fix
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if git status --porcelain | grep .; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create pull request
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: npm audit fix"
+          title: "chore: npm audit fix"
+          body: |
+            Automated npm audit fix run.
+            Workflow: ${{ github.workflow }}
+            Run ID: ${{ github.run_id }}
+          branch: chore/npm-audit-fix
+          delete-branch: true
