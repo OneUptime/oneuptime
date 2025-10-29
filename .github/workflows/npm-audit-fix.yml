@@ -1,12 +1,13 @@
 name: NPM Audit Fix
 
 on:
-  push:
-    branches:
-      - master
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   npm-audit-fix:
@@ -34,15 +35,15 @@ jobs:
             echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Commit changes
+      - name: Create pull request
         if: steps.changes.outputs.has_changes == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "chore: npm audit fix"
-
-      - name: Push changes
-        if: steps.changes.outputs.has_changes == 'true'
-        run: |
-          git push origin HEAD
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: npm audit fix"
+          title: "chore: npm audit fix"
+          body: |
+            Automated npm audit fix run.
+            Workflow: ${{ github.workflow }}
+            Run ID: ${{ github.run_id }}
+          branch: chore/npm-audit-fix
+          delete-branch: true
