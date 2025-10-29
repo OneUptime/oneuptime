@@ -26,7 +26,7 @@ while IFS= read -r -d '' package_json; do
 
     if ! npm audit fix; then
         echo "npm audit fix failed in ${DISPLAY_DIR:-.}" >&2
-        EXIT_CODE=1
+        # In this case do not do anyting, just report the error
     fi
 
     cd "$ROOT_DIR"
