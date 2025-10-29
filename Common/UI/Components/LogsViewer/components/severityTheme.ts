@@ -53,7 +53,9 @@ const defaultTheme: SeverityTheme = {
   textClass: "text-slate-200",
 };
 
-export const getSeverityTheme = (
+export const getSeverityTheme: (
+  severity?: LogSeverity | string | null,
+) => SeverityTheme = (
   severity?: LogSeverity | string | null,
 ): SeverityTheme => {
   if (!severity) {

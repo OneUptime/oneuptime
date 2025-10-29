@@ -1,9 +1,4 @@
-import Query from "../../../Types/BaseDatabase/Query";
-import {
-  PromiseVoidFunction,
-} from "../../../Types/FunctionTypes";
-import Log from "../../../Models/AnalyticsModels/Log";
-import {
+import React, {
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -11,6 +6,9 @@ import {
   useMemo,
   useState,
 } from "react";
+import Query from "../../../Types/BaseDatabase/Query";
+import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
+import Log from "../../../Models/AnalyticsModels/Log";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
@@ -27,10 +25,10 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import Dictionary from "../../../Types/Dictionary";
 import LogsFilterCard from "./components/LogsFilterCard";
-import LogsViewerToolbar from "./components/LogsViewerToolbar";
-import LogsTable, {
-  resolveLogIdentifier,
-} from "./components/LogsTable";
+import LogsViewerToolbar, {
+  LogsViewerToolbarProps,
+} from "./components/LogsViewerToolbar";
+import LogsTable, { resolveLogIdentifier } from "./components/LogsTable";
 import LogsPagination from "./components/LogsPagination";
 import LogDetailsPanel from "./components/LogDetailsPanel";
 
@@ -129,19 +127,17 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const stillExists: boolean = props.logs.some(
-      (log: Log, index: number) => {
-        return resolveLogIdentifier(log, index) === selectedLogId;
-      },
-    );
+    const stillExists: boolean = props.logs.some((log: Log, index: number) => {
+      return resolveLogIdentifier(log, index) === selectedLogId;
+    });
 
     if (!stillExists) {
       setSelectedLogId(null);
     }
   }, [props.logs, selectedLogId]);
 
-  const loadTelemetryServices: PromiseVoidFunction = useCallback(
-    async (): Promise<void> => {
+  const loadTelemetryServices: PromiseVoidFunction =
+    useCallback(async (): Promise<void> => {
       try {
         setIsPageLoading(true);
         setPageError("");
@@ -178,11 +174,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       } finally {
         setIsPageLoading(false);
       }
-    }, [],
-  );
+    }, []);
 
-  const loadAttributes: PromiseVoidFunction = useCallback(
-    async (): Promise<void> => {
+  const loadAttributes: PromiseVoidFunction =
+    useCallback(async (): Promise<void> => {
       try {
         setAttributesLoading(true);
         setAttributesError("");
@@ -216,14 +211,15 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       } finally {
         setAttributesLoading(false);
       }
-    }, [],
-  );
+    }, []);
 
   useEffect(() => {
     void loadTelemetryServices();
   }, [loadTelemetryServices]);
 
-  const handleAutoScrollChange = (checked: boolean): void => {
+  const handleAutoScrollChange: (checked: boolean) => void = (
+    checked: boolean,
+  ): void => {
     setAutoScroll(checked);
 
     if (checked && totalItems > 0) {
@@ -231,7 +227,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const handleSortDirectionChange = (nextDescending: boolean): void => {
+  const handleSortDirectionChange: (nextDescending: boolean) => void = (
+    nextDescending: boolean,
+  ): void => {
     if (nextDescending === isDescending) {
       return;
     }
@@ -243,18 +241,18 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const handleApplyFilters = (): void => {
+  const handleApplyFilters: () => void = (): void => {
     setCurrentPage(1);
     setSelectedLogId(null);
     props.onFilterChanged(filterData);
   };
 
-  const handlePageChange = (page: number): void => {
+  const handlePageChange: (page: number) => void = (page: number): void => {
     setAutoScroll(false);
     setCurrentPage(page);
   };
 
-  const handlePageSizeChange = (size: number): void => {
+  const handlePageSizeChange: (size: number) => void = (size: number): void => {
     setAutoScroll(false);
     setPageSize(size);
     setCurrentPage(1);
@@ -282,7 +280,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={pageError} />;
   }
 
-  const toolbarProps = {
+  const toolbarProps: LogsViewerToolbarProps = {
     autoScroll,
     onAutoScrollChange: handleAutoScrollChange,
     isDescending,
@@ -345,7 +343,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           serviceMap={serviceMap}
           isLoading={props.isLoading}
           emptyMessage={props.noLogsMessage}
-          onRowClick={(log: Log, rowId: string) => {
+          onRowClick={(_log: Log, rowId: string) => {
             setSelectedLogId((currentSelected: string | null) => {
               if (currentSelected === rowId) {
                 return null;

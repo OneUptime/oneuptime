@@ -6,7 +6,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import CopyTextButton from "../../CopyTextButton/CopyTextButton";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import SeverityBadge from "./SeverityBadge";
-import { getSeverityTheme } from "./severityTheme";
+import { getSeverityTheme, SeverityTheme } from "./severityTheme";
 
 export interface LogsTableProps {
   logs: Array<Log>;
@@ -36,7 +36,7 @@ export const resolveLogIdentifier: (log: Log, index: number) => string = (
 
     try {
       return candidate.toString();
-    } catch (err) {
+    } catch {
       continue;
     }
   }
@@ -55,10 +55,18 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
         <table className="min-w-full divide-y divide-slate-800">
           <thead className="bg-slate-900/70">
             <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              <th scope="col" className="px-4 py-3">Time</th>
-              <th scope="col" className="px-4 py-3">Service</th>
-              <th scope="col" className="px-4 py-3">Severity</th>
-              <th scope="col" className="px-4 py-3">Message</th>
+              <th scope="col" className="px-4 py-3">
+                Time
+              </th>
+              <th scope="col" className="px-4 py-3">
+                Service
+              </th>
+              <th scope="col" className="px-4 py-3">
+                Severity
+              </th>
+              <th scope="col" className="px-4 py-3">
+                Message
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800 bg-slate-950/50">
@@ -67,7 +75,8 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
               const serviceId: string = log.serviceId?.toString() || "";
               const service: TelemetryService | undefined =
                 props.serviceMap[serviceId];
-              const serviceName: string = service?.name || serviceId || "Unknown";
+              const serviceName: string =
+                service?.name || serviceId || "Unknown";
               const serviceColor: string =
                 (service?.serviceColor && service?.serviceColor.toString()) ||
                 "#94a3b8";
@@ -77,7 +86,9 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
               const spanId: string = log.spanId?.toString() || "";
 
               const isSelected: boolean = props.selectedLogId === rowId;
-              const severityTheme = getSeverityTheme(log.severityText);
+              const severityTheme: SeverityTheme = getSeverityTheme(
+                log.severityText,
+              );
 
               return (
                 <tr

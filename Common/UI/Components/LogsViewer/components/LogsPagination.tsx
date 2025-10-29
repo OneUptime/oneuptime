@@ -16,25 +16,25 @@ const LogsPagination: FunctionComponent<LogsPaginationProps> = (
   const totalPages: number = Math.max(
     1,
     Math.ceil(
-      props.totalItems === 0 ? 1 : props.totalItems / Math.max(props.pageSize, 1),
+      props.totalItems === 0
+        ? 1
+        : props.totalItems / Math.max(props.pageSize, 1),
     ),
   );
 
   const safeCurrentPage: number = Math.min(props.currentPage, totalPages);
 
-  const firstItemIndex: number = props.totalItems === 0
-    ? 0
-    : (safeCurrentPage - 1) * props.pageSize + 1;
-  const lastItemIndex: number = props.totalItems === 0
-    ? 0
-    : Math.min(props.totalItems, safeCurrentPage * props.pageSize);
+  const firstItemIndex: number =
+    props.totalItems === 0 ? 0 : (safeCurrentPage - 1) * props.pageSize + 1;
+  const lastItemIndex: number =
+    props.totalItems === 0
+      ? 0
+      : Math.min(props.totalItems, safeCurrentPage * props.pageSize);
 
   const disablePrev: boolean =
     props.isDisabled || props.totalItems === 0 || safeCurrentPage <= 1;
   const disableNext: boolean =
-    props.isDisabled ||
-    props.totalItems === 0 ||
-    safeCurrentPage >= totalPages;
+    props.isDisabled || props.totalItems === 0 || safeCurrentPage >= totalPages;
 
   return (
     <div className="flex flex-col gap-3 border-t border-slate-800 bg-slate-950/60 px-4 py-3 text-xs text-slate-400 md:flex-row md:items-center md:justify-between">
@@ -44,7 +44,8 @@ const LogsPagination: FunctionComponent<LogsPaginationProps> = (
         ) : (
           <span>
             Showing {firstItemIndex.toLocaleString()}-
-            {lastItemIndex.toLocaleString()} of {props.totalItems.toLocaleString()}
+            {lastItemIndex.toLocaleString()} of{" "}
+            {props.totalItems.toLocaleString()}
           </span>
         )}
       </div>

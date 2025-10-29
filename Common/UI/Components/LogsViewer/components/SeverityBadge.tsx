@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import LogSeverity from "../../../../Types/Log/LogSeverity";
-import { getSeverityTheme } from "./severityTheme";
+import { getSeverityTheme, SeverityTheme } from "./severityTheme";
 
 export interface SeverityBadgeProps {
   severity?: LogSeverity | string | null | undefined;
@@ -13,7 +13,7 @@ const SeverityBadge: FunctionComponent<SeverityBadgeProps> = (
     ? props.severity.toString().toUpperCase()
     : "UNKNOWN";
 
-  const theme = getSeverityTheme(props.severity);
+  const theme: SeverityTheme = getSeverityTheme(props.severity);
 
   return (
     <span

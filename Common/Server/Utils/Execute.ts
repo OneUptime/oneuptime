@@ -1,10 +1,5 @@
 import { PromiseRejectErrorFunction } from "../../Types/FunctionTypes";
-import {
-  ExecException,
-  ExecOptions,
-  exec,
-  execFile,
-} from "node:child_process";
+import { ExecException, ExecOptions, exec, execFile } from "node:child_process";
 import logger from "./Logger";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 
@@ -25,21 +20,21 @@ export default class Execute {
             ...options,
           },
           (err: ExecException | null, stdout: string, stderr: string) => {
-          if (err) {
-            logger.error(`Error executing command: ${command}`);
-            logger.error(err);
-            logger.error(stdout);
+            if (err) {
+              logger.error(`Error executing command: ${command}`);
+              logger.error(err);
+              logger.error(stdout);
               if (stderr) {
                 logger.error(stderr);
               }
-            return reject(err);
-          }
+              return reject(err);
+            }
 
             if (stderr) {
               logger.debug(stderr);
             }
 
-          return resolve(stdout);
+            return resolve(stdout);
           },
         );
       },

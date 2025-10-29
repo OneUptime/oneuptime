@@ -16,8 +16,12 @@ export interface LogDetailsPanelProps {
   log: Log;
   serviceMap: Dictionary<TelemetryService>;
   onClose?: () => void;
-  getTraceRoute?: (traceId: string, log: Log) => Route | URL | undefined;
-  getSpanRoute?: (spanId: string, log: Log) => Route | URL | undefined;
+  getTraceRoute?:
+    | ((traceId: string, log: Log) => Route | URL | undefined)
+    | undefined;
+  getSpanRoute?:
+    | ((spanId: string, log: Log) => Route | URL | undefined)
+    | undefined;
 }
 
 interface PreparedBody {
@@ -27,7 +31,9 @@ interface PreparedBody {
   raw: string;
 }
 
-const prepareBody = (body: string | undefined): PreparedBody => {
+const prepareBody: (body: string | undefined) => PreparedBody = (
+  body: string | undefined,
+): PreparedBody => {
   if (!body) {
     return {
       isJson: false,
@@ -47,7 +53,7 @@ const prepareBody = (body: string | undefined): PreparedBody => {
       compact,
       raw: body,
     };
-  } catch (err) {
+  } catch {
     return {
       isJson: false,
       pretty: body,
@@ -76,11 +82,11 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
     }
 
     try {
-      const normalized: object = JSONFunctions.unflattenObject(
+      const normalized: Record<string, unknown> = JSONFunctions.unflattenObject(
         props.log.attributes || {},
       );
       return JSON.stringify(normalized, null, 2);
-    } catch (err) {
+    } catch {
       return null;
     }
   }, [props.log.attributes]);
@@ -211,7 +217,10 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                 </div>
                 <div className="flex items-center gap-2">
                   {traceRoute ? (
-                    <span className="max-w-full truncate" title={`View trace ${traceId}`}>
+                    <span
+                      className="max-w-full truncate"
+                      title={`View trace ${traceId}`}
+                    >
                       <Link
                         to={traceRoute}
                         className="truncate font-mono text-xs text-indigo-200 hover:text-indigo-100"
@@ -251,7 +260,10 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                 </div>
                 <div className="flex items-center gap-2">
                   {spanRoute ? (
-                    <span className="max-w-full truncate" title={`View span ${spanId}`}>
+                    <span
+                      className="max-w-full truncate"
+                      title={`View span ${spanId}`}
+                    >
                       <Link
                         to={spanRoute}
                         className="truncate font-mono text-xs text-indigo-200 hover:text-indigo-100"

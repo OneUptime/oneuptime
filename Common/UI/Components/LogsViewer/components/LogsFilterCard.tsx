@@ -12,7 +12,7 @@ export interface LogsFilterCardProps {
   onFilterChanged: (filterData: Query<Log>) => void;
   onAdvancedFiltersToggle: (show: boolean) => void;
   isFilterLoading: boolean;
-  filterError?: string;
+  filterError?: string | undefined;
   onFilterRefreshClick?: (() => void) | undefined;
   logAttributes: Array<string>;
   toolbar: ReactNode;
