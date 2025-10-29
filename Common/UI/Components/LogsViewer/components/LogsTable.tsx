@@ -7,6 +7,7 @@ import CopyTextButton from "../../CopyTextButton/CopyTextButton";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import SeverityBadge from "./SeverityBadge";
 import { getSeverityTheme, SeverityTheme } from "./severityTheme";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 
 export interface LogsTableProps {
   logs: Array<Log>;
@@ -16,6 +17,9 @@ export interface LogsTableProps {
   onRowClick: (log: Log, rowId: string) => void;
   selectedLogId?: string | null;
   renderExpandedContent?: (log: Log) => ReactElement | null;
+  sortField?: LogsTableSortField | undefined;
+  sortOrder?: SortOrder | undefined;
+  onSortChange?: (field: LogsTableSortField) => void;
 }
 
 export const resolveLogIdentifier: (log: Log, index: number) => string = (
@@ -45,10 +49,14 @@ export const resolveLogIdentifier: (log: Log, index: number) => string = (
   return `log-row-${index}`;
 };
 
+export type LogsTableSortField = "time" | "severityText";
+
 const LogsTable: FunctionComponent<LogsTableProps> = (
   props: LogsTableProps,
 ): ReactElement => {
   const showEmptyState: boolean = !props.isLoading && props.logs.length === 0;
+  const activeSortField: LogsTableSortField | undefined = props.sortField;
+  const activeSortOrder: SortOrder = props.sortOrder || SortOrder.Descending;
 
   return (
     <div className="relative">
@@ -57,13 +65,63 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
           <thead className="bg-slate-950/90 backdrop-blur">
             <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-300">
               <th scope="col" className="px-4 py-3">
-                Time
+                <button
+                  type="button"
+                  className={`flex items-center gap-2 text-left font-semibold tracking-wider text-slate-300 transition-colors hover:text-slate-100 focus:outline-none ${
+                    activeSortField === "time" ? "text-slate-100" : ""
+                  }`}
+                  onClick={() => {
+                    props.onSortChange?.("time");
+                  }}
+                  aria-sort={
+                    activeSortField === "time"
+                      ? activeSortOrder === SortOrder.Descending
+                        ? "descending"
+                        : "ascending"
+                      : "none"
+                  }
+                >
+                  <span>Time</span>
+                  <span className="text-[10px] text-slate-500">
+                    {activeSortField === "time"
+                      ? activeSortOrder === SortOrder.Descending
+                        ? "v"
+                        : "^"
+                      : ""}
+                  </span>
+                </button>
               </th>
               <th scope="col" className="px-4 py-3">
                 Service
               </th>
               <th scope="col" className="px-4 py-3">
-                Severity
+                <button
+                  type="button"
+                  className={`flex items-center gap-2 text-left font-semibold tracking-wider text-slate-300 transition-colors hover:text-slate-100 focus:outline-none ${
+                    activeSortField === "severityText"
+                      ? "text-slate-100"
+                      : ""
+                  }`}
+                  onClick={() => {
+                    props.onSortChange?.("severityText");
+                  }}
+                  aria-sort={
+                    activeSortField === "severityText"
+                      ? activeSortOrder === SortOrder.Descending
+                        ? "descending"
+                        : "ascending"
+                      : "none"
+                  }
+                >
+                  <span>Severity</span>
+                  <span className="text-[10px] text-slate-500">
+                    {activeSortField === "severityText"
+                      ? activeSortOrder === SortOrder.Descending
+                        ? "v"
+                        : "^"
+                      : ""}
+                  </span>
+                </button>
               </th>
               <th scope="col" className="px-4 py-3">
                 Message
@@ -97,9 +155,9 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                     onClick={() => {
                       props.onRowClick(log, rowId);
                     }}
-                    className={`group cursor-pointer align-top transition-colors duration-150 hover:bg-slate-900/60 ${
+                    className={`group cursor-pointer align-top transition-colors duration-150 hover:bg-slate-900/90 ${
                       isSelected
-                        ? "bg-slate-900/80 ring-1 ring-inset ring-indigo-500/40"
+                        ? "bg-slate-900/95 ring-1 ring-inset ring-indigo-500/40"
                         : ""
                     }`}
                     aria-selected={isSelected}

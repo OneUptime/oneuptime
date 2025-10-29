@@ -28,7 +28,10 @@ import LogsFilterCard from "./components/LogsFilterCard";
 import LogsViewerToolbar, {
   LogsViewerToolbarProps,
 } from "./components/LogsViewerToolbar";
-import LogsTable, { resolveLogIdentifier } from "./components/LogsTable";
+import LogsTable, {
+  LogsTableSortField,
+  resolveLogIdentifier,
+} from "./components/LogsTable";
 import LogsPagination from "./components/LogsPagination";
 import LogDetailsPanel from "./components/LogDetailsPanel";
 
@@ -41,17 +44,50 @@ export interface ComponentProps {
   noLogsMessage?: string | undefined;
   getTraceRoute?: (traceId: string, log: Log) => Route | URL | undefined;
   getSpanRoute?: (spanId: string, log: Log) => Route | URL | undefined;
+  totalCount?: number | undefined;
+  page?: number | undefined;
+  pageSize?: number | undefined;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
+  sortField?: LogsTableSortField | undefined;
+  sortOrder?: SortOrder | undefined;
+  onSortChange?: (
+    field: LogsTableSortField,
+    order: SortOrder,
+  ) => void;
 }
 
-const DEFAULT_PAGE_SIZE: number = 25;
-const PAGE_SIZE_OPTIONS: Array<number> = [10, 25, 50, 100];
+export type LogsSortField = LogsTableSortField;
+
+const DEFAULT_PAGE_SIZE: number = 100;
+const PAGE_SIZE_OPTIONS: Array<number> = [100, 250, 500, 1000];
+
+const severityWeight: Record<string, number> = {
+  fatal: 6,
+  error: 5,
+  warn: 4,
+  warning: 4,
+  info: 3,
+  notice: 3,
+  debug: 2,
+  trace: 1,
+};
+
+const getSeverityWeight: (severity: string | undefined) => number = (
+  severity: string | undefined,
+): number => {
+  if (!severity) {
+    return 0;
+  }
+
+  const normalized: string = severity.toString().toLowerCase();
+  return severityWeight[normalized] || 0;
+};
 
 const LogsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [filterData, setFilterData] = useState<Query<Log>>(props.filterData);
-  const [autoScroll, setAutoScroll] = useState<boolean>(true);
-  const [isDescending, setIsDescending] = useState<boolean>(false);
 
   const [logAttributes, setLogAttributes] = useState<Array<string>>([]);
   const [attributesLoaded, setAttributesLoaded] = useState<boolean>(false);
@@ -67,74 +103,145 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     {},
   );
 
-  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
-  const [currentPage, setCurrentPage] = useState<number>(1);
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
 
-  const sortedLogs: Array<Log> = useMemo(() => {
-    if (isDescending) {
-      return [...props.logs].reverse();
+  const [internalPage, setInternalPage] = useState<number>(1);
+  const [internalPageSize, setInternalPageSize] =
+    useState<number>(DEFAULT_PAGE_SIZE);
+  const [localSortField, setLocalSortField] =
+    useState<LogsTableSortField>("time");
+  const [localSortOrder, setLocalSortOrder] = useState<SortOrder>(
+    SortOrder.Descending,
+  );
+
+  useEffect(() => {
+    setFilterData(props.filterData);
+  }, [props.filterData]);
+
+  useEffect(() => {
+    if (props.sortField) {
+      setLocalSortField(props.sortField);
     }
+  }, [props.sortField]);
 
-    return [...props.logs];
-  }, [props.logs, isDescending]);
+  useEffect(() => {
+    if (props.sortOrder) {
+      setLocalSortOrder(props.sortOrder);
+    }
+  }, [props.sortOrder]);
 
-  const totalItems: number = sortedLogs.length;
+  useEffect(() => {
+    if (props.pageSize) {
+      setInternalPageSize(props.pageSize);
+    }
+  }, [props.pageSize]);
+
+  const currentPage: number = props.page ?? internalPage;
+  const pageSize: number = props.pageSize ?? internalPageSize;
+
+  const totalItems: number = props.totalCount ?? props.logs.length;
+
   const totalPages: number = Math.max(
     1,
     Math.ceil(totalItems / Math.max(pageSize, 1)),
   );
-  const safeCurrentPage: number = Math.min(
-    Math.max(currentPage, 1),
-    totalPages,
-  );
+
+  const sortField: LogsTableSortField = props.sortField ?? localSortField;
+  const sortOrder: SortOrder = props.sortOrder ?? localSortOrder;
+
+  const shouldClientSort: boolean = !props.onSortChange;
+
+  const sortedLogs: Array<Log> = useMemo(() => {
+    if (!shouldClientSort) {
+      return props.logs;
+    }
+
+    const cloned: Array<Log> = [...props.logs];
+
+    cloned.sort((a: Log, b: Log) => {
+      if (sortField === "time") {
+        const aTime: number =
+          Number(a.timeUnixNano) ||
+          (a.time ? new Date(a.time).getTime() : 0);
+        const bTime: number =
+          Number(b.timeUnixNano) ||
+          (b.time ? new Date(b.time).getTime() : 0);
+
+        if (aTime === bTime) {
+          return 0;
+        }
+
+        return sortOrder === SortOrder.Descending
+          ? bTime - aTime
+          : aTime - bTime;
+      }
+
+      const aSeverity: number = getSeverityWeight(
+        a.severityText?.toString(),
+      );
+      const bSeverity: number = getSeverityWeight(
+        b.severityText?.toString(),
+      );
+
+      if (aSeverity === bSeverity) {
+        return 0;
+      }
+
+      return sortOrder === SortOrder.Descending
+        ? bSeverity - aSeverity
+        : aSeverity - bSeverity;
+    });
+
+    return cloned;
+  }, [props.logs, shouldClientSort, sortField, sortOrder]);
+
+  const shouldClientPaginate: boolean = props.totalCount === undefined;
 
   const paginatedLogs: Array<Log> = useMemo(() => {
-    if (totalItems === 0) {
+    if (!shouldClientPaginate) {
+      return sortedLogs;
+    }
+
+    if (sortedLogs.length === 0) {
       return [];
     }
 
-    const startIndex: number = (safeCurrentPage - 1) * pageSize;
+    const safePage: number = Math.min(Math.max(currentPage, 1), totalPages);
+    const startIndex: number = (safePage - 1) * pageSize;
     return sortedLogs.slice(startIndex, startIndex + pageSize);
-  }, [sortedLogs, safeCurrentPage, pageSize, totalItems]);
+  }, [sortedLogs, shouldClientPaginate, currentPage, totalPages, pageSize]);
+
+  const displayedLogs: Array<Log> = shouldClientPaginate
+    ? paginatedLogs
+    : sortedLogs;
 
   useEffect(() => {
-    if (currentPage === safeCurrentPage) {
+    if (!shouldClientPaginate || props.page !== undefined) {
       return;
     }
 
-    setCurrentPage(safeCurrentPage);
-  }, [safeCurrentPage, currentPage]);
+    const safePage: number = Math.min(Math.max(internalPage, 1), totalPages);
 
-  useEffect(() => {
-    if (!autoScroll || totalItems === 0) {
-      return;
+    if (safePage !== internalPage) {
+      setInternalPage(safePage);
     }
-
-    const desiredPage: number = isDescending ? 1 : totalPages;
-
-    setCurrentPage((previousPage: number) => {
-      if (previousPage === desiredPage) {
-        return previousPage;
-      }
-
-      return desiredPage;
-    });
-  }, [props.logs, autoScroll, isDescending, totalItems, totalPages]);
+  }, [shouldClientPaginate, props.page, internalPage, totalPages]);
 
   useEffect(() => {
     if (!selectedLogId) {
       return;
     }
 
-    const stillExists: boolean = props.logs.some((log: Log, index: number) => {
+    const stillExists: boolean = displayedLogs.some(
+      (log: Log, index: number) => {
       return resolveLogIdentifier(log, index) === selectedLogId;
-    });
+      },
+    );
 
     if (!stillExists) {
       setSelectedLogId(null);
     }
-  }, [props.logs, selectedLogId]);
+  }, [displayedLogs, selectedLogId]);
 
   const loadTelemetryServices: PromiseVoidFunction =
     useCallback(async (): Promise<void> => {
@@ -217,45 +324,66 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     void loadTelemetryServices();
   }, [loadTelemetryServices]);
 
-  const handleAutoScrollChange: (checked: boolean) => void = (
-    checked: boolean,
-  ): void => {
-    setAutoScroll(checked);
-
-    if (checked && totalItems > 0) {
-      setCurrentPage(isDescending ? 1 : totalPages);
-    }
-  };
-
-  const handleSortDirectionChange: (nextDescending: boolean) => void = (
-    nextDescending: boolean,
-  ): void => {
-    if (nextDescending === isDescending) {
-      return;
+  const resetPage: () => void = (): void => {
+    if (props.onPageChange) {
+      props.onPageChange(1);
     }
 
-    setIsDescending(nextDescending);
-
-    if (autoScroll && totalItems > 0) {
-      setCurrentPage(nextDescending ? 1 : totalPages);
+    if (props.page === undefined) {
+      setInternalPage(1);
     }
   };
 
   const handleApplyFilters: () => void = (): void => {
-    setCurrentPage(1);
+    resetPage();
     setSelectedLogId(null);
     props.onFilterChanged(filterData);
   };
 
   const handlePageChange: (page: number) => void = (page: number): void => {
-    setAutoScroll(false);
-    setCurrentPage(page);
+    if (props.onPageChange) {
+      props.onPageChange(page);
+    }
+
+    if (props.page === undefined) {
+      setInternalPage(page);
+    }
+
+    setSelectedLogId(null);
+
+    setSelectedLogId(null);
   };
 
   const handlePageSizeChange: (size: number) => void = (size: number): void => {
-    setAutoScroll(false);
-    setPageSize(size);
-    setCurrentPage(1);
+    if (props.onPageSizeChange) {
+      props.onPageSizeChange(size);
+    }
+
+    if (props.pageSize === undefined) {
+      setInternalPageSize(size);
+    }
+
+    resetPage();
+    setSelectedLogId(null);
+  };
+
+  const handleSortChange: (field: LogsTableSortField) => void = (
+    field: LogsTableSortField,
+  ): void => {
+    const isSameField: boolean = sortField === field;
+    const nextOrder: SortOrder = isSameField
+      ? sortOrder === SortOrder.Descending
+        ? SortOrder.Ascending
+        : SortOrder.Descending
+      : SortOrder.Descending;
+
+    setLocalSortField(field);
+    setLocalSortOrder(nextOrder);
+
+    props.onSortChange?.(field, nextOrder);
+
+    resetPage();
+    setSelectedLogId(null);
   };
 
   if (isPageLoading) {
@@ -267,12 +395,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   }
 
   const toolbarProps: LogsViewerToolbarProps = {
-    autoScroll,
-    onAutoScrollChange: handleAutoScrollChange,
-    isDescending,
-    onSortDirectionChange: handleSortDirectionChange,
     resultCount: totalItems,
-    currentPage: safeCurrentPage,
+    currentPage,
     totalPages,
   };
 
@@ -324,14 +448,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        {!selectedLogId && totalItems > 0 && (
-          <div className="border-b border-slate-800/60 bg-indigo-500/5 px-4 py-2 text-[12px] text-indigo-200/90">
-            Click any row to open its details inline.
-          </div>
-        )}
-
         <LogsTable
-          logs={paginatedLogs}
+          logs={displayedLogs}
           serviceMap={serviceMap}
           isLoading={props.isLoading}
           emptyMessage={props.noLogsMessage}
@@ -345,6 +463,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             });
           }}
           selectedLogId={selectedLogId}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          onSortChange={handleSortChange}
           renderExpandedContent={(log: Log) => (
             <LogDetailsPanel
               log={log}
@@ -360,7 +481,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         />
 
         <LogsPagination
-          currentPage={safeCurrentPage}
+          currentPage={currentPage}
           totalItems={totalItems}
           pageSize={pageSize}
           pageSizeOptions={PAGE_SIZE_OPTIONS}
