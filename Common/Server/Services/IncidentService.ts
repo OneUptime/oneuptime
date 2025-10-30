@@ -74,6 +74,17 @@ type UpdateCarryForward = Dictionary<{
   newMonitorChangeStatusIdTo: ObjectID | undefined;
 }>;
 
+type IncidentUpdatePayload = {
+  postmortemNote?: string | null;
+  title?: string | null;
+  rootCause?: string | null;
+  description?: string | null;
+  remediationNotes?: string | null;
+  labels?: unknown;
+  incidentSeverity?: unknown;
+  [key: string]: unknown;
+};
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -1303,8 +1314,8 @@ ${incident.remediationNotes || "No remediation notes provided."}
           incidentId,
         );
 
-        const updatedIncidentData: Partial<Model> =
-          onUpdate.updateBy.data || {};
+        const updatedIncidentData: IncidentUpdatePayload = (onUpdate.updateBy
+          .data ?? {}) as IncidentUpdatePayload;
 
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;

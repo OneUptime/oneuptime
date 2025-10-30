@@ -34,6 +34,7 @@ import LogsTable, {
 } from "./components/LogsTable";
 import LogsPagination from "./components/LogsPagination";
 import LogDetailsPanel from "./components/LogDetailsPanel";
+import { LiveLogsOptions } from "./types";
 
 export interface ComponentProps {
   logs: Array<Log>;
@@ -52,9 +53,11 @@ export interface ComponentProps {
   sortField?: LogsTableSortField | undefined;
   sortOrder?: SortOrder | undefined;
   onSortChange?: (field: LogsTableSortField, order: SortOrder) => void;
+  liveOptions?: LiveLogsOptions | undefined;
 }
 
 export type LogsSortField = LogsTableSortField;
+export type { LiveLogsOptions } from "./types";
 
 const DEFAULT_PAGE_SIZE: number = 100;
 const PAGE_SIZE_OPTIONS: Array<number> = [100, 250, 500, 1000];
@@ -389,6 +392,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     resultCount: totalItems,
     currentPage,
     totalPages,
+    ...(props.liveOptions ? { liveOptions: props.liveOptions } : {}),
   };
 
   return (

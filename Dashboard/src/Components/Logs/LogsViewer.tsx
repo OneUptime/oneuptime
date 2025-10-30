@@ -1,10 +1,10 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import LogsViewer, {
   LogsSortField,
+  LiveLogsOptions,
 } from "Common/UI/Components/LogsViewer/LogsViewer";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI, {
@@ -78,6 +78,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const [sortOrder, setSortOrder] = React.useState<SortOrder>(
     SortOrder.Descending,
   );
+  const [isLiveEnabled, setIsLiveEnabled] = React.useState<boolean>(false);
+  const [isLiveUpdating, setIsLiveUpdating] = React.useState<boolean>(false);
+  const liveRequestInFlight: React.MutableRefObject<boolean> =
+    React.useRef<boolean>(false);
 
   useEffect(() => {
     setFilterOptions(refreshQuery());
@@ -102,48 +106,102 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  const fetchItems: PromiseVoidFunction =
-    React.useCallback(async (): Promise<void> => {
-      setError("");
-      setIsLoading(true);
+  type FetchOptions = {
+    skipLoadingState?: boolean;
+  };
 
-      try {
-        const listResult: ListResult<Log> =
-          await AnalyticsModelAPI.getList<Log>({
-            modelType: Log,
-            query: filterOptions,
-            limit: pageSize,
-            skip: (page - 1) * pageSize,
-            select: select,
-            sort: {
-              [sortField]: sortOrder,
-            } as Record<string, SortOrder>,
-            requestOptions: {},
-          });
+  const fetchItems: (options?: FetchOptions) => Promise<void> =
+    React.useCallback(
+      async (options: FetchOptions = {}): Promise<void> => {
+        const { skipLoadingState = false } = options;
 
-        setLogs(listResult.data);
-        setTotalCount(listResult.count);
+        setError("");
 
-        const maximumPage: number = Math.max(
-          1,
-          Math.ceil(listResult.count / Math.max(pageSize, 1)),
-        );
+        if (skipLoadingState) {
+          if (liveRequestInFlight.current) {
+            return;
+          }
 
-        if (page > maximumPage) {
-          setPage(maximumPage);
+          liveRequestInFlight.current = true;
+          setIsLiveUpdating(true);
+        } else {
+          setIsLoading(true);
         }
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      }
 
-      setIsLoading(false);
-    }, [filterOptions, page, pageSize, select, sortField, sortOrder]);
+        try {
+          const listResult: ListResult<Log> =
+            await AnalyticsModelAPI.getList<Log>({
+              modelType: Log,
+              query: filterOptions,
+              limit: pageSize,
+              skip: (page - 1) * pageSize,
+              select: select,
+              sort: {
+                [sortField]: sortOrder,
+              } as Record<string, SortOrder>,
+              requestOptions: {},
+            });
+
+          setLogs(listResult.data);
+          setTotalCount(listResult.count);
+
+          const maximumPage: number = Math.max(
+            1,
+            Math.ceil(listResult.count / Math.max(pageSize, 1)),
+          );
+
+          if (page > maximumPage) {
+            setPage(maximumPage);
+          }
+        } catch (err) {
+          setError(API.getFriendlyMessage(err));
+        } finally {
+          if (skipLoadingState) {
+            liveRequestInFlight.current = false;
+            setIsLiveUpdating(false);
+          } else {
+            setIsLoading(false);
+          }
+        }
+      },
+      [
+        filterOptions,
+        liveRequestInFlight,
+        page,
+        pageSize,
+        select,
+        setIsLiveUpdating,
+        sortField,
+        sortOrder,
+      ],
+    );
 
   useEffect(() => {
     fetchItems().catch((err: unknown) => {
       setError(API.getFriendlyMessage(err));
     });
   }, [fetchItems]);
+
+  useEffect(() => {
+    if (
+      !isLiveEnabled ||
+      page !== 1 ||
+      sortField !== "time" ||
+      sortOrder !== SortOrder.Descending
+    ) {
+      return;
+    }
+
+    void fetchItems({ skipLoadingState: true });
+
+    const intervalId: number = window.setInterval(() => {
+      void fetchItems({ skipLoadingState: true });
+    }, 10000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [fetchItems, isLiveEnabled, page, sortField, sortOrder]);
 
   useEffect(() => {
     if (!props.enableRealtime) {
@@ -162,9 +220,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           sortField === "time" &&
           sortOrder === SortOrder.Descending
         ) {
-          fetchItems().catch((err: unknown) => {
-            setError(API.getFriendlyMessage(err));
-          });
+          fetchItems({ skipLoadingState: isLiveEnabled }).catch(
+            (err: unknown) => {
+              setError(API.getFriendlyMessage(err));
+            },
+          );
         }
       },
     );
@@ -172,7 +232,31 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     return () => {
       disconnectFunction();
     };
-  }, [fetchItems, page, sortField, sortOrder]);
+  }, [fetchItems, isLiveEnabled, page, sortField, sortOrder]);
+
+  const handleLiveToggle: LiveLogsOptions["onToggle"] = React.useCallback(
+    (shouldEnable: boolean) => {
+      if (shouldEnable) {
+        if (page !== 1) {
+          setPage(1);
+        }
+
+        if (sortField !== "time") {
+          setSortField("time");
+        }
+
+        if (sortOrder !== SortOrder.Descending) {
+          setSortOrder(SortOrder.Descending);
+        }
+      } else {
+        liveRequestInFlight.current = false;
+        setIsLiveUpdating(false);
+      }
+
+      setIsLiveEnabled(shouldEnable);
+    },
+    [liveRequestInFlight, page, setIsLiveUpdating, sortField, sortOrder],
+  );
 
   if (error) {
     return <ErrorMessage message={error} />;
@@ -185,6 +269,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         onFilterChanged={(filterOptions: Query<Log>) => {
           setFilterOptions(filterOptions);
           setPage(1);
+
+          if (isLiveEnabled) {
+            setIsLiveEnabled(false);
+            liveRequestInFlight.current = false;
+            setIsLiveUpdating(false);
+          }
         }}
         filterData={filterOptions}
         logs={logs}
@@ -195,6 +285,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         pageSize={pageSize}
         onPageChange={(nextPage: number) => {
           setPage(nextPage);
+
+          if (nextPage !== 1 && isLiveEnabled) {
+            setIsLiveEnabled(false);
+            liveRequestInFlight.current = false;
+            setIsLiveUpdating(false);
+          }
         }}
         onPageSizeChange={(nextSize: number) => {
           setPageSize(nextSize);
@@ -206,6 +302,20 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           setSortField(field);
           setSortOrder(order);
           setPage(1);
+
+          if (
+            isLiveEnabled &&
+            (field !== "time" || order !== SortOrder.Descending)
+          ) {
+            setIsLiveEnabled(false);
+            liveRequestInFlight.current = false;
+            setIsLiveUpdating(false);
+          }
+        }}
+        liveOptions={{
+          isLive: isLiveEnabled,
+          onToggle: handleLiveToggle,
+          isDisabled: isLiveUpdating,
         }}
         getTraceRoute={(traceId: string) => {
           if (!traceId) {

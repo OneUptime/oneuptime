@@ -1,5 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Button, { ButtonSize, ButtonStyleType } from "../../Button/Button";
+import LiveLogsToggle from "./LiveLogsToggle";
+import { LiveLogsOptions } from "../types";
 
 export interface LogsViewerToolbarProps {
   resultCount: number;
@@ -8,6 +10,7 @@ export interface LogsViewerToolbarProps {
   currentPage?: number;
   totalPages?: number;
   className?: string;
+  liveOptions?: LiveLogsOptions;
 }
 
 const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
@@ -35,6 +38,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        {props.liveOptions && <LiveLogsToggle {...props.liveOptions} />}
         {props.showApplyButton && props.onApplyFilters && (
           <Button
             title="Apply Filters"
