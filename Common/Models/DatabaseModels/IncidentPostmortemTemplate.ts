@@ -162,7 +162,8 @@ export default class IncidentPostmortemTemplate extends BaseModel {
   @TableColumn({
     type: TableColumnType.Markdown,
     title: "Postmortem Note",
-    description: "Markdown template used when documenting an incident postmortem.",
+    description:
+      "Markdown template used when documenting an incident postmortem.",
   })
   @Column({
     type: ColumnType.Markdown,

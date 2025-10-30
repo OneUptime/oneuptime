@@ -178,6 +178,18 @@ const IncidentNoteTemplateView: LazyExoticComponent<
   return import("../Pages/Settings/IncidentNoteTemplateView");
 });
 
+const IncidentPostmortemTemplates: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/IncidentPostmortemTemplates");
+});
+
+const IncidentPostmortemTemplateView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/IncidentPostmortemTemplateView");
+});
+
 const SettingsScheduledMaintenanceState: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -456,6 +468,24 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentPostmortemTemplates
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
             PageMap.SETTINGS_ALERT_NOTE_TEMPLATES,
           )}
           element={
@@ -464,6 +494,25 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.SETTINGS_ALERT_NOTE_TEMPLATES] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES_VIEW,
+            2,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <IncidentPostmortemTemplateView
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES_VIEW
+                  ] as Route
                 }
               />
             </Suspense>

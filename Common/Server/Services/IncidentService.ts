@@ -1349,10 +1349,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
         }
 
         if (
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "rootCause",
-          )
+          Object.prototype.hasOwnProperty.call(updatedIncidentData, "rootCause")
         ) {
           const rootCause: string =
             (updatedIncidentData.rootCause as string) || "";
@@ -1396,9 +1393,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
           (updatedIncidentData.labels as Array<Label>).length > 0 &&
           Array.isArray(updatedIncidentData.labels)
         ) {
-          const labelIds: Array<ObjectID> = (
-            updatedIncidentData.labels as any
-          )
+          const labelIds: Array<ObjectID> = (updatedIncidentData.labels as any)
             .map((label: Label) => {
               if (label._id) {
                 return new ObjectID(label._id?.toString());
@@ -1446,9 +1441,7 @@ ${labels
             await IncidentSeverityService.findOneBy({
               query: {
                 _id: new ObjectID(
-                  (
-                    updatedIncidentData.incidentSeverity as any
-                  )?._id.toString(),
+                  (updatedIncidentData.incidentSeverity as any)?._id.toString(),
                 ),
               },
               select: {

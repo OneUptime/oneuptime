@@ -64,6 +64,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
+            title: "Postmortem",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_VIEW_POSTMORTEM] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Book}
+        />
+
+        <SideMenuItem
+          link={{
             title: "State Timeline",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.INCIDENT_VIEW_STATE_TIMELINE] as Route,

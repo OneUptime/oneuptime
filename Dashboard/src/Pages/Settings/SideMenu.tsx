@@ -170,6 +170,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         },
         {
           link: {
+            title: "Postmortem Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES] as Route,
+            ),
+          },
+          icon: IconProp.Book,
+        },
+        {
+          link: {
             title: "Custom Fields",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS] as Route,
