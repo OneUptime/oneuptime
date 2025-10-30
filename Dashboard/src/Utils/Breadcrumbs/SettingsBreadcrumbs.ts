@@ -89,6 +89,14 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW,
       ["Project", "Settings", "Incident Note Templates", "View Template"],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES,
+      ["Project", "Settings", "Incident Postmortem Templates"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES_VIEW,
+      ["Project", "Settings", "Incident Postmortem Templates", "View Template"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS, [
       "Project",
       "Settings",

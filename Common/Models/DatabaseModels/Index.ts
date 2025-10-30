@@ -24,6 +24,7 @@ import IncidentFeed from "./IncidentFeed";
 import IncidentCustomField from "./IncidentCustomField";
 import IncidentInternalNote from "./IncidentInternalNote";
 import IncidentNoteTemplate from "./IncidentNoteTemplate";
+import IncidentPostmortemTemplate from "./IncidentPostmortemTemplate";
 import IncidentOwnerTeam from "./IncidentOwnerTeam";
 import IncidentOwnerUser from "./IncidentOwnerUser";
 import IncidentPublicNote from "./IncidentPublicNote";
@@ -235,6 +236,7 @@ const AllModelTypes: Array<{
   IncidentOwnerUser,
   IncidentSeverity,
   IncidentNoteTemplate,
+  IncidentPostmortemTemplate,
 
   AlertState,
   Alert,

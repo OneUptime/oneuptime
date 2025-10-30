@@ -98,6 +98,9 @@ import IncidentInternalNoteService, {
 import IncidentNoteTemplateService, {
   Service as IncidentNoteTemplateServiceType,
 } from "Common/Server/Services/IncidentNoteTemplateService";
+import IncidentPostmortemTemplateService, {
+  Service as IncidentPostmortemTemplateServiceType,
+} from "Common/Server/Services/IncidentPostmortemTemplateService";
 import TableViewService, {
   Service as TableViewServiceType,
 } from "Common/Server/Services/TableViewService";
@@ -407,6 +410,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
+import IncidentPostmortemTemplate from "Common/Models/DatabaseModels/IncidentPostmortemTemplate";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
@@ -1385,6 +1389,17 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<IncidentNoteTemplate, IncidentNoteTemplateServiceType>(
         IncidentNoteTemplate,
         IncidentNoteTemplateService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentPostmortemTemplate,
+        IncidentPostmortemTemplateServiceType
+      >(
+        IncidentPostmortemTemplate,
+        IncidentPostmortemTemplateService,
       ).getRouter(),
     );
 

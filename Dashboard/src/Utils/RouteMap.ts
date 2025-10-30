@@ -159,6 +159,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
   [PageMap.INCIDENT_VIEW_REMEDIATION]: `${RouteParams.ModelID}/remediation`,
   [PageMap.INCIDENT_VIEW_ROOT_CAUSE]: `${RouteParams.ModelID}/root-cause`,
+  [PageMap.INCIDENT_VIEW_POSTMORTEM]: `${RouteParams.ModelID}/postmortem`,
   [PageMap.INCIDENT_VIEW_DESCRIPTION]: `${RouteParams.ModelID}/description`,
   [PageMap.INCIDENT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]: `${RouteParams.ModelID}/on-call-policy-execution-logs`,
@@ -228,6 +229,9 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW]: `incident-templates/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES]: "incident-note-templates",
   [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]: `incident-note-templates/${RouteParams.ModelID}`,
+  [PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES]:
+    "incident-postmortem-templates",
+  [PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES_VIEW]: `incident-postmortem-templates/${RouteParams.ModelID}`,
 
   [PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES]:
     "status-page-announcement-templates",
@@ -637,6 +641,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENT_VIEW_ROOT_CAUSE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_VIEW_ROOT_CAUSE]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_VIEW_POSTMORTEM]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_POSTMORTEM]
     }`,
   ),
 
@@ -1716,6 +1726,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_INCIDENT_POSTMORTEM_TEMPLATES_VIEW]
     }`,
   ),
 

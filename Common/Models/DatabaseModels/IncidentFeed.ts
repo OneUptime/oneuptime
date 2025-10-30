@@ -33,6 +33,7 @@ export enum IncidentFeedEventType {
   IncidentUpdated = "IncidentUpdated",
   RootCause = "RootCause",
   RemediationNotes = "RemediationNotes",
+  PostmortemNote = "PostmortemNote",
   OwnerUserRemoved = "OwnerUserRemoved",
   OwnerTeamRemoved = "OwnerTeamRemoved",
   OnCallPolicy = "OnCallPolicy",

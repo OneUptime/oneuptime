@@ -927,6 +927,39 @@ export default class Incident extends BaseModel {
   public rootCause?: string = undefined;
 
   @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Markdown,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Postmortem Note",
+    description: "Document the postmortem summary for this incident.",
+  })
+  @Column({
+    type: ColumnType.Markdown,
+    nullable: true,
+  })
+  public postmortemNote?: string = undefined;
+
+  @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,

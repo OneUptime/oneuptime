@@ -1,10 +1,12 @@
 import { EVERY_DAY } from "Common/Utils/CronTime";
 import RunCron from "../../Utils/Cron";
-// import logger from "Common/Server/Utils/Logger";
-// import ProjectService from "Common/Server/Services/ProjectService";
-// import MonitorService from "Common/Server/Services/MonitorService";
-// import Project from "Common/Models/DatabaseModels/Project";
-// import Monitor from "Common/Models/DatabaseModels/Monitor";
+/*
+ * import logger from "Common/Server/Utils/Logger";
+ * import ProjectService from "Common/Server/Services/ProjectService";
+ * import MonitorService from "Common/Server/Services/MonitorService";
+ * import Project from "Common/Models/DatabaseModels/Project";
+ * import Monitor from "Common/Models/DatabaseModels/Monitor";
+ */
 
 RunCron(
   "Monitor:KeepCurrentStateConsistent",
@@ -15,60 +17,65 @@ RunCron(
     //    * get all projects, then get all monitors for each project, then get the last status of each monitor and check with the current status of each monitor.
     //    * if they are different, then update the current status of the monitor.
     //    */
-
-    //   const projects: Array<Project> =
-    //     await ProjectService.getAllActiveProjects({
-    //       select: {
-    //         _id: true,
-    //       },
-    //     });
-
-    //   for (const project of projects) {
-    //     try {
-    //       if (!project) {
-    //         continue;
-    //       }
-
-    //       if (!project.id) {
-    //         continue;
-    //       }
-
-    //       const monitors: Array<Monitor> = await MonitorService.findAllBy({
-    //         query: {
-    //           projectId: project.id,
-    //         },
-    //         select: {
-    //           _id: true,
-    //         },
-    //         props: {
-    //           isRoot: true,
-    //         },
-    //       });
-
-    //       for (const monitor of monitors) {
-    //         try {
-    //           if (!monitor) {
-    //             continue;
-    //           }
-    //           if (!monitor.id) {
-    //             continue;
-    //           }
-    //           await MonitorService.refreshMonitorCurrentStatus(monitor.id!);
-    //         } catch (err) {
-    //           logger.error("Error in KeepCurrentStateConsistent job");
-    //           logger.error(err);
-    //           continue;
-    //         }
-    //       }
-    //     } catch (err) {
-    //       logger.error("Error in KeepCurrentStateConsistent job");
-    //       logger.error(err);
-    //       continue;
-    //     }
-    //   }
-    // } catch (err) {
-    //   logger.error("Error in KeepCurrentStateConsistent job");
-    //   logger.error(err);
-    // }
+    /*
+     *   const projects: Array<Project> =
+     *     await ProjectService.getAllActiveProjects({
+     *       select: {
+     *         _id: true,
+     *       },
+     *     });
+     */
+    /*
+     *   for (const project of projects) {
+     *     try {
+     *       if (!project) {
+     *         continue;
+     *       }
+     */
+    /*
+     *       if (!project.id) {
+     *         continue;
+     *       }
+     */
+    /*
+     *       const monitors: Array<Monitor> = await MonitorService.findAllBy({
+     *         query: {
+     *           projectId: project.id,
+     *         },
+     *         select: {
+     *           _id: true,
+     *         },
+     *         props: {
+     *           isRoot: true,
+     *         },
+     *       });
+     */
+    /*
+     *       for (const monitor of monitors) {
+     *         try {
+     *           if (!monitor) {
+     *             continue;
+     *           }
+     *           if (!monitor.id) {
+     *             continue;
+     *           }
+     *           await MonitorService.refreshMonitorCurrentStatus(monitor.id!);
+     *         } catch (err) {
+     *           logger.error("Error in KeepCurrentStateConsistent job");
+     *           logger.error(err);
+     *           continue;
+     *         }
+     *       }
+     *     } catch (err) {
+     *       logger.error("Error in KeepCurrentStateConsistent job");
+     *       logger.error(err);
+     *       continue;
+     *     }
+     *   }
+     * } catch (err) {
+     *   logger.error("Error in KeepCurrentStateConsistent job");
+     *   logger.error(err);
+     * }
+     */
   },
 );
