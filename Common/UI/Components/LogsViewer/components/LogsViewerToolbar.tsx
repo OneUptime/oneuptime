@@ -38,9 +38,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        {props.liveOptions && (
-          <LiveLogsToggle {...props.liveOptions} />
-        )}
+        {props.liveOptions && <LiveLogsToggle {...props.liveOptions} />}
         {props.showApplyButton && props.onApplyFilters && (
           <Button
             title="Apply Filters"

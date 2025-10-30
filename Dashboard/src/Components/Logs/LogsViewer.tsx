@@ -217,9 +217,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           sortField === "time" &&
           sortOrder === SortOrder.Descending
         ) {
-          fetchItems({ skipLoadingState: isLiveEnabled }).catch((err: unknown) => {
-            setError(API.getFriendlyMessage(err));
-          });
+          fetchItems({ skipLoadingState: isLiveEnabled }).catch(
+            (err: unknown) => {
+              setError(API.getFriendlyMessage(err));
+            },
+          );
         }
       },
     );
