@@ -153,7 +153,9 @@ const IncidentPostmortem: FunctionComponent<
         isEditable={true}
         editButtonText="Edit Postmortem Note"
         onSaveSuccess={() => {
-          setRefreshToggle((previous: boolean) => !previous);
+          setRefreshToggle((previous: boolean) => {
+            return !previous;
+          });
         }}
         formFields={POSTMORTEM_FORM_FIELDS}
         modelDetailProps={{
@@ -256,7 +258,9 @@ const IncidentPostmortem: FunctionComponent<
           onSuccess={() => {
             setShowTemplateEditModal(false);
             setTemplateInitialValues(null);
-            setRefreshToggle((previous: boolean) => !previous);
+            setRefreshToggle((previous: boolean) => {
+              return !previous;
+            });
           }}
           name="incident-postmortem-note-from-template"
           modelType={Incident}
