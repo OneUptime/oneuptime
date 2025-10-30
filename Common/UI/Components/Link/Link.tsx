@@ -16,6 +16,7 @@ export interface ComponentProps {
   onMouseOut?: (() => void) | undefined;
   onMouseLeave?: (() => void) | undefined;
   id?: string | undefined;
+  title?: string | undefined;
 }
 
 const Link: FunctionComponent<ComponentProps> = (
@@ -48,6 +49,7 @@ const Link: FunctionComponent<ComponentProps> = (
       onMouseOut={props.onMouseOut}
       onMouseLeave={props.onMouseLeave}
       style={props.style}
+      title={props.title}
       onAuxClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
         // middle click
         if (event.button === 1) {
