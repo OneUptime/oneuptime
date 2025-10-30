@@ -417,8 +417,10 @@ server {
     
     listen ${NGINX_LISTEN_ADDRESS}7849 ${NGINX_LISTEN_OPTIONS};
     http2  on;
+${ONEUPTIME_SSL_LISTEN_DIRECTIVES}
 
     server_name localhost ingress ${HOST}; #All domains
+${ONEUPTIME_SSL_CERT_DIRECTIVES}
 
     proxy_busy_buffers_size   512k;
     proxy_buffers   4 512k;
@@ -441,6 +443,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
+${ONEUPTIME_SSL_REDIRECT_SNIPPET}
         
         # If billing_enabled is true then proxy to home otherwise to dashboard because we dont need marketing paages for on-prem install.
         if ($billing_enabled = true) {
@@ -450,6 +453,21 @@ server {
         if ($billing_enabled != true) {
             proxy_pass http://dashboard;
         }
+    }
+
+    # ACME challenge endpoint for OneUptime host cert provisioning.
+    location /.well-known {
+        resolver 127.0.0.1 valid=30s;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_pass http://app/api/status-page/.well-known;
     }
 
     # PWA manifest and service worker with proper headers for home

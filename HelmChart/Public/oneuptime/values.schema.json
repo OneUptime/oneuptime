@@ -22,6 +22,11 @@
       "type": "string",
       "enum": ["http", "https"]
     },
+    "enableSslProvisioningForOneuptime": {
+      "type": "boolean",
+      "description": "Enable automatic Let's Encrypt provisioning for the primary OneUptime host",
+      "default": false
+    },
     "oneuptimeSecret": {
       "type": ["string", "null"]
     },

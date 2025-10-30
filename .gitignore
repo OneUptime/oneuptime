@@ -76,6 +76,8 @@ logs.txt
 
 Certs/StatusPageCerts/*.crt
 Certs/StatusPageCerts/*.key
+Certs/OneUptime/*.crt
+Certs/OneUptime/*.key
 
 Certs/ServerCerts/*.crt
 Certs/ServerCerts/*.key

@@ -5,6 +5,7 @@ global:
 # Please change this to the domain name / IP where OneUptime server is hosted on.
 host: localhost
 httpProtocol: http
+enableSslProvisioningForOneuptime: false
 
 # Important: You do need to set this to a long random values if you're using OneUptime in production.
 # Please set this to string.

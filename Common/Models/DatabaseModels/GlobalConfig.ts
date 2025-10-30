@@ -497,4 +497,74 @@ export default class GlobalConfig extends GlobalConfigModel {
     transformer: Email.getDatabaseTransformer(),
   })
   public adminNotificationEmail?: Email = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "OneUptime SSL Certificate",
+    description:
+      "TLS certificate issued by Let's Encrypt for the primary OneUptime host.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+    unique: false,
+  })
+  public oneuptimeSslCertificate?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "OneUptime SSL Certificate Key",
+    description:
+      "Private key that pairs with the primary OneUptime TLS certificate.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+    unique: false,
+  })
+  public oneuptimeSslCertificateKey?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "OneUptime SSL Issued At",
+    description: "Date when the primary TLS certificate was issued.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public oneuptimeSslIssuedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "OneUptime SSL Expires At",
+    description: "Expiry date of the primary OneUptime TLS certificate.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public oneuptimeSslExpiresAt?: Date = undefined;
 }
