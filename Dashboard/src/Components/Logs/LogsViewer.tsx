@@ -79,7 +79,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     SortOrder.Descending,
   );
   const [isLiveEnabled, setIsLiveEnabled] = React.useState<boolean>(false);
-  const [isLiveUpdating, setIsLiveUpdating] = React.useState<boolean>(false);
   const liveRequestInFlight = React.useRef<boolean>(false);
 
   useEffect(() => {
@@ -121,7 +120,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         }
 
         liveRequestInFlight.current = true;
-        setIsLiveUpdating(true);
       } else {
         setIsLoading(true);
       }
@@ -156,7 +154,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       } finally {
         if (skipLoadingState) {
           liveRequestInFlight.current = false;
-          setIsLiveUpdating(false);
         } else {
           setIsLoading(false);
         }
@@ -247,7 +244,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         }
       } else {
         liveRequestInFlight.current = false;
-        setIsLiveUpdating(false);
       }
 
       setIsLiveEnabled(shouldEnable);
@@ -270,7 +266,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           if (isLiveEnabled) {
             setIsLiveEnabled(false);
             liveRequestInFlight.current = false;
-            setIsLiveUpdating(false);
           }
         }}
         filterData={filterOptions}
@@ -286,7 +281,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           if (nextPage !== 1 && isLiveEnabled) {
             setIsLiveEnabled(false);
             liveRequestInFlight.current = false;
-            setIsLiveUpdating(false);
           }
         }}
         onPageSizeChange={(nextSize: number) => {
@@ -306,15 +300,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           ) {
             setIsLiveEnabled(false);
             liveRequestInFlight.current = false;
-            setIsLiveUpdating(false);
           }
         }}
         liveOptions={{
           isLive: isLiveEnabled,
           onToggle: handleLiveToggle,
-          isUpdating: isLiveUpdating,
-          tooltip:
-            "Stay on the latest logs. Automatically refreshes every 10 seconds when sorted by time (desc) on page 1.",
         }}
         getTraceRoute={(traceId: string) => {
           if (!traceId) {

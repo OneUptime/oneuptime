@@ -1,5 +1,4 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import Tooltip from "../../Tooltip/Tooltip";
 import { LiveLogsOptions } from "../types";
 
 export type LiveLogsToggleProps = LiveLogsOptions;
@@ -7,7 +6,7 @@ export type LiveLogsToggleProps = LiveLogsOptions;
 const LiveLogsToggle: FunctionComponent<LiveLogsToggleProps> = (
   props: LiveLogsToggleProps,
 ): ReactElement => {
-  const { isLive, onToggle, isDisabled, isUpdating, tooltip } = props;
+  const { isLive, onToggle, isDisabled } = props;
 
   const baseClasses: string =
     "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/60";
@@ -38,19 +37,10 @@ const LiveLogsToggle: FunctionComponent<LiveLogsToggleProps> = (
         }`}
       />
       <span>Live</span>
-      {isUpdating && (
-        <span className="ml-1 inline-flex h-3 w-3 items-center justify-center">
-          <span className="h-3 w-3 animate-spin rounded-full border border-emerald-300 border-t-transparent" />
-        </span>
-      )}
     </button>
   );
 
-  if (!tooltip) {
-    return content;
-  }
-
-  return <Tooltip text={tooltip}>{content}</Tooltip>;
+  return content;
 };
 
 export default LiveLogsToggle;
