@@ -13,6 +13,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import IconProp from "Common/Types/Icon/IconProp";
 import API from "Common/UI/Utils/API/API";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
+import Fields from "Common/UI/Components/Forms/Types/Fields";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -23,6 +27,21 @@ import React, {
   useEffect,
   useState,
 } from "react";
+
+const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
+  {
+    field: {
+      postmortemNote: true,
+    },
+    title: "Postmortem Note",
+    fieldType: FormFieldSchemaType.Markdown,
+    required: false,
+    placeholder: "Postmortem Note",
+    description: MarkdownUtil.getMarkdownCheatsheet(
+      "Capture what happened, impact, resolution, and follow-up actions.",
+    ),
+  },
+];
 
 const IncidentPostmortem: FunctionComponent<
   PageComponentProps
@@ -35,6 +54,10 @@ const IncidentPostmortem: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+  const [showTemplateEditModal, setShowTemplateEditModal] =
+    useState<boolean>(false);
+  const [templateInitialValues, setTemplateInitialValues] =
+    useState<FormValues<Incident> | null>(null);
 
   const fetchTemplates: () => Promise<void> = async (): Promise<void> => {
     setError("");
@@ -80,26 +103,20 @@ const IncidentPostmortem: FunctionComponent<
 
       if (!template || !template.postmortemNote) {
         setError("The selected template does not contain a postmortem note.");
-        setIsLoading(false);
         setShowTemplateModal(false);
         return;
       }
 
-      await ModelAPI.updateById({
-        modelType: Incident,
-        id: modelId,
-        data: {
-          postmortemNote: template.postmortemNote,
-        },
+      setTemplateInitialValues({
+        postmortemNote: template.postmortemNote,
       });
-
-      setRefreshToggle(!refreshToggle);
       setShowTemplateModal(false);
+      setShowTemplateEditModal(true);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -136,22 +153,9 @@ const IncidentPostmortem: FunctionComponent<
         isEditable={true}
         editButtonText="Edit Postmortem Note"
         onSaveSuccess={() => {
-          setRefreshToggle(!refreshToggle);
+          setRefreshToggle((previous: boolean) => !previous);
         }}
-        formFields={[
-          {
-            field: {
-              postmortemNote: true,
-            },
-            title: "Postmortem Note",
-            fieldType: FormFieldSchemaType.Markdown,
-            required: false,
-            placeholder: "Postmortem Note",
-            description: MarkdownUtil.getMarkdownCheatsheet(
-              "Capture what happened, impact, resolution, and follow-up actions.",
-            ),
-          },
-        ]}
+        formFields={POSTMORTEM_FORM_FIELDS}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
           modelType: Incident,
@@ -234,6 +238,37 @@ const IncidentPostmortem: FunctionComponent<
                 placeholder: "Select Template",
               },
             ],
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {showTemplateEditModal ? (
+        <ModelFormModal<Incident>
+          title="Edit Postmortem Note"
+          submitButtonText="Save Changes"
+          modalWidth={ModalWidth.Large}
+          onClose={() => {
+            setShowTemplateEditModal(false);
+            setTemplateInitialValues(null);
+          }}
+          onSuccess={() => {
+            setShowTemplateEditModal(false);
+            setTemplateInitialValues(null);
+            setRefreshToggle((previous: boolean) => !previous);
+          }}
+          name="incident-postmortem-note-from-template"
+          modelType={Incident}
+          modelIdToEdit={modelId}
+          initialValues={templateInitialValues || undefined}
+          formProps={{
+            id: "incident-postmortem-note-template-form",
+            fields: POSTMORTEM_FORM_FIELDS,
+            formType: FormType.Update,
+            modelType: Incident,
+            name: "Postmortem Note",
+            doNotFetchExistingModel: true,
           }}
         />
       ) : (
