@@ -4,6 +4,7 @@ import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import IncidentPostmortemTemplate from "Common/Models/DatabaseModels/IncidentPostmortemTemplate";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
@@ -17,6 +18,7 @@ const IncidentPostmortemTemplates: FunctionComponent<PageComponentProps> = (
         id="incident-postmortem-templates-table"
         name="Settings > Incident Postmortem Templates"
         isDeleteable={false}
+        createEditModalWidth={ModalWidth.Large}
         userPreferencesKey="incident-postmortem-templates-table"
         isEditable={false}
         isCreateable={true}
