@@ -10,9 +10,12 @@ import React, {
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import Dictionary from "Common/Types/Dictionary";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import Text from "Common/Types/Text";
+import FilterData from "Common/UI/Components/Filters/Types/FilterData";
+import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
 
 const MetricExplorer: FunctionComponent = (): ReactElement => {
   const metricQueriesFromUrl: Array<MetricQueryFromUrl> =
@@ -31,27 +34,31 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
   const initialTimeRange: InBetween<Date> =
     getTimeRangeFromQuery() ?? defaultStartAndEndDate;
 
-  const initialQueryConfigs = metricQueriesFromUrl.map(
-    (metricQuery: MetricQueryFromUrl, index: number) => {
-      return {
-        metricAliasData: {
-          metricVariable: Text.getLetterFromAByNumber(index),
-          title: "",
-          description: "",
-          legend: "",
-          legendUnit: "",
-        },
-        metricQueryData: {
-          filterData: {
-            metricName: metricQuery.metricName,
-            attributes: metricQuery.attributes,
-            aggegationType:
-              metricQuery.aggregationType || MetricsAggregationType.Avg,
+  const initialQueryConfigs: Array<MetricQueryConfigData> =
+    metricQueriesFromUrl.map(
+      (
+        metricQuery: MetricQueryFromUrl,
+        index: number,
+      ): MetricQueryConfigData => {
+        return {
+          metricAliasData: {
+            metricVariable: Text.getLetterFromAByNumber(index),
+            title: "",
+            description: "",
+            legend: "",
+            legendUnit: "",
           },
-        },
-      };
-    },
-  );
+          metricQueryData: {
+            filterData: {
+              metricName: metricQuery.metricName,
+              attributes: metricQuery.attributes,
+              aggegationType:
+                metricQuery.aggregationType || MetricsAggregationType.Avg,
+            },
+          },
+        };
+      },
+    );
 
   const [metricViewData, setMetricViewData] = React.useState<MetricViewData>({
     startAndEndDate: initialTimeRange,
@@ -79,7 +86,8 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
     formulaConfigs: [],
   });
 
-  const lastSerializedStateRef = useRef<string>("");
+  const lastSerializedStateRef: React.MutableRefObject<string> =
+    useRef<string>("");
 
   useEffect(() => {
     const metricQueriesFromState: Array<MetricQueryFromUrl> =
@@ -155,32 +163,35 @@ type MetricQueryFromUrl = {
 function buildMetricQueriesFromState(
   data: MetricViewData,
 ): Array<MetricQueryFromUrl> {
-  return data.queryConfigs.map((queryConfig) => {
-    const filterData = queryConfig.metricQueryData?.filterData || {};
+  return data.queryConfigs.map(
+    (queryConfig: MetricQueryConfigData): MetricQueryFromUrl => {
+      const filterData: FilterData<MetricsQuery> =
+        queryConfig.metricQueryData.filterData;
+      const filterDataRecord: Record<string, unknown> = filterData as Record<
+        string,
+        unknown
+      >;
 
-    const metricNameValue: unknown = (filterData as Record<string, unknown>)[
-      "metricName"
-    ];
+      const metricNameValue: unknown = filterDataRecord["metricName"];
 
-    const metricName: string =
-      typeof metricNameValue === "string" ? metricNameValue : "";
+      const metricName: string =
+        typeof metricNameValue === "string" ? metricNameValue : "";
 
-    const aggregationValue: unknown = (filterData as Record<string, unknown>)[
-      "aggegationType"
-    ];
+      const aggregationValue: unknown = filterDataRecord["aggegationType"];
 
-    const aggregationType: MetricsAggregationType | undefined =
-      getAggregationTypeFromValue(aggregationValue);
+      const aggregationType: MetricsAggregationType | undefined =
+        getAggregationTypeFromValue(aggregationValue);
 
-    const attributes: Dictionary<string | number | boolean> =
-      sanitizeAttributes((filterData as Record<string, unknown>)["attributes"]);
+      const attributes: Dictionary<string | number | boolean> =
+        sanitizeAttributes(filterDataRecord["attributes"]);
 
-    return {
-      metricName,
-      attributes,
-      ...(aggregationType ? { aggregationType } : {}),
-    };
-  });
+      return {
+        metricName,
+        attributes,
+        ...(aggregationType ? { aggregationType } : {}),
+      };
+    },
+  );
 }
 
 function getMetricQueriesFromQuery(): Array<MetricQueryFromUrl> {
@@ -229,7 +240,7 @@ function getMetricQueriesFromQuery(): Array<MetricQueryFromUrl> {
     }
 
     return sanitizedQueries;
-  } catch (err) {
+  } catch {
     return [];
   }
 }
@@ -260,7 +271,7 @@ function getTimeRangeFromQuery(): InBetween<Date> | null {
     }
 
     return new InBetween(startDate, endDate);
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -277,7 +288,7 @@ function sanitizeAttributes(
   if (typeof value === "string") {
     try {
       candidate = JSONFunctions.parse(value);
-    } catch (err) {
+    } catch {
       return {};
     }
   }
