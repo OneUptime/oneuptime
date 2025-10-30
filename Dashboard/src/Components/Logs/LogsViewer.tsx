@@ -1,10 +1,10 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import LogsViewer, {
   LogsSortField,
+  LiveLogsOptions,
 } from "Common/UI/Components/LogsViewer/LogsViewer";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI, {
@@ -78,6 +78,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const [sortOrder, setSortOrder] = React.useState<SortOrder>(
     SortOrder.Descending,
   );
+  const [isLiveEnabled, setIsLiveEnabled] = React.useState<boolean>(false);
+  const [isLiveUpdating, setIsLiveUpdating] = React.useState<boolean>(false);
+  const liveRequestInFlight = React.useRef<boolean>(false);
 
   useEffect(() => {
     setFilterOptions(refreshQuery());
@@ -102,10 +105,26 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  const fetchItems: PromiseVoidFunction =
-    React.useCallback(async (): Promise<void> => {
+  type FetchOptions = {
+    skipLoadingState?: boolean;
+  };
+
+  const fetchItems = React.useCallback(
+    async (options: FetchOptions = {}): Promise<void> => {
+      const { skipLoadingState = false } = options;
+
       setError("");
-      setIsLoading(true);
+
+      if (skipLoadingState) {
+        if (liveRequestInFlight.current) {
+          return;
+        }
+
+        liveRequestInFlight.current = true;
+        setIsLiveUpdating(true);
+      } else {
+        setIsLoading(true);
+      }
 
       try {
         const listResult: ListResult<Log> =
@@ -134,16 +153,52 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         }
       } catch (err) {
         setError(API.getFriendlyMessage(err));
+      } finally {
+        if (skipLoadingState) {
+          liveRequestInFlight.current = false;
+          setIsLiveUpdating(false);
+        } else {
+          setIsLoading(false);
+        }
       }
-
-      setIsLoading(false);
-    }, [filterOptions, page, pageSize, select, sortField, sortOrder]);
+    },
+    [
+      filterOptions,
+      liveRequestInFlight,
+      page,
+      pageSize,
+      select,
+      sortField,
+      sortOrder,
+    ],
+  );
 
   useEffect(() => {
     fetchItems().catch((err: unknown) => {
       setError(API.getFriendlyMessage(err));
     });
   }, [fetchItems]);
+
+  useEffect(() => {
+    if (
+      !isLiveEnabled ||
+      page !== 1 ||
+      sortField !== "time" ||
+      sortOrder !== SortOrder.Descending
+    ) {
+      return;
+    }
+
+    void fetchItems({ skipLoadingState: true });
+
+    const intervalId: number = window.setInterval(() => {
+      void fetchItems({ skipLoadingState: true });
+    }, 10000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [fetchItems, isLiveEnabled, page, sortField, sortOrder]);
 
   useEffect(() => {
     if (!props.enableRealtime) {
@@ -162,7 +217,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           sortField === "time" &&
           sortOrder === SortOrder.Descending
         ) {
-          fetchItems().catch((err: unknown) => {
+          fetchItems({ skipLoadingState: isLiveEnabled }).catch((err: unknown) => {
             setError(API.getFriendlyMessage(err));
           });
         }
@@ -172,7 +227,31 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     return () => {
       disconnectFunction();
     };
-  }, [fetchItems, page, sortField, sortOrder]);
+  }, [fetchItems, isLiveEnabled, page, sortField, sortOrder]);
+
+  const handleLiveToggle = React.useCallback<LiveLogsOptions["onToggle"]>(
+    (shouldEnable: boolean) => {
+      if (shouldEnable) {
+        if (page !== 1) {
+          setPage(1);
+        }
+
+        if (sortField !== "time") {
+          setSortField("time");
+        }
+
+        if (sortOrder !== SortOrder.Descending) {
+          setSortOrder(SortOrder.Descending);
+        }
+      } else {
+        liveRequestInFlight.current = false;
+        setIsLiveUpdating(false);
+      }
+
+      setIsLiveEnabled(shouldEnable);
+    },
+    [liveRequestInFlight, page, sortField, sortOrder],
+  );
 
   if (error) {
     return <ErrorMessage message={error} />;
@@ -185,6 +264,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         onFilterChanged={(filterOptions: Query<Log>) => {
           setFilterOptions(filterOptions);
           setPage(1);
+
+          if (isLiveEnabled) {
+            setIsLiveEnabled(false);
+            liveRequestInFlight.current = false;
+            setIsLiveUpdating(false);
+          }
         }}
         filterData={filterOptions}
         logs={logs}
@@ -195,6 +280,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         pageSize={pageSize}
         onPageChange={(nextPage: number) => {
           setPage(nextPage);
+
+          if (nextPage !== 1 && isLiveEnabled) {
+            setIsLiveEnabled(false);
+            liveRequestInFlight.current = false;
+            setIsLiveUpdating(false);
+          }
         }}
         onPageSizeChange={(nextSize: number) => {
           setPageSize(nextSize);
@@ -206,6 +297,22 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           setSortField(field);
           setSortOrder(order);
           setPage(1);
+
+          if (
+            isLiveEnabled &&
+            (field !== "time" || order !== SortOrder.Descending)
+          ) {
+            setIsLiveEnabled(false);
+            liveRequestInFlight.current = false;
+            setIsLiveUpdating(false);
+          }
+        }}
+        liveOptions={{
+          isLive: isLiveEnabled,
+          onToggle: handleLiveToggle,
+          isUpdating: isLiveUpdating,
+          tooltip:
+            "Stay on the latest logs. Automatically refreshes every 10 seconds when sorted by time (desc) on page 1.",
         }}
         getTraceRoute={(traceId: string) => {
           if (!traceId) {
