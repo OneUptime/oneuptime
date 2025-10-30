@@ -52,7 +52,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Resources">
+      <SideMenuSection title="Operations">
         <SideMenuItem
           link={{
             title: "Monitors",
@@ -62,6 +62,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.AltGlobe}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Alerts",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_CATALOG_VIEW_ALERTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.BellRinging}
         />
 
         <SideMenuItem
@@ -77,7 +88,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
-            title: "Telemetry",
+            title: "Telemetry Services",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES
@@ -87,6 +98,42 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Cube}
         />
+      </SideMenuSection>
+
+      <SideMenuSection title="Telemetry">
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_CATALOG_VIEW_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Logs}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Traces",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_CATALOG_VIEW_TRACES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Workflow}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Metrics",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_CATALOG_VIEW_METRICS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Graph}
+        />
+
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
