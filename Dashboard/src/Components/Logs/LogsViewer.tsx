@@ -80,7 +80,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   );
   const [isLiveEnabled, setIsLiveEnabled] = React.useState<boolean>(false);
   const [isLiveUpdating, setIsLiveUpdating] = React.useState<boolean>(false);
-  const liveRequestInFlight = React.useRef<boolean>(false);
+  const liveRequestInFlight: React.MutableRefObject<boolean> =
+    React.useRef<boolean>(false);
 
   useEffect(() => {
     setFilterOptions(refreshQuery());
@@ -109,70 +110,71 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     skipLoadingState?: boolean;
   };
 
-  const fetchItems = React.useCallback(
-    async (options: FetchOptions = {}): Promise<void> => {
-      const { skipLoadingState = false } = options;
+  const fetchItems: (options?: FetchOptions) => Promise<void> =
+    React.useCallback(
+      async (options: FetchOptions = {}): Promise<void> => {
+        const { skipLoadingState = false } = options;
 
-      setError("");
+        setError("");
 
-      if (skipLoadingState) {
-        if (liveRequestInFlight.current) {
-          return;
-        }
-
-        liveRequestInFlight.current = true;
-        setIsLiveUpdating(true);
-      } else {
-        setIsLoading(true);
-      }
-
-      try {
-        const listResult: ListResult<Log> =
-          await AnalyticsModelAPI.getList<Log>({
-            modelType: Log,
-            query: filterOptions,
-            limit: pageSize,
-            skip: (page - 1) * pageSize,
-            select: select,
-            sort: {
-              [sortField]: sortOrder,
-            } as Record<string, SortOrder>,
-            requestOptions: {},
-          });
-
-        setLogs(listResult.data);
-        setTotalCount(listResult.count);
-
-        const maximumPage: number = Math.max(
-          1,
-          Math.ceil(listResult.count / Math.max(pageSize, 1)),
-        );
-
-        if (page > maximumPage) {
-          setPage(maximumPage);
-        }
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      } finally {
         if (skipLoadingState) {
-          liveRequestInFlight.current = false;
-          setIsLiveUpdating(false);
+          if (liveRequestInFlight.current) {
+            return;
+          }
+
+          liveRequestInFlight.current = true;
+          setIsLiveUpdating(true);
         } else {
-          setIsLoading(false);
+          setIsLoading(true);
         }
-      }
-    },
-    [
-      filterOptions,
-      liveRequestInFlight,
-      page,
-      pageSize,
-      select,
-      setIsLiveUpdating,
-      sortField,
-      sortOrder,
-    ],
-  );
+
+        try {
+          const listResult: ListResult<Log> =
+            await AnalyticsModelAPI.getList<Log>({
+              modelType: Log,
+              query: filterOptions,
+              limit: pageSize,
+              skip: (page - 1) * pageSize,
+              select: select,
+              sort: {
+                [sortField]: sortOrder,
+              } as Record<string, SortOrder>,
+              requestOptions: {},
+            });
+
+          setLogs(listResult.data);
+          setTotalCount(listResult.count);
+
+          const maximumPage: number = Math.max(
+            1,
+            Math.ceil(listResult.count / Math.max(pageSize, 1)),
+          );
+
+          if (page > maximumPage) {
+            setPage(maximumPage);
+          }
+        } catch (err) {
+          setError(API.getFriendlyMessage(err));
+        } finally {
+          if (skipLoadingState) {
+            liveRequestInFlight.current = false;
+            setIsLiveUpdating(false);
+          } else {
+            setIsLoading(false);
+          }
+        }
+      },
+      [
+        filterOptions,
+        liveRequestInFlight,
+        page,
+        pageSize,
+        select,
+        setIsLiveUpdating,
+        sortField,
+        sortOrder,
+      ],
+    );
 
   useEffect(() => {
     fetchItems().catch((err: unknown) => {
@@ -232,7 +234,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     };
   }, [fetchItems, isLiveEnabled, page, sortField, sortOrder]);
 
-  const handleLiveToggle = React.useCallback<LiveLogsOptions["onToggle"]>(
+  const handleLiveToggle: LiveLogsOptions["onToggle"] = React.useCallback(
     (shouldEnable: boolean) => {
       if (shouldEnable) {
         if (page !== 1) {
