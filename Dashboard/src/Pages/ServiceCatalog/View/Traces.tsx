@@ -21,7 +21,9 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Span from "Common/Models/AnalyticsModels/Span";
 
-const ServiceCatalogTraces: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const ServiceCatalogTraces: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [telemetryServiceIds, setTelemetryServiceIds] =
@@ -29,36 +31,37 @@ const ServiceCatalogTraces: FunctionComponent<PageComponentProps> = (): ReactEle
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTelemetryServices: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      const response: ListResult<ServiceCatalogTelemetryService> =
-        await ModelAPI.getList<ServiceCatalogTelemetryService>({
-          modelType: ServiceCatalogTelemetryService,
-          query: {
-            serviceCatalogId: modelId,
-          },
-          select: {
-            telemetryServiceId: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {},
-        });
+  const fetchTelemetryServices: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        setIsLoading(true);
+        const response: ListResult<ServiceCatalogTelemetryService> =
+          await ModelAPI.getList<ServiceCatalogTelemetryService>({
+            modelType: ServiceCatalogTelemetryService,
+            query: {
+              serviceCatalogId: modelId,
+            },
+            select: {
+              telemetryServiceId: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {},
+          });
 
-      const ids: ObjectID[] = response.data.map(
-        (serviceCatalogTelemetryService: ServiceCatalogTelemetryService) => {
-          return serviceCatalogTelemetryService.telemetryServiceId!;
-        },
-      );
+        const ids: ObjectID[] = response.data.map(
+          (serviceCatalogTelemetryService: ServiceCatalogTelemetryService) => {
+            return serviceCatalogTelemetryService.telemetryServiceId!;
+          },
+        );
 
-      setTelemetryServiceIds(ids);
-      setIsLoading(false);
-    } catch (err) {
-      setIsLoading(false);
-      setError(API.getFriendlyMessage(err));
-    }
-  };
+        setTelemetryServiceIds(ids);
+        setIsLoading(false);
+      } catch (err) {
+        setIsLoading(false);
+        setError(API.getFriendlyMessage(err));
+      }
+    };
 
   useEffect(() => {
     fetchTelemetryServices().catch((err: Error) => {

@@ -20,69 +20,73 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Includes from "Common/Types/BaseDatabase/Includes";
 
-const ServiceCatalogMetrics: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const ServiceCatalogMetrics: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [telemetryServiceIds, setTelemetryServiceIds] =
     useState<Array<ObjectID> | null>(null);
-  const [telemetryServices, setTelemetryServices] =
-    useState<Array<TelemetryService>>([]);
+  const [telemetryServices, setTelemetryServices] = useState<
+    Array<TelemetryService>
+  >([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTelemetryServices: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      const response: ListResult<ServiceCatalogTelemetryService> =
-        await ModelAPI.getList<ServiceCatalogTelemetryService>({
-          modelType: ServiceCatalogTelemetryService,
-          query: {
-            serviceCatalogId: modelId,
+  const fetchTelemetryServices: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        setIsLoading(true);
+        const response: ListResult<ServiceCatalogTelemetryService> =
+          await ModelAPI.getList<ServiceCatalogTelemetryService>({
+            modelType: ServiceCatalogTelemetryService,
+            query: {
+              serviceCatalogId: modelId,
+            },
+            select: {
+              telemetryServiceId: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {},
+          });
+
+        const ids: ObjectID[] = response.data.map(
+          (serviceCatalogTelemetryService: ServiceCatalogTelemetryService) => {
+            return serviceCatalogTelemetryService.telemetryServiceId!;
           },
-          select: {
-            telemetryServiceId: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {},
-        });
+        );
 
-      const ids: ObjectID[] = response.data.map(
-        (serviceCatalogTelemetryService: ServiceCatalogTelemetryService) => {
-          return serviceCatalogTelemetryService.telemetryServiceId!;
-        },
-      );
+        setTelemetryServiceIds(ids);
 
-      setTelemetryServiceIds(ids);
+        if (ids.length === 0) {
+          setTelemetryServices([]);
+          setIsLoading(false);
+          return;
+        }
 
-      if (ids.length === 0) {
-        setTelemetryServices([]);
+        const telemetryServicesResponse: ListResult<TelemetryService> =
+          await ModelAPI.getList<TelemetryService>({
+            modelType: TelemetryService,
+            query: {
+              _id: new Includes(ids),
+            },
+            select: {
+              _id: true,
+              name: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {},
+          });
+
+        setTelemetryServices(telemetryServicesResponse.data || []);
         setIsLoading(false);
-        return;
+      } catch (err) {
+        setIsLoading(false);
+        setError(API.getFriendlyMessage(err));
       }
-
-      const telemetryServicesResponse: ListResult<TelemetryService> =
-        await ModelAPI.getList<TelemetryService>({
-          modelType: TelemetryService,
-          query: {
-            _id: new Includes(ids),
-          },
-          select: {
-            _id: true,
-            name: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {},
-        });
-
-      setTelemetryServices(telemetryServicesResponse.data || []);
-      setIsLoading(false);
-    } catch (err) {
-      setIsLoading(false);
-      setError(API.getFriendlyMessage(err));
-    }
-  };
+    };
 
   useEffect(() => {
     fetchTelemetryServices().catch((err: Error) => {

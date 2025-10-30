@@ -248,16 +248,12 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.SERVICE_CATALOG_VIEW_LOGS,
-          )}
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_CATALOG_VIEW_LOGS)}
           element={
             <Suspense fallback={Loader}>
               <ServiceCatalogViewLogs
                 {...props}
-                pageRoute={
-                  RouteMap[PageMap.SERVICE_CATALOG_VIEW_LOGS] as Route
-                }
+                pageRoute={RouteMap[PageMap.SERVICE_CATALOG_VIEW_LOGS] as Route}
               />
             </Suspense>
           }

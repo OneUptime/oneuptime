@@ -21,43 +21,46 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Alert from "Common/Models/DatabaseModels/Alert";
 
-const ServiceCatalogAlerts: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const ServiceCatalogAlerts: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [monitorIds, setMonitorIds] = useState<Array<ObjectID> | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMonitorsInService: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      const serviceCatalogMonitors: ListResult<ServiceCatalogMonitor> =
-        await ModelAPI.getList<ServiceCatalogMonitor>({
-          modelType: ServiceCatalogMonitor,
-          query: {
-            serviceCatalogId: modelId,
-          },
-          select: {
-            monitorId: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {},
-        });
+  const fetchMonitorsInService: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        setIsLoading(true);
+        const serviceCatalogMonitors: ListResult<ServiceCatalogMonitor> =
+          await ModelAPI.getList<ServiceCatalogMonitor>({
+            modelType: ServiceCatalogMonitor,
+            query: {
+              serviceCatalogId: modelId,
+            },
+            select: {
+              monitorId: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {},
+          });
 
-      const ids: ObjectID[] = serviceCatalogMonitors.data.map(
-        (serviceCatalogMonitor: ServiceCatalogMonitor) => {
-          return serviceCatalogMonitor.monitorId!;
-        },
-      );
+        const ids: ObjectID[] = serviceCatalogMonitors.data.map(
+          (serviceCatalogMonitor: ServiceCatalogMonitor) => {
+            return serviceCatalogMonitor.monitorId!;
+          },
+        );
 
-      setMonitorIds(ids);
-      setIsLoading(false);
-    } catch (err) {
-      setIsLoading(false);
-      setError(API.getFriendlyMessage(err));
-    }
-  };
+        setMonitorIds(ids);
+        setIsLoading(false);
+      } catch (err) {
+        setIsLoading(false);
+        setError(API.getFriendlyMessage(err));
+      }
+    };
 
   useEffect(() => {
     fetchMonitorsInService().catch((err: Error) => {

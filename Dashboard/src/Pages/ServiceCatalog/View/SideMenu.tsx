@@ -52,7 +52,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Operations">
+      <SideMenuSection title="Resources">
         <SideMenuItem
           link={{
             title: "Monitors",
@@ -64,6 +64,21 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.AltGlobe}
         />
 
+        <SideMenuItem
+          link={{
+            title: "Telemetry Services",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Cube}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Operations">
         <SideMenuItem
           link={{
             title: "Alerts",
@@ -84,19 +99,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Alert}
-        />
-
-        <SideMenuItem
-          link={{
-            title: "Telemetry Services",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES
-              ] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Cube}
         />
       </SideMenuSection>
 
@@ -133,7 +135,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Graph}
         />
-
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
