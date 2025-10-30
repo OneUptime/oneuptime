@@ -135,6 +135,13 @@ export default class GreenlockUtil {
   public static async orderCert(data: {
     domain: string;
     validateCname: (domain: string) => Promise<boolean>;
+    onCertificateIssued?: (info: {
+      certificate: string;
+      certificateKey: string;
+      issuedAt: Date;
+      expiresAt: Date;
+    }) => Promise<void>;
+    persistAcmeCertificate?: boolean;
   }): Promise<void> {
     try {
       logger.debug(
@@ -262,61 +269,81 @@ export default class GreenlockUtil {
       logger.debug(`Certificate expires at: ${expiresAt}`);
       logger.debug(`Certificate issued at: ${issuedAt}`);
 
-      // check if the certificate is already in the database.
-      const existingCertificate: AcmeCertificate | null =
-        await AcmeCertificateService.findOneBy({
-          query: {
-            domain: domain,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+      const certificateInfo: {
+        certificate: string;
+        certificateKey: string;
+        issuedAt: Date;
+        expiresAt: Date;
+      } = {
+        certificate: certificate.toString(),
+        certificateKey: certificateKey.toString(),
+        issuedAt,
+        expiresAt,
+      };
 
-      if (existingCertificate) {
-        logger.debug(`Updating certificate for domain: ${domain}`);
+      if (data.onCertificateIssued) {
+        await data.onCertificateIssued(certificateInfo);
+      }
 
-        // update the certificate
-        await AcmeCertificateService.updateBy({
-          query: {
-            domain: domain,
-          },
-          limit: 1,
-          skip: 0,
-          data: {
-            certificate: certificate.toString(),
-            certificateKey: certificateKey.toString(),
-            issuedAt: issuedAt,
-            expiresAt: expiresAt,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+      const shouldPersist: boolean = data.persistAcmeCertificate !== false;
 
-        logger.debug(`Certificate updated for domain: ${domain}`);
-      } else {
-        logger.debug(`Creating certificate for domain: ${domain}`);
-        // create the certificate
-        const acmeCertificate: AcmeCertificate = new AcmeCertificate();
+      if (shouldPersist) {
+        // check if the certificate is already in the database.
+        const existingCertificate: AcmeCertificate | null =
+          await AcmeCertificateService.findOneBy({
+            query: {
+              domain: domain,
+            },
+            select: {
+              _id: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
 
-        acmeCertificate.domain = domain;
-        acmeCertificate.certificate = certificate.toString();
-        acmeCertificate.certificateKey = certificateKey.toString();
-        acmeCertificate.issuedAt = issuedAt;
-        acmeCertificate.expiresAt = expiresAt;
+        if (existingCertificate) {
+          logger.debug(`Updating certificate for domain: ${domain}`);
 
-        await AcmeCertificateService.create({
-          data: acmeCertificate,
-          props: {
-            isRoot: true,
-          },
-        });
+          // update the certificate
+          await AcmeCertificateService.updateBy({
+            query: {
+              domain: domain,
+            },
+            limit: 1,
+            skip: 0,
+            data: {
+              certificate: certificateInfo.certificate,
+              certificateKey: certificateInfo.certificateKey,
+              issuedAt: issuedAt,
+              expiresAt: expiresAt,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
 
-        logger.debug(`Certificate created for domain: ${domain}`);
+          logger.debug(`Certificate updated for domain: ${domain}`);
+        } else {
+          logger.debug(`Creating certificate for domain: ${domain}`);
+          // create the certificate
+          const acmeCertificate: AcmeCertificate = new AcmeCertificate();
+
+          acmeCertificate.domain = domain;
+          acmeCertificate.certificate = certificateInfo.certificate;
+          acmeCertificate.certificateKey = certificateInfo.certificateKey;
+          acmeCertificate.issuedAt = issuedAt;
+          acmeCertificate.expiresAt = expiresAt;
+
+          await AcmeCertificateService.create({
+            data: acmeCertificate,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          logger.debug(`Certificate created for domain: ${domain}`);
+        }
       }
     } catch (e) {
       logger.error(`Error ordering certificate for domain: ${data.domain}`);

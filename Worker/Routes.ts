@@ -62,6 +62,7 @@ import "./Jobs/ServerMonitor/CheckOnlineStatus";
 
 // // Certs Routers
 import "./Jobs/StatusPageCerts/StatusPageCerts";
+import "./Jobs/OneuptimeCerts/OneuptimeCerts";
 
 // Status Page Announcements
 import "./Jobs/StatusPageOwners/SendAnnouncementCreatedNotification";

@@ -239,6 +239,9 @@ export const ClickhousePort: Port = new Port(
   process.env["CLICKHOUSE_PORT"] || "8123",
 );
 
+export const EnableSslProvisioningForOneuptime: boolean =
+  process.env["ENABLE_SSL_PROVIONING_FOR_ONEUPTIME"] === "true";
+
 export const ClickhouseUsername: string =
   process.env["CLICKHOUSE_USER"] || "default";
 

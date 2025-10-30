@@ -196,6 +196,8 @@ Usage:
 
 - name: LETS_ENCRYPT_ACCOUNT_KEY
   value: {{ $.Values.letsEncrypt.accountKey }}
+- name: ENABLE_SSL_PROVIONING_FOR_ONEUPTIME
+  value: {{ $.Values.enableSslProvisioningForOneuptime | quote }}
 
 - name: ENCRYPTION_SECRET
   {{- if $.Values.encryptionSecret }}
