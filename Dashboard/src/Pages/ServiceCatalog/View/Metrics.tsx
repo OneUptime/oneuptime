@@ -81,9 +81,7 @@ const ServiceCatalogMetrics: FunctionComponent<
   }
   return (
     <Fragment>
-      <MetricsTable
-        telemetryServiceIds={telemetryServiceIds}
-      />
+      <MetricsTable telemetryServiceIds={telemetryServiceIds} />
     </Fragment>
   );
 };

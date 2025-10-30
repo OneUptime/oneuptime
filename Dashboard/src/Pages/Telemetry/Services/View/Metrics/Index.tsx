@@ -71,11 +71,7 @@ const MetricsTablePage: FunctionComponent<
     return <ErrorMessage message="Telemetry Service not found." />;
   }
 
-  return (
-    <MetricsTable
-      telemetryServiceIds={[telemetryService.id!]}
-    />
-  );
+  return <MetricsTable telemetryServiceIds={[telemetryService.id!]} />;
 };
 
 export default MetricsTablePage;

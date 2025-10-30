@@ -13,6 +13,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import TelemetryServicesElement from "../TelemetryService/TelemetryServiceElements";
+import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 
 export interface ComponentProps {
   telemetryServiceIds?: Array<ObjectID> | undefined;
@@ -23,11 +24,6 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const telemetryServiceFilterIds: Array<ObjectID> =
     props.telemetryServiceIds || [];
-
-  const telemetryServiceIdForRoute: ObjectID | undefined =
-    telemetryServiceFilterIds.length === 1
-      ? telemetryServiceFilterIds[0]
-      : undefined;
 
   return (
     <Fragment>
@@ -50,36 +46,59 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
             "Metrics are the individual data points that make up a service. They are the building blocks of a service and represent the work done by a single service.",
         }}
         onViewPage={async (item: MetricType) => {
-          if (!telemetryServiceIdForRoute) {
-            const route: Route = RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TELEMETRY_METRIC_VIEW]!,
-            );
-
-            const currentUrl: URL = Navigation.getCurrentURL();
-
-            return new URL(
-              currentUrl.protocol,
-              currentUrl.hostname,
-              route,
-              `metricName=${item.name}`,
-            );
-          }
-
           const route: Route = RouteUtil.populateRouteParams(
-            RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_METRIC]!,
-            {
-              modelId: telemetryServiceIdForRoute,
-            },
+            RouteMap[PageMap.TELEMETRY_METRIC_VIEW]!,
           );
 
           const currentUrl: URL = Navigation.getCurrentURL();
-
-          return new URL(
+          const metricUrl: URL = new URL(
             currentUrl.protocol,
             currentUrl.hostname,
             route,
-            `metricName=${item.name}`,
           );
+
+          const metricAttributes: Record<string, string> = {};
+
+          if (telemetryServiceFilterIds.length === 1) {
+            const telemetryServiceId: ObjectID | undefined =
+              telemetryServiceFilterIds[0];
+
+            const serviceIdString: string | undefined =
+              telemetryServiceId?.toString();
+
+            if (serviceIdString) {
+              metricAttributes["oneuptime.service.id"] = serviceIdString;
+
+              const matchingService: TelemetryService | undefined = (
+                item.telemetryServices || []
+              ).find((service: TelemetryService) => {
+                return service._id?.toString() === serviceIdString;
+              });
+
+              if (matchingService?.name) {
+                metricAttributes["oneuptime.service.name"] =
+                  matchingService.name;
+              }
+            }
+          }
+
+          const metricQueriesPayload: Array<Record<string, unknown>> = [
+            {
+              metricName: item.name || "",
+              ...(Object.keys(metricAttributes).length > 0
+                ? { attributes: metricAttributes }
+                : {}),
+              aggregationType: MetricsAggregationType.Avg,
+            },
+          ];
+
+          metricUrl.addQueryParam(
+            "metricQueries",
+            JSON.stringify(metricQueriesPayload),
+            true,
+          );
+
+          return metricUrl;
         }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
