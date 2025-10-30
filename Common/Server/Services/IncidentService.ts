@@ -49,7 +49,7 @@ import Semaphore, {
 } from "../../Server/Infrastructure/Semaphore";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
-import { Gray500, Red500 } from "../../Types/BrandColors";
+import { Blue500, Gray500, Red500 } from "../../Types/BrandColors";
 import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
@@ -1297,58 +1297,107 @@ ${incident.remediationNotes || "No remediation notes provided."}
 
         const projectId: ObjectID = incident!.projectId!;
         const incidentNumber: number = incident!.incidentNumber!;
+        const incidentLabel: string = `Incident ${incidentNumber}`;
+        const incidentLink: URL = await this.getIncidentLinkInDashboard(
+          projectId,
+          incidentId,
+        );
 
-        let shouldAddIncidentFeed: boolean = false;
-        let feedInfoInMarkdown: string = `**[Incident ${incidentNumber}](${(await this.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) was updated.**`;
+        const updatedIncidentData: Partial<Model> =
+          onUpdate.updateBy.data || {};
 
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
 
-        if (onUpdate.updateBy.data.title) {
-          // add incident feed.
+        if (
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "postmortemNote",
+          )
+        ) {
+          const noteValue: string =
+            (updatedIncidentData.postmortemNote as string) || "";
+          const hasNoteContent: boolean = noteValue.trim().length > 0;
 
-          feedInfoInMarkdown += `\n\n**Title**: 
-${onUpdate.updateBy.data.title || "No title provided."}
-`;
-          shouldAddIncidentFeed = true;
+          const postmortemFeedMarkdown: string = hasNoteContent
+            ? `**📘 Postmortem Note updated for [${incidentLabel}](${incidentLink.toString()})**\n\n${noteValue}`
+            : `**📘 Postmortem Note cleared for [${incidentLabel}](${incidentLink.toString()})**\n\n_No postmortem note provided._`;
+
+          await IncidentFeedService.createIncidentFeedItem({
+            incidentId,
+            projectId,
+            incidentFeedEventType: IncidentFeedEventType.PostmortemNote,
+            displayColor: Blue500,
+            feedInfoInMarkdown: postmortemFeedMarkdown,
+            userId: createdByUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+            },
+          });
         }
 
-        if (onUpdate.updateBy.data.rootCause) {
-          if (onUpdate.updateBy.data.title) {
-            // add incident feed.
+        let shouldAddIncidentFeed: boolean = false;
+        let feedInfoInMarkdown: string = `**[${incidentLabel}](${incidentLink.toString()}) was updated.**`;
 
-            feedInfoInMarkdown += `\n\n**📄 Root Cause**: 
-${onUpdate.updateBy.data.rootCause || "No root cause provided."}
-  `;
-            shouldAddIncidentFeed = true;
-          }
-        }
-
-        if (onUpdate.updateBy.data.description) {
-          // add incident feed.
-
-          feedInfoInMarkdown += `\n\n**Incident Description**: 
-          ${onUpdate.updateBy.data.description || "No description provided."}
-          `;
-          shouldAddIncidentFeed = true;
-        }
-
-        if (onUpdate.updateBy.data.remediationNotes) {
-          // add incident feed.
-
-          feedInfoInMarkdown += `\n\n**🎯 Remediation Notes**: 
-${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
-        `;
+        if (
+          Object.prototype.hasOwnProperty.call(updatedIncidentData, "title")
+        ) {
+          const title: string =
+            (updatedIncidentData.title as string) || "No title provided.";
+          feedInfoInMarkdown += `\n\n**Title**: \n${title}\n`;
           shouldAddIncidentFeed = true;
         }
 
         if (
-          onUpdate.updateBy.data.labels &&
-          onUpdate.updateBy.data.labels.length > 0 &&
-          Array.isArray(onUpdate.updateBy.data.labels)
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "rootCause",
+          )
+        ) {
+          const rootCause: string =
+            (updatedIncidentData.rootCause as string) || "";
+          const rootCauseText: string = rootCause.trim().length
+            ? rootCause
+            : "Root cause removed.";
+          feedInfoInMarkdown += `\n\n**📄 Root Cause**: \n${rootCauseText}\n`;
+          shouldAddIncidentFeed = true;
+        }
+
+        if (
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "description",
+          )
+        ) {
+          const description: string =
+            (updatedIncidentData.description as string) ||
+            "No description provided.";
+          feedInfoInMarkdown += `\n\n**Incident Description**: \n${description}\n`;
+          shouldAddIncidentFeed = true;
+        }
+
+        if (
+          Object.prototype.hasOwnProperty.call(
+            updatedIncidentData,
+            "remediationNotes",
+          )
+        ) {
+          const remediationNotes: string =
+            (updatedIncidentData.remediationNotes as string) || "";
+          const remediationText: string = remediationNotes.trim().length
+            ? remediationNotes
+            : "Remediation notes removed.";
+          feedInfoInMarkdown += `\n\n**🎯 Remediation Notes**: \n${remediationText}\n`;
+          shouldAddIncidentFeed = true;
+        }
+
+        if (
+          updatedIncidentData.labels &&
+          (updatedIncidentData.labels as Array<Label>).length > 0 &&
+          Array.isArray(updatedIncidentData.labels)
         ) {
           const labelIds: Array<ObjectID> = (
-            onUpdate.updateBy.data.labels as any
+            updatedIncidentData.labels as any
           )
             .map((label: Label) => {
               if (label._id) {
@@ -1390,15 +1439,15 @@ ${labels
         }
 
         if (
-          onUpdate.updateBy.data.incidentSeverity &&
-          (onUpdate.updateBy.data.incidentSeverity as any)._id
+          updatedIncidentData.incidentSeverity &&
+          (updatedIncidentData.incidentSeverity as any)._id
         ) {
           const incidentSeverity: IncidentSeverity | null =
             await IncidentSeverityService.findOneBy({
               query: {
                 _id: new ObjectID(
                   (
-                    onUpdate.updateBy.data.incidentSeverity as any
+                    updatedIncidentData.incidentSeverity as any
                   )?._id.toString(),
                 ),
               },

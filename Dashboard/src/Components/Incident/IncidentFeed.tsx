@@ -138,6 +138,13 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     }
 
     if (
+      incidentFeed.incidentFeedEventType ===
+      IncidentFeedEventType.PostmortemNote
+    ) {
+      icon = IconProp.Book;
+    }
+
+    if (
       incidentFeed.incidentFeedEventType === IncidentFeedEventType.RootCause
     ) {
       icon = IconProp.Cube;
