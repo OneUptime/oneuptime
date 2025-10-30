@@ -2,6 +2,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -11,15 +12,23 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import TelemetryServicesElement from "../TelemetryService/TelemetryServiceElements";
 
 export interface ComponentProps {
-  telemetryServiceId?: ObjectID | undefined;
-  telemetryServiceName?: string | undefined;
+  telemetryServiceIds?: Array<ObjectID> | undefined;
 }
 
 const MetricsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const telemetryServiceFilterIds: Array<ObjectID> =
+    props.telemetryServiceIds || [];
+
+  const telemetryServiceIdForRoute: ObjectID | undefined =
+    telemetryServiceFilterIds.length === 1
+      ? telemetryServiceFilterIds[0]
+      : undefined;
+
   return (
     <Fragment>
       <ModelTable<MetricType>
@@ -41,7 +50,7 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
             "Metrics are the individual data points that make up a service. They are the building blocks of a service and represent the work done by a single service.",
         }}
         onViewPage={async (item: MetricType) => {
-          if (!props.telemetryServiceId || !props.telemetryServiceName) {
+          if (!telemetryServiceIdForRoute) {
             const route: Route = RouteUtil.populateRouteParams(
               RouteMap[PageMap.TELEMETRY_METRIC_VIEW]!,
             );
@@ -59,7 +68,7 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
           const route: Route = RouteUtil.populateRouteParams(
             RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_METRIC]!,
             {
-              modelId: props.telemetryServiceId,
+              modelId: telemetryServiceIdForRoute,
             },
           );
 
@@ -69,14 +78,22 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
             currentUrl.protocol,
             currentUrl.hostname,
             route,
-            `metricName=${item.name}&serviceName=${props.telemetryServiceName}`,
+            `metricName=${item.name}`,
           );
         }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
-          telemetryServices: props.telemetryServiceId
-            ? new Includes([props.telemetryServiceId])
-            : undefined,
+          telemetryServices:
+            telemetryServiceFilterIds.length > 0
+              ? new Includes(telemetryServiceFilterIds)
+              : undefined,
+        }}
+        selectMoreFields={{
+          telemetryServices: {
+            _id: true,
+            name: true,
+            serviceColor: true,
+          },
         }}
         showViewIdButton={false}
         noItemsMessage={"No metrics found for this service."}
@@ -90,6 +107,23 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
             title: "Name",
             type: FieldType.Text,
           },
+          {
+            field: {
+              telemetryServices: {
+                name: true,
+              },
+            },
+            title: "Telemetry Service",
+            type: FieldType.EntityArray,
+            filterEntityType: TelemetryService,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
         ]}
         columns={[
           {
@@ -98,6 +132,24 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
             },
             title: "Name",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              telemetryServices: {
+                name: true,
+                _id: true,
+                serviceColor: true,
+              },
+            },
+            title: "Telemetry Services",
+            type: FieldType.Element,
+            getElement: (item: MetricType): ReactElement => {
+              return (
+                <TelemetryServicesElement
+                  telemetryServices={item.telemetryServices || []}
+                />
+              );
+            },
           },
         ]}
       />

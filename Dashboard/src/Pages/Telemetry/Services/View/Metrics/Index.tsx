@@ -73,8 +73,7 @@ const MetricsTablePage: FunctionComponent<
 
   return (
     <MetricsTable
-      telemetryServiceId={telemetryService.id!}
-      telemetryServiceName={telemetryService.name!}
+      telemetryServiceIds={[telemetryService.id!]}
     />
   );
 };
