@@ -2047,33 +2047,6 @@
         }
       },
       "additionalProperties": true
-    },
-    "cert-manager": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean"
-        },
-        "installCRDs": {
-          "type": "boolean"
-        }
-      },
-      "additionalProperties": true
-    },
-    "certManagerLetsEncrypt": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean"
-        },
-        "email": {
-          "type": "string"
-        },
-        "server": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
     }
   },
   "additionalProperties": false
