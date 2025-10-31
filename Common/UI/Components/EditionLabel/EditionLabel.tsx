@@ -34,6 +34,15 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
   const ctaLabel: string = IS_ENTERPRISE ? "View benefits" : "Learn more";
 
+  const communityFeatures: Array<string> = useMemo(() => {
+    return [
+      "Full OneUptime platform with incident response, status pages, and workflow automation.",
+      "Community support, documentation, and tutorials to help teams get started quickly.",
+      "Regular updates, bug fixes, and open-source extensibility.",
+      "Integrations with popular DevOps tools through community-maintained connectors.",
+    ];
+  }, []);
+
   const enterpriseFeatures: Array<string> = useMemo(() => {
     return [
       "Enterprise (hardened and secure) Docker images.",
@@ -116,15 +125,14 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                       Community Edition
                     </h3>
                     <ul className="mt-3 space-y-2 text-sm text-gray-600">
-                      {enterpriseFeatures.map(
+                      {communityFeatures.map(
                         (feature: string, index: number) => {
                           return (
                             <li key={index} className="flex items-start gap-2">
                               <Icon
-                                icon={IconProp.Close}
-                                type={IconType.Danger}
+                                icon={IconProp.Check}
                                 size={SizeProp.Small}
-                                className="mt-0.5"
+                                className="mt-0.5 text-gray-400"
                               />
                               <span className="leading-snug">{feature}</span>
                             </li>
