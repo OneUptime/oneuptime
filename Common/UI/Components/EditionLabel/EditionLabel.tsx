@@ -1,6 +1,6 @@
 import Modal, { ModalWidth } from "../Modal/Modal";
 import Icon, { IconType, SizeProp } from "../Icon/Icon";
-import IconProp from "../../Types/Icon/IconProp";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement, useMemo, useState } from "react";
 import { BILLING_ENABLED, IS_ENTERPRISE } from "../../Config";
 
