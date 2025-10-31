@@ -207,6 +207,7 @@ image:
   repository: oneuptime
   pullPolicy: Always
   tag: release
+  type: community-edition
   restartPolicy: Always
 # imagePullSecrets:
 #   - name: MyCustomSecretNameWithDockerCredentials

@@ -58,7 +58,7 @@ spec:
         {{- toYaml $.Values.nodeSelector | nindent 8 }}
       {{- end }}
       containers:
-        - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "probe" $.Values.image.tag }}
+        - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "probe") }}
           name: {{ printf "%s-%s" $.Release.Name (printf "probe-%s" $key)  }}
           {{- if $val.containerSecurityContext }}
           securityContext:

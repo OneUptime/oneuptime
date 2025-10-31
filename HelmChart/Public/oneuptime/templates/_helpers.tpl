@@ -11,6 +11,24 @@ Usage:
     {{- end }}
 {{- end -}}
 
+{{- define "oneuptime.image.tag" -}}
+  {{- $values := .Values -}}
+  {{- $tag := default "release" $values.image.tag -}}
+  {{- $imageType := default "community-edition" $values.image.type -}}
+  {{- if and (eq $imageType "enterprise-edition") (not (contains "enterprise" $tag)) }}
+    {{- printf "enterprise-%s" $tag -}}
+  {{- else -}}
+    {{- $tag -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "oneuptime.image" -}}
+  {{- $values := .Values -}}
+  {{- $service := .ServiceName -}}
+  {{- $imageName := default $service .ImageName -}}
+  {{- printf "%s/%s/%s:%s" $values.image.registry $values.image.repository $imageName (include "oneuptime.image.tag" (dict "Values" $values)) -}}
+{{- end -}}
+
 {{- define "oneuptime.env.common" }}
 
 - name: MICROSOFT_TEAMS_APP_CLIENT_ID
@@ -631,9 +649,9 @@ spec:
       {{- end }}
       containers:
         {{- if $.ImageName }}
-        - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository $.ImageName .Values.image.tag }}
+        - image: {{ include "oneuptime.image" (dict "Values" .Values "ServiceName" $.ServiceName "ImageName" $.ImageName) }}
         {{- else }}
-        - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository $.ServiceName .Values.image.tag }}
+        - image: {{ include "oneuptime.image" (dict "Values" .Values "ServiceName" $.ServiceName) }}
         {{- end}}
           name: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
           {{- if $.ContainerSecurityContext }}

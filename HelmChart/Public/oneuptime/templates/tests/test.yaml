@@ -8,7 +8,7 @@ spec:
   containers:
     - name: oneptime-test
       imagePullPolicy: {{ $.Values.image.pullPolicy }}
-      image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "test" .Values.image.tag }}
+      image: {{ include "oneuptime.image" (dict "Values" .Values "ServiceName" "test") }}
       command: ['/bin/sh']
       args: ["-c", 
       "Scripts/status-check.sh {{ $.Values.httpProtocol }}://{{ $.Values.host }}",

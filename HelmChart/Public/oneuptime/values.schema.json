@@ -537,6 +537,10 @@
         "tag": {
           "type": "string"
         },
+        "type": {
+          "type": "string",
+          "enum": ["community-edition", "enterprise-edition"]
+        },
         "restartPolicy": {
           "type": "string"
         }

@@ -25,7 +25,7 @@ spec:
           
           containers:
           - name: e2e-cron
-            image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "e2e" $.Values.image.tag }}
+            image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "e2e") }}
             imagePullPolicy: {{ $.Values.image.pullPolicy }}
             env:
               {{- include "oneuptime.env.common" . | nindent 14 }}

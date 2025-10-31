@@ -63,7 +63,7 @@ spec:
         {{- toYaml $.Values.nodeSelector | nindent 8 }}
       {{- end }}
       containers:
-        - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "open-telemetry-ingest" $.Values.image.tag }}
+        - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "open-telemetry-ingest") }}
           name: {{ printf "%s-%s" $.Release.Name "open-telemetry-ingest"  }}
           {{- if $.Values.startupProbe.enabled }}
           # Startup probe
