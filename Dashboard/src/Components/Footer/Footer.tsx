@@ -7,6 +7,7 @@ import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import Footer from "Common/UI/Components/Footer/Footer";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
 import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import React from "react";
 
@@ -66,6 +67,9 @@ const DashboardFooter: () => JSX.Element = () => {
 
   return (
     <>
+      <div className="bg-white px-8 pb-4 flex justify-center">
+        <EditionLabel />
+      </div>
       <Footer
         className="bg-white px-8"
         copyright="HackerBay, Inc."

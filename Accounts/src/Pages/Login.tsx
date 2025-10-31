@@ -12,6 +12,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Link from "Common/UI/Components/Link/Link";
 import { DASHBOARD_URL } from "Common/UI/Config";
 import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
+import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
 import UiAnalytics from "Common/UI/Utils/Analytics";
 import LoginUtil from "Common/UI/Utils/Login";
 import UserTotpAuth from "Common/Models/DatabaseModels/UserTotpAuth";
@@ -192,6 +193,9 @@ const LoginPage: () => JSX.Element = () => {
           src={OneUptimeLogo}
           alt="OneUptime"
         />
+        <div className="mt-4 flex justify-center">
+          <EditionLabel />
+        </div>
         {!showTwoFactorAuth && (
           <>
             <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">

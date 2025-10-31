@@ -14,6 +14,7 @@ x-common-variables: &common-variables
 
     NODE_ENV: ${ENVIRONMENT}
     BILLING_ENABLED: ${BILLING_ENABLED}
+    IS_ENTERPRISE: ${IS_ENTERPRISE}
     BILLING_PUBLIC_KEY: ${BILLING_PUBLIC_KEY}
     SUBSCRIPTION_PLAN_BASIC: ${SUBSCRIPTION_PLAN_BASIC}
     SUBSCRIPTION_PLAN_GROWTH: ${SUBSCRIPTION_PLAN_GROWTH}
@@ -444,6 +445,7 @@ services:
             PORT: ${ISOLATED_VM_PORT}
             ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_ISOLATED_VM}
+            IS_ENTERPRISE: ${IS_ENTERPRISE}
         logging:
             driver: "local"
             options:
@@ -533,6 +535,7 @@ services:
             DISABLE_COPILOT: ${DISABLE_COPILOT}
             OPENAI_API_KEY: ${COPILOT_OPENAI_API_KEY}
             LOG_LEVEL: ${LOG_LEVEL}
+            IS_ENTERPRISE: ${IS_ENTERPRISE}
         logging:
             driver: "local"
             options:
