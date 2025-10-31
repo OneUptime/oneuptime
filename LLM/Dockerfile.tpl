@@ -1,6 +1,9 @@
 # Use an official Python runtime as a parent image
 FROM huggingface/transformers-pytorch-gpu:latest
 
+ARG IS_ENTERPRISE=false
+ENV IS_ENTERPRISE=${IS_ENTERPRISE}
+
 # Set the working directory in the container to /app
 WORKDIR /app
 

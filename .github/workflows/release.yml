@@ -205,13 +205,24 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{ steps.version.outputs.version }}"
             docker buildx build \
               --platform linux/amd64,linux/arm64 \
               --file ./MCP/Dockerfile.tpl \
-              --tag oneuptime/mcp-server:${{ steps.version.outputs.version }} \
-              --tag ghcr.io/oneuptime/mcp-server:${{ steps.version.outputs.version }} \
+              --tag oneuptime/mcp-server:${VERSION} \
+              --tag ghcr.io/oneuptime/mcp-server:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{ steps.version.outputs.version }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              --push .
+            docker buildx build \
+              --platform linux/amd64,linux/arm64 \
+              --file ./MCP/Dockerfile.tpl \
+              --tag oneuptime/mcp-server:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/mcp-server:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               --push .
             echo "✅ Pushed Docker images to Docker Hub and GitHub Container Registry"
 
@@ -282,14 +293,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./Nginx/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/nginx:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/nginx:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/nginx:${VERSION} \
+              --tag ghcr.io/oneuptime/nginx:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./Nginx/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/nginx:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/nginx:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
   e2e-docker-image-deploy:
@@ -352,14 +375,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./E2E/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/e2e:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/e2e:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/e2e:${VERSION} \
+              --tag ghcr.io/oneuptime/e2e:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./E2E/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/e2e:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/e2e:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
   isolated-vm-docker-image-deploy:
@@ -422,14 +457,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./IsolatedVM/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/isolated-vm:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/isolated-vm:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/isolated-vm:${VERSION} \
+              --tag ghcr.io/oneuptime/isolated-vm:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./IsolatedVM/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/isolated-vm:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/isolated-vm:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
   home-docker-image-deploy:
@@ -492,14 +539,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./Home/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/home:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/home:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/home:${VERSION} \
+              --tag ghcr.io/oneuptime/home:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./Home/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/home:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/home:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
           
             
@@ -565,14 +624,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./TestServer/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/test-server:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/test-server:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/test-server:${VERSION} \
+              --tag ghcr.io/oneuptime/test-server:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./TestServer/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/test-server:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/test-server:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
   otel-collector-docker-image-deploy:
@@ -635,14 +706,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./OTelCollector/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/otel-collector:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/otel-collector:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/otel-collector:${VERSION} \
+              --tag ghcr.io/oneuptime/otel-collector:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./OTelCollector/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/otel-collector:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/otel-collector:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
 
@@ -707,14 +790,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./StatusPage/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/status-page:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/status-page:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/status-page:${VERSION} \
+              --tag ghcr.io/oneuptime/status-page:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./StatusPage/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/status-page:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/status-page:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
   test-docker-image-deploy:
@@ -777,14 +872,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./Tests/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/test:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/test:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/test:${VERSION} \
+              --tag ghcr.io/oneuptime/test:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./Tests/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/test:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/test:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
   probe-ingest-docker-image-deploy:
@@ -847,14 +954,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./ProbeIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/probe-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/probe-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/probe-ingest:${VERSION} \
+              --tag ghcr.io/oneuptime/probe-ingest:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./ProbeIngest/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/probe-ingest:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/probe-ingest:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
   
@@ -918,14 +1037,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./ServerMonitorIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/server-monitor-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/server-monitor-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/server-monitor-ingest:${VERSION} \
+              --tag ghcr.io/oneuptime/server-monitor-ingest:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./ServerMonitorIngest/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/server-monitor-ingest:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/server-monitor-ingest:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
           
           
@@ -990,14 +1121,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./OpenTelemetryIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/open-telemetry-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/open-telemetry-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/open-telemetry-ingest:${VERSION} \
+              --tag ghcr.io/oneuptime/open-telemetry-ingest:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./OpenTelemetryIngest/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/open-telemetry-ingest:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/open-telemetry-ingest:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
 
@@ -1061,14 +1204,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./IncomingRequestIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/incoming-request-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/incoming-request-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/incoming-request-ingest:${VERSION} \
+              --tag ghcr.io/oneuptime/incoming-request-ingest:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./IncomingRequestIngest/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/incoming-request-ingest:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/incoming-request-ingest:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
   fluent-ingest-docker-image-deploy:
@@ -1131,14 +1286,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./FluentIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/fluent-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/fluent-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/fluent-ingest:${VERSION} \
+              --tag ghcr.io/oneuptime/fluent-ingest:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./FluentIngest/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/fluent-ingest:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/fluent-ingest:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
   probe-docker-image-deploy:
@@ -1201,14 +1368,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./Probe/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/probe:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/probe:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/probe:${VERSION} \
+              --tag ghcr.io/oneuptime/probe:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./Probe/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/probe:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/probe:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
   admin-dashboard-docker-image-deploy:
@@ -1271,14 +1450,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./AdminDashboard/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/admin-dashboard:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/admin-dashboard:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/admin-dashboard:${VERSION} \
+              --tag ghcr.io/oneuptime/admin-dashboard:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./AdminDashboard/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/admin-dashboard:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/admin-dashboard:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
 
@@ -1342,14 +1533,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./Dashboard/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/dashboard:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/dashboard:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/dashboard:${VERSION} \
+              --tag ghcr.io/oneuptime/dashboard:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./Dashboard/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/dashboard:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/dashboard:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
   app-docker-image-deploy:
@@ -1412,14 +1615,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./App/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/app:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/app:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/app:${VERSION} \
+              --tag ghcr.io/oneuptime/app:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./App/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/app:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/app:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
 
@@ -1483,14 +1698,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./Copilot/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/copilot:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/copilot:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/copilot:${VERSION} \
+              --tag ghcr.io/oneuptime/copilot:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./Copilot/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/copilot:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/copilot:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
   accounts-docker-image-deploy:
@@ -1553,14 +1780,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./Accounts/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/accounts:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/accounts:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/accounts:${VERSION} \
+              --tag ghcr.io/oneuptime/accounts:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./Accounts/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/accounts:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/accounts:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
 
@@ -1667,14 +1906,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./LLM/Dockerfile \
               --platform linux/amd64 \
               --push \
-              --tag oneuptime/llm:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/llm:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/llm:${VERSION} \
+              --tag ghcr.io/oneuptime/llm:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              ./LLM
+            docker buildx build \
+              --file ./LLM/Dockerfile \
+              --platform linux/amd64 \
+              --push \
+              --tag oneuptime/llm:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/llm:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               ./LLM
         
   docs-docker-image-deploy: 
@@ -1739,14 +1990,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./Docs/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/docs:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/docs:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/docs:${VERSION} \
+              --tag ghcr.io/oneuptime/docs:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./Docs/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/docs:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/docs:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
         
   
@@ -1814,14 +2077,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./Worker/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/worker:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/worker:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/worker:${VERSION} \
+              --tag ghcr.io/oneuptime/worker:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./Worker/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/worker:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/worker:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
         
   
@@ -1889,14 +2164,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./Workflow/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/workflow:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/workflow:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/workflow:${VERSION} \
+              --tag ghcr.io/oneuptime/workflow:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./Workflow/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/workflow:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/workflow:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
             
   
@@ -2024,14 +2311,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --file ./APIReference/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/api-reference:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-              --tag ghcr.io/oneuptime/api-reference:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --tag oneuptime/api-reference:${VERSION} \
+              --tag ghcr.io/oneuptime/api-reference:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=false \
+              .
+            docker buildx build \
+              --file ./APIReference/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/api-reference:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/api-reference:enterprise-${VERSION} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${VERSION} \
+              --build-arg IS_ENTERPRISE=true \
               .
 
   push-release-tags:
@@ -2130,6 +2429,20 @@ jobs:
           docker buildx imagetools create \
             --tag ghcr.io/oneuptime/${{ matrix.image }}:release \
             ghcr.io/oneuptime/${{ matrix.image }}:${VERSION}
+
+      - name: Create Docker Hub enterprise release tag from version
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
+          docker buildx imagetools create \
+            --tag oneuptime/${{ matrix.image }}:enterprise-release \
+            ghcr.io/oneuptime/${{ matrix.image }}:enterprise-${VERSION}
+
+      - name: Create GHCR enterprise release tag from version
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
+          docker buildx imagetools create \
+            --tag ghcr.io/oneuptime/${{ matrix.image }}:enterprise-release \
+            ghcr.io/oneuptime/${{ matrix.image }}:enterprise-${VERSION}
             
   
   

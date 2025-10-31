@@ -1,5 +1,8 @@
 FROM cr.fluentbit.io/fluent/fluent-bit
 
+ARG IS_ENTERPRISE=false
+ENV IS_ENTERPRISE=${IS_ENTERPRISE}
+
 # This container will only run in dev env, so this is ok.
 USER root
 

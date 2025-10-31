@@ -13,9 +13,11 @@ RUN npm config set fetch-retry-maxtimeout 600000
 
 ARG GIT_SHA
 ARG APP_VERSION
+ARG IS_ENTERPRISE=false
 
 ENV GIT_SHA=${GIT_SHA}
 ENV APP_VERSION=${APP_VERSION}
+ENV IS_ENTERPRISE=${IS_ENTERPRISE}
 ENV NODE_OPTIONS="--use-openssl-ca"
 
 ## Add Intermediate Certs 

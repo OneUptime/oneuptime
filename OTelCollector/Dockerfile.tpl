@@ -4,6 +4,9 @@ FROM otel/opentelemetry-collector-contrib:0.118.0
 
 FROM public.ecr.aws/ubuntu/ubuntu:25.04
 
+ARG IS_ENTERPRISE=false
+ENV IS_ENTERPRISE=${IS_ENTERPRISE}
+
 ENV COLLECTOR_VERSION=0.104.0
 
 # Get the architecture
