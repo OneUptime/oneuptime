@@ -1,16 +1,12 @@
-import Modal from "../Modal/Modal";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useState,
-} from "react";
+import Modal, { ModalWidth } from "../Modal/Modal";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import { BILLING_ENABLED, IS_ENTERPRISE } from "../../Config";
 
 export interface ComponentProps {
   className?: string | undefined;
 }
 
-const ENTERPRISE_URL: string = "https://oneuptime.com/enterprise";
+const ENTERPRISE_URL: string = "https://oneuptime.com/enterprise/demo";
 
 const EditionLabel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -24,6 +20,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const editionName: string = IS_ENTERPRISE
     ? "Enterprise Edition"
     : "Community Edition";
+
+  const indicatorColor: string = IS_ENTERPRISE
+    ? "bg-emerald-500"
+    : "bg-indigo-400";
+
+  const ctaLabel: string = IS_ENTERPRISE ? "View benefits" : "Learn more";
 
   const openDialog: () => void = () => {
     setIsDialogOpen(true);
@@ -46,11 +48,18 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       <button
         type="button"
         onClick={openDialog}
-        className={`inline-flex items-center justify-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-700 transition hover:bg-indigo-100 focus:outline-none focus-visible:ring focus-visible:ring-indigo-300 ${
+        className={`group inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-white px-3 py-1 text-xs font-medium text-indigo-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
           props.className ? props.className : ""
         }`}
+        aria-label={`${editionName} details`}
       >
-        {editionName}
+        <span
+          className={`h-2 w-2 rounded-full transition group-hover:scale-110 ${indicatorColor}`}
+        ></span>
+        <span className="tracking-wide">{editionName}</span>
+        <span className="text-[11px] text-indigo-500 group-hover:text-indigo-600">
+          {ctaLabel}
+        </span>
       </button>
 
       {isDialogOpen && (
@@ -60,6 +69,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           closeButtonText="Close"
           onClose={closeDialog}
           onSubmit={handlePrimaryAction}
+          modalWidth={ModalWidth.Large}
         >
           <div className="space-y-3 text-sm text-gray-600">
             {IS_ENTERPRISE ? (
@@ -77,15 +87,43 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
             ) : (
               <>
                 <p>
-                  You are running the Community Edition of OneUptime. Upgrade to
-                  Enterprise to unlock advanced automation, security controls,
-                  and priority support.
+                  You are running the Community Edition of OneUptime. Here is a
+                  quick comparison to help you decide if Enterprise is the right
+                  fit for your team.
                 </p>
-                <ul className="list-disc space-y-1 pl-5">
-                  <li>Unlimited monitors, workflows, and integrations.</li>
-                  <li>Role-based access controls and audit trails.</li>
-                  <li>24/7 priority support with guaranteed SLAs.</li>
-                </ul>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      Community Edition
+                    </h3>
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-gray-600">
+                      <li>Core monitoring, incident response, and reliability workflows.</li>
+                      <li>Self-managed upgrades and configuration.</li>
+                      <li>Community-driven support through docs and forums.</li>
+                    </ul>
+                  </div>
+                  <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
+                    <h3 className="text-sm font-semibold text-indigo-900">
+                      Enterprise Edition
+                    </h3>
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-indigo-900">
+                      <li>Enterprise (hardened and secure) Docker images.</li>
+                      <li>Dedicated enterprise support phone number available 24/7/365.</li>
+                      <li>Priority chat and email support.</li>
+                      <li>
+                        Dedicated engineer who can build custom features to integrate OneUptime with
+                        your ecosystem.
+                      </li>
+                      <li>Compliance reports (ISO, SOC, GDPR, HIPAA).</li>
+                      <li>Legal indemnification.</li>
+                      <li>Audit logs.</li>
+                    </ul>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Ready to unlock enterprise capabilities? Click “Talk to Sales” to start the
+                  conversation.
+                </p>
               </>
             )}
           </div>

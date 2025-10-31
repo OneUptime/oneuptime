@@ -67,13 +67,13 @@ const DashboardFooter: () => JSX.Element = () => {
 
   return (
     <>
-      <div className="bg-white px-8 pb-4 flex justify-center">
-        <EditionLabel />
-      </div>
       <Footer
         className="bg-white px-8"
         copyright="HackerBay, Inc."
         links={[
+          {
+            content: <EditionLabel />, 
+          },
           {
             title: "Help and Support",
             to: URL.fromString("https://oneuptime.com/support"),
