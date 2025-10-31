@@ -72,7 +72,7 @@ const DashboardFooter: () => JSX.Element = () => {
         copyright="HackerBay, Inc."
         links={[
           {
-            content: <EditionLabel />, 
+            content: <EditionLabel />,
           },
           {
             title: "Help and Support",

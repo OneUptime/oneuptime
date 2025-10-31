@@ -1,7 +1,12 @@
 import Modal, { ModalWidth } from "../Modal/Modal";
 import Icon, { IconType, SizeProp } from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
-import React, { FunctionComponent, ReactElement, useMemo, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+  useState,
+} from "react";
 import { BILLING_ENABLED, IS_ENTERPRISE } from "../../Config";
 
 export interface ComponentProps {
@@ -111,22 +116,25 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                       Community Edition
                     </h3>
                     <ul className="mt-3 space-y-2 text-sm text-gray-600">
-                      {enterpriseFeatures.map((feature: string, index: number) => {
-                        return (
-                          <li key={index} className="flex items-start gap-2">
-                            <Icon
-                              icon={IconProp.Close}
-                              type={IconType.Danger}
-                              size={SizeProp.Small}
-                              className="mt-0.5"
-                            />
-                            <span className="leading-snug">{feature}</span>
-                          </li>
-                        );
-                      })}
+                      {enterpriseFeatures.map(
+                        (feature: string, index: number) => {
+                          return (
+                            <li key={index} className="flex items-start gap-2">
+                              <Icon
+                                icon={IconProp.Close}
+                                type={IconType.Danger}
+                                size={SizeProp.Small}
+                                className="mt-0.5"
+                              />
+                              <span className="leading-snug">{feature}</span>
+                            </li>
+                          );
+                        },
+                      )}
                     </ul>
                     <p className="mt-3 text-xs text-gray-500">
-                      Best for small teams experimenting with reliability workflows.
+                      Best for small teams experimenting with reliability
+                      workflows.
                     </p>
                   </div>
                   <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
@@ -134,29 +142,32 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                       Enterprise Edition
                     </h3>
                     <ul className="mt-3 space-y-2 text-sm text-indigo-900">
-                      {enterpriseFeatures.map((feature: string, index: number) => {
-                        return (
-                          <li key={index} className="flex items-start gap-2">
-                            <Icon
-                              icon={IconProp.Check}
-                              type={IconType.Success}
-                              size={SizeProp.Small}
-                              className="mt-0.5"
-                            />
-                            <span className="leading-snug">{feature}</span>
-                          </li>
-                        );
-                      })}
+                      {enterpriseFeatures.map(
+                        (feature: string, index: number) => {
+                          return (
+                            <li key={index} className="flex items-start gap-2">
+                              <Icon
+                                icon={IconProp.Check}
+                                type={IconType.Success}
+                                size={SizeProp.Small}
+                                className="mt-0.5"
+                              />
+                              <span className="leading-snug">{feature}</span>
+                            </li>
+                          );
+                        },
+                      )}
                     </ul>
                     <p className="mt-3 text-xs text-indigo-700">
-                      Everything in Community plus white-glove onboarding, enterprise SLAs, and a
-                      partner dedicated to your reliability goals.
+                      Everything in Community plus white-glove onboarding,
+                      enterprise SLAs, and a partner dedicated to your
+                      reliability goals.
                     </p>
                   </div>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Ready to unlock enterprise capabilities? Click “Talk to Sales” to start the
-                  conversation.
+                  Ready to unlock enterprise capabilities? Click “Talk to Sales”
+                  to start the conversation.
                 </p>
               </>
             )}
