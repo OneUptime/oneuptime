@@ -1,5 +1,7 @@
 import Modal, { ModalWidth } from "../Modal/Modal";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import Icon, { IconType, SizeProp } from "../Icon/Icon";
+import IconProp from "../../Types/Icon/IconProp";
+import React, { FunctionComponent, ReactElement, useMemo, useState } from "react";
 import { BILLING_ENABLED, IS_ENTERPRISE } from "../../Config";
 
 export interface ComponentProps {
@@ -26,6 +28,18 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     : "bg-indigo-400";
 
   const ctaLabel: string = IS_ENTERPRISE ? "View benefits" : "Learn more";
+
+  const enterpriseFeatures: Array<string> = useMemo(() => {
+    return [
+      "Enterprise (hardened and secure) Docker images.",
+      "Dedicated enterprise support phone number available 24/7/365.",
+      "Priority chat and email support.",
+      "Dedicated engineer who can build custom features to integrate OneUptime with your ecosystem.",
+      "Compliance reports (ISO, SOC, GDPR, HIPAA).",
+      "Legal indemnification.",
+      "Audit logs.",
+    ];
+  }, []);
 
   const openDialog: () => void = () => {
     setIsDialogOpen(true);
@@ -96,28 +110,48 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                     <h3 className="text-sm font-semibold text-gray-900">
                       Community Edition
                     </h3>
-                    <ul className="mt-2 list-disc space-y-1 pl-5 text-gray-600">
-                      <li>Core monitoring, incident response, and reliability workflows.</li>
-                      <li>Self-managed upgrades and configuration.</li>
-                      <li>Community-driven support through docs and forums.</li>
+                    <ul className="mt-3 space-y-2 text-sm text-gray-600">
+                      {enterpriseFeatures.map((feature: string, index: number) => {
+                        return (
+                          <li key={index} className="flex items-start gap-2">
+                            <Icon
+                              icon={IconProp.Close}
+                              type={IconType.Danger}
+                              size={SizeProp.Small}
+                              className="mt-0.5"
+                            />
+                            <span className="leading-snug">{feature}</span>
+                          </li>
+                        );
+                      })}
                     </ul>
+                    <p className="mt-3 text-xs text-gray-500">
+                      Best for small teams experimenting with reliability workflows.
+                    </p>
                   </div>
                   <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
                     <h3 className="text-sm font-semibold text-indigo-900">
                       Enterprise Edition
                     </h3>
-                    <ul className="mt-2 list-disc space-y-1 pl-5 text-indigo-900">
-                      <li>Enterprise (hardened and secure) Docker images.</li>
-                      <li>Dedicated enterprise support phone number available 24/7/365.</li>
-                      <li>Priority chat and email support.</li>
-                      <li>
-                        Dedicated engineer who can build custom features to integrate OneUptime with
-                        your ecosystem.
-                      </li>
-                      <li>Compliance reports (ISO, SOC, GDPR, HIPAA).</li>
-                      <li>Legal indemnification.</li>
-                      <li>Audit logs.</li>
+                    <ul className="mt-3 space-y-2 text-sm text-indigo-900">
+                      {enterpriseFeatures.map((feature: string, index: number) => {
+                        return (
+                          <li key={index} className="flex items-start gap-2">
+                            <Icon
+                              icon={IconProp.Check}
+                              type={IconType.Success}
+                              size={SizeProp.Small}
+                              className="mt-0.5"
+                            />
+                            <span className="leading-snug">{feature}</span>
+                          </li>
+                        );
+                      })}
                     </ul>
+                    <p className="mt-3 text-xs text-indigo-700">
+                      Everything in Community plus white-glove onboarding, enterprise SLAs, and a
+                      partner dedicated to your reliability goals.
+                    </p>
                   </div>
                 </div>
                 <p className="text-xs text-gray-500">
