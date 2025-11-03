@@ -2,10 +2,10 @@ import Navigation from "../../Utils/Navigation";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 export interface ComponentProps {
-  children: ReactElement | Array<ReactElement> | string;
+  children: ReactNode;
   className?: undefined | string;
   to?: Route | URL | null | undefined;
   onClick?: undefined | (() => void);
@@ -22,9 +22,12 @@ export interface ComponentProps {
 const Link: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  let children: ReactElement | Array<ReactElement>;
+  let children: ReactNode;
 
-  if (typeof props.children === "string") {
+  if (
+    typeof props.children === "string" ||
+    typeof props.children === "number"
+  ) {
     children = <span>{props.children}</span>;
   } else {
     children = props.children;

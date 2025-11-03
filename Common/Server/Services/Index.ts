@@ -71,6 +71,7 @@ import ProjectService from "./ProjectService";
 import ProjectSmtpConfigService from "./ProjectSmtpConfigService";
 import ProjectSsoService from "./ProjectSsoService";
 import PromoCodeService from "./PromoCodeService";
+import EnterpriseLicenseService from "./EnterpriseLicenseService";
 import ResellerPlanService from "./ResellerPlanService";
 import ResellerService from "./ResellerService";
 import ScheduledMaintenanceCustomFieldService from "./ScheduledMaintenanceCustomFieldService";
@@ -173,6 +174,7 @@ const services: Array<BaseService> = [
   OnCallDutyPolicyTimeLogService,
   AcmeCertificateService,
   PromoCodeService,
+  EnterpriseLicenseService,
 
   ResellerService,
   ResellerPlanService,

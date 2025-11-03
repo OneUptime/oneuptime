@@ -1,13 +1,14 @@
 import UILink from "../Link/Link";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 export interface FooterLink {
   onClick?: (() => void) | undefined;
   openInNewTab?: boolean | undefined;
   to?: Route | URL | undefined;
-  title: string;
+  title?: ReactNode;
+  content?: ReactNode;
 }
 
 export interface ComponentProps {
@@ -32,6 +33,21 @@ const Footer: FunctionComponent<ComponentProps> = (
             {props.links &&
               props.links.length > 0 &&
               props.links.map((link: FooterLink, i: number) => {
+                if (link.content) {
+                  return (
+                    <div
+                      key={i}
+                      className="text-gray-400 hover:text-gray-500 text-center md:text-left"
+                    >
+                      {link.content}
+                    </div>
+                  );
+                }
+
+                if (!link.title) {
+                  return <React.Fragment key={i}></React.Fragment>;
+                }
+
                 return (
                   <UILink
                     key={i}

@@ -66,7 +66,7 @@ spec:
         {{- toYaml $.Values.nodeSelector | nindent 8 }}
       {{- end }}
       containers:
-        - image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "incoming-request-ingest" $.Values.image.tag }}
+        - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "incoming-request-ingest") }}
           name: {{ printf "%s-%s" $.Release.Name "incoming-request-ingest"  }}
           {{- if $.Values.startupProbe.enabled }}
           # Startup probe

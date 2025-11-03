@@ -207,6 +207,7 @@ image:
   repository: oneuptime
   pullPolicy: Always
   tag: release
+  type: community-edition
   restartPolicy: Always
 # imagePullSecrets:
 #   - name: MyCustomSecretNameWithDockerCredentials
@@ -422,7 +423,7 @@ oneuptimeIngress:
     enabled: false
     hosts:
       # - host: "oneuptime.com" # Host 1
-      #   secretName: "oneuptime-tls"  # This secret will be created by Cert-Manager if enabled
+      #   secretName: "oneuptime-tls"
 
 script:
   workflowScriptTimeoutInMs: 5000
@@ -800,14 +801,3 @@ microsoftTeamsApp:
 
 keda:
   enabled: true
-
-cert-manager:
-  enabled: false
-  installCRDs: true
-
-# Let's Encrypt configuration for Cert-Manager
-certManagerLetsEncrypt:
-  # Please enable cert-manager.enabled before enabing this to ensure cert-manager is installed and all CRDs are created.
-  enabled: false
-  email: "" # Set your email for Let's Encrypt notifications
-  server: "https://acme-v02.api.letsencrypt.org/directory" # Use "https://acme-staging-v02.api.letsencrypt.org/directory" for staging

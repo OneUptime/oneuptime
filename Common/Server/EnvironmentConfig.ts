@@ -365,6 +365,9 @@ export const DocsClientUrl: URL = new URL(
 export const DisableTelemetry: boolean =
   process.env["DISABLE_TELEMETRY"] === "true";
 
+export const IsEnterpriseEdition: boolean =
+  process.env["IS_ENTERPRISE_EDITION"] === "true";
+
 export const AverageSpanRowSizeInBytes: number = parsePositiveNumberFromEnv(
   "AVERAGE_SPAN_ROW_SIZE_IN_BYTES",
   1024,
@@ -405,3 +408,7 @@ export const VapidPrivateKey: string | undefined =
 
 export const VapidSubject: string =
   process.env["VAPID_SUBJECT"] || "mailto:support@oneuptime.com";
+
+export const EnterpriseLicenseValidationUrl: URL = URL.fromString(
+  "https://oneuptime.com/api/enterprise-license/validate",
+);

@@ -497,4 +497,75 @@ export default class GlobalConfig extends GlobalConfigModel {
     transformer: Email.getDatabaseTransformer(),
   })
   public adminNotificationEmail?: Email = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Enterprise Company Name",
+    description:
+      "Company name associated with the validated enterprise license.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public enterpriseCompanyName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Enterprise License Key",
+    description: "Enterprise license key stored after successful validation.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public enterpriseLicenseKey?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Enterprise License Expires At",
+    description: "Expiration date of the validated enterprise license.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: true,
+  })
+  public enterpriseLicenseExpiresAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "Enterprise License Token",
+    description: "Signed JWT returned from license validation.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+    unique: true,
+  })
+  public enterpriseLicenseToken?: string = undefined;
 }

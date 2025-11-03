@@ -20,7 +20,7 @@ export interface ComponentProps {
   children: Array<ReactElement> | ReactElement;
   onClose?: undefined | (() => void);
   submitButtonText?: undefined | string;
-  onSubmit: () => void;
+  onSubmit?: (() => void) | undefined;
   submitButtonStyleType?: undefined | ButtonStyleType;
   submitButtonType?: undefined | ButtonType;
   closeButtonStyleType?: undefined | ButtonStyleType;
