@@ -409,5 +409,6 @@ export const VapidPrivateKey: string | undefined =
 export const VapidSubject: string =
   process.env["VAPID_SUBJECT"] || "mailto:support@oneuptime.com";
 
-export const EnterpriseLicenseValidationUrl: URL = 
-    URL.fromString("https://oneuptime.com/api/enterprise-license/validate");
+export const EnterpriseLicenseValidationUrl: URL = URL.fromString(
+  "https://oneuptime.com/api/enterprise-license/validate",
+);

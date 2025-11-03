@@ -35,11 +35,13 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
 
           //const serverHost: string = Host.toString();
 
-          // if (!serverHost.includes("oneuptime.com")) {
-          //   throw new BadDataException(
-          //     "Enterprise license validation is only available on oneuptime.com",
-          //   );
-          // }
+          /*
+           * if (!serverHost.includes("oneuptime.com")) {
+           *   throw new BadDataException(
+           *     "Enterprise license validation is only available on oneuptime.com",
+           *   );
+           * }
+           */
 
           const license: EnterpriseLicense | null =
             await EnterpriseLicenseService.findOneBy({

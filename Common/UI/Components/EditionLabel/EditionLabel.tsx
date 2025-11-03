@@ -418,12 +418,16 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                         </div>
 
                         {validationError && (
-                          <Alert type={AlertType.DANGER} title={validationError} />
+                          <Alert
+                            type={AlertType.DANGER}
+                            title={validationError}
+                          />
                         )}
 
                         <p className="text-xs text-gray-500">
-                          You have installed Enterprise Edition of OneUptime. You need to validate your license key. Need a license key? Contact our sales team at
-                          {" "}
+                          You have installed Enterprise Edition of OneUptime.
+                          You need to validate your license key. Need a license
+                          key? Contact our sales team at{" "}
                           <a
                             href="mailto:sales@oneuptime.com"
                             className="font-medium text-indigo-600 hover:text-indigo-700"

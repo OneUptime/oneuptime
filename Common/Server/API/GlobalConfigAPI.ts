@@ -101,18 +101,20 @@ export default class GlobalConfigAPI extends BaseAPI<
             throw new BadDataException("License key is required");
           }
 
-          const validationResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
-            await API.post<JSONObject>({
-              url: EnterpriseLicenseValidationUrl,
-              data: {
-                licenseKey,
-              },
-            });
+          const validationResponse:
+            | HTTPResponse<JSONObject>
+            | HTTPErrorResponse = await API.post<JSONObject>({
+            url: EnterpriseLicenseValidationUrl,
+            data: {
+              licenseKey,
+            },
+          });
 
           if (!validationResponse.isSuccess()) {
             const errorMessage: string =
               validationResponse instanceof HTTPErrorResponse
-                ? validationResponse.message || "Failed to validate license key."
+                ? validationResponse.message ||
+                  "Failed to validate license key."
                 : "Failed to validate license key.";
             throw new BadDataException(errorMessage);
           }
