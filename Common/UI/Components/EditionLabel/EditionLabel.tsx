@@ -24,6 +24,7 @@ import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  APP_API_URL,
   BILLING_ENABLED,
   IS_ENTERPRISE_EDITION,
 } from "../../Config";
@@ -61,22 +62,46 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     setConfigError("");
 
     try {
-      const config: GlobalConfig | null = await ModelAPI.getItem<GlobalConfig>({
-        modelType: GlobalConfig,
-        id: ObjectID.getZeroObjectID(),
-        select: {
-          _id: true,
-          enterpriseCompanyName: true,
-          enterpriseLicenseExpiresAt: true,
-          enterpriseLicenseKey: true,
-          enterpriseLicenseToken: true,
-        },
-      });
+      const licenseUrl: URL = URL.fromURL(APP_API_URL).addRoute(
+        new Route("/global-config/license"),
+      );
 
-      setGlobalConfig(config);
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.fetch<JSONObject>({
+          method: HTTPMethod.GET,
+          url: licenseUrl,
+        });
+
+      if (!response.isSuccess()) {
+        throw response;
+      }
+
+      const payload: JSONObject = response.data as JSONObject;
+
+      const configModel: GlobalConfig = new GlobalConfig();
+
+      if (payload["companyName"]) {
+        configModel.enterpriseCompanyName = payload["companyName"] as string;
+      }
+
+      if (payload["licenseKey"]) {
+        configModel.enterpriseLicenseKey = payload["licenseKey"] as string;
+      }
+
+      if (payload["token"]) {
+        configModel.enterpriseLicenseToken = payload["token"] as string;
+      }
+
+      if (payload["expiresAt"]) {
+        configModel.enterpriseLicenseExpiresAt = OneUptimeDate.fromString(
+          payload["expiresAt"] as string,
+        );
+      }
+
+      setGlobalConfig(configModel);
 
       if (!licenseInputEditedRef.current) {
-        setLicenseKeyInput(config?.enterpriseLicenseKey || "");
+        setLicenseKeyInput(configModel.enterpriseLicenseKey || "");
       }
     } catch (err) {
       setGlobalConfig(null);
@@ -226,7 +251,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       setLoading(true);
 
       try {
-        const validationUrl: URL = URL.fromString("https://oneuptime.com/api").addRoute(
+        const validationUrl: URL = URL.fromURL(APP_API_URL).addRoute(
           new Route("/enterprise-license/validate"),
         );
 
