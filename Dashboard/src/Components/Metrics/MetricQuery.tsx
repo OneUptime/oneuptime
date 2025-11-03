@@ -30,7 +30,18 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [showAdvancedFilters, setShowAdvancedFilters] =
-    useState<boolean>(false);
+    useState<boolean>(true);
+
+  const initializedAdvancedFilters = React.useRef<boolean>(false);
+
+  React.useEffect(() => {
+    if (initializedAdvancedFilters.current) {
+      return;
+    }
+
+    initializedAdvancedFilters.current = true;
+    props.onAdvancedFiltersToggle?.(true);
+  }, [props.onAdvancedFiltersToggle]);
 
   return (
     <Fragment>
@@ -49,6 +60,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
             setShowAdvancedFilters(show);
             props.onAdvancedFiltersToggle?.(show);
           }}
+          showAdvancedFiltersByDefault={true}
           isFilterLoading={
             showAdvancedFilters ? props.isAttributesLoading : false
           }
