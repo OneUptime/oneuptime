@@ -22,6 +22,10 @@
       "type": "string",
       "enum": ["http", "https"]
     },
+    "provisionSSL": {
+      "type": "boolean",
+      "description": "Automatically provision a Let's Encrypt certificate for the primary host"
+    },
     "oneuptimeSecret": {
       "type": ["string", "null"]
     },

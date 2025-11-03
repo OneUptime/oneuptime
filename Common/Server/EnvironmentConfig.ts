@@ -276,6 +276,8 @@ export const HttpProtocol: Protocol =
 
 export const Host: string = process.env["HOST"] || "";
 
+export const ProvisionSsl: boolean = process.env["PROVISION_SSL"] === "true";
+
 export const WorkflowScriptTimeoutInMS: number = process.env[
   "WORKFLOW_SCRIPT_TIMEOUT_IN_MS"
 ]
