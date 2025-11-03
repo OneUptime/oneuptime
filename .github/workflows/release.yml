@@ -213,7 +213,7 @@ jobs:
               --tag ghcr.io/oneuptime/mcp-server:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               --push .
             docker buildx build \
               --platform linux/amd64,linux/arm64 \
@@ -222,7 +222,7 @@ jobs:
               --tag ghcr.io/oneuptime/mcp-server:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               --push .
             echo "✅ Pushed Docker images to Docker Hub and GitHub Container Registry"
 
@@ -302,7 +302,7 @@ jobs:
               --tag ghcr.io/oneuptime/nginx:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./Nginx/Dockerfile \
@@ -312,7 +312,7 @@ jobs:
               --tag ghcr.io/oneuptime/nginx:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
   e2e-docker-image-deploy:
@@ -384,7 +384,7 @@ jobs:
               --tag ghcr.io/oneuptime/e2e:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./E2E/Dockerfile \
@@ -394,7 +394,7 @@ jobs:
               --tag ghcr.io/oneuptime/e2e:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
   isolated-vm-docker-image-deploy:
@@ -466,7 +466,7 @@ jobs:
               --tag ghcr.io/oneuptime/isolated-vm:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./IsolatedVM/Dockerfile \
@@ -476,7 +476,7 @@ jobs:
               --tag ghcr.io/oneuptime/isolated-vm:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
   home-docker-image-deploy:
@@ -548,7 +548,7 @@ jobs:
               --tag ghcr.io/oneuptime/home:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./Home/Dockerfile \
@@ -558,7 +558,7 @@ jobs:
               --tag ghcr.io/oneuptime/home:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
           
             
@@ -633,7 +633,7 @@ jobs:
               --tag ghcr.io/oneuptime/test-server:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./TestServer/Dockerfile \
@@ -643,7 +643,7 @@ jobs:
               --tag ghcr.io/oneuptime/test-server:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
   otel-collector-docker-image-deploy:
@@ -715,7 +715,7 @@ jobs:
               --tag ghcr.io/oneuptime/otel-collector:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./OTelCollector/Dockerfile \
@@ -725,7 +725,7 @@ jobs:
               --tag ghcr.io/oneuptime/otel-collector:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
 
@@ -799,7 +799,7 @@ jobs:
               --tag ghcr.io/oneuptime/status-page:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./StatusPage/Dockerfile \
@@ -809,7 +809,7 @@ jobs:
               --tag ghcr.io/oneuptime/status-page:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
   test-docker-image-deploy:
@@ -881,7 +881,7 @@ jobs:
               --tag ghcr.io/oneuptime/test:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./Tests/Dockerfile \
@@ -891,7 +891,7 @@ jobs:
               --tag ghcr.io/oneuptime/test:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
   probe-ingest-docker-image-deploy:
@@ -963,7 +963,7 @@ jobs:
               --tag ghcr.io/oneuptime/probe-ingest:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./ProbeIngest/Dockerfile \
@@ -973,7 +973,7 @@ jobs:
               --tag ghcr.io/oneuptime/probe-ingest:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
   
@@ -1046,7 +1046,7 @@ jobs:
               --tag ghcr.io/oneuptime/server-monitor-ingest:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./ServerMonitorIngest/Dockerfile \
@@ -1056,7 +1056,7 @@ jobs:
               --tag ghcr.io/oneuptime/server-monitor-ingest:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
           
           
@@ -1130,7 +1130,7 @@ jobs:
               --tag ghcr.io/oneuptime/open-telemetry-ingest:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./OpenTelemetryIngest/Dockerfile \
@@ -1140,7 +1140,7 @@ jobs:
               --tag ghcr.io/oneuptime/open-telemetry-ingest:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
 
@@ -1213,7 +1213,7 @@ jobs:
               --tag ghcr.io/oneuptime/incoming-request-ingest:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./IncomingRequestIngest/Dockerfile \
@@ -1223,7 +1223,7 @@ jobs:
               --tag ghcr.io/oneuptime/incoming-request-ingest:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
   fluent-ingest-docker-image-deploy:
@@ -1295,7 +1295,7 @@ jobs:
               --tag ghcr.io/oneuptime/fluent-ingest:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./FluentIngest/Dockerfile \
@@ -1305,7 +1305,7 @@ jobs:
               --tag ghcr.io/oneuptime/fluent-ingest:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
   probe-docker-image-deploy:
@@ -1377,7 +1377,7 @@ jobs:
               --tag ghcr.io/oneuptime/probe:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./Probe/Dockerfile \
@@ -1387,7 +1387,7 @@ jobs:
               --tag ghcr.io/oneuptime/probe:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
   admin-dashboard-docker-image-deploy:
@@ -1459,7 +1459,7 @@ jobs:
               --tag ghcr.io/oneuptime/admin-dashboard:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./AdminDashboard/Dockerfile \
@@ -1469,7 +1469,7 @@ jobs:
               --tag ghcr.io/oneuptime/admin-dashboard:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
 
@@ -1542,7 +1542,7 @@ jobs:
               --tag ghcr.io/oneuptime/dashboard:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./Dashboard/Dockerfile \
@@ -1552,7 +1552,7 @@ jobs:
               --tag ghcr.io/oneuptime/dashboard:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
   app-docker-image-deploy:
@@ -1624,7 +1624,7 @@ jobs:
               --tag ghcr.io/oneuptime/app:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./App/Dockerfile \
@@ -1634,7 +1634,7 @@ jobs:
               --tag ghcr.io/oneuptime/app:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
 
@@ -1707,7 +1707,7 @@ jobs:
               --tag ghcr.io/oneuptime/copilot:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./Copilot/Dockerfile \
@@ -1717,7 +1717,7 @@ jobs:
               --tag ghcr.io/oneuptime/copilot:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
   accounts-docker-image-deploy:
@@ -1789,7 +1789,7 @@ jobs:
               --tag ghcr.io/oneuptime/accounts:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./Accounts/Dockerfile \
@@ -1799,7 +1799,7 @@ jobs:
               --tag ghcr.io/oneuptime/accounts:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
 
@@ -1915,7 +1915,7 @@ jobs:
               --tag ghcr.io/oneuptime/llm:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               ./LLM
             docker buildx build \
               --file ./LLM/Dockerfile \
@@ -1925,7 +1925,7 @@ jobs:
               --tag ghcr.io/oneuptime/llm:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               ./LLM
         
   docs-docker-image-deploy: 
@@ -1999,7 +1999,7 @@ jobs:
               --tag ghcr.io/oneuptime/docs:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./Docs/Dockerfile \
@@ -2009,7 +2009,7 @@ jobs:
               --tag ghcr.io/oneuptime/docs:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
         
   
@@ -2086,7 +2086,7 @@ jobs:
               --tag ghcr.io/oneuptime/worker:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./Worker/Dockerfile \
@@ -2096,7 +2096,7 @@ jobs:
               --tag ghcr.io/oneuptime/worker:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
         
   
@@ -2173,7 +2173,7 @@ jobs:
               --tag ghcr.io/oneuptime/workflow:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./Workflow/Dockerfile \
@@ -2183,7 +2183,7 @@ jobs:
               --tag ghcr.io/oneuptime/workflow:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
             
   
@@ -2320,7 +2320,7 @@ jobs:
               --tag ghcr.io/oneuptime/api-reference:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=false \
+              --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --file ./APIReference/Dockerfile \
@@ -2330,7 +2330,7 @@ jobs:
               --tag ghcr.io/oneuptime/api-reference:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE=true \
+              --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
   push-release-tags:

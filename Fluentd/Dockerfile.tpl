@@ -1,7 +1,7 @@
 FROM fluentd
 
-ARG IS_ENTERPRISE=false
-ENV IS_ENTERPRISE=${IS_ENTERPRISE}
+ARG IS_ENTERPRISE_EDITION=false
+ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
 
 # This container will only run in dev env, so this is ok.
 USER root

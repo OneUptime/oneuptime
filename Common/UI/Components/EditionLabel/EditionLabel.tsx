@@ -7,7 +7,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { BILLING_ENABLED, IS_ENTERPRISE } from "../../Config";
+import { BILLING_ENABLED, IS_ENTERPRISE_EDITION } from "../../Config";
 
 export interface ComponentProps {
   className?: string | undefined;
@@ -24,15 +24,15 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const editionName: string = IS_ENTERPRISE
+  const editionName: string = IS_ENTERPRISE_EDITION
     ? "Enterprise Edition"
     : "Community Edition";
 
-  const indicatorColor: string = IS_ENTERPRISE
+  const indicatorColor: string = IS_ENTERPRISE_EDITION
     ? "bg-emerald-500"
     : "bg-indigo-400";
 
-  const ctaLabel: string = IS_ENTERPRISE ? "View benefits" : "Learn more";
+  const ctaLabel: string = IS_ENTERPRISE_EDITION ? "View benefits" : "Learn more";
 
   const communityFeatures: Array<string> = useMemo(() => {
     return [
@@ -93,14 +93,14 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       {isDialogOpen && (
         <Modal
           title={editionName}
-          submitButtonText={IS_ENTERPRISE ? "Learn More" : "Talk to Sales"}
+          submitButtonText={IS_ENTERPRISE_EDITION ? "Learn More" : "Talk to Sales"}
           closeButtonText="Close"
           onClose={closeDialog}
           onSubmit={handlePrimaryAction}
           modalWidth={ModalWidth.Large}
         >
           <div className="space-y-3 text-sm text-gray-600">
-            {IS_ENTERPRISE ? (
+            {IS_ENTERPRISE_EDITION ? (
               <>
                 <p>
                   You are running the Enterprise Edition of OneUptime. This
