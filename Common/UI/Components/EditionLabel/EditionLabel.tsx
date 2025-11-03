@@ -47,69 +47,71 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const licenseInputEditedRef = useRef<boolean>(false);
+  const licenseInputEditedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   if (BILLING_ENABLED) {
     return <></>;
   }
 
-  const fetchGlobalConfig = useCallback(async (): Promise<void> => {
-    if (!IS_ENTERPRISE_EDITION) {
-      return;
-    }
-
-    setIsConfigLoading(true);
-    setConfigError("");
-
-    try {
-      const licenseUrl: URL = URL.fromURL(APP_API_URL).addRoute(
-        new Route("/global-config/license"),
-      );
-
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.fetch<JSONObject>({
-          method: HTTPMethod.GET,
-          url: licenseUrl,
-        });
-
-      if (!response.isSuccess()) {
-        throw response;
+  const fetchGlobalConfig: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      if (!IS_ENTERPRISE_EDITION) {
+        return;
       }
 
-      const payload: JSONObject = response.data as JSONObject;
+      setIsConfigLoading(true);
+      setConfigError("");
 
-      const configModel: GlobalConfig = new GlobalConfig();
-
-      if (payload["companyName"]) {
-        configModel.enterpriseCompanyName = payload["companyName"] as string;
-      }
-
-      if (payload["licenseKey"]) {
-        configModel.enterpriseLicenseKey = payload["licenseKey"] as string;
-      }
-
-      if (payload["token"]) {
-        configModel.enterpriseLicenseToken = payload["token"] as string;
-      }
-
-      if (payload["expiresAt"]) {
-        configModel.enterpriseLicenseExpiresAt = OneUptimeDate.fromString(
-          payload["expiresAt"] as string,
+      try {
+        const licenseUrl: URL = URL.fromURL(APP_API_URL).addRoute(
+          new Route("/global-config/license"),
         );
-      }
 
-      setGlobalConfig(configModel);
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.fetch<JSONObject>({
+            method: HTTPMethod.GET,
+            url: licenseUrl,
+          });
 
-      if (!licenseInputEditedRef.current) {
-        setLicenseKeyInput(configModel.enterpriseLicenseKey || "");
+        if (!response.isSuccess()) {
+          throw response;
+        }
+
+        const payload: JSONObject = response.data as JSONObject;
+
+        const configModel: GlobalConfig = new GlobalConfig();
+
+        if (payload["companyName"]) {
+          configModel.enterpriseCompanyName = payload["companyName"] as string;
+        }
+
+        if (payload["licenseKey"]) {
+          configModel.enterpriseLicenseKey = payload["licenseKey"] as string;
+        }
+
+        if (payload["token"]) {
+          configModel.enterpriseLicenseToken = payload["token"] as string;
+        }
+
+        if (payload["expiresAt"]) {
+          configModel.enterpriseLicenseExpiresAt = OneUptimeDate.fromString(
+            payload["expiresAt"] as string,
+          );
+        }
+
+        setGlobalConfig(configModel);
+
+        if (!licenseInputEditedRef.current) {
+          setLicenseKeyInput(configModel.enterpriseLicenseKey || "");
+        }
+      } catch (err) {
+        setGlobalConfig(null);
+        setConfigError(API.getFriendlyMessage(err));
+      } finally {
+        setIsConfigLoading(false);
       }
-    } catch (err) {
-      setGlobalConfig(null);
-      setConfigError(API.getFriendlyMessage(err));
-    } finally {
-      setIsConfigLoading(false);
-    }
-  }, []);
+    }, []);
 
   useEffect(() => {
     void fetchGlobalConfig();
@@ -236,7 +238,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     closeDialog();
   };
 
-  const runLicenseValidation = useCallback(
+  const runLicenseValidation: (
+    key: string,
+    setLoading: React.Dispatch<React.SetStateAction<boolean>>,
+  ) => Promise<void> = useCallback(
     async (
       key: string,
       setLoading: React.Dispatch<React.SetStateAction<boolean>>,
@@ -513,8 +518,8 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   </div>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Ready to unlock enterprise capabilities? Click "Talk to Sales"
-                  to start the conversation.
+                  Ready to unlock enterprise capabilities? Click &quot;Talk to
+                  Sales&quot; to start the conversation.
                 </p>
               </>
             )}
