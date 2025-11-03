@@ -1,13 +1,32 @@
 import Modal, { ModalWidth } from "../Modal/Modal";
 import Icon, { IconType, SizeProp } from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import Input from "../Input/Input";
+import Button, { ButtonStyleType } from "../Button/Button";
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import { BILLING_ENABLED, IS_ENTERPRISE_EDITION } from "../../Config";
+import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
+import ObjectID from "../../../Types/ObjectID";
+import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
+import API from "../../Utils/API/API";
+import OneUptimeDate from "../../../Types/Date";
+import HTTPMethod from "../../../Types/API/HTTPMethod";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
+import { JSONObject } from "../../../Types/JSON";
+import {
+  BILLING_ENABLED,
+  IS_ENTERPRISE_EDITION,
+} from "../../Config";
 
 export interface ComponentProps {
   className?: string | undefined;
@@ -19,20 +38,130 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+  const [globalConfig, setGlobalConfig] = useState<GlobalConfig | null>(null);
+  const [isConfigLoading, setIsConfigLoading] = useState<boolean>(false);
+  const [configError, setConfigError] = useState<string>("");
+  const [licenseKeyInput, setLicenseKeyInput] = useState<string>("");
+  const [validationError, setValidationError] = useState<string>("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [isValidating, setIsValidating] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const licenseInputEditedRef = useRef<boolean>(false);
 
   if (BILLING_ENABLED) {
     return <></>;
   }
 
-  const editionName: string = IS_ENTERPRISE_EDITION
-    ? "Enterprise Edition"
-    : "Community Edition";
+  const fetchGlobalConfig = useCallback(async (): Promise<void> => {
+    if (!IS_ENTERPRISE_EDITION) {
+      return;
+    }
 
-  const indicatorColor: string = IS_ENTERPRISE_EDITION
-    ? "bg-emerald-500"
-    : "bg-indigo-400";
+    setIsConfigLoading(true);
+    setConfigError("");
 
-  const ctaLabel: string = IS_ENTERPRISE_EDITION ? "View benefits" : "Learn more";
+    try {
+      const config: GlobalConfig | null = await ModelAPI.getItem<GlobalConfig>({
+        modelType: GlobalConfig,
+        id: ObjectID.getZeroObjectID(),
+        select: {
+          _id: true,
+          enterpriseCompanyName: true,
+          enterpriseLicenseExpiresAt: true,
+          enterpriseLicenseKey: true,
+          enterpriseLicenseToken: true,
+        },
+      });
+
+      setGlobalConfig(config);
+
+      if (!licenseInputEditedRef.current) {
+        setLicenseKeyInput(config?.enterpriseLicenseKey || "");
+      }
+    } catch (err) {
+      setGlobalConfig(null);
+      setConfigError(API.getFriendlyMessage(err));
+    } finally {
+      setIsConfigLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchGlobalConfig();
+  }, [fetchGlobalConfig]);
+
+  const licenseValid: boolean = useMemo(() => {
+    if (!IS_ENTERPRISE_EDITION) {
+      return false;
+    }
+
+    if (
+      !globalConfig?.enterpriseLicenseToken ||
+      !globalConfig.enterpriseLicenseExpiresAt
+    ) {
+      return false;
+    }
+
+    const expiresAt: Date = OneUptimeDate.fromString(
+      globalConfig.enterpriseLicenseExpiresAt,
+    );
+
+    return expiresAt.getTime() > Date.now();
+  }, [globalConfig?.enterpriseLicenseExpiresAt, globalConfig?.enterpriseLicenseToken]);
+
+  const licenseExpiresAtText: string | null = useMemo(() => {
+    if (!globalConfig?.enterpriseLicenseExpiresAt) {
+      return null;
+    }
+
+    const expiresAt: Date = OneUptimeDate.fromString(
+      globalConfig.enterpriseLicenseExpiresAt,
+    );
+
+    if (Number.isNaN(expiresAt.getTime())) {
+      return null;
+    }
+
+    return expiresAt.toLocaleString();
+  }, [globalConfig?.enterpriseLicenseExpiresAt]);
+
+  const editionName: string = useMemo(() => {
+    if (!IS_ENTERPRISE_EDITION) {
+      return "Community Edition";
+    }
+
+    if (isConfigLoading) {
+      return "Enterprise Edition (Checking...)";
+    }
+
+    return licenseValid
+      ? "Enterprise Edition (Verified)"
+      : "Enterprise Edition (License Needed)";
+  }, [isConfigLoading, licenseValid]);
+
+  const indicatorColor: string = useMemo(() => {
+    if (!IS_ENTERPRISE_EDITION) {
+      return "bg-indigo-400";
+    }
+
+    if (isConfigLoading) {
+      return "bg-yellow-400";
+    }
+
+    return licenseValid ? "bg-emerald-500" : "bg-red-500";
+  }, [isConfigLoading, licenseValid]);
+
+  const ctaLabel: string = useMemo(() => {
+    if (!IS_ENTERPRISE_EDITION) {
+      return "Learn more";
+    }
+
+    if (isConfigLoading) {
+      return "Checking";
+    }
+
+    return licenseValid ? "View details" : "Validate license";
+  }, [isConfigLoading, licenseValid]);
 
   const communityFeatures: Array<string> = useMemo(() => {
     return [
@@ -57,10 +186,18 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
   const openDialog: () => void = () => {
     setIsDialogOpen(true);
+    setValidationError("");
+    setSuccessMessage("");
+
+    if (IS_ENTERPRISE_EDITION) {
+      void fetchGlobalConfig();
+    }
   };
 
   const closeDialog: () => void = () => {
     setIsDialogOpen(false);
+    setValidationError("");
+    setSuccessMessage("");
   };
 
   const handlePrimaryAction: () => void = () => {
@@ -69,6 +206,98 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     }
 
     closeDialog();
+  };
+
+  const runLicenseValidation = useCallback(
+    async (
+      key: string,
+      setLoading: React.Dispatch<React.SetStateAction<boolean>>,
+    ): Promise<void> => {
+      const trimmedKey: string = key.trim();
+
+      if (!trimmedKey) {
+        setValidationError("Please enter a license key before validating.");
+        setSuccessMessage("");
+        return;
+      }
+
+      setValidationError("");
+      setSuccessMessage("");
+      setLoading(true);
+
+      try {
+        const validationUrl: URL = URL.fromString("https://oneuptime.com/api").addRoute(
+          new Route("/enterprise-license/validate"),
+        );
+
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.fetch<JSONObject>({
+            method: HTTPMethod.POST,
+            url: validationUrl,
+            data: {
+              licenseKey: trimmedKey,
+            },
+          });
+
+        if (!response.isSuccess()) {
+          throw response;
+        }
+
+        const payload: JSONObject = response.data as JSONObject;
+
+        const updatePayload: JSONObject = {
+          enterpriseCompanyName: (payload["companyName"] as string) || "",
+          enterpriseLicenseExpiresAt: (payload["expiresAt"] as string) || "",
+          enterpriseLicenseKey: (payload["licenseKey"] as string) || trimmedKey,
+          enterpriseLicenseToken: (payload["token"] as string) || "",
+        } as JSONObject;
+
+        await ModelAPI.updateById<GlobalConfig>({
+          modelType: GlobalConfig,
+          id: ObjectID.getZeroObjectID(),
+          data: updatePayload,
+        });
+
+        licenseInputEditedRef.current = false;
+        setLicenseKeyInput(
+          (payload["licenseKey"] as string) || trimmedKey,
+        );
+        setSuccessMessage("License validated successfully.");
+
+        await fetchGlobalConfig();
+      } catch (err) {
+        setValidationError(API.getFriendlyMessage(err));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchGlobalConfig],
+  );
+
+  const handleValidateClick: () => void = () => {
+    if (isValidating || isRefreshing) {
+      return;
+    }
+
+    void runLicenseValidation(licenseKeyInput, setIsValidating);
+  };
+
+  const handleRefresh: () => void = () => {
+    if (isRefreshing || isValidating) {
+      return;
+    }
+
+    const existingKey: string =
+      globalConfig?.enterpriseLicenseKey?.toString().trim() ||
+      licenseKeyInput.trim();
+
+    void runLicenseValidation(existingKey, setIsRefreshing);
+  };
+
+  const handleRetryFetch: () => void = () => {
+    if (!isConfigLoading) {
+      void fetchGlobalConfig();
+    }
   };
 
   return (
@@ -93,24 +322,106 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       {isDialogOpen && (
         <Modal
           title={editionName}
-          submitButtonText={IS_ENTERPRISE_EDITION ? "Learn More" : "Talk to Sales"}
+          submitButtonText={
+            IS_ENTERPRISE_EDITION ? "Refresh" : "Talk to Sales"
+          }
           closeButtonText="Close"
           onClose={closeDialog}
-          onSubmit={handlePrimaryAction}
+          onSubmit={
+            IS_ENTERPRISE_EDITION ? handleRefresh : handlePrimaryAction
+          }
           modalWidth={ModalWidth.Large}
+          isLoading={IS_ENTERPRISE_EDITION ? isRefreshing : false}
+          disableSubmitButton={
+            IS_ENTERPRISE_EDITION
+              ? !globalConfig?.enterpriseLicenseKey || isRefreshing
+              : false
+          }
+          isBodyLoading={IS_ENTERPRISE_EDITION ? isConfigLoading : false}
         >
           <div className="space-y-3 text-sm text-gray-600">
             {IS_ENTERPRISE_EDITION ? (
               <>
-                <p>
-                  You are running the Enterprise Edition of OneUptime. This
-                  includes premium capabilities such as enterprise-grade
-                  support, governance controls, and unlimited project scale.
-                </p>
-                <p>
-                  Reach out to our team if you need help enabling additional
-                  enterprise features or onboarding new teams.
-                </p>
+                {configError && (
+                  <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    <p className="font-semibold">Unable to load license details</p>
+                    <p className="mt-1">{configError}</p>
+                    <div className="mt-3">
+                      <Button
+                        title="Retry"
+                        buttonStyle={ButtonStyleType.SECONDARY}
+                        onClick={handleRetryFetch}
+                        isLoading={isConfigLoading}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {!configError && !isConfigLoading && licenseValid && (
+                  <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+                    <p className="font-semibold">License verified</p>
+                    <p className="mt-1">
+                      <span className="font-medium">Company:</span>{" "}
+                      {globalConfig?.enterpriseCompanyName || "Not specified"}
+                    </p>
+                    {licenseExpiresAtText && (
+                      <p>
+                        <span className="font-medium">Expires:</span>{" "}
+                        {licenseExpiresAtText}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {!configError &&
+                  !isConfigLoading &&
+                  !licenseValid &&
+                  globalConfig?.enterpriseLicenseKey && (
+                    <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                      <p className="font-semibold">License validation required</p>
+                      <p className="mt-1">
+                        The stored license information could not be verified.
+                        Please validate the license key again.
+                      </p>
+                    </div>
+                  )}
+
+                {!configError && (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">
+                        License Key
+                      </label>
+                      <Input
+                        value={licenseKeyInput}
+                        onChange={(value: string) => {
+                          setLicenseKeyInput(value);
+                          licenseInputEditedRef.current = true;
+                        }}
+                        placeholder="Enter your enterprise license key"
+                        disableSpellCheck={true}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        title="Validate"
+                        buttonStyle={ButtonStyleType.PRIMARY}
+                        onClick={handleValidateClick}
+                        isLoading={isValidating}
+                        disabled={isValidating || isRefreshing}
+                      />
+                    </div>
+
+                    {successMessage && (
+                      <p className="text-sm text-emerald-600">{successMessage}</p>
+                    )}
+
+                    {validationError && (
+                      <p className="text-sm text-red-600">{validationError}</p>
+                    )}
+                  </>
+                )}
               </>
             ) : (
               <>
@@ -174,7 +485,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   </div>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Ready to unlock enterprise capabilities? Click “Talk to Sales”
+                  Ready to unlock enterprise capabilities? Click "Talk to Sales"
                   to start the conversation.
                 </p>
               </>
