@@ -81,6 +81,7 @@ import ProjectSmtpConfig from "./ProjectSmtpConfig";
 //SSO
 import ProjectSSO from "./ProjectSso";
 import PromoCode from "./PromoCode";
+import EnterpriseLicense from "./EnterpriseLicense";
 import Reseller from "./Reseller";
 import ResellerPlan from "./ResellerPlan";
 // ScheduledMaintenances
@@ -331,6 +332,7 @@ const AllModelTypes: Array<{
   ResellerPlan,
 
   PromoCode,
+  EnterpriseLicense,
 
   GlobalConfig,
 

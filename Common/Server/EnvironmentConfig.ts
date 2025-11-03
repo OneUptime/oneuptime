@@ -365,6 +365,9 @@ export const DocsClientUrl: URL = new URL(
 export const DisableTelemetry: boolean =
   process.env["DISABLE_TELEMETRY"] === "true";
 
+export const IsEnterpriseEdition: boolean =
+  process.env["IS_ENTERPRISE_EDITION"] === "true";
+
 export const AverageSpanRowSizeInBytes: number = parsePositiveNumberFromEnv(
   "AVERAGE_SPAN_ROW_SIZE_IN_BYTES",
   1024,
