@@ -304,6 +304,32 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const shouldShowEnterpriseValidationButton: boolean =
+    IS_ENTERPRISE_EDITION && !licenseValid;
+
+  const modalSubmitButtonText: string | undefined = IS_ENTERPRISE_EDITION
+    ? shouldShowEnterpriseValidationButton
+      ? "Validate License"
+      : undefined
+    : "Talk to Sales";
+
+  const modalOnSubmit: (() => void) | undefined = IS_ENTERPRISE_EDITION
+    ? shouldShowEnterpriseValidationButton
+      ? handleValidateClick
+      : undefined
+    : handlePrimaryAction;
+
+  const modalIsLoading: boolean =
+    IS_ENTERPRISE_EDITION && shouldShowEnterpriseValidationButton
+      ? isValidating
+      : false;
+
+  const modalDisableSubmitButton: boolean | undefined = IS_ENTERPRISE_EDITION
+    ? shouldShowEnterpriseValidationButton
+      ? !licenseKeyInput.trim() || isValidating || isConfigLoading
+      : undefined
+    : false;
+
   return (
     <>
       <button
@@ -326,21 +352,13 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       {isDialogOpen && (
         <Modal
           title={editionName}
-          submitButtonText={
-            IS_ENTERPRISE_EDITION ? "Validate License" : "Talk to Sales"
-          }
+          submitButtonText={modalSubmitButtonText}
           closeButtonText="Close"
           onClose={closeDialog}
-          onSubmit={
-            IS_ENTERPRISE_EDITION ? handleValidateClick : handlePrimaryAction
-          }
+          onSubmit={modalOnSubmit}
           modalWidth={ModalWidth.Large}
-          isLoading={IS_ENTERPRISE_EDITION ? isValidating : false}
-          disableSubmitButton={
-            IS_ENTERPRISE_EDITION
-              ? !licenseKeyInput.trim() || isValidating || isConfigLoading
-              : false
-          }
+          isLoading={modalIsLoading}
+          disableSubmitButton={modalDisableSubmitButton}
           isBodyLoading={IS_ENTERPRISE_EDITION ? isConfigLoading : false}
         >
           <div className="space-y-3 text-sm text-gray-600">

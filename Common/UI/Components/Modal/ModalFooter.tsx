@@ -5,7 +5,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   onClose?: undefined | (() => void) | undefined;
   submitButtonText?: undefined | string;
-  onSubmit: () => void;
+  onSubmit?: (() => void) | undefined;
   submitButtonStyleType?: undefined | ButtonStyleType;
   closeButtonStyleType?: undefined | ButtonStyleType;
   submitButtonType?: undefined | ButtonType;
@@ -30,7 +30,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
             props.submitButtonText ? props.submitButtonText : "Save Changes"
           }
           onClick={() => {
-            props.onSubmit();
+            props.onSubmit?.();
           }}
           disabled={props.disableSubmitButton || false}
           isLoading={props.isLoading || false}
