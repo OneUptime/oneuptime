@@ -506,7 +506,8 @@ export default class GlobalConfig extends GlobalConfigModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     title: "Enterprise Company Name",
-    description: "Company name associated with the validated enterprise license.",
+    description:
+      "Company name associated with the validated enterprise license.",
   })
   @Column({
     type: ColumnType.ShortText,

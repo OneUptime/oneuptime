@@ -132,7 +132,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     );
 
     return expiresAt.getTime() > Date.now();
-  }, [globalConfig?.enterpriseLicenseExpiresAt, globalConfig?.enterpriseLicenseToken]);
+  }, [
+    globalConfig?.enterpriseLicenseExpiresAt,
+    globalConfig?.enterpriseLicenseToken,
+  ]);
 
   const licenseExpiresAtText: string | null = useMemo(() => {
     if (!globalConfig?.enterpriseLicenseExpiresAt) {
@@ -284,9 +287,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         });
 
         licenseInputEditedRef.current = false;
-        setLicenseKeyInput(
-          (payload["licenseKey"] as string) || trimmedKey,
-        );
+        setLicenseKeyInput((payload["licenseKey"] as string) || trimmedKey);
         setSuccessMessage("License validated successfully.");
 
         await fetchGlobalConfig();
@@ -347,14 +348,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       {isDialogOpen && (
         <Modal
           title={editionName}
-          submitButtonText={
-            IS_ENTERPRISE_EDITION ? "Refresh" : "Talk to Sales"
-          }
+          submitButtonText={IS_ENTERPRISE_EDITION ? "Refresh" : "Talk to Sales"}
           closeButtonText="Close"
           onClose={closeDialog}
-          onSubmit={
-            IS_ENTERPRISE_EDITION ? handleRefresh : handlePrimaryAction
-          }
+          onSubmit={IS_ENTERPRISE_EDITION ? handleRefresh : handlePrimaryAction}
           modalWidth={ModalWidth.Large}
           isLoading={IS_ENTERPRISE_EDITION ? isRefreshing : false}
           disableSubmitButton={
@@ -369,7 +366,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
               <>
                 {configError && (
                   <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                    <p className="font-semibold">Unable to load license details</p>
+                    <p className="font-semibold">
+                      Unable to load license details
+                    </p>
                     <p className="mt-1">{configError}</p>
                     <div className="mt-3">
                       <Button
@@ -403,7 +402,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   !licenseValid &&
                   globalConfig?.enterpriseLicenseKey && (
                     <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                      <p className="font-semibold">License validation required</p>
+                      <p className="font-semibold">
+                        License validation required
+                      </p>
                       <p className="mt-1">
                         The stored license information could not be verified.
                         Please validate the license key again.
@@ -439,7 +440,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                     </div>
 
                     {successMessage && (
-                      <p className="text-sm text-emerald-600">{successMessage}</p>
+                      <p className="text-sm text-emerald-600">
+                        {successMessage}
+                      </p>
                     )}
 
                     {validationError && (
