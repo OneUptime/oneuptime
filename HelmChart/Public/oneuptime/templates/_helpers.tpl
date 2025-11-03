@@ -31,6 +31,10 @@ Usage:
 
 {{- define "oneuptime.env.common" }}
 {{- $isEnterpriseEdition := eq (default "community-edition" $.Values.image.type) "enterprise-edition" }}
+{{- $provisionSSL := false -}}
+{{- if kindIs "map" $.Values.ssl }}
+  {{- $provisionSSL = default false $.Values.ssl.provision -}}
+{{- end }}
 
 - name: IS_ENTERPRISE_EDITION
   value: {{ (ternary "true" "false" $isEnterpriseEdition) | squote }}
@@ -50,7 +54,7 @@ Usage:
 - name: HOST
   value: {{ $.Values.host }}
 - name: PROVISION_SSL
-  value: {{ ternary "true" "false" (default false (dig "ssl" "provision" $.Values)) | quote }}
+  value: {{ ternary "true" "false" $provisionSSL | quote }}
 - name: STATUS_PAGE_CNAME_RECORD
   value: {{ $.Values.statusPage.cnameRecord }}
 - name: ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN
