@@ -5,8 +5,9 @@ global:
 # Please change this to the domain name / IP where OneUptime server is hosted on.
 host: localhost
 httpProtocol: http
-# Automatically provision a Let's Encrypt certificate for the primary host when set to true.
-provisionSSL: false
+ssl:
+  # Automatically provision a Let's Encrypt certificate for the primary host when set to true.
+  provision: false
 
 # Important: You do need to set this to a long random values if you're using OneUptime in production.
 # Please set this to string.
