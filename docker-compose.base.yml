@@ -1,6 +1,7 @@
 
 x-common-variables: &common-variables
     HOST: ${HOST}
+    PROVISION_SSL: ${PROVISION_SSL}
 
     HTTP_PROTOCOL: ${HTTP_PROTOCOL}
 
