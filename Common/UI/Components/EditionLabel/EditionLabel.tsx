@@ -13,8 +13,6 @@ import React, {
   useState,
 } from "react";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
-import ObjectID from "../../../Types/ObjectID";
-import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import API from "../../Utils/API/API";
 import OneUptimeDate from "../../../Types/Date";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
@@ -28,6 +26,7 @@ import {
   BILLING_ENABLED,
   IS_ENTERPRISE_EDITION,
 } from "../../Config";
+import Alert, { AlertType } from "../Alerts/Alert";
 
 export interface ComponentProps {
   className?: string | undefined;
@@ -259,7 +258,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
       try {
         const validationUrl: URL = URL.fromURL(APP_API_URL).addRoute(
-          new Route("/enterprise-license/validate"),
+          new Route("/global-config/license"),
         );
 
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -276,19 +275,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         }
 
         const payload: JSONObject = response.data as JSONObject;
-
-        const updatePayload: JSONObject = {
-          enterpriseCompanyName: (payload["companyName"] as string) || "",
-          enterpriseLicenseExpiresAt: (payload["expiresAt"] as string) || "",
-          enterpriseLicenseKey: (payload["licenseKey"] as string) || trimmedKey,
-          enterpriseLicenseToken: (payload["token"] as string) || "",
-        } as JSONObject;
-
-        await ModelAPI.updateById<GlobalConfig>({
-          modelType: GlobalConfig,
-          id: ObjectID.getZeroObjectID(),
-          data: updatePayload,
-        });
 
         licenseInputEditedRef.current = false;
         setLicenseKeyInput((payload["licenseKey"] as string) || trimmedKey);
@@ -366,7 +352,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                       Unable to load license details
                     </p>
                     <p className="mt-1">{configError}</p>
-                    <div className="mt-3">
+                    <div className="mt-3 -ml-3">
                       <Button
                         title="Retry"
                         buttonStyle={ButtonStyleType.DANGER}
@@ -427,12 +413,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
                     {successMessage && (
                       <p className="text-sm text-emerald-600">
-                        {successMessage}
+                        <Alert type={AlertType.SUCCESS} title={successMessage} />
                       </p>
                     )}
 
                     {validationError && (
-                      <p className="text-sm text-red-600">{validationError}</p>
+                      <Alert type={AlertType.DANGER} title={validationError} />
                     )}
 
                     <p className="text-xs text-gray-500">
