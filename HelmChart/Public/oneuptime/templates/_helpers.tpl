@@ -30,7 +30,10 @@ Usage:
 {{- end -}}
 
 {{- define "oneuptime.env.common" }}
+{{- $isEnterpriseEdition := eq (default "community-edition" $.Values.image.type) "enterprise-edition" }}
 
+- name: IS_ENTERPRISE_EDITION
+  value: {{ (ternary "true" "false" $isEnterpriseEdition) | squote }}
 - name: MICROSOFT_TEAMS_APP_CLIENT_ID
   value: {{ $.Values.microsoftTeamsApp.clientId }}
 
