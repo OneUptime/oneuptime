@@ -416,6 +416,9 @@ server {
     gzip_min_length 1000;
     
     listen ${NGINX_LISTEN_ADDRESS}7849 ${NGINX_LISTEN_OPTIONS};
+${PROVISION_SSL:+    listen ${NGINX_LISTEN_ADDRESS}7850 ssl ${NGINX_LISTEN_OPTIONS};}
+${PROVISION_SSL:+    ssl_certificate /etc/nginx/certs/ServerCerts/${PRIMARY_DOMAIN}.crt;}
+${PROVISION_SSL:+    ssl_certificate_key /etc/nginx/certs/ServerCerts/${PRIMARY_DOMAIN}.key;}
     http2  on;
 
     server_name localhost ingress ${HOST}; #All domains

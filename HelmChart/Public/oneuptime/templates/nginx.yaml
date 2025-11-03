@@ -38,6 +38,9 @@ spec:
         - name: status-page-certs
           emptyDir:
             sizeLimit: "1Gi"
+        - name: server-certs
+          emptyDir:
+            sizeLimit: "1Gi"
         - name: cache
           emptyDir:
             sizeLimit: "1Gi"
@@ -106,6 +109,8 @@ spec:
           volumeMounts:
             - name: status-page-certs
               mountPath: /etc/nginx/certs/StatusPageCerts
+            - name: server-certs
+              mountPath: /etc/nginx/certs/ServerCerts
             - name: cache
               mountPath: /var/cache/nginx
             - name: conf
