@@ -1,5 +1,8 @@
 import AcmeChallenge from "../../Models/DatabaseModels/AcmeChallenge";
 import NotFoundException from "../../Types/Exception/NotFoundException";
+import AcmeChallengeService, {
+  Service as AcmeChallengeServiceType,
+} from "../Services/AcmeChallengeService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -7,44 +10,57 @@ import Express, {
   NextFunction,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
-import AcmeChallengeService from "../Services/AcmeChallengeService";
+import BaseAPI from "./BaseAPI";
 
-const router: ExpressRouter = Express.getRouter();
+export default class AcmeChallengeAPI extends BaseAPI<
+  AcmeChallenge,
+  AcmeChallengeServiceType
+> {
+  private wellKnownRouter: ExpressRouter;
 
-router.get(
-  "/.well-known/acme-challenge/:token",
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ) => {
-    try {
-      const challenge: AcmeChallenge | null =
-        await AcmeChallengeService.findOneBy({
-          query: {
-            token: req.params["token"] as string,
-          },
-          select: {
-            challenge: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+  public constructor() {
+    super(AcmeChallenge, AcmeChallengeService);
 
-      if (!challenge) {
-        return next(new NotFoundException("Challenge not found"));
-      }
+    this.wellKnownRouter = Express.getRouter();
 
-      return Response.sendTextResponse(
-        req,
-        res,
-        challenge.challenge as string,
-      );
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
+    this.wellKnownRouter.get(
+      "/.well-known/acme-challenge/:token",
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
+        try {
+          const challenge: AcmeChallenge | null =
+            await AcmeChallengeService.findOneBy({
+              query: {
+                token: req.params["token"] as string,
+              },
+              select: {
+                challenge: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
 
-export default router;
+          if (!challenge) {
+            return next(new NotFoundException("Challenge not found"));
+          }
+
+          return Response.sendTextResponse(
+            req,
+            res,
+            challenge.challenge as string,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+  }
+
+  public getWellKnownRouter(): ExpressRouter {
+    return this.wellKnownRouter;
+  }
+}
