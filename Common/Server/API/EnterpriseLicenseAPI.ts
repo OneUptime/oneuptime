@@ -13,6 +13,7 @@ import {
   NextFunction,
 } from "../Utils/Express";
 import BaseAPI from "./BaseAPI";
+import { Host } from "../EnvironmentConfig";
 
 export default class EnterpriseLicenseAPI extends BaseAPI<
   EnterpriseLicense,
@@ -30,6 +31,14 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
 
           if (!licenseKey) {
             throw new BadDataException("License key is required");
+          }
+
+          const serverHost: string = Host.toString();
+
+          if (!serverHost.includes("oneuptime.com")) {
+            throw new BadDataException(
+              "Enterprise license validation is only available on oneuptime.com",
+            );
           }
 
           const license: EnterpriseLicense | null =
