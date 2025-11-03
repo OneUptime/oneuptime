@@ -381,6 +381,7 @@ import TelemetryExceptionService, {
 import ExceptionInstanceService, {
   ExceptionInstanceService as ExceptionInstanceServiceType,
 } from "Common/Server/Services/ExceptionInstanceService";
+import AcmeChallengeAPI from "Common/Server/API/AcmeChallengeAPI";
 
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
@@ -613,6 +614,8 @@ const BaseAPIFeatureSet: FeatureSet = {
     const app: ExpressApplication = Express.getExpressApp();
 
     const APP_NAME: string = "api";
+
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AcmeChallengeAPI);
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OpenAPI.getRouter());
 
