@@ -51,11 +51,35 @@ export function getServiceCatalogBreadcrumbs(
       "View Service",
       "Monitors",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_CATALOG_VIEW_ALERTS, [
+      "Project",
+      "Service Catalog",
+      "View Service",
+      "Alerts",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_CATALOG_VIEW_INCIDENTS, [
       "Project",
       "Service Catalog",
       "View Service",
       "Incidents",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_CATALOG_VIEW_LOGS, [
+      "Project",
+      "Service Catalog",
+      "View Service",
+      "Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_CATALOG_VIEW_TRACES, [
+      "Project",
+      "Service Catalog",
+      "View Service",
+      "Traces",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_CATALOG_VIEW_METRICS, [
+      "Project",
+      "Service Catalog",
+      "View Service",
+      "Metrics",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES,

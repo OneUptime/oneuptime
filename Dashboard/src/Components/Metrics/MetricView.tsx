@@ -35,6 +35,26 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 
+const getFetchRelevantState: (data: MetricViewData) => unknown = (
+  data: MetricViewData,
+) => {
+  return {
+    startAndEndDate: data.startAndEndDate
+      ? {
+          startValue: data.startAndEndDate.startValue,
+          endValue: data.startAndEndDate.endValue,
+        }
+      : null,
+    queryConfigs: data.queryConfigs.map(
+      (queryConfig: MetricQueryConfigData) => {
+        return {
+          metricQueryData: queryConfig.metricQueryData,
+        };
+      },
+    ),
+  };
+};
+
 export interface ComponentProps {
   data: MetricViewData;
   hideQueryElements?: boolean;
@@ -101,6 +121,9 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
   const metricViewDataRef: React.MutableRefObject<MetricViewData> =
     React.useRef(props.data);
+  const lastFetchSnapshotRef: React.MutableRefObject<string> = React.useRef(
+    JSON.stringify(getFetchRelevantState(props.data)),
+  );
 
   useEffect(() => {
     loadMetricTypes().catch((err: Error) => {
@@ -114,20 +137,29 @@ const MetricView: FunctionComponent<ComponentProps> = (
       props.data,
     );
 
-    if (
-      hasChanged &&
-      props.data &&
-      props.data.startAndEndDate &&
-      props.data.startAndEndDate.startValue &&
-      props.data.startAndEndDate.endValue
-    ) {
+    if (hasChanged) {
       setCurrentQueryVariable(
         Text.getLetterFromAByNumber(props.data.queryConfigs.length),
       );
+    }
+
+    const currentFetchSnapshot: string = JSON.stringify(
+      getFetchRelevantState(props.data),
+    );
+
+    const shouldFetch: boolean =
+      currentFetchSnapshot !== lastFetchSnapshotRef.current &&
+      Boolean(props.data?.startAndEndDate?.startValue) &&
+      Boolean(props.data?.startAndEndDate?.endValue);
+
+    if (shouldFetch) {
+      lastFetchSnapshotRef.current = currentFetchSnapshot;
       fetchAggregatedResults().catch((err: Error) => {
         setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
       });
+    }
 
+    if (hasChanged) {
       metricViewDataRef.current = props.data;
     }
   }, [props.data]);

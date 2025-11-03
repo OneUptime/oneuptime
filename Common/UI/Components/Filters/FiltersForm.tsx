@@ -27,6 +27,7 @@ export interface ComponentProps<T extends GenericObject> {
   onAdvancedFiltersToggle?:
     | undefined
     | ((showAdvancedFilters: boolean) => void);
+  showAdvancedFiltersByDefault?: boolean | undefined;
 }
 
 type FiltersFormFunction = <T extends GenericObject>(
@@ -56,7 +57,9 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
     }),
   );
 
-  const [showMoreFilters, setShowMoreFilters] = React.useState<boolean>(false);
+  const [showMoreFilters, setShowMoreFilters] = React.useState<boolean>(
+    props.showAdvancedFiltersByDefault ?? false,
+  );
 
   return (
     <div id={props.id}>

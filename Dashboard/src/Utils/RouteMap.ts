@@ -39,6 +39,10 @@ export const ServiceCatalogRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_CATALOG_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.SERVICE_CATALOG_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
   [PageMap.SERVICE_CATALOG_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.SERVICE_CATALOG_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.SERVICE_CATALOG_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.SERVICE_CATALOG_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.SERVICE_CATALOG_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES]: `${RouteParams.ModelID}/telemetry-service`,
 };
 
@@ -944,6 +948,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_CATALOG_VIEW_INCIDENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service-catalog/${
       ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.SERVICE_CATALOG_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
+      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.SERVICE_CATALOG_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
+      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.SERVICE_CATALOG_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
+      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.SERVICE_CATALOG_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
+      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_METRICS]
     }`,
   ),
 

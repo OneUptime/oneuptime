@@ -45,10 +45,34 @@ const ServiceCatalogViewIncidents: LazyExoticComponent<
   return import("../Pages/ServiceCatalog/View/Incidents");
 });
 
+const ServiceCatalogViewAlerts: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ServiceCatalog/View/Alerts");
+});
+
 const ServiceCatalogViewTelemetryServices: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/ServiceCatalog/View/TelemetryServices");
+});
+
+const ServiceCatalogViewLogs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ServiceCatalog/View/Logs");
+});
+
+const ServiceCatalogViewTraces: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ServiceCatalog/View/Traces");
+});
+
+const ServiceCatalogViewMetrics: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ServiceCatalog/View/Metrics");
 });
 
 const ServiceCatalogViewDelete: LazyExoticComponent<
@@ -175,6 +199,22 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_CATALOG_VIEW_ALERTS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <ServiceCatalogViewAlerts
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SERVICE_CATALOG_VIEW_ALERTS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
             PageMap.SERVICE_CATALOG_VIEW_INCIDENTS,
           )}
           element={
@@ -201,6 +241,50 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
                   RouteMap[
                     PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES
                   ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_CATALOG_VIEW_LOGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <ServiceCatalogViewLogs
+                {...props}
+                pageRoute={RouteMap[PageMap.SERVICE_CATALOG_VIEW_LOGS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_CATALOG_VIEW_TRACES,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <ServiceCatalogViewTraces
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SERVICE_CATALOG_VIEW_TRACES] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_CATALOG_VIEW_METRICS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <ServiceCatalogViewMetrics
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SERVICE_CATALOG_VIEW_METRICS] as Route
                 }
               />
             </Suspense>

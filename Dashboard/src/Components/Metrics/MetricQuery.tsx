@@ -29,8 +29,19 @@ export interface ComponentProps {
 const MetricFilter: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [showAdvancedFilters, setShowAdvancedFilters] =
-    useState<boolean>(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(true);
+
+  const initializedAdvancedFilters: React.MutableRefObject<boolean> =
+    React.useRef<boolean>(false);
+
+  React.useEffect(() => {
+    if (initializedAdvancedFilters.current) {
+      return;
+    }
+
+    initializedAdvancedFilters.current = true;
+    props.onAdvancedFiltersToggle?.(true);
+  }, [props.onAdvancedFiltersToggle]);
 
   return (
     <Fragment>
@@ -49,6 +60,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
             setShowAdvancedFilters(show);
             props.onAdvancedFiltersToggle?.(show);
           }}
+          showAdvancedFiltersByDefault={true}
           isFilterLoading={
             showAdvancedFilters ? props.isAttributesLoading : false
           }
