@@ -43,10 +43,10 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
         return {
           metricAliasData: {
             metricVariable: Text.getLetterFromAByNumber(index),
-            title: "",
-            description: "",
-            legend: "",
-            legendUnit: "",
+            title: metricQuery.alias?.title || "",
+            description: metricQuery.alias?.description || "",
+            legend: metricQuery.alias?.legend || "",
+            legendUnit: metricQuery.alias?.legendUnit || "",
           },
           metricQueryData: {
             filterData: {
@@ -158,6 +158,14 @@ type MetricQueryFromUrl = {
   metricName: string;
   attributes: Dictionary<string | number | boolean>;
   aggregationType?: MetricsAggregationType;
+  alias?: MetricQueryAliasFromUrl;
+};
+
+type MetricQueryAliasFromUrl = {
+  title?: string;
+  description?: string;
+  legend?: string;
+  legendUnit?: string;
 };
 
 function buildMetricQueriesFromState(
@@ -185,10 +193,14 @@ function buildMetricQueriesFromState(
       const attributes: Dictionary<string | number | boolean> =
         sanitizeAttributes(filterDataRecord["attributes"]);
 
+      const aliasData: MetricQueryAliasFromUrl | undefined =
+        buildAliasFromMetricAliasData(queryConfig.metricAliasData);
+
       return {
         metricName,
         attributes,
         ...(aggregationType ? { aggregationType } : {}),
+        ...(aliasData ? { alias: aliasData } : {}),
       };
     },
   );
@@ -232,10 +244,16 @@ function getMetricQueriesFromQuery(): Array<MetricQueryFromUrl> {
       const aggregationType: MetricsAggregationType | undefined =
         getAggregationTypeFromValue(entryRecord["aggregationType"]);
 
+      const alias: MetricQueryAliasFromUrl | undefined = sanitizeAlias(
+        entryRecord["alias"],
+        entryRecord,
+      );
+
       sanitizedQueries.push({
         metricName,
         attributes,
         ...(aggregationType ? { aggregationType } : {}),
+        ...(alias ? { alias } : {}),
       });
     }
 
@@ -312,6 +330,90 @@ function sanitizeAttributes(
   }
 
   return attributes;
+}
+
+function buildAliasFromMetricAliasData(
+  data: MetricQueryConfigData["metricAliasData"],
+): MetricQueryAliasFromUrl | undefined {
+  if (!data) {
+    return undefined;
+  }
+
+  const alias: MetricQueryAliasFromUrl = {};
+
+  if (typeof data.title === "string" && data.title.trim() !== "") {
+    alias.title = data.title;
+  }
+
+  if (
+    typeof data.description === "string" && data.description.trim() !== ""
+  ) {
+    alias.description = data.description;
+  }
+
+  if (typeof data.legend === "string" && data.legend.trim() !== "") {
+    alias.legend = data.legend;
+  }
+
+  if (typeof data.legendUnit === "string" && data.legendUnit.trim() !== "") {
+    alias.legendUnit = data.legendUnit;
+  }
+
+  return Object.keys(alias).length > 0 ? alias : undefined;
+}
+
+function sanitizeAlias(
+  value: unknown,
+  fallback?: Record<string, unknown>,
+): MetricQueryAliasFromUrl | undefined {
+  const alias: MetricQueryAliasFromUrl = {};
+
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const aliasRecord: Record<string, unknown> = value as Record<string, unknown>;
+
+    if (typeof aliasRecord["title"] === "string") {
+      alias.title = aliasRecord["title"] as string;
+    }
+
+    if (typeof aliasRecord["description"] === "string") {
+      alias.description = aliasRecord["description"] as string;
+    }
+
+    if (typeof aliasRecord["legend"] === "string") {
+      alias.legend = aliasRecord["legend"] as string;
+    }
+
+    if (typeof aliasRecord["legendUnit"] === "string") {
+      alias.legendUnit = aliasRecord["legendUnit"] as string;
+    }
+  }
+
+  // Backward compatibility: allow flat keys on the main query record.
+  if (fallback) {
+    if (alias.title === undefined && typeof fallback["title"] === "string") {
+      alias.title = fallback["title"] as string;
+    }
+
+    if (
+      alias.description === undefined &&
+      typeof fallback["description"] === "string"
+    ) {
+      alias.description = fallback["description"] as string;
+    }
+
+    if (alias.legend === undefined && typeof fallback["legend"] === "string") {
+      alias.legend = fallback["legend"] as string;
+    }
+
+    if (
+      alias.legendUnit === undefined &&
+      typeof fallback["legendUnit"] === "string"
+    ) {
+      alias.legendUnit = fallback["legendUnit"] as string;
+    }
+  }
+
+  return Object.keys(alias).length > 0 ? alias : undefined;
 }
 
 function getAggregationTypeFromValue(
