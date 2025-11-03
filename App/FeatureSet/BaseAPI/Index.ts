@@ -615,8 +615,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     const APP_NAME: string = "api";
 
-
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, (new AcmeChallengeAPI).getRouter());
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AcmeChallengeAPI().getRouter(),
+    );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OpenAPI.getRouter());
 

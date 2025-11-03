@@ -31,7 +31,9 @@ RunCron(
     const hostnameOnly: string = normalizedHost.split(":")[0] || "";
 
     if (!hostnameOnly) {
-      logger.warn(`${JOB_NAME}: HOST environment variable is empty. Unable to provision SSL.`);
+      logger.warn(
+        `${JOB_NAME}: HOST environment variable is empty. Unable to provision SSL.`,
+      );
       return;
     }
 
