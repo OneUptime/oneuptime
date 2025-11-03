@@ -163,8 +163,8 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     }
 
     return licenseValid
-      ? "Enterprise Edition (Verified)"
-      : "Enterprise Edition (License Needed)";
+      ? "Enterprise Edition"
+      : "Enterprise Edition (License Required)";
   }, [isConfigLoading, licenseValid]);
 
   const indicatorColor: string = useMemo(() => {
@@ -396,42 +396,44 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
                 {!configError && (
                   <>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">
-                        License Key
-                      </label>
-                      <Input
-                        value={licenseKeyInput}
-                        onChange={(value: string) => {
-                          setLicenseKeyInput(value);
-                          licenseInputEditedRef.current = true;
-                        }}
-                        placeholder="Enter your enterprise license key"
-                        disableSpellCheck={true}
-                      />
-                    </div>
-
                     {successMessage && (
-                      <p className="text-sm text-emerald-600">
-                        <Alert type={AlertType.SUCCESS} title={successMessage} />
-                      </p>
+                      <Alert type={AlertType.SUCCESS} title={successMessage} />
                     )}
 
-                    {validationError && (
-                      <Alert type={AlertType.DANGER} title={validationError} />
-                    )}
+                    {!licenseValid && (
+                      <>
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">
+                            License Key
+                          </label>
+                          <Input
+                            value={licenseKeyInput}
+                            onChange={(value: string) => {
+                              setLicenseKeyInput(value);
+                              licenseInputEditedRef.current = true;
+                            }}
+                            placeholder="Enter your enterprise license key"
+                            disableSpellCheck={true}
+                          />
+                        </div>
 
-                    <p className="text-xs text-gray-500">
-                      You have installed Enterprise Edition of OneUptime. You need to validate your license key. Need a license key? Contact our sales team at
-                      {" "}
-                      <a
-                        href="mailto:sales@oneuptime.com"
-                        className="font-medium text-indigo-600 hover:text-indigo-700"
-                      >
-                        sales@oneuptime.com
-                      </a>
-                      .
-                    </p>
+                        {validationError && (
+                          <Alert type={AlertType.DANGER} title={validationError} />
+                        )}
+
+                        <p className="text-xs text-gray-500">
+                          You have installed Enterprise Edition of OneUptime. You need to validate your license key. Need a license key? Contact our sales team at
+                          {" "}
+                          <a
+                            href="mailto:sales@oneuptime.com"
+                            className="font-medium text-indigo-600 hover:text-indigo-700"
+                          >
+                            sales@oneuptime.com
+                          </a>
+                          .
+                        </p>
+                      </>
+                    )}
                   </>
                 )}
 
