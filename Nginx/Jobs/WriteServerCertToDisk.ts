@@ -20,7 +20,9 @@ export default class WriteServerCertToDiskJob {
       },
       runFunction: async () => {
         if (!ProvisionSsl) {
-          logger.debug(`${JOB_NAME}: SSL provisioning disabled; skipping write.`);
+          logger.debug(
+            `${JOB_NAME}: SSL provisioning disabled; skipping write.`,
+          );
           return;
         }
 
@@ -28,12 +30,16 @@ export default class WriteServerCertToDiskJob {
         const hostnameOnly: string = normalizedHost.split(":")[0] || "";
 
         if (!hostnameOnly) {
-          logger.warn(`${JOB_NAME}: HOST environment variable is empty; cannot write certificate.`);
+          logger.warn(
+            `${JOB_NAME}: HOST environment variable is empty; cannot write certificate.`,
+          );
           return;
         }
 
         if (!Domain.isValidDomain(hostnameOnly)) {
-          logger.warn(`${JOB_NAME}: HOST "${hostnameOnly}" is not a valid domain; skipping write.`);
+          logger.warn(
+            `${JOB_NAME}: HOST "${hostnameOnly}" is not a valid domain; skipping write.`,
+          );
           return;
         }
 
@@ -63,10 +69,15 @@ export default class WriteServerCertToDiskJob {
         const certificatePath: string = `${SERVER_CERTS_DIRECTORY}/${hostnameOnly}.crt`;
         const keyPath: string = `${SERVER_CERTS_DIRECTORY}/${hostnameOnly}.key`;
 
-        await LocalFile.write(certificatePath, certificate.certificate.toString());
+        await LocalFile.write(
+          certificatePath,
+          certificate.certificate.toString(),
+        );
         await LocalFile.write(keyPath, certificate.certificateKey.toString());
 
-        logger.debug(`${JOB_NAME}: wrote certificate for ${hostnameOnly} to disk.`);
+        logger.debug(
+          `${JOB_NAME}: wrote certificate for ${hostnameOnly} to disk.`,
+        );
       },
     });
   }
