@@ -46,7 +46,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const [validationError, setValidationError] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [isValidating, setIsValidating] = useState<boolean>(false);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const licenseInputEditedRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
@@ -210,7 +209,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       "Dedicated engineer who can build custom features to integrate OneUptime with your ecosystem.",
       "Compliance reports (ISO, SOC, GDPR, HIPAA).",
       "Legal indemnification.",
-      "Audit logs.",
+      "Audit logs and many more enterprise-focused features.",
     ];
   }, []);
 
@@ -306,23 +305,11 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   );
 
   const handleValidateClick: () => void = () => {
-    if (isValidating || isRefreshing) {
+    if (isValidating) {
       return;
     }
 
     void runLicenseValidation(licenseKeyInput, setIsValidating);
-  };
-
-  const handleRefresh: () => void = () => {
-    if (isRefreshing || isValidating) {
-      return;
-    }
-
-    const existingKey: string =
-      globalConfig?.enterpriseLicenseKey?.toString().trim() ||
-      licenseKeyInput.trim();
-
-    void runLicenseValidation(existingKey, setIsRefreshing);
   };
 
   const handleRetryFetch: () => void = () => {
@@ -353,15 +340,19 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       {isDialogOpen && (
         <Modal
           title={editionName}
-          submitButtonText={IS_ENTERPRISE_EDITION ? "Refresh" : "Talk to Sales"}
+          submitButtonText={
+            IS_ENTERPRISE_EDITION ? "Validate License" : "Talk to Sales"
+          }
           closeButtonText="Close"
           onClose={closeDialog}
-          onSubmit={IS_ENTERPRISE_EDITION ? handleRefresh : handlePrimaryAction}
+          onSubmit={
+            IS_ENTERPRISE_EDITION ? handleValidateClick : handlePrimaryAction
+          }
           modalWidth={ModalWidth.Large}
-          isLoading={IS_ENTERPRISE_EDITION ? isRefreshing : false}
+          isLoading={IS_ENTERPRISE_EDITION ? isValidating : false}
           disableSubmitButton={
             IS_ENTERPRISE_EDITION
-              ? !globalConfig?.enterpriseLicenseKey || isRefreshing
+              ? !licenseKeyInput.trim() || isValidating || isConfigLoading
               : false
           }
           isBodyLoading={IS_ENTERPRISE_EDITION ? isConfigLoading : false}
@@ -378,7 +369,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                     <div className="mt-3">
                       <Button
                         title="Retry"
-                        buttonStyle={ButtonStyleType.SECONDARY}
+                        buttonStyle={ButtonStyleType.DANGER}
                         onClick={handleRetryFetch}
                         isLoading={isConfigLoading}
                       />
@@ -434,16 +425,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                       />
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        title="Validate"
-                        buttonStyle={ButtonStyleType.PRIMARY}
-                        onClick={handleValidateClick}
-                        isLoading={isValidating}
-                        disabled={isValidating || isRefreshing}
-                      />
-                    </div>
-
                     {successMessage && (
                       <p className="text-sm text-emerald-600">
                         {successMessage}
@@ -453,8 +434,47 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                     {validationError && (
                       <p className="text-sm text-red-600">{validationError}</p>
                     )}
+
+                    <p className="text-xs text-gray-500">
+                      You have installed Enterprise Edition of OneUptime. You need to validate your license key. Need a license key? Contact our sales team at
+                      {" "}
+                      <a
+                        href="mailto:sales@oneuptime.com"
+                        className="font-medium text-indigo-600 hover:text-indigo-700"
+                      >
+                        sales@oneuptime.com
+                      </a>
+                      .
+                    </p>
                   </>
                 )}
+
+                <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-indigo-900">
+                    Enterprise Edition Features
+                  </h3>
+                  <ul className="mt-3 space-y-2 text-sm text-indigo-900">
+                    {enterpriseFeatures.map(
+                      (feature: string, index: number) => {
+                        return (
+                          <li key={index} className="flex items-start gap-2">
+                            <Icon
+                              icon={IconProp.Check}
+                              type={IconType.Success}
+                              size={SizeProp.Small}
+                              className="mt-0.5"
+                            />
+                            <span className="leading-snug">{feature}</span>
+                          </li>
+                        );
+                      },
+                    )}
+                  </ul>
+                  <p className="mt-3 text-xs text-indigo-700">
+                    Already have a license? Validate it above to unlock these
+                    premium capabilities immediately.
+                  </p>
+                </div>
               </>
             ) : (
               <>
