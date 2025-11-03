@@ -448,5 +448,9 @@ function isMeaningfulMetricQuery(query: MetricQueryFromUrl): boolean {
     return true;
   }
 
+  if (query.alias && Object.keys(query.alias).length > 0) {
+    return true;
+  }
+
   return false;
 }
