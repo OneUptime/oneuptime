@@ -4,11 +4,13 @@ import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccess
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
+import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
+import Route from "../../Types/API/Route";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @TableAccessControl({
@@ -24,6 +26,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.Lock,
   tableDescription: "HTTP Challege for Lets Encrypt Certificates",
 })
+@CrudApiEndpoint(new Route("/acme-challenge"))
 @Entity({
   name: "AcmeChallenge",
 })

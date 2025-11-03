@@ -49,6 +49,8 @@ Usage:
   value: {{ $.Values.slackApp.clientId | quote }}
 - name: HOST
   value: {{ $.Values.host }}
+- name: PROVISION_SSL
+  value: {{ ternary "true" "false" (default false (dig "ssl" "provision" $.Values)) | quote }}
 - name: STATUS_PAGE_CNAME_RECORD
   value: {{ $.Values.statusPage.cnameRecord }}
 - name: ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN
