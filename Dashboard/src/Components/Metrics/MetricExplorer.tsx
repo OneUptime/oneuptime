@@ -345,9 +345,7 @@ function buildAliasFromMetricAliasData(
     alias.title = data.title;
   }
 
-  if (
-    typeof data.description === "string" && data.description.trim() !== ""
-  ) {
+  if (typeof data.description === "string" && data.description.trim() !== "") {
     alias.description = data.description;
   }
 
@@ -369,7 +367,10 @@ function sanitizeAlias(
   const alias: MetricQueryAliasFromUrl = {};
 
   if (value && typeof value === "object" && !Array.isArray(value)) {
-    const aliasRecord: Record<string, unknown> = value as Record<string, unknown>;
+    const aliasRecord: Record<string, unknown> = value as Record<
+      string,
+      unknown
+    >;
 
     if (typeof aliasRecord["title"] === "string") {
       alias.title = aliasRecord["title"] as string;

@@ -29,10 +29,10 @@ export interface ComponentProps {
 const MetricFilter: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [showAdvancedFilters, setShowAdvancedFilters] =
-    useState<boolean>(true);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(true);
 
-  const initializedAdvancedFilters = React.useRef<boolean>(false);
+  const initializedAdvancedFilters: React.MutableRefObject<boolean> =
+    React.useRef<boolean>(false);
 
   React.useEffect(() => {
     if (initializedAdvancedFilters.current) {

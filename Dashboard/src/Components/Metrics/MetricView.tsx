@@ -45,11 +45,13 @@ const getFetchRelevantState: (data: MetricViewData) => unknown = (
           endValue: data.startAndEndDate.endValue,
         }
       : null,
-    queryConfigs: data.queryConfigs.map((queryConfig: MetricQueryConfigData) => {
-      return {
-        metricQueryData: queryConfig.metricQueryData,
-      };
-    }),
+    queryConfigs: data.queryConfigs.map(
+      (queryConfig: MetricQueryConfigData) => {
+        return {
+          metricQueryData: queryConfig.metricQueryData,
+        };
+      },
+    ),
   };
 };
 
