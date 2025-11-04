@@ -177,11 +177,15 @@ export class Statement implements BaseQueryParams {
     };
 
     if ((statementParam as StatementParameter).value instanceof Includes) {
-      const isNumberArray: boolean = (
+      const includesValues: Array<string | number | ObjectID> = (
         (statementParam as StatementParameter).value as Includes
-      ).values.every((v: string | number | ObjectID) => {
-        return typeof v === "number";
-      });
+      ).values as Array<string | number | ObjectID>;
+
+      const isNumberArray: boolean = includesValues.every(
+        (v: string | number | ObjectID) => {
+          return typeof v === "number";
+        },
+      );
 
       if (isNumberArray) {
         return "Array(Int32)";
