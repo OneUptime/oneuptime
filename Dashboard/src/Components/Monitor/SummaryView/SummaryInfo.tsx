@@ -107,7 +107,9 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderEvaluationLogs = (
+  const renderEvaluationLogs: (
+    summary?: MonitorEvaluationSummary | undefined,
+  ) => ReactElement = (
     summary?: MonitorEvaluationSummary | undefined,
   ): ReactElement => {
     if (!summary) {

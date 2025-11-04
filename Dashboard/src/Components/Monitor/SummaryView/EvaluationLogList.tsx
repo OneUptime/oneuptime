@@ -39,7 +39,10 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
 
   const getSummaryTitle: string = props.title || "Evaluation Logs";
 
-  const renderCriteriaResult = (
+  const renderCriteriaResult: (
+    criteria: MonitorEvaluationCriteriaResult,
+    index: number,
+  ) => ReactElement = (
     criteria: MonitorEvaluationCriteriaResult,
     index: number,
   ): ReactElement => {
@@ -94,7 +97,10 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderEvent = (
+  const renderEvent: (
+    event: MonitorEvaluationEvent,
+    index: number,
+  ) => ReactElement = (
     event: MonitorEvaluationEvent,
     index: number,
   ): ReactElement => {

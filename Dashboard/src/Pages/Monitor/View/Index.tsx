@@ -218,7 +218,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             const latestLog: MonitorLog | undefined = monitorLogResult.data[0];
 
             if (latestLog?.logBody) {
-              const evaluationSummary = (
+              const evaluationSummary: MonitorEvaluationSummary | undefined = (
                 latestLog.logBody as unknown as {
                   evaluationSummary?: MonitorEvaluationSummary | undefined;
                 }
@@ -231,7 +231,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           } else {
             setLatestEvaluationSummary(undefined);
           }
-        } catch (_err) {
+        } catch {
           setLatestEvaluationSummary(undefined);
         }
       } else {
