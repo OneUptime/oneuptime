@@ -9,6 +9,22 @@ ssl:
   # Automatically provision a Let's Encrypt certificate for the primary host when set to true.
   provision: false
 
+image:
+  registry: docker.io
+  repository: oneuptime
+  pullPolicy: Always
+  tag: release
+
+  ## Type of OneUptime image to use.
+  ## Possible values: community-edition, enterprise-edition
+  ## Enterprise edition images are hardened for more security and compliance, but you need a valid license to use them.
+  ## Please contact sales@oneuptime.com for more information.
+  type: community-edition
+  
+  restartPolicy: Always
+# imagePullSecrets:
+#   - name: MyCustomSecretNameWithDockerCredentials
+
 # Important: You do need to set this to a long random values if you're using OneUptime in production.
 # Please set this to string.
 oneuptimeSecret:
@@ -205,15 +221,7 @@ redis:
     save ""
     maxmemory-policy noeviction
 
-image:
-  registry: docker.io
-  repository: oneuptime
-  pullPolicy: Always
-  tag: release
-  type: community-edition
-  restartPolicy: Always
-# imagePullSecrets:
-#   - name: MyCustomSecretNameWithDockerCredentials
+
 
 autoscaling:
   enabled: false
