@@ -25,8 +25,7 @@ export default class NginxConfigurator {
       return;
     }
 
-    const certificateDirective: string =
-      `ssl_certificate /etc/nginx/certs/ServerCerts/${normalizedHost}.crt;`;
+    const certificateDirective: string = `ssl_certificate /etc/nginx/certs/ServerCerts/${normalizedHost}.crt;`;
 
     let nginxConfig: string = "";
     try {
@@ -38,11 +37,11 @@ export default class NginxConfigurator {
       logger.debug(err);
     }
 
-    const templateHasDirective: boolean = nginxConfig.includes(
-      certificateDirective,
-    );
+    const templateHasDirective: boolean =
+      nginxConfig.includes(certificateDirective);
     const shouldRefreshTemplate: boolean = !templateHasDirective;
-    const shouldReload: boolean = options.forceReload === true || shouldRefreshTemplate;
+    const shouldReload: boolean =
+      options.forceReload === true || shouldRefreshTemplate;
 
     if (!shouldReload) {
       return;

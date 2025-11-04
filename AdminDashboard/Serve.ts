@@ -35,7 +35,9 @@ const ensureMasterAdminAccess: EnsureMasterAdminAccessFunction = async (
       Response.sendErrorResponse(
         req,
         res,
-        new NotAuthorizedException("Unauthorized: Only master admins can access the admin dashboard."),
+        new NotAuthorizedException(
+          "Unauthorized: Only master admins can access the admin dashboard.",
+        ),
       );
       return {};
     }
@@ -46,7 +48,9 @@ const ensureMasterAdminAccess: EnsureMasterAdminAccessFunction = async (
       Response.sendErrorResponse(
         req,
         res,
-        new NotAuthorizedException("Unauthorized: Only master admins can access the admin dashboard."),
+        new NotAuthorizedException(
+          "Unauthorized: Only master admins can access the admin dashboard.",
+        ),
       );
       return {};
     }
@@ -57,7 +61,9 @@ const ensureMasterAdminAccess: EnsureMasterAdminAccessFunction = async (
     Response.sendErrorResponse(
       req,
       res,
-      new NotAuthorizedException("Unauthorized: Only master admins can access the admin dashboard."),
+      new NotAuthorizedException(
+        "Unauthorized: Only master admins can access the admin dashboard.",
+      ),
     );
     return {};
   }

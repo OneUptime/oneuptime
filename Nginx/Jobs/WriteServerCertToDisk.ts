@@ -77,10 +77,11 @@ export default class WriteServerCertToDiskJob {
           (await LocalFile.doesFileExist(certificatePath))
             ? await LocalFile.read(certificatePath)
             : null;
-        const existingKey: string | null =
-          (await LocalFile.doesFileExist(keyPath))
-            ? await LocalFile.read(keyPath)
-            : null;
+        const existingKey: string | null = (await LocalFile.doesFileExist(
+          keyPath,
+        ))
+          ? await LocalFile.read(keyPath)
+          : null;
 
         const certificateChanged: boolean =
           existingCertificate !== certificatePem ||
