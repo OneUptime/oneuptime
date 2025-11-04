@@ -383,6 +383,11 @@ export default class MonitorResourceUtil {
       logger.debug(
         `${dataToProcess.monitorId.toString()} - No monitoring steps.`,
       );
+      MonitorResourceUtil.saveMonitorLog({
+        monitorId: monitor.id!,
+        projectId: monitor.projectId!,
+        dataToProcess: dataToProcess,
+      });
       return response;
     }
 
@@ -493,6 +498,11 @@ export default class MonitorResourceUtil {
 
     if (!monitorStep) {
       logger.debug("No steps found, ignoring everything.");
+      MonitorResourceUtil.saveMonitorLog({
+        monitorId: monitor.id!,
+        projectId: monitor.projectId!,
+        dataToProcess: dataToProcess,
+      });
       return response;
     }
 
@@ -721,6 +731,12 @@ export default class MonitorResourceUtil {
         logger.error(err);
       }
     }
+
+    MonitorResourceUtil.saveMonitorLog({
+      monitorId: monitor.id!,
+      projectId: monitor.projectId!,
+      dataToProcess: dataToProcess,
+    });
 
     return response;
   }
@@ -1109,8 +1125,25 @@ export default class MonitorResourceUtil {
     }).catch((err: Error) => {
       logger.error(err);
     });
+  }
 
-    // save monitor log.
+  private static saveMonitorLog(data: {
+    monitorId: ObjectID;
+    projectId: ObjectID;
+    dataToProcess: DataToProcess;
+  }): void {
+    if (!data.monitorId) {
+      return;
+    }
+
+    if (!data.projectId) {
+      return;
+    }
+
+    if (!data.dataToProcess) {
+      return;
+    }
+
     const logIngestionDate: Date = OneUptimeDate.getCurrentDate();
     const logTimestamp: string =
       OneUptimeDate.toClickhouseDateTime(logIngestionDate);
