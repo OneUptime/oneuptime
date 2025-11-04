@@ -7,6 +7,9 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Text from "../../Types/Text";
 import Model from "../../Models/DatabaseModels/Domain";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import ObjectID from "../../Types/ObjectID";
+import { FindWhere } from "../../Types/BaseDatabase/Query";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -32,6 +35,11 @@ export class Service extends DatabaseService<Model> {
       createBy.data.domain = new Domain(domain.trim().toLowerCase());
     }
 
+
+    if(!createBy.props.isRoot){
+      createBy.data.isVerified = false;
+    }
+
     createBy.data.domainVerificationText =
       "oneuptime-verification-" + Text.generateRandomText(20);
     return Promise.resolve({ createBy, carryForward: null });
@@ -43,65 +51,70 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnUpdate<Model>> {
     if (
       updateBy.data.isVerified &&
-      updateBy.query._id &&
       !updateBy.props.isRoot
     ) {
+
+      const projectId: FindWhere<ObjectID> | undefined = updateBy.query.projectId || updateBy.props.tenantId;
+
+      if (!projectId) {
+        throw new BadDataException(
+          "Project ID is required to verify the domain.",
+        );
+      }
+
       // check the verification of the domain.
 
       const items: Array<Model> = await this.findBy({
         query: {
-          _id: updateBy.query._id as string,
-          projectId: updateBy.props.tenantId!,
+          projectId,
+          ...updateBy.query,
         },
         select: {
           domain: true,
           domainVerificationText: true,
         },
 
-        limit: 1,
+        limit: LIMIT_PER_PROJECT,
         skip: 0,
         props: {
           isRoot: true,
         },
       });
 
-      if (items.length === 0) {
-        throw new BadDataException(
-          "Domain with id " + updateBy.query._id + " not found.",
-        );
-      }
+      for (const item of items) {
 
-      const domain: string | undefined = items[0]?.domain?.toString();
-      const verificationText: string | undefined =
-        items[0]?.domainVerificationText?.toString();
+        const domain: string | undefined = item?.domain?.toString();
+        const verificationText: string | undefined =
+          item?.domainVerificationText?.toString();
 
-      if (!domain) {
-        throw new BadDataException(
-          "Domain with id " + updateBy.query._id + " not found.",
-        );
-      }
+        if (!domain) {
+          throw new BadDataException(
+            "Domain not found.",
+          );
+        }
 
-      if (!verificationText) {
-        throw new BadDataException(
-          "Domain verification text with id " +
+        if (!verificationText) {
+          throw new BadDataException(
+            "Domain verification text with id " +
             updateBy.query._id +
             " not found.",
+          );
+        }
+
+        const isVerified: boolean = await Domain.verifyTxtRecord(
+          domain,
+          verificationText,
         );
-      }
 
-      const isVerified: boolean = await Domain.verifyTxtRecord(
-        domain,
-        verificationText,
-      );
-
-      if (!isVerified) {
-        throw new BadDataException(
-          "Verification TXT record " +
+        if (!isVerified) {
+          throw new BadDataException(
+            "Verification TXT record " +
             verificationText +
             " not found in domain " +
             domain +
             ". Please add a TXT record to verify the domain. If you have already added the TXT record, please wait for few hours to let DNS to propagate.",
-        );
+          );
+        }
       }
     }
 
