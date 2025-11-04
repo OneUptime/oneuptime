@@ -77,11 +77,7 @@ x-common-variables: &common-variables
 
     MICROSOFT_TEAMS_APP_CLIENT_ID: ${MICROSOFT_TEAMS_APP_CLIENT_ID}
 
-x-common-ui-variables: &common-ui-variables
-    <<: *common-variables   
-    IS_SERVER: "false"
-    
-x-common-server-variables: &common-server-variables
+x-common-runtime-variables: &common-runtime-variables
     <<: *common-variables
     ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
 
@@ -118,8 +114,6 @@ x-common-server-variables: &common-server-variables
     CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE}
     CLICKHOUSE_HOST: ${CLICKHOUSE_HOST}
     CLICKHOUSE_PORT: ${CLICKHOUSE_PORT}
-
-    IS_SERVER: "true"
 
     AVERAGE_SPAN_ROW_SIZE_IN_BYTES: ${AVERAGE_SPAN_ROW_SIZE_IN_BYTES}
     AVERAGE_LOG_ROW_SIZE_IN_BYTES: ${AVERAGE_LOG_ROW_SIZE_IN_BYTES}
@@ -200,7 +194,7 @@ services:
           - oneuptime
         restart: always
         environment: 
-            <<: *common-ui-variables
+            <<: *common-runtime-variables
             PORT: ${ACCOUNTS_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_ACCOUNTS}
         logging:
@@ -214,7 +208,7 @@ services:
           - oneuptime
         restart: always
         environment:
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             PORT: 8547
             HF_TOKEN: ${LLM_SERVER_HUGGINGFACE_TOKEN}
             HF_MODEL_NAME: ${LLM_SERVER_HUGGINGFACE_MODEL_NAME}
@@ -230,7 +224,7 @@ services:
           - oneuptime
         restart: always
         environment:
-            <<: *common-ui-variables
+            <<: *common-runtime-variables
             PORT: ${ADMIN_DASHBOARD_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_ADMIN_DASHBOARD}
         logging:
@@ -243,7 +237,7 @@ services:
           - oneuptime
         restart: always
         environment:
-            <<: *common-ui-variables
+            <<: *common-runtime-variables
             PORT: ${DASHBOARD_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_DASHBOARD}
         logging:
@@ -258,7 +252,7 @@ services:
           - oneuptime
         restart: always
         environment:
-            <<: *common-ui-variables
+            <<: *common-runtime-variables
             PORT: ${STATUS_PAGE_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_STATUS_PAGE}
         logging:
@@ -273,7 +267,7 @@ services:
           - oneuptime
         restart: always
         environment: 
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             PORT: ${TEST_SERVER_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_TEST_SERVER}
         logging:
@@ -287,7 +281,7 @@ services:
           - oneuptime
         restart: always
         environment: 
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             PORT: ${APP_PORT}
             SMS_DEFAULT_COST_IN_CENTS: ${SMS_DEFAULT_COST_IN_CENTS}
             WHATSAPP_TEXT_DEFAULT_COST_IN_CENTS: ${WHATSAPP_TEXT_DEFAULT_COST_IN_CENTS}
@@ -305,7 +299,7 @@ services:
           - oneuptime
         restart: always
         environment: 
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             PORT: ${HOME_PORT}
         logging:
             driver: "local"
@@ -317,7 +311,7 @@ services:
           - oneuptime
         restart: always
         environment: 
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             PORT: ${WORKER_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_WORKER}
             WORKER_CONCURRENCY: ${WORKER_CONCURRENCY}
@@ -331,7 +325,7 @@ services:
           - oneuptime
         restart: always
         environment: 
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             PORT: ${DOCS_PORT}
         logging:
             driver: "local"
@@ -343,7 +337,7 @@ services:
           - oneuptime
         restart: always
         environment: 
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             PORT: ${API_REFERENCE_PORT}
         logging:
             driver: "local"
@@ -355,7 +349,7 @@ services:
           - oneuptime
         restart: always
         environment: 
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             PORT: ${WORKFLOW_PORT}
         logging:
             driver: "local"
@@ -366,7 +360,7 @@ services:
         restart: always
         network_mode: host
         environment:
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             PROBE_NAME: ${GLOBAL_PROBE_1_NAME}
             PROBE_DESCRIPTION: ${GLOBAL_PROBE_1_DESCRIPTION}
             PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_1_MONITORING_WORKERS}
@@ -386,7 +380,7 @@ services:
         restart: always
         network_mode: host
         environment:
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             PROBE_NAME: ${GLOBAL_PROBE_2_NAME}
             PROBE_DESCRIPTION: ${GLOBAL_PROBE_2_DESCRIPTION}
             PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_2_MONITORING_WORKERS}
@@ -457,7 +451,7 @@ services:
           - oneuptime
         restart: always
         environment:
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             PORT: ${FLUENT_INGEST_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_FLUENT_INGEST}
             FLUENT_INGEST_CONCURRENCY: ${FLUENT_INGEST_CONCURRENCY}
@@ -471,7 +465,7 @@ services:
           - oneuptime
         restart: always
         environment:
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             PORT: ${PROBE_INGEST_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE_INGEST}
             PROBE_INGEST_CONCURRENCY: ${PROBE_INGEST_CONCURRENCY}
@@ -485,7 +479,7 @@ services:
           - oneuptime
         restart: always
         environment:
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             PORT: ${SERVER_MONITOR_INGEST_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_SERVER_MONITOR_INGEST}
             SERVER_MONITOR_INGEST_CONCURRENCY: ${SERVER_MONITOR_INGEST_CONCURRENCY}
@@ -499,7 +493,7 @@ services:
           - oneuptime
         restart: always
         environment:
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             PORT: ${OPEN_TELEMETRY_INGEST_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_OPEN_TELEMETRY_INGEST}
             # Max concurrent telemetry jobs the worker will process
@@ -514,7 +508,7 @@ services:
           - oneuptime
         restart: always
         environment:
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             PORT: ${INCOMING_REQUEST_INGEST_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_INCOMING_REQUEST_INGEST}
             INCOMING_REQUEST_INGEST_CONCURRENCY: ${INCOMING_REQUEST_INGEST_CONCURRENCY}
@@ -562,7 +556,7 @@ services:
         networks:
           - oneuptime
         environment:
-            <<: *common-server-variables
+            <<: *common-runtime-variables
             ONEUPTIME_HTTP_PORT: ${ONEUPTIME_HTTP_PORT}
             NGINX_LISTEN_ADDRESS: ${NGINX_LISTEN_ADDRESS}
             NGINX_LISTEN_OPTIONS: ${NGINX_LISTEN_OPTIONS}
