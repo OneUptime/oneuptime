@@ -58,6 +58,7 @@ export default class NginxConfigurator {
         await Exec.executeCommand(this.ENVSUBST_SCRIPT_PATH);
       }
 
+      await Exec.executeCommand("nginx -t");
       await Exec.executeCommand("nginx -s reload");
       logger.info(
         `[NginxConfigurator] Reloaded nginx after updating certificate for ${normalizedHost}.`,

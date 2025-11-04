@@ -5,10 +5,8 @@ set -e
 ME=$(basename $0)
 
 PRIMARY_DOMAIN_LOWER=""
-PRIMARY_DOMAIN_LOG_LABEL="primary-domain-not-set"
 if [ -n "${PRIMARY_DOMAIN}" ]; then
   PRIMARY_DOMAIN_LOWER=$(printf '%s' "${PRIMARY_DOMAIN}" | tr '[:upper:]' '[:lower:]')
-  PRIMARY_DOMAIN_LOG_LABEL="${PRIMARY_DOMAIN_LOWER}"
 fi
 
 SERVER_CERT_DIRECTORY="/etc/nginx/certs/ServerCerts"
@@ -20,14 +18,67 @@ if [ -n "${PRIMARY_DOMAIN_LOWER}" ]; then
   SERVER_CERT_KEY_PATH="${SERVER_CERT_DIRECTORY}/${PRIMARY_DOMAIN_LOWER}.key"
 fi
 
+ensure_placeholder_certificate() {
+  cert_path="$1"
+  key_path="$2"
+  domain="$3"
+
+  if [ -z "$cert_path" ] || [ -z "$key_path" ] || [ -z "$domain" ]; then
+    return 1
+  fi
+
+  if [ -f "$cert_path" ] && [ -f "$key_path" ]; then
+    return 0
+  fi
+
+  if ! command -v openssl >/dev/null 2>&1; then
+    echo "$ME: ERROR: openssl not available; cannot generate placeholder certificate for '$domain'."
+    return 1
+  fi
+
+  echo "$ME: Generating temporary self-signed certificate for '$domain' while awaiting ACME provisioning."
+
+  tmp_dir=$(mktemp -d)
+  if [ ! -d "$tmp_dir" ]; then
+    echo "$ME: ERROR: unable to create temporary directory for placeholder certificate generation."
+    return 1
+  fi
+
+  mkdir -p "$(dirname "$cert_path")"
+
+  if ! openssl req -x509 -newkey rsa:2048 -nodes \
+    -subj "/C=US/ST=CA/L=San Francisco/O=OneUptime/OU=Ingress/CN=${domain}" \
+    -keyout "${tmp_dir}/placeholder.key" \
+    -out "${tmp_dir}/placeholder.crt" \
+    -days 3 >/dev/null 2>&1; then
+      echo "$ME: ERROR: failed to generate placeholder certificate for '$domain'."
+      rm -rf "$tmp_dir"
+      return 1
+  fi
+
+  mv "${tmp_dir}/placeholder.crt" "$cert_path"
+  mv "${tmp_dir}/placeholder.key" "$key_path"
+  chmod 600 "$cert_path" "$key_path"
+  rm -rf "$tmp_dir"
+
+  return 0
+}
+
 # Prepare conditional SSL directives for templates that need them.
 if [ -n "${PROVISION_SSL}" ]; then
-  if [ -n "${SERVER_CERT_PATH}" ] && [ -f "${SERVER_CERT_PATH}" ] && [ -f "${SERVER_CERT_KEY_PATH}" ]; then
-    export PROVISION_SSL_LISTEN_DIRECTIVE="    listen ${NGINX_LISTEN_ADDRESS}7850 ssl ${NGINX_LISTEN_OPTIONS};"
-    export PROVISION_SSL_CERTIFICATE_DIRECTIVE="    ssl_certificate ${SERVER_CERT_PATH};"
-    export PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE="    ssl_certificate_key ${SERVER_CERT_KEY_PATH};"
+  if [ -n "${SERVER_CERT_PATH}" ] && [ -n "${SERVER_CERT_KEY_PATH}" ]; then
+    if ensure_placeholder_certificate "${SERVER_CERT_PATH}" "${SERVER_CERT_KEY_PATH}" "${PRIMARY_DOMAIN_LOWER}"; then
+      export PROVISION_SSL_LISTEN_DIRECTIVE="    listen ${NGINX_LISTEN_ADDRESS}7850 ssl ${NGINX_LISTEN_OPTIONS};"
+      export PROVISION_SSL_CERTIFICATE_DIRECTIVE="    ssl_certificate ${SERVER_CERT_PATH};"
+      export PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE="    ssl_certificate_key ${SERVER_CERT_KEY_PATH};"
+    else
+      echo "$ME: WARNING: failed to ensure placeholder certificate for '${PRIMARY_DOMAIN_LOWER}'. HTTPS directives disabled to keep nginx healthy."
+      export PROVISION_SSL_LISTEN_DIRECTIVE=""
+      export PROVISION_SSL_CERTIFICATE_DIRECTIVE=""
+      export PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE=""
+    fi
   else
-    echo "$ME: SSL provisioning enabled but certificate not yet available for '${PRIMARY_DOMAIN_LOG_LABEL}'. Skipping HTTPS directives until certificate exists."
+    echo "$ME: WARNING: PRIMARY_DOMAIN not set; cannot enable HTTPS provisioning."
     export PROVISION_SSL_LISTEN_DIRECTIVE=""
     export PROVISION_SSL_CERTIFICATE_DIRECTIVE=""
     export PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE=""
