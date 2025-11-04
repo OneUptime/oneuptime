@@ -4,11 +4,34 @@ set -e
 
 ME=$(basename $0)
 
+PRIMARY_DOMAIN_LOWER=""
+PRIMARY_DOMAIN_LOG_LABEL="primary-domain-not-set"
+if [ -n "${PRIMARY_DOMAIN}" ]; then
+  PRIMARY_DOMAIN_LOWER=$(printf '%s' "${PRIMARY_DOMAIN}" | tr '[:upper:]' '[:lower:]')
+  PRIMARY_DOMAIN_LOG_LABEL="${PRIMARY_DOMAIN_LOWER}"
+fi
+
+SERVER_CERT_DIRECTORY="/etc/nginx/certs/ServerCerts"
+SERVER_CERT_PATH=""
+SERVER_CERT_KEY_PATH=""
+
+if [ -n "${PRIMARY_DOMAIN_LOWER}" ]; then
+  SERVER_CERT_PATH="${SERVER_CERT_DIRECTORY}/${PRIMARY_DOMAIN_LOWER}.crt"
+  SERVER_CERT_KEY_PATH="${SERVER_CERT_DIRECTORY}/${PRIMARY_DOMAIN_LOWER}.key"
+fi
+
 # Prepare conditional SSL directives for templates that need them.
 if [ -n "${PROVISION_SSL}" ]; then
-  export PROVISION_SSL_LISTEN_DIRECTIVE="    listen ${NGINX_LISTEN_ADDRESS}7850 ssl ${NGINX_LISTEN_OPTIONS};"
-  export PROVISION_SSL_CERTIFICATE_DIRECTIVE="    ssl_certificate /etc/nginx/certs/ServerCerts/${PRIMARY_DOMAIN}.crt;"
-  export PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE="    ssl_certificate_key /etc/nginx/certs/ServerCerts/${PRIMARY_DOMAIN}.key;"
+  if [ -n "${SERVER_CERT_PATH}" ] && [ -f "${SERVER_CERT_PATH}" ] && [ -f "${SERVER_CERT_KEY_PATH}" ]; then
+    export PROVISION_SSL_LISTEN_DIRECTIVE="    listen ${NGINX_LISTEN_ADDRESS}7850 ssl ${NGINX_LISTEN_OPTIONS};"
+    export PROVISION_SSL_CERTIFICATE_DIRECTIVE="    ssl_certificate ${SERVER_CERT_PATH};"
+    export PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE="    ssl_certificate_key ${SERVER_CERT_KEY_PATH};"
+  else
+    echo "$ME: SSL provisioning enabled but certificate not yet available for '${PRIMARY_DOMAIN_LOG_LABEL}'. Skipping HTTPS directives until certificate exists."
+    export PROVISION_SSL_LISTEN_DIRECTIVE=""
+    export PROVISION_SSL_CERTIFICATE_DIRECTIVE=""
+    export PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE=""
+  fi
 else
   export PROVISION_SSL_LISTEN_DIRECTIVE=""
   export PROVISION_SSL_CERTIFICATE_DIRECTIVE=""
