@@ -12,12 +12,18 @@ import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import { JSONObject } from "Common/Types/JSON";
 import "ejs";
+import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 
 export const APP_NAME: string = "admin";
 
 const app: ExpressApplication = Express.getExpressApp();
 
-const ensureMasterAdminAccess = async (
+type EnsureMasterAdminAccessFunction = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+) => Promise<JSONObject>;
+
+const ensureMasterAdminAccess: EnsureMasterAdminAccessFunction = async (
   req: ExpressRequest,
   res: ExpressResponse,
 ): Promise<JSONObject> => {
@@ -34,7 +40,7 @@ const ensureMasterAdminAccess = async (
       return {};
     }
 
-    const authData = JSONWebToken.decode(accessToken);
+    const authData: JSONWebTokenData = JSONWebToken.decode(accessToken);
 
     if (!authData.isMasterAdmin) {
       Response.sendErrorResponse(
