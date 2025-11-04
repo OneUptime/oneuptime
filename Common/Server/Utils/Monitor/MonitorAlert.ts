@@ -21,6 +21,8 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import { JSONObject } from "../../../Types/JSON";
+import OneUptimeDate from "../../../Types/Date";
+import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 
 export default class MonitorAlert {
   @CaptureSpan()
@@ -30,6 +32,7 @@ export default class MonitorAlert {
     rootCause: string;
     criteriaInstance: MonitorCriteriaInstance | null;
     dataToProcess: DataToProcess;
+    evaluationSummary?: MonitorEvaluationSummary | undefined;
   }): Promise<Array<Alert>> {
     // check active alerts and if there are open alerts, do not cretae anothr alert.
     const openAlerts: Array<Alert> = await AlertService.findBy({
@@ -68,6 +71,16 @@ export default class MonitorAlert {
           rootCause: input.rootCause,
           dataToProcess: input.dataToProcess,
         });
+
+        input.evaluationSummary?.events.push({
+          type: "alert-resolved",
+          title: `Alert resolved: ${openAlert.id?.toString()}`,
+          message:
+            "Alert auto-resolved because autoresolve is enabled for this criteria.",
+          relatedAlertId: openAlert.id?.toString(),
+          relatedCriteriaId: input.criteriaInstance?.data?.id,
+          at: OneUptimeDate.getCurrentDate(),
+        });
       }
     }
 
@@ -81,6 +94,7 @@ export default class MonitorAlert {
     dataToProcess: DataToProcess;
     rootCause: string;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
+    evaluationSummary?: MonitorEvaluationSummary | undefined;
     props: {
       telemetryQuery?: TelemetryQuery | undefined;
     };
@@ -96,6 +110,7 @@ export default class MonitorAlert {
         rootCause: input.rootCause,
         criteriaInstance: input.criteriaInstance,
         dataToProcess: input.dataToProcess,
+        evaluationSummary: input.evaluationSummary,
       });
 
     if (input.criteriaInstance.data?.createAlerts) {
@@ -124,6 +139,15 @@ export default class MonitorAlert {
         );
 
         if (hasAlreadyOpenAlert) {
+          input.evaluationSummary?.events.push({
+            type: "alert-skipped",
+            title: `Alert already active: ${criteriaAlert.title}`,
+            message:
+              "Skipped creating a new alert because an active alert exists for this criteria.",
+            relatedCriteriaId: input.criteriaInstance.data?.id,
+            relatedAlertId: alreadyOpenAlert?.id?.toString(),
+            at: OneUptimeDate.getCurrentDate(),
+          });
           continue;
         }
 
@@ -214,14 +238,31 @@ export default class MonitorAlert {
         }
 
         if (DisableAutomaticAlertCreation) {
+          input.evaluationSummary?.events.push({
+            type: "alert-skipped",
+            title: "Alert creation skipped",
+            message:
+              "Automatic alert creation is disabled by environment configuration.",
+            relatedCriteriaId: input.criteriaInstance.data?.id,
+            at: OneUptimeDate.getCurrentDate(),
+          });
           return;
         }
 
-        await AlertService.create({
+        const createdAlert: Alert = await AlertService.create({
           data: alert,
           props: {
             isRoot: true,
           },
+        });
+
+        input.evaluationSummary?.events.push({
+          type: "alert-created",
+          title: `Alert created: ${createdAlert.title || criteriaAlert.title}`,
+          message: `Alert triggered from criteria "${input.criteriaInstance.data?.name || "Unnamed criteria"}".`,
+          relatedCriteriaId: input.criteriaInstance.data?.id,
+          relatedAlertId: createdAlert.id?.toString(),
+          at: OneUptimeDate.getCurrentDate(),
         });
       }
     }

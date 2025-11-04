@@ -6,6 +6,7 @@ import { JSONObject } from "../JSON";
 import CustomCodeMonitorResponse from "../Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import SslMonitorResponse from "../Monitor/SSLMonitor/SslMonitorResponse";
 import SyntheticMonitorResponse from "../Monitor/SyntheticMonitors/SyntheticMonitorResponse";
+import MonitorEvaluationSummary from "../Monitor/MonitorEvaluationSummary";
 import ObjectID from "../ObjectID";
 import Port from "../Port";
 
@@ -28,4 +29,5 @@ export default interface ProbeMonitorResponse {
   monitoredAt: Date;
   isTimeout?: boolean | undefined;
   ingestedAt?: Date | undefined;
+  evaluationSummary?: MonitorEvaluationSummary | undefined;
 }

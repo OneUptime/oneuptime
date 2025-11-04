@@ -21,6 +21,8 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import { JSONObject } from "../../../Types/JSON";
+import OneUptimeDate from "../../../Types/Date";
+import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 
 export default class MonitorIncident {
   @CaptureSpan()
@@ -32,6 +34,7 @@ export default class MonitorIncident {
     rootCause: string;
     criteriaInstance: MonitorCriteriaInstance | null;
     dataToProcess: DataToProcess;
+    evaluationSummary?: MonitorEvaluationSummary | undefined;
   }): Promise<Array<Incident>> {
     // check active incidents and if there are open incidents, do not cretae anothr incident.
     const openIncidents: Array<Incident> = await IncidentService.findBy({
@@ -71,6 +74,16 @@ export default class MonitorIncident {
           rootCause: input.rootCause,
           dataToProcess: input.dataToProcess,
         });
+
+        input.evaluationSummary?.events.push({
+          type: "incident-resolved",
+          title: `Incident resolved: ${openIncident.id?.toString()}`,
+          message:
+            "Incident auto-resolved because autoresolve is enabled for this criteria.",
+          relatedIncidentId: openIncident.id?.toString(),
+          relatedCriteriaId: input.criteriaInstance?.data?.id,
+          at: OneUptimeDate.getCurrentDate(),
+        });
       }
     }
 
@@ -86,6 +99,7 @@ export default class MonitorIncident {
     autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
       Array<string>
     >;
+    evaluationSummary?: MonitorEvaluationSummary | undefined;
     props: {
       telemetryQuery?: TelemetryQuery | undefined;
     };
@@ -101,6 +115,7 @@ export default class MonitorIncident {
         rootCause: input.rootCause,
         criteriaInstance: input.criteriaInstance,
         dataToProcess: input.dataToProcess,
+        evaluationSummary: input.evaluationSummary,
       });
 
     if (input.criteriaInstance.data?.createIncidents) {
@@ -132,6 +147,15 @@ export default class MonitorIncident {
         );
 
         if (hasAlreadyOpenIncident) {
+          input.evaluationSummary?.events.push({
+            type: "incident-skipped",
+            title: `Incident already active: ${criteriaIncident.title}`,
+            message:
+              "Skipped creating a new incident because an active incident exists for this criteria.",
+            relatedCriteriaId: input.criteriaInstance.data?.id,
+            relatedIncidentId: alreadyOpenIncident?.id?.toString(),
+            at: OneUptimeDate.getCurrentDate(),
+          });
           continue;
         }
 
@@ -226,14 +250,31 @@ export default class MonitorIncident {
         }
 
         if (DisableAutomaticIncidentCreation) {
+          input.evaluationSummary?.events.push({
+            type: "incident-skipped",
+            title: "Incident creation skipped",
+            message:
+              "Automatic incident creation is disabled by environment configuration.",
+            relatedCriteriaId: input.criteriaInstance.data?.id,
+            at: OneUptimeDate.getCurrentDate(),
+          });
           return;
         }
 
-        await IncidentService.create({
+        const createdIncident: Incident = await IncidentService.create({
           data: incident,
           props: {
             isRoot: true,
           },
+        });
+
+        input.evaluationSummary?.events.push({
+          type: "incident-created",
+          title: `Incident created: ${createdIncident.title || criteriaIncident.title}`,
+          message: `Incident triggered from criteria "${input.criteriaInstance.data?.name || "Unnamed criteria"}".`,
+          relatedCriteriaId: input.criteriaInstance.data?.id,
+          relatedIncidentId: createdIncident.id?.toString(),
+          at: OneUptimeDate.getCurrentDate(),
         });
       }
     }

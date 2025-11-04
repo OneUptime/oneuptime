@@ -15,6 +15,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 import TelemetryMonitorSummaryView from "./TelemetryMonitorView";
 import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
 import CustomCodeMonitorSummaryView from "./CustomCodeMonitorSummaryView";
+import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
+import EvaluationLogList from "./EvaluationLogList";
 
 export interface ComponentProps {
   monitorType: MonitorType;
@@ -23,6 +25,7 @@ export interface ComponentProps {
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
   serverMonitorResponse?: ServerMonitorResponse | undefined;
   telemetryMonitorSummary?: TelemetryMonitorSummary | undefined;
+  evaluationSummary?: MonitorEvaluationSummary | undefined;
 }
 
 const SummaryInfo: FunctionComponent<ComponentProps> = (
@@ -39,21 +42,24 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     if (!probeMonitorResponse) {
       return (
-        <ErrorMessage
-          message={
-            "No summary available for the selected probe. Should be few minutes for summary to show up. "
-          }
-        />
+        <div key={key} className="space-y-6">
+          <ErrorMessage
+            message={
+              "No summary available for the selected probe. Should be few minutes for summary to show up. "
+            }
+          />
+        </div>
       );
     }
+
+    let summaryComponent: ReactElement = <></>;
 
     if (
       props.monitorType === MonitorType.Website ||
       props.monitorType === MonitorType.API
     ) {
-      return (
+      summaryComponent = (
         <WebsiteMonitorSummaryView
-          key={key}
           probeMonitorResponse={probeMonitorResponse}
         />
       );
@@ -64,42 +70,51 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       props.monitorType === MonitorType.IP ||
       props.monitorType === MonitorType.Port
     ) {
-      return (
-        <PingMonitorView
-          key={key}
-          probeMonitorResponse={probeMonitorResponse}
-        />
+      summaryComponent = (
+        <PingMonitorView probeMonitorResponse={probeMonitorResponse} />
       );
     }
 
     if (props.monitorType === MonitorType.SSLCertificate) {
-      return (
+      summaryComponent = (
         <SSLCertificateMonitorView
-          key={key}
           probeMonitorResponse={probeMonitorResponse}
         />
       );
     }
 
     if (props.monitorType === MonitorType.SyntheticMonitor) {
-      return (
-        <SyntheticMonitorView
-          key={key}
-          probeMonitorResponse={probeMonitorResponse}
-        />
+      summaryComponent = (
+        <SyntheticMonitorView probeMonitorResponse={probeMonitorResponse} />
       );
     }
 
     if (props.monitorType === MonitorType.CustomJavaScriptCode) {
-      return (
+      summaryComponent = (
         <CustomCodeMonitorSummaryView
-          key={key}
           probeMonitorResponse={probeMonitorResponse}
         />
       );
     }
 
-    return <></>;
+    return (
+      <div key={key} className="space-y-6">
+        {summaryComponent}
+        <EvaluationLogList
+          evaluationSummary={probeMonitorResponse.evaluationSummary}
+        />
+      </div>
+    );
+  };
+
+  const renderEvaluationLogs = (
+    summary?: MonitorEvaluationSummary | undefined,
+  ): ReactElement => {
+    if (!summary) {
+      return <></>;
+    }
+
+    return <EvaluationLogList evaluationSummary={summary} />;
   };
 
   if (
@@ -139,21 +154,33 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
 
       {props.incomingMonitorRequest &&
       props.monitorType === MonitorType.IncomingRequest ? (
-        <IncomingRequestMonitorView
-          incomingRequestMonitorHeartbeatCheckedAt={
-            props.incomingRequestMonitorHeartbeatCheckedAt
-          }
-          incomingMonitorRequest={props.incomingMonitorRequest}
-        />
+        <div className="space-y-6">
+          <IncomingRequestMonitorView
+            incomingRequestMonitorHeartbeatCheckedAt={
+              props.incomingRequestMonitorHeartbeatCheckedAt
+            }
+            incomingMonitorRequest={props.incomingMonitorRequest}
+          />
+          {renderEvaluationLogs(
+            props.incomingMonitorRequest.evaluationSummary ||
+              props.evaluationSummary,
+          )}
+        </div>
       ) : (
         <></>
       )}
 
       {props.monitorType === MonitorType.Server &&
       props.serverMonitorResponse ? (
-        <ServerMonitorSummaryView
-          serverMonitorResponse={props.serverMonitorResponse}
-        />
+        <div className="space-y-6">
+          <ServerMonitorSummaryView
+            serverMonitorResponse={props.serverMonitorResponse}
+          />
+          {renderEvaluationLogs(
+            props.serverMonitorResponse.evaluationSummary ||
+              props.evaluationSummary,
+          )}
+        </div>
       ) : (
         <></>
       )}
@@ -161,9 +188,12 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       {(props.monitorType === MonitorType.Logs ||
         props.monitorType === MonitorType.Traces ||
         props.monitorType === MonitorType.Metrics) && (
-        <TelemetryMonitorSummaryView
-          telemetryMonitorSummary={props.telemetryMonitorSummary}
-        />
+        <div className="space-y-6">
+          <TelemetryMonitorSummaryView
+            telemetryMonitorSummary={props.telemetryMonitorSummary}
+          />
+          {renderEvaluationLogs(props.evaluationSummary)}
+        </div>
       )}
     </div>
   );

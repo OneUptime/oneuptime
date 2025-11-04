@@ -11,6 +11,7 @@ import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorPr
 import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
+import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
 
 export interface ComponentProps {
   probeMonitorResponses?: Array<MonitorStepProbeResponse> | undefined;
@@ -20,6 +21,7 @@ export interface ComponentProps {
   probes?: Array<Probe>;
   monitorType: MonitorType;
   telemetryMonitorSummary?: TelemetryMonitorSummary | undefined;
+  evaluationSummary?: MonitorEvaluationSummary | undefined;
 }
 
 const Summary: FunctionComponent<ComponentProps> = (
@@ -88,6 +90,7 @@ const Summary: FunctionComponent<ComponentProps> = (
           incomingRequestMonitorHeartbeatCheckedAt={
             props.incomingRequestMonitorHeartbeatCheckedAt
           }
+          evaluationSummary={props.evaluationSummary}
         />
       </div>
     </Card>

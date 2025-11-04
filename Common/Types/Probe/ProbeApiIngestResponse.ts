@@ -1,4 +1,5 @@
 import ObjectID from "../ObjectID";
+import MonitorEvaluationSummary from "../Monitor/MonitorEvaluationSummary";
 
 export default interface ProbeApiIngestResponse {
   monitorId: ObjectID;
@@ -6,4 +7,5 @@ export default interface ProbeApiIngestResponse {
   nextMonitorStepId?: ObjectID | undefined;
   criteriaMetId?: string | undefined;
   rootCause: string | null; // this is in markdown format
+  evaluationSummary?: MonitorEvaluationSummary | undefined;
 }

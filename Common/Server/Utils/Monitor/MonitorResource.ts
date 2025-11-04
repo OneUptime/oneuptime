@@ -58,6 +58,11 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import MonitorLogService from "../../Services/MonitorLogService";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
+import MonitorEvaluationSummary, {
+  MonitorEvaluationCriteriaResult,
+  MonitorEvaluationFilterResult,
+  MonitorEvaluationEvent,
+} from "../../../Types/Monitor/MonitorEvaluationSummary";
 
 export default class MonitorResourceUtil {
   private static buildMonitorMetricAttributes(data: {
@@ -152,6 +157,15 @@ export default class MonitorResourceUtil {
       criteriaMetId: undefined,
       rootCause: null,
     };
+
+    const evaluationSummary: MonitorEvaluationSummary = {
+      evaluatedAt: OneUptimeDate.getCurrentDate(),
+      criteriaResults: [],
+      events: [],
+    };
+
+    response.evaluationSummary = evaluationSummary;
+    dataToProcess.evaluationSummary = evaluationSummary;
 
     logger.debug("Processing probe response");
     logger.debug("Monitor ID: " + dataToProcess.monitorId);
@@ -509,6 +523,7 @@ export default class MonitorResourceUtil {
       monitorStep: monitorStep,
       monitor: monitor,
       probeApiIngestResponse: response,
+      evaluationSummary: evaluationSummary,
     });
 
     if (response.criteriaMetId && response.rootCause) {
@@ -569,22 +584,37 @@ export default class MonitorResourceUtil {
         );
       }
 
-      await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
-        monitor: monitor,
-        rootCause: response.rootCause,
-        dataToProcess: dataToProcess,
-        criteriaInstance: criteriaInstanceMap[response.criteriaMetId!]!,
-        props: {
-          telemetryQuery: telemetryQuery,
-        },
-      });
+      const matchedCriteriaInstance: MonitorCriteriaInstance =
+        criteriaInstanceMap[response.criteriaMetId!]!;
+
+      const monitorStatusTimelineChange: MonitorStatusTimeline | null =
+        await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
+          monitor: monitor,
+          rootCause: response.rootCause,
+          dataToProcess: dataToProcess,
+          criteriaInstance: matchedCriteriaInstance,
+          props: {
+            telemetryQuery: telemetryQuery,
+          },
+        });
+
+      if (monitorStatusTimelineChange) {
+        evaluationSummary.events.push({
+          type: "monitor-status-changed",
+          title: "Monitor status updated",
+          message: `Monitor status changed because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`,
+          relatedCriteriaId: matchedCriteriaInstance.data?.id,
+          at: OneUptimeDate.getCurrentDate(),
+        });
+      }
 
       await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
         monitor: monitor,
         rootCause: response.rootCause,
         dataToProcess: dataToProcess,
         autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-        criteriaInstance: criteriaInstanceMap[response.criteriaMetId!]!,
+        criteriaInstance: matchedCriteriaInstance,
+        evaluationSummary: evaluationSummary,
         props: {
           telemetryQuery: telemetryQuery,
         },
@@ -596,6 +626,7 @@ export default class MonitorResourceUtil {
         dataToProcess: dataToProcess,
         autoResolveCriteriaInstanceIdAlertIdsDictionary,
         criteriaInstance: criteriaInstanceAlertMap[response.criteriaMetId!]!,
+        evaluationSummary: evaluationSummary,
         props: {
           telemetryQuery: telemetryQuery,
         },
@@ -616,6 +647,7 @@ export default class MonitorResourceUtil {
         rootCause: "No monitoring criteria met. Change to default status.",
         criteriaInstance: null, // no criteria met!
         dataToProcess: dataToProcess,
+        evaluationSummary: evaluationSummary,
       });
 
       // get last monitor status timeline.
@@ -671,6 +703,14 @@ export default class MonitorResourceUtil {
         logger.debug(
           `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
         );
+
+        evaluationSummary.events.push({
+          type: "monitor-status-changed",
+          title: "Monitor status reverted",
+          message:
+            "Monitor status reverted to its default state because no monitoring criteria were met.",
+          at: OneUptimeDate.getCurrentDate(),
+        });
       }
     }
 
@@ -1095,6 +1135,7 @@ export default class MonitorResourceUtil {
     monitorStep: MonitorStep;
     monitor: Monitor;
     probeApiIngestResponse: ProbeApiIngestResponse;
+    evaluationSummary: MonitorEvaluationSummary;
   }): Promise<ProbeApiIngestResponse> {
     // process monitor step here.
 
@@ -1107,6 +1148,18 @@ export default class MonitorResourceUtil {
     }
 
     for (const criteriaInstance of criteria.data.monitorCriteriaInstanceArray) {
+      const criteriaResult: MonitorEvaluationCriteriaResult = {
+        criteriaId: criteriaInstance.data?.id,
+        criteriaName: criteriaInstance.data?.name,
+        filterCondition:
+          criteriaInstance.data?.filterCondition || FilterCondition.All,
+        met: false,
+        message: "",
+        filters: [],
+      };
+
+      input.evaluationSummary.criteriaResults.push(criteriaResult);
+
       const rootCause: string | null =
         await MonitorResourceUtil.processMonitorCriteiaInstance({
           dataToProcess: input.dataToProcess,
@@ -1114,7 +1167,24 @@ export default class MonitorResourceUtil {
           monitor: input.monitor,
           probeApiIngestResponse: input.probeApiIngestResponse,
           criteriaInstance: criteriaInstance,
+          criteriaResult: criteriaResult,
         });
+
+      if (!criteriaResult.message) {
+        criteriaResult.message = criteriaResult.met
+          ? "Criteria met."
+          : "Criteria was not met.";
+      }
+
+      const criteriaEvent: MonitorEvaluationEvent = {
+        type: criteriaResult.met ? "criteria-met" : "criteria-not-met",
+        title: `${criteriaResult.met ? "Criteria met" : "Criteria not met"}: ${criteriaResult.criteriaName || "Unnamed criteria"}`,
+        message: criteriaResult.message,
+        relatedCriteriaId: criteriaResult.criteriaId,
+        at: OneUptimeDate.getCurrentDate(),
+      };
+
+      input.evaluationSummary.events.push(criteriaEvent);
 
       if (rootCause) {
         input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
@@ -1124,11 +1194,9 @@ export default class MonitorResourceUtil {
 **Criteria Name**: ${criteriaInstance.data?.name}
 `;
 
-        if (rootCause) {
-          input.probeApiIngestResponse.rootCause += `
+        input.probeApiIngestResponse.rootCause += `
 **Filter Conditions Met**: ${rootCause}
 `;
-        }
 
         if ((input.dataToProcess as ProbeMonitorResponse).failureCause) {
           input.probeApiIngestResponse.rootCause += `
@@ -1148,6 +1216,7 @@ export default class MonitorResourceUtil {
     monitor: Monitor;
     probeApiIngestResponse: ProbeApiIngestResponse;
     criteriaInstance: MonitorCriteriaInstance;
+    criteriaResult: MonitorEvaluationCriteriaResult;
   }): Promise<string | null> {
     /*
      * returns root cause if any. Otherwise criteria is not met.
@@ -1161,6 +1230,7 @@ export default class MonitorResourceUtil {
         monitor: input.monitor,
         probeApiIngestResponse: input.probeApiIngestResponse,
         criteriaInstance: input.criteriaInstance,
+        criteriaResult: input.criteriaResult,
       });
 
     // do nothing as there's no criteria to process.
@@ -1173,13 +1243,15 @@ export default class MonitorResourceUtil {
     monitor: Monitor;
     probeApiIngestResponse: ProbeApiIngestResponse;
     criteriaInstance: MonitorCriteriaInstance;
+    criteriaResult: MonitorEvaluationCriteriaResult;
   }): Promise<string | null> {
     // returns root cause if any. Otherwise criteria is not met.
-    let finalResult: string | null = "All filters met. ";
+    const filterCondition: FilterCondition =
+      input.criteriaInstance.data?.filterCondition || FilterCondition.All;
 
-    if (FilterCondition.Any === input.criteriaInstance.data?.filterCondition) {
-      finalResult = null; // set to false as we need to check if any of the filters are met.
-    }
+    const matchedFilterMessages: Array<string> = [];
+    let hasMatch: boolean = false;
+    let allFiltersMet: boolean = true;
 
     for (const criteriaFilter of input.criteriaInstance.data?.filters || []) {
       const rootCause: string | null =
@@ -1194,33 +1266,113 @@ export default class MonitorResourceUtil {
 
       const didMeetCriteria: boolean = Boolean(rootCause);
 
-      if (
-        FilterCondition.Any === input.criteriaInstance.data?.filterCondition &&
-        didMeetCriteria === true
-      ) {
-        finalResult = rootCause;
-      }
+      const filterSummary: MonitorEvaluationFilterResult = {
+        checkOn: criteriaFilter.checkOn,
+        filterType: criteriaFilter.filterType,
+        value: criteriaFilter.value,
+        met: didMeetCriteria,
+        message: didMeetCriteria
+          ? rootCause ||
+            MonitorResourceUtil.getCriteriaFilterSuccessMessage(criteriaFilter)
+          : MonitorResourceUtil.getCriteriaFilterFailureMessage(
+              criteriaFilter,
+            ),
+      };
 
-      if (
-        FilterCondition.All === input.criteriaInstance.data?.filterCondition &&
-        didMeetCriteria === false
-      ) {
-        finalResult = null;
-        break;
-      }
+      input.criteriaResult.filters.push(filterSummary);
 
-      if (
-        FilterCondition.All === input.criteriaInstance.data?.filterCondition &&
-        didMeetCriteria &&
-        rootCause
-      ) {
-        finalResult += `
+      if (didMeetCriteria) {
+        hasMatch = true;
 
-        - ${rootCause}`; // in markdown format.
+        if (rootCause) {
+          matchedFilterMessages.push(rootCause);
+        } else {
+          matchedFilterMessages.push(filterSummary.message);
+        }
+      } else {
+        if (filterCondition === FilterCondition.All) {
+          allFiltersMet = false;
+        }
       }
     }
 
-    return finalResult;
+    if (filterCondition === FilterCondition.All) {
+      if (allFiltersMet && input.criteriaResult.filters.length > 0) {
+        let message: string = "All filters met.";
+
+        if (matchedFilterMessages.length > 0) {
+          message += matchedFilterMessages
+            .map((item: string) => `\n- ${item}`)
+            .join("");
+        }
+
+        input.criteriaResult.met = true;
+        input.criteriaResult.message = message;
+
+        return message;
+      }
+
+      input.criteriaResult.met = false;
+      input.criteriaResult.message =
+        "One or more filters did not meet the configured conditions.";
+
+      return null;
+    }
+
+    if (filterCondition === FilterCondition.Any) {
+      if (hasMatch) {
+        const firstMatch: string =
+          matchedFilterMessages[0] ||
+          "At least one filter met the configured condition.";
+
+        input.criteriaResult.met = true;
+        input.criteriaResult.message = firstMatch;
+
+        return firstMatch;
+      }
+
+      input.criteriaResult.met = false;
+      input.criteriaResult.message =
+        "No filters met the configured conditions.";
+
+      return null;
+    }
+
+    return null;
+  }
+
+  private static getCriteriaFilterDescription(
+    criteriaFilter: CriteriaFilter,
+  ): string {
+    const parts: Array<string> = [criteriaFilter.checkOn];
+
+    if (criteriaFilter.filterType) {
+      parts.push(criteriaFilter.filterType);
+    }
+
+    if (criteriaFilter.value !== undefined && criteriaFilter.value !== null) {
+      parts.push(String(criteriaFilter.value));
+    }
+
+    return parts.join(" ").trim();
+  }
+
+  private static getCriteriaFilterSuccessMessage(
+    criteriaFilter: CriteriaFilter,
+  ): string {
+    const description: string =
+      MonitorResourceUtil.getCriteriaFilterDescription(criteriaFilter);
+
+    return `${description} condition met.`;
+  }
+
+  private static getCriteriaFilterFailureMessage(
+    criteriaFilter: CriteriaFilter,
+  ): string {
+    const description: string =
+      MonitorResourceUtil.getCriteriaFilterDescription(criteriaFilter);
+
+    return `${description} condition was not met.`;
   }
 
   private static async isMonitorInstanceCriteriaFilterMet(input: {
