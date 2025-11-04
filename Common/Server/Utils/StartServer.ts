@@ -249,6 +249,13 @@ const init: InitFunction = async (
           logger.debug("Rendering index page with variables: ");
           logger.debug(variables);
 
+          if (res.headersSent) {
+            logger.debug(
+              "Response already sent while preparing index page. Skipping render.",
+            );
+            return;
+          }
+
           return res.render("/usr/src/app/views/index.ejs", {
             enableGoogleTagManager: IsBillingEnabled || false,
             ...variables,
