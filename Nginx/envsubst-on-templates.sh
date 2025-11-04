@@ -4,6 +4,17 @@ set -e
 
 ME=$(basename $0)
 
+# Prepare conditional SSL directives for templates that need them.
+if [ -n "${PROVISION_SSL}" ]; then
+  export PROVISION_SSL_LISTEN_DIRECTIVE="    listen ${NGINX_LISTEN_ADDRESS}7850 ssl ${NGINX_LISTEN_OPTIONS};"
+  export PROVISION_SSL_CERTIFICATE_DIRECTIVE="    ssl_certificate /etc/nginx/certs/ServerCerts/${PRIMARY_DOMAIN}.crt;"
+  export PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE="    ssl_certificate_key /etc/nginx/certs/ServerCerts/${PRIMARY_DOMAIN}.key;"
+else
+  export PROVISION_SSL_LISTEN_DIRECTIVE=""
+  export PROVISION_SSL_CERTIFICATE_DIRECTIVE=""
+  export PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE=""
+fi
+
 auto_envsubst() {
 
   echo "$ME: Running auto_envsubst"
