@@ -1,7 +1,11 @@
 // Connect common api's.
 import CommonAPI from "../API/Index";
 import { StatusAPIOptions } from "../API/StatusAPI";
-import { AppVersion, IsBillingEnabled } from "../EnvironmentConfig";
+import {
+  AppVersion,
+  IsBillingEnabled,
+  getFrontendEnvVars,
+} from "../EnvironmentConfig";
 import LocalCache from "../Infrastructure/LocalCache";
 import "./Environment";
 import Express, {
@@ -187,9 +191,7 @@ const init: InitFunction = async (
         try {
           // ping api server for database config.
 
-          const env: JSONObject = {
-            ...process.env,
-          };
+          const env: JSONObject = getFrontendEnvVars();
 
           const script: string = `
     if(!window.process){
@@ -199,8 +201,7 @@ const init: InitFunction = async (
     if(!window.process.env){
       window.process.env = {}
     }
-    const envVars = '${JSON.stringify(env)}';
-    window.process.env = JSON.parse(envVars);
+    window.process.env = ${JSON.stringify(env)};
   `;
 
           Response.sendJavaScriptResponse(req, res, script);

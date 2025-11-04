@@ -23,6 +23,58 @@ export const getAllEnvVars: () => JSONObject = (): JSONObject => {
   return process.env;
 };
 
+const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
+  "NODE_ENV",
+  "HTTP_PROTOCOL",
+  "HOST",
+  "BILLING_ENABLED",
+  "BILLING_PUBLIC_KEY",
+  "IS_ENTERPRISE_EDITION",
+  "STRIPE_PUBLIC_KEY",
+  "VAPID_PUBLIC_KEY",
+  "VAPID_SUBJECT",
+  "VERSION",
+  "STATUS_PAGE_CNAME_RECORD",
+  "ANALYTICS_KEY",
+  "ANALYTICS_HOST",
+  "GIT_SHA",
+  "APP_VERSION",
+  "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT",
+  "OPENTELEMETRY_EXPORTER_OTLP_HEADERS",
+  "DISABLE_TELEMETRY",
+  "SLACK_APP_CLIENT_ID",
+  "MICROSOFT_TEAMS_APP_CLIENT_ID",
+];
+
+const FRONTEND_ENV_ALLOW_PREFIXES: Array<string> = [
+  "SUBSCRIPTION_PLAN_",
+  "PUBLIC_",
+];
+
+export const getFrontendEnvVars: () => JSONObject = (): JSONObject => {
+  const frontendEnv: JSONObject = {};
+
+  for (const key of Object.keys(process.env)) {
+    const shouldInclude: boolean =
+      FRONTEND_ENV_ALLOW_LIST.includes(key) ||
+      FRONTEND_ENV_ALLOW_PREFIXES.some((prefix: string) =>
+        key.startsWith(prefix),
+      );
+
+    if (!shouldInclude) {
+      continue;
+    }
+
+    const value: string | undefined = process.env[key];
+
+    if (typeof value !== "undefined") {
+      frontendEnv[key] = value;
+    }
+  }
+
+  return frontendEnv;
+};
+
 const parsePositiveNumberFromEnv: (
   envKey: string,
   fallback: number,
