@@ -123,7 +123,7 @@ Usage:
   value: {{ $.Release.Name }}-status-page.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_DASHBOARD_HOSTNAME
   value: {{ $.Release.Name }}-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-  - name: SERVER_ADMIN_DASHBOARD_HOSTNAME
+- name: SERVER_ADMIN_DASHBOARD_HOSTNAME
   value: {{ $.Release.Name }}-admin-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_DOCS_HOSTNAME
   value: {{ $.Release.Name }}-docs.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
