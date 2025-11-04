@@ -1,9 +1,4 @@
-import {
-  ClusterKey,
-  RedisHostname,
-  RedisPassword,
-  RedisPort,
-} from "../EnvironmentConfig";
+import { ClusterKey } from "../EnvironmentConfig";
 import Dictionary from "../../Types/Dictionary";
 import { JSONObject } from "../../Types/JSON";
 import { Queue as BullQueue, Job, JobsOptions } from "bullmq";
@@ -13,6 +8,7 @@ import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { ExpressRouter } from "../Utils/Express";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
+import Redis from "./Redis";
 
 export enum QueueName {
   Workflow = "Workflow",
@@ -82,11 +78,7 @@ export default class Queue {
     }
 
     const queue: BullQueue = new BullQueue(queueName, {
-      connection: {
-        host: RedisHostname.toString(),
-        port: RedisPort.toNumber(),
-        password: RedisPassword,
-      },
+      connection: Redis.getRedisOptions(),
       // Keep BullMQ data under control to avoid Redis bloat
       defaultJobOptions: {
         // keep only recent completed/failed jobs

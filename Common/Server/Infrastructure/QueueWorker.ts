@@ -1,4 +1,3 @@
-import { RedisHostname, RedisPassword, RedisPort } from "../EnvironmentConfig";
 import { QueueJob, QueueName } from "./Queue";
 import TimeoutException from "../../Types/Exception/TimeoutException";
 import {
@@ -8,6 +7,7 @@ import {
 } from "../../Types/FunctionTypes";
 import { Worker } from "bullmq";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import Redis from "./Redis";
 
 export default class QueueWorker {
   @CaptureSpan()
@@ -30,11 +30,7 @@ export default class QueueWorker {
     },
   ): Worker {
     const worker: Worker = new Worker(queueName, onJobInQueue, {
-      connection: {
-        host: RedisHostname.toString(),
-        port: RedisPort.toNumber(),
-        password: RedisPassword,
-      },
+      connection: Redis.getRedisOptions(),
       concurrency: options.concurrency,
       // Only set these values if provided so we do not override BullMQ defaults
       ...(options.lockDuration ? { lockDuration: options.lockDuration } : {}),
