@@ -57,9 +57,9 @@ export const getFrontendEnvVars: () => JSONObject = (): JSONObject => {
   for (const key of Object.keys(process.env)) {
     const shouldInclude: boolean =
       FRONTEND_ENV_ALLOW_LIST.includes(key) ||
-      FRONTEND_ENV_ALLOW_PREFIXES.some((prefix: string) =>
-        key.startsWith(prefix),
-      );
+      FRONTEND_ENV_ALLOW_PREFIXES.some((prefix: string) => {
+        return key.startsWith(prefix);
+      });
 
     if (!shouldInclude) {
       continue;
