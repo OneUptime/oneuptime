@@ -172,10 +172,11 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Evaluation Outcome",
             type: FieldType.Text,
             getElement: (item: MonitorLog): ReactElement => {
-              const evaluationSummary: MonitorEvaluationSummary | undefined =
-                (item.logBody as unknown as {
+              const evaluationSummary: MonitorEvaluationSummary | undefined = (
+                item.logBody as unknown as {
                   evaluationSummary?: MonitorEvaluationSummary | undefined;
-                })?.evaluationSummary;
+                }
+              )?.evaluationSummary;
 
               if (!evaluationSummary) {
                 return (
@@ -193,16 +194,15 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
               if (metCriteria) {
                 return (
                   <span className="text-sm text-green-700">
-                    Criteria met: {metCriteria.criteriaName || "Unnamed criteria"}
+                    Criteria met:{" "}
+                    {metCriteria.criteriaName || "Unnamed criteria"}
                   </span>
                 );
               }
 
               if (evaluationSummary.criteriaResults.length > 0) {
                 return (
-                  <span className="text-sm text-gray-700">
-                    No criteria met
-                  </span>
+                  <span className="text-sm text-gray-700">No criteria met</span>
                 );
               }
 
@@ -240,9 +240,11 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
             incomingMonitorRequest={logs as unknown as IncomingMonitorRequest}
             serverMonitorResponse={logs as unknown as ServerMonitorResponse}
             evaluationSummary={
-              (logs as unknown as {
-                evaluationSummary?: MonitorEvaluationSummary | undefined;
-              }).evaluationSummary
+              (
+                logs as unknown as {
+                  evaluationSummary?: MonitorEvaluationSummary | undefined;
+                }
+              ).evaluationSummary
             }
           />
         </Modal>

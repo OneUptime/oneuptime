@@ -67,17 +67,16 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         {criteria.filters.length > 0 && (
           <ul className="mt-3 space-y-2">
             {criteria.filters.map(
-              (
-                filter: MonitorEvaluationFilterResult,
-                filterIndex: number,
-              ) => {
+              (filter: MonitorEvaluationFilterResult, filterIndex: number) => {
                 return (
                   <li
                     key={`criteria-${index}-filter-${filterIndex}`}
                     className="flex items-start space-x-2 text-sm text-gray-700"
                   >
                     <Icon
-                      icon={filter.met ? IconProp.CheckCircle : IconProp.CircleClose}
+                      icon={
+                        filter.met ? IconProp.CheckCircle : IconProp.CircleClose
+                      }
                       className={`h-4 w-4 flex-shrink-0 ${filter.met ? "text-green-600" : "text-red-500"}`}
                     />
                     <span>{filter.message}</span>
@@ -108,9 +107,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
           <Icon icon={IconProp.Activity} className="h-4 w-4 text-gray-500" />
         </div>
         <div className="flex-1">
-          <div className="text-sm font-medium text-gray-800">
-            {event.title}
-          </div>
+          <div className="text-sm font-medium text-gray-800">{event.title}</div>
           {event.message && (
             <div className="text-sm text-gray-600">{event.message}</div>
           )}
@@ -150,9 +147,11 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         <div className="space-y-2">
           <div className="text-sm font-semibold text-gray-900">Actions</div>
           <div className="space-y-2">
-            {actionEvents.map((event: MonitorEvaluationEvent, index: number) => {
-              return renderEvent(event, index);
-            })}
+            {actionEvents.map(
+              (event: MonitorEvaluationEvent, index: number) => {
+                return renderEvent(event, index);
+              },
+            )}
           </div>
         </div>
       )}

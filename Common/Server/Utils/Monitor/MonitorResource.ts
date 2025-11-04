@@ -1274,9 +1274,7 @@ export default class MonitorResourceUtil {
         message: didMeetCriteria
           ? rootCause ||
             MonitorResourceUtil.getCriteriaFilterSuccessMessage(criteriaFilter)
-          : MonitorResourceUtil.getCriteriaFilterFailureMessage(
-              criteriaFilter,
-            ),
+          : MonitorResourceUtil.getCriteriaFilterFailureMessage(criteriaFilter),
       };
 
       input.criteriaResult.filters.push(filterSummary);
@@ -1289,10 +1287,8 @@ export default class MonitorResourceUtil {
         } else {
           matchedFilterMessages.push(filterSummary.message);
         }
-      } else {
-        if (filterCondition === FilterCondition.All) {
-          allFiltersMet = false;
-        }
+      } else if (filterCondition === FilterCondition.All) {
+        allFiltersMet = false;
       }
     }
 
@@ -1302,7 +1298,9 @@ export default class MonitorResourceUtil {
 
         if (matchedFilterMessages.length > 0) {
           message += matchedFilterMessages
-            .map((item: string) => `\n- ${item}`)
+            .map((item: string) => {
+              return `\n- ${item}`;
+            })
             .join("");
         }
 
