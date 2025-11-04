@@ -123,7 +123,7 @@ Usage:
   value: {{ $.Release.Name }}-status-page.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_DASHBOARD_HOSTNAME
   value: {{ $.Release.Name }}-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_ADMIN_DASHBOARD_HOSTNAME
+  - name: SERVER_ADMIN_DASHBOARD_HOSTNAME
   value: {{ $.Release.Name }}-admin-dashboard.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_DOCS_HOSTNAME
   value: {{ $.Release.Name }}-docs.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
@@ -165,11 +165,6 @@ Usage:
 {{- end }}
 
 
-{{- define "oneuptime.env.commonUi" }}
-- name: IS_SERVER
-  value: {{ printf "false" | squote }}
-{{- end }}
-
 {{- define "oneuptime.env.oneuptimeSecret" }}
 - name: ONEUPTIME_SECRET
   {{- if $.Values.oneuptimeSecret }}
@@ -189,9 +184,7 @@ Usage:
   {{- end }}
 {{- end }}
 
-{{- define "oneuptime.env.commonServer" }}
-- name: IS_SERVER
-  value: {{ printf "true" | squote }}
+{{- define "oneuptime.env.runtime" }}
 
 - name: VAPID_PRIVATE_KEY
   value: {{ $.Values.vapid.privateKey }}
@@ -325,7 +318,6 @@ Usage:
 {{- end }}
 {{- end }}
 {{- end }}
-
 
 
 
@@ -523,6 +515,7 @@ Usage:
 - name: AVERAGE_EXCEPTION_ROW_SIZE_IN_BYTES
   value: {{ $.Values.billing.telemetry.averageExceptionRowSizeInBytes | quote }}
 
+{{- include "oneuptime.env.oneuptimeSecret" . }}
 {{- end }}
 
 {{- define "oneuptime.env.pod" }}
@@ -673,13 +666,7 @@ spec:
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
             {{- include "oneuptime.env.common" . | nindent 12 }}
-            {{- if $.IsUI }}
-            {{- include "oneuptime.env.commonUi" . | nindent 12 }}
-            {{- end }}
-            {{- if $.IsServer  }}
-            {{- include "oneuptime.env.commonServer" . | nindent 12 }}
-            {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
-            {{- end }}
+            {{- include "oneuptime.env.runtime" . | nindent 12 }}
             {{- if $.Env }}
             {{- range $key, $val := $.Env }}
             - name: {{ $key }}

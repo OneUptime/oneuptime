@@ -99,8 +99,7 @@ spec:
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
             {{- include "oneuptime.env.common" . | nindent 12 }}
-            {{- include "oneuptime.env.commonServer" . | nindent 12 }}
-            {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
+            {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
             - name: PORT
               value: {{ $.Values.workflow.ports.http | quote }}
             - name: DISABLE_TELEMETRY
