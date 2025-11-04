@@ -4,8 +4,17 @@ import MonitorEvaluationSummary, {
   MonitorEvaluationFilterResult,
 } from "Common/Types/Monitor/MonitorEvaluationSummary";
 import OneUptimeDate from "Common/Types/Date";
+import ObjectID from "Common/Types/ObjectID";
+import Route from "Common/Types/API/Route";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import Navigation from "Common/UI/Utils/Navigation";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -104,6 +113,60 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
     event: MonitorEvaluationEvent,
     index: number,
   ): ReactElement => {
+    const renderEventAction: () => ReactElement | null = () => {
+      if (
+        event.relatedIncidentId &&
+        (event.type === "incident-created" ||
+          event.type === "incident-skipped")
+      ) {
+        const incidentRoute: Route = RouteUtil.populateRouteParams(
+          RouteMap[PageMap.INCIDENT_VIEW] as Route,
+          {
+            modelId: new ObjectID(event.relatedIncidentId),
+          },
+        );
+
+        return (
+          <Button
+            title="View Incident"
+            buttonStyle={ButtonStyleType.SECONDARY}
+            buttonSize={ButtonSize.Small}
+            onClick={() => {
+              Navigation.navigate(incidentRoute);
+            }}
+          />
+        );
+      }
+
+      if (
+        event.relatedAlertId &&
+        (event.type === "alert-created" ||
+          event.type === "alert-skipped")
+      ) {
+        const alertRoute: Route = RouteUtil.populateRouteParams(
+          RouteMap[PageMap.ALERT_VIEW] as Route,
+          {
+            modelId: new ObjectID(event.relatedAlertId),
+          },
+        );
+
+        return (
+          <Button
+            title="View Alert"
+            buttonStyle={ButtonStyleType.SECONDARY}
+            buttonSize={ButtonSize.Small}
+            onClick={() => {
+              Navigation.navigate(alertRoute);
+            }}
+          />
+        );
+      }
+
+      return null;
+    };
+
+    const actionButton: ReactElement | null = renderEventAction();
+
     return (
       <div
         key={`event-${index}-${event.type}`}
@@ -124,6 +187,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
               )}
             </div>
           )}
+          {actionButton && <div className="mt-3">{actionButton}</div>}
         </div>
       </div>
     );

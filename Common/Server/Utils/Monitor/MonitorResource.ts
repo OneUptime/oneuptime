@@ -63,6 +63,7 @@ import MonitorEvaluationSummary, {
   MonitorEvaluationFilterResult,
   MonitorEvaluationEvent,
 } from "../../../Types/Monitor/MonitorEvaluationSummary";
+import MonitorStatusService from "../../Services/MonitorStatusService";
 
 export default class MonitorResourceUtil {
   private static buildMonitorMetricAttributes(data: {
@@ -166,6 +167,41 @@ export default class MonitorResourceUtil {
 
     response.evaluationSummary = evaluationSummary;
     dataToProcess.evaluationSummary = evaluationSummary;
+
+    const monitorStatusNameCache: Dictionary<string | null> = {};
+
+    const getMonitorStatusName: (
+      statusId: ObjectID | undefined | null,
+    ) => Promise<string | null> = async (
+      statusId: ObjectID | undefined | null,
+    ): Promise<string | null> => {
+      if (!statusId) {
+        return null;
+      }
+
+      const cacheKey: string = statusId.toString();
+
+      if (monitorStatusNameCache[cacheKey] !== undefined) {
+        return monitorStatusNameCache[cacheKey];
+      }
+
+      const monitorStatus = await MonitorStatusService.findOneBy({
+        query: {
+          _id: statusId,
+        },
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const statusName: string | null = monitorStatus?.name || null;
+      monitorStatusNameCache[cacheKey] = statusName;
+
+      return statusName;
+    };
 
     logger.debug("Processing probe response");
     logger.debug("Monitor ID: " + dataToProcess.monitorId);
@@ -609,10 +645,17 @@ export default class MonitorResourceUtil {
         });
 
       if (monitorStatusTimelineChange) {
+        const changedStatusName: string | null = await getMonitorStatusName(
+          matchedCriteriaInstance.data?.monitorStatusId ||
+            monitorStatusTimelineChange.monitorStatusId,
+        );
+
         evaluationSummary.events.push({
           type: "monitor-status-changed",
           title: "Monitor status updated",
-          message: `Monitor status changed because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`,
+          message: changedStatusName
+            ? `Monitor status changed to "${changedStatusName}" because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`
+            : `Monitor status changed because criteria "${matchedCriteriaInstance.data?.name || "Unnamed criteria"}" was met.`,
           relatedCriteriaId: matchedCriteriaInstance.data?.id,
           at: OneUptimeDate.getCurrentDate(),
         });
@@ -714,11 +757,16 @@ export default class MonitorResourceUtil {
           `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
         );
 
+        const defaultStatusName: string | null = await getMonitorStatusName(
+          monitorSteps.data.defaultMonitorStatusId,
+        );
+
         evaluationSummary.events.push({
           type: "monitor-status-changed",
           title: "Monitor status reverted",
-          message:
-            "Monitor status reverted to its default state because no monitoring criteria were met.",
+          message: defaultStatusName
+            ? `Monitor status reverted to "${defaultStatusName}" because no monitoring criteria were met.`
+            : "Monitor status reverted to its default state because no monitoring criteria were met.",
           at: OneUptimeDate.getCurrentDate(),
         });
       }
