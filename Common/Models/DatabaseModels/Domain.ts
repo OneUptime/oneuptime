@@ -301,7 +301,12 @@ export default class Domain extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectDomain,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
