@@ -35,8 +35,10 @@ export class Service extends DatabaseService<Model> {
       createBy.data.domain = new Domain(domain.trim().toLowerCase());
     }
 
-    if (!createBy.props.isRoot) {
-      createBy.data.isVerified = false;
+    if (!createBy.props.isRoot && createBy.data.isVerified) {
+      throw new BadDataException(
+        "Domain cannot be verified during creation. Please verify the domain after creation. Please set isVerified to false.",
+      );
     }
 
     createBy.data.domainVerificationText =
