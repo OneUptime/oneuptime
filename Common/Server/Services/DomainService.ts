@@ -35,8 +35,7 @@ export class Service extends DatabaseService<Model> {
       createBy.data.domain = new Domain(domain.trim().toLowerCase());
     }
 
-
-    if(!createBy.props.isRoot){
+    if (!createBy.props.isRoot) {
       createBy.data.isVerified = false;
     }
 
@@ -49,12 +48,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    if (
-      updateBy.data.isVerified &&
-      !updateBy.props.isRoot
-    ) {
-
-      const projectId: FindWhere<ObjectID> | undefined = updateBy.query.projectId || updateBy.props.tenantId;
+    if (updateBy.data.isVerified && !updateBy.props.isRoot) {
+      const projectId: FindWhere<ObjectID> | undefined =
+        updateBy.query.projectId || updateBy.props.tenantId;
 
       if (!projectId) {
         throw new BadDataException(
@@ -82,22 +78,19 @@ export class Service extends DatabaseService<Model> {
       });
 
       for (const item of items) {
-
         const domain: string | undefined = item?.domain?.toString();
         const verificationText: string | undefined =
           item?.domainVerificationText?.toString();
 
         if (!domain) {
-          throw new BadDataException(
-            "Domain not found.",
-          );
+          throw new BadDataException("Domain not found.");
         }
 
         if (!verificationText) {
           throw new BadDataException(
             "Domain verification text with id " +
-            updateBy.query._id +
-            " not found.",
+              updateBy.query._id +
+              " not found.",
           );
         }
 
@@ -109,10 +102,10 @@ export class Service extends DatabaseService<Model> {
         if (!isVerified) {
           throw new BadDataException(
             "Verification TXT record " +
-            verificationText +
-            " not found in domain " +
-            domain +
-            ". Please add a TXT record to verify the domain. If you have already added the TXT record, please wait for few hours to let DNS to propagate.",
+              verificationText +
+              " not found in domain " +
+              domain +
+              ". Please add a TXT record to verify the domain. If you have already added the TXT record, please wait for few hours to let DNS to propagate.",
           );
         }
       }
