@@ -100,9 +100,6 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
     return (
       <div key={key} className="space-y-6">
         {summaryComponent}
-        <EvaluationLogList
-          evaluationSummary={probeMonitorResponse.evaluationSummary}
-        />
       </div>
     );
   };
@@ -118,6 +115,14 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
 
     return <EvaluationLogList evaluationSummary={summary} />;
   };
+
+  const probableMonitorEvaluationSummary: MonitorEvaluationSummary | undefined =
+    props.evaluationSummary ||
+    props.probeMonitorResponses?.find(
+      (response: ProbeMonitorResponse) => {
+        return Boolean(response.evaluationSummary);
+      },
+    )?.evaluationSummary;
 
   if (
     MonitorTypeHelper.isProbableMonitor(props.monitorType) &&
@@ -153,6 +158,9 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
             return getProbableMonitorSummarysInfo(probeMonitorResponse, index);
           },
         )}
+
+      {MonitorTypeHelper.isProbableMonitor(props.monitorType) &&
+        renderEvaluationLogs(probableMonitorEvaluationSummary)}
 
       {props.incomingMonitorRequest &&
       props.monitorType === MonitorType.IncomingRequest ? (
