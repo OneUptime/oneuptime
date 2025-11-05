@@ -84,6 +84,25 @@ export default class ServerMonitorCriteria {
       `Offline if not checked in minutes: ${offlineIfNotCheckedInMinutes}`,
     );
 
+    const normalizeDiskPath: (value: string | undefined | null) => string = (
+      value: string | undefined | null,
+    ): string => {
+      let normalized: string = (value || "").trim().toLowerCase();
+
+      if (normalized === "/") {
+        return normalized;
+      }
+
+      normalized = normalized.replace(/\\/g, "/");
+      normalized = normalized.replace(/\/+$/g, "");
+
+      if (normalized === "") {
+        return "/";
+      }
+
+      return normalized;
+    };
+
     if (
       input.criteriaFilter.checkOn === CheckOn.IsOnline &&
       differenceInMinutes >= offlineIfNotCheckedInMinutes
@@ -169,13 +188,13 @@ export default class ServerMonitorCriteria {
       const diskPath: string =
         input.criteriaFilter.serverMonitorOptions?.diskPath || "/";
 
+      const normalizedDiskPath: string = normalizeDiskPath(diskPath);
+
       const diskMetric: BasicDiskMetrics | undefined = (
         input.dataToProcess as ServerMonitorResponse
       ).basicInfrastructureMetrics?.diskMetrics.find(
         (item: BasicDiskMetrics) => {
-          return (
-            item.diskPath.trim().toLowerCase() === diskPath.trim().toLowerCase()
-          );
+          return normalizeDiskPath(item.diskPath) === normalizedDiskPath;
         },
       );
 
