@@ -7,6 +7,7 @@ host: localhost
 httpProtocol: http
 ssl:
   # Automatically provision a Let's Encrypt certificate for the primary host when set to true.
+  # If you enable this, please make sure that the host is publicly accessible via port 80 and 443.
   provision: false
 
 image:
