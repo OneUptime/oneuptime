@@ -456,7 +456,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     # ACME Challenge for primary domain.
-    location /.well-known {
+    location /.well-known/acme-challenge {
         # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
         proxy_set_header Host $host;
