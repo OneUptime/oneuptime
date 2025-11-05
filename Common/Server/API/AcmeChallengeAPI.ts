@@ -54,6 +54,8 @@ export default class AcmeChallengeAPI extends BaseAPI<
         }
       },
     );
+
+    this.router.use("/", this.wellKnownRouter);
   }
 
   public getWellKnownRouter(): ExpressRouter {
