@@ -78,13 +78,6 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
     evaluationSummary.criteriaResults &&
     evaluationSummary.criteriaResults.length > 0;
 
-  const firstMetCriteriaIndex: number =
-    evaluationSummary.criteriaResults.findIndex(
-      (criteriaResult: MonitorEvaluationCriteriaResult) => {
-        return criteriaResult.met;
-      },
-    );
-
   const actionEvents: Array<MonitorEvaluationEvent> = (
     evaluationSummary.events || []
   ).filter((event: MonitorEvaluationEvent) => {
@@ -104,9 +97,6 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
     criteria: MonitorEvaluationCriteriaResult,
     index: number,
   ): ReactElement => {
-    const shouldShowShortCircuitMessage: boolean =
-      firstMetCriteriaIndex !== -1 && firstMetCriteriaIndex === index;
-
     return (
       <div
         key={`criteria-${criteria.criteriaId || index}`}
@@ -249,13 +239,6 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
               },
             )}
           </ul>
-        )}
-
-        {shouldShowShortCircuitMessage && (
-          <div className="mt-3 rounded-md border border-gray-100 bg-gray-50 p-3 text-xs text-gray-700">
-            Since this criteria was satisfied, remaining criteria below this criteria were not
-            evaluated.
-          </div>
         )}
 
         {criteria.message && (
