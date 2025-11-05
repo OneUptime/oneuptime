@@ -54,11 +54,11 @@ export default tseslint.config(
 
     rules: {
       "react/prop-types": "off", // TODO: Remove this rule
-      "no-control-regex": "off", // TODO: Remove this rule
+      "no-control-regex": "error", // TODO: Remove this rule
       "@typescript-eslint/no-explicit-any": "off", // TODO: Remove this rule
       "@typescript-eslint/no-var-requires": "error",
       "@typescript-eslint/no-duplicate-enum-values": "off", // TODO: Remove this rule
-      "no-constant-binary-expression": "error", // TODO: Remove this rule
+      "no-constant-binary-expression": "error", 
       "@typescript-eslint/ban-ts-comment": "error",
       "multiline-comment-style": "error",
       "@typescript-eslint/no-floating-promises": "off", // TODO: Remove this rule
