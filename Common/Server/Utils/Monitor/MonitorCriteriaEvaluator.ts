@@ -16,7 +16,7 @@ import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
-import {
+import MonitorEvaluationSummary, {
   MonitorEvaluationCriteriaResult,
   MonitorEvaluationEvent,
   MonitorEvaluationFilterResult,
@@ -30,7 +30,6 @@ import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import Typeof from "../../../Types/Typeof";
 import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
-import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 
 export default class MonitorCriteriaEvaluator {
   public static async processMonitorStep(input: {

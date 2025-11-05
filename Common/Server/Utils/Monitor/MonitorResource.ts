@@ -24,6 +24,7 @@ import ProbeApiIngestResponse from "../../../Types/Probe/ProbeApiIngestResponse"
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorProbe from "../../../Models/DatabaseModels/MonitorProbe";
+import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import OneUptimeDate from "../../../Types/Date";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
@@ -87,17 +88,18 @@ export default class MonitorResourceUtil {
         return monitorStatusNameCache[cacheKey];
       }
 
-      const monitorStatus = await MonitorStatusService.findOneBy({
-        query: {
-          _id: statusId,
-        },
-        select: {
-          name: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      const monitorStatus: MonitorStatus | null =
+        await MonitorStatusService.findOneBy({
+          query: {
+            _id: statusId,
+          },
+          select: {
+            name: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
       const statusName: string | null = monitorStatus?.name || null;
       monitorStatusNameCache[cacheKey] = statusName;

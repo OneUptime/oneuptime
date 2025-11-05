@@ -174,8 +174,7 @@ export default class ServerMonitorCriteria {
       ).basicInfrastructureMetrics?.diskMetrics.find(
         (item: BasicDiskMetrics) => {
           return (
-            item.diskPath.trim().toLowerCase() ===
-            diskPath.trim().toLowerCase()
+            item.diskPath.trim().toLowerCase() === diskPath.trim().toLowerCase()
           );
         },
       );

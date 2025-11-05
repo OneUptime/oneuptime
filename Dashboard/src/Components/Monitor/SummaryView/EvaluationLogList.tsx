@@ -116,8 +116,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
     const renderEventAction: () => ReactElement | null = () => {
       if (
         event.relatedIncidentId &&
-        (event.type === "incident-created" ||
-          event.type === "incident-skipped")
+        (event.type === "incident-created" || event.type === "incident-skipped")
       ) {
         const incidentRoute: Route = RouteUtil.populateRouteParams(
           RouteMap[PageMap.INCIDENT_VIEW] as Route,
@@ -140,8 +139,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
 
       if (
         event.relatedAlertId &&
-        (event.type === "alert-created" ||
-          event.type === "alert-skipped")
+        (event.type === "alert-created" || event.type === "alert-skipped")
       ) {
         const alertRoute: Route = RouteUtil.populateRouteParams(
           RouteMap[PageMap.ALERT_VIEW] as Route,

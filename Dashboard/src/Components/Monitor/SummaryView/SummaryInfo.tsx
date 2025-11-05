@@ -118,11 +118,9 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
 
   const probableMonitorEvaluationSummary: MonitorEvaluationSummary | undefined =
     props.evaluationSummary ||
-    props.probeMonitorResponses?.find(
-      (response: ProbeMonitorResponse) => {
-        return Boolean(response.evaluationSummary);
-      },
-    )?.evaluationSummary;
+    props.probeMonitorResponses?.find((response: ProbeMonitorResponse) => {
+      return Boolean(response.evaluationSummary);
+    })?.evaluationSummary;
 
   if (
     MonitorTypeHelper.isProbableMonitor(props.monitorType) &&

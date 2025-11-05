@@ -6,83 +6,83 @@ import MonitorCriteriaExpectationBuilder from "./MonitorCriteriaExpectationBuild
 import MonitorCriteriaObservationBuilder from "./MonitorCriteriaObservationBuilder";
 
 export default class MonitorCriteriaMessageBuilder {
-	public static buildCriteriaFilterMessage(input: {
-		monitor: Monitor;
-		criteriaFilter: CriteriaFilter;
-		dataToProcess: DataToProcess;
-		monitorStep: MonitorStep;
-		didMeetCriteria: boolean;
-		matchMessage: string | null;
-	}): string {
-		if (input.matchMessage) {
-			return input.matchMessage;
-		}
+  public static buildCriteriaFilterMessage(input: {
+    monitor: Monitor;
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    didMeetCriteria: boolean;
+    matchMessage: string | null;
+  }): string {
+    if (input.matchMessage) {
+      return input.matchMessage;
+    }
 
-		if (input.didMeetCriteria) {
-			const description: string =
-				MonitorCriteriaExpectationBuilder.getCriteriaFilterDescription(
-					input.criteriaFilter,
-				);
+    if (input.didMeetCriteria) {
+      const description: string =
+        MonitorCriteriaExpectationBuilder.getCriteriaFilterDescription(
+          input.criteriaFilter,
+        );
 
-			return `${description} condition met.`;
-		}
+      return `${description} condition met.`;
+    }
 
-		const failureMessage: string | null =
-			MonitorCriteriaMessageBuilder.buildCriteriaFilterFailureMessage({
-				monitor: input.monitor,
-				criteriaFilter: input.criteriaFilter,
-				dataToProcess: input.dataToProcess,
-				monitorStep: input.monitorStep,
-			});
+    const failureMessage: string | null =
+      MonitorCriteriaMessageBuilder.buildCriteriaFilterFailureMessage({
+        monitor: input.monitor,
+        criteriaFilter: input.criteriaFilter,
+        dataToProcess: input.dataToProcess,
+        monitorStep: input.monitorStep,
+      });
 
-		if (failureMessage) {
-			return failureMessage;
-		}
+    if (failureMessage) {
+      return failureMessage;
+    }
 
-		const description: string =
-			MonitorCriteriaExpectationBuilder.getCriteriaFilterDescription(
-				input.criteriaFilter,
-			);
+    const description: string =
+      MonitorCriteriaExpectationBuilder.getCriteriaFilterDescription(
+        input.criteriaFilter,
+      );
 
-		return `${description} condition was not met.`;
-	}
+    return `${description} condition was not met.`;
+  }
 
-	private static buildCriteriaFilterFailureMessage(input: {
-		monitor: Monitor;
-		criteriaFilter: CriteriaFilter;
-		dataToProcess: DataToProcess;
-		monitorStep: MonitorStep;
-	}): string | null {
-		const expectation: string | null =
-			MonitorCriteriaExpectationBuilder.describeCriteriaExpectation(
-				input.criteriaFilter,
-			);
+  private static buildCriteriaFilterFailureMessage(input: {
+    monitor: Monitor;
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+  }): string | null {
+    const expectation: string | null =
+      MonitorCriteriaExpectationBuilder.describeCriteriaExpectation(
+        input.criteriaFilter,
+      );
 
-		const observation: string | null =
-			MonitorCriteriaObservationBuilder.describeFilterObservation({
-				monitor: input.monitor,
-				criteriaFilter: input.criteriaFilter,
-				dataToProcess: input.dataToProcess,
-				monitorStep: input.monitorStep,
-			});
+    const observation: string | null =
+      MonitorCriteriaObservationBuilder.describeFilterObservation({
+        monitor: input.monitor,
+        criteriaFilter: input.criteriaFilter,
+        dataToProcess: input.dataToProcess,
+        monitorStep: input.monitorStep,
+      });
 
-		if (observation) {
-			if (expectation) {
-				return `${observation} (expected ${expectation}).`;
-			}
+    if (observation) {
+      if (expectation) {
+        return `${observation} (expected ${expectation}).`;
+      }
 
-			return `${observation}; configured filter was not met.`;
-		}
+      return `${observation}; configured filter was not met.`;
+    }
 
-		if (expectation) {
-			const description: string =
-				MonitorCriteriaExpectationBuilder.getCriteriaFilterDescription(
-					input.criteriaFilter,
-				);
+    if (expectation) {
+      const description: string =
+        MonitorCriteriaExpectationBuilder.getCriteriaFilterDescription(
+          input.criteriaFilter,
+        );
 
-			return `${description} did not satisfy the configured condition (${expectation}).`;
-		}
+      return `${description} did not satisfy the configured condition (${expectation}).`;
+    }
 
-		return null;
-	}
+    return null;
+  }
 }
