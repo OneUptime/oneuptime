@@ -1,5 +1,6 @@
 import BasicInfrastructureMetrics from "../../Infrastructure/BasicMetrics";
 import ObjectID from "../../ObjectID";
+import MonitorEvaluationSummary from "../MonitorEvaluationSummary";
 
 export interface ServerProcess {
   pid: number;
@@ -17,4 +18,5 @@ export default interface ServerMonitorResponse {
   processes?: ServerProcess[] | undefined;
   failureCause?: string | undefined;
   timeNow?: Date | undefined; // Time when the response was generated
+  evaluationSummary?: MonitorEvaluationSummary | undefined;
 }

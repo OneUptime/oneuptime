@@ -30,6 +30,9 @@ import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import AnalyticsModelAPI, {
+  ListResult as AnalyticsListResult,
+} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -40,6 +43,7 @@ import MonitorProbe, {
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import Probe from "Common/Models/DatabaseModels/Probe";
+import MonitorLog from "Common/Models/AnalyticsModels/MonitorLog";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import React, {
   Fragment,
@@ -58,6 +62,7 @@ import MetricMonitorPreview from "../../../Components/Monitor/MetricMonitor/Metr
 import MonitorFeedElement from "../../../Components/Monitor/MonitorFeed";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
+import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
 
 const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -94,6 +99,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const [serverMonitorResponse, setServerMonitorResponse] = useState<
     ServerMonitorResponse | undefined
+  >(undefined);
+
+  const [latestEvaluationSummary, setLatestEvaluationSummary] = useState<
+    MonitorEvaluationSummary | undefined
   >(undefined);
 
   const getUptimePercent: () => ReactElement = (): ReactElement => {
@@ -185,6 +194,49 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       });
 
       setMonitor(item);
+
+      if (item?._id && ProjectUtil.getCurrentProjectId()) {
+        try {
+          const monitorLogResult: AnalyticsListResult<MonitorLog> =
+            await AnalyticsModelAPI.getList({
+              modelType: MonitorLog,
+              query: {
+                projectId: ProjectUtil.getCurrentProjectId()!.toString(),
+                monitorId: item._id.toString(),
+              },
+              limit: 1,
+              skip: 0,
+              select: {
+                logBody: true,
+              },
+              sort: {
+                time: SortOrder.Descending,
+              },
+            });
+
+          if (monitorLogResult.data.length > 0) {
+            const latestLog: MonitorLog | undefined = monitorLogResult.data[0];
+
+            if (latestLog?.logBody) {
+              const evaluationSummary: MonitorEvaluationSummary | undefined = (
+                latestLog.logBody as unknown as {
+                  evaluationSummary?: MonitorEvaluationSummary | undefined;
+                }
+              )?.evaluationSummary;
+
+              setLatestEvaluationSummary(evaluationSummary);
+            } else {
+              setLatestEvaluationSummary(undefined);
+            }
+          } else {
+            setLatestEvaluationSummary(undefined);
+          }
+        } catch {
+          setLatestEvaluationSummary(undefined);
+        }
+      } else {
+        setLatestEvaluationSummary(undefined);
+      }
 
       if (item?.incomingMonitorRequest) {
         setIncomingMonitorRequest(item.incomingMonitorRequest);
@@ -553,6 +605,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           lastCheckedAt: monitor?.telemetryMonitorLastMonitorAt,
           nextCheckAt: monitor?.telemetryMonitorNextMonitorAt,
         }}
+        evaluationSummary={latestEvaluationSummary}
       />
 
       {monitor?.monitorType === MonitorType.Logs &&

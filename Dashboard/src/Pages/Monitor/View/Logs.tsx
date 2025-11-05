@@ -32,6 +32,9 @@ import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/Incomin
 import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import MonitorEvaluationSummary, {
+  MonitorEvaluationCriteriaResult,
+} from "Common/Types/Monitor/MonitorEvaluationSummary";
 
 const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -162,6 +165,54 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Monitored At",
             type: FieldType.DateTime,
           },
+          {
+            field: {
+              logBody: true,
+            },
+            title: "Evaluation Outcome",
+            type: FieldType.Text,
+            getElement: (item: MonitorLog): ReactElement => {
+              const evaluationSummary: MonitorEvaluationSummary | undefined = (
+                item.logBody as unknown as {
+                  evaluationSummary?: MonitorEvaluationSummary | undefined;
+                }
+              )?.evaluationSummary;
+
+              if (!evaluationSummary) {
+                return (
+                  <span className="text-sm text-gray-500">Not recorded</span>
+                );
+              }
+
+              const metCriteria: MonitorEvaluationCriteriaResult | undefined =
+                evaluationSummary.criteriaResults.find(
+                  (criteria: MonitorEvaluationCriteriaResult) => {
+                    return criteria.met;
+                  },
+                );
+
+              if (metCriteria) {
+                return (
+                  <span className="text-sm text-green-700">
+                    Criteria met:{" "}
+                    {metCriteria.criteriaName || "Unnamed criteria"}
+                  </span>
+                );
+              }
+
+              if (evaluationSummary.criteriaResults.length > 0) {
+                return (
+                  <span className="text-sm text-gray-700">No criteria met</span>
+                );
+              }
+
+              return (
+                <span className="text-sm text-gray-500">
+                  Evaluations not available
+                </span>
+              );
+            },
+          },
         ]}
       />
     );
@@ -188,6 +239,13 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
             probeMonitorResponses={[logs as unknown as ProbeMonitorResponse]}
             incomingMonitorRequest={logs as unknown as IncomingMonitorRequest}
             serverMonitorResponse={logs as unknown as ServerMonitorResponse}
+            evaluationSummary={
+              (
+                logs as unknown as {
+                  evaluationSummary?: MonitorEvaluationSummary | undefined;
+                }
+              ).evaluationSummary
+            }
           />
         </Modal>
       )}

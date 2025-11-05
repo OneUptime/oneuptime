@@ -563,39 +563,39 @@ export default class CompareCriteria {
       data.criteriaFilter.filterType !== FilterType.True &&
       data.criteriaFilter.filterType !== FilterType.False
     ) {
-      if (Array.isArray(data.values)) {
-        message += ` is ${data.values.join(", ")}`;
-      } else {
-        message += ` is ${data.values}`;
-      }
+      const formattedValues: string = CompareCriteria.formatCriteriaValues(
+        data.values,
+      );
+
+      message += ` is ${formattedValues}`;
 
       message += " which is";
     }
 
     switch (data.criteriaFilter.filterType) {
       case FilterType.GreaterThan:
-        message += ` greater than ${data.threshold}. `;
+        message += ` greater than ${CompareCriteria.formatSingleValue(data.threshold)}. `;
         break;
       case FilterType.GreaterThanOrEqualTo:
-        message += ` greater than or equal to ${data.threshold}. `;
+        message += ` greater than or equal to ${CompareCriteria.formatSingleValue(data.threshold)}. `;
         break;
       case FilterType.LessThan:
-        message += ` less than ${data.threshold}. `;
+        message += ` less than ${CompareCriteria.formatSingleValue(data.threshold)}. `;
         break;
       case FilterType.LessThanOrEqualTo:
-        message += ` less than or equal to ${data.threshold}. `;
+        message += ` less than or equal to ${CompareCriteria.formatSingleValue(data.threshold)}. `;
         break;
       case FilterType.NotEqualTo:
-        message += ` not equal to ${data.threshold}. `;
+        message += ` not equal to ${CompareCriteria.formatSingleValue(data.threshold)}. `;
         break;
       case FilterType.EqualTo:
-        message += ` equal to ${data.threshold}. `;
+        message += ` equal to ${CompareCriteria.formatSingleValue(data.threshold)}. `;
         break;
       case FilterType.Contains:
-        message += ` contains ${data.threshold}. `;
+        message += ` contains ${CompareCriteria.formatSingleValue(data.threshold)}. `;
         break;
       case FilterType.NotContains:
-        message += ` does not contain ${data.threshold}. `;
+        message += ` does not contain ${CompareCriteria.formatSingleValue(data.threshold)}. `;
         break;
       case FilterType.True:
         message += ` is ${data.threshold}. `;
@@ -604,13 +604,45 @@ export default class CompareCriteria {
         message += ` is ${data.threshold}. `;
         break;
       case FilterType.StartsWith:
-        message += ` starts with ${data.threshold}. `;
+        message += ` starts with ${CompareCriteria.formatSingleValue(data.threshold)}. `;
         break;
       case FilterType.EndsWith:
-        message += ` ends with ${data.threshold}. `;
+        message += ` ends with ${CompareCriteria.formatSingleValue(data.threshold)}. `;
         break;
     }
 
     return message.trim();
+  }
+
+  private static formatCriteriaValues(
+    values: Array<number | boolean> | number | boolean | string,
+  ): string {
+    if (Array.isArray(values)) {
+      return values
+        .map((value: number | boolean) => {
+          return CompareCriteria.formatSingleValue(value);
+        })
+        .join(", ");
+    }
+
+    return CompareCriteria.formatSingleValue(values);
+  }
+
+  private static formatSingleValue(
+    value: number | boolean | string | null | undefined,
+  ): string {
+    if (value === null || value === undefined) {
+      return "unknown";
+    }
+
+    if (typeof value === Typeof.Number) {
+      return (value as number).toFixed(2);
+    }
+
+    if (typeof value === Typeof.Boolean) {
+      return value ? "true" : "false";
+    }
+
+    return value.toString();
   }
 }

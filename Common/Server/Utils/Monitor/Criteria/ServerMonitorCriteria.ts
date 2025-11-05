@@ -169,20 +169,21 @@ export default class ServerMonitorCriteria {
       const diskPath: string =
         input.criteriaFilter.serverMonitorOptions?.diskPath || "/";
 
-      const diskPercent: number =
-        (
-          input.dataToProcess as ServerMonitorResponse
-        ).basicInfrastructureMetrics?.diskMetrics.filter(
-          (item: BasicDiskMetrics) => {
-            return (
-              item.diskPath.trim().toLowerCase() ===
-              diskPath.trim().toLowerCase()
-            );
-          },
-        )[0]?.percentFree || 0;
+      const diskMetric: BasicDiskMetrics | undefined = (
+        input.dataToProcess as ServerMonitorResponse
+      ).basicInfrastructureMetrics?.diskMetrics.find(
+        (item: BasicDiskMetrics) => {
+          return (
+            item.diskPath.trim().toLowerCase() === diskPath.trim().toLowerCase()
+          );
+        },
+      );
+
+      const diskUsagePercent: number =
+        diskMetric?.percentUsed ?? diskMetric?.percentFree ?? 0;
 
       return CompareCriteria.compareCriteriaNumbers({
-        value: diskPercent,
+        value: diskUsagePercent,
         threshold: threshold as number,
         criteriaFilter: input.criteriaFilter,
       });
