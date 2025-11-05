@@ -26,7 +26,9 @@ interface FilterGroup {
 }
 
 // Group identical filter messages so we can surface helpful metadata once per row.
-const groupFiltersByMessage = (
+const groupFiltersByMessage: (
+  filters: Array<MonitorEvaluationFilterResult>,
+) => Array<FilterGroup> = (
   filters: Array<MonitorEvaluationFilterResult>,
 ): Array<FilterGroup> => {
   const groups: Array<FilterGroup> = [];
@@ -84,7 +86,6 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
   ).filter((event: MonitorEvaluationEvent) => {
     return event.type !== "criteria-met" && event.type !== "criteria-not-met";
   });
-
 
   if (!hasCriteriaResults && actionEvents.length === 0) {
     return <></>;
@@ -160,28 +161,44 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                 const uniqueFilterTypes: Array<string> = Array.from(
                   new Set(
                     filterGroup.occurrences
-                      .map((filter: MonitorEvaluationFilterResult) => {
-                        return filter.filterType;
-                      })
-                      .filter((value): value is FilterType => {
-                        return value !== undefined;
-                      }),
+                      .map(
+                        (
+                          filter: MonitorEvaluationFilterResult,
+                        ): FilterType | undefined => {
+                          return filter.filterType;
+                        },
+                      )
+                      .filter(
+                        (
+                          value: FilterType | undefined,
+                        ): value is FilterType => {
+                          return value !== undefined;
+                        },
+                      ),
                   ),
-                ).map((value: FilterType) => {
+                ).map((value: FilterType): string => {
                   return value.toString();
                 });
 
                 const thresholdValues: Array<string> = Array.from(
                   new Set(
                     filterGroup.occurrences
-                      .map((filter: MonitorEvaluationFilterResult) => {
-                        return filter.value;
-                      })
-                      .filter((value): value is number | string => {
-                        return value !== undefined && value !== null;
-                      }),
+                      .map(
+                        (
+                          filter: MonitorEvaluationFilterResult,
+                        ): string | number | undefined => {
+                          return filter.value;
+                        },
+                      )
+                      .filter(
+                        (
+                          value: string | number | undefined,
+                        ): value is number | string => {
+                          return value !== undefined && value !== null;
+                        },
+                      ),
                   ),
-                ).map((value: number | string) => {
+                ).map((value: number | string): string => {
                   return value.toString();
                 });
 
@@ -361,7 +378,10 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         className="flex items-start space-x-3 rounded-md border border-gray-100 bg-gray-50 p-3"
       >
         <div className="mt-0.5">
-          <Icon icon={IconProp.ArrowCircleRight} className="h-4 w-4 text-gray-500" />
+          <Icon
+            icon={IconProp.ArrowCircleRight}
+            className="h-4 w-4 text-gray-500"
+          />
         </div>
         <div className="flex-1">
           <div className="text-sm font-medium text-gray-800">
