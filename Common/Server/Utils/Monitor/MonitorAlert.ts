@@ -48,6 +48,7 @@ export default class MonitorAlert {
         _id: true,
         createdCriteriaId: true,
         projectId: true,
+        alertNumber: true,
       },
       props: {
         isRoot: true,
@@ -78,6 +79,7 @@ export default class MonitorAlert {
           message:
             "Alert auto-resolved because autoresolve is enabled for this criteria.",
           relatedAlertId: openAlert.id?.toString(),
+          relatedAlertNumber: openAlert.alertNumber,
           relatedCriteriaId: input.criteriaInstance?.data?.id,
           at: OneUptimeDate.getCurrentDate(),
         });
@@ -146,6 +148,7 @@ export default class MonitorAlert {
               "Skipped creating a new alert because an active alert exists for this criteria.",
             relatedCriteriaId: input.criteriaInstance.data?.id,
             relatedAlertId: alreadyOpenAlert?.id?.toString(),
+            relatedAlertNumber: alreadyOpenAlert?.alertNumber,
             at: OneUptimeDate.getCurrentDate(),
           });
           continue;
@@ -262,6 +265,7 @@ export default class MonitorAlert {
           message: `Alert triggered from criteria "${input.criteriaInstance.data?.name || "Unnamed criteria"}".`,
           relatedCriteriaId: input.criteriaInstance.data?.id,
           relatedAlertId: createdAlert.id?.toString(),
+          relatedAlertNumber: createdAlert.alertNumber,
           at: OneUptimeDate.getCurrentDate(),
         });
       }

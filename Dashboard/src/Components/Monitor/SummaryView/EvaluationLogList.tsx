@@ -11,6 +11,7 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -25,7 +26,9 @@ interface FilterGroup {
 }
 
 // Group identical filter messages so we can surface helpful metadata once per row.
-const groupFiltersByMessage = (
+const groupFiltersByMessage: (
+  filters: Array<MonitorEvaluationFilterResult>,
+) => Array<FilterGroup> = (
   filters: Array<MonitorEvaluationFilterResult>,
 ): Array<FilterGroup> => {
   const groups: Array<FilterGroup> = [];
@@ -158,28 +161,44 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                 const uniqueFilterTypes: Array<string> = Array.from(
                   new Set(
                     filterGroup.occurrences
-                      .map((filter: MonitorEvaluationFilterResult) => {
-                        return filter.filterType;
-                      })
-                      .filter((value): value is FilterType => {
-                        return value !== undefined;
-                      }),
+                      .map(
+                        (
+                          filter: MonitorEvaluationFilterResult,
+                        ): FilterType | undefined => {
+                          return filter.filterType;
+                        },
+                      )
+                      .filter(
+                        (
+                          value: FilterType | undefined,
+                        ): value is FilterType => {
+                          return value !== undefined;
+                        },
+                      ),
                   ),
-                ).map((value: FilterType) => {
+                ).map((value: FilterType): string => {
                   return value.toString();
                 });
 
                 const thresholdValues: Array<string> = Array.from(
                   new Set(
                     filterGroup.occurrences
-                      .map((filter: MonitorEvaluationFilterResult) => {
-                        return filter.value;
-                      })
-                      .filter((value): value is number | string => {
-                        return value !== undefined && value !== null;
-                      }),
+                      .map(
+                        (
+                          filter: MonitorEvaluationFilterResult,
+                        ): string | number | undefined => {
+                          return filter.value;
+                        },
+                      )
+                      .filter(
+                        (
+                          value: string | number | undefined,
+                        ): value is number | string => {
+                          return value !== undefined && value !== null;
+                        },
+                      ),
                   ),
-                ).map((value: number | string) => {
+                ).map((value: number | string): string => {
                   return value.toString();
                 });
 
@@ -242,15 +261,11 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         )}
 
         {criteria.message && (
-          <div className="mt-3 rounded-md border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900">
-            <div className="flex items-start space-x-2">
-              <Icon
-                icon={IconProp.Info}
-                className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-500"
-              />
-              <div>{criteria.message}</div>
-            </div>
-          </div>
+          <Alert
+            className="mt-3"
+            type={AlertType.INFO}
+            title={criteria.message}
+          />
         )}
 
         {criteria.met && (
@@ -323,18 +338,57 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
 
     const actionButton: ReactElement | null = renderEventAction();
 
+    const eventNumberLabel: string | null = (() => {
+      if (
+        event.relatedIncidentNumber !== undefined &&
+        event.relatedIncidentNumber !== null
+      ) {
+        return `Incident #${event.relatedIncidentNumber}`;
+      }
+
+      if (
+        event.relatedAlertNumber !== undefined &&
+        event.relatedAlertNumber !== null
+      ) {
+        return `Alert #${event.relatedAlertNumber}`;
+      }
+
+      return null;
+    })();
+
+    let decoratedTitle: string = event.title;
+
+    if (eventNumberLabel && !decoratedTitle.includes(eventNumberLabel)) {
+      decoratedTitle = `${decoratedTitle} (${eventNumberLabel})`;
+    }
+
+    let decoratedMessage: string | undefined = event.message;
+
+    if (
+      decoratedMessage &&
+      eventNumberLabel &&
+      !decoratedMessage.includes(eventNumberLabel)
+    ) {
+      decoratedMessage = `${decoratedMessage} (${eventNumberLabel})`;
+    }
+
     return (
       <div
         key={`event-${index}-${event.type}`}
         className="flex items-start space-x-3 rounded-md border border-gray-100 bg-gray-50 p-3"
       >
         <div className="mt-0.5">
-          <Icon icon={IconProp.ArrowCircleRight} className="h-4 w-4 text-gray-500" />
+          <Icon
+            icon={IconProp.ArrowCircleRight}
+            className="h-4 w-4 text-gray-500"
+          />
         </div>
         <div className="flex-1">
-          <div className="text-sm font-medium text-gray-800">{event.title}</div>
-          {event.message && (
-            <div className="text-sm text-gray-600">{event.message}</div>
+          <div className="text-sm font-medium text-gray-800">
+            {decoratedTitle}
+          </div>
+          {decoratedMessage && (
+            <div className="text-sm text-gray-600">{decoratedMessage}</div>
           )}
           {event.at && (
             <div className="text-xs text-gray-400">
