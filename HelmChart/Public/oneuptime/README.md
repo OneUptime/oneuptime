@@ -50,6 +50,13 @@ helm repo add oneuptime https://helm-chart.oneuptime.com/
 helm install my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
 
+## Community vs. Enterprise Images
+
+| Edition              | Best For                                             | Included Benefits                                                                                     | Requirements |
+|----------------------|-------------------------------------------------------|--------------------------------------------------------------------------------------------------------|--------------|
+| Community Edition    | Getting started, small self-hosted deployments        | Fully featured OneUptime platform with the standard security posture                                  | None         |
+| Enterprise Edition   | Regulated industries, teams with strict compliance needs | Hardened container images with additional security controls;<br>Custom features and roadmap input;<br>Dedicated engineer with 1-hour priority phone support;<br>Custom data residency and retention options;<br>Deploy on private cloud or SaaS with annual invoicing | Valid license |
+
 
 ## Upgrade Helm Chart
 
@@ -62,14 +69,6 @@ helm repo update
 helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
 
-## Uninstall OneUptime 
-
-To uninstall/delete the `my-oneuptime` deployment:
-
-```console
-helm uninstall my-oneuptime
-```
-
 ## Configuration
 
 The following table lists the configurable parameters of the OneUptime chart and their default values.
@@ -78,6 +77,7 @@ The following table lists the configurable parameters of the OneUptime chart and
 |---------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|-----------------|
 | `global.storageClass`                             | Storage class to be used for all persistent volumes                                                                                                                                    | `nil`           | 🚨              |
 | `host`                                            | Hostname for the ingress                                                                                                                                                               | `localhost`     | 🚨              |
+| `ssl.provision`                                   | Automatically provision a Let's Encrypt certificate for the primary host (requires public access on ports 80 and 443)                                                                  | `false`         |                 |
 | `httpProtocol`                                    | If the server is hosted with SSL/TLS cert then change this value to https                                                                                                              | `http`          | 🚨              |
 | `oneuptimeSecret`                                 | Value used to define ONEUPTIME_SECRET                                                                                                                                                  | `nil`           |                 |
 | `encryptionSecret`                                | Value used to define ENCRYPTION_SECRET                                                                                                                                                 | `nil`           |                 |
@@ -86,6 +86,7 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `image.repository`                                | Docker image repository                                                                                                                                                                | `oneuptime`     |                 |
 | `image.tag`                                       | Docker image tag                                                                                                                                                                       | `release`       |
 | `image.pullPolicy`                                | Docker image pull policy                                                                                                                                                               | `IfNotPresent`  |                 |
+| `image.type`                                      | OneUptime image type (`community-edition` or `enterprise-edition`; enterprise requires a valid license)                                                                                | `community-edition` |                 |
 | `image.restartPolicy`                             | Docker image restart policy                                                                                                                                                            | `Always`        |                 |
 | `autoscaling.enabled`                             | Enable autoscaling                                                                                                                                                                     | `false`         |                 |
 | `autoscaling.minReplicas`                         | Minimum number of replicas                                                                                                                                                             | `1`             |                 |
@@ -124,6 +125,8 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `oneuptimeIngress.tls`                            | Ingress TLS. Please refer to values.yaml to set these                                                                                                                                  | `[]`            |                 |
 | `oneuptimeIngress.className`                      | Ingress class name. Change this to your cloud providers ingress class                                                                                                                  | `nginx`         |                 |
 | `script.workflowScriptTimeoutInMs`                | Timeout for workflow script                                                                                                                                                            | `5000`          |                 |
+
+
 
 
 ## Using External Databases

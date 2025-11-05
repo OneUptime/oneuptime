@@ -21,6 +21,7 @@ export enum QueueName {
 }
 
 export type QueueJob = Job;
+type BullBoardQueues = Parameters<typeof createBullBoard>[0]["queues"];
 
 export default class Queue {
   private static queueDict: Dictionary<BullQueue> = {};
@@ -149,12 +150,15 @@ export default class Queue {
   public static getQueueInspectorRouter(): ExpressRouter {
     const serverAdapter: ExpressAdapter = new ExpressAdapter();
 
+    const queueAdapters: BullMQAdapter[] = Object.values(QueueName).map(
+      (queueName: QueueName) => {
+        return new BullMQAdapter(this.getQueue(queueName));
+      },
+    );
+
     createBullBoard({
-      queues: [
-        ...Object.values(QueueName).map((queueName: QueueName) => {
-          return new BullMQAdapter(this.getQueue(queueName));
-        }),
-      ],
+      // Cast keeps compatibility until bull-board widens QueueJob.progress
+      queues: queueAdapters as unknown as BullBoardQueues,
       serverAdapter: serverAdapter,
     });
 
