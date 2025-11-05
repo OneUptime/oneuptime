@@ -193,7 +193,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
               if (metCriteria) {
                 return (
-                  <span className="text-sm text-green-700">
+                  <span className="text-sm text-gray-700">
                     Criteria met:{" "}
                     {metCriteria.criteriaName || "Unnamed criteria"}
                   </span>

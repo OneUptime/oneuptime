@@ -4,6 +4,7 @@ import MonitorEvaluationSummary, {
   MonitorEvaluationFilterResult,
 } from "Common/Types/Monitor/MonitorEvaluationSummary";
 import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
+import FilterCondition from "Common/Types/Filter/FilterCondition";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
@@ -240,6 +241,14 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
             )}
           </ul>
         )}
+
+        {criteria.met &&
+          criteria.filterCondition === FilterCondition.Any && (
+            <div className="mt-3 rounded-md border border-green-100 bg-green-50 p-3 text-xs text-green-700">
+              Since this criteria was satisfied, remaining criteria were not
+              evaluated.
+            </div>
+          )}
 
         {criteria.message && (
           <div className="mt-3 text-sm text-gray-700">{criteria.message}</div>
