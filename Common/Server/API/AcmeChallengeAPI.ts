@@ -24,7 +24,7 @@ export default class AcmeChallengeAPI extends BaseAPI<
     this.wellKnownRouter = Express.getRouter();
 
     this.wellKnownRouter.get(
-      "/.well-known/acme-challenge/:token",
+      "/acme-challenge/.well-known/:token",
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const challenge: AcmeChallenge | null =
