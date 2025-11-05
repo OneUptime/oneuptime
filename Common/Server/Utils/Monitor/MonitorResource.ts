@@ -154,7 +154,6 @@ export default class MonitorResourceUtil {
 
       throw new BadDataException(ExceptionMessages.MonitorDisabled);
     }
-
     if (monitor.disableActiveMonitoringBecauseOfManualIncident) {
       logger.debug(
         `${dataToProcess.monitorId.toString()} Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.`,
@@ -239,59 +238,79 @@ export default class MonitorResourceUtil {
       }
     }
 
-    if (
+    const serverMonitorResponse: ServerMonitorResponse | undefined =
+      monitor.monitorType === MonitorType.Server &&
+      (dataToProcess as ServerMonitorResponse).requestReceivedAt
+        ? (dataToProcess as ServerMonitorResponse)
+        : undefined;
+
+    const incomingMonitorRequest: IncomingMonitorRequest | undefined =
       monitor.monitorType === MonitorType.IncomingRequest &&
       (dataToProcess as IncomingMonitorRequest).incomingRequestReceivedAt &&
       !(dataToProcess as IncomingMonitorRequest)
         .onlyCheckForIncomingRequestReceivedAt
-    ) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} - Incoming request received at ${(dataToProcess as IncomingMonitorRequest).incomingRequestReceivedAt}`,
-      );
+        ? (dataToProcess as IncomingMonitorRequest)
+        : undefined;
 
-      await MonitorService.updateOneById({
-        id: monitor.id!,
-        data: {
-          incomingRequestMonitorHeartbeatCheckedAt:
-            OneUptimeDate.getCurrentDate(),
-          incomingMonitorRequest: {
-            ...dataToProcess,
+    let hasPersistedMonitorData: boolean = false;
+
+    const persistLatestMonitorPayload: () => Promise<void> = async () => {
+      if (hasPersistedMonitorData) {
+        return;
+      }
+
+      if (serverMonitorResponse) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Server request received at ${serverMonitorResponse.requestReceivedAt}`,
+        );
+
+        logger.debug(dataToProcess);
+
+        await MonitorService.updateOneById({
+          id: monitor.id!,
+          data: {
+            serverMonitorRequestReceivedAt:
+              serverMonitorResponse.requestReceivedAt!,
+            serverMonitorResponse,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Monitor Server Response Updated`,
+        );
+      }
+
+      if (incomingMonitorRequest) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Incoming request received at ${incomingMonitorRequest.incomingRequestReceivedAt}`,
+        );
+
+        await MonitorService.updateOneById({
+          id: monitor.id!,
+          data: {
+            incomingRequestMonitorHeartbeatCheckedAt:
+              OneUptimeDate.getCurrentDate(),
+            incomingMonitorRequest: JSON.parse(
+              JSON.stringify(incomingMonitorRequest),
+            ) as IncomingMonitorRequest,
           } as any,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
 
-      logger.debug(`${dataToProcess.monitorId.toString()} - Monitor Updated`);
-    }
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Monitor Incoming Request Updated`,
+        );
+      }
 
-    if (
-      monitor.monitorType === MonitorType.Server &&
-      (dataToProcess as ServerMonitorResponse).requestReceivedAt
-    ) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} - Server request received at ${(dataToProcess as ServerMonitorResponse).requestReceivedAt}`,
-      );
-
-      logger.debug(dataToProcess);
-
-      await MonitorService.updateOneById({
-        id: monitor.id!,
-        data: {
-          serverMonitorRequestReceivedAt: (
-            dataToProcess as ServerMonitorResponse
-          ).requestReceivedAt!,
-          serverMonitorResponse: dataToProcess as ServerMonitorResponse, // this could be redundant as we are already saving this in the incomingMonitorRequest. we should remove this in the future.
-        },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
-
-      logger.debug(`${dataToProcess.monitorId.toString()} - Monitor Updated`);
-    }
+      hasPersistedMonitorData = true;
+    };
 
     logger.debug(
       `${dataToProcess.monitorId.toString()} - Saving monitor metrics`,
@@ -323,6 +342,8 @@ export default class MonitorResourceUtil {
       logger.debug(
         `${dataToProcess.monitorId.toString()} - No monitoring steps.`,
       );
+      await persistLatestMonitorPayload();
+
       MonitorLogUtil.saveMonitorLog({
         monitorId: monitor.id!,
         projectId: monitor.projectId!,
@@ -438,6 +459,8 @@ export default class MonitorResourceUtil {
 
     if (!monitorStep) {
       logger.debug("No steps found, ignoring everything.");
+      await persistLatestMonitorPayload();
+
       MonitorLogUtil.saveMonitorLog({
         monitorId: monitor.id!,
         projectId: monitor.projectId!,
@@ -683,6 +706,8 @@ export default class MonitorResourceUtil {
         logger.error(err);
       }
     }
+
+    await persistLatestMonitorPayload();
 
     MonitorLogUtil.saveMonitorLog({
       monitorId: monitor.id!,
