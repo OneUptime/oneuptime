@@ -4,7 +4,6 @@ import MonitorEvaluationSummary, {
   MonitorEvaluationFilterResult,
 } from "Common/Types/Monitor/MonitorEvaluationSummary";
 import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
-import FilterCondition from "Common/Types/Filter/FilterCondition";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
@@ -242,15 +241,14 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
           </ul>
         )}
 
-        {criteria.met && criteria.filterCondition === FilterCondition.Any && (
-          <div className="mt-3 rounded-md border border-green-100 bg-green-50 p-3 text-xs text-green-700">
-            Since this criteria was satisfied, remaining criteria were not
-            evaluated.
-          </div>
-        )}
-
         {criteria.message && (
           <div className="mt-3 text-sm text-gray-700">{criteria.message}</div>
+        )}
+
+        {criteria.met && (
+          <div className="mt-3 text-xs text-gray-500">
+            Criteria below this was not checked because this criteria was met.
+          </div>
         )}
       </div>
     );
@@ -323,7 +321,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         className="flex items-start space-x-3 rounded-md border border-gray-100 bg-gray-50 p-3"
       >
         <div className="mt-0.5">
-          <Icon icon={IconProp.Activity} className="h-4 w-4 text-gray-500" />
+          <Icon icon={IconProp.ArrowCircleRight} className="h-4 w-4 text-gray-500" />
         </div>
         <div className="flex-1">
           <div className="text-sm font-medium text-gray-800">{event.title}</div>
@@ -337,7 +335,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
               )}
             </div>
           )}
-          {actionButton && <div className="mt-3">{actionButton}</div>}
+          {actionButton && <div className="mt-3 -ml-3">{actionButton}</div>}
         </div>
       </div>
     );
