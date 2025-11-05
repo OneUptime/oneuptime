@@ -244,6 +244,12 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         {criteria.message && (
           <div className="mt-3 text-sm text-gray-700">{criteria.message}</div>
         )}
+
+        {criteria.met && (
+          <div className="mt-3 text-xs text-gray-500">
+            Criteria below this was not checked because this criteria was met.
+          </div>
+        )}
       </div>
     );
   };
@@ -315,7 +321,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         className="flex items-start space-x-3 rounded-md border border-gray-100 bg-gray-50 p-3"
       >
         <div className="mt-0.5">
-          <Icon icon={IconProp.Activity} className="h-4 w-4 text-gray-500" />
+          <Icon icon={IconProp.ArrowCircleRight} className="h-4 w-4 text-gray-500" />
         </div>
         <div className="flex-1">
           <div className="text-sm font-medium text-gray-800">{event.title}</div>
