@@ -15,14 +15,17 @@ metadata:
     {{- end }}
 spec:
   schedule: "*/30 * * * *" # At every 30 minute.
-  {{- if $.Values.nodeSelector }}
-  nodeSelector: {{- $.Values.nodeSelector | toYaml | nindent 8 }}
-  {{- end }}
   jobTemplate:
     spec:
       template:
         spec:
-          
+          {{- if $.Values.cronJobs.e2e.nodeSelector }}
+          nodeSelector:
+            {{- toYaml $.Values.cronJobs.e2e.nodeSelector | nindent 12 }}
+          {{- else if $.Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml $.Values.nodeSelector | nindent 12 }}
+          {{- end }}
           containers:
           - name: e2e-cron
             image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "e2e") }}
