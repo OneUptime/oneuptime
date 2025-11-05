@@ -1,4 +1,3 @@
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { EVERY_FIFTEEN_MINUTE, EVERY_MINUTE } from "Common/Utils/CronTime";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import AcmeCertificateService from "Common/Server/Services/AcmeCertificateService";
@@ -19,14 +18,13 @@ export default class Jobs {
         // Fetch all domains where certs are added to greenlock.
 
         const certs: Array<AcmeCertificate> =
-          await AcmeCertificateService.findBy({
+          await AcmeCertificateService.findAllBy({
             query: {},
             select: {
               domain: true,
               certificate: true,
               certificateKey: true,
             },
-            limit: LIMIT_MAX,
             skip: 0,
             props: {
               isRoot: true,

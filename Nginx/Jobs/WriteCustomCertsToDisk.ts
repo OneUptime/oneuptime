@@ -1,4 +1,3 @@
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { EVERY_FIFTEEN_MINUTE, EVERY_MINUTE } from "Common/Utils/CronTime";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import StatusPageDomainService from "Common/Server/Services/StatusPageDomainService";
@@ -20,7 +19,7 @@ export default class Jobs {
         // Fetch all domains where certs are added to greenlock.
 
         const statusPageDomains: Array<StatusPageDomain> =
-          await StatusPageDomainService.findBy({
+          await StatusPageDomainService.findAllBy({
             query: {
               isCustomCertificate: true,
               customCertificate: QueryHelper.notNull(),
@@ -31,7 +30,6 @@ export default class Jobs {
               customCertificate: true,
               customCertificateKey: true,
             },
-            limit: LIMIT_MAX,
             skip: 0,
             props: {
               isRoot: true,
