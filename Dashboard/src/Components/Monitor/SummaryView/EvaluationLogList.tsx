@@ -3,6 +3,7 @@ import MonitorEvaluationSummary, {
   MonitorEvaluationEvent,
   MonitorEvaluationFilterResult,
 } from "Common/Types/Monitor/MonitorEvaluationSummary";
+import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
@@ -16,6 +17,47 @@ import Navigation from "Common/UI/Utils/Navigation";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import React, { FunctionComponent, ReactElement } from "react";
+
+interface FilterGroup {
+  message: string;
+  firstIndex: number;
+  occurrences: Array<MonitorEvaluationFilterResult>;
+}
+
+// Group identical filter messages so we can surface helpful metadata once per row.
+const groupFiltersByMessage = (
+  filters: Array<MonitorEvaluationFilterResult>,
+): Array<FilterGroup> => {
+  const groups: Array<FilterGroup> = [];
+  const messageToIndex: Map<string, number> = new Map();
+
+  filters.forEach(
+    (filter: MonitorEvaluationFilterResult, position: number): void => {
+      const existingGroupIndex: number | undefined = messageToIndex.get(
+        filter.message,
+      );
+
+      if (existingGroupIndex !== undefined) {
+        const existingGroup: FilterGroup | undefined =
+          groups[existingGroupIndex];
+
+        if (existingGroup) {
+          existingGroup.occurrences.push(filter);
+        }
+        return;
+      }
+
+      messageToIndex.set(filter.message, groups.length);
+      groups.push({
+        message: filter.message,
+        firstIndex: position,
+        occurrences: [filter],
+      });
+    },
+  );
+
+  return groups;
+};
 
 export interface ComponentProps {
   evaluationSummary?: MonitorEvaluationSummary | undefined;
@@ -78,20 +120,120 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
 
         {criteria.filters.length > 0 && (
           <ul className="mt-3 space-y-2">
-            {criteria.filters.map(
-              (filter: MonitorEvaluationFilterResult, filterIndex: number) => {
+            {groupFiltersByMessage(criteria.filters).map(
+              (filterGroup: FilterGroup, filterGroupIndex: number) => {
+                const allMet: boolean = filterGroup.occurrences.every(
+                  (filter: MonitorEvaluationFilterResult) => {
+                    return filter.met;
+                  },
+                );
+
+                const noneMet: boolean = filterGroup.occurrences.every(
+                  (filter: MonitorEvaluationFilterResult) => {
+                    return !filter.met;
+                  },
+                );
+
+                let statusIcon: IconProp = IconProp.Alert;
+                let statusClassName: string = "text-yellow-500";
+
+                if (allMet) {
+                  statusIcon = IconProp.CheckCircle;
+                  statusClassName = "text-green-600";
+                } else if (noneMet) {
+                  statusIcon = IconProp.CircleClose;
+                  statusClassName = "text-red-500";
+                }
+
+                const uniqueCheckOnLabels: Array<string> = Array.from(
+                  new Set(
+                    filterGroup.occurrences.map(
+                      (filter: MonitorEvaluationFilterResult) => {
+                        return filter.checkOn;
+                      },
+                    ),
+                  ),
+                );
+
+                const uniqueFilterTypes: Array<string> = Array.from(
+                  new Set(
+                    filterGroup.occurrences
+                      .map((filter: MonitorEvaluationFilterResult) => {
+                        return filter.filterType;
+                      })
+                      .filter((value): value is FilterType => {
+                        return value !== undefined;
+                      }),
+                  ),
+                ).map((value: FilterType) => {
+                  return value.toString();
+                });
+
+                const thresholdValues: Array<string> = Array.from(
+                  new Set(
+                    filterGroup.occurrences
+                      .map((filter: MonitorEvaluationFilterResult) => {
+                        return filter.value;
+                      })
+                      .filter((value): value is number | string => {
+                        return value !== undefined && value !== null;
+                      }),
+                  ),
+                ).map((value: number | string) => {
+                  return value.toString();
+                });
+
+                const metadataParts: Array<string> = [];
+
+                if (uniqueCheckOnLabels.length > 0) {
+                  metadataParts.push(
+                    uniqueCheckOnLabels.length === 1
+                      ? `Check: ${uniqueCheckOnLabels[0]}`
+                      : `Checks: ${uniqueCheckOnLabels.join(", ")}`,
+                  );
+                }
+
+                if (uniqueFilterTypes.length > 0) {
+                  metadataParts.push(
+                    uniqueFilterTypes.length === 1
+                      ? `Condition: ${uniqueFilterTypes[0]}`
+                      : `Conditions: ${uniqueFilterTypes.join(", ")}`,
+                  );
+                }
+
+                if (thresholdValues.length > 0) {
+                  metadataParts.push(
+                    thresholdValues.length === 1
+                      ? `Threshold: ${thresholdValues[0]}`
+                      : `Thresholds: ${thresholdValues.join(", ")}`,
+                  );
+                }
+
+                if (filterGroup.occurrences.length > 1) {
+                  metadataParts.push(
+                    `${filterGroup.occurrences.length} matching checks`,
+                  );
+                }
+
                 return (
                   <li
-                    key={`criteria-${index}-filter-${filterIndex}`}
-                    className="flex items-start space-x-2 text-sm text-gray-700"
+                    key={`criteria-${index}-filter-group-${filterGroup.firstIndex}-${filterGroupIndex}`}
+                    className="flex items-start space-x-2 rounded-md border border-gray-100 bg-gray-50 p-3"
                   >
                     <Icon
-                      icon={
-                        filter.met ? IconProp.CheckCircle : IconProp.CircleClose
-                      }
-                      className={`h-4 w-4 flex-shrink-0 ${filter.met ? "text-green-600" : "text-red-500"}`}
+                      icon={statusIcon}
+                      className={`h-4 w-4 flex-shrink-0 ${statusClassName}`}
                     />
-                    <span>{filter.message}</span>
+                    <div className="space-y-1">
+                      <div className="text-sm text-gray-700">
+                        {filterGroup.message}
+                      </div>
+                      {metadataParts.length > 0 && (
+                        <div className="text-xs text-gray-500">
+                          {metadataParts.join(" • ")}
+                        </div>
+                      )}
+                    </div>
                   </li>
                 );
               },
@@ -128,8 +270,9 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         return (
           <Button
             title="View Incident"
-            buttonStyle={ButtonStyleType.SECONDARY}
+            buttonStyle={ButtonStyleType.NORMAL}
             buttonSize={ButtonSize.Small}
+            className="w-auto -ml-3"
             onClick={() => {
               Navigation.navigate(incidentRoute);
             }}
@@ -151,8 +294,9 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         return (
           <Button
             title="View Alert"
-            buttonStyle={ButtonStyleType.SECONDARY}
+            buttonStyle={ButtonStyleType.NORMAL}
             buttonSize={ButtonSize.Small}
+            className="w-auto -ml-3"
             onClick={() => {
               Navigation.navigate(alertRoute);
             }}
