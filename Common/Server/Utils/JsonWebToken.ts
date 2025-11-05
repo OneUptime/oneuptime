@@ -13,6 +13,12 @@ import jwt from "jsonwebtoken";
 import logger from "./Logger";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 
+export interface RefreshTokenData {
+  userId: ObjectID;
+  sessionId: string;
+  isGlobalLogin: boolean;
+}
+
 class JSONWebToken {
   @CaptureSpan()
   public static signUserLoginToken(data: {
@@ -31,6 +37,24 @@ class JSONWebToken {
       data: data.tokenData,
       expiresInSeconds: data.expiresInSeconds,
     });
+  }
+
+  @CaptureSpan()
+  public static signRefreshToken(data: {
+    userId: ObjectID;
+    sessionId: string;
+    isGlobalLogin: boolean;
+    expiresInSeconds: number;
+  }): string {
+    return JSONWebToken.signJsonPayload(
+      {
+        tokenType: "refresh",
+        userId: data.userId.toString(),
+        sessionId: data.sessionId,
+        isGlobalLogin: data.isGlobalLogin,
+      },
+      data.expiresInSeconds,
+    );
   }
 
   @CaptureSpan()
@@ -122,6 +146,34 @@ class JSONWebToken {
     } catch (e) {
       logger.error(e);
       throw new BadDataException("AccessToken is invalid or expired");
+    }
+  }
+
+  @CaptureSpan()
+  public static decodeRefreshToken(token: string): RefreshTokenData {
+    try {
+      const decoded: JSONObject = JSONWebToken.decodeJsonPayload(token);
+
+      if (decoded["tokenType"] !== "refresh") {
+        throw new BadDataException("Invalid refresh token");
+      }
+
+      if (!decoded["sessionId"] || typeof decoded["sessionId"] !== "string") {
+        throw new BadDataException("Invalid refresh token session");
+      }
+
+      if (!decoded["userId"] || typeof decoded["userId"] !== "string") {
+        throw new BadDataException("Invalid refresh token user");
+      }
+
+      return {
+        userId: new ObjectID(decoded["userId"] as string),
+        sessionId: decoded["sessionId"] as string,
+        isGlobalLogin: Boolean(decoded["isGlobalLogin"]),
+      };
+    } catch (e) {
+      logger.error(e);
+      throw new BadDataException("RefreshToken is invalid or expired");
     }
   }
 }

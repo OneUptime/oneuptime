@@ -10,7 +10,9 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import JSONWebToken from "../Utils/JsonWebToken";
+import JSONWebToken, {
+  RefreshTokenData,
+} from "../Utils/JsonWebToken";
 import logger from "../Utils/Logger";
 import Response from "../Utils/Response";
 import ProjectMiddleware from "./ProjectAuthorization";
@@ -33,6 +35,8 @@ import {
 import UserType from "../../Types/UserType";
 import Project from "../../Models/DatabaseModels/Project";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
+import User from "../../Models/DatabaseModels/User";
+import { EncryptionSecret } from "../EnvironmentConfig";
 
 export default class UserMiddleware {
   /*
@@ -161,22 +165,44 @@ export default class UserMiddleware {
       );
     }
 
-    const accessToken: string | undefined =
+    let accessToken: string | undefined =
       UserMiddleware.getAccessTokenFromExpressRequest(req);
+    let userAuthorization: JSONWebTokenData | null = null;
 
-    if (!accessToken) {
+    if (accessToken) {
+      try {
+        userAuthorization = JSONWebToken.decode(accessToken);
+      } catch (err) {
+        const error: Error = err as Error;
+        logger.warn(
+          `Invalid access token, attempting refresh: ${
+            error.message || "unknown error"
+          }`,
+        );
+        logger.debug(error);
+      }
+    }
+
+    if (!userAuthorization) {
+      const refreshedSession:
+        | {
+            accessToken: string;
+            userAuthorization: JSONWebTokenData;
+          }
+        | null = await UserMiddleware.tryRefreshSession(req, res);
+
+      if (refreshedSession) {
+        accessToken = refreshedSession.accessToken;
+        userAuthorization = refreshedSession.userAuthorization;
+      }
+    }
+
+    if (!userAuthorization) {
       oneuptimeRequest.userType = UserType.Public;
       return next();
     }
 
-    try {
-      oneuptimeRequest.userAuthorization = JSONWebToken.decode(accessToken);
-    } catch (err) {
-      // if the token is invalid or expired, it'll throw this error.
-      logger.error(err);
-      oneuptimeRequest.userType = UserType.Public;
-      return next();
-    }
+    oneuptimeRequest.userAuthorization = userAuthorization;
 
     if (oneuptimeRequest.userAuthorization.isMasterAdmin) {
       oneuptimeRequest.userType = UserType.MasterAdmin;
@@ -184,7 +210,7 @@ export default class UserMiddleware {
       oneuptimeRequest.userType = UserType.User;
     }
 
-    const userId: string = oneuptimeRequest.userAuthorization.userId.toString();
+    const userId: string = userAuthorization.userId.toString();
 
     await UserService.updateOneBy({
       query: {
@@ -288,6 +314,113 @@ export default class UserMiddleware {
     }
 
     return next();
+  }
+
+  @CaptureSpan()
+  private static async tryRefreshSession(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<
+    | {
+        accessToken: string;
+        userAuthorization: JSONWebTokenData;
+      }
+    | null
+  > {
+    const refreshToken: string | undefined =
+      CookieUtil.getCookieFromExpressRequest(
+        req,
+        CookieUtil.getRefreshTokenKey(),
+      );
+
+    if (!refreshToken) {
+      return null;
+    }
+
+    let refreshTokenData: RefreshTokenData;
+
+    try {
+      refreshTokenData = JSONWebToken.decodeRefreshToken(refreshToken);
+    } catch (err) {
+      const error: Error = err as Error;
+      logger.warn(
+        `Failed to decode refresh token during middleware refresh: ${
+          error.message || "unknown error"
+        }`,
+      );
+      logger.debug(error);
+      CookieUtil.removeCookie(res, CookieUtil.getRefreshTokenKey());
+      CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey());
+      return null;
+    }
+
+    const hashedSessionId: string = await HashedString.hashValue(
+      refreshTokenData.sessionId,
+      EncryptionSecret,
+    );
+
+    const user: User | null = await UserService.findOneBy({
+      query: {
+        _id: refreshTokenData.userId,
+        jwtRefreshToken: hashedSessionId,
+      },
+      select: {
+        _id: true,
+        email: true,
+        name: true,
+        isMasterAdmin: true,
+        profilePictureId: true,
+        timezone: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user) {
+      CookieUtil.removeCookie(res, CookieUtil.getRefreshTokenKey());
+      CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey());
+      return null;
+    }
+
+    const session = CookieUtil.setUserCookie({
+      expressResponse: res,
+      user: user,
+      isGlobalLogin: refreshTokenData.isGlobalLogin,
+    });
+
+    if (!req.cookies) {
+      req.cookies = {} as Dictionary<string>;
+    }
+
+    req.cookies[CookieUtil.getUserTokenKey()] = session.accessToken;
+    req.cookies[CookieUtil.getRefreshTokenKey()] = session.refreshToken;
+
+    const hashedNewSessionId: string = await HashedString.hashValue(
+      session.sessionId,
+      EncryptionSecret,
+    );
+
+    await UserService.updateOneBy({
+      query: {
+        _id: user.id!,
+      },
+      data: {
+        jwtRefreshToken: hashedNewSessionId,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const userAuthorization: JSONWebTokenData = JSONWebToken.decode(
+      session.accessToken,
+    );
+
+    return {
+      accessToken: session.accessToken,
+      userAuthorization,
+    };
   }
 
   @CaptureSpan()

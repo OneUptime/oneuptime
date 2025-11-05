@@ -26,6 +26,9 @@ import MailService from "Common/Server/Services/MailService";
 import UserService from "Common/Server/Services/UserService";
 import UserTotpAuthService from "Common/Server/Services/UserTotpAuthService";
 import CookieUtil from "Common/Server/Utils/Cookie";
+import JSONWebToken, {
+  RefreshTokenData,
+} from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -40,6 +43,10 @@ import User from "Common/Models/DatabaseModels/User";
 import UserTotpAuth from "Common/Models/DatabaseModels/UserTotpAuth";
 import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import UserWebAuthnService from "Common/Server/Services/UserWebAuthnService";
+import HashedString from "Common/Types/HashedString";
+import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
+import Dictionary from "Common/Types/Dictionary";
+import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -186,10 +193,27 @@ router.post(
         // Refresh Permissions for this user here.
         await AccessTokenService.refreshUserAllPermissions(savedUser.id!);
 
-        CookieUtil.setUserCookie({
+        const session = CookieUtil.setUserCookie({
           expressResponse: res,
           user: savedUser,
           isGlobalLogin: true,
+        });
+
+        const hashedSessionId: string = await HashedString.hashValue(
+          session.sessionId,
+          EncryptionSecret,
+        );
+
+        await UserService.updateOneBy({
+          query: {
+            _id: savedUser.id!,
+          },
+          data: {
+            jwtRefreshToken: hashedSessionId,
+          },
+          props: {
+            isRoot: true,
+          },
         });
 
         logger.info("User signed up: " + savedUser.email?.toString());
@@ -495,6 +519,67 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
+      const refreshToken: string | undefined =
+        CookieUtil.getCookieFromExpressRequest(
+          req,
+          CookieUtil.getRefreshTokenKey(),
+        );
+
+      let userIdToInvalidate: ObjectID | null = null;
+
+      if (refreshToken) {
+        try {
+          const refreshTokenData: RefreshTokenData =
+            JSONWebToken.decodeRefreshToken(refreshToken);
+          userIdToInvalidate = refreshTokenData.userId;
+        } catch (err) {
+          const error: Error = err as Error;
+          logger.warn(
+            `Failed to decode refresh token during logout: ${
+              error.message || "unknown error"
+            }`,
+          );
+          logger.debug(error);
+        }
+      }
+
+      if (!userIdToInvalidate) {
+        const accessToken: string | undefined =
+          CookieUtil.getCookieFromExpressRequest(
+            req,
+            CookieUtil.getUserTokenKey(),
+          );
+
+        if (accessToken) {
+          try {
+            const decoded: JSONWebTokenData = JSONWebToken.decode(accessToken);
+            userIdToInvalidate = decoded.userId;
+          } catch (err) {
+            const error: Error = err as Error;
+            logger.warn(
+              `Failed to decode access token during logout: ${
+                error.message || "unknown error"
+              }`,
+            );
+            logger.debug(error);
+          }
+        }
+      }
+
+      if (userIdToInvalidate) {
+        await UserService.updateOneBy({
+          query: {
+            _id: userIdToInvalidate,
+          },
+          data: {
+            jwtRefreshToken: null!,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+
       CookieUtil.removeAllCookies(req, res);
 
       return Response.sendEmptySuccessResponse(req, res);
@@ -552,6 +637,122 @@ router.post(
       verifyTotpAuth: false,
       verifyWebAuthn: false,
     });
+  },
+);
+
+router.post(
+  "/refresh-session",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const refreshToken: string | undefined =
+        CookieUtil.getCookieFromExpressRequest(
+          req,
+          CookieUtil.getRefreshTokenKey(),
+        );
+
+      if (!refreshToken) {
+        CookieUtil.removeAllCookies(req, res);
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException("Refresh token missing"),
+        );
+      }
+
+      let refreshTokenData: RefreshTokenData;
+      try {
+        refreshTokenData = JSONWebToken.decodeRefreshToken(refreshToken);
+      } catch (err) {
+        const error: Error = err as Error;
+        logger.warn(
+          `Failed to decode refresh token: ${error.message || "unknown error"}`,
+        );
+        logger.debug(error);
+        CookieUtil.removeAllCookies(req, res);
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException("Refresh token is invalid"),
+        );
+      }
+
+      const hashedSessionId: string = await HashedString.hashValue(
+        refreshTokenData.sessionId,
+        EncryptionSecret,
+      );
+
+      const user: User | null = await UserService.findOneBy({
+        query: {
+          _id: refreshTokenData.userId,
+          jwtRefreshToken: hashedSessionId,
+        },
+        select: {
+          _id: true,
+          email: true,
+          name: true,
+          isMasterAdmin: true,
+          profilePictureId: true,
+          timezone: true,
+          enableTwoFactorAuth: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!user) {
+        CookieUtil.removeAllCookies(req, res);
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException("Refresh token does not match"),
+        );
+      }
+
+      const session = CookieUtil.setUserCookie({
+        expressResponse: res,
+        user: user,
+        isGlobalLogin: refreshTokenData.isGlobalLogin,
+      });
+
+      if (!req.cookies) {
+        req.cookies = {} as Dictionary<string>;
+      }
+
+      req.cookies[CookieUtil.getUserTokenKey()] = session.accessToken;
+      req.cookies[CookieUtil.getRefreshTokenKey()] = session.refreshToken;
+
+      const hashedNewSessionId: string = await HashedString.hashValue(
+        session.sessionId,
+        EncryptionSecret,
+      );
+
+      await UserService.updateOneBy({
+        query: {
+          _id: user.id!,
+        },
+        data: {
+          jwtRefreshToken: hashedNewSessionId,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      logger.info(
+        `User session refreshed: ${
+          user.email?.toString() || user.id?.toString() || "unknown"
+        }`,
+      );
+
+      return Response.sendEntityResponse(req, res, user, User);
+    } catch (err) {
+      return next(err);
+    }
   },
 );
 
@@ -788,10 +989,27 @@ const login: LoginFunction = async (options: {
       if (alreadySavedUser.password.toString() === user.password!.toString()) {
         logger.info("User logged in: " + alreadySavedUser.email?.toString());
 
-        CookieUtil.setUserCookie({
+        const session = CookieUtil.setUserCookie({
           expressResponse: res,
           user: alreadySavedUser,
           isGlobalLogin: true,
+        });
+
+        const hashedSessionId: string = await HashedString.hashValue(
+          session.sessionId,
+          EncryptionSecret,
+        );
+
+        await UserService.updateOneBy({
+          query: {
+            _id: alreadySavedUser.id!,
+          },
+          data: {
+            jwtRefreshToken: hashedSessionId,
+          },
+          props: {
+            isRoot: true,
+          },
         });
 
         return Response.sendEntityResponse(req, res, alreadySavedUser, User);

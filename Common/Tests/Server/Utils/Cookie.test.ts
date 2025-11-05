@@ -38,7 +38,11 @@ describe("CookieUtils", () => {
     expect(mockResponse.cookie).toHaveBeenCalledWith(
       cookie["name"] as string,
       cookie["value"] as string,
-      cookie["options"] as JSONObject,
+      expect.objectContaining({
+        path: "/",
+        sameSite: "lax",
+        secure: expect.any(Boolean),
+      }),
     );
   });
 
@@ -86,6 +90,11 @@ describe("CookieUtils", () => {
 
     expect(keyWithId).toBe(`user-token-${id}`);
     expect(keyWithoutId).toBe("user-token");
+  });
+
+  test("Should return refresh token key", () => {
+    const key: string = CookieUtil.getRefreshTokenKey();
+    expect(key).toBe("user-refresh-token");
   });
 
   test("Should return SSO key", () => {

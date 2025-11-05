@@ -15,7 +15,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
-import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
+import { EncryptionSecret, Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import ProjectSSOService from "Common/Server/Services/ProjectSsoService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
@@ -37,6 +37,7 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import xml2js from "xml2js";
 import Name from "Common/Types/Name";
+import HashedString from "Common/Types/HashedString";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -539,10 +540,27 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       expressResponse: res,
     });
 
-    CookieUtil.setUserCookie({
+    const session = CookieUtil.setUserCookie({
       expressResponse: res,
       user: alreadySavedUser,
       isGlobalLogin: false,
+    });
+
+    const hashedSessionId: string = await HashedString.hashValue(
+      session.sessionId,
+      EncryptionSecret,
+    );
+
+    await UserService.updateOneBy({
+      query: {
+        _id: alreadySavedUser.id!,
+      },
+      data: {
+        jwtRefreshToken: hashedSessionId,
+      },
+      props: {
+        isRoot: true,
+      },
     });
 
     // Refresh Permissions for this user here.

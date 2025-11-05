@@ -8,6 +8,15 @@ import OneUptimeDate from "../../Types/Date";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CookieName from "../../Types/CookieName";
 import CaptureSpan from "./Telemetry/CaptureSpan";
+import { IsProduction } from "../EnvironmentConfig";
+
+export interface UserSessionCookieResult {
+  accessToken: string;
+  refreshToken: string;
+  sessionId: string;
+  accessTokenExpiresInSeconds: number;
+  refreshTokenExpiresInSeconds: number;
+}
 
 export default class CookieUtil {
   // set cookie with express response
@@ -58,8 +67,15 @@ export default class CookieUtil {
     expressResponse: ExpressResponse;
     user: User;
     isGlobalLogin: boolean;
-  }): void {
+  }): UserSessionCookieResult {
     const { expressResponse: res, user, isGlobalLogin } = data;
+
+    const accessTokenExpiresInSeconds: number = 15 * 60; // 15 minutes
+    const refreshTokenExpiresInSeconds: number = OneUptimeDate.getSecondsInDays(
+      new PositiveNumber(30),
+    );
+
+    const sessionId: string = ObjectID.generate().toString();
 
     const token: string = JSONWebToken.signUserLoginToken({
       tokenData: {
@@ -70,19 +86,38 @@ export default class CookieUtil {
         isMasterAdmin: user.isMasterAdmin!,
         isGlobalLogin: isGlobalLogin, // This is a general login without SSO. So, we will set this to true. This will give access to all the projects that dont require SSO.
       },
-      expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
+      expiresInSeconds: accessTokenExpiresInSeconds,
+    });
+
+    const refreshToken: string = JSONWebToken.signRefreshToken({
+      userId: user.id!,
+      sessionId: sessionId,
+      isGlobalLogin: isGlobalLogin,
+      expiresInSeconds: refreshTokenExpiresInSeconds,
     });
 
     // Set a cookie with token.
     CookieUtil.setCookie(res, CookieUtil.getUserTokenKey(), token, {
-      maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+      maxAge: accessTokenExpiresInSeconds * 1000,
       httpOnly: true,
     });
+
+    CookieUtil.setCookie(
+      res,
+      CookieUtil.getRefreshTokenKey(),
+      refreshToken,
+      {
+        maxAge: refreshTokenExpiresInSeconds * 1000,
+        httpOnly: true,
+      },
+    );
+
+    const persistentCookieMaxAge: number = refreshTokenExpiresInSeconds * 1000;
 
     if (user.id) {
       // set user id cookie
       CookieUtil.setCookie(res, CookieName.UserID, user.id!.toString(), {
-        maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+        maxAge: persistentCookieMaxAge,
         httpOnly: false,
       });
     }
@@ -94,7 +129,7 @@ export default class CookieUtil {
         CookieName.Email,
         user.email?.toString() || "",
         {
-          maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+          maxAge: persistentCookieMaxAge,
           httpOnly: false,
         },
       );
@@ -103,7 +138,7 @@ export default class CookieUtil {
     if (user.name) {
       // set user name cookie
       CookieUtil.setCookie(res, CookieName.Name, user.name?.toString() || "", {
-        maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+        maxAge: persistentCookieMaxAge,
         httpOnly: false,
       });
     }
@@ -115,7 +150,7 @@ export default class CookieUtil {
         CookieName.Timezone,
         user.timezone?.toString() || "",
         {
-          maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+          maxAge: persistentCookieMaxAge,
           httpOnly: false,
         },
       );
@@ -128,7 +163,7 @@ export default class CookieUtil {
         CookieName.IsMasterAdmin,
         user.isMasterAdmin?.toString() || "",
         {
-          maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+          maxAge: persistentCookieMaxAge,
           httpOnly: false,
         },
       );
@@ -141,11 +176,19 @@ export default class CookieUtil {
         CookieName.ProfilePicID,
         user.profilePictureId?.toString() || "",
         {
-          maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+          maxAge: persistentCookieMaxAge,
           httpOnly: false,
         },
       );
     }
+
+    return {
+      accessToken: token,
+      refreshToken: refreshToken,
+      sessionId: sessionId,
+      accessTokenExpiresInSeconds,
+      refreshTokenExpiresInSeconds,
+    };
   }
 
   @CaptureSpan()
@@ -155,7 +198,27 @@ export default class CookieUtil {
     value: string,
     options: CookieOptions,
   ): void {
-    res.cookie(name, value, options);
+    const finalOptions: CookieOptions = {
+      ...options,
+    };
+
+    if (finalOptions.path === undefined) {
+      finalOptions.path = "/";
+    }
+
+    if (finalOptions.sameSite === undefined) {
+      finalOptions.sameSite = "lax";
+    }
+
+    if (finalOptions.secure === undefined) {
+      finalOptions.secure = IsProduction;
+    }
+
+    if (finalOptions.httpOnly === undefined) {
+      finalOptions.httpOnly = true;
+    }
+
+    res.cookie(name, value, finalOptions);
   }
 
   // get cookie with express request
@@ -188,6 +251,11 @@ export default class CookieUtil {
     }
 
     return `${CookieName.Token}-${id.toString()}`;
+  }
+
+  @CaptureSpan()
+  public static getRefreshTokenKey(): string {
+    return CookieName.RefreshToken;
   }
 
   @CaptureSpan()
