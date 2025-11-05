@@ -242,12 +242,20 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         )}
 
         {criteria.message && (
-          <div className="mt-3 text-sm text-gray-700">{criteria.message}</div>
+          <div className="mt-3 rounded-md border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900">
+            <div className="flex items-start space-x-2">
+              <Icon
+                icon={IconProp.Info}
+                className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-500"
+              />
+              <div>{criteria.message}</div>
+            </div>
+          </div>
         )}
 
         {criteria.met && (
           <div className="mt-3 text-xs text-gray-500">
-            Criteria below this was not checked because this criteria was met.
+            All other criteria was not checked because this criteria was met.
           </div>
         )}
       </div>
