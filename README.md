@@ -66,6 +66,14 @@ By using OneUptime Cloud, you also support the development of OneUptime open sou
 If you need advanced features, such as API Access, Advanced Workflows, or Advanced Access Control, you can upgrade to a paid plan anytime. You can compare the different plans and pricing on [OneUptime Pricing](https://oneuptime.com/pricing) page.
 
 
+## Community vs. Enterprise Editions
+
+| Edition            | Ideal For                                             | Highlights                                                                                                                                                               | Requirements |
+|--------------------|-------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
+| Community Edition  | Self-hosters getting started with the open-source stack | Full OneUptime feature set with the standard security posture; community-driven support channels; rapid updates via public releases                                      | None         |
+| Enterprise Edition | Regulated teams that need hardened deployments and premium support | Hardened container images with additional security controls;<br>Custom features and roadmap input;<br>Dedicated engineer with 1-hour priority phone support;<br>Custom data residency and retention options;<br>Deploy on private cloud or SaaS with annual invoicing | Valid enterprise license (contact `sales@oneuptime.com`) |
+
+
 ## Installation
 
 - [Install on Kubernetes with Helm](https://artifacthub.io/packages/helm/oneuptime/oneuptime) (recommended for production)

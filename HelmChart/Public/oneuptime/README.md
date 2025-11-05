@@ -55,7 +55,7 @@ helm install my-oneuptime oneuptime/oneuptime -f values.yaml
 | Edition              | Best For                                             | Included Benefits                                                                                     | Requirements |
 |----------------------|-------------------------------------------------------|--------------------------------------------------------------------------------------------------------|--------------|
 | Community Edition    | Getting started, small self-hosted deployments        | Fully featured OneUptime platform with the standard security posture                                  | None         |
-| Enterprise Edition   | Regulated industries, teams with strict compliance needs | Hardened container images with additional security hardening and compliance-focused configurations; direct assistance via `sales@oneuptime.com` | Valid license |
+| Enterprise Edition   | Regulated industries, teams with strict compliance needs | Hardened container images with additional security controls;<br>Custom features and roadmap input;<br>Dedicated engineer with 1-hour priority phone support;<br>Custom data residency and retention options;<br>Deploy on private cloud or SaaS with annual invoicing | Valid license |
 
 
 ## Upgrade Helm Chart
