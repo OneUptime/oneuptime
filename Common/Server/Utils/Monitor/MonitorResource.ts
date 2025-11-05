@@ -85,7 +85,7 @@ export default class MonitorResourceUtil {
       const cacheKey: string = statusId.toString();
 
       if (monitorStatusNameCache[cacheKey] !== undefined) {
-        return monitorStatusNameCache[cacheKey];
+        return monitorStatusNameCache[cacheKey] ?? null;
       }
 
       const monitorStatus: MonitorStatus | null =
