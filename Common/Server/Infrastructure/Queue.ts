@@ -36,6 +36,11 @@ export default class Queue {
     }>
   > = {};
 
+  // BullMQ rejects custom IDs containing colons, so normalize them early.
+  private static sanitizeJobId(jobId: string): string {
+    return jobId.replace(/:/g, "-");
+  }
+
   private static async setupReconnectListener(
     queue: BullQueue,
     queueName: QueueName,
@@ -131,14 +136,17 @@ export default class Queue {
       return;
     }
 
-    const job: Job | undefined = await this.getQueue(queueName).getJob(jobId);
+    const sanitizedJobId: string = this.sanitizeJobId(jobId.toString());
+
+    const job: Job | undefined =
+      await this.getQueue(queueName).getJob(sanitizedJobId);
 
     if (job) {
       await job.remove();
     }
 
     // remove existing repeatable job
-    await this.getQueue(queueName).removeRepeatableByKey(jobId);
+    await this.getQueue(queueName).removeRepeatableByKey(sanitizedJobId);
   }
 
   @CaptureSpan()
@@ -183,8 +191,10 @@ export default class Queue {
       repeatableKey?: string | undefined;
     },
   ): Promise<Job> {
+    const sanitizedJobId: string = this.sanitizeJobId(jobId.toString());
+
     const optionsObject: JobsOptions = {
-      jobId: jobId.toString(),
+      jobId: sanitizedJobId,
     };
 
     if (options && options.scheduleAt) {
@@ -193,7 +203,8 @@ export default class Queue {
       };
     }
 
-    const job: Job | undefined = await this.getQueue(queueName).getJob(jobId);
+    const job: Job | undefined =
+      await this.getQueue(queueName).getJob(sanitizedJobId);
 
     if (job) {
       await job.remove();
@@ -211,7 +222,7 @@ export default class Queue {
       if (!this.repeatableJobs[queueName]) {
         this.repeatableJobs[queueName] = {};
       }
-      this.repeatableJobs[queueName]![jobId] = {
+      this.repeatableJobs[queueName]![sanitizedJobId] = {
         jobName,
         data,
         options: optionsObject,
