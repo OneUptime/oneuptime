@@ -242,13 +242,12 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
           </ul>
         )}
 
-        {criteria.met &&
-          criteria.filterCondition === FilterCondition.Any && (
-            <div className="mt-3 rounded-md border border-green-100 bg-green-50 p-3 text-xs text-green-700">
-              Since this criteria was satisfied, remaining criteria were not
-              evaluated.
-            </div>
-          )}
+        {criteria.met && criteria.filterCondition === FilterCondition.Any && (
+          <div className="mt-3 rounded-md border border-green-100 bg-green-50 p-3 text-xs text-green-700">
+            Since this criteria was satisfied, remaining criteria were not
+            evaluated.
+          </div>
+        )}
 
         {criteria.message && (
           <div className="mt-3 text-sm text-gray-700">{criteria.message}</div>
