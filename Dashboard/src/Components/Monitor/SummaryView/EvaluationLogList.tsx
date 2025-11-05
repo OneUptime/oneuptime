@@ -84,6 +84,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
     return event.type !== "criteria-met" && event.type !== "criteria-not-met";
   });
 
+
   if (!hasCriteriaResults && actionEvents.length === 0) {
     return <></>;
   }
@@ -323,6 +324,40 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
 
     const actionButton: ReactElement | null = renderEventAction();
 
+    const eventNumberLabel: string | null = (() => {
+      if (
+        event.relatedIncidentNumber !== undefined &&
+        event.relatedIncidentNumber !== null
+      ) {
+        return `Incident #${event.relatedIncidentNumber}`;
+      }
+
+      if (
+        event.relatedAlertNumber !== undefined &&
+        event.relatedAlertNumber !== null
+      ) {
+        return `Alert #${event.relatedAlertNumber}`;
+      }
+
+      return null;
+    })();
+
+    let decoratedTitle: string = event.title;
+
+    if (eventNumberLabel && !decoratedTitle.includes(eventNumberLabel)) {
+      decoratedTitle = `${decoratedTitle} (${eventNumberLabel})`;
+    }
+
+    let decoratedMessage: string | undefined = event.message;
+
+    if (
+      decoratedMessage &&
+      eventNumberLabel &&
+      !decoratedMessage.includes(eventNumberLabel)
+    ) {
+      decoratedMessage = `${decoratedMessage} (${eventNumberLabel})`;
+    }
+
     return (
       <div
         key={`event-${index}-${event.type}`}
@@ -332,9 +367,11 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
           <Icon icon={IconProp.ArrowCircleRight} className="h-4 w-4 text-gray-500" />
         </div>
         <div className="flex-1">
-          <div className="text-sm font-medium text-gray-800">{event.title}</div>
-          {event.message && (
-            <div className="text-sm text-gray-600">{event.message}</div>
+          <div className="text-sm font-medium text-gray-800">
+            {decoratedTitle}
+          </div>
+          {decoratedMessage && (
+            <div className="text-sm text-gray-600">{decoratedMessage}</div>
           )}
           {event.at && (
             <div className="text-xs text-gray-400">

@@ -51,6 +51,7 @@ export default class MonitorIncident {
         createdCriteriaId: true,
         createdIncidentTemplateId: true,
         projectId: true,
+        incidentNumber: true,
       },
       props: {
         isRoot: true,
@@ -81,6 +82,7 @@ export default class MonitorIncident {
           message:
             "Incident auto-resolved because autoresolve is enabled for this criteria.",
           relatedIncidentId: openIncident.id?.toString(),
+          relatedIncidentNumber: openIncident.incidentNumber,
           relatedCriteriaId: input.criteriaInstance?.data?.id,
           at: OneUptimeDate.getCurrentDate(),
         });
@@ -154,6 +156,7 @@ export default class MonitorIncident {
               "Skipped creating a new incident because an active incident exists for this criteria.",
             relatedCriteriaId: input.criteriaInstance.data?.id,
             relatedIncidentId: alreadyOpenIncident?.id?.toString(),
+            relatedIncidentNumber: alreadyOpenIncident?.incidentNumber,
             at: OneUptimeDate.getCurrentDate(),
           });
           continue;
@@ -274,6 +277,7 @@ export default class MonitorIncident {
           message: `Incident triggered from criteria "${input.criteriaInstance.data?.name || "Unnamed criteria"}".`,
           relatedCriteriaId: input.criteriaInstance.data?.id,
           relatedIncidentId: createdIncident.id?.toString(),
+          relatedIncidentNumber: createdIncident.incidentNumber,
           at: OneUptimeDate.getCurrentDate(),
         });
       }
