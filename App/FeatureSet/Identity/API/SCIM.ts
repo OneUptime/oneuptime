@@ -834,41 +834,53 @@ router.post(
           projectId: projectId,
           name: displayName,
         },
-        select: { _id: true },
+        select: {
+          _id: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
+          projectId: true,
+        },
         props: { isRoot: true },
       });
+
+      let targetTeam: Team;
+      let createdNewTeam: boolean = false;
 
       if (existingTeam) {
         logger.debug(
-          `SCIM Create group - team already exists with id: ${existingTeam.id}`,
+          `SCIM Create group - team already exists with id: ${existingTeam.id}, reusing existing team`,
         );
-        throw new BadRequestException("Group with this name already exists");
+        targetTeam = existingTeam;
+      } else {
+        // Create new team
+        logger.debug(`SCIM Create group - creating new team: ${displayName}`);
+        const team: Team = new Team();
+        team.projectId = projectId;
+        team.name = displayName;
+        team.isTeamEditable = true; // Allow editing SCIM-created teams
+        team.isTeamDeleteable = true; // Allow deleting SCIM-created teams
+        team.shouldHaveAtLeastOneMember = false; // SCIM groups can be empty
+
+        const createdTeam: Team = await TeamService.create({
+          data: team,
+          props: { isRoot: true },
+        });
+
+        logger.debug(
+          `SCIM Create group - created team with id: ${createdTeam.id}`,
+        );
+
+        targetTeam = createdTeam;
+        createdNewTeam = true;
       }
 
-      // Create new team
-      logger.debug(`SCIM Create group - creating new team: ${displayName}`);
-      const team: Team = new Team();
-      team.projectId = projectId;
-      team.name = displayName;
-      team.isTeamEditable = true; // Allow editing SCIM-created teams
-      team.isTeamDeleteable = true; // Allow deleting SCIM-created teams
-      team.shouldHaveAtLeastOneMember = false; // SCIM groups can be empty
-
-      const createdTeam: Team = await TeamService.create({
-        data: team,
-        props: { isRoot: true },
-      });
-
-      logger.debug(
-        `SCIM Create group - created team with id: ${createdTeam.id}`,
-      );
-
-      // Handle initial members if provided
+      // Handle members if provided. Adds any new members and leaves existing ones intact.
       const members: Array<SCIMMember> =
         (scimGroup["members"] as Array<SCIMMember>) || [];
       if (members.length > 0) {
         logger.debug(
-          `SCIM Create group - adding ${members.length} initial members`,
+          `SCIM Create group - ensuring ${members.length} members are part of team ${targetTeam.id}`,
         );
         for (const member of members) {
           const userId: string = member["value"] as string;
@@ -887,18 +899,18 @@ router.post(
                   query: {
                     projectId: projectId,
                     userId: new ObjectID(userId),
-                    teamId: createdTeam.id!,
+                    teamId: targetTeam.id!,
                   },
                   select: { _id: true },
                   props: { isRoot: true },
                 });
 
               if (!existingMember) {
-                // Add user to the new team
+                // Add user to the team
                 const newTeamMember: TeamMember = new TeamMember();
                 newTeamMember.projectId = projectId;
                 newTeamMember.userId = new ObjectID(userId);
-                newTeamMember.teamId = createdTeam.id!;
+                newTeamMember.teamId = targetTeam.id!;
                 newTeamMember.hasAcceptedInvitation = true;
                 newTeamMember.invitationAcceptedAt =
                   OneUptimeDate.getCurrentDate();
@@ -910,7 +922,7 @@ router.post(
                   },
                 });
                 logger.debug(
-                  `SCIM Create group - added user ${userId} to team`,
+                  `SCIM Create group - added user ${userId} to team ${targetTeam.id}`,
                 );
               }
             }
@@ -918,18 +930,39 @@ router.post(
         }
       }
 
-      const createdGroup: JSONObject = await formatTeamForSCIM(
-        createdTeam,
+      const teamForResponse: Team | null = await TeamService.findOneById({
+        id: targetTeam.id!,
+        select: {
+          _id: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
+          projectId: true,
+        },
+        props: { isRoot: true },
+      });
+
+      if (!teamForResponse) {
+        throw new NotFoundException("Failed to retrieve group");
+      }
+
+      const groupResponse: JSONObject = await formatTeamForSCIM(
+        teamForResponse,
         req.params["projectScimId"]!,
         true,
       );
 
       logger.debug(
-        `SCIM Create group - returning created group with id: ${createdTeam.id}`,
+        `SCIM Create group - returning group with id: ${teamForResponse.id}`,
       );
 
-      res.status(201);
-      return Response.sendJsonObjectResponse(req, res, createdGroup);
+      if (createdNewTeam) {
+        res.status(201);
+      } else {
+        res.status(200);
+      }
+
+      return Response.sendJsonObjectResponse(req, res, groupResponse);
     } catch (err) {
       logger.error(err);
       return next(err);
