@@ -11,6 +11,7 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -243,15 +244,11 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         )}
 
         {criteria.message && (
-          <div className="mt-3 rounded-md border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900">
-            <div className="flex items-start space-x-2">
-              <Icon
-                icon={IconProp.Info}
-                className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-500"
-              />
-              <div>{criteria.message}</div>
-            </div>
-          </div>
+          <Alert
+            className="mt-3"
+            type={AlertType.INFO}
+            title={criteria.message}
+          />
         )}
 
         {criteria.met && (
