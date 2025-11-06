@@ -38,7 +38,8 @@ export function parseSyslogMessage(raw: string): ParsedSyslogMessage | null {
   let severity: number | undefined;
   let facility: number | undefined;
 
-  const priorityMatch: RegExpMatchArray | null = remaining.match(/^<(\d{1,3})>/);
+  const priorityMatch: RegExpMatchArray | null =
+    remaining.match(/^<(\d{1,3})>/);
 
   if (priorityMatch) {
     priority = parseInt(priorityMatch[1]!, 10);
@@ -105,14 +106,12 @@ function parseRfc5424(payload: string): ParsedSyslogMessage | null {
 
   const versionToken: string = tokens[0]!;
 
-  if (!/^\d+$/.test(versionToken)) {
+  if (!(/^\d+$/).test(versionToken)) {
     return null;
   }
 
   const version: number = parseInt(versionToken, 10);
-  const timestampToken: string = tokens[1]!
-    .trim()
-    .replace(/^NILVALUE$/i, "-");
+  const timestampToken: string = tokens[1]!.trim().replace(/^NILVALUE$/i, "-");
   const hostnameToken: string = tokens[2]!;
   const appNameToken: string = tokens[3]!;
   const procIdToken: string = tokens[4]!;
@@ -195,9 +194,8 @@ function parseRfc3164(payload: string): ParsedSyslogMessage | null {
 
     if (firstTokenMatch) {
       const firstToken: string = firstTokenMatch[1]!;
-      const procMatch: RegExpMatchArray | null = firstToken.match(
-        /^([^\[]+)\[(.+)\]$/,
-      );
+      const procMatch: RegExpMatchArray | null =
+        firstToken.match(/^([^\[]+)\[(.+)\]$/);
 
       if (procMatch) {
         appName = procMatch[1]?.trim();

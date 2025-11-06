@@ -61,7 +61,6 @@ router.post(
   },
 );
 
-
 // Queue stats endpoint
 router.get(
   "/otlp/queue/stats",

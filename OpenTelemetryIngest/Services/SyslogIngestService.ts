@@ -183,8 +183,8 @@ export default class SyslogIngestService extends OtelIngestBaseService {
           const severityInfo: { number: number; text: LogSeverity } =
             this.mapSeverity(parsed.severity);
 
-          const timestamp: Date = parsed.timestamp ||
-            OneUptimeDate.getCurrentDate();
+          const timestamp: Date =
+            parsed.timestamp || OneUptimeDate.getCurrentDate();
           const ingestionDate: Date = OneUptimeDate.getCurrentDate();
 
           const attributes: Dictionary<AttributeType | Array<AttributeType>> =
@@ -216,9 +216,7 @@ export default class SyslogIngestService extends OtelIngestBaseService {
           dbLogs.push(logRow);
           processed++;
 
-          if (
-            dbLogs.length >= OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE
-          ) {
+          if (dbLogs.length >= OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE) {
             await this.flushLogsBuffer(dbLogs);
           }
         } catch (processingError) {
@@ -259,10 +257,7 @@ export default class SyslogIngestService extends OtelIngestBaseService {
     req: ExpressRequest,
     parsed: ParsedSyslogMessage,
   ): string {
-    const headerServiceName: string = this.getServiceNameFromHeaders(
-      req,
-      "",
-    );
+    const headerServiceName: string = this.getServiceNameFromHeaders(req, "");
 
     if (headerServiceName) {
       return headerServiceName;
@@ -377,9 +372,10 @@ export default class SyslogIngestService extends OtelIngestBaseService {
     return "unknown";
   }
 
-  private static mapSeverity(
-    severity?: number | undefined,
-  ): { number: number; text: LogSeverity } {
+  private static mapSeverity(severity?: number | undefined): {
+    number: number;
+    text: LogSeverity;
+  } {
     if (severity === undefined || severity === null) {
       return { number: 0, text: LogSeverity.Unspecified };
     }

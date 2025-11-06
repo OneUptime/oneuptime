@@ -4,7 +4,7 @@ describe("SyslogParser", () => {
   test("parses RFC5424 message with structured data", () => {
     const message: string =
       "<34>1 2025-03-02T14:48:05.003Z mymachine app-name 1234 ID47 " +
-      "[exampleSDID@32473 iut=\"3\" eventSource=\"Application\" eventID=\"1011\"][meta key=\"value\"] " +
+      '[exampleSDID@32473 iut="3" eventSource="Application" eventID="1011"][meta key="value"] ' +
       "BOMAn application event log entry";
 
     const parsed = parseSyslogMessage(message);
@@ -18,12 +18,8 @@ describe("SyslogParser", () => {
     expect(parsed?.appName).toBe("app-name");
     expect(parsed?.procId).toBe("1234");
     expect(parsed?.msgId).toBe("ID47");
-    expect(parsed?.timestamp?.toISOString()).toBe(
-      "2025-03-02T14:48:05.003Z",
-    );
-    expect(parsed?.structuredData?.["exampleSDID_32473"]?.["iut"]).toBe(
-      "3",
-    );
+    expect(parsed?.timestamp?.toISOString()).toBe("2025-03-02T14:48:05.003Z");
+    expect(parsed?.structuredData?.["exampleSDID_32473"]?.["iut"]).toBe("3");
     expect(parsed?.structuredData?.["meta"]?.["key"]).toBe("value");
     expect(parsed?.message).toBe("An application event log entry");
   });

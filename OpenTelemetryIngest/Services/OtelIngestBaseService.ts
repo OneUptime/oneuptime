@@ -38,9 +38,8 @@ export default abstract class OtelIngestBaseService {
     req: ExpressRequest,
     defaultName: string = "Unknown Service",
   ): string {
-    const headerValue: string | string[] | undefined = req.headers[
-      "x-oneuptime-service-name"
-    ];
+    const headerValue: string | string[] | undefined =
+      req.headers["x-oneuptime-service-name"];
 
     if (typeof headerValue === "string" && headerValue.trim()) {
       return headerValue.trim();
