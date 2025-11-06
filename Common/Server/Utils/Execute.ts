@@ -93,35 +93,37 @@ export default class Execute {
     args?: Array<string>;
     options?: SpawnOptions;
   }): Promise<void> {
-    return new Promise((resolve: VoidFunction, reject: PromiseRejectErrorFunction) => {
-      const spawnOptions: SpawnOptions = {
-        stdio: ["ignore", "inherit", "inherit"],
-        shell: false,
-        ...data.options,
-      };
+    return new Promise(
+      (resolve: VoidFunction, reject: PromiseRejectErrorFunction) => {
+        const spawnOptions: SpawnOptions = {
+          stdio: ["ignore", "inherit", "inherit"],
+          shell: false,
+          ...data.options,
+        };
 
-      const child = spawn(data.command, data.args ?? [], spawnOptions);
+        const child = spawn(data.command, data.args ?? [], spawnOptions);
 
-      child.on("error", (err: Error) => {
-        logger.error(
-          `Error executing command: ${data.command} ${(data.args ?? []).join(" ")}`,
-        );
-        logger.error(err);
-        reject(err);
-      });
+        child.on("error", (err: Error) => {
+          logger.error(
+            `Error executing command: ${data.command} ${(data.args ?? []).join(" ")}`,
+          );
+          logger.error(err);
+          reject(err);
+        });
 
-      child.on("close", (code: number | null) => {
-        if (code === 0) {
-          resolve();
-          return;
-        }
+        child.on("close", (code: number | null) => {
+          if (code === 0) {
+            resolve();
+            return;
+          }
 
-        const error: Error = new Error(
-          `Command failed: ${data.command} ${(data.args ?? []).join(" ")} (exit code ${code ?? "unknown"})`,
-        );
-        logger.error(error);
-        reject(error);
-      });
-    });
+          const error: Error = new Error(
+            `Command failed: ${data.command} ${(data.args ?? []).join(" ")} (exit code ${code ?? "unknown"})`,
+          );
+          logger.error(error);
+          reject(error);
+        });
+      },
+    );
   }
 }

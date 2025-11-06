@@ -36,8 +36,6 @@ const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
         "Learn how to integrate OneUptime with your application or resources to collect logs, metrics and traces data."
       }
     >
-
-
       <ImageTiles
         title="Integrate with OpenTelemetry"
         description="OneUptime supports a native integration with OpenTelemetry. OpenTelemetry is a collection of tools, APIs, and SDKs used to instrument, generate, collect, and export telemetry data (metrics, logs, and traces) for analysis in order to understand your software performance and behavior."
