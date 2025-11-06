@@ -5,6 +5,7 @@ import {
 import OtelLogsIngestService from "../../Services/OtelLogsIngestService";
 import OtelTracesIngestService from "../../Services/OtelTracesIngestService";
 import OtelMetricsIngestService from "../../Services/OtelMetricsIngestService";
+import SyslogIngestService from "../../Services/SyslogIngestService";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import logger from "Common/Server/Utils/Logger";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
@@ -52,6 +53,13 @@ QueueWorker.getWorker(
           await OtelMetricsIngestService.processMetricsFromQueue(mockRequest);
           logger.debug(
             `Successfully processed metrics for project: ${jobData.projectId}`,
+          );
+          break;
+
+        case TelemetryType.Syslog:
+          await SyslogIngestService.processSyslogFromQueue(mockRequest);
+          logger.debug(
+            `Successfully processed syslog payload for project: ${jobData.projectId}`,
           );
           break;
 

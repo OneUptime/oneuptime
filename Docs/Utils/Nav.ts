@@ -189,6 +189,7 @@ const DocsNav: NavGroup[] = [
       { title: "OpenTelemetry", url: "/docs/telemetry/open-telemetry" },
       { title: "FluentBit", url: "/docs/telemetry/fluentbit" },
       { title: "Fluentd", url: "/docs/telemetry/fluentd" },
+      { title: "Syslog", url: "/docs/telemetry/syslog" },
     ],
   },
   {

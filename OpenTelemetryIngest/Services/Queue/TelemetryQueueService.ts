@@ -8,6 +8,7 @@ export enum TelemetryType {
   Logs = "logs",
   Traces = "traces",
   Metrics = "metrics",
+  Syslog = "syslog",
 }
 
 export interface TelemetryIngestJobData {
@@ -29,6 +30,10 @@ export interface TracesIngestJobData extends TelemetryIngestJobData {
 
 export interface MetricsIngestJobData extends TelemetryIngestJobData {
   type: TelemetryType.Metrics;
+}
+
+export interface SyslogIngestJobData extends TelemetryIngestJobData {
+  type: TelemetryType.Syslog;
 }
 
 export default class TelemetryQueueService {

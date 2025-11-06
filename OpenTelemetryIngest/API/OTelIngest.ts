@@ -1,4 +1,6 @@
-import TelemetryIngest from "Common/Server/Middleware/TelemetryIngest";
+import TelemetryIngest, {
+  TelemetryRequest,
+} from "Common/Server/Middleware/TelemetryIngest";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -10,11 +12,22 @@ import OpenTelemetryRequestMiddleware from "../Middleware/OtelRequestMiddleware"
 import OtelTracesIngestService from "../Services/OtelTracesIngestService";
 import OtelMetricsIngestService from "../Services/OtelMetricsIngestService";
 import OtelLogsIngestService from "../Services/OtelLogsIngestService";
+import SyslogIngestService from "../Services/SyslogIngestService";
 import TelemetryQueueService from "../Services/Queue/TelemetryQueueService";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import { JSONObject } from "Common/Types/JSON";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
 
 const router: ExpressRouter = Express.getRouter();
+
+const syslogProductTypeMiddleware = (
+  req: ExpressRequest,
+  _res: ExpressResponse,
+  next: NextFunction,
+): void => {
+  (req as TelemetryRequest).productType = ProductType.Logs;
+  next();
+};
 
 /**
  *
@@ -58,6 +71,19 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     return OtelLogsIngestService.ingestLogs(req, res, next);
+  },
+);
+
+router.post(
+  "/syslog/v1/logs",
+  syslogProductTypeMiddleware,
+  TelemetryIngest.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    return SyslogIngestService.ingestSyslog(req, res, next);
   },
 );
 
