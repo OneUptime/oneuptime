@@ -106,7 +106,9 @@ function parseRfc5424(payload: string): ParsedSyslogMessage | null {
 
   const versionToken: string = tokens[0]!;
 
-  if (!(/^\d+$/).test(versionToken)) {
+  const versionRegex: RegExp = /^\d+$/;
+
+  if (!versionRegex.test(versionToken)) {
     return null;
   }
 
@@ -181,7 +183,7 @@ function parseRfc3164(payload: string): ParsedSyslogMessage | null {
     const tag: string = rest.slice(0, colonIndex);
     message = rest.slice(colonIndex + 1).trim();
 
-    const procMatch: RegExpMatchArray | null = tag.match(/^([^\[]+)\[(.+)\]$/);
+    const procMatch: RegExpMatchArray | null = tag.match(/^([^[]+)\[(.+)\]$/);
 
     if (procMatch) {
       appName = procMatch[1]?.trim();
@@ -195,7 +197,7 @@ function parseRfc3164(payload: string): ParsedSyslogMessage | null {
     if (firstTokenMatch) {
       const firstToken: string = firstTokenMatch[1]!;
       const procMatch: RegExpMatchArray | null =
-        firstToken.match(/^([^\[]+)\[(.+)\]$/);
+        firstToken.match(/^([^[]+)\[(.+)\]$/);
 
       if (procMatch) {
         appName = procMatch[1]?.trim();

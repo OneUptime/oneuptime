@@ -1,4 +1,7 @@
-import { parseSyslogMessage } from "../../Utils/SyslogParser";
+import {
+  ParsedSyslogMessage,
+  parseSyslogMessage,
+} from "../../Utils/SyslogParser";
 
 describe("SyslogParser", () => {
   test("parses RFC5424 message with structured data", () => {
@@ -7,7 +10,7 @@ describe("SyslogParser", () => {
       '[exampleSDID@32473 iut="3" eventSource="Application" eventID="1011"][meta key="value"] ' +
       "BOMAn application event log entry";
 
-    const parsed = parseSyslogMessage(message);
+    const parsed: ParsedSyslogMessage | null = parseSyslogMessage(message);
 
     expect(parsed).not.toBeNull();
     expect(parsed?.priority).toBe(34);
@@ -28,7 +31,7 @@ describe("SyslogParser", () => {
     const message: string =
       "<13>Feb  5 17:32:18 mymachine su[12345]: 'su root' failed for lonvick on /dev/pts/8";
 
-    const parsed = parseSyslogMessage(message);
+    const parsed: ParsedSyslogMessage | null = parseSyslogMessage(message);
 
     expect(parsed).not.toBeNull();
     expect(parsed?.priority).toBe(13);
@@ -43,7 +46,7 @@ describe("SyslogParser", () => {
 
   test("handles message without priority", () => {
     const message: string = "Simple message without metadata";
-    const parsed = parseSyslogMessage(message);
+    const parsed: ParsedSyslogMessage | null = parseSyslogMessage(message);
 
     expect(parsed).not.toBeNull();
     expect(parsed?.priority).toBeUndefined();

@@ -7,12 +7,13 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  RequestHandler,
 } from "Common/Server/Utils/Express";
 import SyslogIngestService from "../Services/SyslogIngestService";
 
 const router: ExpressRouter = Express.getRouter();
 
-const setSyslogProductType = (
+const setSyslogProductType: RequestHandler = (
   req: ExpressRequest,
   _res: ExpressResponse,
   next: NextFunction,
