@@ -89,8 +89,14 @@ export default class NginxConfigurator {
       }
 
       await this.ensureLogFiles();
-      await Exec.executeCommand("nginx -t");
-      await Exec.executeCommand("nginx -s reload");
+      await Exec.executeCommandInheritStdio({
+        command: "nginx",
+        args: ["-t", "-c", "/etc/nginx/nginx.conf"],
+      });
+      await Exec.executeCommandInheritStdio({
+        command: "nginx",
+        args: ["-s", "reload"],
+      });
       logger.info(
         `[NginxConfigurator] Reloaded nginx after updating certificate for ${normalizedHost}.`,
       );
