@@ -12,6 +12,37 @@ export default class NginxConfigurator {
     "/etc/nginx/conf.d/default.conf";
   private static readonly ENVSUBST_SCRIPT_PATH: string =
     "/etc/nginx/envsubst-on-templates.sh";
+  private static readonly NGINX_LOG_DIRECTORY: string = "/var/log/nginx";
+  private static readonly NGINX_ACCESS_LOG_PATH: string =
+    `${NginxConfigurator.NGINX_LOG_DIRECTORY}/access.log`;
+  private static readonly NGINX_ERROR_LOG_PATH: string =
+    `${NginxConfigurator.NGINX_LOG_DIRECTORY}/error.log`;
+
+  private static async ensureLogFiles(): Promise<void> {
+    try {
+      await LocalFile.makeDirectory(this.NGINX_LOG_DIRECTORY);
+
+      const accessLogExists: boolean =
+        await LocalFile.doesFileExist(this.NGINX_ACCESS_LOG_PATH);
+
+      if (!accessLogExists) {
+        await LocalFile.write(this.NGINX_ACCESS_LOG_PATH, "");
+      }
+
+      const errorLogExists: boolean =
+        await LocalFile.doesFileExist(this.NGINX_ERROR_LOG_PATH);
+
+      if (!errorLogExists) {
+        await LocalFile.write(this.NGINX_ERROR_LOG_PATH, "");
+      }
+    } catch (err) {
+      logger.error(
+        "[NginxConfigurator] Failed to ensure nginx log files exist before reload.",
+      );
+      logger.error(err);
+      throw err;
+    }
+  }
 
   public static async ensurePrimarySslConfigured(
     options: EnsurePrimarySslOptions,
@@ -57,6 +88,7 @@ export default class NginxConfigurator {
         await Exec.executeCommand(this.ENVSUBST_SCRIPT_PATH);
       }
 
+      await this.ensureLogFiles();
       await Exec.executeCommand("nginx -t");
       await Exec.executeCommand("nginx -s reload");
       logger.info(
