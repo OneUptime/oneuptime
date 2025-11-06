@@ -17,6 +17,10 @@ else
   export PROVISION_SSL=""
 fi
 
+# Ensure nginx log destinations exist so nginx -t succeeds even before reloads.
+mkdir -p /var/log/nginx
+touch /var/log/nginx/access.log /var/log/nginx/error.log
+
 # Run envsubst on template
 /etc/nginx/envsubst-on-templates.sh
 
