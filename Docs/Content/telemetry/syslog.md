@@ -86,12 +86,89 @@ curl \
    sudo systemctl restart rsyslog
    ```
 
-## Common Use Cases
+## Common use cases we are already seeing
 
-- **Network and security appliances** – firewalls, load balancers, and routers that only emit syslog can post directly to the HTTPS endpoint. Use `x-oneuptime-service-name` (for example `perimeter-firewall`) so dashboards and retention policies stay organized.
-- **Linux servers and cron jobs** – forward journald or `/var/log/syslog` entries to monitor host health, daemon crashes, and scheduled tasks. Filter later on `syslog.hostname` or `syslog.severity.name` to isolate noisy machines.
-- **Edge collectors and Kubernetes** – pair Fluent Bit or Fluentd syslog inputs with the HTTP output plugin to centralize node and ingress controller events without standing up another aggregator.
-- **Compliance archiving** – apply longer retention to the telemetry service that owns your syslog feed, then export straight from OneUptime when auditors ask for firewall or VPN activity.
+### 1. Network and security appliances
+
+Most network gear still exposes configuration changes, ACL hits, and threat detections exclusively over syslog. Point your existing relay (Palo Alto, Fortinet, Cisco ASA, Juniper, pfSense, and more) directly to OneUptime, or keep an internal relay and forward over HTTPS:
+
+```bash
+# rsyslog snippet that batches messages into JSON and posts to OneUptime
+module(load="omhttp")
+
+template(name="OneUptimeJSON" type="list") {
+  constant(value="{\"messages\":[\"")
+  property(name="rawmsg")
+  constant(value="\"]}")
+}
+
+action(
+  type="omhttp"
+  server="oneuptime.com"
+  serverport="443"
+  usehttps="on"
+  endpoint="/syslog/v1/logs"
+  header="Content-Type: application/json"
+  header="x-oneuptime-token: <TOKEN>"
+  header="x-oneuptime-service-name: perimeter-firewall"
+  template="OneUptimeJSON"
+)
+```
+
+### 2. Linux servers and cron jobs
+
+Many cron jobs and legacy daemons still log solely through the kernel/syslog facility. Forwarding `/var/log/syslog` or journald entries keeps operational breadcrumbs in one place. Systemd hosts can rely on the journald → syslog bridge:
+
+```bash
+# /etc/rsyslog.d/oneuptime.conf
+module(load="imjournal" StateFile="imjournal.state")
+module(load="omhttp")
+
+action(
+  type="omhttp"
+  server="oneuptime.com"
+  serverport="443"
+  usehttps="on"
+  endpoint="/syslog/v1/logs"
+  header="Content-Type: application/json"
+  header="x-oneuptime-token: <TOKEN>"
+  header="x-oneuptime-service-name: linux-fleet"
+  template="OneUptimeJSON"
+)
+```
+
+Because we map severity codes, you can alert on `syslog.severity.name = "error"` or slice by `syslog.hostname` to isolate noisy boxes quickly.
+
+### 3. Kubernetes ingress controllers and edge nodes
+
+If you already run Fluent Bit or Fluentd, keep them for container logs and add a lightweight syslog sink for hosts or appliances at the edge. Fluent Bit’s `syslog` input pairs with the HTTP output:
+
+```ini
+[INPUT]
+    Name              syslog
+    Mode              tcp
+    Listen            0.0.0.0
+    Port              5140
+
+[OUTPUT]
+    Name              http
+    Match             *
+    Host              oneuptime.com
+    Port              443
+    URI               /syslog/v1/logs
+    Format            json
+    json_date_key     time
+    Header            Content-Type application/json
+    Header            x-oneuptime-token <TOKEN>
+    Header            x-oneuptime-service-name edge-ingress
+    tls               On
+```
+
+This setup lets you ingest syslog from bare-metal workers or hardware load balancers without creating another logging stack.
+
+### 4. Compliance archives without the wait
+
+Need to retain firewall logs for PCI or SOX? Send them straight to OneUptime, apply a long retention policy to the telemetry service, and export to cold storage from a single place. No more exporting from multiple syslog relays.
 
 ## Parsed Attributes
 
