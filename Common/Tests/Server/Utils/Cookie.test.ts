@@ -93,8 +93,12 @@ describe("CookieUtils", () => {
   });
 
   test("Should return refresh token key", () => {
-    const key: string = CookieUtil.getRefreshTokenKey();
-    expect(key).toBe("user-refresh-token");
+    const baseKey: string = CookieUtil.getRefreshTokenKey();
+    const id: ObjectID = ObjectID.generate();
+    const namespacedKey: string = CookieUtil.getRefreshTokenKey(id);
+
+    expect(baseKey).toBe("user-refresh-token");
+    expect(namespacedKey).toBe(`user-refresh-token-${id.toString()}`);
   });
 
   test("Should return SSO key", () => {

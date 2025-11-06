@@ -6,6 +6,7 @@ import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
@@ -22,11 +23,16 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import JSONWebToken, {
+  RefreshTokenData,
+} from "Common/Server/Utils/JsonWebToken";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
+import HashedString from "Common/Types/HashedString";
+import Dictionary from "Common/Types/Dictionary";
+import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -46,7 +52,79 @@ router.post(
         req.params["statuspageid"].toString(),
       );
 
-      CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId)); // remove the cookie.
+      const refreshTokenKey: string = CookieUtil.getRefreshTokenKey(statusPageId);
+      const accessTokenKey: string = CookieUtil.getUserTokenKey(statusPageId);
+
+      const refreshToken: string | undefined =
+        CookieUtil.getCookieFromExpressRequest(req, refreshTokenKey);
+
+      let userIdToInvalidate: ObjectID | null = null;
+
+      if (refreshToken) {
+        try {
+          const refreshData: RefreshTokenData =
+            JSONWebToken.decodeRefreshToken(refreshToken);
+
+          if (
+            refreshData.statusPageId &&
+            refreshData.statusPageId.toString() === statusPageId.toString()
+          ) {
+            userIdToInvalidate = refreshData.userId;
+          }
+        } catch (err) {
+          const error: Error = err as Error;
+          logger.warn(
+            `Failed to decode status page refresh token during logout: ${
+              error.message || "unknown error"
+            }`,
+          );
+          logger.debug(error);
+        }
+      }
+
+      if (!userIdToInvalidate) {
+        const accessToken: string | undefined =
+          CookieUtil.getCookieFromExpressRequest(req, accessTokenKey);
+
+        if (accessToken) {
+          try {
+            const decoded: JSONWebTokenData = JSONWebToken.decode(accessToken);
+
+            if (
+              decoded.statusPageId &&
+              decoded.statusPageId.toString() === statusPageId.toString()
+            ) {
+              userIdToInvalidate = decoded.userId;
+            }
+          } catch (err) {
+            const error: Error = err as Error;
+            logger.warn(
+              `Failed to decode status page access token during logout: ${
+                error.message || "unknown error"
+              }`,
+            );
+            logger.debug(error);
+          }
+        }
+      }
+
+      if (userIdToInvalidate) {
+        await StatusPagePrivateUserService.updateOneBy({
+          query: {
+            _id: userIdToInvalidate,
+            statusPageId: statusPageId,
+          },
+          data: {
+            jwtRefreshToken: null!,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+
+      CookieUtil.removeCookie(res, accessTokenKey);
+      CookieUtil.removeCookie(res, refreshTokenKey);
 
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
@@ -383,22 +461,40 @@ router.post(
         });
 
       if (alreadySavedUser) {
-        const token: string = JSONWebToken.sign({
-          data: alreadySavedUser,
-          expiresInSeconds: OneUptimeDate.getSecondsInDays(
-            new PositiveNumber(30),
-          ),
+        const session = CookieUtil.setStatusPageUserCookie({
+          expressResponse: res,
+          user: alreadySavedUser,
+          statusPageId: alreadySavedUser.statusPageId!,
         });
 
-        CookieUtil.setCookie(
-          res,
-          CookieUtil.getUserTokenKey(alreadySavedUser.statusPageId!),
-          token,
-          {
-            httpOnly: true,
-            maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
-          },
+        if (!req.cookies) {
+          req.cookies = {} as Dictionary<string>;
+        }
+
+        req.cookies[CookieUtil.getUserTokenKey(alreadySavedUser.statusPageId!)] =
+          session.accessToken;
+        req.cookies[
+          CookieUtil.getRefreshTokenKey(alreadySavedUser.statusPageId!)
+        ] = session.refreshToken;
+
+        const hashedSessionId: string = await HashedString.hashValue(
+          session.sessionId,
+          EncryptionSecret,
         );
+
+        await StatusPagePrivateUserService.updateOneBy({
+          query: {
+            _id: alreadySavedUser.id!,
+            statusPageId: alreadySavedUser.statusPageId!,
+          },
+          data: {
+            jwtRefreshToken: hashedSessionId,
+            lastActive: OneUptimeDate.getCurrentDate(),
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
         return Response.sendEntityResponse(
           req,
@@ -407,13 +503,173 @@ router.post(
           StatusPagePrivateUser,
           {
             miscData: {
-              token: token,
+              accessToken: session.accessToken,
+              refreshToken: session.refreshToken,
+              accessTokenExpiresInSeconds: session.accessTokenExpiresInSeconds,
+              refreshTokenExpiresInSeconds:
+                session.refreshTokenExpiresInSeconds,
             },
           },
         );
       }
       throw new BadDataException(
         "Invalid login: Email or password does not match.",
+      );
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.post(
+  "/refresh-session/:statuspageid",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!req.params["statuspageid"]) {
+        throw new BadDataException("Status Page ID is required.");
+      }
+
+      const statusPageId: ObjectID = new ObjectID(
+        req.params["statuspageid"].toString(),
+      );
+
+      const refreshTokenKey: string = CookieUtil.getRefreshTokenKey(statusPageId);
+      const accessTokenKey: string = CookieUtil.getUserTokenKey(statusPageId);
+
+      const refreshToken: string | undefined =
+        CookieUtil.getCookieFromExpressRequest(req, refreshTokenKey);
+
+      if (!refreshToken) {
+        CookieUtil.removeCookie(res, refreshTokenKey);
+        CookieUtil.removeCookie(res, accessTokenKey);
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException("Refresh token missing."),
+        );
+      }
+
+      let refreshTokenData: RefreshTokenData;
+
+      try {
+        refreshTokenData = JSONWebToken.decodeRefreshToken(refreshToken);
+      } catch (err) {
+        const error: Error = err as Error;
+        logger.warn(
+          `Failed to decode status page refresh token: ${
+            error.message || "unknown error"
+          }`,
+        );
+        logger.debug(error);
+        CookieUtil.removeCookie(res, refreshTokenKey);
+        CookieUtil.removeCookie(res, accessTokenKey);
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException("Refresh token is invalid."),
+        );
+      }
+
+      if (
+        !refreshTokenData.statusPageId ||
+        refreshTokenData.statusPageId.toString() !== statusPageId.toString()
+      ) {
+        CookieUtil.removeCookie(res, refreshTokenKey);
+        CookieUtil.removeCookie(res, accessTokenKey);
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException("Refresh token status page mismatch."),
+        );
+      }
+
+      const hashedSessionId: string = await HashedString.hashValue(
+        refreshTokenData.sessionId,
+        EncryptionSecret,
+      );
+
+      const user: StatusPagePrivateUser | null =
+        await StatusPagePrivateUserService.findOneBy({
+          query: {
+            _id: refreshTokenData.userId,
+            statusPageId: statusPageId,
+            jwtRefreshToken: hashedSessionId,
+          },
+          select: {
+            _id: true,
+            email: true,
+            statusPageId: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!user) {
+        CookieUtil.removeCookie(res, refreshTokenKey);
+        CookieUtil.removeCookie(res, accessTokenKey);
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException("Refresh token does not match."),
+        );
+      }
+
+      const session = CookieUtil.setStatusPageUserCookie({
+        expressResponse: res,
+        user: user,
+        statusPageId: statusPageId,
+      });
+
+      if (!req.cookies) {
+        req.cookies = {} as Dictionary<string>;
+      }
+
+      req.cookies[accessTokenKey] = session.accessToken;
+      req.cookies[refreshTokenKey] = session.refreshToken;
+
+      const hashedNewSessionId: string = await HashedString.hashValue(
+        session.sessionId,
+        EncryptionSecret,
+      );
+
+      await StatusPagePrivateUserService.updateOneBy({
+        query: {
+          _id: user.id!,
+          statusPageId: statusPageId,
+        },
+        data: {
+          jwtRefreshToken: hashedNewSessionId,
+          lastActive: OneUptimeDate.getCurrentDate(),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      logger.info(
+        `Status page session refreshed: ${
+          user.email?.toString() || user.id?.toString() || "unknown"
+        } for status page ${statusPageId.toString()}`,
+      );
+
+      return Response.sendEntityResponse(
+        req,
+        res,
+        user,
+        StatusPagePrivateUser,
+        {
+          miscData: {
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken,
+            accessTokenExpiresInSeconds: session.accessTokenExpiresInSeconds,
+            refreshTokenExpiresInSeconds: session.refreshTokenExpiresInSeconds,
+          },
+        },
       );
     } catch (err) {
       return next(err);

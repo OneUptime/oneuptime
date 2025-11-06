@@ -3,8 +3,10 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CookieUtil from "../Utils/Cookie";
-import { ExpressRequest } from "../Utils/Express";
-import JSONWebToken from "../Utils/JsonWebToken";
+import { ExpressRequest, ExpressResponse } from "../Utils/Express";
+import JSONWebToken, {
+  RefreshTokenData,
+} from "../Utils/JsonWebToken";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseService from "./DatabaseService";
@@ -24,6 +26,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
+import HashedString from "../../Types/HashedString";
 import Typeof from "../../Types/Typeof";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
@@ -61,6 +64,9 @@ import IP from "../../Types/IP/IP";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import CommonAPI from "../API/CommonAPI";
+import StatusPagePrivateUserService from "./StatusPagePrivateUserService";
+import StatusPagePrivateUser from "../../Models/DatabaseModels/StatusPagePrivateUser";
+import { EncryptionSecret } from "../EnvironmentConfig";
 
 export interface StatusPageReportItem {
   resourceName: string;
@@ -369,12 +375,14 @@ export class Service extends DatabaseService<StatusPage> {
   public async hasReadAccess(data: {
     statusPageId: ObjectID;
     req: ExpressRequest;
+    res: ExpressResponse;
   }): Promise<{
     hasReadAccess: boolean;
     error?: NotAuthenticatedException | ForbiddenException;
   }> {
     const statusPageId: ObjectID = data.statusPageId;
     const req: ExpressRequest = data.req;
+    const res: ExpressResponse = data.res;
 
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
@@ -446,20 +454,37 @@ export class Service extends DatabaseService<StatusPage> {
         CookieUtil.getUserTokenKey(statusPageId),
       );
 
+      let decoded: JSONWebTokenData | null = null;
+
       if (token) {
         try {
-          const decoded: JSONWebTokenData = JSONWebToken.decode(
-            token as string,
-          );
-
-          if (decoded.statusPageId?.toString() === statusPageId.toString()) {
-            return {
-              hasReadAccess: true,
-            };
-          }
+          decoded = JSONWebToken.decode(token as string);
         } catch (err) {
-          logger.error(err);
+          const error: Error = err as Error;
+          logger.warn(
+            `Invalid status page access token, attempting refresh: ${
+              error.message || "unknown error"
+            }`,
+          );
+          logger.debug(error);
+          decoded = await this.tryRefreshStatusPageSession({
+            statusPageId,
+            req,
+            res,
+          });
         }
+      } else {
+        decoded = await this.tryRefreshStatusPageSession({
+          statusPageId,
+          req,
+          res,
+        });
+      }
+
+      if (decoded && decoded.statusPageId?.toString() === statusPageId.toString()) {
+        return {
+          hasReadAccess: true,
+        };
       }
 
       // if it does not have public access, check if this user has access.
@@ -491,6 +516,121 @@ export class Service extends DatabaseService<StatusPage> {
         "You do not have access to this status page. Please login to view the status page.",
       ),
     };
+  }
+
+  @CaptureSpan()
+  private async tryRefreshStatusPageSession(data: {
+    statusPageId: ObjectID;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<JSONWebTokenData | null> {
+    const { statusPageId, req, res } = data;
+
+    const refreshTokenKey: string = CookieUtil.getRefreshTokenKey(statusPageId);
+    const accessTokenKey: string = CookieUtil.getUserTokenKey(statusPageId);
+
+    const refreshToken: string | undefined = CookieUtil.getCookieFromExpressRequest(
+      req,
+      refreshTokenKey,
+    );
+
+    if (!refreshToken) {
+      return null;
+    }
+
+    let refreshTokenData: RefreshTokenData;
+
+    try {
+      refreshTokenData = JSONWebToken.decodeRefreshToken(refreshToken);
+    } catch (err) {
+      const error: Error = err as Error;
+      logger.warn(
+        `Failed to decode status page refresh token during middleware refresh: ${
+          error.message || "unknown error"
+        }`,
+      );
+      logger.debug(error);
+      CookieUtil.removeCookie(res, refreshTokenKey);
+      CookieUtil.removeCookie(res, accessTokenKey);
+      return null;
+    }
+
+    if (
+      !refreshTokenData.statusPageId ||
+      refreshTokenData.statusPageId.toString() !== statusPageId.toString()
+    ) {
+      CookieUtil.removeCookie(res, refreshTokenKey);
+      CookieUtil.removeCookie(res, accessTokenKey);
+      return null;
+    }
+
+    const hashedSessionId: string = await HashedString.hashValue(
+      refreshTokenData.sessionId,
+      EncryptionSecret,
+    );
+
+    const user: StatusPagePrivateUser | null =
+      await StatusPagePrivateUserService.findOneBy({
+        query: {
+          _id: refreshTokenData.userId,
+          statusPageId: statusPageId,
+          jwtRefreshToken: hashedSessionId,
+        },
+        select: {
+          _id: true,
+          email: true,
+          statusPageId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!user) {
+      CookieUtil.removeCookie(res, refreshTokenKey);
+      CookieUtil.removeCookie(res, accessTokenKey);
+      return null;
+    }
+
+    const session = CookieUtil.setStatusPageUserCookie({
+      expressResponse: res,
+      user: user,
+      statusPageId: statusPageId,
+    });
+
+    if (!req.cookies) {
+      req.cookies = {} as Dictionary<string>;
+    }
+
+    req.cookies[accessTokenKey] = session.accessToken;
+    req.cookies[refreshTokenKey] = session.refreshToken;
+
+    const hashedNewSessionId: string = await HashedString.hashValue(
+      session.sessionId,
+      EncryptionSecret,
+    );
+
+    await StatusPagePrivateUserService.updateOneBy({
+      query: {
+        _id: user.id!,
+        statusPageId: statusPageId,
+      },
+      data: {
+        jwtRefreshToken: hashedNewSessionId,
+        lastActive: OneUptimeDate.getCurrentDate(),
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    logger.info(
+      `Status page session refreshed automatically for ${
+        user.email?.toString() || user.id?.toString() || "unknown"
+      } on status page ${statusPageId.toString()}`,
+    );
+
+    return JSONWebToken.decode(session.accessToken);
   }
 
   @CaptureSpan()

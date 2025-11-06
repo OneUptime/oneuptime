@@ -809,6 +809,7 @@ export default class StatusPageAPI extends BaseAPI<
           await this.checkHasReadAccess({
             statusPageId: statusPageId,
             req: req,
+            res: res,
           });
 
           const resources: Array<StatusPageResource> =
@@ -869,6 +870,7 @@ export default class StatusPageAPI extends BaseAPI<
           await this.checkHasReadAccess({
             statusPageId: statusPageId,
             req: req,
+            res: res,
           });
 
           /*
@@ -1161,6 +1163,7 @@ export default class StatusPageAPI extends BaseAPI<
           await this.checkHasReadAccess({
             statusPageId: statusPageId,
             req: req,
+            res: res,
           });
 
           const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
@@ -1608,7 +1611,7 @@ export default class StatusPageAPI extends BaseAPI<
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          await this.subscribeToStatusPage(req);
+          await this.subscribeToStatusPage(req, res);
           return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
           next(err);
@@ -1645,7 +1648,7 @@ export default class StatusPageAPI extends BaseAPI<
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          await this.subscribeToStatusPage(req);
+          await this.subscribeToStatusPage(req, res);
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
@@ -1661,7 +1664,7 @@ export default class StatusPageAPI extends BaseAPI<
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          await this.manageExistingSubscription(req);
+          await this.manageExistingSubscription(req, res);
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
@@ -1685,6 +1688,7 @@ export default class StatusPageAPI extends BaseAPI<
             objectId,
             null,
             req,
+            res,
           );
 
           return Response.sendJsonObjectResponse(req, res, response);
@@ -1708,8 +1712,8 @@ export default class StatusPageAPI extends BaseAPI<
           const response: JSONObject = await this.getScheduledMaintenanceEvents(
             objectId,
             null,
-
             req,
+            res,
           );
 
           return Response.sendJsonObjectResponse(req, res, response);
@@ -1733,8 +1737,8 @@ export default class StatusPageAPI extends BaseAPI<
           const response: JSONObject = await this.getAnnouncements(
             objectId,
             null,
-
             req,
+            res,
           );
 
           return Response.sendJsonObjectResponse(req, res, response);
@@ -1763,6 +1767,7 @@ export default class StatusPageAPI extends BaseAPI<
             objectId,
             incidentId,
             req,
+            res,
           );
 
           return Response.sendJsonObjectResponse(req, res, response);
@@ -1790,8 +1795,8 @@ export default class StatusPageAPI extends BaseAPI<
           const response: JSONObject = await this.getScheduledMaintenanceEvents(
             objectId,
             scheduledMaintenanceId,
-
             req,
+            res,
           );
 
           return Response.sendJsonObjectResponse(req, res, response);
@@ -1819,8 +1824,8 @@ export default class StatusPageAPI extends BaseAPI<
           const response: JSONObject = await this.getAnnouncements(
             objectId,
             announcementId,
-
             req,
+            res,
           );
 
           return Response.sendJsonObjectResponse(req, res, response);
@@ -1836,10 +1841,12 @@ export default class StatusPageAPI extends BaseAPI<
     statusPageId: ObjectID,
     scheduledMaintenanceId: ObjectID | null,
     req: ExpressRequest,
+    res: ExpressResponse,
   ): Promise<JSONObject> {
     await this.checkHasReadAccess({
       statusPageId: statusPageId,
       req: req,
+      res: res,
     });
 
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
@@ -2153,10 +2160,12 @@ export default class StatusPageAPI extends BaseAPI<
     statusPageId: ObjectID,
     announcementId: ObjectID | null,
     req: ExpressRequest,
+    res: ExpressResponse,
   ): Promise<JSONObject> {
     await this.checkHasReadAccess({
       statusPageId: statusPageId,
       req: req,
+      res: res,
     });
 
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
@@ -2328,7 +2337,10 @@ export default class StatusPageAPI extends BaseAPI<
   }
 
   @CaptureSpan()
-  public async manageExistingSubscription(req: ExpressRequest): Promise<void> {
+  public async manageExistingSubscription(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
     const statusPageId: ObjectID = new ObjectID(
       req.params["statusPageId"] as string,
     );
@@ -2340,6 +2352,7 @@ export default class StatusPageAPI extends BaseAPI<
     await this.checkHasReadAccess({
       statusPageId: statusPageId,
       req: req,
+      res: res,
     });
 
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
@@ -2603,7 +2616,10 @@ export default class StatusPageAPI extends BaseAPI<
   }
 
   @CaptureSpan()
-  public async subscribeToStatusPage(req: ExpressRequest): Promise<void> {
+  public async subscribeToStatusPage(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
     const objectId: ObjectID = new ObjectID(
       req.params["statusPageId"] as string,
     );
@@ -2613,6 +2629,7 @@ export default class StatusPageAPI extends BaseAPI<
     await this.checkHasReadAccess({
       statusPageId: objectId,
       req: req,
+      res: res,
     });
 
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
@@ -2980,10 +2997,12 @@ export default class StatusPageAPI extends BaseAPI<
     statusPageId: ObjectID,
     incidentId: ObjectID | null,
     req: ExpressRequest,
+    res: ExpressResponse,
   ): Promise<JSONObject> {
     await this.checkHasReadAccess({
       statusPageId: statusPageId,
       req: req,
+      res: res,
     });
 
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
@@ -3492,6 +3511,7 @@ export default class StatusPageAPI extends BaseAPI<
   public async checkHasReadAccess(data: {
     statusPageId: ObjectID;
     req: ExpressRequest;
+    res: ExpressResponse;
   }): Promise<void> {
     const accessResult: {
       hasReadAccess: boolean;
@@ -3499,6 +3519,7 @@ export default class StatusPageAPI extends BaseAPI<
     } = await this.service.hasReadAccess({
       statusPageId: data.statusPageId,
       req: data.req,
+      res: data.res,
     });
 
     if (!accessResult.hasReadAccess) {

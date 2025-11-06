@@ -290,6 +290,21 @@ export default class StatusPagePrivateUser extends BaseModel {
     nullable: true,
     unique: false,
   })
+  public jwtRefreshToken?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+
+    update: [],
+  })
+  @TableColumn({ type: TableColumnType.ShortText })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: false,
+  })
   public resetPasswordToken?: string = undefined;
 
   @ColumnAccessControl({

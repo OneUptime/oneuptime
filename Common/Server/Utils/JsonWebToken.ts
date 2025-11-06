@@ -17,6 +17,7 @@ export interface RefreshTokenData {
   userId: ObjectID;
   sessionId: string;
   isGlobalLogin: boolean;
+  statusPageId?: ObjectID;
 }
 
 class JSONWebToken {
@@ -44,14 +45,36 @@ class JSONWebToken {
     userId: ObjectID;
     sessionId: string;
     isGlobalLogin: boolean;
+    statusPageId?: ObjectID | null;
+    expiresInSeconds: number;
+  }): string {
+    const payload: JSONObject = {
+      tokenType: "refresh",
+      userId: data.userId.toString(),
+      sessionId: data.sessionId,
+      isGlobalLogin: data.isGlobalLogin,
+    };
+
+    if (data.statusPageId) {
+      payload["statusPageId"] = data.statusPageId.toString();
+    }
+
+    return JSONWebToken.signJsonPayload(payload, data.expiresInSeconds);
+  }
+
+  @CaptureSpan()
+  public static signStatusPageUserLoginToken(data: {
+    userId: ObjectID;
+    email: Email;
+    statusPageId: ObjectID;
     expiresInSeconds: number;
   }): string {
     return JSONWebToken.signJsonPayload(
       {
-        tokenType: "refresh",
         userId: data.userId.toString(),
-        sessionId: data.sessionId,
-        isGlobalLogin: data.isGlobalLogin,
+        email: data.email.toString(),
+        statusPageId: data.statusPageId.toString(),
+        isMasterAdmin: false,
       },
       data.expiresInSeconds,
     );
@@ -166,11 +189,19 @@ class JSONWebToken {
         throw new BadDataException("Invalid refresh token user");
       }
 
-      return {
+      const refreshData: RefreshTokenData = {
         userId: new ObjectID(decoded["userId"] as string),
         sessionId: decoded["sessionId"] as string,
         isGlobalLogin: Boolean(decoded["isGlobalLogin"]),
       };
+
+      if (decoded["statusPageId"]) {
+        refreshData.statusPageId = new ObjectID(
+          decoded["statusPageId"] as string,
+        );
+      }
+
+      return refreshData;
     } catch (e) {
       logger.error(e);
       throw new BadDataException("RefreshToken is invalid or expired");

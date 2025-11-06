@@ -4,6 +4,7 @@ import ObjectID from "../../Types/ObjectID";
 import { CookieOptions } from "express";
 import JSONWebToken from "./JsonWebToken";
 import User from "../../Models/DatabaseModels/User";
+import StatusPagePrivateUser from "../../Models/DatabaseModels/StatusPagePrivateUser";
 import OneUptimeDate from "../../Types/Date";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CookieName from "../../Types/CookieName";
@@ -93,6 +94,7 @@ export default class CookieUtil {
       userId: user.id!,
       sessionId: sessionId,
       isGlobalLogin: isGlobalLogin,
+      statusPageId: null,
       expiresInSeconds: refreshTokenExpiresInSeconds,
     });
 
@@ -192,6 +194,65 @@ export default class CookieUtil {
   }
 
   @CaptureSpan()
+  public static setStatusPageUserCookie(data: {
+    expressResponse: ExpressResponse;
+    user: StatusPagePrivateUser;
+    statusPageId: ObjectID;
+  }): UserSessionCookieResult {
+    const { expressResponse: res, user, statusPageId } = data;
+
+    const accessTokenExpiresInSeconds: number = 15 * 60; // 15 minutes
+    const refreshTokenExpiresInSeconds: number = OneUptimeDate.getSecondsInDays(
+      new PositiveNumber(30),
+    );
+
+    const sessionId: string = ObjectID.generate().toString();
+
+    const accessToken: string = JSONWebToken.signStatusPageUserLoginToken({
+      userId: user.id!,
+      email: user.email!,
+      statusPageId: statusPageId,
+      expiresInSeconds: accessTokenExpiresInSeconds,
+    });
+
+    const refreshToken: string = JSONWebToken.signRefreshToken({
+      userId: user.id!,
+      sessionId: sessionId,
+      isGlobalLogin: false,
+      statusPageId: statusPageId,
+      expiresInSeconds: refreshTokenExpiresInSeconds,
+    });
+
+    CookieUtil.setCookie(
+      res,
+      CookieUtil.getUserTokenKey(statusPageId),
+      accessToken,
+      {
+        maxAge: accessTokenExpiresInSeconds * 1000,
+        httpOnly: true,
+      },
+    );
+
+    CookieUtil.setCookie(
+      res,
+      CookieUtil.getRefreshTokenKey(statusPageId),
+      refreshToken,
+      {
+        maxAge: refreshTokenExpiresInSeconds * 1000,
+        httpOnly: true,
+      },
+    );
+
+    return {
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      sessionId: sessionId,
+      accessTokenExpiresInSeconds,
+      refreshTokenExpiresInSeconds,
+    };
+  }
+
+  @CaptureSpan()
   public static setCookie(
     res: ExpressResponse,
     name: string | CookieName,
@@ -254,8 +315,12 @@ export default class CookieUtil {
   }
 
   @CaptureSpan()
-  public static getRefreshTokenKey(): string {
-    return CookieName.RefreshToken;
+  public static getRefreshTokenKey(id?: ObjectID): string {
+    if (!id) {
+      return CookieName.RefreshToken;
+    }
+
+    return `${CookieName.RefreshToken}-${id.toString()}`;
   }
 
   @CaptureSpan()
