@@ -31,7 +31,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./Accounts/Dockerfile .
+          command: sudo docker build --no-cache -f ./Accounts/Dockerfile .
 
   docker-build-isolated-vm:
     runs-on: ubuntu-latest
@@ -54,7 +54,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./IsolatedVM/Dockerfile .
+          command: sudo docker build --no-cache -f ./IsolatedVM/Dockerfile .
 
   docker-build-home:
     runs-on: ubuntu-latest
@@ -77,7 +77,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./Home/Dockerfile .
+          command: sudo docker build --no-cache -f ./Home/Dockerfile .
 
   docker-build-worker:
     runs-on: ubuntu-latest
@@ -100,7 +100,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./Worker/Dockerfile .
+          command: sudo docker build --no-cache -f ./Worker/Dockerfile .
 
   docker-build-workflow:
     runs-on: ubuntu-latest
@@ -123,7 +123,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./Workflow/Dockerfile .
+          command: sudo docker build --no-cache -f ./Workflow/Dockerfile .
 
   docker-build-api-reference:
     runs-on: ubuntu-latest
@@ -146,7 +146,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./APIReference/Dockerfile .
+          command: sudo docker build --no-cache -f ./APIReference/Dockerfile .
 
   docker-build-docs:
     runs-on: ubuntu-latest
@@ -169,7 +169,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./Docs/Dockerfile .
+          command: sudo docker build --no-cache -f ./Docs/Dockerfile .
 
 
   docker-build-otel-collector:
@@ -193,7 +193,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./OTelCollector/Dockerfile .
+          command: sudo docker build --no-cache -f ./OTelCollector/Dockerfile .
 
   docker-build-app:
     runs-on: ubuntu-latest
@@ -217,7 +217,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./App/Dockerfile .
+          command: sudo docker build --no-cache -f ./App/Dockerfile .
 
 
   docker-build-copilot:
@@ -241,7 +241,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./Copilot/Dockerfile .
+          command: sudo docker build --no-cache -f ./Copilot/Dockerfile .
 
   docker-build-e2e:
     runs-on: ubuntu-latest
@@ -265,7 +265,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./E2E/Dockerfile .
+          command: sudo docker build --no-cache -f ./E2E/Dockerfile .
 
   docker-build-admin-dashboard:
     runs-on: ubuntu-latest
@@ -288,7 +288,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./AdminDashboard/Dockerfile .
+          command: sudo docker build --no-cache -f ./AdminDashboard/Dockerfile .
 
   docker-build-dashboard:
     runs-on: ubuntu-latest
@@ -311,7 +311,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./Dashboard/Dockerfile .
+          command: sudo docker build --no-cache -f ./Dashboard/Dockerfile .
 
   docker-build-probe:
     runs-on: ubuntu-latest
@@ -334,7 +334,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./Probe/Dockerfile .
+          command: sudo docker build --no-cache -f ./Probe/Dockerfile .
 
   docker-build-probe-ingest:
     runs-on: ubuntu-latest
@@ -357,7 +357,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./ProbeIngest/Dockerfile .
+          command: sudo docker build --no-cache -f ./ProbeIngest/Dockerfile .
 
   docker-build-server-monitor-ingest:
     runs-on: ubuntu-latest
@@ -380,7 +380,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./ServerMonitorIngest/Dockerfile .
+          command: sudo docker build --no-cache -f ./ServerMonitorIngest/Dockerfile .
 
   docker-build-open-telemetry-ingest:
     runs-on: ubuntu-latest
@@ -403,7 +403,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./OpenTelemetryIngest/Dockerfile .
+          command: sudo docker build --no-cache -f ./OpenTelemetryIngest/Dockerfile .
 
   docker-build-incoming-request-ingest:
     runs-on: ubuntu-latest
@@ -426,7 +426,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./IncomingRequestIngest/Dockerfile .
+          command: sudo docker build --no-cache -f ./IncomingRequestIngest/Dockerfile .
 
   docker-build-fluent-ingest:
     runs-on: ubuntu-latest
@@ -449,7 +449,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./FluentIngest/Dockerfile .
+          command: sudo docker build --no-cache -f ./FluentIngest/Dockerfile .
 
   docker-build-status-page:
     runs-on: ubuntu-latest
@@ -472,7 +472,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./StatusPage/Dockerfile .
+          command: sudo docker build --no-cache -f ./StatusPage/Dockerfile .
 
   docker-build-test-server:
     runs-on: ubuntu-latest
@@ -495,4 +495,4 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build -f ./TestServer/Dockerfile .
+          command: sudo docker build --no-cache -f ./TestServer/Dockerfile .

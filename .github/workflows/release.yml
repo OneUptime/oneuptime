@@ -232,6 +232,7 @@ jobs:
           command: |
             VERSION="${{ steps.version.outputs.version }}"
             docker buildx build \
+              --no-cache \
               --platform linux/amd64,linux/arm64 \
               --file ./MCP/Dockerfile.tpl \
               --tag oneuptime/mcp-server:${VERSION} \
@@ -241,6 +242,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               --push .
             docker buildx build \
+              --no-cache \
               --platform linux/amd64,linux/arm64 \
               --file ./MCP/Dockerfile.tpl \
               --tag oneuptime/mcp-server:enterprise-${VERSION} \
@@ -320,6 +322,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./Nginx/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -330,6 +333,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./Nginx/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -402,6 +406,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./E2E/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -412,6 +417,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./E2E/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -484,6 +490,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./IsolatedVM/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -494,6 +501,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./IsolatedVM/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -566,6 +574,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./Home/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -576,6 +585,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./Home/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -651,6 +661,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./TestServer/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -661,6 +672,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./TestServer/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -733,6 +745,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./OTelCollector/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -743,6 +756,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./OTelCollector/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -817,6 +831,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./StatusPage/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -827,6 +842,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./StatusPage/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -899,6 +915,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./Tests/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -909,6 +926,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./Tests/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -981,6 +999,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./ProbeIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -991,6 +1010,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./ProbeIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1064,6 +1084,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./ServerMonitorIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1074,6 +1095,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./ServerMonitorIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1148,6 +1170,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./OpenTelemetryIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1158,6 +1181,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./OpenTelemetryIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1231,6 +1255,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./IncomingRequestIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1241,6 +1266,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./IncomingRequestIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1313,6 +1339,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./FluentIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1323,6 +1350,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./FluentIngest/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1395,6 +1423,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./Probe/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1405,6 +1434,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./Probe/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1477,6 +1507,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./AdminDashboard/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1487,6 +1518,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./AdminDashboard/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1560,6 +1592,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./Dashboard/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1570,6 +1603,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./Dashboard/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1642,6 +1676,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./App/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1652,6 +1687,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./App/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1725,6 +1761,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./Copilot/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1735,6 +1772,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./Copilot/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1807,6 +1845,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./Accounts/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1817,6 +1856,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./Accounts/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -1933,6 +1973,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./LLM/Dockerfile \
               --platform linux/amd64 \
               --push \
@@ -1943,6 +1984,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               ./LLM
             docker buildx build \
+              --no-cache \
               --file ./LLM/Dockerfile \
               --platform linux/amd64 \
               --push \
@@ -2017,6 +2059,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./Docs/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -2027,6 +2070,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./Docs/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -2104,6 +2148,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./Worker/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -2114,6 +2159,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./Worker/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -2191,6 +2237,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./Workflow/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -2201,6 +2248,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./Workflow/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -2338,6 +2386,7 @@ jobs:
           command: |
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
+              --no-cache \
               --file ./APIReference/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
@@ -2348,6 +2397,7 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
+              --no-cache \
               --file ./APIReference/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
