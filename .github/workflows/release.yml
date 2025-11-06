@@ -168,7 +168,19 @@ jobs:
         run: |
           cd MCP
           echo "📦 Package information:"
-          npm publish --dry-run
+          set +e
+          VERIFY_OUTPUT=$(npm publish --dry-run 2>&1)
+          VERIFY_EXIT=$?
+          set -e
+          echo "$VERIFY_OUTPUT"
+          if [ $VERIFY_EXIT -ne 0 ]; then
+            if echo "$VERIFY_OUTPUT" | grep -q "You cannot publish over the previously published versions"; then
+              echo "⚠️ npm publish --dry-run skipped: version already published"
+            else
+              echo "❌ npm publish --dry-run failed"
+              exit $VERIFY_EXIT
+            fi
+          fi
           echo "📋 Package.json bin configuration:"
           cat package.json | grep -A 5 -B 5 '"bin"'
           echo "📁 Build directory contents:"
