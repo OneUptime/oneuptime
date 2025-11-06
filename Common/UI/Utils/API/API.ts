@@ -16,15 +16,47 @@ import {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
-import API from "../../../Utils/API";
+import API, { APIErrorRetryContext } from "../../../Utils/API";
+
+type RefreshSessionHandler = () => Promise<boolean>;
+type ShouldAttemptRefreshHandler = (
+  error: HTTPErrorResponse,
+  context: APIErrorRetryContext,
+) => boolean | Promise<boolean>;
+type RefreshFailureHandler = (error: HTTPErrorResponse) => void;
 
 class BaseAPI extends API {
+  private static refreshSessionHandler: RefreshSessionHandler | null = null;
+  private static shouldAttemptRefreshHandler:
+    | ShouldAttemptRefreshHandler
+    | null = null;
+  private static refreshFailureHandler: RefreshFailureHandler | null = null;
+  private static refreshSessionPromise: Promise<boolean> | null = null;
+
   public constructor(protocol: Protocol, hostname: Hostname, route?: Route) {
     super(protocol, hostname, route);
   }
 
   public static fromURL(url: URL): BaseAPI {
     return new BaseAPI(url.protocol, url.hostname, url.route);
+  }
+
+  public static setRefreshSessionHandler(
+    handler: RefreshSessionHandler | null,
+  ): void {
+    this.refreshSessionHandler = handler;
+  }
+
+  public static setShouldAttemptRefreshHandler(
+    handler: ShouldAttemptRefreshHandler | null,
+  ): void {
+    this.shouldAttemptRefreshHandler = handler;
+  }
+
+  public static setRefreshFailureHandler(
+    handler: RefreshFailureHandler | null,
+  ): void {
+    this.refreshFailureHandler = handler;
   }
 
   protected static override async onResponseSuccessHeaders(
@@ -95,9 +127,35 @@ class BaseAPI extends API {
     return User.logout();
   }
 
-  public static override handleError(
+  protected static override async shouldRetryAfterError(
+    error: HTTPErrorResponse,
+    context: APIErrorRetryContext,
+  ): Promise<boolean> {
+    if (context.options?.skipAuthRefresh) {
+      return false;
+    }
+
+    if (context.retryCount > 0) {
+      return false;
+    }
+
+    if (!(await this.shouldAttemptAuthRefresh(error, context))) {
+      return false;
+    }
+
+    const refreshed: boolean = await this.refreshAuthSession();
+
+    if (refreshed) {
+      return true;
+    }
+
+    this.handleRefreshFailure(error);
+    return false;
+  }
+
+  public static override async handleError(
     error: HTTPErrorResponse | APIException,
-  ): HTTPErrorResponse | APIException {
+  ): Promise<HTTPErrorResponse | APIException> {
     /*
      * 405 Status - Tenant not found. If Project was deleted.
      * 401 Status - User is not logged in.
@@ -132,6 +190,60 @@ class BaseAPI extends API {
     }
 
     return error;
+  }
+
+  private static async shouldAttemptAuthRefresh(
+    error: HTTPErrorResponse,
+    context: APIErrorRetryContext,
+  ): Promise<boolean> {
+    if (!this.refreshSessionHandler) {
+      return false;
+    }
+
+    if (this.shouldAttemptRefreshHandler) {
+      try {
+        return await this.shouldAttemptRefreshHandler(error, context);
+      } catch {
+        return false;
+      }
+    }
+
+    return error.statusCode === 401 || error.statusCode === 405;
+  }
+
+  private static async refreshAuthSession(): Promise<boolean> {
+    if (!this.refreshSessionHandler) {
+      return false;
+    }
+
+    if (!this.refreshSessionPromise) {
+      this.refreshSessionPromise = this.refreshSessionHandler()
+        .then((result: boolean) => {
+          return result;
+        })
+        .catch(() => {
+          return false;
+        })
+        .finally(() => {
+          this.refreshSessionPromise = null;
+        });
+    }
+
+    try {
+      return await this.refreshSessionPromise;
+    } catch {
+      return false;
+    }
+  }
+
+  private static handleRefreshFailure(error: HTTPErrorResponse): void {
+    if (this.refreshFailureHandler) {
+      try {
+        this.refreshFailureHandler(error);
+      } catch {
+        // no-op if handler throws
+      }
+    }
   }
 
   protected static getLoginRoute(): Route {

@@ -1,3 +1,4 @@
+import "./Utils/API";
 import App from "./App";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import React from "react";

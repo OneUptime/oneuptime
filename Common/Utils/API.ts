@@ -21,6 +21,7 @@ export interface RequestOptions {
   exponentialBackoff?: boolean | undefined;
   timeout?: number | undefined;
   doNotFollowRedirects?: boolean | undefined;
+  skipAuthRefresh?: boolean | undefined;
   // Per-request proxy agent support (Probe supplies these instead of mutating global axios defaults)
   httpAgent?: HttpAgent | undefined;
   httpsAgent?: HttpsAgent | undefined;
@@ -41,6 +42,17 @@ export interface APIFetchOptions {
   headers?: Headers;
   params?: Dictionary<string>;
   options?: RequestOptions;
+}
+
+export interface APIErrorRetryContext {
+  method: HTTPMethod;
+  url: URL;
+  data?: JSONObject | JSONArray | undefined;
+  headers?: Headers | undefined;
+  resolvedHeaders: Headers;
+  params?: Dictionary<string> | undefined;
+  options?: RequestOptions | undefined;
+  retryCount: number;
 }
 
 export default class API {
@@ -113,10 +125,17 @@ export default class API {
     return await API.patch<T>(options);
   }
 
-  public static handleError(
+  public static async handleError(
     error: HTTPErrorResponse | APIException,
-  ): HTTPErrorResponse | APIException {
+  ): Promise<HTTPErrorResponse | APIException> {
     return error;
+  }
+
+  protected static async shouldRetryAfterError(
+    _error: HTTPErrorResponse,
+    _context: APIErrorRetryContext,
+  ): Promise<boolean> {
+    return false;
   }
 
   protected static async onResponseSuccessHeaders(
@@ -330,24 +349,25 @@ export default class API {
     headers?: Headers,
     params?: Dictionary<string>,
     options?: RequestOptions,
+    retryCount: number = 0,
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+    const baseUrl: URL = URL.fromURL(url);
+    const requestUrl: URL = URL.fromURL(url);
+
     const apiHeaders: Headers = this.getHeaders(headers);
 
     if (params) {
-      url.addQueryParams(params);
+      requestUrl.addQueryParams(params);
     }
 
+    let finalHeaders: Dictionary<string> = {
+      ...apiHeaders,
+      ...(headers || {}),
+    };
+
+    let finalBody: JSONObject | JSONArray | URLSearchParams | undefined = data;
+
     try {
-      const finalHeaders: Dictionary<string> = {
-        ...apiHeaders,
-        ...headers,
-      };
-
-      let finalBody: JSONObject | JSONArray | URLSearchParams | undefined =
-        data;
-
-      // if content-type is form-url-encoded, then stringify the data
-
       if (
         finalHeaders["Content-Type"] === "application/x-www-form-urlencoded" &&
         data
@@ -366,7 +386,7 @@ export default class API {
         try {
           const axiosOptions: AxiosRequestConfig = {
             method: method,
-            url: url.toString(),
+            url: requestUrl.toString(),
             headers: finalHeaders,
             data: finalBody,
           };
@@ -429,7 +449,32 @@ export default class API {
         throw new APIException(error.message);
       }
 
-      this.handleError(errorResponse);
+      const shouldRetry: boolean =
+        errorResponse instanceof HTTPErrorResponse &&
+        (await this.shouldRetryAfterError(errorResponse, {
+          method,
+          url: baseUrl,
+          data,
+          headers,
+          resolvedHeaders: finalHeaders as Headers,
+          params,
+          options,
+          retryCount,
+        }));
+
+      if (shouldRetry) {
+        return await this.fetchInternal(
+          method,
+          URL.fromURL(baseUrl),
+          data,
+          headers,
+          params,
+          options,
+          retryCount + 1,
+        );
+      }
+
+      await this.handleError(errorResponse);
       return errorResponse;
     }
   }
