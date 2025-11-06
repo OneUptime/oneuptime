@@ -86,6 +86,13 @@ curl \
    sudo systemctl restart rsyslog
    ```
 
+## Common Use Cases
+
+- **Network and security appliances** – firewalls, load balancers, and routers that only emit syslog can post directly to the HTTPS endpoint. Use `x-oneuptime-service-name` (for example `perimeter-firewall`) so dashboards and retention policies stay organized.
+- **Linux servers and cron jobs** – forward journald or `/var/log/syslog` entries to monitor host health, daemon crashes, and scheduled tasks. Filter later on `syslog.hostname` or `syslog.severity.name` to isolate noisy machines.
+- **Edge collectors and Kubernetes** – pair Fluent Bit or Fluentd syslog inputs with the HTTP output plugin to centralize node and ingress controller events without standing up another aggregator.
+- **Compliance archiving** – apply longer retention to the telemetry service that owns your syslog feed, then export straight from OneUptime when auditors ask for firewall or VPN activity.
+
 ## Parsed Attributes
 
 OneUptime automatically adds the following attributes to each log entry:
