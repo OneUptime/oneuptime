@@ -1,4 +1,4 @@
-import OneUptimeDate, { Moment } from "Common/Types/Date";
+import OneUptimeDate from "Common/Types/Date";
 
 export interface ParsedSyslogStructuredData {
   [sdId: string]: {
@@ -121,7 +121,7 @@ function parseRfc5424(payload: string): ParsedSyslogMessage | null {
 
   const timestamp: Date | undefined =
     timestampToken && timestampToken !== "-"
-      ? parseRfc5424Timestamp(timestampToken)
+      ? OneUptimeDate.parseRfc5424Timestamp(timestampToken)
       : undefined;
 
   const hostname: string | undefined =
@@ -169,7 +169,8 @@ function parseRfc3164(payload: string): ParsedSyslogMessage | null {
   const hostname: string = match[2]!;
   const rest: string = match[3] ?? "";
 
-  const timestamp: Date | undefined = parseRfc3164Timestamp(timestampToken);
+  const timestamp: Date | undefined =
+    OneUptimeDate.parseRfc3164Timestamp(timestampToken);
 
   let appName: string | undefined;
   let procId: string | undefined;
@@ -245,40 +246,6 @@ function splitTokens(source: string, expected: number): Array<string> {
   tokens.push(remaining);
 
   return tokens;
-}
-
-function parseRfc5424Timestamp(value: string): Date | undefined {
-  const parsed = Moment(value, Moment.ISO_8601, true);
-
-  if (!parsed.isValid()) {
-    return undefined;
-  }
-
-  return parsed.toDate();
-}
-
-function parseRfc3164Timestamp(value: string): Date | undefined {
-  const currentYear: number = OneUptimeDate.getCurrentYear();
-  const normalized: string = value.replace(/\s+/g, " ");
-  let parsed = Moment(
-    `${normalized} ${currentYear}`,
-    "MMM D HH:mm:ss YYYY",
-    true,
-  );
-
-  if (!parsed.isValid()) {
-    return undefined;
-  }
-
-  const now = Moment();
-
-  if (parsed.isAfter(now.clone().add(1, "months"))) {
-    parsed = parsed.subtract(1, "years");
-  } else if (parsed.isBefore(now.clone().subtract(11, "months"))) {
-    parsed = parsed.add(1, "years");
-  }
-
-  return parsed.toDate();
 }
 
 function extractStructuredData(value: string): {

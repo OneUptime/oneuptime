@@ -370,6 +370,54 @@ export default class OneUptimeDate {
     return moment(timestamp / 1000000).toDate();
   }
 
+  public static parseRfc5424Timestamp(value: string): Date | undefined {
+    if (!value || typeof value !== "string") {
+      return undefined;
+    }
+
+    const parsed: moment.Moment = Moment(value, Moment.ISO_8601, true);
+
+    if (!parsed.isValid()) {
+      return undefined;
+    }
+
+    return parsed.toDate();
+  }
+
+  public static parseRfc3164Timestamp(value: string): Date | undefined {
+    if (!value || typeof value !== "string") {
+      return undefined;
+    }
+
+    const normalized: string = value.replace(/\s+/g, " ").trim();
+
+    if (!normalized) {
+      return undefined;
+    }
+
+    const currentYear: number = this.getCurrentYear();
+
+    let parsed: moment.Moment = Moment(
+      `${normalized} ${currentYear}`,
+      "MMM D HH:mm:ss YYYY",
+      true,
+    );
+
+    if (!parsed.isValid()) {
+      return undefined;
+    }
+
+    const now: moment.Moment = Moment();
+
+    if (parsed.isAfter(now.clone().add(1, "months"))) {
+      parsed = parsed.subtract(1, "years");
+    } else if (parsed.isBefore(now.clone().subtract(11, "months"))) {
+      parsed = parsed.add(1, "years");
+    }
+
+    return parsed.toDate();
+  }
+
   public static getSecondsTo(date: Date): number {
     date = this.fromString(date);
     const dif: number = date.getTime() - this.getCurrentDate().getTime();
