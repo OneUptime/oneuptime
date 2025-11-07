@@ -7,59 +7,32 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  RequestHandler,
 } from "Common/Server/Utils/Express";
-import Response from "Common/Server/Utils/Response";
-import TelemetryQueueService from "../Services/Queue/TelemetryQueueService";
-import BadRequestException from "Common/Types/Exception/BadRequestException";
-
-export class FluentLogsRequestMiddleware {
-  public static async getProductType(
-    req: ExpressRequest,
-    _res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> {
-    try {
-      (req as TelemetryRequest).productType = ProductType.Logs;
-      return next();
-    } catch (err) {
-      return next(err);
-    }
-  }
-}
+import FluentLogsIngestService from "../Services/FluentLogsIngestService";
 
 const router: ExpressRouter = Express.getRouter();
 
+const setFluentProductType: RequestHandler = (
+  req: ExpressRequest,
+  _res: ExpressResponse,
+  next: NextFunction,
+): void => {
+  (req as TelemetryRequest).productType = ProductType.Logs;
+  next();
+};
+
 router.post(
   "/fluentd/v1/logs",
-  FluentLogsRequestMiddleware.getProductType,
+  setFluentProductType,
   TelemetryIngest.isAuthorizedServiceMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-    try {
-      if (!(req as TelemetryRequest).projectId) {
-        throw new BadRequestException(
-          "Invalid request - projectId not found in request.",
-        );
-      }
-
-      req.body = req.body?.toJSON ? req.body.toJSON() : req.body;
-
-      Response.sendEmptySuccessResponse(req, res);
-
-      await TelemetryQueueService.addFluentLogIngestJob(
-        req as TelemetryRequest,
-      );
-
-      return;
-    } catch (err) {
-      return next(err);
-    }
+    return FluentLogsIngestService.ingestFluentLogs(req, res, next);
   },
 );
-
-
 
 export default router;

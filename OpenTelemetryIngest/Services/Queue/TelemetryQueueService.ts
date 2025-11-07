@@ -9,6 +9,7 @@ export enum TelemetryType {
   Traces = "traces",
   Metrics = "metrics",
   Syslog = "syslog",
+  FluentLogs = "fluentlogs",
 }
 
 export interface TelemetryIngestJobData {
@@ -77,6 +78,12 @@ export default class TelemetryQueueService {
 
   public static async addMetricIngestJob(req: TelemetryRequest): Promise<void> {
     return this.addTelemetryIngestJob(req, TelemetryType.Metrics);
+  }
+
+  public static async addFluentLogIngestJob(
+    req: TelemetryRequest,
+  ): Promise<void> {
+    return this.addTelemetryIngestJob(req, TelemetryType.FluentLogs);
   }
 
   public static async getQueueSize(): Promise<number> {
