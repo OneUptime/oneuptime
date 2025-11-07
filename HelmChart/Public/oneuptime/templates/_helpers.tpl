@@ -63,8 +63,6 @@ Usage:
   value: {{ $.Values.openTelemetryCollectorHost }}
 - name: LOG_LEVEL
   value: {{ $.Values.logLevel }}
-- name: FLUENTD_HOST
-  value: {{ $.Values.fluentdHost }}
 - name: HTTP_PROTOCOL
   value: {{ $.Values.httpProtocol }}
 - name: NODE_ENV

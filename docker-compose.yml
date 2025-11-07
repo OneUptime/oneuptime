@@ -126,12 +126,6 @@ services:
             file: ./docker-compose.base.yml
             service: incoming-request-ingest
 
-    fluent-ingest: 
-        image:  oneuptime/fluent-ingest:${APP_TAG}
-        extends:
-            file: ./docker-compose.base.yml
-            service: fluent-ingest
-
     isolated-vm:
         image:  oneuptime/isolated-vm:${APP_TAG}
         extends:

@@ -7,7 +7,6 @@ x-common-variables: &common-variables
 
     OTEL_COLLECTOR_HOST: ${OTEL_COLLECTOR_HOST}
 
-    FLUENTD_HOST: ${FLUENTD_HOST}
 
     STATUS_PAGE_CNAME_RECORD: ${STATUS_PAGE_CNAME_RECORD}
 
@@ -411,15 +410,6 @@ services:
                 max-size: "1000m"
         ports: 
           - 13133:13133 # Otel Collector Health Check Endpoint at /heath/status
-
-    fluentd:
-        networks:
-          - oneuptime
-        restart: always
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"
 
     fluent-bit: 
         networks:
