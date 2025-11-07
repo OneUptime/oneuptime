@@ -43,9 +43,6 @@ externalSecrets:
       name:
       passwordKey:
 
-# (Optional): You usually do not need to set this if you're self hosting.
-openTelemetryCollectorHost:
-
 deployment:
   # Default replica count for all deployments
   replicaCount: 1
@@ -697,7 +694,7 @@ probeIngest:
     # Cooldown period after scaling (in seconds)
     cooldownPeriod: 300
 
-openTelemetryIngest:
+telemetry:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false

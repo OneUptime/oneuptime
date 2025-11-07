@@ -1,4 +1,4 @@
-name: OpenTelemetryIngest Test
+name: Telemetry Test
 
 on:
   pull_request: 
@@ -17,5 +17,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: latest
-      - run: cd OpenTelemetryIngest && npm install && npm run test
+      - run: cd Telemetry && npm install && npm run test
   

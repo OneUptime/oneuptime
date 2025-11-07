@@ -5,9 +5,6 @@ x-common-variables: &common-variables
 
     HTTP_PROTOCOL: ${HTTP_PROTOCOL}
 
-    OTEL_COLLECTOR_HOST: ${OTEL_COLLECTOR_HOST}
-
-
     STATUS_PAGE_CNAME_RECORD: ${STATUS_PAGE_CNAME_RECORD}
 
     LOG_LEVEL: ${LOG_LEVEL}
@@ -33,7 +30,7 @@ x-common-variables: &common-variables
     SERVER_APP_HOSTNAME: app
     SERVER_ALERT_HOSTNAME: alert
     SERVER_PROBE_INGEST_HOSTNAME: probe-ingest
-    SERVER_OPEN_TELEMETRY_INGEST_HOSTNAME: open-telemetry-ingest
+    SERVER_TELEMETRY_HOSTNAME: telemetry
     SERVER_INCOMING_REQUEST_INGEST_HOSTNAME: incoming-request-ingest
     SERVER_TEST_SERVER_HOSTNAME: test-server
     SERVER_STATUS_PAGE_HOSTNAME: status-page
@@ -52,7 +49,7 @@ x-common-variables: &common-variables
     APP_PORT: ${APP_PORT}
     HOME_PORT: ${HOME_PORT}
     PROBE_INGEST_PORT: ${PROBE_INGEST_PORT}
-    OPEN_TELEMETRY_INGEST_PORT: ${OPEN_TELEMETRY_INGEST_PORT}
+    TELEMETRY_PORT: ${TELEMETRY_PORT}
     INCOMING_REQUEST_INGEST_PORT: ${INCOMING_REQUEST_INGEST_PORT}
     TEST_SERVER_PORT: ${TEST_SERVER_PORT}
     ACCOUNTS_PORT: ${ACCOUNTS_PORT}
@@ -471,16 +468,16 @@ services:
             options:
                 max-size: "1000m"
 
-    open-telemetry-ingest:
+    telemetry:
         networks:
           - oneuptime
         restart: always
         environment:
             <<: *common-runtime-variables
-            PORT: ${OPEN_TELEMETRY_INGEST_PORT}
-            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_OPEN_TELEMETRY_INGEST}
+            PORT: ${TELEMETRY_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_TELEMETRY}
             # Max concurrent telemetry jobs the worker will process
-            OPEN_TELEMETRY_INGEST_CONCURRENCY: ${OPEN_TELEMETRY_INGEST_CONCURRENCY}
+            TELEMETRY_CONCURRENCY: ${TELEMETRY_CONCURRENCY}
         logging:
             driver: "local"
             options:

@@ -30,8 +30,8 @@ import Text from "Common/Types/Text";
 import TracesQueueService from "./Queue/TracesQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import {
-  OPEN_TELEMETRY_INGEST_EXCEPTION_FLUSH_BATCH_SIZE,
-  OPEN_TELEMETRY_INGEST_TRACE_FLUSH_BATCH_SIZE,
+  TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
+  TELEMETRY_TRACE_FLUSH_BATCH_SIZE,
 } from "../Config";
 
 type ParsedUnixNano = {
@@ -63,12 +63,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     force: boolean = false,
   ): Promise<void> {
     while (
-      spans.length >= OPEN_TELEMETRY_INGEST_TRACE_FLUSH_BATCH_SIZE ||
+      spans.length >= TELEMETRY_TRACE_FLUSH_BATCH_SIZE ||
       (force && spans.length > 0)
     ) {
       const batchSize: number = Math.min(
         spans.length,
-        OPEN_TELEMETRY_INGEST_TRACE_FLUSH_BATCH_SIZE,
+        TELEMETRY_TRACE_FLUSH_BATCH_SIZE,
       );
       const batch: Array<JSONObject> = spans.splice(0, batchSize);
 
@@ -85,12 +85,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     force: boolean = false,
   ): Promise<void> {
     while (
-      exceptions.length >= OPEN_TELEMETRY_INGEST_EXCEPTION_FLUSH_BATCH_SIZE ||
+      exceptions.length >= TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE ||
       (force && exceptions.length > 0)
     ) {
       const batchSize: number = Math.min(
         exceptions.length,
-        OPEN_TELEMETRY_INGEST_EXCEPTION_FLUSH_BATCH_SIZE,
+        TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
       );
       const batch: Array<JSONObject> = exceptions.splice(0, batchSize);
 
@@ -363,14 +363,14 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
                   if (
                     dbSpans.length >=
-                    OPEN_TELEMETRY_INGEST_TRACE_FLUSH_BATCH_SIZE
+                    TELEMETRY_TRACE_FLUSH_BATCH_SIZE
                   ) {
                     await this.flushSpansBuffer(dbSpans);
                   }
 
                   if (
                     dbExceptions.length >=
-                    OPEN_TELEMETRY_INGEST_EXCEPTION_FLUSH_BATCH_SIZE
+                    TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE
                   ) {
                     await this.flushExceptionsBuffer(dbExceptions);
                   }

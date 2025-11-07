@@ -382,7 +382,7 @@ jobs:
           max_attempts: 3
           command: sudo docker build --no-cache -f ./ServerMonitorIngest/Dockerfile .
 
-  docker-build-open-telemetry-ingest:
+  docker-build-telemetry:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -403,7 +403,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./OpenTelemetryIngest/Dockerfile .
+          command: sudo docker build --no-cache -f ./Telemetry/Dockerfile .
 
   docker-build-incoming-request-ingest:
     runs-on: ubuntu-latest

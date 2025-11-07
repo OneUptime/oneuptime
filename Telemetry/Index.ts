@@ -13,13 +13,13 @@ import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import "./Jobs/TelemetryIngest/ProcessTelemetry";
-import { OPEN_TELEMETRY_INGEST_CONCURRENCY } from "./Config";
+import { TELEMETRY_CONCURRENCY } from "./Config";
 import type { StatusAPIOptions } from "Common/Server/API/StatusAPI";
 import "ejs";
 
 const app: ExpressApplication = Express.getExpressApp();
 
-const APP_NAME: string = "open-telemetry-ingest";
+const APP_NAME: string = "telemetry";
 const ROUTE_PREFIXES: Array<string> = [`/${APP_NAME}`, "/"];
 
 app.use(ROUTE_PREFIXES, OTelIngestAPI);
@@ -44,7 +44,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     });
 
     logger.info(
-      `OpenTelemetryIngest Service - Queue concurrency: ${OPEN_TELEMETRY_INGEST_CONCURRENCY}`,
+      `Telemetry Service - Queue concurrency: ${TELEMETRY_CONCURRENCY}`,
     );
 
     // init the app

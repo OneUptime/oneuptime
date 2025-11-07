@@ -319,7 +319,7 @@ jobs:
           max_attempts: 3
           command: cd ServerMonitorIngest && npm install && npm run compile && npm run dep-check
 
-  compile-open-telemetry-ingest:
+  compile-telemetry:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -329,12 +329,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - name: Compile Open Telemetry Ingest
+      - name: Compile Telemetry
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd OpenTelemetryIngest && npm install && npm run compile && npm run dep-check
+          command: cd Telemetry && npm install && npm run compile && npm run dep-check
 
 
   compile-incoming-request-ingest: 

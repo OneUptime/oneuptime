@@ -13,8 +13,8 @@ import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import ObjectID from "Common/Types/ObjectID";
 import {
-  OPEN_TELEMETRY_INGEST_CONCURRENCY,
-  OPEN_TELEMETRY_INGEST_LOCK_DURATION_MS,
+  TELEMETRY_CONCURRENCY,
+  TELEMETRY_LOCK_DURATION_MS,
 } from "../../Config";
 
 // Set up the unified worker for processing telemetry queue
@@ -81,8 +81,8 @@ QueueWorker.getWorker(
     }
   },
   {
-    concurrency: OPEN_TELEMETRY_INGEST_CONCURRENCY,
-    lockDuration: OPEN_TELEMETRY_INGEST_LOCK_DURATION_MS,
+    concurrency: TELEMETRY_CONCURRENCY,
+    lockDuration: TELEMETRY_LOCK_DURATION_MS,
     // allow a couple of stall recoveries before marking failed if genuinely stuck
     maxStalledCount: 2,
   },
