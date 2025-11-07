@@ -14,7 +14,6 @@ export enum QueueName {
   Workflow = "Workflow",
   Worker = "Worker",
   Telemetry = "Telemetry",
-  FluentLogs = "FluentLogs",
   IncomingRequestIngest = "IncomingRequestIngest",
   ServerMonitorIngest = "ServerMonitorIngest",
   ProbeIngest = "ProbeIngest",
