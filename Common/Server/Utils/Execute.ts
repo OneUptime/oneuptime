@@ -1,5 +1,6 @@
 import { PromiseRejectErrorFunction } from "../../Types/FunctionTypes";
 import {
+  ChildProcess,
   ExecException,
   ExecOptions,
   SpawnOptions,
@@ -101,7 +102,11 @@ export default class Execute {
           ...data.options,
         };
 
-        const child = spawn(data.command, data.args ?? [], spawnOptions);
+        const child: ChildProcess = spawn(
+          data.command,
+          data.args ?? [],
+          spawnOptions,
+        );
 
         child.on("error", (err: Error) => {
           logger.error(
