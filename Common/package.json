@@ -106,7 +106,7 @@
         "nodemailer": "^7.0.7",
         "otpauth": "^9.3.1",
         "pg": "^8.7.3",
-        "playwright": "^1.55.1",
+        "playwright": "^1.56.0",
         "posthog-js": "^1.275.3",
         "prop-types": "^15.8.1",
         "qrcode": "^1.5.3",
