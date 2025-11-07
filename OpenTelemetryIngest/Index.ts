@@ -13,7 +13,6 @@ import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import "./Jobs/TelemetryIngest/ProcessTelemetry";
-import "./Jobs/TelemetryIngest/ProcessFluentLogs";
 import { OPEN_TELEMETRY_INGEST_CONCURRENCY } from "./Config";
 import type { StatusAPIOptions } from "Common/Server/API/StatusAPI";
 import "ejs";
