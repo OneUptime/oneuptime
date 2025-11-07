@@ -22,7 +22,7 @@ import OTelIngestService, {
 import LogService from "Common/Server/Services/LogService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import FluentLogsQueueService from "./Queue/FluentLogsQueueService";
-import { OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE } from "../Config";
+import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 
 export default class FluentLogsIngestService extends OtelIngestBaseService {
   private static readonly DEFAULT_SERVICE_NAME: string = "Fluentd";
@@ -150,7 +150,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
           dbLogs.push(logRow);
           processed++;
 
-          if (dbLogs.length >= OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE) {
+          if (dbLogs.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE) {
             await this.flushLogsBuffer(dbLogs);
           }
         } catch (processingError) {
@@ -302,12 +302,12 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
     force: boolean = false,
   ): Promise<void> {
     while (
-      logs.length >= OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE ||
+      logs.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE ||
       (force && logs.length > 0)
     ) {
       const batchSize: number = Math.min(
         logs.length,
-        OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE,
+        TELEMETRY_LOG_FLUSH_BATCH_SIZE,
       );
 
       const batch: Array<JSONObject> = logs.splice(0, batchSize);

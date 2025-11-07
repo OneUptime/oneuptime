@@ -1,12 +1,12 @@
-# OneUptime open-telemetry-ingest Deployment
+# OneUptime telemetry Deployment
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ printf "%s-%s" $.Release.Name "open-telemetry-ingest"  }}
+  name: {{ printf "%s-%s" $.Release.Name "telemetry"  }}
   namespace: {{ $.Release.Namespace }}
   labels:
-    app: {{ printf "%s-%s" $.Release.Name "open-telemetry-ingest"  }}
+    app: {{ printf "%s-%s" $.Release.Name "telemetry"  }}
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
     appname: oneuptime
@@ -16,11 +16,11 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: {{ printf "%s-%s" $.Release.Name "open-telemetry-ingest"  }}
-  {{- if $.Values.openTelemetryIngest.replicaCount }}
-  replicas: {{ $.Values.openTelemetryIngest.replicaCount }}
+      app: {{ printf "%s-%s" $.Release.Name "telemetry"  }}
+  {{- if $.Values.telemetry.replicaCount }}
+  replicas: {{ $.Values.telemetry.replicaCount }}
   {{- else }}
-  {{- if or (not $.Values.autoscaling.enabled) ($.Values.openTelemetryIngest.disableAutoscaler) }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.telemetry.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
@@ -28,7 +28,7 @@ spec:
   template:
     metadata:
       labels:
-        app: {{ printf "%s-%s" $.Release.Name "open-telemetry-ingest"  }}
+        app: {{ printf "%s-%s" $.Release.Name "telemetry"  }}
         {{- if $.Values.deployment.includeTimestampLabel }}
         date: "{{ now | unixEpoch }}"
         {{- end }}
@@ -38,9 +38,9 @@ spec:
         - name: greenlockrc
           emptyDir:
             sizeLimit: "1Gi"
-      {{- if $.Values.openTelemetryIngest.podSecurityContext }}
+      {{- if $.Values.telemetry.podSecurityContext }}
       securityContext:
-        {{- toYaml $.Values.openTelemetryIngest.podSecurityContext | nindent 8 }}
+        {{- toYaml $.Values.telemetry.podSecurityContext | nindent 8 }}
       {{- else if $.Values.podSecurityContext }}
       securityContext:
         {{- toYaml $.Values.podSecurityContext | nindent 8 }}
@@ -55,22 +55,22 @@ spec:
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
-      {{- if $.Values.openTelemetryIngest.nodeSelector }}
+      {{- if $.Values.telemetry.nodeSelector }}
       nodeSelector:
-        {{- toYaml $.Values.openTelemetryIngest.nodeSelector | nindent 8 }}
+        {{- toYaml $.Values.telemetry.nodeSelector | nindent 8 }}
       {{- else if $.Values.nodeSelector }}
       nodeSelector:
         {{- toYaml $.Values.nodeSelector | nindent 8 }}
       {{- end }}
       containers:
-        - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "open-telemetry-ingest") }}
-          name: {{ printf "%s-%s" $.Release.Name "open-telemetry-ingest"  }}
+        - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "telemetry") }}
+          name: {{ printf "%s-%s" $.Release.Name "telemetry"  }}
           {{- if $.Values.startupProbe.enabled }}
           # Startup probe
           startupProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.openTelemetryIngest.ports.http }}
+              port: {{ $.Values.telemetry.ports.http }}
             periodSeconds: {{ $.Values.startupProbe.periodSeconds }}
             failureThreshold: {{ $.Values.startupProbe.failureThreshold }}
           {{- end }}
@@ -79,7 +79,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.openTelemetryIngest.ports.http }}
+              port: {{ $.Values.telemetry.ports.http }}
             periodSeconds: {{ $.Values.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ $.Values.livenessProbe.timeoutSeconds }}
             initialDelaySeconds: {{ $.Values.livenessProbe.initialDelaySeconds }}
@@ -89,14 +89,14 @@ spec:
           readinessProbe:
             httpGet:
               path: /status/ready
-              port: {{ $.Values.openTelemetryIngest.ports.http }}
+              port: {{ $.Values.telemetry.ports.http }}
             periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
             initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
             timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
           {{- end }}
-          {{- if $.Values.openTelemetryIngest.containerSecurityContext }}
+          {{- if $.Values.telemetry.containerSecurityContext }}
           securityContext:
-            {{- toYaml $.Values.openTelemetryIngest.containerSecurityContext | nindent 12 }}
+            {{- toYaml $.Values.telemetry.containerSecurityContext | nindent 12 }}
           {{- else if $.Values.containerSecurityContext }}
           securityContext:
             {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
@@ -106,32 +106,31 @@ spec:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
             - name: PORT
-              value: {{ $.Values.openTelemetryIngest.ports.http | quote }} 
+              value: {{ $.Values.telemetry.ports.http | quote }} 
             - name: DISABLE_TELEMETRY
-              value: {{ $.Values.openTelemetryIngest.disableTelemetryCollection | quote }}
-            - name: OPEN_TELEMETRY_INGEST_CONCURRENCY
-              value: {{ $.Values.openTelemetryIngest.concurrency | squote }}
+              value: {{ $.Values.telemetry.disableTelemetryCollection | quote }}
+            - name: TELEMETRY_CONCURRENCY
+              value: {{ $.Values.telemetry.concurrency | squote }}
           ports:
-            - containerPort: {{ $.Values.openTelemetryIngest.ports.http }}
+            - containerPort: {{ $.Values.telemetry.ports.http }}
               protocol: TCP
               name: http
-          {{- if $.Values.openTelemetryIngest.resources }}
+          {{- if $.Values.telemetry.resources }}
           resources:
-            {{- toYaml $.Values.openTelemetryIngest.resources | nindent 12 }}
+            {{- toYaml $.Values.telemetry.resources | nindent 12 }}
           {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---
 
-# OneUptime open-telemetry-ingest Service
-{{- $openTelemetryIngestPorts := dict "port" $.Values.openTelemetryIngest.ports.http -}}
-{{- $openTelemetryIngestServiceArgs := dict "ServiceName" "open-telemetry-ingest" "Ports" $openTelemetryIngestPorts "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.service" $openTelemetryIngestServiceArgs }}
+# OneUptime telemetry Service
+{{- $telemetryPorts := dict "port" $.Values.telemetry.ports.http -}}
+{{- $telemetryServiceArgs := dict "ServiceName" "telemetry" "Ports" $telemetryPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $telemetryServiceArgs }}
 ---
 
-# OneUptime open-telemetry-ingest autoscaler
-{{- if and (not $.Values.openTelemetryIngest.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.openTelemetryIngest.keda.enabled)) }}
-{{- $openTelemetryIngestAutoScalerArgs := dict "ServiceName" "open-telemetry-ingest" "Release" $.Release "Values" $.Values -}}
-{{- include "oneuptime.autoscaler" $openTelemetryIngestAutoScalerArgs }}
+# OneUptime telemetry autoscaler
+{{- if and (not $.Values.telemetry.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.telemetry.keda.enabled)) }}
+{{- $telemetryAutoScalerArgs := dict "ServiceName" "telemetry" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $telemetryAutoScalerArgs }}
 {{- end }}
----

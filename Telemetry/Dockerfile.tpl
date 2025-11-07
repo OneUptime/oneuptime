@@ -1,5 +1,5 @@
 #
-# OneUptime-OpenTelemetryIngest Dockerfile
+# OneUptime-Telemetry Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -65,11 +65,11 @@ WORKDIR /usr/src/app
 RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0 npx playwright install --with-deps
 
 # Install app dependencies
-COPY ./OpenTelemetryIngest/package*.json /usr/src/app/
+COPY ./Telemetry/package*.json /usr/src/app/
 RUN npm install
 
 # Expose ports.
-#   - 3403: OneUptime-OpenTelemetryIngest
+#   - 3403: OneUptime-Telemetry
 EXPOSE 3403
 
 {{ if eq .Env.ENVIRONMENT "development" }}
@@ -77,7 +77,7 @@ EXPOSE 3403
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./OpenTelemetryIngest /usr/src/app
+COPY ./Telemetry /usr/src/app
 # Bundle app source
 RUN npm run compile
 # Set permission to write logs and cache in case container run as non root

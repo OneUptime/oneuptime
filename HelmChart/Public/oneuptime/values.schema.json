@@ -1735,7 +1735,7 @@
       },
       "additionalProperties": false
     },
-    "openTelemetryIngest": {
+    "telemetry": {
       "type": "object",
       "properties": {
         "replicaCount": {
