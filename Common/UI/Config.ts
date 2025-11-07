@@ -15,7 +15,6 @@ import {
   StatusPageApiRoute,
   StatusPageRoute,
   WorkflowRoute,
-  FluentIngestRoute,
   IncomingRequestIngestRoute,
   OpenTelemetryIngestRoute,
 } from "../ServiceRoute";
@@ -82,8 +81,6 @@ export const OPEN_TELEMETRY_INGEST_HOSTNAME: Hostname =
 export const INCOMING_REQUEST_INGEST_HOSTNAME: Hostname =
   Hostname.fromString(HOST);
 
-export const FLUENT_INGEST_HOSTNAME: Hostname = Hostname.fromString(HOST);
-
 export const HELM_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const API_DOCS_HOSTNAME: Hostname = Hostname.fromString(HOST);
@@ -122,12 +119,6 @@ export const OPEN_TELEMETRY_INGEST_URL: URL = new URL(
   HTTP_PROTOCOL,
   OPEN_TELEMETRY_INGEST_HOSTNAME,
   new Route(OpenTelemetryIngestRoute.toString()),
-);
-
-export const FLUENT_INGEST_URL: URL = new URL(
-  HTTP_PROTOCOL,
-  FLUENT_INGEST_HOSTNAME,
-  new Route(FluentIngestRoute.toString()),
 );
 
 export const IDENTITY_URL: URL = new URL(

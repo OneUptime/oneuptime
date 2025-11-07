@@ -36,8 +36,6 @@ export const IncomingRequestIngestRoute: Route = new Route(
   "/incoming-request-ingest",
 );
 
-export const FluentIngestRoute: Route = new Route("/fluent-ingest");
-
 export const RealtimeRoute: Route = new Route("/realtime/socket");
 
 export const DocsRoute: Route = new Route("/docs");

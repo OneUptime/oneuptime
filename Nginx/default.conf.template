@@ -28,10 +28,6 @@ upstream incoming-request-ingest {
     server ${SERVER_INCOMING_REQUEST_INGEST_HOSTNAME}:${INCOMING_REQUEST_INGEST_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
-upstream fluent-ingest {
-    server ${SERVER_FLUENT_INGEST_HOSTNAME}:${FLUENT_INGEST_PORT} weight=10 max_fails=3 fail_timeout=30s; 
-}
-
 upstream dashboard {
     server ${SERVER_DASHBOARD_HOSTNAME}:${DASHBOARD_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }
@@ -121,47 +117,6 @@ server {
         grpc_pass grpc://opentelemetry-collector-grpc;
     }
 
-}
-
-# Fluentd Collector
-
-server {
-
-    server_tokens off;
-    
-
-    gzip on;
-    gzip_types      text/plain application/xml application/javascript text/javascript text/css application/json;
-    gzip_proxied    no-cache no-store private expired auth;
-    gzip_min_length 1000;
-   
-    listen ${NGINX_LISTEN_ADDRESS}7849 ${NGINX_LISTEN_OPTIONS};
-    http2  on;
-
-    server_name oneuptime-fluentd-collector ${FLUENTD_HOST};
-
-    proxy_busy_buffers_size   512k;
-    proxy_buffers   4 512k;
-    proxy_buffer_size   256k;
-
-    fastcgi_buffers  16 16k;
-    fastcgi_buffer_size  32k;
-
-    location /logs {
-        # This is for nginx not to crash when service is not available. 
-        resolver 127.0.0.1 valid=30s;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
-
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-
-        proxy_pass  http://fluent-ingest/fluentd/v1/logs;
-    }
 }
 
 # Status Pages
@@ -566,18 +521,6 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_pass http://accounts;
     }
 
-     location /fluent-ingest {
-
-        # This is for nginx not to crash when service is not available. 
-        resolver 127.0.0.1 valid=30s;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-
-        proxy_pass http://fluent-ingest;
-    }
-
 
     location /open-telemetry-ingest {
 
@@ -656,7 +599,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass  http://fluent-ingest/fluentd/v1/logs;
+        proxy_pass  http://open-telemetry-ingest/fluentd/v1/logs;
     }
 
     location /syslog/v1/logs {

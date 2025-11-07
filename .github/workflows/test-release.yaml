@@ -6,95 +6,6 @@ concurrency:
 
 on:
   push:
-    branches:
-      - "master"
-
-jobs:
-
-  generate-build-number:
-    runs-on: ubuntu-latest
-    outputs:
-      build_number: ${{ steps.buildnumber.outputs.build_number }}
-    steps:
-    - name: Generate build number
-      id: buildnumber
-      uses: onyxmueller/build-tag-number@v1.0.2
-      with:
-        token: ${{secrets.github_token}}
-    - run: echo "Build number is ${{ steps.buildnumber.outputs.build_number }}"
-  read-version:
-    runs-on: ubuntu-latest
-    outputs:
-      major_minor: ${{ steps.read.outputs.major_minor }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - id: read
-        name: Read VERSION_PREFIX
-        run: |
-          MAJOR_MINOR=$(cat VERSION_PREFIX | tr -d '\n' | tr -d '\r')
-          echo "major_minor=$MAJOR_MINOR" >> $GITHUB_OUTPUT
-          echo "Using version prefix: $MAJOR_MINOR"
-
-
-  publish-terraform-provider:
-    needs: [read-version, generate-build-number]
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{ github.run_number }}
-      GITHUB_TOKEN: ${{ secrets.SIMLARSEN_GITHUB_PAT }}
-      GPG_PRIVATE_KEY: ${{ secrets.TERRAFORM_GPG_PRIVATE_KEY }}
-      TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY: ${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}
-    permissions:
-      contents: write  # For creating releases
-      packages: write  # For publishing packages
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Full history for changelog generation
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'latest'
-          cache: 'npm'
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
-          cache: true
-
-      - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v5
-        with:
-          install-only: true
-
-
-      - name: Determine version
-        id: version
-        run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Publishing Terraform provider version: $VERSION"
-
-      - name: Install dependencies
-        run: |
-          npm install
-          if [ -d "Common" ]; then cd Common && npm install && cd ..; fi
-          if [ -d "Scripts" ]; then cd Scripts && npm install && cd ..; fi
-
-      - name:  Import GPG key
-        run: |
-          echo '${{ secrets.TERRAFORM_GPG_PRIVATE_KEY }}' > private.key
-          gpg --import private.key || true
-          rm private.key
-          echo "GPG key imported successfully"
-          gpg --export-secret-keys >~/.gnupg/secring.gpg 
-          echo "GPG key exported successfully"
-
-      - name: Generate Terraform provider
         run: npm run publish-terraform-provider -- --version "${{ steps.version.outputs.version }}" --github-token "${{ secrets.SIMLARSEN_GITHUB_PAT }}" --github-repo-deploy-key "${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}" --test-release
 
   publish-mcp-server:
@@ -1423,95 +1334,6 @@ jobs:
               --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
-  fluent-ingest-docker-image-deploy:
-    needs: [read-version, generate-build-number]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Docker Meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            oneuptime/fluent-ingest
-            ghcr.io/oneuptime/fluent-ingest
-          tags: |
-            type=raw,value=test,enable=true
-            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
-            
-
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: latest
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
-
-      # Build and deploy probe-ingest.
-
-      - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-      - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
-
-      - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test"
-            docker buildx build \
-              --no-cache \
-              --file ./FluentIngest/Dockerfile \
-              --platform linux/amd64,linux/arm64 \
-              --push \
-              --tag oneuptime/fluent-ingest:test \
-              --tag oneuptime/fluent-ingest:${VERSION} \
-              --tag ghcr.io/oneuptime/fluent-ingest:test \
-              --tag ghcr.io/oneuptime/fluent-ingest:${VERSION} \
-              --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE_EDITION=false \
-              .
-            docker buildx build \
-              --no-cache \
-              --file ./FluentIngest/Dockerfile \
-              --platform linux/amd64,linux/arm64 \
-              --push \
-              --tag oneuptime/fluent-ingest:enterprise-test \
-              --tag oneuptime/fluent-ingest:enterprise-${VERSION} \
-              --tag ghcr.io/oneuptime/fluent-ingest:enterprise-test \
-              --tag ghcr.io/oneuptime/fluent-ingest:enterprise-${VERSION} \
-              --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=${VERSION} \
-              --build-arg IS_ENTERPRISE_EDITION=true \
-              .
-
   probe-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
@@ -2414,7 +2236,7 @@ jobs:
 
   test-helm-chart:
     runs-on: ubuntu-latest
-    needs: [infrastructure-agent-deploy, publish-mcp-server, llm-docker-image-deploy, publish-terraform-provider, open-telemetry-ingest-docker-image-deploy, copilot-docker-image-deploy, docs-docker-image-deploy, worker-docker-image-deploy,  workflow-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, api-reference-docker-image-deploy,  test-server-docker-image-deploy, test-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, probe-docker-image-deploy, dashboard-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, accounts-docker-image-deploy, otel-collector-docker-image-deploy, status-page-docker-image-deploy, nginx-docker-image-deploy, e2e-docker-image-deploy, fluent-ingest-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
+    needs: [infrastructure-agent-deploy, publish-mcp-server, llm-docker-image-deploy, publish-terraform-provider, open-telemetry-ingest-docker-image-deploy, copilot-docker-image-deploy, docs-docker-image-deploy, worker-docker-image-deploy,  workflow-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, api-reference-docker-image-deploy,  test-server-docker-image-deploy, test-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, probe-docker-image-deploy, dashboard-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, accounts-docker-image-deploy, otel-collector-docker-image-deploy, status-page-docker-image-deploy, nginx-docker-image-deploy, e2e-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:

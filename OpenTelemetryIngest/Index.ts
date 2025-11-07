@@ -1,6 +1,7 @@
 import OTelIngestAPI from "./API/OTelIngest";
 import MetricsAPI from "./API/Metrics";
 import SyslogAPI from "./API/Syslog";
+import FluentAPI from "./API/Fluent";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
@@ -13,15 +14,18 @@ import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import "./Jobs/TelemetryIngest/ProcessTelemetry";
 import { OPEN_TELEMETRY_INGEST_CONCURRENCY } from "./Config";
+import type { StatusAPIOptions } from "Common/Server/API/StatusAPI";
 import "ejs";
 
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = "open-telemetry-ingest";
+const ROUTE_PREFIXES: Array<string> = [`/${APP_NAME}`, "/"];
 
-app.use([`/${APP_NAME}`, "/"], OTelIngestAPI);
-app.use([`/${APP_NAME}`, "/"], MetricsAPI);
-app.use([`/${APP_NAME}`, "/"], SyslogAPI);
+app.use(ROUTE_PREFIXES, OTelIngestAPI);
+app.use(ROUTE_PREFIXES, MetricsAPI);
+app.use(ROUTE_PREFIXES, SyslogAPI);
+app.use(ROUTE_PREFIXES, FluentAPI);
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
@@ -44,12 +48,14 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     );
 
     // init the app
+    const statusOptions: StatusAPIOptions = {
+      liveCheck: statusCheck,
+      readyCheck: statusCheck,
+    };
+
     await App.init({
       appName: APP_NAME,
-      statusOptions: {
-        liveCheck: statusCheck,
-        readyCheck: statusCheck,
-      },
+      statusOptions: statusOptions,
     });
 
     // connect to the database.
@@ -63,7 +69,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     );
 
     await Realtime.init();
-
     // add default routes
     await App.addDefaultRoutes();
   } catch (err) {
