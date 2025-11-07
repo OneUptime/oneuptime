@@ -105,12 +105,11 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
         dataRententionInDays: metadata.dataRententionInDays,
       } satisfies TelemetryServiceMetadata;
 
-      const baseAttributes: Dictionary<
-        AttributeType | Array<AttributeType>
-      > = TelemetryUtil.getAttributesForServiceIdAndServiceName({
-        serviceId: serviceMetadata.serviceId,
-        serviceName,
-      });
+      const baseAttributes: Dictionary<AttributeType | Array<AttributeType>> =
+        TelemetryUtil.getAttributesForServiceIdAndServiceName({
+          serviceId: serviceMetadata.serviceId,
+          serviceName,
+        });
 
       const baseAttributeKeys: Array<string> =
         TelemetryUtil.getAttributeKeys(baseAttributes);
@@ -151,9 +150,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
           dbLogs.push(logRow);
           processed++;
 
-          if (
-            dbLogs.length >= OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE
-          ) {
+          if (dbLogs.length >= OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE) {
             await this.flushLogsBuffer(dbLogs);
           }
         } catch (processingError) {

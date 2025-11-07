@@ -71,7 +71,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await Realtime.init();
     // add default routes
     await App.addDefaultRoutes();
-
   } catch (err) {
     logger.error("App Init Failed:");
     logger.error(err);
