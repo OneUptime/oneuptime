@@ -72,52 +72,6 @@ upstream opentelemetry-collector-grpc {
     server ${SERVER_OTEL_COLLECTOR_HOSTNAME}:4317;
 }
 
-# Otel Collector
-
-server {
-
-    server_tokens off;
-    
-
-    gzip on;
-    gzip_types      text/plain application/xml application/javascript text/javascript text/css application/json;
-    gzip_proxied    no-cache no-store private expired auth;
-    gzip_min_length 1000;
-   
-    listen 7849;
-    http2  on;
-
-    server_name oneuptime-opentelemetry-collector ${OTEL_COLLECTOR_HOST};
-
-    proxy_busy_buffers_size   512k;
-    proxy_buffers   4 512k;
-    proxy_buffer_size   256k;
-
-    fastcgi_buffers  16 16k;
-    fastcgi_buffer_size  32k;
-
-    location / {
-        # This is for nginx not to crash when service is not available. 
-        resolver 127.0.0.1 valid=30s;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
-
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-
-        proxy_pass  http://opentelemetry-collector-http;
-    }
-
-    location ~ /opentelemetry.proto.collector* {
-        grpc_pass grpc://opentelemetry-collector-grpc;
-    }
-
-}
-
 # Status Pages
 
 server {

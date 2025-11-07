@@ -43,9 +43,6 @@ externalSecrets:
       name:
       passwordKey:
 
-# (Optional): You usually do not need to set this if you're self hosting.
-openTelemetryCollectorHost:
-
 deployment:
   # Default replica count for all deployments
   replicaCount: 1

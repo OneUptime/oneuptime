@@ -59,8 +59,6 @@ Usage:
   value: {{ $.Values.statusPage.cnameRecord }}
 - name: ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN
   value: {{ $.Values.billing.allowedActiveMonitorCountInFreePlan | quote }}
-- name: OTEL_COLLECTOR_HOST
-  value: {{ $.Values.openTelemetryCollectorHost }}
 - name: LOG_LEVEL
   value: {{ $.Values.logLevel }}
 - name: HTTP_PROTOCOL

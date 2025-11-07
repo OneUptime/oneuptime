@@ -80,9 +80,6 @@
       },
       "additionalProperties": false
     },
-    "openTelemetryCollectorHost": {
-      "type": ["string", "null"]
-    },
     "deployment": {
       "type": "object",
       "properties": {
