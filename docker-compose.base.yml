@@ -411,6 +411,15 @@ services:
         ports: 
           - 13133:13133 # Otel Collector Health Check Endpoint at /heath/status
 
+    fluentd:
+        networks:
+          - oneuptime
+        restart: always
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+    
     fluent-bit: 
         networks:
           - oneuptime
