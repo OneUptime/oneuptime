@@ -17,7 +17,6 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import HashedString from "../../Types/HashedString";
 
 @EnableDocumentation({
   isMasterAdminApiDocs: true,
