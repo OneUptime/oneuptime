@@ -429,7 +429,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             const classes: Array<string> = [
               "!min-h-[40px] !rounded-lg !border !bg-white !shadow-sm !transition-all !duration-150",
               state.isFocused
-                ? "!border-indigo-500 !ring-2 !ring-indigo-100"
+                ? "!border-indigo-400 !ring-2 !ring-indigo-100"
                 : "!border-gray-300 hover:!border-indigo-300",
               state.isDisabled ? "!bg-gray-100 !text-gray-400" : "!cursor-pointer",
             ];
@@ -446,7 +446,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           singleValue: () => "text-sm text-gray-900 font-medium",
           indicatorsContainer: () => "!gap-1 !px-1",
           dropdownIndicator: () =>
-            "text-gray-500 transition-colors duration-150 hover:text-indigo-500",
+            "text-gray-500 transition-colors duration-150 hover:text-indigo-400",
           clearIndicator: () =>
             "text-gray-400 transition-colors duration-150 hover:text-red-500",
           menu: () =>
@@ -460,19 +460,19 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             }
 
             if (state.isSelected) {
-              return "px-3 py-2 text-sm bg-indigo-500 text-white";
+              return "px-3 py-2 text-sm bg-indigo-200 text-indigo-900";
             }
 
             if (state.isFocused) {
-              return "px-3 py-2 text-sm bg-indigo-50 text-indigo-700";
+              return "px-3 py-2 text-sm bg-indigo-100 text-indigo-700";
             }
 
             return "px-3 py-2 text-sm text-gray-700";
           },
           noOptionsMessage: () => "px-3 py-2 text-sm text-gray-500",
           multiValue: () =>
-            "flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5",
-          multiValueLabel: () => "text-xs font-medium text-indigo-600",
+            "flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5",
+          multiValueLabel: () => "text-xs font-medium text-indigo-700",
           multiValueRemove: () =>
             "text-indigo-400 hover:text-indigo-600 transition-colors duration-150",
         }}
@@ -487,6 +487,44 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           }),
           indicatorSeparator: () => ({
             display: "none",
+          }),
+          option: (provided, state) => {
+            if (state.isSelected) {
+              return {
+                ...provided,
+                backgroundColor: "#c7d2fe", // indigo-200
+                color: "#1e1b4b", // indigo-900
+              };
+            }
+
+            if (state.isFocused) {
+              return {
+                ...provided,
+                backgroundColor: "#e0e7ff", // indigo-100
+                color: "#312e81", // indigo-800
+              };
+            }
+
+            return {
+              ...provided,
+              color: "#374151", // gray-700
+            };
+          },
+          multiValue: (provided) => ({
+            ...provided,
+            backgroundColor: "#e0e7ff", // indigo-100
+          }),
+          multiValueLabel: (provided) => ({
+            ...provided,
+            color: "#4338ca", // indigo-600
+          }),
+          multiValueRemove: (provided) => ({
+            ...provided,
+            color: "#6366f1", // indigo-500
+            ':hover': {
+              color: "#4f46e5", // indigo-600
+              backgroundColor: "transparent",
+            },
           }),
           menuPortal: (base) => ({
             ...base,
