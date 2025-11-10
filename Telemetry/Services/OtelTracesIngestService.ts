@@ -361,16 +361,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   dbSpans.push(spanRow);
                   totalSpansProcessed++;
 
-                  if (
-                    dbSpans.length >=
-                    TELEMETRY_TRACE_FLUSH_BATCH_SIZE
-                  ) {
+                  if (dbSpans.length >= TELEMETRY_TRACE_FLUSH_BATCH_SIZE) {
                     await this.flushSpansBuffer(dbSpans);
                   }
 
                   if (
-                    dbExceptions.length >=
-                    TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE
+                    dbExceptions.length >= TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE
                   ) {
                     await this.flushExceptionsBuffer(dbExceptions);
                   }

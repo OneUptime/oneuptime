@@ -3,11 +3,7 @@ import { Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 
 test.describe("check live and health check of telemetry", () => {
-  test("check if telemetry status is ok", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
+  test("check if telemetry status is ok", async ({ page }: { page: Page }) => {
     page.setDefaultNavigationTimeout(120000); // 2 minutes
     await page.goto(
       `${URL.fromString(BASE_URL.toString())
@@ -18,11 +14,7 @@ test.describe("check live and health check of telemetry", () => {
     expect(content).toContain('{"status":"ok"}');
   });
 
-  test("check if telemetry is ready", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
+  test("check if telemetry is ready", async ({ page }: { page: Page }) => {
     page.setDefaultNavigationTimeout(120000); // 2 minutes
     await page.goto(
       `${URL.fromString(BASE_URL.toString())
@@ -33,11 +25,7 @@ test.describe("check live and health check of telemetry", () => {
     expect(content).toContain('{"status":"ok"}');
   });
 
-  test("check if telemetry is live", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
+  test("check if telemetry is live", async ({ page }: { page: Page }) => {
     page.setDefaultNavigationTimeout(120000); // 2 minutes
     await page.goto(
       `${URL.fromString(BASE_URL.toString())

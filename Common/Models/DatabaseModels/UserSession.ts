@@ -15,7 +15,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import ColumnLength from "../../Types/Database/ColumnLength";
 
 @EnableDocumentation({
@@ -37,7 +37,8 @@ import ColumnLength from "../../Types/Database/ColumnLength";
   singularName: "User Session",
   pluralName: "User Sessions",
   icon: IconProp.Clock,
-  tableDescription: "Stores refresh tokens and metadata for authenticated dashboard sessions.",
+  tableDescription:
+    "Stores refresh tokens and metadata for authenticated dashboard sessions.",
 })
 @CurrentUserCanAccessRecordBy("userId")
 class UserSession extends BaseModel {
@@ -59,6 +60,7 @@ class UserSession extends BaseModel {
   @JoinColumn({ name: "userId" })
   public user?: User = undefined;
 
+  @Index()
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
@@ -76,6 +78,7 @@ class UserSession extends BaseModel {
   })
   public userId?: ObjectID = undefined;
 
+  @Index()
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -96,6 +99,7 @@ class UserSession extends BaseModel {
   })
   public refreshToken?: string = undefined;
 
+  @Index()
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
@@ -109,7 +113,9 @@ class UserSession extends BaseModel {
   @Column({
     type: ColumnType.Date,
     nullable: false,
-    default: () => "now()",
+    default: () => {
+      return "now()";
+    },
   })
   public refreshTokenExpiresAt?: Date = undefined;
 
@@ -127,7 +133,9 @@ class UserSession extends BaseModel {
   @Column({
     type: ColumnType.Date,
     nullable: false,
-    default: () => "now()",
+    default: () => {
+      return "now()";
+    },
   })
   public lastUsedAt?: Date = undefined;
 
@@ -208,7 +216,8 @@ class UserSession extends BaseModel {
   @TableColumn({
     type: TableColumnType.Boolean,
     title: "Global Login",
-    description: "Indicates if this session was created via global login (non-SSO).",
+    description:
+      "Indicates if this session was created via global login (non-SSO).",
     isDefaultValueColumn: true,
     defaultValue: true,
   })

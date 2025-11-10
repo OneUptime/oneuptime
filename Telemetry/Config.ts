@@ -28,17 +28,25 @@ const parseBatchSize: ParseBatchSizeFunction = (
   return parsed;
 };
 
-export const TELEMETRY_LOG_FLUSH_BATCH_SIZE: number =
-  parseBatchSize("TELEMETRY_LOG_FLUSH_BATCH_SIZE", 1000);
+export const TELEMETRY_LOG_FLUSH_BATCH_SIZE: number = parseBatchSize(
+  "TELEMETRY_LOG_FLUSH_BATCH_SIZE",
+  1000,
+);
 
-export const TELEMETRY_METRIC_FLUSH_BATCH_SIZE: number =
-  parseBatchSize("TELEMETRY_METRIC_FLUSH_BATCH_SIZE", 750);
+export const TELEMETRY_METRIC_FLUSH_BATCH_SIZE: number = parseBatchSize(
+  "TELEMETRY_METRIC_FLUSH_BATCH_SIZE",
+  750,
+);
 
-export const TELEMETRY_TRACE_FLUSH_BATCH_SIZE: number =
-  parseBatchSize("TELEMETRY_TRACE_FLUSH_BATCH_SIZE", 750);
+export const TELEMETRY_TRACE_FLUSH_BATCH_SIZE: number = parseBatchSize(
+  "TELEMETRY_TRACE_FLUSH_BATCH_SIZE",
+  750,
+);
 
-export const TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE: number =
-  parseBatchSize("TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE", 500);
+export const TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE: number = parseBatchSize(
+  "TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE",
+  500,
+);
 
 /*
  * Some telemetry batches can be large and take >30s (BullMQ default lock) to process.

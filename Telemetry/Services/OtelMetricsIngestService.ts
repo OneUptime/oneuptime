@@ -312,8 +312,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         totalMetricsProcessed++;
 
                         if (
-                          dbMetrics.length >=
-                          TELEMETRY_METRIC_FLUSH_BATCH_SIZE
+                          dbMetrics.length >= TELEMETRY_METRIC_FLUSH_BATCH_SIZE
                         ) {
                           await this.flushMetricsBuffer(dbMetrics);
                         }

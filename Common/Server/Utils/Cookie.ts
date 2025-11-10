@@ -320,10 +320,7 @@ export default class CookieUtil {
   public static getUserRefreshTokenFromExpressRequest(
     req: ExpressRequest,
   ): string | undefined {
-    return this.getCookieFromExpressRequest(
-      req,
-      this.getUserRefreshTokenKey(),
-    );
+    return this.getCookieFromExpressRequest(req, this.getUserRefreshTokenKey());
   }
 
   @CaptureSpan()

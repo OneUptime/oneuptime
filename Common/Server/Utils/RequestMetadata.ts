@@ -6,7 +6,8 @@ export default class RequestMetadata {
       (req.headers["x-forwarded-for"] as string | undefined) || undefined;
     const realIp: string | undefined =
       (req.headers["x-real-ip"] as string | undefined) || undefined;
-    const socketAddress: string | undefined = req.socket?.remoteAddress || undefined;
+    const socketAddress: string | undefined =
+      req.socket?.remoteAddress || undefined;
     const reqIp: string | undefined = req.ip;
     const reqIpsFirst: string | undefined = Array.isArray(req.ips)
       ? req.ips[0]
@@ -30,7 +31,9 @@ export default class RequestMetadata {
   }
 
   public static getUserAgent(req: ExpressRequest): string | undefined {
-    const userAgent: string | undefined = req.headers["user-agent"] as string | undefined;
+    const userAgent: string | undefined = req.headers["user-agent"] as
+      | string
+      | undefined;
     return userAgent?.trim() || undefined;
   }
 

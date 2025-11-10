@@ -75,8 +75,7 @@ export const WORKFLOW_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const PROBE_INGEST_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
-export const TELEMETRY_HOSTNAME: Hostname =
-  Hostname.fromString(HOST);
+export const TELEMETRY_HOSTNAME: Hostname = Hostname.fromString(HOST);
 
 export const INCOMING_REQUEST_INGEST_HOSTNAME: Hostname =
   Hostname.fromString(HOST);

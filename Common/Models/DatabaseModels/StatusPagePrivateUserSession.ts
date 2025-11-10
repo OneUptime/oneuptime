@@ -14,7 +14,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation({
   isMasterAdminApiDocs: true,
@@ -57,6 +57,7 @@ class StatusPagePrivateUserSession extends BaseModel {
   @JoinColumn({ name: "statusPagePrivateUserId" })
   public statusPagePrivateUser?: StatusPagePrivateUser = undefined;
 
+  @Index()
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -92,6 +93,7 @@ class StatusPagePrivateUserSession extends BaseModel {
   @JoinColumn({ name: "statusPageId" })
   public statusPage?: StatusPage = undefined;
 
+  @Index()
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -144,6 +146,7 @@ class StatusPagePrivateUserSession extends BaseModel {
   })
   public projectId?: ObjectID = undefined;
 
+  @Index()
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -163,6 +166,7 @@ class StatusPagePrivateUserSession extends BaseModel {
   })
   public refreshToken?: string = undefined;
 
+  @Index()
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -176,7 +180,9 @@ class StatusPagePrivateUserSession extends BaseModel {
   @Column({
     type: ColumnType.Date,
     nullable: false,
-    default: () => "now()",
+    default: () => {
+      return "now()";
+    },
   })
   public refreshTokenExpiresAt?: Date = undefined;
 
@@ -193,7 +199,9 @@ class StatusPagePrivateUserSession extends BaseModel {
   @Column({
     type: ColumnType.Date,
     nullable: false,
-    default: () => "now()",
+    default: () => {
+      return "now()";
+    },
   })
   public lastUsedAt?: Date = undefined;
 
