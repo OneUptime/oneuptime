@@ -13,6 +13,10 @@ import {
   CheckboxCategory,
 } from "../CategoryCheckbox/CategoryCheckboxTypes";
 import Loader, { LoaderType } from "../Loader/Loader";
+import {
+  DropdownOption,
+  DropdownOptionLabel,
+} from "../Dropdown/Dropdown";
 import Pill, { PillSize } from "../Pill/Pill";
 import { FormErrors, FormProps, FormSummaryConfig } from "./BasicForm";
 import BasicModelForm from "./BasicModelForm";
@@ -407,22 +411,34 @@ const ModelForm: <TBaseModel extends BaseModel>(
       for (const field of fields) {
         if (field.dropdownModal && field.dropdownModal.type) {
           const tempModel: BaseModel = new field.dropdownModal.type();
-          const select: any = {
+          const select: JSONObject = {
             [field.dropdownModal.labelField]: true,
             [field.dropdownModal.valueField]: true,
-          } as any;
+          } as JSONObject;
 
           let hasAccessControlColumn: boolean = false;
+          const accessControlColumn: string | null =
+            tempModel.getAccessControlColumn();
+          const labelsColumn: string | null = tempModel.getLabelsColumn();
 
-          // also select labels, so they can select resources by labels. This is useful for resources like monitors, etc.
-          if (tempModel.getAccessControlColumn()) {
-            select[tempModel.getAccessControlColumn()!] = {
+          if (accessControlColumn) {
+            select[accessControlColumn] = {
               _id: true,
               name: true,
               color: true,
-            } as any;
+              slug: true,
+            } as JSONObject;
 
             hasAccessControlColumn = true;
+          }
+
+          if (labelsColumn && labelsColumn !== accessControlColumn) {
+            select[labelsColumn] = {
+              _id: true,
+              name: true,
+              color: true,
+              slug: true,
+            } as JSONObject;
           }
 
           const listResult: ListResult<BaseModel> =
@@ -431,7 +447,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
               query: {},
               limit: LIMIT_PER_PROJECT,
               skip: 0,
-              select: select,
+              select: select as any,
               sort: {},
             });
 
@@ -441,14 +457,88 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 throw new BadDataException("Dropdown Modal value mot found");
               }
 
-              return {
-                label: (item as any)[
-                  field.dropdownModal?.labelField
-                ].toString(),
-                value: (item as any)[
-                  field.dropdownModal?.valueField
-                ].toString(),
+              const optionLabels: Array<DropdownOptionLabel> = [];
+
+              const labelColumnsToRead: Array<string> = [];
+
+              if (labelsColumn) {
+                labelColumnsToRead.push(labelsColumn);
+              }
+
+              if (
+                hasAccessControlColumn &&
+                accessControlColumn &&
+                !labelColumnsToRead.includes(accessControlColumn)
+              ) {
+                labelColumnsToRead.push(accessControlColumn);
+              }
+
+              for (const columnName of labelColumnsToRead) {
+                const columnValue: Array<GenericObject> =
+                  ((item as any)[columnName] as Array<GenericObject>) || [];
+
+                for (const label of columnValue) {
+                  if (!label) {
+                    continue;
+                  }
+
+                  const rawName: unknown =
+                    (label as any).name ??
+                    (label as any).title ??
+                    (label as any).slug ??
+                    null;
+
+                  const labelName: string = rawName
+                    ? rawName.toString().trim()
+                    : "";
+
+                  if (!labelName) {
+                    continue;
+                  }
+
+                  const labelId: string =
+                    (label as any)._id?.toString() ||
+                    (label as any).id?.toString() ||
+                    (label as any).slug?.toString() ||
+                    labelName;
+
+                  const exists: boolean = optionLabels.some(
+                    (existing: DropdownOptionLabel) => {
+                      return (
+                        existing.id === labelId && existing.name === labelName
+                      );
+                    },
+                  );
+
+                  if (!exists) {
+                    optionLabels.push({
+                      id: labelId,
+                      name: labelName,
+                      color: (label as any).color || null,
+                      slug: (label as any).slug?.toString() || null,
+                    });
+                  }
+                }
+              }
+
+              const dropdownLabelValue: string =
+                (item as any)[field.dropdownModal.labelField]?.toString() ||
+                "";
+
+              const dropdownValueValue: string =
+                (item as any)[field.dropdownModal.valueField]?.toString() ||
+                "";
+
+              const dropdownOption: DropdownOption = {
+                label: dropdownLabelValue,
+                value: dropdownValueValue,
               };
+
+              if (optionLabels.length > 0) {
+                dropdownOption.labels = optionLabels;
+              }
+
+              return dropdownOption;
             });
 
             if (hasAccessControlColumn) {

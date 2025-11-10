@@ -2,17 +2,32 @@ import ObjectID from "../../../Types/ObjectID";
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useLayoutEffect,
   useRef,
   useState,
 } from "react";
-import Select, { ControlProps, GroupBase, OptionProps } from "react-select";
+import Select, {
+  ControlProps,
+  FormatOptionLabelMeta,
+  GroupBase,
+  OptionProps,
+} from "react-select";
+import { Black } from "../../../Types/BrandColors";
 
 export type DropdownValue = string | number | boolean;
+
+export interface DropdownOptionLabel {
+  id?: string | null;
+  name?: string | null;
+  color?: string | { toString: () => string } | null;
+  slug?: string | null;
+}
 
 export interface DropdownOption {
   value: DropdownValue;
   label: string;
+  labels?: Array<DropdownOptionLabel> | undefined;
 }
 
 export interface ComponentProps {
@@ -37,6 +52,8 @@ export interface ComponentProps {
 const Dropdown: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  type LabelBadgeSize = "menu" | "value";
+
   type GetDropdownOptionFromValueFunctionProps =
     | undefined
     | DropdownValue
@@ -111,6 +128,134 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
   const firstUpdate: React.MutableRefObject<boolean> = useRef(true);
 
+  const getLabelColorAsString: (label: DropdownOptionLabel) => string = (
+    label: DropdownOptionLabel,
+  ): string => {
+    const color: DropdownOptionLabel["color"] = label.color;
+
+    if (!color) {
+      return Black.toString();
+    }
+
+    if (typeof color === "string") {
+      return color;
+    }
+
+    if (typeof (color as any)?.toString === "function") {
+      try {
+        return (color as any).toString();
+      } catch (err) {
+        return Black.toString();
+      }
+    }
+
+    return Black.toString();
+  };
+
+  const renderLabelBadges = (
+    optionLabels?: Array<DropdownOptionLabel>,
+    config?: { maxVisible?: number; size?: LabelBadgeSize },
+  ): ReactElement | null => {
+    if (!optionLabels || optionLabels.length === 0) {
+      return null;
+    }
+
+    const sanitizedLabels: Array<DropdownOptionLabel> = optionLabels.filter(
+      (label: DropdownOptionLabel | null | undefined) => {
+        return Boolean(label && (label.name || label.slug));
+      },
+    ) as Array<DropdownOptionLabel>;
+
+    if (sanitizedLabels.length === 0) {
+      return null;
+    }
+
+    const maxVisible: number = config?.maxVisible || 3;
+    const size: LabelBadgeSize = config?.size || "menu";
+
+    const visibleLabels: Array<DropdownOptionLabel> = sanitizedLabels.slice(
+      0,
+      Math.max(0, maxVisible),
+    );
+    const hiddenCount: number = sanitizedLabels.length - visibleLabels.length;
+
+    const paddingClassName: string =
+      size === "menu" ? "px-2 py-0.5" : "px-1.5 py-0.5";
+    const textClassName: string =
+      size === "menu"
+        ? "text-xs font-medium text-gray-700"
+        : "text-[11px] font-medium text-gray-600";
+    const moreLabelClassName: string =
+      size === "menu"
+        ? "text-xs font-medium text-gray-500"
+        : "text-[10px] font-medium text-gray-500";
+
+    return (
+      <div className="flex flex-wrap items-center gap-1">
+        {visibleLabels.map((label: DropdownOptionLabel, index: number) => {
+          const labelId: string =
+            label.id?.toString() ||
+            label.slug?.toString() ||
+            label.name?.toString() ||
+            `label-${index}`;
+
+          return (
+            <span
+              key={labelId}
+              className={`inline-flex max-w-[160px] items-center gap-1 rounded-full border border-gray-200 bg-white/70 ${paddingClassName} shadow-sm ${textClassName}`}
+            >
+              <span
+                className="h-2 w-2 flex-shrink-0 rounded-full"
+                style={{
+                  backgroundColor: getLabelColorAsString(label),
+                }}
+              ></span>
+              <span className="truncate">
+                {label.name || label.slug || "Label"}
+              </span>
+            </span>
+          );
+        })}
+        {hiddenCount > 0 && (
+          <span className={moreLabelClassName}>+{hiddenCount}</span>
+        )}
+      </div>
+    );
+  };
+
+  const formatOptionLabel = (
+    option: DropdownOption,
+    meta: FormatOptionLabelMeta<DropdownOption>,
+  ): ReactNode => {
+    if (meta.context === "value") {
+      if (props.isMultiSelect) {
+        return <span className="truncate">{option.label}</span>;
+      }
+
+      return (
+        <div className="flex items-center gap-2 truncate">
+          <span className="truncate font-medium text-gray-900">
+            {option.label}
+          </span>
+          {renderLabelBadges(option.labels, {
+            maxVisible: 2,
+            size: "value",
+          })}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col gap-1 py-1">
+        <span className="font-medium text-gray-900">{option.label}</span>
+        {renderLabelBadges(option.labels, {
+          maxVisible: 3,
+          size: "menu",
+        })}
+      </div>
+    );
+  };
+
   useLayoutEffect(() => {
     if (firstUpdate.current && props.initialValue) {
       firstUpdate.current = false;
@@ -138,6 +283,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       }}
     >
       <Select
+        formatOptionLabel={formatOptionLabel}
         onBlur={() => {
           props.onBlur?.();
         }}
