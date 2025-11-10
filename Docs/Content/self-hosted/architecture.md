@@ -32,7 +32,7 @@ flowchart TB
       direction TB
       PROBEINGEST["Probe Ingest"]
       OTELINGEST["OpenTelemetry Ingest"]
-      FLUENTINGEST["Logs Ingest (Fluentd / Fluent Bit)"]
+      FLUENTLOGS["Logs Ingest (Fluent Bit)"]
       SERVERMONINGEST["Server Monitor Ingest"]
       INCOMINGREQINGEST["Incoming Request Ingest"]
     end
@@ -83,13 +83,13 @@ flowchart TB
   INT <-->|HTTPS/TCP/Ping/DNS/Custom| P2
 
   OTELCOLL["OTel Collector/Agents"] --> OTELINGEST
-  FLUENT["Fluentd / Fluent Bit"] --> FLUENTINGEST
+  FLUENT["Fluentd / Fluent Bit"] --> FLUENTLOGS
   SERVERAGENTS["Server Monitor Agents"] --> SERVERMONINGEST
 
   %% Ingest flow to core processing
   PROBEINGEST --> REDIS
   OTELINGEST --> CH
-  FLUENTINGEST --> CH
+  FLUENTLOGS --> CH
   SERVERMONINGEST --> CH
   INCOMINGREQINGEST --> CH
 
@@ -106,7 +106,7 @@ flowchart TB
 
   class NGINX edge;
   class HOME,STATUS,API,WORKER web;
-  class PROBEINGEST,OTELINGEST,FLUENTINGEST,SERVERMONINGEST,INCOMINGREQINGEST ingest;
+  class PROBEINGEST,OTELINGEST,FLUENTLOGS,SERVERMONINGEST,INCOMINGREQINGEST ingest;
   class P1,P2 probe;
   class PG,CH,REDIS store;
   class EXT,INT,OTELCOLL,FLUENT,SERVERAGENTS outside;

@@ -34,7 +34,7 @@ receivers:
 
 exporters:
   otlphttp:
-    endpoint: "http://{{ .Env.SERVER_OPEN_TELEMETRY_INGEST_HOSTNAME }}:{{ .Env.OPEN_TELEMETRY_INGEST_PORT }}/otlp"
+    endpoint: "http://{{ .Env.SERVER_TELEMETRY_HOSTNAME }}:{{ .Env.TELEMETRY_PORT }}/otlp"
     headers: {"Content-Type": "application/json"}
     auth:
       authenticator: headers_setter

@@ -37,28 +37,4 @@ spec:
                 port:
                   name: "oneuptime-http"
     {{- end }}
-    {{- if $.Values.openTelemetryCollectorHost }}
-    - host: {{ $.Values.openTelemetryCollectorHost | quote }}
-      http:
-        paths:
-         - path: /
-           pathType: Prefix
-           backend:
-             service:
-               name: {{ printf "%s-%s" $.Release.Name "nginx"  }}
-               port:
-                 name: "oneuptime-http"
-    {{- end }}
-    {{- if $.Values.fluentdHost }}
-    - host: {{ $.Values.fluentdHost | quote }}
-      http:
-        paths:
-         - path: /
-           pathType: Prefix
-           backend:
-             service:
-               name: {{ printf "%s-%s" $.Release.Name "nginx"  }}
-               port:
-                 name: "oneuptime-http"
-    {{- end }}
 {{- end }}

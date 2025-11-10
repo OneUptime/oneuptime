@@ -80,12 +80,6 @@
       },
       "additionalProperties": false
     },
-    "openTelemetryCollectorHost": {
-      "type": ["string", "null"]
-    },
-    "fluentdHost": {
-      "type": ["string", "null"]
-    },
     "deployment": {
       "type": "object",
       "properties": {
@@ -1738,70 +1732,7 @@
       },
       "additionalProperties": false
     },
-    "openTelemetryIngest": {
-      "type": "object",
-      "properties": {
-        "replicaCount": {
-          "type": "integer"
-        },
-        "disableTelemetryCollection": {
-          "type": "boolean"
-        },
-        "disableAutoscaler": {
-          "type": "boolean"
-        },
-        "concurrency": {
-          "type": "integer"
-        },
-        "ports": {
-          "type": "object",
-          "properties": {
-            "http": {
-              "type": "integer"
-            }
-          },
-          "additionalProperties": false
-        },
-        "resources": {
-          "type": ["object", "null"]
-        },
-        "nodeSelector": {
-          "type": "object"
-        },
-        "podSecurityContext": {
-          "type": "object"
-        },
-        "containerSecurityContext": {
-          "type": "object"
-        },
-        "keda": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean"
-            },
-            "minReplicas": {
-              "type": "integer"
-            },
-            "maxReplicas": {
-              "type": "integer"
-            },
-            "queueSizeThreshold": {
-              "type": "integer"
-            },
-            "pollingInterval": {
-              "type": "integer"
-            },
-            "cooldownPeriod": {
-              "type": "integer"
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    "fluentIngest": {
+    "telemetry": {
       "type": "object",
       "properties": {
         "replicaCount": {

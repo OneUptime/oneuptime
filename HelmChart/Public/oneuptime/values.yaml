@@ -43,10 +43,6 @@ externalSecrets:
       name:
       passwordKey:
 
-# (Optional): You usually do not need to set this if you're self hosting.
-openTelemetryCollectorHost:
-fluentdHost:
-
 deployment:
   # Default replica count for all deployments
   replicaCount: 1
@@ -698,7 +694,7 @@ probeIngest:
     # Cooldown period after scaling (in seconds)
     cooldownPeriod: 300
 
-openTelemetryIngest:
+telemetry:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -706,29 +702,6 @@ openTelemetryIngest:
   concurrency: 100
   ports:
     http: 3403
-  resources:
-  nodeSelector: {}
-  podSecurityContext: {}
-  containerSecurityContext: {}
-  # KEDA autoscaling configuration based on queue metrics
-  keda:
-    enabled: false
-    minReplicas: 1
-    maxReplicas: 100
-    # Scale up when queue size exceeds this threshold
-    queueSizeThreshold: 100
-    # Polling interval for metrics (in seconds)
-    pollingInterval: 30
-    # Cooldown period after scaling (in seconds)
-    cooldownPeriod: 300
-
-fluentIngest:
-  replicaCount: 1
-  disableTelemetryCollection: false
-  disableAutoscaler: false
-  concurrency: 100
-  ports:
-    http: 3401
   resources:
   nodeSelector: {}
   podSecurityContext: {}
