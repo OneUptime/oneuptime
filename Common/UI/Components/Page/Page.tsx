@@ -58,13 +58,18 @@ const Page: FunctionComponent<ComponentProps> = (
           )}
           {props.title && (
             <div className="mt-2">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap sm:gap-4">
+                <div className="flex flex-col gap-1 min-w-0">
                   <h1 className="text-xl font-semibold leading-7 text-gray-900 sm:text-xl sm:tracking-tight sm:truncate">
                     {props.title}
                   </h1>
-                  {props.labels && props.labels.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-2">
+                </div>
+                {props.labels && props.labels.length > 0 && (
+                  <div className="hidden sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 whitespace-nowrap">
+                      Labels
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2 justify-end">
                       {props.labels
                         .filter((label: Label | null) => {
                           return Boolean(label && (label.name || label.slug));
@@ -92,13 +97,13 @@ const Page: FunctionComponent<ComponentProps> = (
                               }
                               color={resolveColor}
                               text={label.name || label.slug || "Label"}
-                              isMinimal={true}
+                              isMinimal={false}
                             />
                           );
                         })}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

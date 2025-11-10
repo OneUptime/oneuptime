@@ -344,7 +344,6 @@ export default class DatabaseBaseModel extends BaseEntity {
     return this.currentUserCanAccessColumnBy;
   }
 
-
   public get id(): ObjectID | null {
     return this._id ? new ObjectID(this._id) : null;
   }

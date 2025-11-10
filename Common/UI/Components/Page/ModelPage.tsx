@@ -39,7 +39,8 @@ const ModelPage: <TBaseModel extends BaseModel>(
     setError("");
     try {
       const modelInstance: TBaseModel = new props.modelType();
-      const labelsColumn: string | null = modelInstance.getAccessControlColumn();
+      const labelsColumn: string | null =
+        modelInstance.getAccessControlColumn();
 
       const select: JSONObject = {
         [props.modelNameField]: true,
