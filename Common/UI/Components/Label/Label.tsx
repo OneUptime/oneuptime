@@ -1,9 +1,6 @@
 import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
 import LabelModel from "../../../Models/DatabaseModels/Label";
-import Pill, {
-  ComponentProps as PillProps,
-  PillSize,
-} from "../Pill/Pill";
+import Pill, { ComponentProps as PillProps, PillSize } from "../Pill/Pill";
 import { Black } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
