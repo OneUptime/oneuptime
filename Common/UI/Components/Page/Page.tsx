@@ -60,7 +60,7 @@ const Page: FunctionComponent<ComponentProps> = (
             <div className="mt-2">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-col gap-2">
-                  <h1 className="text-lg font-semibold leading-7 text-gray-900 sm:text-3xl sm:tracking-tight sm:truncate">
+                  <h1 className="text-xl font-semibold leading-7 text-gray-900 sm:text-xl sm:tracking-tight sm:truncate">
                     {props.title}
                   </h1>
                   {props.labels && props.labels.length > 0 && (
