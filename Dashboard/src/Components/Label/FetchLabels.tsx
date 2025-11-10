@@ -9,7 +9,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import LabelsElement from "./Labels";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Exception from "Common/Types/Exception/Exception";
 

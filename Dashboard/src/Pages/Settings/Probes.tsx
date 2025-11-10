@@ -21,7 +21,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-import LabelsElement from "../../Components/Label/Labels";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Project from "Common/Models/DatabaseModels/Project";
 

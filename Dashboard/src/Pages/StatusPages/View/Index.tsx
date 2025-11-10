@@ -1,4 +1,4 @@
-import LabelsElement from "../../../Components/Label/Labels";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageComponentProps from "../../PageComponentProps";
 import StatusPagePreviewLink from "./StatusPagePreviewLink";
 import ObjectID from "Common/Types/ObjectID";

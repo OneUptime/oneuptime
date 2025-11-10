@@ -1,5 +1,5 @@
 import ChangeAlertState from "../../../Components/Alert/ChangeState";
-import LabelsElement from "../../../Components/Label/Labels";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";

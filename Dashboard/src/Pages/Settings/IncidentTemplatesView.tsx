@@ -1,4 +1,4 @@
-import LabelsElement from "../../Components/Label/Labels";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import MonitorsElement from "../../Components/Monitor/Monitors";
 import OnCallDutyPoliciesView from "../../Components/OnCallPolicy/OnCallPolicies";
 import TeamElement from "../../Components/Team/Team";

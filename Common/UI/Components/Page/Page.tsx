@@ -2,11 +2,9 @@ import Analytics from "../../Utils/Analytics";
 import Breadcrumbs from "../Breadcrumbs/Breadcrumbs";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import PageLoader from "../Loader/PageLoader";
-import Pill from "../Pill/Pill";
+import LabelElement from "../Label/Label";
 import Link from "../../../Types/Link";
-import Label from "../../../Models/DatabaseModels/Label";
-import Color from "../../../Types/Color";
-import { Black } from "../../../Types/BrandColors";
+import LabelModel from "../../../Models/DatabaseModels/Label";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -17,7 +15,7 @@ export interface ComponentProps {
   className?: string | undefined;
   isLoading?: boolean | undefined;
   error?: string | undefined;
-  labels?: Array<Label> | undefined;
+  labels?: Array<LabelModel> | undefined;
 }
 
 const Page: FunctionComponent<ComponentProps> = (
@@ -71,33 +69,19 @@ const Page: FunctionComponent<ComponentProps> = (
                     </span>
                     <div className="flex flex-wrap items-center gap-2 justify-end">
                       {props.labels
-                        .filter((label: Label | null) => {
+                        .filter((label: LabelModel | null) => {
                           return Boolean(label && (label.name || label.slug));
                         })
-                        .map((label: Label, index: number) => {
-                          const resolveColor: Color = (() => {
-                            if (!label.color) {
-                              return Black;
-                            }
-
-                            if (typeof label.color === "string") {
-                              return Color.fromString(label.color);
-                            }
-
-                            return label.color;
-                          })();
-
+                        .map((label: LabelModel, index: number) => {
                           return (
-                            <Pill
+                            <LabelElement
                               key={
                                 label.id?.toString() ||
                                 label._id ||
                                 label.slug ||
                                 `${label.name || "label"}-${index}`
                               }
-                              color={resolveColor}
-                              text={label.name || label.slug || "Label"}
-                              isMinimal={false}
+                              label={label}
                             />
                           );
                         })}

@@ -1,5 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import LabelsElement from "../Label/Labels";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import MonitorsElement from "../Monitor/Monitors";
 import StatusPagesElement from "../StatusPage/StatusPagesElement";
 import Route from "Common/Types/API/Route";

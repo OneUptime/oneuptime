@@ -1,4 +1,4 @@
-import LabelsElement from "../../../Components/Label/Labels";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import IncomingMonitorLink from "../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink";
 import ServerMonitorDocumentation from "../../../Components/Monitor/ServerMonitor/Documentation";

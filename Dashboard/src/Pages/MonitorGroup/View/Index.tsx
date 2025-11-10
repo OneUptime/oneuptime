@@ -1,4 +1,4 @@
-import LabelsElement from "../../../Components/Label/Labels";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageComponentProps from "../../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
