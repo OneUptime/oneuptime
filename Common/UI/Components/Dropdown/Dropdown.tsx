@@ -9,11 +9,15 @@ import React, {
 } from "react";
 import Select, {
   ControlProps,
+  DropdownIndicatorProps,
   FormatOptionLabelMeta,
   GroupBase,
   OptionProps,
+  components as selectComponents,
 } from "react-select";
+import Pill, { PillSize } from "../Pill/Pill";
 import { Black } from "../../../Types/BrandColors";
+import Color from "../../../Types/Color";
 
 export type DropdownValue = string | number | boolean;
 
@@ -128,28 +132,36 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
   const firstUpdate: React.MutableRefObject<boolean> = useRef(true);
 
-  const getLabelColorAsString: (label: DropdownOptionLabel) => string = (
+  const resolveLabelColor: (label: DropdownOptionLabel) => Color = (
     label: DropdownOptionLabel,
-  ): string => {
-    const color: DropdownOptionLabel["color"] = label.color;
+  ): Color => {
+    const labelColor: DropdownOptionLabel["color"] = label.color;
 
-    if (!color) {
-      return Black.toString();
+    if (!labelColor) {
+      return Black;
     }
 
-    if (typeof color === "string") {
-      return color;
+    if (labelColor instanceof Color) {
+      return labelColor;
     }
 
-    if (typeof (color as any)?.toString === "function") {
+    if (typeof labelColor === "string") {
       try {
-        return (color as any).toString();
-      } catch (err) {
-        return Black.toString();
+        return Color.fromString(labelColor);
+      } catch (_) {
+        return Black;
       }
     }
 
-    return Black.toString();
+    if (typeof (labelColor as any)?.toString === "function") {
+      try {
+        return Color.fromString((labelColor as any).toString());
+      } catch (_) {
+        return Black;
+      }
+    }
+
+    return Black;
   };
 
   const renderLabelBadges = (
@@ -179,19 +191,36 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     );
     const hiddenCount: number = sanitizedLabels.length - visibleLabels.length;
 
-    const paddingClassName: string =
-      size === "menu" ? "px-2 py-0.5" : "px-1.5 py-0.5";
-    const textClassName: string =
+    const containerClassName: string =
       size === "menu"
-        ? "text-xs font-medium text-gray-700"
-        : "text-[11px] font-medium text-gray-600";
+        ? "flex flex-wrap items-center gap-2"
+        : "flex flex-wrap items-center gap-1.5";
     const moreLabelClassName: string =
       size === "menu"
-        ? "text-xs font-medium text-gray-500"
-        : "text-[10px] font-medium text-gray-500";
+        ? "inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-inset ring-slate-200"
+        : "inline-flex items-center rounded-full bg-slate-50 px-1.5 py-0.5 text-[9px] font-semibold text-slate-500 ring-1 ring-inset ring-slate-200";
+    const pillSize: PillSize = size === "menu" ? PillSize.Normal : PillSize.Small;
+    const pillStyle =
+      size === "menu"
+        ? {
+            maxWidth: "220px",
+            display: "inline-flex",
+            alignItems: "center",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }
+        : {
+            maxWidth: "180px",
+            display: "inline-flex",
+            alignItems: "center",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          };
 
     return (
-      <div className="flex flex-wrap items-center gap-1">
+      <div className={containerClassName}>
         {visibleLabels.map((label: DropdownOptionLabel, index: number) => {
           const labelId: string =
             label.id?.toString() ||
@@ -200,24 +229,19 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             `label-${index}`;
 
           return (
-            <span
+            <Pill
               key={labelId}
-              className={`inline-flex max-w-[160px] items-center gap-1 rounded-full border border-gray-200 bg-white/70 ${paddingClassName} shadow-sm ${textClassName}`}
-            >
-              <span
-                className="h-2 w-2 flex-shrink-0 rounded-full"
-                style={{
-                  backgroundColor: getLabelColorAsString(label),
-                }}
-              ></span>
-              <span className="truncate">
-                {label.name || label.slug || "Label"}
-              </span>
-            </span>
+              color={resolveLabelColor(label)}
+              text={label.name || label.slug || "Label"}
+              size={pillSize}
+              style={pillStyle}
+            />
           );
         })}
         {hiddenCount > 0 && (
-          <span className={moreLabelClassName}>+{hiddenCount}</span>
+          <span className={`${moreLabelClassName} transition-colors duration-150 ease-out hover:bg-slate-100`}>
+            +{hiddenCount}
+          </span>
         )}
       </div>
     );
@@ -227,31 +251,36 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     option: DropdownOption,
     meta: FormatOptionLabelMeta<DropdownOption>,
   ): ReactNode => {
+    const labelBadges: ReactElement | null = renderLabelBadges(option.labels, {
+      maxVisible: meta.context === "value" ? 2 : 3,
+      size: meta.context === "value" ? "value" : "menu",
+    });
+
     if (meta.context === "value") {
       if (props.isMultiSelect) {
-        return <span className="truncate">{option.label}</span>;
+        return (
+          <span className="truncate text-sm font-semibold text-slate-700">
+            {option.label}
+          </span>
+        );
       }
 
       return (
-        <div className="flex items-center gap-2 truncate">
-          <span className="truncate font-medium text-gray-900">
+        <div className="flex flex-col gap-1 truncate">
+          <span className="truncate text-sm font-semibold text-slate-900">
             {option.label}
           </span>
-          {renderLabelBadges(option.labels, {
-            maxVisible: 2,
-            size: "value",
-          })}
+          {labelBadges}
         </div>
       );
     }
 
     return (
       <div className="flex flex-col gap-1 py-1">
-        <span className="font-medium text-gray-900">{option.label}</span>
-        {renderLabelBadges(option.labels, {
-          maxVisible: 3,
-          size: "menu",
-        })}
+        <span className="text-sm font-semibold text-slate-900">
+          {option.label}
+        </span>
+        {labelBadges}
       </div>
     );
   };
@@ -262,21 +291,21 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const value: DropdownOption | Array<DropdownOption> | undefined =
+    const newValue: DropdownOption | Array<DropdownOption> | undefined =
       getDropdownOptionFromValue(
         props.value === null ? undefined : props.value,
       );
 
-    setValue(value);
+    setValue(newValue);
   }, [props.value]);
+
+  const containerClassName: string =
+    props.className || "group relative mb-1 mt-2 w-full overflow-visible";
 
   return (
     <div
       id={props.id}
-      className={`${
-        props.className ||
-        "relative mt-2 mb-1 rounded-md w-full overflow-visible"
-      }`}
+      className={containerClassName}
       onClick={() => {
         props.onClick?.();
         props.onFocus?.();
@@ -298,23 +327,92 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           control: (
             state: ControlProps<any, boolean, GroupBase<any>>,
           ): string => {
-            return state.isFocused
-              ? "!border-indigo-500"
-              : "border-Gray500-300";
+            const baseClasses: string =
+              "!min-h-[44px] !rounded-xl !border transition-all duration-150 ease-out !shadow-sm bg-white";
+            const errorClasses: string = props.error
+              ? "!border-red-400 !ring-2 !ring-red-100"
+              : "";
+            const focusClasses: string = state.isFocused
+              ? "!border-indigo-400 !ring-2 !ring-indigo-200/60"
+              : "hover:!border-slate-300 !border-slate-200";
+
+            return `${baseClasses} ${errorClasses} ${focusClasses}`.trim();
           },
           option: (
             state: OptionProps<any, boolean, GroupBase<any>>,
           ): string => {
+            const baseClasses: string =
+              "rounded-lg px-3 py-2 text-sm transition-all duration-150 ease-out flex flex-col gap-1";
             if (state.isDisabled) {
-              return "bg-gray-100";
+              return `${baseClasses} cursor-not-allowed bg-slate-50 text-slate-400`;
             }
             if (state.isSelected) {
-              return "!bg-indigo-500";
+              return `${baseClasses} !bg-indigo-100 !text-indigo-700 shadow-sm ring-1 ring-indigo-200/70`;
             }
             if (state.isFocused) {
-              return "!bg-indigo-100";
+              return `${baseClasses} !bg-indigo-50/80 !text-indigo-700 shadow-sm ring-1 ring-indigo-100`;
             }
-            return "";
+            return `${baseClasses} text-slate-700 hover:bg-slate-50 hover:text-slate-900`;
+          },
+          menu: (): string => {
+            return "!mt-2 !rounded-2xl !border !border-slate-100 !bg-white !shadow-2xl overflow-hidden";
+          },
+          menuList: (): string => {
+            return "!p-2 flex flex-col gap-1";
+          },
+          valueContainer: (): string => {
+            return "!px-3 !py-2 gap-2";
+          },
+          placeholder: (): string => {
+            return "!text-sm !text-slate-400";
+          },
+          singleValue: (): string => {
+            return "!text-sm !font-semibold !text-slate-900 flex flex-col";
+          },
+          multiValue: (): string => {
+            return "!rounded-full !border !border-transparent !bg-slate-100/80 !px-1.5 !py-0.5 items-center gap-1 transition-colors duration-150 hover:!bg-slate-100 hover:!border-slate-200/70";
+          },
+          multiValueLabel: (): string => {
+            return "!text-[11px] !font-medium !text-slate-600 flex items-center gap-1";
+          },
+          multiValueRemove: (): string => {
+            return "!text-slate-400 hover:!bg-red-50 hover:!text-red-500/80 rounded-full transition-colors";
+          },
+          dropdownIndicator: (): string => {
+            return "!px-3 text-slate-400 transition-all duration-150";
+          },
+          input: (): string => {
+            return "!text-sm !text-slate-900";
+          },
+          noOptionsMessage: (): string => {
+            return "!py-2 !text-sm !text-slate-500";
+          },
+        }}
+        components={{
+          IndicatorSeparator: () => null,
+          DropdownIndicator: (
+            indicatorProps: DropdownIndicatorProps<DropdownOption, boolean>,
+          ): ReactElement => {
+            return (
+              <selectComponents.DropdownIndicator {...indicatorProps}>
+                <svg
+                  aria-hidden="true"
+                  className={`h-4 w-4 transition-transform duration-200 ease-out ${
+                    indicatorProps.selectProps.menuIsOpen ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M6 9l6 6 6-6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </selectComponents.DropdownIndicator>
+            );
           },
         }}
         isClearable={true}
@@ -324,19 +422,19 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         onChange={(option: any | null) => {
           if (option) {
             if (props.isMultiSelect) {
-              const value: Array<DropdownOption> =
+              const selectedOptions: Array<DropdownOption> =
                 option as Array<DropdownOption>;
-              setValue(value);
+              setValue(selectedOptions);
 
               props.onChange?.(
-                value.map((i: DropdownOption) => {
-                  return i.value;
+                selectedOptions.map((item: DropdownOption) => {
+                  return item.value;
                 }),
               );
             } else {
-              const value: DropdownOption = option as DropdownOption;
-              setValue(value);
-              props.onChange?.(value.value);
+              const selectedOption: DropdownOption = option as DropdownOption;
+              setValue(selectedOption);
+              props.onChange?.(selectedOption.value);
             }
           }
 
