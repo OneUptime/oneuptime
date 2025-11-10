@@ -1,5 +1,4 @@
 import Icon from "../Icon/Icon";
-import Link from "../Link/Link";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import Pill from "../Pill/Pill";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -10,6 +9,8 @@ import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
+import FileModel from "../../../Models/DatabaseModels/File";
+import FileList from "../FileList/FileList";
 
 export enum TimelineItemType {
   StateChange = "StateChange",
@@ -23,6 +24,7 @@ export interface TimelineItem {
   state?: BaseModel;
   icon: IconProp;
   iconColor: Color;
+  attachments?: Array<FileModel> | undefined;
 }
 
 export interface EventItemLabel {
@@ -278,6 +280,11 @@ const EventItem: FunctionComponent<ComponentProps> = (
                               <p>
                                 <MarkdownViewer text={item.note || ""} />
                               </p>
+                              <FileList
+                                files={item.attachments}
+                                containerClassName="mt-3 space-y-2"
+                                linkClassName="text-indigo-600 hover:text-indigo-500"
+                              />
                             </div>
                           </div>
                         </div>

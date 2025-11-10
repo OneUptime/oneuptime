@@ -9,6 +9,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import File from "../../Models/DatabaseModels/File";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -21,12 +22,27 @@ export class Service extends DatabaseService<Model> {
     scheduledMaintenanceId: ObjectID;
     projectId: ObjectID;
     note: string;
+    attachments?: Array<File | ObjectID>;
   }): Promise<Model> {
     const internalNote: Model = new Model();
     internalNote.createdByUserId = data.userId;
     internalNote.scheduledMaintenanceId = data.scheduledMaintenanceId;
     internalNote.projectId = data.projectId;
     internalNote.note = data.note;
+
+    if (data.attachments && data.attachments.length > 0) {
+      internalNote.attachments = data.attachments.map(
+        (attachment: File | ObjectID) => {
+          if (attachment instanceof File) {
+            return attachment;
+          }
+
+          const file: File = new File();
+          file.id = attachment;
+          return file;
+        },
+      );
+    }
 
     return this.create({
       data: internalNote,

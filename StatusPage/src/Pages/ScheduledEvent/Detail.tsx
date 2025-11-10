@@ -113,6 +113,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
         type: TimelineItemType.Note,
         icon: IconProp.Chat,
         iconColor: Gray500,
+        attachments: scheduledMaintenancePublicNote.attachments,
       });
 
       if (isSummary) {

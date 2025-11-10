@@ -1,3 +1,5 @@
+import FileList from "Common/UI/Components/FileList/FileList";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
 import UserElement from "../../../Components/User/User";
 import ProjectUser from "../../../Utils/ProjectUser";
@@ -165,6 +167,19 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
               "Add a private note to this incident here. This is private to your team and is not visible on Status Page",
             ),
           },
+          {
+            field: {
+              attachments: {
+                _id: true,
+                name: true,
+              },
+            },
+            title: "Attachments",
+            description: "Upload files to attach to this note.",
+            fieldType: FormFieldSchemaType.File,
+            isMultiFilePicker: true,
+            required: false,
+          },
         ]}
         showAs={ShowAs.List}
         showRefreshButton={true}
@@ -202,6 +217,12 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
             title: "Created At",
           },
         ]}
+        selectMoreFields={{
+                        attachments: {
+                _id: true,
+                name: true,
+              },
+        }}
         columns={[
           {
             field: {
@@ -240,12 +261,21 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
           {
             field: {
               note: true,
+
             },
 
             title: "",
-            type: FieldType.Markdown,
-            contentClassName: "-mt-3 space-y-6 text-sm text-gray-800",
+            type: FieldType.Element,
+            contentClassName: "-mt-3",
             colSpan: 2,
+            getElement: (item: IncidentInternalNote): ReactElement => {
+              return (
+                <div className="space-y-3 text-sm text-gray-800">
+                  <MarkdownViewer text={item.note || ""} />
+                  <FileList files={item.attachments} />
+                </div>
+              );
+            },
           },
         ]}
       />

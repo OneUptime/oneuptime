@@ -18,7 +18,8 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import File from "./File";
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("scheduledMaintenance")
@@ -341,6 +342,54 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     unique: false,
   })
   public note?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenancePublicNote,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenancePublicNote,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenancePublicNote,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: File,
+    title: "Attachments",
+    description: "Files attached to this note.",
+  })
+  @ManyToMany(
+    () => {
+      return File;
+    },
+    {
+      eager: false,
+    },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenancePublicNoteFile",
+    joinColumn: {
+      name: "scheduledMaintenancePublicNoteId",
+      referencedColumnName: "_id",
+    },
+    inverseJoinColumn: {
+      name: "fileId",
+      referencedColumnName: "_id",
+    },
+  })
+  public attachments?: Array<File> = undefined;
 
   @ColumnAccessControl({
     create: [

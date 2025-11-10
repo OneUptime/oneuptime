@@ -16,7 +16,8 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import File from "./File";
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from "typeorm";
 
 @CanAccessIfCanReadOn("scheduledMaintenance")
 @TenantColumn("projectId")
@@ -339,6 +340,54 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     unique: false,
   })
   public note?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceInternalNote,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceInternalNote,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceInternalNote,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: File,
+    title: "Attachments",
+    description: "Files attached to this note.",
+  })
+  @ManyToMany(
+    () => {
+      return File;
+    },
+    {
+      eager: false,
+    },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceInternalNoteFile",
+    joinColumn: {
+      name: "scheduledMaintenanceInternalNoteId",
+      referencedColumnName: "_id",
+    },
+    inverseJoinColumn: {
+      name: "fileId",
+      referencedColumnName: "_id",
+    },
+  })
+  public attachments?: Array<File> = undefined;
 
   @ColumnAccessControl({
     create: [],

@@ -1,3 +1,5 @@
+import FileList from "Common/UI/Components/FileList/FileList";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
 import UserElement from "../../../Components/User/User";
 import ProjectUser from "../../../Utils/ProjectUser";
@@ -193,6 +195,19 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              attachments: {
+                _id: true,
+                name: true,
+              },
+            },
+            title: "Attachments",
+            description: "Upload files to attach to this note.",
+            fieldType: FormFieldSchemaType.File,
+            isMultiFilePicker: true,
+            required: false,
+          },
+          {
+            field: {
               shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
             },
 
@@ -224,6 +239,10 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         viewPageRoute={Navigation.getCurrentRoute()}
         selectMoreFields={{
           subscriberNotificationStatusMessage: true,
+                        attachments: {
+                _id: true,
+                name: true,
+              },
         }}
         filters={[
           {
@@ -258,6 +277,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             title: "Created At",
           },
         ]}
+        
         columns={[
           {
             field: {
@@ -297,12 +317,21 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
           {
             field: {
               note: true,
+
             },
 
             title: "",
-            type: FieldType.Markdown,
-            contentClassName: "-mt-3 space-y-1 text-sm text-gray-800",
+            type: FieldType.Element,
+            contentClassName: "-mt-3",
             colSpan: 2,
+            getElement: (item: IncidentPublicNote): ReactElement => {
+              return (
+                <div className="space-y-3 text-sm text-gray-800">
+                  <MarkdownViewer text={item.note || ""} />
+                  <FileList files={item.attachments} />
+                </div>
+              );
+            },
           },
           {
             field: {

@@ -101,6 +101,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
         type: TimelineItemType.Note,
         icon: IconProp.Chat,
         iconColor: Gray500,
+        attachments: incidentPublicNote.attachments,
       });
 
       // If this incident is a sumamry then don't include all the notes .
