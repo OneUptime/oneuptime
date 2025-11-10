@@ -6,6 +6,7 @@ import Pill, {
 } from "../Pill/Pill";
 import { Black } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
+import IconProp from "../../../Types/Icon/IconProp";
 
 export interface ComponentProps {
   label: LabelModel;
@@ -39,6 +40,7 @@ const LabelElement: FunctionComponent<ComponentProps> = (
     size: props.size,
     isMinimal: props.isMinimal,
     tooltip: label.description || undefined,
+    icon: IconProp.Label,
   };
 
   if (props.style) {

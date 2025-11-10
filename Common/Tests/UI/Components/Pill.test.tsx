@@ -2,6 +2,7 @@ import Pill, { PillSize } from "../../../UI/Components/Pill/Pill";
 import "@testing-library/jest-dom/extend-expect";
 import { render, screen } from "@testing-library/react";
 import Color from "../../../Types/Color";
+import IconProp from "../../../Types/Icon/IconProp";
 import * as React from "react";
 import { describe, expect, test } from "@jest/globals";
 
@@ -45,5 +46,12 @@ describe("<Pill />", () => {
     const color: Color = new Color("#786598");
     render(<Pill text="Love" color={color} size={PillSize.ExtraLarge} />);
     expect(screen.getByTestId("pill")).toHaveStyle("backgroundColor:  #786598");
+  });
+  test("renders icon when provided", () => {
+    const color: Color = new Color("#807149");
+    const { container } = render(
+      <Pill text="Love" color={color} icon={IconProp.Label} />,
+    );
+    expect(container.querySelector('[role="icon"]')).not.toBeNull();
   });
 });
