@@ -2,7 +2,11 @@ import Analytics from "../../Utils/Analytics";
 import Breadcrumbs from "../Breadcrumbs/Breadcrumbs";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import PageLoader from "../Loader/PageLoader";
+import Pill from "../Pill/Pill";
 import Link from "../../../Types/Link";
+import Label from "../../../Models/DatabaseModels/Label";
+import Color from "../../../Types/Color";
+import { Black } from "../../../Types/BrandColors";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -13,6 +17,7 @@ export interface ComponentProps {
   className?: string | undefined;
   isLoading?: boolean | undefined;
   error?: string | undefined;
+  labels?: Array<Label> | undefined;
 }
 
 const Page: FunctionComponent<ComponentProps> = (
@@ -52,11 +57,48 @@ const Page: FunctionComponent<ComponentProps> = (
             </div>
           )}
           {props.title && (
-            <div className="mt-2 md:flex md:items-center md:justify-between hidden md:block">
-              <div className="min-w-0">
-                <h2 className="text-xl leading-7  text-gray-900 sm:truncate sm:text-2xl sm:tracking-tight">
-                  {props.title}
-                </h2>
+            <div className="mt-2">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-2">
+                  <h1 className="text-2xl font-semibold leading-7 text-gray-900 sm:text-3xl sm:tracking-tight sm:truncate">
+                    {props.title}
+                  </h1>
+                  {props.labels && props.labels.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {props.labels
+                        .filter((label: Label | null) => {
+                          return Boolean(label && (label.name || label.slug));
+                        })
+                        .map((label: Label, index: number) => {
+                          const resolveColor: Color = (() => {
+                            if (!label.color) {
+                              return Black;
+                            }
+
+                            if (typeof label.color === "string") {
+                              return Color.fromString(label.color);
+                            }
+
+                            return label.color;
+                          })();
+
+                          return (
+                            <Pill
+                              key={
+                                label.id?.toString() ||
+                                label._id ||
+                                label.slug ||
+                                `${label.name || "label"}-${index}`
+                              }
+                              color={resolveColor}
+                              text={label.name || label.slug || "Label"}
+                              isMinimal={true}
+                            />
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

@@ -2,11 +2,14 @@ import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Page from "./Page";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Label from "../../../Models/DatabaseModels/Label";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import Link from "../../../Types/Link";
 import ObjectID from "../../../Types/ObjectID";
+import { JSONObject } from "../../../Types/JSON";
 import React, { ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
+import Select from "../../../Server/Types/Database/Select";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   title?: string | undefined;
@@ -27,6 +30,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [error, setError] = useState<string>("");
+  const [labels, setLabels] = useState<Array<Label>>([]);
 
   const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
     // get item.
@@ -34,12 +38,26 @@ const ModelPage: <TBaseModel extends BaseModel>(
 
     setError("");
     try {
+      const modelInstance: TBaseModel = new props.modelType();
+      const labelsColumn: string | null = modelInstance.getLabelsColumn();
+
+      const select: JSONObject = {
+        [props.modelNameField]: true,
+      };
+
+      if (labelsColumn) {
+        select[labelsColumn] = {
+          _id: true,
+          name: true,
+          color: true,
+          slug: true,
+        } as Select<TBaseModel>;
+      }
+
       const item: TBaseModel | null = await ModelAPI.getItem({
         modelType: props.modelType,
         id: props.modelId,
-        select: {
-          [props.modelNameField]: true,
-        } as any,
+        select: select as Select<TBaseModel>,
         requestOptions: {},
       });
 
@@ -55,12 +73,25 @@ const ModelPage: <TBaseModel extends BaseModel>(
         return;
       }
 
+      if (labelsColumn) {
+        const columnValue: Array<Label> | null = (
+          item as BaseModel
+        ).getColumnValue(labelsColumn) as Array<Label> | null;
+
+        const loadedLabels: Array<Label> =
+          columnValue || ((item as any)[labelsColumn] as Array<Label>) || [];
+        setLabels(loadedLabels);
+      } else {
+        setLabels([]);
+      }
+
       setTitle(
         `${props.title || ""} - ${
           (item as any)[props.modelNameField] as string
         }`,
       );
     } catch (err) {
+      setLabels([]);
       setError(API.getFriendlyMessage(err));
     }
     setIsLoading(false);
@@ -73,7 +104,15 @@ const ModelPage: <TBaseModel extends BaseModel>(
     await fetchItem();
   }, []);
 
-  return <Page {...props} isLoading={isLoading} error={error} title={title} />;
+  return (
+    <Page
+      {...props}
+      labels={labels.length > 0 ? labels : undefined}
+      isLoading={isLoading}
+      error={error}
+      title={title}
+    />
+  );
 };
 
 export default ModelPage;

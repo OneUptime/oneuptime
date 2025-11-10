@@ -306,9 +306,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   dbLogs.push(logRow);
                   totalLogsProcessed++;
 
-                  if (
-                    dbLogs.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE
-                  ) {
+                  if (dbLogs.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE) {
                     await this.flushLogsBuffer(dbLogs);
                   }
                 } catch (logError) {
