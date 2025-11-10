@@ -217,10 +217,10 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
           },
         ]}
         selectMoreFields={{
-                        attachments: {
-                _id: true,
-                name: true,
-              },
+          attachments: {
+            _id: true,
+            name: true,
+          },
         }}
         columns={[
           {
@@ -260,7 +260,6 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
           {
             field: {
               note: true,
-
             },
 
             title: "",

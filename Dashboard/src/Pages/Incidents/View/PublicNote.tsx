@@ -238,10 +238,10 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         viewPageRoute={Navigation.getCurrentRoute()}
         selectMoreFields={{
           subscriberNotificationStatusMessage: true,
-                        attachments: {
-                _id: true,
-                name: true,
-              },
+          attachments: {
+            _id: true,
+            name: true,
+          },
         }}
         filters={[
           {
@@ -276,7 +276,6 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             title: "Created At",
           },
         ]}
-        
         columns={[
           {
             field: {
@@ -316,7 +315,6 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
           {
             field: {
               note: true,
-
             },
 
             title: "",

@@ -181,10 +181,10 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (
           },
         ]}
         selectMoreFields={{
-                        attachments: {
-                _id: true,
-                name: true,
-              },
+          attachments: {
+            _id: true,
+            name: true,
+          },
         }}
         showAs={ShowAs.List}
         showRefreshButton={true}

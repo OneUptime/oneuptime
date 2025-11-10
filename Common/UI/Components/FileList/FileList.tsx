@@ -19,7 +19,9 @@ const FileList: FunctionComponent<FileListProps> = (
   props: FileListProps,
 ): ReactElement | null => {
   const files: Array<FileModel> = (props.files || []).filter(
-    (file): file is FileModel => Boolean(file),
+    (file: FileModel | undefined | null): file is FileModel => {
+      return Boolean(file);
+    },
   );
 
   if (!files.length) {
@@ -27,11 +29,7 @@ const FileList: FunctionComponent<FileListProps> = (
   }
 
   return (
-    <div
-      className={
-        props.containerClassName || DEFAULT_CONTAINER_CLASSNAME
-      }
-    >
+    <div className={props.containerClassName || DEFAULT_CONTAINER_CLASSNAME}>
       {files.map((file: FileModel, index: number) => {
         const fileId: string | null =
           file.id?.toString?.() || (file as any)._id?.toString?.() || null;

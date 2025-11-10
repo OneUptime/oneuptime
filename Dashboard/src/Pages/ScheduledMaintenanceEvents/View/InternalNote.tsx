@@ -195,10 +195,10 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
         showRefreshButton={true}
         showAs={ShowAs.List}
         selectMoreFields={{
-                        attachments: {
-                _id: true,
-                name: true,
-              },
+          attachments: {
+            _id: true,
+            name: true,
+          },
         }}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
@@ -274,7 +274,6 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
           {
             field: {
               note: true,
-
             },
 
             title: "",

@@ -47,9 +47,8 @@ export default class FormFieldSchemaTypeUtil {
       case FormFieldSchemaType.RadioButton:
         return FieldType.Text;
       case FormFieldSchemaType.File:
-        case FormFieldSchemaType.MultipleFiles:
-          return FieldType.File; // Assuming MultipleFiles maps to FieldType.File
-        return FieldType.File;
+      case FormFieldSchemaType.MultipleFiles:
+        return FieldType.File; // Treat MultipleFiles as standard file input
       case FormFieldSchemaType.MultiSelectDropdown:
         return FieldType.MultiSelectDropdown;
       case FormFieldSchemaType.Toggle:

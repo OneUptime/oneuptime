@@ -602,8 +602,7 @@ const FormField: <T extends GenericObject>(
                 );
 
                 if (
-                  props.field.fieldType ===
-                  FormFieldSchemaType.MultipleFiles
+                  props.field.fieldType === FormFieldSchemaType.MultipleFiles
                 ) {
                   onChange(strippedFiles);
                   props.setFieldValue(props.fieldName, strippedFiles);
@@ -630,8 +629,7 @@ const FormField: <T extends GenericObject>(
                 props.currentValues &&
                 (props.currentValues as any)[props.fieldName]
                   ? (props.currentValues as any)[props.fieldName]
-                  : props.field.fieldType ===
-                      FormFieldSchemaType.MultipleFiles
+                  : props.field.fieldType === FormFieldSchemaType.MultipleFiles
                     ? []
                     : undefined
               }

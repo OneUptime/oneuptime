@@ -19,7 +19,15 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import File from "./File";
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from "typeorm";
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from "typeorm";
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("scheduledMaintenance")

@@ -252,9 +252,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         selectMoreFields={{
           subscriberNotificationStatusMessage: true,
           attachments: {
-                _id: true,
-                name: true,
-              },
+            _id: true,
+            name: true,
+          },
         }}
         filters={[
           {
