@@ -417,27 +417,15 @@ const ModelForm: <TBaseModel extends BaseModel>(
           } as JSONObject;
 
           let hasAccessControlColumn: boolean = false;
-          const accessControlColumn: string | null =
-            tempModel.getAccessControlColumn();
-          const labelsColumn: string | null = tempModel.getLabelsColumn();
+         
+          const labelsColumn: string | null = tempModel.getAccessControlColumn();
 
-          if (accessControlColumn) {
-            select[accessControlColumn] = {
-              _id: true,
-              name: true,
-              color: true,
-              slug: true,
-            } as JSONObject;
 
-            hasAccessControlColumn = true;
-          }
-
-          if (labelsColumn && labelsColumn !== accessControlColumn) {
+          if (labelsColumn) {
             select[labelsColumn] = {
               _id: true,
               name: true,
               color: true,
-              slug: true,
             } as JSONObject;
           }
 
