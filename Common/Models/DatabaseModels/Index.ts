@@ -118,6 +118,7 @@ import StatusPageHistoryChartBarColorRule from "./StatusPageHistoryChartBarColor
 import StatusPageOwnerTeam from "./StatusPageOwnerTeam";
 import StatusPageOwnerUser from "./StatusPageOwnerUser";
 import StatusPagePrivateUser from "./StatusPagePrivateUser";
+import StatusPagePrivateUserSession from "./StatusPagePrivateUserSession";
 import StatusPageResource from "./StatusPageResource";
 import StatusPageSCIM from "./StatusPageSCIM";
 import StatusPageSSO from "./StatusPageSso";
@@ -152,6 +153,7 @@ import ServiceCatalogTelemetryService from "./ServiceCatalogTelemetryService";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserWebAuthn from "./UserWebAuthn";
+import UserSession from "./UserSession";
 
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
@@ -266,6 +268,7 @@ const AllModelTypes: Array<{
   StatusPageFooterLink,
   StatusPageHeaderLink,
   StatusPagePrivateUser,
+  StatusPagePrivateUserSession,
   StatusPageHistoryChartBarColorRule,
 
   ScheduledMaintenanceState,
@@ -318,6 +321,7 @@ const AllModelTypes: Array<{
   UserOnCallLog,
   UserOnCallLogTimeline,
   UserNotificationSetting,
+  UserSession,
 
   DataMigration,
 
