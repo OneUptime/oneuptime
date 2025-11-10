@@ -15,7 +15,6 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
-import HashedString from "../../Types/HashedString";
 
 @EnableDocumentation({
   isMasterAdminApiDocs: true,
@@ -151,19 +150,18 @@ class StatusPagePrivateUserSession extends BaseModel {
     update: [],
   })
   @TableColumn({
-    type: TableColumnType.HashedString,
-    title: "Refresh Token Hash",
-    description: "Hashed refresh token for this session.",
+    type: TableColumnType.LongText,
+    title: "Refresh Token",
+    description: "Refresh token for this session.",
     hashed: true,
   })
   @Column({
-    type: ColumnType.HashedString,
-    length: ColumnLength.HashedString,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
     nullable: false,
     unique: true,
-    transformer: HashedString.getDatabaseTransformer(),
   })
-  public refreshToken?: HashedString = undefined;
+  public refreshToken?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

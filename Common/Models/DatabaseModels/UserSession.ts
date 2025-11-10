@@ -83,20 +83,19 @@ class UserSession extends BaseModel {
     update: [],
   })
   @TableColumn({
-    type: TableColumnType.HashedString,
-    title: "Refresh Token Hash",
-    description: "Hashed refresh token for this session.",
+    type: TableColumnType.LongText,
+    title: "Refresh",
+    description: "Refresh token for this session.",
     hashed: true,
     required: true,
   })
   @Column({
-    type: ColumnType.HashedString,
-    length: ColumnLength.HashedString,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
     nullable: false,
     unique: true,
-    transformer: HashedString.getDatabaseTransformer(),
   })
-  public refreshToken?: HashedString = undefined;
+  public refreshToken?: string = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
