@@ -20,7 +20,7 @@ export interface ComponentProps {
   style?: CSSProperties;
   isMinimal?: boolean | undefined;
   tooltip?: string | undefined;
-  icon?: IconType | undefined;
+  icon?: IconProp | IconType | undefined;
 }
 
 const Pill: FunctionComponent<ComponentProps> = (
@@ -62,6 +62,14 @@ const Pill: FunctionComponent<ComponentProps> = (
     [IconType.Success]: IconProp.CheckCircle,
     [IconType.Info]: IconProp.Info,
     [IconType.Warning]: IconProp.Alert,
+  };
+
+  const isIconTypeValue = (value: unknown): value is IconType => {
+    if (!value || typeof value !== "string") {
+      return false;
+    }
+
+    return (Object.values(IconType) as Array<string>).includes(value);
   };
 
   // Softly shifts a hex color towards white (positive) or black (negative) for hover/focus accents.
@@ -143,16 +151,64 @@ const Pill: FunctionComponent<ComponentProps> = (
   (style as CSSProperties & Record<string, string>)["--pill-ring"] = focusRingColor;
   (style as CSSProperties & Record<string, string>)["--pill-border"] = borderColor;
 
+  const iconGlyph: IconProp | null = (() => {
+    if (!props.icon) {
+      return null;
+    }
+
+    if (isIconTypeValue(props.icon)) {
+      return iconLookups[props.icon];
+    }
+
+    return props.icon as IconProp;
+  })();
+
+  const iconSizeClass: string = (() => {
+    if (resolvedSize === PillSize.ExtraLarge) {
+      return "h-5 w-5";
+    }
+
+    if (resolvedSize === PillSize.Large) {
+      return "h-4 w-4";
+    }
+
+    if (resolvedSize === PillSize.Small) {
+      return "h-3 w-3";
+    }
+
+    return "h-3.5 w-3.5";
+  })();
+
+  const iconComponentSize: SizeProp = (() => {
+    if (resolvedSize === PillSize.ExtraLarge) {
+      return SizeProp.Large;
+    }
+
+    if (resolvedSize === PillSize.Large) {
+      return SizeProp.Small;
+    }
+
+    if (resolvedSize === PillSize.Small) {
+      return SizeProp.Smaller;
+    }
+
+    return SizeProp.Small;
+  })();
+
+  const iconClassNames: string = isIconTypeValue(props.icon)
+    ? iconSizeClass
+    : `text-[color:var(--pill-text)] ${iconSizeClass}`;
+
   const getPillElement: GetReactElementFunction = (): ReactElement => {
-    const iconElement: ReactElement | null = props.icon
+    const iconElement: ReactElement | null = iconGlyph
       ? (
           <span className="flex items-center justify-center">
             <Icon
-              icon={iconLookups[props.icon]}
-              type={props.icon}
-              size={resolvedSize === PillSize.Small ? SizeProp.Smaller : SizeProp.Small}
+              icon={iconGlyph}
+                type={isIconTypeValue(props.icon) ? props.icon : undefined}
+              size={iconComponentSize}
               thick={ThickProp.Thick}
-              className="h-4 w-4"
+              className={iconClassNames}
               data-testid="pill-icon"
             />
           </span>

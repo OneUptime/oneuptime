@@ -18,6 +18,7 @@ import Select, {
 import Pill, { PillSize } from "../Pill/Pill";
 import { Black } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
+import IconProp from "../../../Types/Icon/IconProp";
 
 export type DropdownValue = string | number | boolean;
 
@@ -235,6 +236,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
               text={label.name || label.slug || "Label"}
               size={pillSize}
               style={pillStyle}
+              icon={IconProp.Label}
             />
           );
         })}
