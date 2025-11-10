@@ -1,6 +1,6 @@
 import { Black } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
-import Icon, { SizeProp } from "../Icon/Icon";
+import Icon, { SizeProp, ThickProp } from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
 import Tooltip from "../Tooltip/Tooltip";
@@ -70,6 +70,7 @@ const Pill: FunctionComponent<ComponentProps> = (
           <Icon
             icon={props.icon}
             size={SizeProp.Small}
+            thick={ThickProp.Thick}
             className="mr-2"
           />
         ) : null}
