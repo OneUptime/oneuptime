@@ -7,10 +7,10 @@ import Icon, { IconType, SizeProp, ThickProp } from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 
 export enum PillSize {
-  Small = "10px",
-  Normal = "13px",
-  Large = "15px",
-  ExtraLarge = "18px",
+  Small = "9px",
+  Normal = "12px",
+  Large = "14px",
+  ExtraLarge = "16px",
 }
 
 export interface ComponentProps {
@@ -49,10 +49,10 @@ const Pill: FunctionComponent<ComponentProps> = (
   const resolvedSize: PillSize = props.size ? props.size : PillSize.Normal;
 
   const spacingBySize: Record<PillSize, { px: string; py: string; gap: string }> = {
-    [PillSize.Small]: { px: "0.55rem", py: "0.25rem", gap: "0.3rem" },
-    [PillSize.Normal]: { px: "0.75rem", py: "0.4rem", gap: "0.35rem" },
-    [PillSize.Large]: { px: "0.95rem", py: "0.55rem", gap: "0.45rem" },
-    [PillSize.ExtraLarge]: { px: "1.05rem", py: "0.65rem", gap: "0.5rem" },
+    [PillSize.Small]: { px: "0.5rem", py: "0.22rem", gap: "0.28rem" },
+    [PillSize.Normal]: { px: "0.65rem", py: "0.35rem", gap: "0.3rem" },
+    [PillSize.Large]: { px: "0.85rem", py: "0.45rem", gap: "0.4rem" },
+    [PillSize.ExtraLarge]: { px: "0.95rem", py: "0.55rem", gap: "0.45rem" },
   };
 
   const spacing = spacingBySize[resolvedSize];
