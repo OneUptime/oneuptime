@@ -17,9 +17,6 @@ import {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import API from "../../../Utils/API";
-import TokenRefresher, {
-  SessionRefreshOptions,
-} from "./TokenRefresher";
 
 class BaseAPI extends API {
   public constructor(protocol: Protocol, hostname: Hostname, route?: Route) {
@@ -62,11 +59,6 @@ class BaseAPI extends API {
         headers["project-permissions-hash"],
       );
     }
-
-    await TokenRefresher.handleAccessTokenHeader(
-      headers,
-      this.getSessionRefreshOptions(),
-    );
 
     return headers;
   }
@@ -148,12 +140,6 @@ class BaseAPI extends API {
 
   protected static getForbiddenRoute(): Route {
     return new Route("/accounts/forbidden");
-  }
-
-  protected static getSessionRefreshOptions(): SessionRefreshOptions | null {
-    return {
-      scope: "dashboard",
-    };
   }
 
   public static getFriendlyMessage(
