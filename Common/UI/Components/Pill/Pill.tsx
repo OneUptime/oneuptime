@@ -3,6 +3,8 @@ import Color from "../../../Types/Color";
 import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
 import Tooltip from "../Tooltip/Tooltip";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
+import Icon, { IconType, SizeProp, ThickProp } from "../Icon/Icon";
+import IconProp from "../../../Types/Icon/IconProp";
 
 export enum PillSize {
   Small = "10px",
@@ -18,6 +20,7 @@ export interface ComponentProps {
   style?: CSSProperties;
   isMinimal?: boolean | undefined;
   tooltip?: string | undefined;
+  icon?: IconType | undefined;
 }
 
 const Pill: FunctionComponent<ComponentProps> = (
@@ -53,6 +56,13 @@ const Pill: FunctionComponent<ComponentProps> = (
   };
 
   const spacing = spacingBySize[resolvedSize];
+
+  const iconLookups: Record<IconType, IconProp> = {
+    [IconType.Danger]: IconProp.Error,
+    [IconType.Success]: IconProp.CheckCircle,
+    [IconType.Info]: IconProp.Info,
+    [IconType.Warning]: IconProp.Alert,
+  };
 
   // Softly shifts a hex color towards white (positive) or black (negative) for hover/focus accents.
   const adjustColor = (color: string, intensity: number): string => {
@@ -134,12 +144,28 @@ const Pill: FunctionComponent<ComponentProps> = (
   (style as CSSProperties & Record<string, string>)["--pill-border"] = borderColor;
 
   const getPillElement: GetReactElementFunction = (): ReactElement => {
+    const iconElement: ReactElement | null = props.icon
+      ? (
+          <span className="flex items-center justify-center">
+            <Icon
+              icon={iconLookups[props.icon]}
+              type={props.icon}
+              size={resolvedSize === PillSize.Small ? SizeProp.Smaller : SizeProp.Small}
+              thick={ThickProp.Thick}
+              className="h-4 w-4"
+              data-testid="pill-icon"
+            />
+          </span>
+        )
+      : null;
+
     return (
       <span
         data-testid="pill"
-        className="inline-flex items-center gap-[var(--pill-gap)] rounded-full border border-[color:var(--pill-border)] bg-[color:var(--pill-bg)] px-[var(--pill-px)] py-[var(--pill-py)] font-semibold leading-none tracking-tight text-[color:var(--pill-text)] shadow-sm transition-all duration-200 ease-out hover:-translate-y-[1px] hover:scale-[1.01] hover:bg-[color:var(--pill-hover-bg)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--pill-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950 active:translate-y-0 active:scale-100 active:shadow-sm"
+        className="inline-flex items-center gap-[var(--pill-gap)] rounded-full border border-[color:var(--pill-border)] bg-[color:var(--pill-bg)] px-[var(--pill-px)] py-[var(--pill-py)] font-semibold leading-none tracking-tight text-[color:var(--pill-text)] shadow-sm transition-colors duration-200 ease-out hover:bg-[color:var(--pill-hover-bg)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--pill-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950 active:shadow-sm"
         style={style}
       >
+        {iconElement}
         {props.text}
       </span>
     );
