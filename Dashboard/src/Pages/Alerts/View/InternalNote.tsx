@@ -176,8 +176,7 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (
             },
             title: "Attachments",
             description: "Upload files to attach to this note.",
-            fieldType: FormFieldSchemaType.File,
-            isMultiFilePicker: true,
+            fieldType: FormFieldSchemaType.MultipleFiles,
             required: false,
           },
         ]}

@@ -58,23 +58,22 @@ const FilePicker: FunctionComponent<ComponentProps> = (
   }, [props.initialValue]);
 
   const setInitialValue: VoidFunction = () => {
-    if (
-      Array.isArray(props.initialValue) &&
-      props.initialValue &&
-      props.initialValue.length > 0
-    ) {
+    if (Array.isArray(props.initialValue)) {
       setFilesModel(props.initialValue);
     } else if (props.initialValue instanceof FileModel) {
       setFilesModel([props.initialValue as FileModel]);
+    } else {
+      setFilesModel([]);
     }
   };
 
   useEffect(() => {
-    if (props.value && props.value.length > 0) {
-      setFilesModel(props.value && props.value.length > 0 ? props.value : []);
-    } else {
-      setInitialValue();
+    if (props.value) {
+      setFilesModel(props.value);
+      return;
     }
+
+    setInitialValue();
   }, [props.value]);
 
   const { getRootProps, getInputProps } = useDropzone({
@@ -112,10 +111,22 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           filesResult.push(result.data as FileModel);
         }
 
-        setFilesModel(filesResult);
+        const updatedFiles: Array<FileModel> = props.isMultiFilePicker
+          ? [...filesModel, ...filesResult]
+          : filesResult;
+
+        const uniqueFiles: Array<FileModel> = Array.from(
+          new Map(
+            updatedFiles.map((file: FileModel) => {
+              return [file._id?.toString(), file];
+            }),
+          ).values(),
+        );
+
+        setFilesModel(uniqueFiles);
 
         props.onBlur?.();
-        props.onChange?.(filesResult);
+        props.onChange?.(uniqueFiles);
       } catch (err) {
         setError(API.getFriendlyMessage(err));
       }
@@ -183,8 +194,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         data-testid={props.dataTestId}
         className="flex max-w-lg justify-center rounded-md border-2 border-dashed border-gray-300 px-6 pt-5 pb-6"
       >
-        {props.isMultiFilePicker ||
-          (filesModel.length === 0 && (
+        {(props.isMultiFilePicker || filesModel.length === 0) && (
             <div
               {...getRootProps({
                 className: "space-y-1 text-center",
@@ -260,7 +270,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 &nbsp;10 MB or less.
               </p>
             </div>
-          ))}
+          )}
         <aside>{getThumbs()}</aside>
       </div>
       {props.error && (

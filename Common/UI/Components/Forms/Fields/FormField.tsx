@@ -570,33 +570,52 @@ const FormField: <T extends GenericObject>(
           )}
 
           {(props.field.fieldType === FormFieldSchemaType.File ||
-            props.field.fieldType === FormFieldSchemaType.ImageFile) && (
+            props.field.fieldType === FormFieldSchemaType.ImageFile ||
+            props.field.fieldType === FormFieldSchemaType.MultipleFiles) && (
             <FilePicker
               error={props.touched && props.error ? props.error : undefined}
               tabIndex={index}
+              isMultiFilePicker={
+                props.field.fieldType === FormFieldSchemaType.MultipleFiles
+              }
               onChange={async (files: Array<FileModel>) => {
-                let fileResult: FileModel | Array<FileModel> | null = files.map(
+                const strippedFiles: Array<FileModel> = files.map(
                   (i: FileModel) => {
                     const strippedModel: FileModel = new FileModel();
-                    strippedModel._id = i._id!;
+                    const fileId: string | undefined =
+                      (i as any)._id?.toString?.() ||
+                      (i as any).id?.toString?.();
+
+                    if (fileId) {
+                      strippedModel._id = fileId;
+                    }
+
+                    if (i.name) {
+                      strippedModel.name = i.name;
+                    }
+
+                    if (i.fileType) {
+                      strippedModel.fileType = i.fileType;
+                    }
                     return strippedModel;
                   },
                 );
 
                 if (
-                  (props.field.fieldType === FormFieldSchemaType.File ||
-                    props.field.fieldType === FormFieldSchemaType.ImageFile) &&
-                  Array.isArray(fileResult)
+                  props.field.fieldType ===
+                  FormFieldSchemaType.MultipleFiles
                 ) {
-                  if (fileResult.length > 0) {
-                    fileResult = fileResult[0] as FileModel;
-                  } else {
-                    fileResult = null;
-                  }
+                  onChange(strippedFiles);
+                  props.setFieldValue(props.fieldName, strippedFiles);
+                  return;
                 }
 
-                onChange(fileResult);
-                props.setFieldValue(props.fieldName, fileResult);
+                const singleFile: FileModel | null = strippedFiles.length
+                  ? strippedFiles[0]!
+                  : null;
+
+                onChange(singleFile);
+                props.setFieldValue(props.fieldName, singleFile);
               }}
               onBlur={async () => {
                 props.setFieldTouched(props.fieldName, true);
@@ -611,7 +630,10 @@ const FormField: <T extends GenericObject>(
                 props.currentValues &&
                 (props.currentValues as any)[props.fieldName]
                   ? (props.currentValues as any)[props.fieldName]
-                  : []
+                  : props.field.fieldType ===
+                      FormFieldSchemaType.MultipleFiles
+                    ? []
+                    : undefined
               }
               placeholder={props.field.placeholder || ""}
             />
