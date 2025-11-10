@@ -704,8 +704,8 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     isDefaultValueColumn: true,
     required: true,
-    title: "SMS or Call Current Balance",
-    description: "Balance in USD for SMS or Call",
+    title: "SMS, Call, and WhatsApp Current Balance",
+    description: "Balance in USD for SMS, Call, and WhatsApp",
     defaultValue: 0,
   })
   @Column({
@@ -732,7 +732,7 @@ export default class Project extends TenantModel {
     isDefaultValueColumn: true,
     required: true,
     title: "Auto Recharge Amount",
-    description: "Auto recharge amount in USD for SMS or Call",
+    description: "Auto recharge amount in USD for SMS, Call, and WhatsApp",
     defaultValue: 20,
   })
   @Column({
@@ -760,7 +760,7 @@ export default class Project extends TenantModel {
     required: true,
     title: "Auto Recharge when current balance falls to",
     description:
-      "Auto recharge is triggered when current balance falls to this amount in USD for SMS or Call",
+      "Auto recharge is triggered when current balance falls to this amount in USD for SMS, Call, and WhatsApp",
     defaultValue: 10,
   })
   @Column({
@@ -868,8 +868,9 @@ export default class Project extends TenantModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
-    title: "Enable auto recharge SMS or Call balance",
-    description: "Enable auto recharge SMS or Call balance for this project.",
+    title: "Enable auto recharge for SMS, Call, and WhatsApp balance",
+    description:
+      "Enable auto recharge for SMS, Call, and WhatsApp balance for this project.",
     defaultValue: false,
   })
   @Column({
@@ -889,8 +890,9 @@ export default class Project extends TenantModel {
     isDefaultValueColumn: true,
     hideColumnInDocumentation: true,
     type: TableColumnType.Boolean,
-    title: "Low Call and SMS Balance Notification Sent to Owners",
-    description: "Low Call and SMS Balance Notification Sent to Owners",
+    title: "Low SMS, Call, and WhatsApp Balance Notification Sent to Owners",
+    description:
+      "Low SMS, Call, and WhatsApp Balance Notification Sent to Owners",
     defaultValue: false,
   })
   @Column({
@@ -910,9 +912,10 @@ export default class Project extends TenantModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     hideColumnInDocumentation: true,
-    title: "Failed Call and SMS Balance Charge Notification Sent to Owners",
+    title:
+      "Failed SMS, Call, and WhatsApp Balance Charge Notification Sent to Owners",
     description:
-      "Failed Call and SMS Balance Charge Notification Sent to Owners",
+      "Failed SMS, Call, and WhatsApp Balance Charge Notification Sent to Owners",
     defaultValue: false,
   })
   @Column({
@@ -933,8 +936,9 @@ export default class Project extends TenantModel {
     isDefaultValueColumn: true,
     hideColumnInDocumentation: true,
     type: TableColumnType.Boolean,
-    title: "Not Enabled SMS or Call Notification Sent to Owners",
-    description: "Not Enabled SMS or Call Notification Sent to Owners",
+    title: "Not Enabled SMS, Call, or WhatsApp Notification Sent to Owners",
+    description:
+      "Not Enabled SMS, Call, or WhatsApp Notification Sent to Owners",
     defaultValue: false,
   })
   @Column({
