@@ -39,7 +39,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
     setError("");
     try {
       const modelInstance: TBaseModel = new props.modelType();
-      const labelsColumn: string | null = modelInstance.getLabelsColumn();
+      const labelsColumn: string | null = modelInstance.getAccessControlColumn();
 
       const select: JSONObject = {
         [props.modelNameField]: true,
@@ -50,7 +50,6 @@ const ModelPage: <TBaseModel extends BaseModel>(
           _id: true,
           name: true,
           color: true,
-          slug: true,
         } as Select<TBaseModel>;
       }
 

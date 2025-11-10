@@ -123,7 +123,6 @@ export default class DatabaseBaseModel extends BaseEntity {
   public isMasterAdminApiDocs!: boolean;
 
   public currentUserCanAccessColumnBy!: string | null;
-  public labelsColumn!: string | null;
   public slugifyColumn!: string | null;
   public saveSlugToColumn!: string | null;
   public singularName!: string | null;
@@ -345,9 +344,6 @@ export default class DatabaseBaseModel extends BaseEntity {
     return this.currentUserCanAccessColumnBy;
   }
 
-  public getLabelsColumn(): string | null {
-    return this.labelsColumn;
-  }
 
   public get id(): ObjectID | null {
     return this._id ? new ObjectID(this._id) : null;
