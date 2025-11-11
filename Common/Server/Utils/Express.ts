@@ -53,6 +53,8 @@ export type RequestDeviceInfo = {
   deviceBrowser?: string;
 };
 
+type HeaderValue = string | Array<string> | null | undefined;
+
 class Express {
   private static app: express.Application;
   private static httpServer: Server;
@@ -109,8 +111,8 @@ class Express {
 
 export default Express;
 
-export const headerValueToString = (
-  value: string | Array<string> | null | undefined,
+export const headerValueToString: (value: HeaderValue) => string | undefined = (
+  value: HeaderValue,
 ): string | undefined => {
   if (Array.isArray(value)) {
     return value.length > 0 ? value[0] : undefined;
@@ -123,11 +125,15 @@ export const headerValueToString = (
   return undefined;
 };
 
-export const extractDeviceInfo = (req: ExpressRequest): RequestDeviceInfo => {
+export const extractDeviceInfo: (req: ExpressRequest) => RequestDeviceInfo = (
+  req: ExpressRequest,
+): RequestDeviceInfo => {
   const body: JSONObject = (req.body || {}) as JSONObject;
   const data: JSONObject = (body["data"] as JSONObject) || {};
 
-  const getValue = (key: string): string | undefined => {
+  const getValue: (key: string) => string | undefined = (
+    key: string,
+  ): string | undefined => {
     const headerKey: string = key.toLowerCase();
     const camelKey: string = headerKey
       .split("-")
@@ -142,18 +148,10 @@ export const extractDeviceInfo = (req: ExpressRequest): RequestDeviceInfo => {
 
     return (
       headerValueToString(req.headers[`x-${headerKey}`]) ||
-      headerValueToString(
-        body[camelKey] as string | Array<string> | null | undefined,
-      ) ||
-      headerValueToString(
-        data[camelKey] as string | Array<string> | null | undefined,
-      ) ||
-      headerValueToString(
-        body[key] as string | Array<string> | null | undefined,
-      ) ||
-      headerValueToString(
-        data[key] as string | Array<string> | null | undefined,
-      )
+      headerValueToString(body[camelKey] as HeaderValue) ||
+      headerValueToString(data[camelKey] as HeaderValue) ||
+      headerValueToString(body[key] as HeaderValue) ||
+      headerValueToString(data[key] as HeaderValue)
     );
   };
 
@@ -182,7 +180,9 @@ export const extractDeviceInfo = (req: ExpressRequest): RequestDeviceInfo => {
   return result;
 };
 
-export const getClientIp = (req: ExpressRequest): string | undefined => {
+export const getClientIp: (req: ExpressRequest) => string | undefined = (
+  req: ExpressRequest,
+): string | undefined => {
   const forwarded: string | Array<string> | undefined = req.headers[
     "x-forwarded-for"
   ] as string | Array<string> | undefined;

@@ -43,6 +43,7 @@ import Response from "Common/Server/Utils/Response";
 import TotpAuth from "Common/Server/Utils/TotpAuth";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import User from "Common/Models/DatabaseModels/User";
+import UserSession from "Common/Models/DatabaseModels/UserSession";
 import UserTotpAuth from "Common/Models/DatabaseModels/UserTotpAuth";
 import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import UserWebAuthnService from "Common/Server/Services/UserWebAuthnService";
@@ -52,12 +53,18 @@ const router: ExpressRouter = Express.getRouter();
 
 const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 
-const finalizeUserLogin = async (data: {
+type FinalizeUserLoginInput = {
   req: ExpressRequest;
   res: ExpressResponse;
   user: User;
   isGlobalLogin: boolean;
-}): Promise<SessionMetadata> => {
+};
+
+const finalizeUserLogin: (
+  data: FinalizeUserLoginInput,
+) => Promise<SessionMetadata> = async (
+  data: FinalizeUserLoginInput,
+): Promise<SessionMetadata> => {
   const { req, res, user, isGlobalLogin } = data;
 
   const sessionMetadata: SessionMetadata =
@@ -548,7 +555,7 @@ router.post(
         );
       }
 
-      const session =
+      const session: UserSession | null =
         await UserSessionService.findActiveSessionByRefreshToken(refreshToken);
 
       if (!session || !session.id) {

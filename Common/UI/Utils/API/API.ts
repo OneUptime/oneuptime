@@ -149,14 +149,15 @@ class BaseAPI extends API {
           IDENTITY_URL.toString(),
         ).addRoute("/refresh-token");
 
-        const result = await super.fetch<JSONObject>({
-          method: HTTPMethod.POST,
-          url: refreshUrl,
-          options: {
-            skipAuthRefresh: true,
-            hasAttemptedAuthRefresh: true,
-          },
-        });
+        const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await super.fetch<JSONObject>({
+            method: HTTPMethod.POST,
+            url: refreshUrl,
+            options: {
+              skipAuthRefresh: true,
+              hasAttemptedAuthRefresh: true,
+            },
+          });
 
         if (result instanceof HTTPResponse && result.isSuccess()) {
           return true;
