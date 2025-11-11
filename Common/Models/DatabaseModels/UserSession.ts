@@ -305,7 +305,8 @@ class UserSession extends BaseModel {
   @TableColumn({
     type: TableColumnType.JSON,
     title: "Additional Info",
-    description: "Flexible JSON payload for storing structured session metadata.",
+    description:
+      "Flexible JSON payload for storing structured session metadata.",
   })
   @Column({
     type: ColumnType.JSON,

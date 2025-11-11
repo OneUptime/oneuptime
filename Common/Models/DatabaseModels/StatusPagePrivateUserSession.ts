@@ -22,7 +22,6 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
-
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableBillingAccessControl({
   create: PlanType.Growth,
