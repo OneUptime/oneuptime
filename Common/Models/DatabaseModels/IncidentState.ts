@@ -81,7 +81,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Index(["projectId", "isResolvedState"])
 @Index(["projectId", "order"])
 export default class IncidentState extends BaseModel {
-  
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

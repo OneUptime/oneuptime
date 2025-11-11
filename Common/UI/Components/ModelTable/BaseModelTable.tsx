@@ -649,9 +649,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             filter.filterEntityType &&
             filter.filterEntityType.prototype instanceof BaseModel
           ) {
-            const filterModel: BaseModel = new (
-              filter.filterEntityType as DatabaseBaseModelType
-            )();
+            const filterModel: BaseModel =
+              new (filter.filterEntityType as DatabaseBaseModelType)();
             colorColumnName = filterModel.getFirstColorColumn();
           }
 

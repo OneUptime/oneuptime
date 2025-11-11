@@ -79,7 +79,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @Index(["projectId", "order"])
 export default class AlertSeverity extends BaseModel {
-  
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

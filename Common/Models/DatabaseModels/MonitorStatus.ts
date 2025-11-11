@@ -80,7 +80,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Index(["projectId", "isOperationalState"])
 @Index(["projectId", "isOfflineState"])
 export default class MonitorStatus extends BaseModel {
-  
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

@@ -81,7 +81,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Index(["projectId", "isOngoingState"])
 @Index(["projectId", "isEndedState"])
 export default class ScheduledMaintenanceState extends BaseModel {
-  
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

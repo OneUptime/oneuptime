@@ -82,7 +82,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Index(["projectId", "isAcknowledgedState"])
 @Index(["projectId", "order"])
 export default class AlertState extends BaseModel {
-  
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
