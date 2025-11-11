@@ -290,6 +290,90 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const defaultSelectedLabelAccentColor: string = "#6366f1"; // indigo-500
+
+  const resolveSelectedLabelColor: (color?: string) => string = (
+    color?: string,
+  ): string => {
+    if (!color) {
+      return defaultSelectedLabelAccentColor;
+    }
+
+    try {
+      return Color.fromString(color).toString();
+    } catch (err) {
+      return defaultSelectedLabelAccentColor;
+    }
+  };
+
+  const renderAssociatedLabels = (
+    labels: Array<NormalizedDropdownLabel>,
+    context: FormatOptionLabelMeta<DropdownOption>["context"],
+    hiddenLabelCount: number,
+  ): ReactElement | null => {
+    if (labels.length === 0 && hiddenLabelCount === 0) {
+      return null;
+    }
+
+    if (context === "value") {
+      return (
+        <div className="flex flex-wrap items-center gap-1">
+          {labels.map((label: NormalizedDropdownLabel, index: number) => {
+            const accentColor: string = resolveSelectedLabelColor(label.color);
+
+            return (
+              <span
+                key={`${label.id || label.name}-selected-${index}`}
+                className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2 py-0.5 text-xs font-medium text-gray-600"
+                style={{
+                  borderColor: accentColor,
+                }}
+                title={label.name}
+              >
+                <span
+                  aria-hidden="true"
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{
+                    backgroundColor: accentColor,
+                  }}
+                ></span>
+                {label.name}
+              </span>
+            );
+          })}
+          {hiddenLabelCount > 0 ? (
+            <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-0.5 text-xs font-medium text-gray-500">
+              +{hiddenLabelCount}
+            </span>
+          ) : null}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-wrap gap-1">
+        {labels.map((label: NormalizedDropdownLabel, index: number) => {
+          const { backgroundColor, color } = getLabelStyle(label.color);
+
+          return (
+            <span
+              key={`${label.id || label.name}-menu-${index}`}
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shadow-sm"
+              style={{ backgroundColor, color }}
+            >
+              {label.name}
+            </span>
+          );
+        })}
+        {hiddenLabelCount > 0 ? (
+          <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+            +{hiddenLabelCount}
+          </span>
+        ) : null}
+      </div>
+    );
+  };
+
   const formatDropdownOptionLabel: (
     option: DropdownOption,
     meta: FormatOptionLabelMeta<DropdownOption>,
@@ -316,32 +400,11 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           <span className="text-sm font-medium text-gray-900">
             {option.label}
           </span>
-          {visibleLabels.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-1">
-              {visibleLabels.map(
-                (label: NormalizedDropdownLabel, index: number) => {
-                  const { backgroundColor, color } = getLabelStyle(
-                    label.color,
-                  );
-
-                  return (
-                    <span
-                      key={`${label.id || label.name}-${index}`}
-                      className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shadow-sm"
-                      style={{ backgroundColor, color }}
-                    >
-                      {label.name}
-                    </span>
-                  );
-                },
-              )}
-              {hiddenLabelCount > 0 ? (
-                <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                  +{hiddenLabelCount}
-                </span>
-              ) : null}
-            </div>
-          ) : null}
+          {renderAssociatedLabels(
+            visibleLabels,
+            meta.context,
+            hiddenLabelCount,
+          )}
         </div>
       );
     }
@@ -354,30 +417,11 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         {option.description ? (
           <span className="text-xs text-gray-500">{option.description}</span>
         ) : null}
-        {visibleLabels.length > 0 ? (
-          <div className="flex flex-wrap gap-1">
-            {visibleLabels.map(
-              (label: NormalizedDropdownLabel, index: number) => {
-                const { backgroundColor, color } = getLabelStyle(label.color);
-
-                return (
-                  <span
-                    key={`${label.id || label.name}-menu-${index}`}
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shadow-sm"
-                    style={{ backgroundColor, color }}
-                  >
-                    {label.name}
-                  </span>
-                );
-              },
-            )}
-            {hiddenLabelCount > 0 ? (
-              <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                +{hiddenLabelCount}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
+        {renderAssociatedLabels(
+          visibleLabels,
+          meta.context,
+          hiddenLabelCount,
+        )}
       </div>
     );
   };
@@ -471,8 +515,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           },
           noOptionsMessage: () => "px-3 py-2 text-sm text-gray-500",
           multiValue: () =>
-            "flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5",
-          multiValueLabel: () => "text-xs font-medium text-indigo-700",
+            "flex items-center gap-2 rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-1",
+          multiValueLabel: () =>
+            "flex flex-wrap items-center gap-2 text-sm font-medium text-indigo-900",
           multiValueRemove: () =>
             "text-indigo-400 hover:text-indigo-600 transition-colors duration-150",
         }}
@@ -512,11 +557,17 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           },
           multiValue: (provided) => ({
             ...provided,
-            backgroundColor: "#e0e7ff", // indigo-100
+            backgroundColor: "#eef2ff", // indigo-50
+            borderRadius: 8,
+            border: "1px solid #c7d2fe", // indigo-200
+            paddingLeft: 4,
+            paddingRight: 4,
           }),
           multiValueLabel: (provided) => ({
             ...provided,
-            color: "#4338ca", // indigo-600
+            color: "#312e81", // indigo-800
+            fontSize: "0.875rem",
+            fontWeight: 500,
           }),
           multiValueRemove: (provided) => ({
             ...provided,
