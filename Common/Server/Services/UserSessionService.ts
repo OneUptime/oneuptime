@@ -265,9 +265,8 @@ export class Service extends DatabaseService<Model> {
     refreshToken: string,
     options?: RevokeSessionOptions,
   ): Promise<void> {
-    const session: Model | null = await this.findActiveSessionByRefreshToken(
-      refreshToken,
-    );
+    const session: Model | null =
+      await this.findActiveSessionByRefreshToken(refreshToken);
 
     if (!session || !session.id) {
       return;

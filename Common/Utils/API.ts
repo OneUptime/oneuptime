@@ -450,8 +450,8 @@ export default class API {
 
       if (
         error.response?.status === 401 &&
-        !(options?.skipAuthRefresh) &&
-        !(options?.hasAttemptedAuthRefresh)
+        !options?.skipAuthRefresh &&
+        !options?.hasAttemptedAuthRefresh
       ) {
         const retryUrl: URL = URL.fromString(url.toString());
 

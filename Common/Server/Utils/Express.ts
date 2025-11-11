@@ -123,9 +123,7 @@ export const headerValueToString = (
   return undefined;
 };
 
-export const extractDeviceInfo = (
-  req: ExpressRequest,
-): RequestDeviceInfo => {
+export const extractDeviceInfo = (req: ExpressRequest): RequestDeviceInfo => {
   const body: JSONObject = (req.body || {}) as JSONObject;
   const data: JSONObject = (body["data"] as JSONObject) || {};
 
@@ -144,10 +142,18 @@ export const extractDeviceInfo = (
 
     return (
       headerValueToString(req.headers[`x-${headerKey}`]) ||
-      headerValueToString(body[camelKey] as string | Array<string> | null | undefined) ||
-      headerValueToString(data[camelKey] as string | Array<string> | null | undefined) ||
-      headerValueToString(body[key] as string | Array<string> | null | undefined) ||
-      headerValueToString(data[key] as string | Array<string> | null | undefined)
+      headerValueToString(
+        body[camelKey] as string | Array<string> | null | undefined,
+      ) ||
+      headerValueToString(
+        data[camelKey] as string | Array<string> | null | undefined,
+      ) ||
+      headerValueToString(
+        body[key] as string | Array<string> | null | undefined,
+      ) ||
+      headerValueToString(
+        data[key] as string | Array<string> | null | undefined,
+      )
     );
   };
 

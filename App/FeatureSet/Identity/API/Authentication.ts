@@ -548,18 +548,15 @@ router.post(
         );
       }
 
-      const session = await UserSessionService.findActiveSessionByRefreshToken(
-        refreshToken,
-      );
+      const session =
+        await UserSessionService.findActiveSessionByRefreshToken(refreshToken);
 
       if (!session || !session.id) {
         CookieUtil.removeAllCookies(req, res);
         return Response.sendErrorResponse(
           req,
           res,
-          new NotAuthenticatedException(
-            "Session expired. Please login again.",
-          ),
+          new NotAuthenticatedException("Session expired. Please login again."),
         );
       }
 
@@ -574,9 +571,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new NotAuthenticatedException(
-            "Session expired. Please login again.",
-          ),
+          new NotAuthenticatedException("Session expired. Please login again."),
         );
       }
 
@@ -588,9 +583,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new NotAuthenticatedException(
-            "Session expired. Please login again.",
-          ),
+          new NotAuthenticatedException("Session expired. Please login again."),
         );
       }
 
@@ -618,13 +611,12 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new NotAuthenticatedException(
-            "Account no longer exists.",
-          ),
+          new NotAuthenticatedException("Account no longer exists."),
         );
       }
 
-      const additionalInfo: JSONObject = (session.additionalInfo || {}) as JSONObject;
+      const additionalInfo: JSONObject = (session.additionalInfo ||
+        {}) as JSONObject;
       const isGlobalLogin: boolean =
         typeof additionalInfo["isGlobalLogin"] === "boolean"
           ? (additionalInfo["isGlobalLogin"] as boolean)

@@ -12,8 +12,7 @@ import CaptureSpan from "./Telemetry/CaptureSpan";
 export default class CookieUtil {
   // set cookie with express response
 
-  private static readonly DEFAULT_ACCESS_TOKEN_EXPIRY_SECONDS: number =
-    15 * 60;
+  private static readonly DEFAULT_ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 
   @CaptureSpan()
   public static getCookiesFromCookieString(

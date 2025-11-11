@@ -61,7 +61,6 @@ class JSONWebToken {
         statusPageId: data.statusPageId?.toString(),
       };
     } else {
-
       jsonObj = {
         ...data,
         userId: data.userId?.toString(),
