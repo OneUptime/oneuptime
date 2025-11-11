@@ -23,7 +23,7 @@ export type DropdownOptionLabel =
   | {
       id?: string;
       name: string;
-      color?: string;
+      color?: Color;
     };
 
 export interface DropdownOption {
