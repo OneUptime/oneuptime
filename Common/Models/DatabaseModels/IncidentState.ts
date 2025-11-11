@@ -81,7 +81,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Index(["projectId", "isResolvedState"])
 @Index(["projectId", "order"])
 export default class IncidentState extends BaseModel {
-  @ColorField()
+  
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -382,6 +382,7 @@ export default class IncidentState extends BaseModel {
       Permission.EditIncidentState,
     ],
   })
+  @ColorField()
   @TableColumn({
     title: "Color",
     required: true,

@@ -81,7 +81,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Index(["projectId", "isOngoingState"])
 @Index(["projectId", "isEndedState"])
 export default class ScheduledMaintenanceState extends BaseModel {
-  @ColorField()
+  
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -382,6 +382,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
       Permission.EditScheduledMaintenanceState,
     ],
   })
+  @ColorField()
   @TableColumn({
     title: "Color",
     required: true,

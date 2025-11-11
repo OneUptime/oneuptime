@@ -79,7 +79,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @Index(["projectId", "order"])
 export default class AlertSeverity extends BaseModel {
-  @ColorField()
+  
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -380,6 +380,7 @@ export default class AlertSeverity extends BaseModel {
       Permission.EditAlertSeverity,
     ],
   })
+  @ColorField()
   @TableColumn({
     title: "Color",
     required: true,

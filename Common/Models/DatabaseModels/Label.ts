@@ -75,7 +75,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   name: "Label",
 })
 export default class Label extends AccessControlModel {
-  @ColorField()
+ 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -367,6 +367,7 @@ export default class Label extends AccessControlModel {
       Permission.EditProjectLabel,
     ],
   })
+   @ColorField()
   @TableColumn({
     title: "Color",
     required: true,

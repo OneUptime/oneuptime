@@ -80,7 +80,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Index(["projectId", "isOperationalState"])
 @Index(["projectId", "isOfflineState"])
 export default class MonitorStatus extends BaseModel {
-  @ColorField()
+  
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -381,6 +381,7 @@ export default class MonitorStatus extends BaseModel {
       Permission.EditProjectMonitorStatus,
     ],
   })
+  @ColorField()
   @TableColumn({
     title: "Color",
     required: true,
