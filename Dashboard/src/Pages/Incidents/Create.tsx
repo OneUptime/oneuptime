@@ -330,8 +330,6 @@ const IncidentCreate: FunctionComponent<
                             color: state.color as Color,
                           };
 
-                          
-
                           return option;
                         },
                       );
