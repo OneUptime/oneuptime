@@ -15,6 +15,7 @@ import TableColumn, {
   getTableColumns,
 } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
+import { getFirstColorFieldColumn } from "../../../Types/Database/ColorField";
 import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -201,6 +202,10 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public getTableColumns(): Columns {
     return new Columns(Object.keys(getTableColumns(this)));
+  }
+
+  public getFirstColorColumn(): string | null {
+    return  getFirstColorFieldColumn(this);
   }
 
   public canQueryMultiTenant(): boolean {
