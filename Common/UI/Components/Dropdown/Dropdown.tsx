@@ -31,6 +31,7 @@ export interface DropdownOption {
   label: string;
   description?: string;
   labels?: Array<DropdownOptionLabel>;
+  color?: Color;
 }
 
 export interface ComponentProps {
@@ -266,6 +267,29 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       );
   };
 
+  const renderOptionColorIndicator: (
+    color?: Color | string,
+  ) => ReactElement | null = (color?: Color | string): ReactElement | null => {
+    const normalizedColor: string | undefined = color
+      ? new Color(color).toString()
+      : undefined;
+
+    if (!normalizedColor) {
+      return null;
+    }
+
+    return (
+      <span
+        aria-hidden="true"
+        className="h-2.5 w-2.5 flex-none rounded-full border border-gray-200"
+        style={{
+          backgroundColor: normalizedColor,
+        }}
+        title={normalizedColor}
+      ></span>
+    );
+  };
+
   const getLabelStyle: (color?: string) => {
     backgroundColor: string;
     color: string;
@@ -401,10 +425,13 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
     if (meta.context === "value") {
       return (
-        <div className="flex flex-wrap items-center gap-1">
-          <span className="text-sm font-medium text-gray-900">
-            {option.label}
-          </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
+            {renderOptionColorIndicator(option.color)}
+            <span className="text-sm font-medium text-gray-900">
+              {option.label}
+            </span>
+          </div>
           {renderAssociatedLabels(
             visibleLabels,
             meta.context,
@@ -416,9 +443,12 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="flex flex-col gap-1">
-        <span className="text-sm font-medium text-gray-900">
-          {option.label}
-        </span>
+        <div className="flex items-center gap-2">
+          {renderOptionColorIndicator(option.color)}
+          <span className="text-sm font-medium text-gray-900">
+            {option.label}
+          </span>
+        </div>
         {option.description ? (
           <span className="text-xs text-gray-500">{option.description}</span>
         ) : null}

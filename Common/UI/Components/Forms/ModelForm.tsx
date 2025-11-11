@@ -414,6 +414,16 @@ const ModelForm: <TBaseModel extends BaseModel>(
             [field.dropdownModal.valueField]: true,
           } as any;
 
+          let colorColumnName: string | null = null;
+          let shouldSelectColorColumn: boolean = false;
+
+          colorColumnName = tempModel.getFirstColorColumn();
+
+          if (colorColumnName) {
+            select[colorColumnName] = true;
+            shouldSelectColorColumn = true;
+          }
+
           const accessControlColumnName: string | null =
             tempModel.getAccessControlColumn();
 
@@ -451,6 +461,15 @@ const ModelForm: <TBaseModel extends BaseModel>(
                     field.dropdownModal?.valueField
                   ].toString(),
                 };
+
+                if (colorColumnName && shouldSelectColorColumn) {
+                  const color: Color = item.getColumnValue(
+                    colorColumnName,
+                  ) as Color;
+                  if (color) {
+                    option.color = color;
+                  }
+                }
 
                 if (accessControlColumnName) {
                   const labelsForItem: Array<AccessControlModel> = (
