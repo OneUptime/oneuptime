@@ -4,9 +4,13 @@ import "reflect-metadata";
 
 const colorFieldSymbol: symbol = Symbol("ColorField");
 
-type ColorFieldColumnsFunction = <T extends BaseModel>(target: T) => Array<string>;
+type ColorFieldColumnsFunction = <T extends BaseModel>(
+  target: T,
+) => Array<string>;
 
-type FirstColorFieldColumnFunction = <T extends BaseModel>(target: T) => string | null;
+type FirstColorFieldColumnFunction = <T extends BaseModel>(
+  target: T,
+) => string | null;
 
 type IsColorFieldColumnFunction = <T extends BaseModel>(
   target: T,
@@ -17,14 +21,18 @@ const ColorField = (): ReflectionMetadataType => {
   return Reflect.metadata(colorFieldSymbol, true);
 };
 
-export const isColorFieldColumn: IsColorFieldColumnFunction = <T extends BaseModel>(
+export const isColorFieldColumn: IsColorFieldColumnFunction = <
+  T extends BaseModel,
+>(
   target: T,
   propertyKey: string,
 ): boolean => {
   return Boolean(Reflect.getMetadata(colorFieldSymbol, target, propertyKey));
 };
 
-export const getColorFieldColumns: ColorFieldColumnsFunction = <T extends BaseModel>(
+export const getColorFieldColumns: ColorFieldColumnsFunction = <
+  T extends BaseModel,
+>(
   target: T,
 ): Array<string> => {
   const columns: Array<string> = [];
@@ -39,7 +47,9 @@ export const getColorFieldColumns: ColorFieldColumnsFunction = <T extends BaseMo
   return columns;
 };
 
-export const getFirstColorFieldColumn: FirstColorFieldColumnFunction = <T extends BaseModel>(
+export const getFirstColorFieldColumn: FirstColorFieldColumnFunction = <
+  T extends BaseModel,
+>(
   target: T,
 ): string | null => {
   const columns: Array<string> = getColorFieldColumns(target);

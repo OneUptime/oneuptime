@@ -205,7 +205,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   }
 
   public getFirstColorColumn(): string | null {
-    return  getFirstColorFieldColumn(this);
+    return getFirstColorFieldColumn(this);
   }
 
   public canQueryMultiTenant(): boolean {
