@@ -1103,7 +1103,9 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.EmptyCircle) {
-    return getSvgWrapper(<circle cx="12" cy="12" r="7.5" />);
+    return getSvgWrapper(<circle cx="12" cy="12" r="7.5" />, {
+      strokeWidth: "2.25",
+    });
   } else if (icon === IconProp.Circle) {
     return getSvgWrapper(
       <path
