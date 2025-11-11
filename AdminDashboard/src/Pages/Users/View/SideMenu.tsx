@@ -30,6 +30,18 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
           }}
           icon={IconProp.Info}
         />
+        <SideMenuItem
+          link={{
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_SETTINGS] as Route,
+              {
+                modelId: props.modelId,
+              },
+            ),
+          }}
+          icon={IconProp.Settings}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
