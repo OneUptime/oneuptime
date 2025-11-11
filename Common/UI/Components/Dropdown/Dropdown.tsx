@@ -10,6 +10,7 @@ import Color from "../../../Types/Color";
 import Label from "../../../Models/DatabaseModels/Label";
 import Select, {
   ControlProps,
+  CSSObjectWithLabel,
   FormatOptionLabelMeta,
   GroupBase,
   OptionProps,
@@ -256,9 +257,13 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       .map((label: DropdownOptionLabel) => {
         return normalizeDropdownLabel(label);
       })
-      .filter((label): label is NormalizedDropdownLabel => {
-        return label !== null;
-      });
+      .filter(
+        (
+          label: NormalizedDropdownLabel | null,
+        ): label is NormalizedDropdownLabel => {
+          return label !== null;
+        },
+      );
   };
 
   const getLabelStyle: (color?: string) => {
@@ -280,7 +285,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           ? "#111827" // gray-900
           : "#f9fafb", // gray-50
       };
-    } catch (err) {
+    } catch {
       return {
         backgroundColor: color,
         color: "#111827",
@@ -299,12 +304,16 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
     try {
       return Color.fromString(color).toString();
-    } catch (err) {
+    } catch {
       return defaultSelectedLabelAccentColor;
     }
   };
 
-  const renderAssociatedLabels = (
+  const renderAssociatedLabels: (
+    labels: Array<NormalizedDropdownLabel>,
+    context: FormatOptionLabelMeta<DropdownOption>["context"],
+    hiddenLabelCount: number,
+  ) => ReactElement | null = (
     labels: Array<NormalizedDropdownLabel>,
     context: FormatOptionLabelMeta<DropdownOption>["context"],
     hiddenLabelCount: number,
@@ -536,24 +545,35 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           },
         }}
         styles={{
-          dropdownIndicator: (provided) => {
+          dropdownIndicator: (
+            provided: CSSObjectWithLabel,
+          ): CSSObjectWithLabel => {
             return {
               ...provided,
               padding: 8,
             };
           },
-          clearIndicator: (provided) => {
+          clearIndicator: (
+            provided: CSSObjectWithLabel,
+          ): CSSObjectWithLabel => {
             return {
               ...provided,
               padding: 8,
             };
           },
-          indicatorSeparator: () => {
+          indicatorSeparator: (): CSSObjectWithLabel => {
             return {
               display: "none",
-            };
+            } as CSSObjectWithLabel;
           },
-          option: (provided, state) => {
+          option: (
+            provided: CSSObjectWithLabel,
+            state: OptionProps<
+              DropdownOption,
+              boolean,
+              GroupBase<DropdownOption>
+            >,
+          ): CSSObjectWithLabel => {
             if (state.isSelected) {
               return {
                 ...provided,
@@ -575,7 +595,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
               color: "#374151", // gray-700
             };
           },
-          multiValue: (provided) => {
+          multiValue: (provided: CSSObjectWithLabel): CSSObjectWithLabel => {
             return {
               ...provided,
               backgroundColor: "#eef2ff", // indigo-50
@@ -585,7 +605,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
               paddingRight: 4,
             };
           },
-          multiValueLabel: (provided) => {
+          multiValueLabel: (
+            provided: CSSObjectWithLabel,
+          ): CSSObjectWithLabel => {
             return {
               ...provided,
               color: "#312e81", // indigo-800
@@ -593,7 +615,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
               fontWeight: 500,
             };
           },
-          multiValueRemove: (provided) => {
+          multiValueRemove: (
+            provided: CSSObjectWithLabel,
+          ): CSSObjectWithLabel => {
             return {
               ...provided,
               color: "#6366f1", // indigo-500
@@ -603,7 +627,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
               },
             };
           },
-          menuPortal: (base) => {
+          menuPortal: (base: CSSObjectWithLabel): CSSObjectWithLabel => {
             return {
               ...base,
               zIndex: 50,
