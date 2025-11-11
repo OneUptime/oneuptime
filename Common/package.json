@@ -54,7 +54,7 @@
         "@opentelemetry/context-zone": "^1.25.1",
         "@opentelemetry/exporter-logs-otlp-http": "^0.52.1",
         "@opentelemetry/exporter-metrics-otlp-proto": "^0.52.1",
-        "@opentelemetry/exporter-trace-otlp-http": "^0.52.1",
+        "@opentelemetry/exporter-trace-otlp-http": "^0.207.0",
         "@opentelemetry/exporter-trace-otlp-proto": "^0.52.1",
         "@opentelemetry/id-generator-aws-xray": "^1.2.2",
         "@opentelemetry/instrumentation": "^0.52.1",
