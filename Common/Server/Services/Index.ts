@@ -106,6 +106,7 @@ import StatusPageHistoryChartBarColorRuleService from "./StatusPageHistoryChartB
 import StatusPageOwnerTeamService from "./StatusPageOwnerTeamService";
 import StatusPageOwnerUserService from "./StatusPageOwnerUserService";
 import StatusPagePrivateUserService from "./StatusPagePrivateUserService";
+import StatusPagePrivateUserSessionService from "./StatusPagePrivateUserSessionService";
 import StatusPageResourceService from "./StatusPageResourceService";
 // Status Page
 import StatusPageService from "./StatusPageService";
@@ -125,6 +126,7 @@ import UserNotificationSettingService from "./UserNotificationSettingService";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import UserService from "./UserService";
+import UserSessionService from "./UserSessionService";
 import UserTotpAuthService from "./UserTotpAuthService";
 import UserWebAuthnService from "./UserWebAuthnService";
 import UserSmsService from "./UserSmsService";
@@ -266,6 +268,7 @@ const services: Array<BaseService> = [
   StatusPageOwnerTeamService,
   StatusPageOwnerUserService,
   StatusPagePrivateUserService,
+  StatusPagePrivateUserSessionService,
   StatusPageResourceService,
   StatusPageService,
   StatusPageSsoService,
@@ -278,6 +281,7 @@ const services: Array<BaseService> = [
   TeamService,
 
   UserService,
+  UserSessionService,
   UserCallService,
   UserEmailService,
   UserNotificationRuleService,
