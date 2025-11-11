@@ -779,9 +779,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
                     return normalizedLabel;
                   })
-                  .filter((label): label is SimplifiedDropdownLabel => {
-                    return label !== null;
-                  });
+                  .filter(
+                    (
+                      label: SimplifiedDropdownLabel | null,
+                    ): label is SimplifiedDropdownLabel => {
+                      return label !== null;
+                    },
+                  );
 
               if (dropdownLabels.length > 0) {
                 option.labels = dropdownLabels as Array<DropdownOptionLabel>;
