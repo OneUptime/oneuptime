@@ -24,6 +24,7 @@ class JSONWebToken {
       isMasterAdmin: boolean;
       // If this is OneUptime username and password login. This is true, if this is SSO login. Then, this is false.
       isGlobalLogin: boolean;
+      sessionId: ObjectID;
     };
     expiresInSeconds: number;
   }): string {
@@ -60,6 +61,7 @@ class JSONWebToken {
         statusPageId: data.statusPageId?.toString(),
       };
     } else {
+
       jsonObj = {
         ...data,
         userId: data.userId?.toString(),
@@ -67,9 +69,9 @@ class JSONWebToken {
         name: data.name?.toString() || "",
         projectId: data.projectId?.toString() || "",
         isMasterAdmin: data.isMasterAdmin,
+        sessionId: data.sessionId?.toString() || undefined,
       };
     }
-
     return JSONWebToken.signJsonPayload(jsonObj, expiresInSeconds);
   }
 
@@ -106,6 +108,9 @@ class JSONWebToken {
           isMasterAdmin: false,
           name: new Name("User"),
           isGlobalLogin: Boolean(decoded["isGlobalLogin"]),
+          sessionId: decoded["sessionId"]
+            ? new ObjectID(decoded["sessionId"] as string)
+            : undefined,
         };
       }
 
@@ -118,6 +123,9 @@ class JSONWebToken {
           : undefined,
         isMasterAdmin: Boolean(decoded["isMasterAdmin"]),
         isGlobalLogin: Boolean(decoded["isGlobalLogin"]),
+        sessionId: decoded["sessionId"]
+          ? new ObjectID(decoded["sessionId"] as string)
+          : undefined,
       };
     } catch (e) {
       logger.error(e);

@@ -3,6 +3,8 @@ import Navigation from "../Navigation";
 import PermissionUtil from "../Permission";
 import User from "../User";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPMethod from "../../../Types/API/HTTPMethod";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Headers from "../../../Types/API/Headers";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
@@ -11,14 +13,18 @@ import URL from "../../../Types/API/URL";
 import Dictionary from "../../../Types/Dictionary";
 import APIException from "../../../Types/Exception/ApiException";
 import Exception from "../../../Types/Exception/Exception";
+import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
-import API from "../../../Utils/API";
+import API, { AuthRetryContext } from "../../../Utils/API";
+import { IDENTITY_URL } from "../../Config";
 
 class BaseAPI extends API {
+  private static refreshPromise: Promise<boolean> | null = null;
+
   public constructor(protocol: Protocol, hostname: Hostname, route?: Route) {
     super(protocol, hostname, route);
   }
@@ -132,6 +138,37 @@ class BaseAPI extends API {
     }
 
     return error;
+  }
+
+  protected static override async tryRefreshAuth(
+    _context: AuthRetryContext,
+  ): Promise<boolean> {
+    if (!this.refreshPromise) {
+      this.refreshPromise = (async () => {
+        const refreshUrl: URL = URL.fromString(
+          IDENTITY_URL.toString(),
+        ).addRoute("/refresh-token");
+
+        const result = await super.fetch<JSONObject>({
+          method: HTTPMethod.POST,
+          url: refreshUrl,
+          options: {
+            skipAuthRefresh: true,
+            hasAttemptedAuthRefresh: true,
+          },
+        });
+
+        if (result instanceof HTTPResponse && result.isSuccess()) {
+          return true;
+        }
+
+        return false;
+      })().finally(() => {
+        this.refreshPromise = null;
+      });
+    }
+
+    return await this.refreshPromise;
   }
 
   protected static getLoginRoute(): Route {
