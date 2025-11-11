@@ -20,6 +20,9 @@ import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import ProjectSSOService from "Common/Server/Services/ProjectSsoService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserService from "Common/Server/Services/UserService";
+import UserSessionService, {
+  SessionMetadata,
+} from "Common/Server/Services/UserSessionService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
 import CookieUtil from "Common/Server/Utils/Cookie";
@@ -28,6 +31,9 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  extractDeviceInfo,
+  getClientIp,
+  headerValueToString,
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
@@ -39,6 +45,8 @@ import xml2js from "xml2js";
 import Name from "Common/Types/Name";
 
 const router: ExpressRouter = Express.getRouter();
+
+const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 
 /*
  * This route is used to get the SSO config for the user.
@@ -539,14 +547,30 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       expressResponse: res,
     });
 
+    // Refresh Permissions for this user here.
+    await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
+
+    const sessionMetadata: SessionMetadata =
+      await UserSessionService.createSession({
+        userId: alreadySavedUser.id!,
+        isGlobalLogin: false,
+        ipAddress: getClientIp(req),
+        userAgent: headerValueToString(req.headers["user-agent"]),
+        ...extractDeviceInfo(req),
+        additionalInfo: {
+          projectId: projectId.toString(),
+        },
+      });
+
     CookieUtil.setUserCookie({
       expressResponse: res,
       user: alreadySavedUser,
       isGlobalLogin: false,
+      sessionId: sessionMetadata.session.id!,
+      refreshToken: sessionMetadata.refreshToken,
+      refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
+      accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
     });
-
-    // Refresh Permissions for this user here.
-    await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
 
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();

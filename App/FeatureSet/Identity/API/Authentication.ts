@@ -25,12 +25,18 @@ import EmailVerificationTokenService from "Common/Server/Services/EmailVerificat
 import MailService from "Common/Server/Services/MailService";
 import UserService from "Common/Server/Services/UserService";
 import UserTotpAuthService from "Common/Server/Services/UserTotpAuthService";
+import UserSessionService, {
+  SessionMetadata,
+} from "Common/Server/Services/UserSessionService";
 import CookieUtil from "Common/Server/Utils/Cookie";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  extractDeviceInfo,
+  getClientIp,
+  headerValueToString,
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
@@ -40,8 +46,41 @@ import User from "Common/Models/DatabaseModels/User";
 import UserTotpAuth from "Common/Models/DatabaseModels/UserTotpAuth";
 import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import UserWebAuthnService from "Common/Server/Services/UserWebAuthnService";
+import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 
 const router: ExpressRouter = Express.getRouter();
+
+const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
+
+const finalizeUserLogin = async (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  user: User;
+  isGlobalLogin: boolean;
+}): Promise<SessionMetadata> => {
+  const { req, res, user, isGlobalLogin } = data;
+
+  const sessionMetadata: SessionMetadata =
+    await UserSessionService.createSession({
+      userId: user.id!,
+      isGlobalLogin,
+      ipAddress: getClientIp(req),
+      userAgent: headerValueToString(req.headers["user-agent"]),
+      ...extractDeviceInfo(req),
+    });
+
+  CookieUtil.setUserCookie({
+    expressResponse: res,
+    user,
+    isGlobalLogin,
+    sessionId: sessionMetadata.session.id!,
+    refreshToken: sessionMetadata.refreshToken,
+    refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
+    accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+  });
+
+  return sessionMetadata;
+};
 
 router.post(
   "/signup",
@@ -185,9 +224,9 @@ router.post(
       if (savedUser) {
         // Refresh Permissions for this user here.
         await AccessTokenService.refreshUserAllPermissions(savedUser.id!);
-
-        CookieUtil.setUserCookie({
-          expressResponse: res,
+        await finalizeUserLogin({
+          req,
+          res,
           user: savedUser,
           isGlobalLogin: true,
         });
@@ -488,6 +527,135 @@ router.post(
 );
 
 router.post(
+  "/refresh-token",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const refreshToken: string | undefined =
+        CookieUtil.getRefreshTokenFromExpressRequest(req);
+
+      if (!refreshToken) {
+        CookieUtil.removeAllCookies(req, res);
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException(
+            "Refresh token missing. Please login again.",
+          ),
+        );
+      }
+
+      const session = await UserSessionService.findActiveSessionByRefreshToken(
+        refreshToken,
+      );
+
+      if (!session || !session.id) {
+        CookieUtil.removeAllCookies(req, res);
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException(
+            "Session expired. Please login again.",
+          ),
+        );
+      }
+
+      if (
+        session.refreshTokenExpiresAt &&
+        OneUptimeDate.hasExpired(session.refreshTokenExpiresAt)
+      ) {
+        await UserSessionService.revokeSessionById(session.id, {
+          reason: "Refresh token expired",
+        });
+        CookieUtil.removeAllCookies(req, res);
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException(
+            "Session expired. Please login again.",
+          ),
+        );
+      }
+
+      if (!session.userId) {
+        await UserSessionService.revokeSessionById(session.id, {
+          reason: "Session missing user",
+        });
+        CookieUtil.removeAllCookies(req, res);
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException(
+            "Session expired. Please login again.",
+          ),
+        );
+      }
+
+      const user: User | null = await UserService.findOneById({
+        id: session.userId,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          email: true,
+          name: true,
+          isMasterAdmin: true,
+          profilePictureId: true,
+          timezone: true,
+          enableTwoFactorAuth: true,
+        },
+      });
+
+      if (!user) {
+        await UserSessionService.revokeSessionById(session.id, {
+          reason: "User not found",
+        });
+        CookieUtil.removeAllCookies(req, res);
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException(
+            "Account no longer exists.",
+          ),
+        );
+      }
+
+      const additionalInfo: JSONObject = (session.additionalInfo || {}) as JSONObject;
+      const isGlobalLogin: boolean =
+        typeof additionalInfo["isGlobalLogin"] === "boolean"
+          ? (additionalInfo["isGlobalLogin"] as boolean)
+          : true;
+
+      const renewedSession: SessionMetadata =
+        await UserSessionService.renewSessionWithNewRefreshToken({
+          session,
+          ipAddress: getClientIp(req),
+          userAgent: headerValueToString(req.headers["user-agent"]),
+          ...extractDeviceInfo(req),
+        });
+
+      CookieUtil.setUserCookie({
+        expressResponse: res,
+        user,
+        isGlobalLogin,
+        sessionId: renewedSession.session.id!,
+        refreshToken: renewedSession.refreshToken,
+        refreshTokenExpiresAt: renewedSession.refreshTokenExpiresAt,
+        accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+      });
+
+      return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.post(
   "/logout",
   async (
     req: ExpressRequest,
@@ -495,6 +663,15 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
+      const refreshToken: string | undefined =
+        CookieUtil.getRefreshTokenFromExpressRequest(req);
+
+      if (refreshToken) {
+        await UserSessionService.revokeSessionByRefreshToken(refreshToken, {
+          reason: "User logout",
+        });
+      }
+
       CookieUtil.removeAllCookies(req, res);
 
       return Response.sendEmptySuccessResponse(req, res);
@@ -788,8 +965,9 @@ const login: LoginFunction = async (options: {
       if (alreadySavedUser.password.toString() === user.password!.toString()) {
         logger.info("User logged in: " + alreadySavedUser.email?.toString());
 
-        CookieUtil.setUserCookie({
-          expressResponse: res,
+        await finalizeUserLogin({
+          req,
+          res,
           user: alreadySavedUser,
           isGlobalLogin: true,
         });

@@ -396,4 +396,5 @@ export default class UserMiddleware {
 
     return result;
   }
+
 }
