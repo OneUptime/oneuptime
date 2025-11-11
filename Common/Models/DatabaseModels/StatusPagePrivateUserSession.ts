@@ -20,7 +20,6 @@ import HashedString from "../../Types/HashedString";
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 
@@ -34,30 +33,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @CanAccessIfCanReadOn("statusPage")
 @TenantColumn("projectId")
 @TableAccessControl({
-  create: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.CreateStatusPagePrivateUser,
-  ],
-  read: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.ReadStatusPagePrivateUser,
-  ],
-  delete: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.DeleteStatusPagePrivateUser,
-  ],
-  update: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.EditStatusPagePrivateUser,
-  ],
+  create: [],
+  read: [],
+  delete: [],
+  update: [],
 })
 @CrudApiEndpoint(new Route("/status-page-private-user-session"))
 @Entity({
@@ -73,18 +52,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 export default class StatusPagePrivateUserSession extends BaseModel {
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -109,18 +78,8 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public project?: Project = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
     update: [],
   })
   @Index()
@@ -139,18 +98,8 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -175,18 +124,8 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public statusPage?: StatusPage = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
     update: [],
   })
   @Index()
@@ -204,18 +143,8 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public statusPageId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -240,18 +169,8 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public statusPagePrivateUser?: StatusPagePrivateUser = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
     update: [],
   })
   @Index()
@@ -270,9 +189,7 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public statusPagePrivateUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-     
-    ],
+    create: [],
     read: [],
     update: [],
   })
@@ -294,9 +211,7 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public refreshToken?: HashedString = undefined;
 
   @ColumnAccessControl({
-    create: [
-     
-    ],
+    create: [],
     read: [],
     update: [],
   })
@@ -313,24 +228,9 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public refreshTokenExpiresAt?: Date = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
+    update: [],
   })
   @TableColumn({
     type: TableColumnType.Date,
@@ -344,24 +244,9 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public lastActiveAt?: Date = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
+    update: [],
   })
   @TableColumn({
     type: TableColumnType.ShortText,
@@ -376,24 +261,9 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public deviceName?: string = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
+    update: [],
   })
   @TableColumn({
     type: TableColumnType.ShortText,
@@ -408,24 +278,9 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public deviceType?: string = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
+    update: [],
   })
   @TableColumn({
     type: TableColumnType.ShortText,
@@ -440,24 +295,9 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public deviceOS?: string = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
+    update: [],
   })
   @TableColumn({
     type: TableColumnType.ShortText,
@@ -472,24 +312,9 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public deviceBrowser?: string = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
+    update: [],
   })
   @TableColumn({
     type: TableColumnType.ShortText,
@@ -504,24 +329,9 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public ipAddress?: string = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
+    update: [],
   })
   @TableColumn({
     type: TableColumnType.VeryLongText,
@@ -535,24 +345,9 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public userAgent?: string = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
+    update: [],
   })
   @TableColumn({
     type: TableColumnType.Boolean,
@@ -570,12 +365,7 @@ export default class StatusPagePrivateUserSession extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -590,24 +380,9 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public revokedAt?: Date = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
+    update: [],
   })
   @TableColumn({
     type: TableColumnType.ShortText,
@@ -622,24 +397,9 @@ export default class StatusPagePrivateUserSession extends BaseModel {
   public revokedReason?: string = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPagePrivateUser,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPagePrivateUser,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditStatusPagePrivateUser,
-    ],
+    create: [],
+    read: [],
+    update: [],
   })
   @TableColumn({
     type: TableColumnType.JSON,
