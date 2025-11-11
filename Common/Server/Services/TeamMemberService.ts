@@ -345,7 +345,12 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
           },
         });
 
-        if (membersInTeam.toNumber() <= 1) {
+        // Skip the one-member guard when SCIM manages membership for the project.
+        const isSCIMEnabled: boolean = await this.isSCIMEnabled(
+          member.projectId!,
+        );
+
+        if (!isSCIMEnabled && membersInTeam.toNumber() <= 1) {
           throw new BadDataException(
             Errors.TeamMemberService.ONE_MEMBER_REQUIRED,
           );
