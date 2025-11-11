@@ -716,20 +716,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             }
 
             if (accessControlColumnName) {
-              const accessControlValue: AccessControlModel |
-                Array<AccessControlModel> | null =
+              const accessControlValue:
+                | AccessControlModel
+                | Array<AccessControlModel>
+                | null =
                 (item.getColumnValue(accessControlColumnName) as
                   | AccessControlModel
                   | Array<AccessControlModel>
                   | null) || null;
 
-              const accessControlItems: Array<AccessControlModel> = Array.isArray(
-                accessControlValue,
-              )
-                ? accessControlValue
-                : accessControlValue
-                ? [accessControlValue]
-                : [];
+              const accessControlItems: Array<AccessControlModel> =
+                Array.isArray(accessControlValue)
+                  ? accessControlValue
+                  : accessControlValue
+                    ? [accessControlValue]
+                    : [];
 
               type SimplifiedDropdownLabel = {
                 id?: string;
@@ -758,10 +759,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                       return null;
                     }
 
-                    const labelColorValue: Color | null =
-                      label.getColumnValue("color") as Color | null;
+                    const labelColorValue: Color | null = label.getColumnValue(
+                      "color",
+                    ) as Color | null;
 
-                   
                     const normalizedLabel: SimplifiedDropdownLabel = {
                       name: labelName,
                     };
@@ -778,13 +779,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
                     return normalizedLabel;
                   })
-                  .filter(
-                    (
-                      label,
-                    ): label is SimplifiedDropdownLabel => {
-                      return label !== null;
-                    },
-                  );
+                  .filter((label): label is SimplifiedDropdownLabel => {
+                    return label !== null;
+                  });
 
               if (dropdownLabels.length > 0) {
                 option.labels = dropdownLabels as Array<DropdownOptionLabel>;
