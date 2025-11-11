@@ -98,6 +98,7 @@ enum IconProp {
   False = "False",
   Text = "Text",
   Circle = "Circle",
+  EmptyCircle = "EmptyCircle",
   Webhook = "Webhook",
   SendMessage = "SendMessage",
   ExternalLink = "ExternalLink",

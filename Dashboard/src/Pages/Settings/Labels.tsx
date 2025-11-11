@@ -1,9 +1,8 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
-import Color from "Common/Types/Color";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Pill from "Common/UI/Components/Pill/Pill";
+import LabelElement from "Common/UI/Components/Label/Label";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -92,12 +91,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
             type: FieldType.Text,
 
             getElement: (item: Label): ReactElement => {
-              return (
-                <Pill
-                  color={item["color"] as Color}
-                  text={item["name"] as string}
-                />
-              );
+              return <LabelElement label={item} />;
             },
           },
           {
