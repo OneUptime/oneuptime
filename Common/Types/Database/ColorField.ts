@@ -17,7 +17,7 @@ type IsColorFieldColumnFunction = <T extends BaseModel>(
   propertyKey: string,
 ) => boolean;
 
-const ColorField = (): ReflectionMetadataType => {
+const ColorField: () => ReflectionMetadataType = () => {
   return Reflect.metadata(colorFieldSymbol, true);
 };
 

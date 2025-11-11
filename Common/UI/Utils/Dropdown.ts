@@ -64,7 +64,9 @@ export default class DropdownUtil {
           : null;
 
       if (colorColumnName) {
-        const color = item.getColumnValue(colorColumnName) as Color;
+        const color: Color | null = item.getColumnValue(
+          colorColumnName,
+        ) as Color | null;
 
         if (color) {
           option.color = color;
