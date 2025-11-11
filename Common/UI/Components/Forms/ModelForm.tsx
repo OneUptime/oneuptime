@@ -440,9 +440,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
             const dropdownOptions: Array<DropdownOption> = listResult.data.map(
               (item: BaseModel) => {
                 if (!field.dropdownModal) {
-                  throw new BadDataException(
-                    "Dropdown Modal value mot found",
-                  );
+                  throw new BadDataException("Dropdown Modal value mot found");
                 }
 
                 const option: DropdownOption = {
@@ -575,9 +573,8 @@ const ModelForm: <TBaseModel extends BaseModel>(
                   options: options,
                 },
                 accessControlColumnTitle:
-                  tempModel.getTableColumnMetadata(
-                    accessControlColumnName,
-                  ).title || "",
+                  tempModel.getTableColumnMetadata(accessControlColumnName)
+                    .title || "",
               };
             }
           } else {

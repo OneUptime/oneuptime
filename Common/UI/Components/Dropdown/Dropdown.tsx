@@ -134,7 +134,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     color?: string;
   }
 
-  const normalizeLabelColor: (color?: Color | string | null) => string | undefined = (
+  const normalizeLabelColor: (
+    color?: Color | string | null,
+  ) => string | undefined = (
     color?: Color | string | null,
   ): string | undefined => {
     if (!color) {
@@ -177,11 +179,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           | undefined;
       }
 
-      return (label as any)?.[columnName] as
-        | string
-        | Color
-        | null
-        | undefined;
+      return (label as any)?.[columnName] as string | Color | null | undefined;
     };
 
     const labelName: string | undefined = (() => {
@@ -209,7 +207,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       "color",
     ) as Color | string | null | undefined;
     const color: string | undefined =
-      normalizeLabelColor(rawColor) || normalizeLabelColor((label as any)?.color);
+      normalizeLabelColor(rawColor) ||
+      normalizeLabelColor((label as any)?.color);
 
     const idValue: string | undefined = (() => {
       if (typeof (label as Label).id !== "undefined") {
@@ -262,11 +261,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       });
   };
 
-  const getLabelStyle: (
-    color?: string,
-  ) => { backgroundColor: string; color: string } = (
-    color?: string,
-  ): { backgroundColor: string; color: string } => {
+  const getLabelStyle: (color?: string) => {
+    backgroundColor: string;
+    color: string;
+  } = (color?: string): { backgroundColor: string; color: string } => {
     if (!color) {
       return {
         backgroundColor: "#e5e7eb", // gray-200
@@ -385,10 +383,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       normalizeLabelCollection(option.labels);
 
     const maxVisibleLabels: number = meta.context === "menu" ? 4 : 2;
-    const visibleLabels: Array<NormalizedDropdownLabel> = normalizedLabels.slice(
-      0,
-      maxVisibleLabels,
-    );
+    const visibleLabels: Array<NormalizedDropdownLabel> =
+      normalizedLabels.slice(0, maxVisibleLabels);
     const hiddenLabelCount: number = Math.max(
       normalizedLabels.length - visibleLabels.length,
       0,
@@ -417,11 +413,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         {option.description ? (
           <span className="text-xs text-gray-500">{option.description}</span>
         ) : null}
-        {renderAssociatedLabels(
-          visibleLabels,
-          meta.context,
-          hiddenLabelCount,
-        )}
+        {renderAssociatedLabels(visibleLabels, meta.context, hiddenLabelCount)}
       </div>
     );
   };
@@ -475,7 +467,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
               state.isFocused
                 ? "!border-indigo-400 !ring-2 !ring-indigo-100"
                 : "!border-gray-300 hover:!border-indigo-300",
-              state.isDisabled ? "!bg-gray-100 !text-gray-400" : "!cursor-pointer",
+              state.isDisabled
+                ? "!bg-gray-100 !text-gray-400"
+                : "!cursor-pointer",
             ];
 
             if (props.error) {
@@ -484,18 +478,33 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
             return classes.join(" ");
           },
-          valueContainer: () => "!gap-2 !px-2",
-          placeholder: () => "text-sm text-gray-400",
-          input: () => "text-sm text-gray-900",
-          singleValue: () => "text-sm text-gray-900 font-medium",
-          indicatorsContainer: () => "!gap-1 !px-1",
-          dropdownIndicator: () =>
-            "text-gray-500 transition-colors duration-150 hover:text-indigo-400",
-          clearIndicator: () =>
-            "text-gray-400 transition-colors duration-150 hover:text-red-500",
-          menu: () =>
-            "!mt-2 !rounded-xl !border !border-gray-100 !bg-white !shadow-xl",
-          menuList: () => "!py-2",
+          valueContainer: () => {
+            return "!gap-2 !px-2";
+          },
+          placeholder: () => {
+            return "text-sm text-gray-400";
+          },
+          input: () => {
+            return "text-sm text-gray-900";
+          },
+          singleValue: () => {
+            return "text-sm text-gray-900 font-medium";
+          },
+          indicatorsContainer: () => {
+            return "!gap-1 !px-1";
+          },
+          dropdownIndicator: () => {
+            return "text-gray-500 transition-colors duration-150 hover:text-indigo-400";
+          },
+          clearIndicator: () => {
+            return "text-gray-400 transition-colors duration-150 hover:text-red-500";
+          },
+          menu: () => {
+            return "!mt-2 !rounded-xl !border !border-gray-100 !bg-white !shadow-xl";
+          },
+          menuList: () => {
+            return "!py-2";
+          },
           option: (
             state: OptionProps<DropdownOption, boolean, GroupBase<any>>,
           ): string => {
@@ -513,26 +522,37 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
             return "px-3 py-2 text-sm text-gray-700";
           },
-          noOptionsMessage: () => "px-3 py-2 text-sm text-gray-500",
-          multiValue: () =>
-            "flex items-center gap-2 rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-1",
-          multiValueLabel: () =>
-            "flex flex-wrap items-center gap-2 text-sm font-medium text-indigo-900",
-          multiValueRemove: () =>
-            "text-indigo-400 hover:text-indigo-600 transition-colors duration-150",
+          noOptionsMessage: () => {
+            return "px-3 py-2 text-sm text-gray-500";
+          },
+          multiValue: () => {
+            return "flex items-center gap-2 rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-1";
+          },
+          multiValueLabel: () => {
+            return "flex flex-wrap items-center gap-2 text-sm font-medium text-indigo-900";
+          },
+          multiValueRemove: () => {
+            return "text-indigo-400 hover:text-indigo-600 transition-colors duration-150";
+          },
         }}
         styles={{
-          dropdownIndicator: (provided) => ({
-            ...provided,
-            padding: 8,
-          }),
-          clearIndicator: (provided) => ({
-            ...provided,
-            padding: 8,
-          }),
-          indicatorSeparator: () => ({
-            display: "none",
-          }),
+          dropdownIndicator: (provided) => {
+            return {
+              ...provided,
+              padding: 8,
+            };
+          },
+          clearIndicator: (provided) => {
+            return {
+              ...provided,
+              padding: 8,
+            };
+          },
+          indicatorSeparator: () => {
+            return {
+              display: "none",
+            };
+          },
           option: (provided, state) => {
             if (state.isSelected) {
               return {
@@ -555,32 +575,40 @@ const Dropdown: FunctionComponent<ComponentProps> = (
               color: "#374151", // gray-700
             };
           },
-          multiValue: (provided) => ({
-            ...provided,
-            backgroundColor: "#eef2ff", // indigo-50
-            borderRadius: 8,
-            border: "1px solid #c7d2fe", // indigo-200
-            paddingLeft: 4,
-            paddingRight: 4,
-          }),
-          multiValueLabel: (provided) => ({
-            ...provided,
-            color: "#312e81", // indigo-800
-            fontSize: "0.875rem",
-            fontWeight: 500,
-          }),
-          multiValueRemove: (provided) => ({
-            ...provided,
-            color: "#6366f1", // indigo-500
-            ':hover': {
-              color: "#4f46e5", // indigo-600
-              backgroundColor: "transparent",
-            },
-          }),
-          menuPortal: (base) => ({
-            ...base,
-            zIndex: 50,
-          }),
+          multiValue: (provided) => {
+            return {
+              ...provided,
+              backgroundColor: "#eef2ff", // indigo-50
+              borderRadius: 8,
+              border: "1px solid #c7d2fe", // indigo-200
+              paddingLeft: 4,
+              paddingRight: 4,
+            };
+          },
+          multiValueLabel: (provided) => {
+            return {
+              ...provided,
+              color: "#312e81", // indigo-800
+              fontSize: "0.875rem",
+              fontWeight: 500,
+            };
+          },
+          multiValueRemove: (provided) => {
+            return {
+              ...provided,
+              color: "#6366f1", // indigo-500
+              ":hover": {
+                color: "#4f46e5", // indigo-600
+                backgroundColor: "transparent",
+              },
+            };
+          },
+          menuPortal: (base) => {
+            return {
+              ...base,
+              zIndex: 50,
+            };
+          },
         }}
         isClearable={true}
         isSearchable={true}
