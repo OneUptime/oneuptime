@@ -37,7 +37,7 @@ const LabelElement: FunctionComponent<ComponentProps> = (
     size: props.size,
     isMinimal: props.isMinimal,
     tooltip: label.description || undefined,
-    icon: IconProp.Circle,
+  icon: IconProp.EmptyCircle,
   };
 
   if (props.style) {
