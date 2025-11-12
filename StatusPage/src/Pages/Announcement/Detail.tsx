@@ -166,7 +166,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           `/announcements/${id.toString()}/${announcementId}`,
         ),
         data: {},
-  headers: API.getDefaultHeaders(),
+        headers: API.getDefaultHeaders(),
       });
 
       if (!response.isSuccess()) {
