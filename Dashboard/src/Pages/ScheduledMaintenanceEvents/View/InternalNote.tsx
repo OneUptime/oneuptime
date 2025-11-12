@@ -1,3 +1,5 @@
+import FileList from "Common/UI/Components/FileList/FileList";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
 import UserElement from "../../../Components/User/User";
 import ProjectUser from "../../../Utils/ProjectUser";
@@ -177,9 +179,27 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
               "Add a private note to this scheduled maintenance here",
             ),
           },
+          {
+            field: {
+              attachments: {
+                _id: true,
+                name: true,
+              },
+            },
+            title: "Attachments",
+            description: "Upload files to attach to this note.",
+            fieldType: FormFieldSchemaType.MultipleFiles,
+            required: false,
+          },
         ]}
         showRefreshButton={true}
         showAs={ShowAs.List}
+        selectMoreFields={{
+          attachments: {
+            _id: true,
+            name: true,
+          },
+        }}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
           {
@@ -257,9 +277,19 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
             },
 
             title: "",
-            type: FieldType.Markdown,
-            contentClassName: "-mt-3 space-y-6 text-sm text-gray-800",
+            type: FieldType.Element,
+            contentClassName: "-mt-3",
             colSpan: 2,
+            getElement: (
+              item: ScheduledMaintenanceInternalNote,
+            ): ReactElement => {
+              return (
+                <div className="space-y-3 text-sm text-gray-800">
+                  <MarkdownViewer text={item.note || ""} />
+                  <FileList files={item.attachments} />
+                </div>
+              );
+            },
           },
         ]}
       />

@@ -12,6 +12,7 @@ import IncidentService from "./IncidentService";
 import Incident from "../../Models/DatabaseModels/Incident";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import File from "../../Models/DatabaseModels/File";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -24,6 +25,7 @@ export class Service extends DatabaseService<Model> {
     incidentId: ObjectID;
     projectId: ObjectID;
     note: string;
+    attachments?: Array<File | ObjectID>;
   }): Promise<Model> {
     const publicNote: Model = new Model();
     publicNote.createdByUserId = data.userId;
@@ -31,6 +33,20 @@ export class Service extends DatabaseService<Model> {
     publicNote.projectId = data.projectId;
     publicNote.note = data.note;
     publicNote.postedAt = OneUptimeDate.getCurrentDate();
+
+    if (data.attachments && data.attachments.length > 0) {
+      publicNote.attachments = data.attachments.map(
+        (attachment: File | ObjectID) => {
+          if (attachment instanceof File) {
+            return attachment;
+          }
+
+          const file: File = new File();
+          file.id = attachment;
+          return file;
+        },
+      );
+    }
 
     return this.create({
       data: publicNote,

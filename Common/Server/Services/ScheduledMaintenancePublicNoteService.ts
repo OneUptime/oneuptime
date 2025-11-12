@@ -12,6 +12,7 @@ import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import File from "../../Models/DatabaseModels/File";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -149,6 +150,7 @@ ${updatedItem.note}
     scheduledMaintenanceId: ObjectID;
     projectId: ObjectID;
     note: string;
+    attachments?: Array<File | ObjectID>;
   }): Promise<Model> {
     const publicNote: Model = new Model();
     publicNote.createdByUserId = data.userId;
@@ -156,6 +158,20 @@ ${updatedItem.note}
     publicNote.projectId = data.projectId;
     publicNote.note = data.note;
     publicNote.postedAt = OneUptimeDate.getCurrentDate();
+
+    if (data.attachments && data.attachments.length > 0) {
+      publicNote.attachments = data.attachments.map(
+        (attachment: File | ObjectID) => {
+          if (attachment instanceof File) {
+            return attachment;
+          }
+
+          const file: File = new File();
+          file.id = attachment;
+          return file;
+        },
+      );
+    }
 
     return this.create({
       data: publicNote,

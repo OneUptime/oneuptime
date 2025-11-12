@@ -58,23 +58,22 @@ const FilePicker: FunctionComponent<ComponentProps> = (
   }, [props.initialValue]);
 
   const setInitialValue: VoidFunction = () => {
-    if (
-      Array.isArray(props.initialValue) &&
-      props.initialValue &&
-      props.initialValue.length > 0
-    ) {
+    if (Array.isArray(props.initialValue)) {
       setFilesModel(props.initialValue);
     } else if (props.initialValue instanceof FileModel) {
       setFilesModel([props.initialValue as FileModel]);
+    } else {
+      setFilesModel([]);
     }
   };
 
   useEffect(() => {
-    if (props.value && props.value.length > 0) {
-      setFilesModel(props.value && props.value.length > 0 ? props.value : []);
-    } else {
-      setInitialValue();
+    if (props.value) {
+      setFilesModel(props.value);
+      return;
     }
+
+    setInitialValue();
   }, [props.value]);
 
   const { getRootProps, getInputProps } = useDropzone({
@@ -112,10 +111,22 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           filesResult.push(result.data as FileModel);
         }
 
-        setFilesModel(filesResult);
+        const updatedFiles: Array<FileModel> = props.isMultiFilePicker
+          ? [...filesModel, ...filesResult]
+          : filesResult;
+
+        const uniqueFiles: Array<FileModel> = Array.from(
+          new Map(
+            updatedFiles.map((file: FileModel) => {
+              return [file._id?.toString(), file];
+            }),
+          ).values(),
+        );
+
+        setFilesModel(uniqueFiles);
 
         props.onBlur?.();
-        props.onChange?.(filesResult);
+        props.onChange?.(uniqueFiles);
       } catch (err) {
         setError(API.getFriendlyMessage(err));
       }
@@ -183,84 +194,79 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         data-testid={props.dataTestId}
         className="flex max-w-lg justify-center rounded-md border-2 border-dashed border-gray-300 px-6 pt-5 pb-6"
       >
-        {props.isMultiFilePicker ||
-          (filesModel.length === 0 && (
-            <div
-              {...getRootProps({
-                className: "space-y-1 text-center",
-              })}
+        {(props.isMultiFilePicker || filesModel.length === 0) && (
+          <div
+            {...getRootProps({
+              className: "space-y-1 text-center",
+            })}
+          >
+            <svg
+              className="mx-auto h-12 w-12 text-gray-400"
+              stroke="currentColor"
+              fill="none"
+              viewBox="0 0 48 48"
+              aria-hidden="true"
             >
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400"
-                stroke="currentColor"
-                fill="none"
-                viewBox="0 0 48 48"
-                aria-hidden="true"
-              >
-                <path
-                  d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                ></path>
-              </svg>
-              <div className="flex text-sm text-gray-600">
-                <label className="relative cursor-pointer rounded-md bg-white font-medium text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:text-indigo-500">
-                  {!props.placeholder && !error && (
-                    <span>{"Upload a file"}</span>
-                  )}
+              <path
+                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              ></path>
+            </svg>
+            <div className="flex text-sm text-gray-600">
+              <label className="relative cursor-pointer rounded-md bg-white font-medium text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:text-indigo-500">
+                {!props.placeholder && !error && <span>{"Upload a file"}</span>}
 
-                  {error && (
-                    <span>
-                      <span>{error}</span>
-                    </span>
-                  )}
-
-                  {props.placeholder && !error && (
-                    <span>{props.placeholder}</span>
-                  )}
-
-                  <input
-                    tabIndex={props.tabIndex}
-                    {...(getInputProps() as any)}
-                    id="file-upload"
-                    name="file-upload"
-                    type="file"
-                    className="sr-only"
-                  />
-                </label>
-                <p className="pl-1">or drag and drop</p>
-              </div>
-              <p className="text-xs text-gray-500">
-                {props.mimeTypes && props.mimeTypes?.length > 0 && (
-                  <span>File types: </span>
+                {error && (
+                  <span>
+                    <span>{error}</span>
+                  </span>
                 )}
-                {props.mimeTypes &&
-                  props.mimeTypes
-                    .map((type: MimeType) => {
-                      const enumKey: string | undefined =
-                        Object.keys(MimeType)[
-                          Object.values(MimeType).indexOf(type)
-                        ];
-                      return enumKey?.toUpperCase() || "";
-                    })
-                    .filter(
-                      (
-                        item: string | undefined,
-                        pos: number,
-                        array: Array<string | undefined>,
-                      ) => {
-                        return array.indexOf(item) === pos;
-                      },
-                    )
-                    .join(", ")}
-                {props.mimeTypes && props.mimeTypes?.length > 0 && (
-                  <span>.</span>
+
+                {props.placeholder && !error && (
+                  <span>{props.placeholder}</span>
                 )}
-                &nbsp;10 MB or less.
-              </p>
+
+                <input
+                  tabIndex={props.tabIndex}
+                  {...(getInputProps() as any)}
+                  id="file-upload"
+                  name="file-upload"
+                  type="file"
+                  className="sr-only"
+                />
+              </label>
+              <p className="pl-1">or drag and drop</p>
             </div>
-          ))}
+            <p className="text-xs text-gray-500">
+              {props.mimeTypes && props.mimeTypes?.length > 0 && (
+                <span>File types: </span>
+              )}
+              {props.mimeTypes &&
+                props.mimeTypes
+                  .map((type: MimeType) => {
+                    const enumKey: string | undefined =
+                      Object.keys(MimeType)[
+                        Object.values(MimeType).indexOf(type)
+                      ];
+                    return enumKey?.toUpperCase() || "";
+                  })
+                  .filter(
+                    (
+                      item: string | undefined,
+                      pos: number,
+                      array: Array<string | undefined>,
+                    ) => {
+                      return array.indexOf(item) === pos;
+                    },
+                  )
+                  .join(", ")}
+              {props.mimeTypes && props.mimeTypes?.length > 0 && <span>.</span>}
+              &nbsp;10 MB or less.
+            </p>
+          </div>
+        )}
         <aside>{getThumbs()}</aside>
       </div>
       {props.error && (
