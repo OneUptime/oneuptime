@@ -58,9 +58,7 @@ export default class API extends BaseAPI {
 
     if (!this.statusPageRefreshPromise) {
       this.statusPageRefreshPromise = (async () => {
-        const refreshUrl: URL = URL.fromString(
-          IDENTITY_URL.toString(),
-        )
+        const refreshUrl: URL = URL.fromString(IDENTITY_URL.toString())
           .addRoute("/status-page/refresh-token")
           .addRoute(`/${statusPageId.toString()}`);
 

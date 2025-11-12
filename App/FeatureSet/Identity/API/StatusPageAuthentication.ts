@@ -32,6 +32,7 @@ import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
+import StatusPagePrivateUserSession from "Common/Models/DatabaseModels/StatusPagePrivateUserSession";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -43,9 +44,7 @@ type FinalizeStatusPageLoginInput = {
   user: StatusPagePrivateUser;
 };
 
-const finalizeStatusPageLogin: (
-  data: FinalizeStatusPageLoginInput,
-) => Promise<{
+const finalizeStatusPageLogin: (data: FinalizeStatusPageLoginInput) => Promise<{
   sessionMetadata: StatusPageSessionMetadata;
   accessToken: string;
 }> = async (
@@ -153,7 +152,10 @@ router.post(
 
       if (!refreshToken) {
         CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(res, CookieUtil.getRefreshTokenKey(statusPageId));
+        CookieUtil.removeCookie(
+          res,
+          CookieUtil.getRefreshTokenKey(statusPageId),
+        );
 
         return Response.sendErrorResponse(
           req,
@@ -164,38 +166,43 @@ router.post(
         );
       }
 
-      const session =
+      const session: StatusPagePrivateUserSession | null =
         await StatusPagePrivateUserSessionService.findActiveSessionByRefreshToken(
           refreshToken,
         );
 
       if (!session || !session.id || !session.statusPageId) {
         CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(res, CookieUtil.getRefreshTokenKey(statusPageId));
+        CookieUtil.removeCookie(
+          res,
+          CookieUtil.getRefreshTokenKey(statusPageId),
+        );
 
         return Response.sendErrorResponse(
           req,
           res,
-          new NotAuthenticatedException(
-            "Session expired. Please login again.",
-          ),
+          new NotAuthenticatedException("Session expired. Please login again."),
         );
       }
 
       if (session.statusPageId.toString() !== statusPageId.toString()) {
-        await StatusPagePrivateUserSessionService.revokeSessionById(session.id, {
-          reason: "Status page mismatch",
-        });
+        await StatusPagePrivateUserSessionService.revokeSessionById(
+          session.id,
+          {
+            reason: "Status page mismatch",
+          },
+        );
 
         CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(res, CookieUtil.getRefreshTokenKey(statusPageId));
+        CookieUtil.removeCookie(
+          res,
+          CookieUtil.getRefreshTokenKey(statusPageId),
+        );
 
         return Response.sendErrorResponse(
           req,
           res,
-          new NotAuthenticatedException(
-            "Session expired. Please login again.",
-          ),
+          new NotAuthenticatedException("Session expired. Please login again."),
         );
       }
 
@@ -203,36 +210,44 @@ router.post(
         session.refreshTokenExpiresAt &&
         OneUptimeDate.hasExpired(session.refreshTokenExpiresAt)
       ) {
-        await StatusPagePrivateUserSessionService.revokeSessionById(session.id, {
-          reason: "Refresh token expired",
-        });
+        await StatusPagePrivateUserSessionService.revokeSessionById(
+          session.id,
+          {
+            reason: "Refresh token expired",
+          },
+        );
 
         CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(res, CookieUtil.getRefreshTokenKey(statusPageId));
+        CookieUtil.removeCookie(
+          res,
+          CookieUtil.getRefreshTokenKey(statusPageId),
+        );
 
         return Response.sendErrorResponse(
           req,
           res,
-          new NotAuthenticatedException(
-            "Session expired. Please login again.",
-          ),
+          new NotAuthenticatedException("Session expired. Please login again."),
         );
       }
 
       if (!session.statusPagePrivateUserId) {
-        await StatusPagePrivateUserSessionService.revokeSessionById(session.id, {
-          reason: "Session missing user",
-        });
+        await StatusPagePrivateUserSessionService.revokeSessionById(
+          session.id,
+          {
+            reason: "Session missing user",
+          },
+        );
 
         CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(res, CookieUtil.getRefreshTokenKey(statusPageId));
+        CookieUtil.removeCookie(
+          res,
+          CookieUtil.getRefreshTokenKey(statusPageId),
+        );
 
         return Response.sendErrorResponse(
           req,
           res,
-          new NotAuthenticatedException(
-            "Session expired. Please login again.",
-          ),
+          new NotAuthenticatedException("Session expired. Please login again."),
         );
       }
 
@@ -251,12 +266,18 @@ router.post(
         });
 
       if (!user) {
-        await StatusPagePrivateUserSessionService.revokeSessionById(session.id, {
-          reason: "User not found",
-        });
+        await StatusPagePrivateUserSessionService.revokeSessionById(
+          session.id,
+          {
+            reason: "User not found",
+          },
+        );
 
         CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(res, CookieUtil.getRefreshTokenKey(statusPageId));
+        CookieUtil.removeCookie(
+          res,
+          CookieUtil.getRefreshTokenKey(statusPageId),
+        );
 
         return Response.sendErrorResponse(
           req,
@@ -266,12 +287,14 @@ router.post(
       }
 
       const renewedSession: StatusPageSessionMetadata =
-        await StatusPagePrivateUserSessionService.renewSessionWithNewRefreshToken({
-          session,
-          ipAddress: getClientIp(req),
-          userAgent: headerValueToString(req.headers["user-agent"]),
-          ...extractDeviceInfo(req),
-        });
+        await StatusPagePrivateUserSessionService.renewSessionWithNewRefreshToken(
+          {
+            session,
+            ipAddress: getClientIp(req),
+            userAgent: headerValueToString(req.headers["user-agent"]),
+            ...extractDeviceInfo(req),
+          },
+        );
 
       const accessToken: string = CookieUtil.setStatusPagePrivateUserCookie({
         expressResponse: res,

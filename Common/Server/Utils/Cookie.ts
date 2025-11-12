@@ -210,15 +210,10 @@ export default class CookieUtil {
       expiresInSeconds: accessTokenExpiresInSeconds,
     });
 
-    CookieUtil.setCookie(
-      res,
-      CookieUtil.getUserTokenKey(statusPageId),
-      token,
-      {
-        maxAge: accessTokenExpiresInSeconds * 1000,
-        httpOnly: true,
-      },
-    );
+    CookieUtil.setCookie(res, CookieUtil.getUserTokenKey(statusPageId), token, {
+      maxAge: accessTokenExpiresInSeconds * 1000,
+      httpOnly: true,
+    });
 
     const refreshTokenTtl: number = Math.max(
       refreshTokenExpiresAt.getTime() - Date.now(),
