@@ -14,6 +14,8 @@ import {
   TracerConfig,
   WebTracerProvider,
 } from "@opentelemetry/sdk-trace-web";
+import type { SpanExporter } from "@opentelemetry/sdk-trace-base";
+import type { SpanExporter as WebSpanExporter } from "@opentelemetry/sdk-trace-web/node_modules/@opentelemetry/sdk-trace-base/build/src/export/SpanExporter";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import URL from "../../../Types/API/URL";
 
@@ -35,15 +37,17 @@ export default class Telemetry {
 
       const provider: WebTracerProvider = new WebTracerProvider(providerConfig);
 
+      const traceExporter: SpanExporter = new OTLPTraceExporter({
+        url: URL.fromString(
+          OpenTelemetryExporterOtlpEndpoint?.toString() + "/v1/traces",
+        ).toString(),
+        headers: OpenTelemetryExporterOtlpHeaders,
+      }) as unknown as SpanExporter;
+
+      const webTraceExporter = traceExporter as unknown as WebSpanExporter;
+
       provider.addSpanProcessor(
-        new BatchSpanProcessor(
-          new OTLPTraceExporter({
-            url: URL.fromString(
-              OpenTelemetryExporterOtlpEndpoint?.toString() + "/v1/traces",
-            ).toString(),
-            headers: OpenTelemetryExporterOtlpHeaders,
-          }),
-        ),
+        new BatchSpanProcessor(webTraceExporter),
       );
 
       provider.register({
