@@ -271,7 +271,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
           `/incidents/${id.toString()}/${incidentId?.toString()}`,
         ),
         data: {},
-        headers: API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!),
+  headers: API.getDefaultHeaders(),
       });
 
       if (!response.isSuccess()) {

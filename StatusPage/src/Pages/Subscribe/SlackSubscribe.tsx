@@ -176,9 +176,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
           createOrUpdateApiUrl={URL.fromString(
             STATUS_PAGE_API_URL.toString(),
           ).addRoute(`/subscribe/${id.toString()}`)}
-          requestHeaders={API.getDefaultHeaders(
-            StatusPageUtil.getStatusPageId()!,
-          )}
+          requestHeaders={API.getDefaultHeaders()}
           formType={FormType.Create}
           submitButtonText={"Subscribe"}
           onBeforeCreate={async (item: StatusPageSubscriber) => {
@@ -224,9 +222,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
           createOrUpdateApiUrl={URL.fromString(
             STATUS_PAGE_API_URL.toString(),
           ).addRoute(`/manage-subscription/${id.toString()}`)}
-          requestHeaders={API.getDefaultHeaders(
-            StatusPageUtil.getStatusPageId()!,
-          )}
+          requestHeaders={API.getDefaultHeaders()}
           formType={FormType.Create}
           submitButtonText={"Send Management Link"}
           onBeforeCreate={async (item: StatusPageSubscriber) => {

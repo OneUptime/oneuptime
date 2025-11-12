@@ -253,9 +253,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                     name="Status Page > Update Subscription"
                     fields={fields}
                     createOrUpdateApiUrl={updateApiUrl}
-                    requestHeaders={API.getDefaultHeaders(
-                      StatusPageUtil.getStatusPageId()!,
-                    )}
+                    requestHeaders={API.getDefaultHeaders()}
                     fetchItemApiUrl={getSubscriptionUrl}
                     formType={FormType.Update}
                     modelIdToEdit={new ObjectID(statusPageSubscriberId)}

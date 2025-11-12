@@ -306,7 +306,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           `/scheduled-maintenance-events/${id.toString()}/${eventId}`,
         ),
         data: {},
-        headers: API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!),
+  headers: API.getDefaultHeaders(),
       });
 
       if (!response.isSuccess()) {

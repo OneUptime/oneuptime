@@ -144,7 +144,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           `/overview/${id.toString()}`,
         ),
         data: {},
-        headers: API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!),
+  headers: API.getDefaultHeaders(),
       });
 
       if (!response.isSuccess()) {

@@ -88,7 +88,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           `/incidents/${id.toString()}`,
         ),
         data: {},
-        headers: API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!),
+  headers: API.getDefaultHeaders(),
       });
 
       if (!response.isSuccess()) {
