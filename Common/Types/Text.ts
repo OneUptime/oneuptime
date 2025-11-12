@@ -297,4 +297,19 @@ export default class Text {
   ): string {
     return sentence.split(search).join(replaceBy);
   }
+
+  public static truncate(
+    value: string | null | undefined,
+    maxLength: number,
+  ): string | undefined {
+    if (value === null || value === undefined) {
+      return undefined;
+    }
+
+    if (maxLength <= 0) {
+      return "";
+    }
+
+    return value.length > maxLength ? value.slice(0, maxLength) : value;
+  }
 }
