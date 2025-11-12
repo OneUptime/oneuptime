@@ -26,6 +26,7 @@ import {
 } from "react-router-dom";
 import UserView from "./Pages/Users/View/Index";
 import UserDelete from "./Pages/Users/View/Delete";
+import UserSettings from "./Pages/Users/View/Settings";
 import ProjectView from "./Pages/Projects/View/Index";
 import ProjectDelete from "./Pages/Projects/View/Delete";
 
@@ -69,6 +70,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.USER_VIEW]?.toString() || ""}
           element={<UserView />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.USER_SETTINGS]?.toString() || ""}
+          element={<UserSettings />}
         />
 
         <PageRoute

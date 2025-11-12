@@ -1,4 +1,4 @@
-import LabelsElement from "../../Components/Label/Labels";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import ServiceCatalogElement from "../../Components/ServiceCatalog/ServiceElement";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";

@@ -1,6 +1,7 @@
 import NumberUtil from "../../Utils/Number";
 import { DropdownOption } from "../Components/Dropdown/Dropdown";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Color from "../../Types/Color";
 
 type Enum<E> = Record<keyof E, number | string> & { [k: number]: string };
 
@@ -52,10 +53,27 @@ export default class DropdownUtil {
     valueField: string;
   }): Array<DropdownOption> {
     return data.array.map((item: TBaseModel) => {
-      return {
+      const option: DropdownOption = {
         label: item.getColumnValue(data.labelField) as string,
         value: item.getColumnValue(data.valueField) as string,
       };
+
+      const colorColumnName: string | null =
+        typeof item.getFirstColorColumn === "function"
+          ? item.getFirstColorColumn()
+          : null;
+
+      if (colorColumnName) {
+        const color: Color | null = item.getColumnValue(
+          colorColumnName,
+        ) as Color | null;
+
+        if (color) {
+          option.color = color;
+        }
+      }
+
+      return option;
     });
   }
 

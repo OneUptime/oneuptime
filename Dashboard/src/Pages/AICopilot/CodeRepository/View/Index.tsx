@@ -1,4 +1,4 @@
-import LabelsElement from "../../../../Components/Label/Labels";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageComponentProps from "../../../PageComponentProps";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import ObjectID from "Common/Types/ObjectID";

@@ -1,5 +1,7 @@
 import { Black } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
+import Icon, { SizeProp, ThickProp } from "../Icon/Icon";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
 import Tooltip from "../Tooltip/Tooltip";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
@@ -18,6 +20,7 @@ export interface ComponentProps {
   style?: CSSProperties;
   isMinimal?: boolean | undefined;
   tooltip?: string | undefined;
+  icon?: IconProp | undefined;
 }
 
 const Pill: FunctionComponent<ComponentProps> = (
@@ -47,7 +50,7 @@ const Pill: FunctionComponent<ComponentProps> = (
     return (
       <span
         data-testid="pill"
-        className="rounded-full p-1 pl-3 pr-3"
+        className="inline-flex items-center rounded-full p-1 pl-3 pr-3"
         style={{
           // https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
 
@@ -63,8 +66,15 @@ const Pill: FunctionComponent<ComponentProps> = (
           ...props.style,
         }}
       >
-        {" "}
-        {props.text}{" "}
+        {props.icon ? (
+          <Icon
+            icon={props.icon}
+            size={SizeProp.Small}
+            thick={ThickProp.Thick}
+            className="mr-2"
+          />
+        ) : null}
+        {props.text}
       </span>
     );
   };

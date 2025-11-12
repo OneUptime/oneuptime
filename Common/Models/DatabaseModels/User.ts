@@ -313,21 +313,6 @@ class User extends UserModel {
     nullable: true,
     unique: false,
   })
-  public jwtRefreshToken?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-
-    update: [],
-  })
-  @TableColumn({ type: TableColumnType.ShortText })
-  @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
-    nullable: true,
-    unique: false,
-  })
   public paymentProviderCustomerId?: string = undefined;
 
   @ColumnAccessControl({

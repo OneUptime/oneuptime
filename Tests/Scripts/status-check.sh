@@ -49,7 +49,7 @@ bash $scriptDir/endpoint-status.sh "Admin Dashboard (Ready Check)" $HOST_TO_CHEC
 
 bash $scriptDir/endpoint-status.sh "ProbeIngest (Ready Check)" $HOST_TO_CHECK/probe-ingest/status/ready
 
-bash $scriptDir/endpoint-status.sh "OpenTelemetry Ingest (Ready Check)" $HOST_TO_CHECK/open-telemetry-ingest/status/ready
+bash $scriptDir/endpoint-status.sh "Telemetry (Ready Check)" $HOST_TO_CHECK/telemetry/status/ready
 
 bash $scriptDir/endpoint-status.sh "ProbeIngest (Status Check)" $HOST_TO_CHECK/probe-ingest/status
 

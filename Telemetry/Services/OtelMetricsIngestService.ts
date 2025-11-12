@@ -26,7 +26,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import MetricsQueueService from "./Queue/MetricsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
-import { OPEN_TELEMETRY_INGEST_METRIC_FLUSH_BATCH_SIZE } from "../Config";
+import { TELEMETRY_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 import OneUptimeDate from "Common/Types/Date";
 import MetricService from "Common/Server/Services/MetricService";
 
@@ -43,12 +43,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     force: boolean = false,
   ): Promise<void> {
     while (
-      metrics.length >= OPEN_TELEMETRY_INGEST_METRIC_FLUSH_BATCH_SIZE ||
+      metrics.length >= TELEMETRY_METRIC_FLUSH_BATCH_SIZE ||
       (force && metrics.length > 0)
     ) {
       const batchSize: number = Math.min(
         metrics.length,
-        OPEN_TELEMETRY_INGEST_METRIC_FLUSH_BATCH_SIZE,
+        TELEMETRY_METRIC_FLUSH_BATCH_SIZE,
       );
       const batch: Array<JSONObject> = metrics.splice(0, batchSize);
 
@@ -312,8 +312,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         totalMetricsProcessed++;
 
                         if (
-                          dbMetrics.length >=
-                          OPEN_TELEMETRY_INGEST_METRIC_FLUSH_BATCH_SIZE
+                          dbMetrics.length >= TELEMETRY_METRIC_FLUSH_BATCH_SIZE
                         ) {
                           await this.flushMetricsBuffer(dbMetrics);
                         }

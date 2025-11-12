@@ -1,6 +1,5 @@
 import SSOUtil from "../Utils/SSO";
 import URL from "Common/Types/API/URL";
-import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Exception from "Common/Types/Exception/Exception";
@@ -8,9 +7,11 @@ import ServerException from "Common/Types/Exception/ServerException";
 import HashedString from "Common/Types/HashedString";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import PositiveNumber from "Common/Types/PositiveNumber";
 import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
 import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
+import StatusPagePrivateUserSessionService, {
+  SessionMetadata as StatusPageSessionMetadata,
+} from "Common/Server/Services/StatusPagePrivateUserSessionService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
 import StatusPageSsoService from "Common/Server/Services/StatusPageSsoService";
 import CookieUtil from "Common/Server/Utils/Cookie";
@@ -19,8 +20,10 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  extractDeviceInfo,
+  getClientIp,
+  headerValueToString,
 } from "Common/Server/Utils/Express";
-import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
@@ -29,6 +32,8 @@ import xml2js from "xml2js";
 
 // Initialize Express router.
 const router: ExpressRouter = Express.getRouter();
+
+const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 
 // Define a GET route for SSO in a status page context.
 router.get(
@@ -285,23 +290,29 @@ router.post(
         });
       }
 
-      const token: string = JSONWebToken.sign({
-        data: alreadySavedUser,
-        expiresInSeconds: OneUptimeDate.getSecondsInDays(
-          new PositiveNumber(30),
-        ),
+      if (!alreadySavedUser.projectId) {
+        alreadySavedUser.projectId = projectId;
+      }
+
+      const sessionMetadata: StatusPageSessionMetadata =
+        await StatusPagePrivateUserSessionService.createSession({
+          projectId: alreadySavedUser.projectId!,
+          statusPageId: statusPageId,
+          statusPagePrivateUserId: alreadySavedUser.id!,
+          ipAddress: getClientIp(req),
+          userAgent: headerValueToString(req.headers["user-agent"]),
+          ...extractDeviceInfo(req),
+        });
+
+      const token: string = CookieUtil.setStatusPagePrivateUserCookie({
+        expressResponse: res,
+        user: alreadySavedUser,
+        statusPageId: statusPageId,
+        sessionId: sessionMetadata.session.id!,
+        refreshToken: sessionMetadata.refreshToken,
+        refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
+        accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
       });
-
-      CookieUtil.setCookie(
-        res,
-        CookieUtil.getUserTokenKey(alreadySavedUser.statusPageId!),
-        token,
-
-        {
-          httpOnly: true,
-          maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
-        },
-      );
 
       // get status page URL.
       const statusPageURL: string =

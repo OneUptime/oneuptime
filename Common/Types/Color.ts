@@ -19,9 +19,9 @@ export default class Color extends DatabaseProperty {
     this._color = v;
   }
 
-  public constructor(color: string) {
+  public constructor(color: string | Color) {
     super();
-    this.color = color;
+    this.color = color.toString();
   }
 
   public override toString(): string {

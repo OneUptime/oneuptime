@@ -12,6 +12,7 @@ import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
+import ColorField from "../../Types/Database/ColorField";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -378,6 +379,7 @@ export default class AlertSeverity extends BaseModel {
       Permission.EditAlertSeverity,
     ],
   })
+  @ColorField()
   @TableColumn({
     title: "Color",
     required: true,

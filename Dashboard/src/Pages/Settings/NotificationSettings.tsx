@@ -40,7 +40,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           cardProps={{
             title: "Current Balance",
             description:
-              "Here is your current call and SMS balance for this project.",
+              "Here is your current SMS, Call, and WhatsApp balance for this project.",
             buttons: [
               {
                 title: "Recharge Balance",
@@ -63,9 +63,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   smsOrCallCurrentBalanceInUSDCents: true,
                 },
                 fieldType: FieldType.USDCents,
-                title: "SMS or Call Current Balance",
+                title: "SMS, Call, and WhatsApp Current Balance",
                 description:
-                  "This is your current balance for SMS or Call. It is in USD. ",
+                  "This is your current balance for SMS, Call, and WhatsApp. It is in USD. ",
                 placeholder: "0 USD",
               },
             ],
@@ -162,7 +162,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           cardProps={{
             title: "Auto Recharge",
             description:
-              "Enable Auto Recharge for call and SMS balance. This will make sure you always have enough balance for sending SMS or making calls.",
+              "Enable Auto Recharge for SMS, Call, and WhatsApp balance. This will make sure you always have enough balance for sending notifications.",
           }}
           isEditable={true}
           editButtonText="Edit Auto Recharge"
@@ -173,7 +173,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Enable Auto Recharge",
               description:
-                "Enable Auto Recharge. This will be used for sending an SMS or Call.",
+                "Enable Auto Recharge. This will be used for sending an SMS, Call, or WhatsApp message.",
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
             },

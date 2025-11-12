@@ -1,4 +1,4 @@
-import LabelsElement from "../Label/Labels";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertElement from "./Alert";
 import { Black } from "Common/Types/BrandColors";

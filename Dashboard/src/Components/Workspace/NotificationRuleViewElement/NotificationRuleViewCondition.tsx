@@ -16,7 +16,7 @@ import IncidentSeverityElement from "../../IncidentSeverity/IncidentSeverityElem
 import IncidentStateElement from "../../IncidentState/IncidentStateElement";
 import ScheduledMaintenanceStateElement from "../../ScheduledMaintenanceState/ScheduledMaintenanceStateElement";
 import MonitorStatusElement from "../../MonitorStatus/MonitorStatusElement";
-import LabelElement from "../../Label/Label";
+import LabelElement from "Common/UI/Components/Label/Label";
 import MonitorElement from "../../Monitor/Monitor";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 

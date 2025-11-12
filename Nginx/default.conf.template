@@ -15,10 +15,9 @@ upstream probe-ingest {
     server ${SERVER_PROBE_INGEST_HOSTNAME}:${PROBE_INGEST_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
 
-upstream open-telemetry-ingest {
-    server ${SERVER_OPEN_TELEMETRY_INGEST_HOSTNAME}:${OPEN_TELEMETRY_INGEST_PORT} weight=10 max_fails=3 fail_timeout=30s; 
+upstream telemetry {
+    server ${SERVER_TELEMETRY_HOSTNAME}:${TELEMETRY_PORT} weight=10 max_fails=3 fail_timeout=30s; 
 }
-
 
 upstream server-monitor-ingest {
     server ${SERVER_SERVER_MONITOR_INGEST_HOSTNAME}:${SERVER_MONITOR_INGEST_PORT} weight=10 max_fails=3 fail_timeout=30s; 
@@ -71,52 +70,6 @@ upstream opentelemetry-collector-http {
 
 upstream opentelemetry-collector-grpc {
     server ${SERVER_OTEL_COLLECTOR_HOSTNAME}:4317;
-}
-
-# Otel Collector
-
-server {
-
-    server_tokens off;
-    
-
-    gzip on;
-    gzip_types      text/plain application/xml application/javascript text/javascript text/css application/json;
-    gzip_proxied    no-cache no-store private expired auth;
-    gzip_min_length 1000;
-   
-    listen 7849;
-    http2  on;
-
-    server_name oneuptime-opentelemetry-collector ${OTEL_COLLECTOR_HOST};
-
-    proxy_busy_buffers_size   512k;
-    proxy_buffers   4 512k;
-    proxy_buffer_size   256k;
-
-    fastcgi_buffers  16 16k;
-    fastcgi_buffer_size  32k;
-
-    location / {
-        # This is for nginx not to crash when service is not available. 
-        resolver 127.0.0.1 valid=30s;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
-
-        # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-
-        proxy_pass  http://opentelemetry-collector-http;
-    }
-
-    location ~ /opentelemetry.proto.collector* {
-        grpc_pass grpc://opentelemetry-collector-grpc;
-    }
-
 }
 
 # Status Pages
@@ -522,7 +475,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
 
-    location /open-telemetry-ingest {
+    location /telemetry {
 
         # This is for nginx not to crash when service is not available. 
         resolver 127.0.0.1 valid=30s;
@@ -531,7 +484,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        proxy_pass http://open-telemetry-ingest;
+        proxy_pass http://telemetry;
     }
 
      location /incoming-request-ingest {
@@ -599,7 +552,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass  http://open-telemetry-ingest/fluentd/v1/logs;
+        proxy_pass  http://telemetry/fluentd/v1/logs;
     }
 
     location /syslog/v1/logs {
@@ -614,7 +567,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass  http://open-telemetry-ingest/syslog/v1/logs;
+        proxy_pass  http://telemetry/syslog/v1/logs;
     }
 
     location /probe-ingest {

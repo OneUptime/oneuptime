@@ -6,29 +6,92 @@ import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import PositiveNumber from "Common/Types/PositiveNumber";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
 import MailService from "Common/Server/Services/MailService";
 import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
+import StatusPagePrivateUserSessionService, {
+  SessionMetadata as StatusPageSessionMetadata,
+} from "Common/Server/Services/StatusPagePrivateUserSessionService";
 import CookieUtil from "Common/Server/Utils/Cookie";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  extractDeviceInfo,
+  getClientIp,
+  headerValueToString,
 } from "Common/Server/Utils/Express";
-import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
+import StatusPagePrivateUserSession from "Common/Models/DatabaseModels/StatusPagePrivateUserSession";
 
 const router: ExpressRouter = Express.getRouter();
+
+const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
+
+type FinalizeStatusPageLoginInput = {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  user: StatusPagePrivateUser;
+};
+
+const finalizeStatusPageLogin: (data: FinalizeStatusPageLoginInput) => Promise<{
+  sessionMetadata: StatusPageSessionMetadata;
+  accessToken: string;
+}> = async (
+  data: FinalizeStatusPageLoginInput,
+): Promise<{
+  sessionMetadata: StatusPageSessionMetadata;
+  accessToken: string;
+}> => {
+  const { req, res, user } = data;
+
+  if (!user.projectId) {
+    throw new BadDataException(
+      "Status page user is missing associated projectId.",
+    );
+  }
+
+  if (!user.statusPageId) {
+    throw new BadDataException(
+      "Status page user is missing associated statusPageId.",
+    );
+  }
+
+  const sessionMetadata: StatusPageSessionMetadata =
+    await StatusPagePrivateUserSessionService.createSession({
+      projectId: user.projectId,
+      statusPageId: user.statusPageId,
+      statusPagePrivateUserId: user.id!,
+      ipAddress: getClientIp(req),
+      userAgent: headerValueToString(req.headers["user-agent"]),
+      ...extractDeviceInfo(req),
+    });
+
+  const accessToken: string = CookieUtil.setStatusPagePrivateUserCookie({
+    expressResponse: res,
+    user,
+    statusPageId: user.statusPageId,
+    sessionId: sessionMetadata.session.id!,
+    refreshToken: sessionMetadata.refreshToken,
+    refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
+    accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+  });
+
+  return {
+    sessionMetadata,
+    accessToken,
+  };
+};
 
 router.post(
   "/logout/:statuspageid",
@@ -46,9 +109,214 @@ router.post(
         req.params["statuspageid"].toString(),
       );
 
-      CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId)); // remove the cookie.
+      const refreshToken: string | undefined =
+        CookieUtil.getRefreshTokenFromExpressRequest(req, statusPageId);
+
+      if (refreshToken) {
+        await StatusPagePrivateUserSessionService.revokeSessionByRefreshToken(
+          refreshToken,
+          {
+            reason: "User logged out",
+          },
+        );
+      }
+
+      CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
+      CookieUtil.removeCookie(res, CookieUtil.getRefreshTokenKey(statusPageId));
 
       return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.post(
+  "/refresh-token/:statuspageid",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const statusPageIdParam: string | undefined = req.params["statuspageid"];
+
+      if (!statusPageIdParam) {
+        throw new BadDataException("Status Page ID is required.");
+      }
+
+      const statusPageId: ObjectID = new ObjectID(statusPageIdParam.toString());
+
+      const refreshToken: string | undefined =
+        CookieUtil.getRefreshTokenFromExpressRequest(req, statusPageId);
+
+      if (!refreshToken) {
+        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
+        CookieUtil.removeCookie(
+          res,
+          CookieUtil.getRefreshTokenKey(statusPageId),
+        );
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException(
+            "Refresh token missing. Please login again.",
+          ),
+        );
+      }
+
+      const session: StatusPagePrivateUserSession | null =
+        await StatusPagePrivateUserSessionService.findActiveSessionByRefreshToken(
+          refreshToken,
+        );
+
+      if (!session || !session.id || !session.statusPageId) {
+        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
+        CookieUtil.removeCookie(
+          res,
+          CookieUtil.getRefreshTokenKey(statusPageId),
+        );
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException("Session expired. Please login again."),
+        );
+      }
+
+      if (session.statusPageId.toString() !== statusPageId.toString()) {
+        await StatusPagePrivateUserSessionService.revokeSessionById(
+          session.id,
+          {
+            reason: "Status page mismatch",
+          },
+        );
+
+        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
+        CookieUtil.removeCookie(
+          res,
+          CookieUtil.getRefreshTokenKey(statusPageId),
+        );
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException("Session expired. Please login again."),
+        );
+      }
+
+      if (
+        session.refreshTokenExpiresAt &&
+        OneUptimeDate.hasExpired(session.refreshTokenExpiresAt)
+      ) {
+        await StatusPagePrivateUserSessionService.revokeSessionById(
+          session.id,
+          {
+            reason: "Refresh token expired",
+          },
+        );
+
+        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
+        CookieUtil.removeCookie(
+          res,
+          CookieUtil.getRefreshTokenKey(statusPageId),
+        );
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException("Session expired. Please login again."),
+        );
+      }
+
+      if (!session.statusPagePrivateUserId) {
+        await StatusPagePrivateUserSessionService.revokeSessionById(
+          session.id,
+          {
+            reason: "Session missing user",
+          },
+        );
+
+        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
+        CookieUtil.removeCookie(
+          res,
+          CookieUtil.getRefreshTokenKey(statusPageId),
+        );
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException("Session expired. Please login again."),
+        );
+      }
+
+      const user: StatusPagePrivateUser | null =
+        await StatusPagePrivateUserService.findOneById({
+          id: session.statusPagePrivateUserId,
+          props: {
+            isRoot: true,
+          },
+          select: {
+            _id: true,
+            email: true,
+            statusPageId: true,
+            projectId: true,
+          },
+        });
+
+      if (!user) {
+        await StatusPagePrivateUserSessionService.revokeSessionById(
+          session.id,
+          {
+            reason: "User not found",
+          },
+        );
+
+        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
+        CookieUtil.removeCookie(
+          res,
+          CookieUtil.getRefreshTokenKey(statusPageId),
+        );
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException("Account no longer exists."),
+        );
+      }
+
+      const renewedSession: StatusPageSessionMetadata =
+        await StatusPagePrivateUserSessionService.renewSessionWithNewRefreshToken(
+          {
+            session,
+            ipAddress: getClientIp(req),
+            userAgent: headerValueToString(req.headers["user-agent"]),
+            ...extractDeviceInfo(req),
+          },
+        );
+
+      const accessToken: string = CookieUtil.setStatusPagePrivateUserCookie({
+        expressResponse: res,
+        user,
+        statusPageId: user.statusPageId!,
+        sessionId: renewedSession.session.id!,
+        refreshToken: renewedSession.refreshToken,
+        refreshTokenExpiresAt: renewedSession.refreshTokenExpiresAt,
+        accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+      });
+
+      return Response.sendEntityResponse(
+        req,
+        res,
+        user,
+        StatusPagePrivateUser,
+        {
+          miscData: {
+            token: accessToken,
+          },
+        },
+      );
     } catch (err) {
       return next(err);
     }
@@ -376,6 +644,7 @@ router.post(
             password: true,
             email: true,
             statusPageId: true,
+            projectId: true,
           },
           props: {
             isRoot: true,
@@ -383,31 +652,38 @@ router.post(
         });
 
       if (alreadySavedUser) {
-        const token: string = JSONWebToken.sign({
-          data: alreadySavedUser,
-          expiresInSeconds: OneUptimeDate.getSecondsInDays(
-            new PositiveNumber(30),
-          ),
+        const { accessToken } = await finalizeStatusPageLogin({
+          req,
+          res,
+          user: alreadySavedUser,
         });
 
-        CookieUtil.setCookie(
-          res,
-          CookieUtil.getUserTokenKey(alreadySavedUser.statusPageId!),
-          token,
-          {
-            httpOnly: true,
-            maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
-          },
-        );
+        const sanitizedUser: StatusPagePrivateUser | null =
+          await StatusPagePrivateUserService.findOneById({
+            id: alreadySavedUser.id!,
+            props: {
+              isRoot: true,
+            },
+            select: {
+              _id: true,
+              email: true,
+              statusPageId: true,
+              projectId: true,
+            },
+          });
+
+        if (!sanitizedUser && (alreadySavedUser as any).password) {
+          delete (alreadySavedUser as any).password;
+        }
 
         return Response.sendEntityResponse(
           req,
           res,
-          alreadySavedUser,
+          sanitizedUser || alreadySavedUser,
           StatusPagePrivateUser,
           {
             miscData: {
-              token: token,
+              token: accessToken,
             },
           },
         );

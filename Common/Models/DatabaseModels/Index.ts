@@ -118,6 +118,7 @@ import StatusPageHistoryChartBarColorRule from "./StatusPageHistoryChartBarColor
 import StatusPageOwnerTeam from "./StatusPageOwnerTeam";
 import StatusPageOwnerUser from "./StatusPageOwnerUser";
 import StatusPagePrivateUser from "./StatusPagePrivateUser";
+import StatusPagePrivateUserSession from "./StatusPagePrivateUserSession";
 import StatusPageResource from "./StatusPageResource";
 import StatusPageSCIM from "./StatusPageSCIM";
 import StatusPageSSO from "./StatusPageSso";
@@ -130,6 +131,7 @@ import TeamComplianceSetting from "./TeamComplianceSetting";
 import TelemetryService from "./TelemetryService";
 import UsageBilling from "./TelemetryUsageBilling";
 import User from "./User";
+import UserSession from "./UserSession";
 import UserCall from "./UserCall";
 // Notification Methods
 import UserEmail from "./UserEmail";
@@ -266,6 +268,7 @@ const AllModelTypes: Array<{
   StatusPageFooterLink,
   StatusPageHeaderLink,
   StatusPagePrivateUser,
+  StatusPagePrivateUserSession,
   StatusPageHistoryChartBarColorRule,
 
   ScheduledMaintenanceState,
@@ -375,6 +378,7 @@ const AllModelTypes: Array<{
   ProbeOwnerTeam,
   ProbeOwnerUser,
 
+  UserSession,
   UserTotpAuth,
   UserWebAuthn,
 

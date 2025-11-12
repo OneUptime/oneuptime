@@ -22,7 +22,7 @@ import logger from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import LogsQueueService from "./Queue/LogsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
-import { OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE } from "../Config";
+import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 import LogService from "Common/Server/Services/LogService";
 
 export default class OtelLogsIngestService extends OtelIngestBaseService {
@@ -31,12 +31,12 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     force: boolean = false,
   ): Promise<void> {
     while (
-      logs.length >= OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE ||
+      logs.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE ||
       (force && logs.length > 0)
     ) {
       const batchSize: number = Math.min(
         logs.length,
-        OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE,
+        TELEMETRY_LOG_FLUSH_BATCH_SIZE,
       );
       const batch: Array<JSONObject> = logs.splice(0, batchSize);
 
@@ -306,9 +306,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   dbLogs.push(logRow);
                   totalLogsProcessed++;
 
-                  if (
-                    dbLogs.length >= OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE
-                  ) {
+                  if (dbLogs.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE) {
                     await this.flushLogsBuffer(dbLogs);
                   }
                 } catch (logError) {

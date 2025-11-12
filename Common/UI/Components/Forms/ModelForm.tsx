@@ -12,6 +12,7 @@ import {
   CategoryCheckboxOption,
   CheckboxCategory,
 } from "../CategoryCheckbox/CategoryCheckboxTypes";
+import type { DropdownOption } from "../Dropdown/Dropdown";
 import Loader, { LoaderType } from "../Loader/Loader";
 import Pill, { PillSize } from "../Pill/Pill";
 import { FormErrors, FormProps, FormSummaryConfig } from "./BasicForm";
@@ -24,6 +25,7 @@ import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseMod
 import AccessControlModel from "../../../Models/DatabaseModels/DatabaseBaseModel/AccessControlModel";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import FileModel from "../../../Models/DatabaseModels/DatabaseBaseModel/FileModel";
+import Label from "../../../Models/DatabaseModels/Label";
 import URL from "../../../Types/API/URL";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { Black, VeryLightGray } from "../../../Types/BrandColors";
@@ -412,17 +414,26 @@ const ModelForm: <TBaseModel extends BaseModel>(
             [field.dropdownModal.valueField]: true,
           } as any;
 
-          let hasAccessControlColumn: boolean = false;
+          let colorColumnName: string | null = null;
+          let shouldSelectColorColumn: boolean = false;
+
+          colorColumnName = tempModel.getFirstColorColumn();
+
+          if (colorColumnName) {
+            select[colorColumnName] = true;
+            shouldSelectColorColumn = true;
+          }
+
+          const accessControlColumnName: string | null =
+            tempModel.getAccessControlColumn();
 
           // also select labels, so they can select resources by labels. This is useful for resources like monitors, etc.
-          if (tempModel.getAccessControlColumn()) {
-            select[tempModel.getAccessControlColumn()!] = {
+          if (accessControlColumnName) {
+            select[accessControlColumnName] = {
               _id: true,
               name: true,
               color: true,
             } as any;
-
-            hasAccessControlColumn = true;
           }
 
           const listResult: ListResult<BaseModel> =
@@ -436,22 +447,51 @@ const ModelForm: <TBaseModel extends BaseModel>(
             });
 
           if (listResult.data && listResult.data.length > 0) {
-            field.dropdownOptions = listResult.data.map((item: BaseModel) => {
-              if (!field.dropdownModal) {
-                throw new BadDataException("Dropdown Modal value mot found");
-              }
+            const dropdownOptions: Array<DropdownOption> = listResult.data.map(
+              (item: BaseModel) => {
+                if (!field.dropdownModal) {
+                  throw new BadDataException("Dropdown Modal value mot found");
+                }
 
-              return {
-                label: (item as any)[
-                  field.dropdownModal?.labelField
-                ].toString(),
-                value: (item as any)[
-                  field.dropdownModal?.valueField
-                ].toString(),
-              };
-            });
+                const option: DropdownOption = {
+                  label: (item as any)[
+                    field.dropdownModal?.labelField
+                  ].toString(),
+                  value: (item as any)[
+                    field.dropdownModal?.valueField
+                  ].toString(),
+                };
 
-            if (hasAccessControlColumn) {
+                if (colorColumnName && shouldSelectColorColumn) {
+                  const color: Color = item.getColumnValue(
+                    colorColumnName,
+                  ) as Color;
+                  if (color) {
+                    option.color = color;
+                  }
+                }
+
+                if (accessControlColumnName) {
+                  const labelsForItem: Array<AccessControlModel> = (
+                    ((item as any)[
+                      accessControlColumnName
+                    ] as Array<AccessControlModel>) || []
+                  ).filter((label: AccessControlModel | null) => {
+                    return Boolean(label);
+                  }) as Array<AccessControlModel>;
+
+                  if (labelsForItem.length > 0) {
+                    option.labels = labelsForItem as Array<Label>;
+                  }
+                }
+
+                return option;
+              },
+            );
+
+            field.dropdownOptions = dropdownOptions;
+
+            if (accessControlColumnName) {
               const categories: Array<CheckboxCategory> = [];
 
               // populate categories.
@@ -459,8 +499,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
               let localLabels: Array<AccessControlModel> = [];
 
               for (const item of listResult.data) {
-                const accessControlColumn: string | null =
-                  tempModel.getAccessControlColumn()!;
+                const accessControlColumn: string = accessControlColumnName;
                 const labels: Array<AccessControlModel> =
                   ((item as any)[
                     accessControlColumn
@@ -516,8 +555,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
               const options: Array<CategoryCheckboxOption> = [];
 
               for (const item of listResult.data) {
-                const accessControlColumn: string =
-                  tempModel.getAccessControlColumn()!;
+                const accessControlColumn: string = accessControlColumnName;
                 const labels: Array<AccessControlModel> =
                   ((item as any)[
                     accessControlColumn
@@ -554,9 +592,8 @@ const ModelForm: <TBaseModel extends BaseModel>(
                   options: options,
                 },
                 accessControlColumnTitle:
-                  tempModel.getTableColumnMetadata(
-                    tempModel.getAccessControlColumn()!,
-                  ).title || "",
+                  tempModel.getTableColumnMetadata(accessControlColumnName)
+                    .title || "",
               };
             }
           } else {

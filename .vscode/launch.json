@@ -205,8 +205,8 @@
         },
         {
             "address": "127.0.0.1",
-            "localRoot": "${workspaceFolder}/OpenTelemetryIngest",
-            "name": "OpenTelemetryIngest: Debug with Docker",
+            "localRoot": "${workspaceFolder}/Telemetry",
+            "name": "Telemetry: Debug with Docker",
             "port": 9938,
             "remoteRoot": "/usr/src/app",
             "request": "attach",

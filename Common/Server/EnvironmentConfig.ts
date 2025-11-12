@@ -165,8 +165,8 @@ export const ProbeIngestHostname: Hostname = Hostname.fromString(
 );
 
 export const OpenTelemetryIngestHostname: Hostname = Hostname.fromString(
-  `${process.env["SERVER_OPEN_TELEMETRY_INGEST_HOSTNAME"] || "localhost"}:${
-    process.env["OPEN_TELEMETRY_INGEST_PORT"] || 80
+  `${process.env["SERVER_TELEMETRY_HOSTNAME"] || "localhost"}:${
+    process.env["TELEMETRY_PORT"] || 80
   }`,
 );
 

@@ -22,7 +22,7 @@ import LogService from "Common/Server/Services/LogService";
 import logger from "Common/Server/Utils/Logger";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import SyslogQueueService from "./Queue/SyslogQueueService";
-import { OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE } from "../Config";
+import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 import {
   ParsedSyslogMessage,
   ParsedSyslogStructuredData,
@@ -216,7 +216,7 @@ export default class SyslogIngestService extends OtelIngestBaseService {
           dbLogs.push(logRow);
           processed++;
 
-          if (dbLogs.length >= OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE) {
+          if (dbLogs.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE) {
             await this.flushLogsBuffer(dbLogs);
           }
         } catch (processingError) {
@@ -394,12 +394,12 @@ export default class SyslogIngestService extends OtelIngestBaseService {
     force: boolean = false,
   ): Promise<void> {
     while (
-      logs.length >= OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE ||
+      logs.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE ||
       (force && logs.length > 0)
     ) {
       const batchSize: number = Math.min(
         logs.length,
-        OPEN_TELEMETRY_INGEST_LOG_FLUSH_BATCH_SIZE,
+        TELEMETRY_LOG_FLUSH_BATCH_SIZE,
       );
 
       const batch: Array<JSONObject> = logs.splice(0, batchSize);

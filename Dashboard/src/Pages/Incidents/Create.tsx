@@ -45,6 +45,8 @@ import FetchMonitors from "../../Components/Monitor/FetchMonitors";
 import FetchIncidentSeverities from "../../Components/IncidentSeverity/FetchIncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Color from "Common/Types/Color";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 
 const IncidentCreate: FunctionComponent<
   PageComponentProps
@@ -313,18 +315,24 @@ const IncidentCreate: FunctionComponent<
                           select: {
                             _id: true,
                             name: true,
+                            color: true,
                           },
                           sort: {
                             order: SortOrder.Ascending,
                           },
                         });
 
-                      return incidentStates.data.map((state: IncidentState) => {
-                        return {
-                          label: state.name || "",
-                          value: state._id?.toString() || "",
-                        };
-                      });
+                      return incidentStates.data.map(
+                        (state: IncidentState): DropdownOption => {
+                          const option: DropdownOption = {
+                            label: state.name || "",
+                            value: state._id?.toString() || "",
+                            color: state.color as Color,
+                          };
+
+                          return option;
+                        },
+                      );
                     } catch {
                       // Silently fail and return empty array
                       return [];

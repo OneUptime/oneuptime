@@ -38,6 +38,7 @@ import { ListDetailProps } from "../List/ListRow";
 import ConfirmModal from "../Modal/ConfirmModal";
 import { ModalWidth } from "../Modal/Modal";
 import Filter from "../ModelFilter/Filter";
+import { DropdownOption, DropdownOptionLabel } from "../Dropdown/Dropdown";
 import OrderedStatesList from "../OrderedStatesList/OrderedStatesList";
 import Pill from "../Pill/Pill";
 import Table from "../Table/Table";
@@ -51,6 +52,7 @@ import AnalyticsBaseModel, {
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AccessControlModel from "../../../Models/DatabaseModels/DatabaseBaseModel/AccessControlModel";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
@@ -64,6 +66,7 @@ import { Yellow } from "../../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import Color from "../../../Types/Color";
 import {
   ErrorFunction,
   PromiseVoidFunction,
@@ -641,30 +644,155 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
           const query: Query<TBaseModel> = filter.filterQuery || {};
 
+          let colorColumnName: string | null = null;
+          let accessControlColumnName: string | null = null;
+
+          if (
+            filter.filterEntityType &&
+            filter.filterEntityType.prototype instanceof BaseModel
+          ) {
+            const filterModel: BaseModel =
+              new (filter.filterEntityType as DatabaseBaseModelType)();
+            colorColumnName = filterModel.getFirstColorColumn();
+            accessControlColumnName = filterModel.getAccessControlColumn();
+          }
+
+          const select: Select<TBaseModel> = {
+            [filter.filterDropdownField.label]: true,
+            [filter.filterDropdownField.value]: true,
+          } as Select<TBaseModel>;
+
+          if (colorColumnName) {
+            (select as Dictionary<boolean>)[colorColumnName] = true;
+          }
+
+          if (accessControlColumnName) {
+            (select as Dictionary<JSONObject>)[accessControlColumnName] = {
+              _id: true,
+              name: true,
+              color: true,
+            } as JSONObject;
+          }
+
           const listResult: ListResult<TBaseModel> =
             await props.callbacks.getList({
               modelType: filter.filterEntityType,
               query: query,
               limit: LIMIT_PER_PROJECT,
               skip: 0,
-              select: {
-                [filter.filterDropdownField.label]: true,
-                [filter.filterDropdownField.value]: true,
-              } as any,
+              select: select,
               sort: {},
             });
 
           filter.filterDropdownOptions = [];
 
           for (const item of listResult.data) {
-            filter.filterDropdownOptions.push({
+            const option: DropdownOption = {
               value: item.getColumnValue(
                 filter.filterDropdownField.value,
               ) as string,
               label: item.getColumnValue(
                 filter.filterDropdownField.label,
               ) as string,
-            });
+            };
+
+            if (colorColumnName) {
+              const colorValue: Color | string | null = item.getColumnValue(
+                colorColumnName,
+              ) as Color | string | null;
+
+              if (colorValue instanceof Color) {
+                option.color = colorValue;
+              } else if (
+                typeof colorValue === "string" &&
+                colorValue.trim().length > 0
+              ) {
+                try {
+                  option.color = new Color(colorValue);
+                } catch {
+                  // ignore invalid colors
+                }
+              }
+            }
+
+            if (accessControlColumnName) {
+              const accessControlValue:
+                | AccessControlModel
+                | Array<AccessControlModel>
+                | null =
+                (item.getColumnValue(accessControlColumnName) as
+                  | AccessControlModel
+                  | Array<AccessControlModel>
+                  | null) || null;
+
+              const accessControlItems: Array<AccessControlModel> =
+                Array.isArray(accessControlValue)
+                  ? accessControlValue
+                  : accessControlValue
+                    ? [accessControlValue]
+                    : [];
+
+              type SimplifiedDropdownLabel = {
+                id?: string;
+                name: string;
+                color?: Color;
+              };
+
+              const dropdownLabels: Array<SimplifiedDropdownLabel> =
+                accessControlItems
+                  .map((label: AccessControlModel | null) => {
+                    if (!label) {
+                      return null;
+                    }
+
+                    const labelNameRaw: string | null = label.getColumnValue(
+                      "name",
+                    ) as string | null;
+
+                    if (!labelNameRaw) {
+                      return null;
+                    }
+
+                    const labelName: string = labelNameRaw.toString().trim();
+
+                    if (!labelName) {
+                      return null;
+                    }
+
+                    const labelColorValue: Color | null = label.getColumnValue(
+                      "color",
+                    ) as Color | null;
+
+                    const normalizedLabel: SimplifiedDropdownLabel = {
+                      name: labelName,
+                    };
+
+                    const labelId: ObjectID | null = label.id;
+
+                    if (labelId) {
+                      normalizedLabel.id = labelId.toString();
+                    }
+
+                    if (labelColorValue) {
+                      normalizedLabel.color = labelColorValue;
+                    }
+
+                    return normalizedLabel;
+                  })
+                  .filter(
+                    (
+                      label: SimplifiedDropdownLabel | null,
+                    ): label is SimplifiedDropdownLabel => {
+                      return label !== null;
+                    },
+                  );
+
+              if (dropdownLabels.length > 0) {
+                option.labels = dropdownLabels as Array<DropdownOptionLabel>;
+              }
+            }
+
+            filter.filterDropdownOptions.push(option);
           }
         }
 

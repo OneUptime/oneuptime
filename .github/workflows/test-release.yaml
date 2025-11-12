@@ -1245,7 +1245,7 @@ on:
               --build-arg IS_ENTERPRISE_EDITION=true \
               .
 
-  open-telemetry-ingest-docker-image-deploy:
+  telemetry-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
@@ -1254,8 +1254,8 @@ on:
         uses: docker/metadata-action@v4
         with:
           images: |
-            oneuptime/open-telemetry-ingest
-            ghcr.io/oneuptime/open-telemetry-ingest
+            oneuptime/telemetry
+            ghcr.io/oneuptime/telemetry
           tags: |
             type=raw,value=test,enable=true
             type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
@@ -1309,26 +1309,26 @@ on:
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test"
             docker buildx build \
               --no-cache \
-              --file ./OpenTelemetryIngest/Dockerfile \
+              --file ./Telemetry/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/open-telemetry-ingest:test \
-              --tag oneuptime/open-telemetry-ingest:${VERSION} \
-              --tag ghcr.io/oneuptime/open-telemetry-ingest:test \
-              --tag ghcr.io/oneuptime/open-telemetry-ingest:${VERSION} \
+              --tag oneuptime/telemetry:test \
+              --tag oneuptime/telemetry:${VERSION} \
+              --tag ghcr.io/oneuptime/telemetry:test \
+              --tag ghcr.io/oneuptime/telemetry:${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
               --build-arg IS_ENTERPRISE_EDITION=false \
               .
             docker buildx build \
               --no-cache \
-              --file ./OpenTelemetryIngest/Dockerfile \
+              --file ./Telemetry/Dockerfile \
               --platform linux/amd64,linux/arm64 \
               --push \
-              --tag oneuptime/open-telemetry-ingest:enterprise-test \
-              --tag oneuptime/open-telemetry-ingest:enterprise-${VERSION} \
-              --tag ghcr.io/oneuptime/open-telemetry-ingest:enterprise-test \
-              --tag ghcr.io/oneuptime/open-telemetry-ingest:enterprise-${VERSION} \
+              --tag oneuptime/telemetry:enterprise-test \
+              --tag oneuptime/telemetry:enterprise-${VERSION} \
+              --tag ghcr.io/oneuptime/telemetry:enterprise-test \
+              --tag ghcr.io/oneuptime/telemetry:enterprise-${VERSION} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${VERSION} \
               --build-arg IS_ENTERPRISE_EDITION=true \
@@ -2236,7 +2236,7 @@ on:
 
   test-helm-chart:
     runs-on: ubuntu-latest
-    needs: [infrastructure-agent-deploy, publish-mcp-server, llm-docker-image-deploy, publish-terraform-provider, open-telemetry-ingest-docker-image-deploy, copilot-docker-image-deploy, docs-docker-image-deploy, worker-docker-image-deploy,  workflow-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, api-reference-docker-image-deploy,  test-server-docker-image-deploy, test-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, probe-docker-image-deploy, dashboard-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, accounts-docker-image-deploy, otel-collector-docker-image-deploy, status-page-docker-image-deploy, nginx-docker-image-deploy, e2e-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
+    needs: [infrastructure-agent-deploy, publish-mcp-server, llm-docker-image-deploy, publish-terraform-provider, telemetry-docker-image-deploy, copilot-docker-image-deploy, docs-docker-image-deploy, worker-docker-image-deploy,  workflow-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, api-reference-docker-image-deploy,  test-server-docker-image-deploy, test-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, probe-docker-image-deploy, dashboard-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, accounts-docker-image-deploy, otel-collector-docker-image-deploy, status-page-docker-image-deploy, nginx-docker-image-deploy, e2e-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:

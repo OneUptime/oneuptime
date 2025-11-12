@@ -59,8 +59,6 @@ Usage:
   value: {{ $.Values.statusPage.cnameRecord }}
 - name: ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN
   value: {{ $.Values.billing.allowedActiveMonitorCountInFreePlan | quote }}
-- name: OTEL_COLLECTOR_HOST
-  value: {{ $.Values.openTelemetryCollectorHost }}
 - name: LOG_LEVEL
   value: {{ $.Values.logLevel }}
 - name: HTTP_PROTOCOL
@@ -105,12 +103,12 @@ Usage:
   value: {{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_PROBE_INGEST_HOSTNAME
   value: {{ $.Release.Name }}-probe-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: OPEN_TELEMETRY_INGEST_HOSTNAME
-  value: {{ $.Release.Name }}-open-telemetry-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: TELEMETRY_HOSTNAME
+  value: {{ $.Release.Name }}-telemetry.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_INCOMING_REQUEST_INGEST_HOSTNAME
   value: {{ $.Release.Name }}-incoming-request-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-- name: SERVER_OPEN_TELEMETRY_INGEST_HOSTNAME
-  value: {{ $.Release.Name }}-open-telemetry-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
+- name: SERVER_TELEMETRY_HOSTNAME
+  value: {{ $.Release.Name }}-telemetry.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_TEST_SERVER_HOSTNAME
   value: {{ $.Release.Name }}-test-server.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_OTEL_COLLECTOR_HOSTNAME
@@ -130,8 +128,8 @@ Usage:
   value: {{ $.Values.probeIngest.ports.http | squote }}
 - name: SERVER_MONITOR_INGEST_PORT
   value: {{ $.Values.serverMonitorIngest.ports.http | squote }}
-- name: OPEN_TELEMETRY_INGEST_PORT
-  value: {{ $.Values.openTelemetryIngest.ports.http | squote }}
+- name: TELEMETRY_PORT
+  value: {{ $.Values.telemetry.ports.http | squote }}
 - name: INCOMING_REQUEST_INGEST_PORT
   value: {{ $.Values.incomingRequestIngest.ports.http | squote }}
 - name: TEST_SERVER_PORT

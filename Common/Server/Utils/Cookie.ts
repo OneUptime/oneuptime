@@ -4,6 +4,7 @@ import ObjectID from "../../Types/ObjectID";
 import { CookieOptions } from "express";
 import JSONWebToken from "./JsonWebToken";
 import User from "../../Models/DatabaseModels/User";
+import StatusPagePrivateUser from "../../Models/DatabaseModels/StatusPagePrivateUser";
 import OneUptimeDate from "../../Types/Date";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CookieName from "../../Types/CookieName";
@@ -11,6 +12,8 @@ import CaptureSpan from "./Telemetry/CaptureSpan";
 
 export default class CookieUtil {
   // set cookie with express response
+
+  private static readonly DEFAULT_ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 
   @CaptureSpan()
   public static getCookiesFromCookieString(
@@ -58,8 +61,23 @@ export default class CookieUtil {
     expressResponse: ExpressResponse;
     user: User;
     isGlobalLogin: boolean;
+    sessionId: ObjectID;
+    refreshToken: string;
+    refreshTokenExpiresAt: Date;
+    accessTokenExpiresInSeconds?: number;
   }): void {
-    const { expressResponse: res, user, isGlobalLogin } = data;
+    const {
+      expressResponse: res,
+      user,
+      isGlobalLogin,
+      sessionId,
+      refreshToken,
+      refreshTokenExpiresAt,
+    } = data;
+
+    const accessTokenExpiresInSeconds: number =
+      data.accessTokenExpiresInSeconds ||
+      CookieUtil.DEFAULT_ACCESS_TOKEN_EXPIRY_SECONDS;
 
     const token: string = JSONWebToken.signUserLoginToken({
       tokenData: {
@@ -69,13 +87,24 @@ export default class CookieUtil {
         timezone: user.timezone || null,
         isMasterAdmin: user.isMasterAdmin!,
         isGlobalLogin: isGlobalLogin, // This is a general login without SSO. So, we will set this to true. This will give access to all the projects that dont require SSO.
+        sessionId: sessionId,
       },
-      expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
+      expiresInSeconds: accessTokenExpiresInSeconds,
     });
 
     // Set a cookie with token.
     CookieUtil.setCookie(res, CookieUtil.getUserTokenKey(), token, {
-      maxAge: OneUptimeDate.getMillisecondsInDays(new PositiveNumber(30)),
+      maxAge: accessTokenExpiresInSeconds * 1000,
+      httpOnly: true,
+    });
+
+    const refreshTokenTtl: number = Math.max(
+      refreshTokenExpiresAt.getTime() - Date.now(),
+      0,
+    );
+
+    CookieUtil.setCookie(res, CookieUtil.getRefreshTokenKey(), refreshToken, {
+      maxAge: refreshTokenTtl,
       httpOnly: true,
     });
 
@@ -149,13 +178,75 @@ export default class CookieUtil {
   }
 
   @CaptureSpan()
+  public static setStatusPagePrivateUserCookie(data: {
+    expressResponse: ExpressResponse;
+    user: StatusPagePrivateUser;
+    statusPageId: ObjectID;
+    sessionId: ObjectID;
+    refreshToken: string;
+    refreshTokenExpiresAt: Date;
+    accessTokenExpiresInSeconds?: number;
+  }): string {
+    const {
+      expressResponse: res,
+      user,
+      statusPageId,
+      sessionId,
+      refreshToken,
+      refreshTokenExpiresAt,
+    } = data;
+
+    const accessTokenExpiresInSeconds: number =
+      data.accessTokenExpiresInSeconds ||
+      CookieUtil.DEFAULT_ACCESS_TOKEN_EXPIRY_SECONDS;
+
+    const token: string = JSONWebToken.sign({
+      data: {
+        userId: user.id!,
+        email: user.email!,
+        statusPageId: statusPageId,
+        sessionId: sessionId,
+      },
+      expiresInSeconds: accessTokenExpiresInSeconds,
+    });
+
+    CookieUtil.setCookie(res, CookieUtil.getUserTokenKey(statusPageId), token, {
+      maxAge: accessTokenExpiresInSeconds * 1000,
+      httpOnly: true,
+    });
+
+    const refreshTokenTtl: number = Math.max(
+      refreshTokenExpiresAt.getTime() - Date.now(),
+      0,
+    );
+
+    CookieUtil.setCookie(
+      res,
+      CookieUtil.getRefreshTokenKey(statusPageId),
+      refreshToken,
+      {
+        maxAge: refreshTokenTtl,
+        httpOnly: true,
+      },
+    );
+
+    return token;
+  }
+
+  @CaptureSpan()
   public static setCookie(
     res: ExpressResponse,
     name: string | CookieName,
     value: string,
     options: CookieOptions,
   ): void {
-    res.cookie(name, value, options);
+    const cookieOptions: CookieOptions = {
+      path: "/",
+      sameSite: "lax",
+      ...options,
+    };
+
+    res.cookie(name, value, cookieOptions);
   }
 
   // get cookie with express request
@@ -168,11 +259,25 @@ export default class CookieUtil {
     return req.cookies[name];
   }
 
+  @CaptureSpan()
+  public static getRefreshTokenFromExpressRequest(
+    req: ExpressRequest,
+    id?: ObjectID,
+  ): string | undefined {
+    return CookieUtil.getCookieFromExpressRequest(
+      req,
+      CookieUtil.getRefreshTokenKey(id),
+    );
+  }
+
   // delete cookie with express response
 
   @CaptureSpan()
   public static removeCookie(res: ExpressResponse, name: string): void {
-    res.clearCookie(name);
+    res.clearCookie(name, {
+      path: "/",
+      sameSite: "lax",
+    });
   }
 
   // get all cookies with express request
@@ -188,6 +293,15 @@ export default class CookieUtil {
     }
 
     return `${CookieName.Token}-${id.toString()}`;
+  }
+
+  @CaptureSpan()
+  public static getRefreshTokenKey(id?: ObjectID): string {
+    if (!id) {
+      return CookieName.RefreshToken;
+    }
+
+    return `${CookieName.RefreshToken}-${id.toString()}`;
   }
 
   @CaptureSpan()
@@ -210,5 +324,8 @@ export default class CookieUtil {
     for (const key in cookies) {
       this.removeCookie(res, key);
     }
+
+    // Always attempt to remove refresh token cookie even if not parsed.
+    this.removeCookie(res, this.getRefreshTokenKey());
   }
 }
