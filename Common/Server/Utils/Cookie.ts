@@ -4,6 +4,7 @@ import ObjectID from "../../Types/ObjectID";
 import { CookieOptions } from "express";
 import JSONWebToken from "./JsonWebToken";
 import User from "../../Models/DatabaseModels/User";
+import StatusPagePrivateUser from "../../Models/DatabaseModels/StatusPagePrivateUser";
 import OneUptimeDate from "../../Types/Date";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CookieName from "../../Types/CookieName";
@@ -177,6 +178,67 @@ export default class CookieUtil {
   }
 
   @CaptureSpan()
+  public static setStatusPagePrivateUserCookie(data: {
+    expressResponse: ExpressResponse;
+    user: StatusPagePrivateUser;
+    statusPageId: ObjectID;
+    sessionId: ObjectID;
+    refreshToken: string;
+    refreshTokenExpiresAt: Date;
+    accessTokenExpiresInSeconds?: number;
+  }): string {
+    const {
+      expressResponse: res,
+      user,
+      statusPageId,
+      sessionId,
+      refreshToken,
+      refreshTokenExpiresAt,
+    } = data;
+
+    const accessTokenExpiresInSeconds: number =
+      data.accessTokenExpiresInSeconds ||
+      CookieUtil.DEFAULT_ACCESS_TOKEN_EXPIRY_SECONDS;
+
+    const token: string = JSONWebToken.sign({
+      data: {
+        userId: user.id!,
+        email: user.email!,
+        statusPageId: statusPageId,
+        sessionId: sessionId,
+      },
+      expiresInSeconds: accessTokenExpiresInSeconds,
+    });
+
+    CookieUtil.setCookie(
+      res,
+      CookieUtil.getUserTokenKey(statusPageId),
+      token,
+      {
+        maxAge: accessTokenExpiresInSeconds * 1000,
+        httpOnly: true,
+      },
+    );
+
+    const refreshTokenTtl: number = Math.max(
+      refreshTokenExpiresAt.getTime() - Date.now(),
+      0,
+    );
+
+    CookieUtil.setCookie(
+      res,
+      CookieUtil.getRefreshTokenKey(statusPageId),
+      refreshToken,
+      {
+        maxAge: refreshTokenTtl,
+        httpOnly: true,
+      },
+    );
+
+    return token;
+  }
+
+  @CaptureSpan()
   public static setCookie(
     res: ExpressResponse,
     name: string | CookieName,
@@ -205,10 +267,11 @@ export default class CookieUtil {
   @CaptureSpan()
   public static getRefreshTokenFromExpressRequest(
     req: ExpressRequest,
+    id?: ObjectID,
   ): string | undefined {
     return CookieUtil.getCookieFromExpressRequest(
       req,
-      CookieUtil.getRefreshTokenKey(),
+      CookieUtil.getRefreshTokenKey(id),
     );
   }
 
@@ -238,8 +301,12 @@ export default class CookieUtil {
   }
 
   @CaptureSpan()
-  public static getRefreshTokenKey(): string {
-    return CookieName.RefreshToken;
+  public static getRefreshTokenKey(id?: ObjectID): string {
+    if (!id) {
+      return CookieName.RefreshToken;
+    }
+
+    return `${CookieName.RefreshToken}-${id.toString()}`;
   }
 
   @CaptureSpan()
