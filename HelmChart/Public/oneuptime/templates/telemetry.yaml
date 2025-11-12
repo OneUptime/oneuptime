@@ -1,3 +1,4 @@
+{{- if $.Values.telemetry.enabled }}
 # OneUptime telemetry Deployment
 
 apiVersion: apps/v1
@@ -133,4 +134,5 @@ spec:
 {{- if and (not $.Values.telemetry.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.telemetry.keda.enabled)) }}
 {{- $telemetryAutoScalerArgs := dict "ServiceName" "telemetry" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $telemetryAutoScalerArgs }}
+{{- end }}
 {{- end }}

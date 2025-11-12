@@ -1,3 +1,4 @@
+{{- if $.Values.probeIngest.enabled }}
 # OneUptime probe-ingest Deployment
 
 apiVersion: apps/v1
@@ -135,3 +136,5 @@ spec:
 {{- include "oneuptime.autoscaler" $probeIngestAutoScalerArgs }}
 {{- end }}
 ---
+
+{{- end }}

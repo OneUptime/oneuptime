@@ -3,28 +3,28 @@ KEDA ScaledObjects for various services
 */}}
 
 {{/* Telemetry KEDA ScaledObject */}}
-{{- if and .Values.keda.enabled .Values.telemetry.keda.enabled (not .Values.telemetry.disableAutoscaler) }}
+{{- if and .Values.keda.enabled .Values.telemetry.enabled .Values.telemetry.keda.enabled (not .Values.telemetry.disableAutoscaler) }}
 {{- $metricsConfig := dict "enabled" .Values.telemetry.keda.enabled "minReplicas" .Values.telemetry.keda.minReplicas "maxReplicas" .Values.telemetry.keda.maxReplicas "pollingInterval" .Values.telemetry.keda.pollingInterval "cooldownPeriod" .Values.telemetry.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_telemetry_queue_size" "threshold" .Values.telemetry.keda.queueSizeThreshold "port" .Values.telemetry.ports.http)) }}
 {{- $telemetryKedaArgs := dict "ServiceName" "telemetry" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.telemetry.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $telemetryKedaArgs }}
 {{- end }}
 
 {{/* Incoming Request Ingest KEDA ScaledObject */}}
-{{- if and .Values.keda.enabled .Values.incomingRequestIngest.keda.enabled (not .Values.incomingRequestIngest.disableAutoscaler) }}
+{{- if and .Values.keda.enabled .Values.incomingRequestIngest.enabled .Values.incomingRequestIngest.keda.enabled (not .Values.incomingRequestIngest.disableAutoscaler) }}
 {{- $metricsConfig := dict "enabled" .Values.incomingRequestIngest.keda.enabled "minReplicas" .Values.incomingRequestIngest.keda.minReplicas "maxReplicas" .Values.incomingRequestIngest.keda.maxReplicas "pollingInterval" .Values.incomingRequestIngest.keda.pollingInterval "cooldownPeriod" .Values.incomingRequestIngest.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_incoming_request_ingest_queue_size" "threshold" .Values.incomingRequestIngest.keda.queueSizeThreshold "port" .Values.incomingRequestIngest.ports.http)) }}
 {{- $incomingRequestIngestKedaArgs := dict "ServiceName" "incoming-request-ingest" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.incomingRequestIngest.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $incomingRequestIngestKedaArgs }}
 {{- end }}
 
 {{/* Server Monitor Ingest KEDA ScaledObject */}}
-{{- if and .Values.keda.enabled .Values.serverMonitorIngest.keda.enabled (not .Values.serverMonitorIngest.disableAutoscaler) }}
+{{- if and .Values.keda.enabled .Values.serverMonitorIngest.enabled .Values.serverMonitorIngest.keda.enabled (not .Values.serverMonitorIngest.disableAutoscaler) }}
 {{- $metricsConfig := dict "enabled" .Values.serverMonitorIngest.keda.enabled "minReplicas" .Values.serverMonitorIngest.keda.minReplicas "maxReplicas" .Values.serverMonitorIngest.keda.maxReplicas "pollingInterval" .Values.serverMonitorIngest.keda.pollingInterval "cooldownPeriod" .Values.serverMonitorIngest.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_server_monitor_ingest_queue_size" "threshold" .Values.serverMonitorIngest.keda.queueSizeThreshold "port" .Values.serverMonitorIngest.ports.http)) }}
 {{- $serverMonitorIngestKedaArgs := dict "ServiceName" "server-monitor-ingest" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.serverMonitorIngest.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $serverMonitorIngestKedaArgs }}
 {{- end }}
 
 {{/* Probe Ingest KEDA ScaledObject */}}
-{{- if and .Values.keda.enabled .Values.probeIngest.keda.enabled (not .Values.probeIngest.disableAutoscaler) }}
+{{- if and .Values.keda.enabled .Values.probeIngest.enabled .Values.probeIngest.keda.enabled (not .Values.probeIngest.disableAutoscaler) }}
 {{- $metricsConfig := dict "enabled" .Values.probeIngest.keda.enabled "minReplicas" .Values.probeIngest.keda.minReplicas "maxReplicas" .Values.probeIngest.keda.maxReplicas "pollingInterval" .Values.probeIngest.keda.pollingInterval "cooldownPeriod" .Values.probeIngest.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_probe_ingest_queue_size" "threshold" .Values.probeIngest.keda.queueSizeThreshold "port" .Values.probeIngest.ports.http)) }}
 {{- $probeIngestKedaArgs := dict "ServiceName" "probe-ingest" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.probeIngest.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $probeIngestKedaArgs }}
@@ -32,7 +32,8 @@ KEDA ScaledObjects for various services
 
 {{/* Probe KEDA ScaledObjects - one for each probe configuration */}}
 {{- range $key, $val := $.Values.probes }}
-{{- if and $.Values.keda.enabled (and $val.keda $val.keda.enabled) (not $val.disableAutoscaler) }}
+{{- $probeEnabled := or (not (hasKey $val "enabled")) $val.enabled }}
+{{- if and $.Values.keda.enabled $probeEnabled (and $val.keda $val.keda.enabled) (not $val.disableAutoscaler) }}
 {{- $serviceName := printf "probe-%s" $key }}
 {{- $probePort := 3874 }}
 {{- if and $val.ports $val.ports.http }}
@@ -45,7 +46,7 @@ KEDA ScaledObjects for various services
 {{- end }}
 
 {{/* Worker KEDA ScaledObject */}}
-{{- if and .Values.keda.enabled .Values.worker.keda.enabled (not .Values.worker.disableAutoscaler) }}
+{{- if and .Values.keda.enabled .Values.worker.enabled .Values.worker.keda.enabled (not .Values.worker.disableAutoscaler) }}
 {{- $metricsConfig := dict "enabled" .Values.worker.keda.enabled "minReplicas" .Values.worker.keda.minReplicas "maxReplicas" .Values.worker.keda.maxReplicas "pollingInterval" .Values.worker.keda.pollingInterval "cooldownPeriod" .Values.worker.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_worker_queue_size" "threshold" .Values.worker.keda.queueSizeThreshold "port" .Values.worker.ports.http)) }}
 {{- $workerKedaArgs := dict "ServiceName" "worker" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.worker.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $workerKedaArgs }}

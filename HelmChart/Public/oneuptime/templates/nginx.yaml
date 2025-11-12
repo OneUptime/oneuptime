@@ -1,3 +1,4 @@
+{{- if $.Values.nginx.enabled }}
 
 # OneUptime nginx Deployment
 apiVersion: apps/v1
@@ -208,3 +209,5 @@ spec:
 {{- include "oneuptime.autoscaler" $nginxAutoScalerArgs }}
 {{- end }}
 ---
+
+{{- end }}

@@ -1,4 +1,5 @@
 {{- range $key, $val := $.Values.probes }}
+{{- if or (not (hasKey $val "enabled")) $val.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -161,6 +162,8 @@ spec:
 {{- include "oneuptime.autoscaler" $probeAutoScalerArgs }}
 {{- end }}
 ---
+
+{{- end }}
 
 {{- end }}
 

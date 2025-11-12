@@ -60,6 +60,7 @@ metalLb:
       # - 51.158.55.153/32 # List of IP addresses of all the servers in the cluster.
 
 nginx:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -274,6 +275,7 @@ alerts:
 # 2. Set the statusPage.cnameRecord to "oneuptime.yourcompany.com"
 # 3. Create CNAME record in your DNS provider with the name "status.yourcompany.com" and value "oneuptime.yourcompany.com"
 statusPage:
+  enabled: true
   replicaCount: 1
   cnameRecord:
   disableTelemetryCollection: false
@@ -289,6 +291,7 @@ probes:
   one:
     name: "Probe"
     description: "Probe"
+    enabled: true
     monitoringWorkers: 3
     monitorFetchLimit: 10
     monitorRetryLimit: 3
@@ -544,6 +547,7 @@ readinessProbe: # Readiness probe configuration
 
 # OpenTelemetry Collector Configuration
 openTelemetryCollector:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -560,6 +564,7 @@ openTelemetryCollector:
   containerSecurityContext: {}
 
 accounts:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -571,6 +576,7 @@ accounts:
   containerSecurityContext: {}
 
 home:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -582,6 +588,7 @@ home:
   containerSecurityContext: {}
 
 dashboard:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -593,6 +600,7 @@ dashboard:
   containerSecurityContext: {}
 
 adminDashboard:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -604,6 +612,7 @@ adminDashboard:
   containerSecurityContext: {}
 
 worker:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -627,6 +636,7 @@ worker:
     cooldownPeriod: 300
 
 workflow:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -639,6 +649,7 @@ workflow:
   containerSecurityContext: {}
 
 apiReference:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -650,6 +661,7 @@ apiReference:
   containerSecurityContext: {}
 
 docs:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -661,6 +673,7 @@ docs:
   containerSecurityContext: {}
 
 app:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -672,6 +685,7 @@ app:
   containerSecurityContext: {}
 
 probeIngest:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -695,6 +709,7 @@ probeIngest:
     cooldownPeriod: 300
 
 telemetry:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -719,6 +734,7 @@ telemetry:
     cooldownPeriod: 300
 
 incomingRequestIngest:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -742,6 +758,7 @@ incomingRequestIngest:
     cooldownPeriod: 300
 
 isolatedVM:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -753,6 +770,7 @@ isolatedVM:
   containerSecurityContext: {}
 
 serverMonitorIngest:
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false

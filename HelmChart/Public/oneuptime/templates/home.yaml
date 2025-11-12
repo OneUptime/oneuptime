@@ -1,3 +1,4 @@
+{{- if $.Values.home.enabled }}
 # OneUptime Home Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -128,3 +129,5 @@ spec:
 {{- include "oneuptime.autoscaler" $homeAutoScalerArgs }}
 {{- end }}
 ---
+
+{{- end }}

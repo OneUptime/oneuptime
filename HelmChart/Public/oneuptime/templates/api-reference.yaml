@@ -1,3 +1,4 @@
+{{- if $.Values.apiReference.enabled }}
 # OneUptime api-reference Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -129,3 +130,4 @@ spec:
 {{- include "oneuptime.autoscaler" $apiReferenceAutoScalerArgs }}
 {{- end }}
 ---
+{{- end }}

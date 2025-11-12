@@ -1,3 +1,4 @@
+{{- if $.Values.statusPage.enabled }}
 # OneUptime statusPage Deployment
 {{- $statusPagePorts := dict "port" $.Values.statusPage.ports.http -}}
 {{- $statusPageEnv := dict "PORT"  $.Values.statusPage.ports.http "DISABLE_TELEMETRY" $.Values.statusPage.disableTelemetryCollection -}}
@@ -15,3 +16,4 @@
 {{- $statusPageAutoScalerArgs := dict "ServiceName" "status-page" "Release" $.Release "Values" $.Values "DisableAutoscaler" $.Values.statusPage.disableAutoscaler -}}
 {{- include "oneuptime.autoscaler" $statusPageAutoScalerArgs }}
 ---
+{{- end }}

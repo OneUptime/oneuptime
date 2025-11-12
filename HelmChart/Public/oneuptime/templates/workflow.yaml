@@ -1,3 +1,4 @@
+{{- if $.Values.workflow.enabled }}
 # OneUptime workflow Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -129,3 +130,5 @@ spec:
 {{- include "oneuptime.autoscaler" $workflowAutoScalerArgs }}
 {{- end }}
 ---
+
+{{- end }}

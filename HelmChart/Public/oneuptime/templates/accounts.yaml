@@ -1,3 +1,4 @@
+{{- if $.Values.accounts.enabled }}
 # OneUptime accounts Deployment
 {{- $accountsEnv := dict "PORT" $.Values.accounts.ports.http "DISABLE_TELEMETRY" $.Values.accounts.disableTelemetryCollection -}}
 {{- $accountsPorts := $.Values.accounts.ports -}}
@@ -15,3 +16,4 @@
 {{- $accountsAutoScalerArgs := dict "ServiceName" "accounts" "Release" $.Release "Values" $.Values "DisableAutoscaler" $.Values.accounts.disableAutoscaler -}}
 {{- include "oneuptime.autoscaler" $accountsAutoScalerArgs }}
 ---
+{{- end }}

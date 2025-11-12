@@ -148,6 +148,9 @@
     "nginx": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer",
           "minimum": 1
@@ -696,6 +699,9 @@
     "statusPage": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },
@@ -738,6 +744,9 @@
         "^.*$": {
           "type": "object",
           "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
             "name": {
               "type": "string"
             },
@@ -1264,6 +1273,9 @@
     "openTelemetryCollector": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },
@@ -1318,6 +1330,9 @@
     "accounts": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },
@@ -1354,6 +1369,9 @@
     "home": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },
@@ -1390,6 +1408,9 @@
     "dashboard": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },
@@ -1426,6 +1447,9 @@
     "adminDashboard": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },
@@ -1462,6 +1486,9 @@
     "worker": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },
@@ -1525,6 +1552,9 @@
     "workflow": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },
@@ -1564,6 +1594,9 @@
     "apiReference": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },
@@ -1600,6 +1633,9 @@
     "docs": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },
@@ -1636,6 +1672,9 @@
     "app": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },
@@ -1672,6 +1711,9 @@
     "probeIngest": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },
@@ -1735,6 +1777,9 @@
     "telemetry": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },
@@ -1798,6 +1843,9 @@
     "incomingRequestIngest": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },
@@ -1861,6 +1909,9 @@
     "isolatedVM": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },
@@ -1897,6 +1948,9 @@
     "serverMonitorIngest": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "replicaCount": {
           "type": "integer"
         },

@@ -1,3 +1,4 @@
+{{- if $.Values.dashboard.enabled }}
 # OneUptime dashboard Deployment
 {{- $dashboardPorts := $.Values.dashboard.ports -}}
 {{- $dashboardEnv := dict "PORT"  $.Values.dashboard.ports.http "DISABLE_TELEMETRY" $.Values.dashboard.disableTelemetryCollection -}}
@@ -15,3 +16,4 @@
 {{- $dashboardAutoScalerArgs := dict "ServiceName" "dashboard" "Release" $.Release "Values" $.Values "DisableAutoscaler" $.Values.dashboard.disableAutoscaler -}}
 {{- include "oneuptime.autoscaler" $dashboardAutoScalerArgs }}
 ---
+{{- end }}
