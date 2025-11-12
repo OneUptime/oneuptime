@@ -1,3 +1,4 @@
+{{- if $.Values.app.enabled }}
 # OneUptime app Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -16,7 +17,7 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "app"  }}
-  {{- if $.Values.app.replicaCount }}
+  {{- if and $.Values.app (hasKey $.Values.app "replicaCount") (ne $.Values.app.replicaCount nil) }}
   replicas: {{ $.Values.app.replicaCount }}
   {{- else }}
   {{- if or (not $.Values.autoscaling.enabled) ($.Values.app.disableAutoscaler) }}
@@ -140,3 +141,4 @@ spec:
 {{- include "oneuptime.autoscaler" $appAutoScalerArgs }}
 {{- end }}
 ---
+{{- end }}
