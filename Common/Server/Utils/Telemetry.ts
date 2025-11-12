@@ -5,8 +5,8 @@ import OpenTelemetryAPI, {
    * DiagLogLevel,
    */
   Meter,
+  type AttributeValue,
 } from "@opentelemetry/api";
-import type { AttributeValue } from "@opentelemetry/api";
 import { Logger, logs } from "@opentelemetry/api-logs";
 import {
   Counter,
@@ -23,8 +23,8 @@ import {
   BatchLogRecordProcessor,
   LoggerProvider,
   LogRecordProcessor,
+  type LoggerProviderConfig,
 } from "@opentelemetry/sdk-logs";
-import type { LoggerProviderConfig } from "@opentelemetry/sdk-logs";
 import type { Resource as LogsResource } from "@opentelemetry/sdk-logs/node_modules/@opentelemetry/resources/build/src/Resource";
 import {
   MeterProvider,
@@ -38,6 +38,10 @@ import URL from "../../Types/API/URL";
 import Dictionary from "../../Types/Dictionary";
 import { DisableTelemetry } from "../EnvironmentConfig";
 import logger from "./Logger";
+
+type ResourceWithRawAttributes = LogsResource & {
+  getRawAttributes?: () => Array<[string, AttributeValue | undefined]>;
+};
 
 /*
  * Enable this line to see debug logs
@@ -175,15 +179,14 @@ export default class Telemetry {
         });
       }
 
-      const resource = this.getResource({
+      const resource: Resource = this.getResource({
         serviceName: data.serviceName,
       });
 
       const logRecordProcessors: Array<LogRecordProcessor> = [];
 
-      const loggerProviderResource = resource as unknown as LogsResource & {
-        getRawAttributes?: () => Array<[string, AttributeValue | undefined]>;
-      };
+      const loggerProviderResource: ResourceWithRawAttributes =
+        resource as unknown as ResourceWithRawAttributes;
 
       if (typeof loggerProviderResource.getRawAttributes !== "function") {
         loggerProviderResource.getRawAttributes = () => {

@@ -44,7 +44,8 @@ export default class Telemetry {
         headers: OpenTelemetryExporterOtlpHeaders,
       }) as unknown as SpanExporter;
 
-      const webTraceExporter = traceExporter as unknown as WebSpanExporter;
+      const webTraceExporter: WebSpanExporter =
+        traceExporter as unknown as WebSpanExporter;
 
       provider.addSpanProcessor(new BatchSpanProcessor(webTraceExporter));
 
