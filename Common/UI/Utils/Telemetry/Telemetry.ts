@@ -46,9 +46,7 @@ export default class Telemetry {
 
       const webTraceExporter = traceExporter as unknown as WebSpanExporter;
 
-      provider.addSpanProcessor(
-        new BatchSpanProcessor(webTraceExporter),
-      );
+      provider.addSpanProcessor(new BatchSpanProcessor(webTraceExporter));
 
       provider.register({
         contextManager: new ZoneContextManager(),

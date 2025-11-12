@@ -164,12 +164,11 @@ export default class Telemetry {
       }
 
       if (this.getOltpMetricsEndpoint() && hasHeaders) {
-        const metricExporter: PushMetricExporter =
-          new OTLPMetricExporter({
-            url: this.getOltpMetricsEndpoint()!.toString(),
-            headers: headers,
-            compression: CompressionAlgorithm.GZIP,
-          }) as unknown as PushMetricExporter;
+        const metricExporter: PushMetricExporter = new OTLPMetricExporter({
+          url: this.getOltpMetricsEndpoint()!.toString(),
+          headers: headers,
+          compression: CompressionAlgorithm.GZIP,
+        }) as unknown as PushMetricExporter;
 
         this.metricReader = new PeriodicExportingMetricReader({
           exporter: metricExporter,
@@ -183,8 +182,7 @@ export default class Telemetry {
       const logRecordProcessors: Array<LogRecordProcessor> = [];
 
       const loggerProviderResource = resource as unknown as LogsResource & {
-        getRawAttributes?: () =>
-          Array<[string, AttributeValue | undefined]>;
+        getRawAttributes?: () => Array<[string, AttributeValue | undefined]>;
       };
 
       if (typeof loggerProviderResource.getRawAttributes !== "function") {
