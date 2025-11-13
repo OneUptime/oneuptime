@@ -27,6 +27,7 @@ import {
 } from "@opentelemetry/sdk-logs";
 import type { Resource as LogsResource } from "@opentelemetry/sdk-logs/node_modules/@opentelemetry/resources/build/src/Resource";
 import {
+  Aggregation,
   MeterProvider,
   PeriodicExportingMetricReader,
 } from "@opentelemetry/sdk-metrics";
@@ -173,6 +174,20 @@ export default class Telemetry {
           headers: headers,
           compression: CompressionAlgorithm.GZIP,
         }) as unknown as PushMetricExporter;
+
+        // Force an SDK-side aggregation selector that matches the modern metrics API.
+        if (
+          typeof (metricExporter as { selectAggregation?: unknown }).
+            selectAggregation === "function"
+        ) {
+          (
+            metricExporter as unknown as {
+              selectAggregation: (..._args: Array<unknown>) => Aggregation;
+            }
+          ).selectAggregation = () => {
+            return Aggregation.Default();
+          };
+        }
 
         this.metricReader = new PeriodicExportingMetricReader({
           exporter: metricExporter,
