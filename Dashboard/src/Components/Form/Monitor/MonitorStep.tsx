@@ -66,6 +66,10 @@ import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import Link from "Common/UI/Components/Link/Link";
+import ExceptionMonitorStepForm from "./ExceptionMonitor/ExceptionMonitorStepForm";
+import MonitorStepExceptionMonitor, {
+  MonitorStepExceptionMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -644,6 +648,24 @@ return {
             }}
             attributeKeys={attributeKeys}
             telemetryServices={telemetryServices}
+          />
+        </div>
+      )}
+
+      {props.monitorType === MonitorType.Exceptions && (
+        <div className="mt-5">
+          <ExceptionMonitorStepForm
+            monitorStepExceptionMonitor={
+              monitorStep.data?.exceptionMonitor ||
+              MonitorStepExceptionMonitorUtil.getDefault()
+            }
+            telemetryServices={telemetryServices}
+            onMonitorStepExceptionMonitorChanged={(
+              value: MonitorStepExceptionMonitor,
+            ) => {
+              monitorStep.setExceptionMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
           />
         </div>
       )}

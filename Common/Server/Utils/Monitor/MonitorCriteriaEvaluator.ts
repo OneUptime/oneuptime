@@ -9,6 +9,7 @@ import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
 import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
 import MetricMonitorCriteria from "./Criteria/MetricMonitorCriteria";
 import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
+import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
 import MonitorCriteriaMessageBuilder from "./MonitorCriteriaMessageBuilder";
 import DataToProcess from "./DataToProcess";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -431,6 +432,18 @@ export default class MonitorCriteriaEvaluator {
 
       if (traceMonitorResult) {
         return traceMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.Exceptions) {
+      const exceptionMonitorResult: string | null =
+        await ExceptionMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (exceptionMonitorResult) {
+        return exceptionMonitorResult;
       }
     }
 

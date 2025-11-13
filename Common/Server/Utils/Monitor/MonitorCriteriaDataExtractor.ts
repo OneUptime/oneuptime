@@ -14,6 +14,7 @@ import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import AggregateModel from "../../../Types/BaseDatabase/AggregatedModel";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
+import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 
 export default class MonitorCriteriaDataExtractor {
   public static getProbeMonitorResponse(
@@ -74,6 +75,18 @@ export default class MonitorCriteriaDataExtractor {
   ): MetricMonitorResponse | null {
     if ((dataToProcess as MetricMonitorResponse).metricResult !== undefined) {
       return dataToProcess as MetricMonitorResponse;
+    }
+
+    return null;
+  }
+
+  public static getExceptionMonitorResponse(
+    dataToProcess: DataToProcess,
+  ): ExceptionMonitorResponse | null {
+    if (
+      (dataToProcess as ExceptionMonitorResponse).exceptionCount !== undefined
+    ) {
+      return dataToProcess as ExceptionMonitorResponse;
     }
 
     return null;

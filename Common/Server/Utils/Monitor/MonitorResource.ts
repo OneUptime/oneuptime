@@ -31,6 +31,7 @@ import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResp
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
+import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
@@ -554,6 +555,22 @@ export default class MonitorResourceUtil {
         };
         logger.debug(
           `${dataToProcess.monitorId.toString()} - Span query found.`,
+        );
+      }
+
+      if (
+        dataToProcess &&
+        (dataToProcess as ExceptionMonitorResponse).exceptionQuery
+      ) {
+        telemetryQuery = {
+          telemetryQuery: (dataToProcess as ExceptionMonitorResponse)
+            .exceptionQuery,
+          telemetryType: TelemetryType.Exception,
+          metricViewData: null,
+        };
+
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Exception query found.`,
         );
       }
 

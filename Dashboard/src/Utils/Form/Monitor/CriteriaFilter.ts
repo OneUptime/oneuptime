@@ -253,6 +253,12 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (monitorType === MonitorType.Exceptions) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === CheckOn.ExceptionCount;
+      });
+    }
+
     return options;
   }
 

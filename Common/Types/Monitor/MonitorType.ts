@@ -20,6 +20,7 @@ enum MonitorType {
   Logs = "Logs",
   Metrics = "Metrics",
   Traces = "Traces",
+  Exceptions = "Exceptions",
 }
 
 export default MonitorType;
@@ -35,7 +36,8 @@ export class MonitorTypeHelper {
     return (
       monitorType === MonitorType.Logs ||
       monitorType === MonitorType.Metrics ||
-      monitorType === MonitorType.Traces
+      monitorType === MonitorType.Traces ||
+      monitorType === MonitorType.Exceptions
     );
   }
 
@@ -124,6 +126,12 @@ export class MonitorTypeHelper {
         description: "This monitor type lets you monitor logs from any source.",
       },
       {
+        monitorType: MonitorType.Exceptions,
+        title: "Exceptions",
+        description:
+          "This monitor type lets you monitor exceptions and error groups from any source.",
+      },
+      {
         monitorType: MonitorType.Traces,
         title: "Traces",
         description:
@@ -198,6 +206,7 @@ export class MonitorTypeHelper {
       MonitorType.Logs,
       MonitorType.Metrics,
       MonitorType.Traces,
+      MonitorType.Exceptions,
     ];
   }
 

@@ -53,6 +53,9 @@ import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import TelemetryExceptionTable from "../../../Components/Exceptions/ExceptionsTable";
+import Query from "Common/Types/BaseDatabase/Query";
+import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -670,6 +673,16 @@ const IncidentView: FunctionComponent<
               }}
             />
           </Card>
+        )}
+
+      {telemetryQuery &&
+        telemetryQuery.telemetryType === TelemetryType.Exception &&
+        telemetryQuery.telemetryQuery && (
+          <TelemetryExceptionTable
+            title="Exceptions"
+            description="Exceptions related to this incident."
+            query={telemetryQuery.telemetryQuery as Query<TelemetryException>}
+          />
         )}
 
       <IncidentFeedElement incidentId={modelId} />

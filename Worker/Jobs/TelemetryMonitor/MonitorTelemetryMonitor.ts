@@ -36,6 +36,13 @@ import MetricService from "Common/Server/Services/MetricService";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import Dictionary from "Common/Types/Dictionary";
 import Metric from "Common/Models/AnalyticsModels/Metric";
+import ExceptionMonitorResponse from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
+import MonitorStepExceptionMonitor, {
+  MonitorStepExceptionMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepExceptionMonitor";
+import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
+import DatabaseQuery from "Common/Types/BaseDatabase/Query";
+import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 
 RunCron(
   "TelemetryMonitor:MonitorTelemetryMonitor",
@@ -53,6 +60,7 @@ RunCron(
           MonitorType.Logs,
           MonitorType.Traces,
           MonitorType.Metrics,
+          MonitorType.Exceptions,
         ]),
         telemetryMonitorNextMonitorAt:
           DatabaseQueryHelper.lessThanEqualToOrNull(
@@ -113,7 +121,12 @@ RunCron(
     logger.debug(telemetryMonitors);
 
     const monitorResponses: Array<
-      Promise<LogMonitorResponse | TraceMonitorResponse | MetricMonitorResponse>
+      Promise<
+        | LogMonitorResponse
+        | TraceMonitorResponse
+        | MetricMonitorResponse
+        | ExceptionMonitorResponse
+      >
     > = [];
 
     for (const monitor of telemetryMonitors) {
@@ -145,7 +158,10 @@ RunCron(
     }
 
     const responses: Array<
-      LogMonitorResponse | TraceMonitorResponse | MetricMonitorResponse
+      | LogMonitorResponse
+      | TraceMonitorResponse
+      | MetricMonitorResponse
+      | ExceptionMonitorResponse
     > = await Promise.all(monitorResponses);
 
     for (const response of responses) {
@@ -160,7 +176,10 @@ type MonitorTelemetryMonitorFunction = (data: {
   monitorId: ObjectID;
   projectId: ObjectID;
 }) => Promise<
-  LogMonitorResponse | TraceMonitorResponse | MetricMonitorResponse
+  | LogMonitorResponse
+  | TraceMonitorResponse
+  | MetricMonitorResponse
+  | ExceptionMonitorResponse
 >;
 
 const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
@@ -169,7 +188,10 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
   monitorId: ObjectID;
   projectId: ObjectID;
 }): Promise<
-  LogMonitorResponse | TraceMonitorResponse | MetricMonitorResponse
+  | LogMonitorResponse
+  | TraceMonitorResponse
+  | MetricMonitorResponse
+  | ExceptionMonitorResponse
 > => {
   const { monitorStep, monitorType, monitorId, projectId } = data;
 
@@ -191,6 +213,14 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.Metrics) {
     return monitorMetric({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.Exceptions) {
+    return monitorException({
       monitorStep,
       monitorId,
       projectId,
@@ -320,6 +350,50 @@ const monitorMetric: MonitorMetricFunction = async (data: {
     monitorId: data.monitorId,
   };
 };
+
+type MonitorExceptionFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<ExceptionMonitorResponse>;
+
+const monitorException: MonitorExceptionFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<ExceptionMonitorResponse> => {
+  const exceptionMonitorConfig: MonitorStepExceptionMonitor | undefined =
+    data.monitorStep.data?.exceptionMonitor;
+
+  if (!exceptionMonitorConfig) {
+    throw new BadDataException("Exception monitor config is missing");
+  }
+
+  const query: DatabaseQuery<TelemetryException> =
+    MonitorStepExceptionMonitorUtil.toQuery(exceptionMonitorConfig);
+
+  query.projectId = data.projectId;
+
+  const exceptionCount: PositiveNumber =
+    await TelemetryExceptionService.countBy({
+      query,
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+  return {
+    projectId: data.projectId,
+    exceptionCount: exceptionCount.toNumber(),
+    exceptionQuery: JSONFunctions.anyObjectToJSONObject(
+      query,
+    ) as DatabaseQuery<TelemetryException>,
+    monitorId: data.monitorId,
+  };
+};
+
 type MonitorLogsFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;

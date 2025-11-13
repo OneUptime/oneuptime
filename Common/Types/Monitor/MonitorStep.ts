@@ -23,6 +23,9 @@ import MonitorStepTraceMonitor, {
 import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "./MonitorStepMetricMonitor";
+import MonitorStepExceptionMonitor, {
+  MonitorStepExceptionMonitorUtil,
+} from "./MonitorStepExceptionMonitor";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 export interface MonitorStepType {
@@ -57,6 +60,9 @@ export interface MonitorStepType {
 
   // Metric Monitor
   metricMonitor: MonitorStepMetricMonitor | undefined;
+
+  // Exception monitor
+  exceptionMonitor?: MonitorStepExceptionMonitor | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -80,6 +86,7 @@ export default class MonitorStep extends DatabaseProperty {
       logMonitor: undefined,
       traceMonitor: undefined,
       metricMonitor: undefined,
+      exceptionMonitor: undefined,
     };
   }
 
@@ -108,6 +115,7 @@ export default class MonitorStep extends DatabaseProperty {
       logMonitor: undefined,
       traceMonitor: undefined,
       metricMonitor: undefined,
+      exceptionMonitor: undefined,
     };
 
     return monitorStep;
@@ -186,6 +194,13 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setExceptionMonitor(
+    exceptionMonitor: MonitorStepExceptionMonitor,
+  ): MonitorStep {
+    this.data!.exceptionMonitor = exceptionMonitor;
+    return this;
+  }
+
   public setCustomCode(customCode: string): MonitorStep {
     this.data!.customCode = customCode;
     return this;
@@ -212,6 +227,7 @@ export default class MonitorStep extends DatabaseProperty {
         screenSizeTypes: undefined,
         browserTypes: undefined,
         lgoMonitor: undefined,
+        exceptionMonitor: undefined,
       },
     };
   }
@@ -308,6 +324,12 @@ export default class MonitorStep extends DatabaseProperty {
             ? MonitorStepTraceMonitorUtil.toJSON(
                 this.data.traceMonitor ||
                   MonitorStepTraceMonitorUtil.getDefault(),
+              )
+            : undefined,
+          exceptionMonitor: this.data.exceptionMonitor
+            ? MonitorStepExceptionMonitorUtil.toJSON(
+                this.data.exceptionMonitor ||
+                  MonitorStepExceptionMonitorUtil.getDefault(),
               )
             : undefined,
         },
@@ -408,6 +430,9 @@ export default class MonitorStep extends DatabaseProperty {
       traceMonitor: json["traceMonitor"]
         ? (json["traceMonitor"] as JSONObject)
         : undefined,
+      exceptionMonitor: json["exceptionMonitor"]
+        ? (json["exceptionMonitor"] as JSONObject)
+        : undefined,
     }) as any;
 
     if (monitorStep.data && !monitorStep.data?.logMonitor) {
@@ -421,6 +446,11 @@ export default class MonitorStep extends DatabaseProperty {
     if (monitorStep.data && !monitorStep.data?.metricMonitor) {
       monitorStep.data.metricMonitor =
         MonitorStepMetricMonitorUtil.getDefault();
+    }
+
+    if (monitorStep.data && !monitorStep.data?.exceptionMonitor) {
+      monitorStep.data.exceptionMonitor =
+        MonitorStepExceptionMonitorUtil.getDefault();
     }
 
     return monitorStep;

@@ -19,6 +19,7 @@ import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/S
 import CustomCodeMonitorResponse from "../../../Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
+import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorCriteriaExpectationBuilder from "./MonitorCriteriaExpectationBuilder";
@@ -159,6 +160,10 @@ export default class MonitorCriteriaObservationBuilder {
         );
       case CheckOn.MetricValue:
         return MonitorCriteriaObservationBuilder.describeMetricValueObservation(
+          input,
+        );
+      case CheckOn.ExceptionCount:
+        return MonitorCriteriaObservationBuilder.describeExceptionCountObservation(
           input,
         );
       default:
@@ -1081,6 +1086,21 @@ export default class MonitorCriteriaObservationBuilder {
     }
 
     return `Span count was ${traceResponse.spanCount}.`;
+  }
+
+  private static describeExceptionCountObservation(input: {
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const exceptionResponse: ExceptionMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getExceptionMonitorResponse(
+        input.dataToProcess,
+      );
+
+    if (!exceptionResponse) {
+      return null;
+    }
+
+    return `Exception count was ${exceptionResponse.exceptionCount}.`;
   }
 
   private static describeMetricValueObservation(input: {

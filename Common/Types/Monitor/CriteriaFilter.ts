@@ -42,6 +42,9 @@ export enum CheckOn {
   // Trace monitors.
   SpanCount = "Span Count",
 
+  // Exception monitors.
+  ExceptionCount = "Exception Count",
+
   // Metric Monitors.
   MetricValue = "Metric Value",
 }

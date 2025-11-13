@@ -49,6 +49,9 @@ import HeaderAlert, {
 import IconProp from "Common/Types/Icon/IconProp";
 import ColorSwatch from "Common/Types/ColorSwatch";
 import AlertFeedElement from "../../../Components/Alert/AlertFeed";
+import TelemetryExceptionTable from "../../../Components/Exceptions/ExceptionsTable";
+import Query from "Common/Types/BaseDatabase/Query";
+import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 
 const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -576,6 +579,16 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }}
             />
           </Card>
+        )}
+
+      {telemetryQuery &&
+        telemetryQuery.telemetryType === TelemetryType.Exception &&
+        telemetryQuery.telemetryQuery && (
+          <TelemetryExceptionTable
+            title="Exceptions"
+            description="Exceptions for this alert."
+            query={telemetryQuery.telemetryQuery as Query<TelemetryException>}
+          />
         )}
 
       <AlertFeedElement alertId={modelId} />
