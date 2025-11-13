@@ -373,15 +373,16 @@ const monitorException: MonitorExceptionFunction = async (data: {
 
   analyticsQuery.projectId = data.projectId;
 
-  const exceptionCount: PositiveNumber =
-    await ExceptionInstanceService.countBy({
+  const exceptionCount: PositiveNumber = await ExceptionInstanceService.countBy(
+    {
       query: analyticsQuery,
       limit: LIMIT_PER_PROJECT,
       skip: 0,
       props: {
         isRoot: true,
       },
-    });
+    },
+  );
 
   return {
     projectId: data.projectId,

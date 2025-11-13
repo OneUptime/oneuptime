@@ -7,10 +7,6 @@ import ExceptionInstance from "../../Models/AnalyticsModels/ExceptionInstance";
 
 export interface TelemetryQuery {
   telemetryType: TelemetryType;
-  telemetryQuery:
-    | Query<Log>
-    | Query<Span>
-    | Query<ExceptionInstance>
-    | null;
+  telemetryQuery: Query<Log> | Query<Span> | Query<ExceptionInstance> | null;
   metricViewData: MetricViewData | null;
 }

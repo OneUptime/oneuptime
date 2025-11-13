@@ -4,7 +4,12 @@ import Query from "Common/Types/BaseDatabase/Query";
 import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import React, { Fragment, FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+} from "react";
 import TraceElement from "../Traces/TraceElement";
 import SpanStatusElement from "../Span/SpanStatusElement";
 
@@ -121,9 +126,7 @@ const ExceptionInstanceTable: FunctionComponent<ComponentProps> = (
           },
           title: "Span",
           type: FieldType.Element,
-          getElement: (
-            exceptionInstance: ExceptionInstance,
-          ): ReactElement => {
+          getElement: (exceptionInstance: ExceptionInstance): ReactElement => {
             if (!exceptionInstance.spanId) {
               return <Fragment />;
             }
@@ -143,9 +146,7 @@ const ExceptionInstanceTable: FunctionComponent<ComponentProps> = (
           },
           title: "Trace",
           type: FieldType.Element,
-          getElement: (
-            exceptionInstance: ExceptionInstance,
-          ): ReactElement => {
+          getElement: (exceptionInstance: ExceptionInstance): ReactElement => {
             if (!exceptionInstance.traceId) {
               return <Fragment />;
             }

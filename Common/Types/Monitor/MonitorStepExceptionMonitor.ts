@@ -17,7 +17,6 @@ export default interface MonitorStepExceptionMonitor {
 }
 
 export class MonitorStepExceptionMonitorUtil {
-
   public static toAnalyticsQuery(
     monitorStepExceptionMonitor: MonitorStepExceptionMonitor,
   ): Query<ExceptionInstance> {

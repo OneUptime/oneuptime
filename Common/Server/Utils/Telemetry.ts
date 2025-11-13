@@ -177,8 +177,8 @@ export default class Telemetry {
 
         // Force an SDK-side aggregation selector that matches the modern metrics API.
         if (
-          typeof (metricExporter as { selectAggregation?: unknown }).
-            selectAggregation === "function"
+          typeof (metricExporter as { selectAggregation?: unknown })
+            .selectAggregation === "function"
         ) {
           (
             metricExporter as unknown as {
