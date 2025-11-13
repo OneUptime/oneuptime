@@ -562,9 +562,10 @@ export default class MonitorResourceUtil {
         dataToProcess &&
         (dataToProcess as ExceptionMonitorResponse).exceptionQuery
       ) {
+        const exceptionResponse: ExceptionMonitorResponse =
+          dataToProcess as ExceptionMonitorResponse;
         telemetryQuery = {
-          telemetryQuery: (dataToProcess as ExceptionMonitorResponse)
-            .exceptionQuery,
+          telemetryQuery: exceptionResponse.exceptionQuery,
           telemetryType: TelemetryType.Exception,
           metricViewData: null,
         };

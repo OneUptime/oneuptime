@@ -40,9 +40,8 @@ import ExceptionMonitorResponse from "Common/Types/Monitor/ExceptionMonitor/Exce
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
-import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
-import DatabaseQuery from "Common/Types/BaseDatabase/Query";
-import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
+import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
+import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 
 RunCron(
   "TelemetryMonitor:MonitorTelemetryMonitor",
@@ -369,14 +368,14 @@ const monitorException: MonitorExceptionFunction = async (data: {
     throw new BadDataException("Exception monitor config is missing");
   }
 
-  const query: DatabaseQuery<TelemetryException> =
-    MonitorStepExceptionMonitorUtil.toQuery(exceptionMonitorConfig);
+  const analyticsQuery: Query<ExceptionInstance> =
+    MonitorStepExceptionMonitorUtil.toAnalyticsQuery(exceptionMonitorConfig);
 
-  query.projectId = data.projectId;
+  analyticsQuery.projectId = data.projectId;
 
   const exceptionCount: PositiveNumber =
-    await TelemetryExceptionService.countBy({
-      query,
+    await ExceptionInstanceService.countBy({
+      query: analyticsQuery,
       limit: LIMIT_PER_PROJECT,
       skip: 0,
       props: {
@@ -388,8 +387,8 @@ const monitorException: MonitorExceptionFunction = async (data: {
     projectId: data.projectId,
     exceptionCount: exceptionCount.toNumber(),
     exceptionQuery: JSONFunctions.anyObjectToJSONObject(
-      query,
-    ) as DatabaseQuery<TelemetryException>,
+      analyticsQuery,
+    ) as Query<ExceptionInstance>,
     monitorId: data.monitorId,
   };
 };

@@ -49,9 +49,11 @@ import HeaderAlert, {
 import IconProp from "Common/Types/Icon/IconProp";
 import ColorSwatch from "Common/Types/ColorSwatch";
 import AlertFeedElement from "../../../Components/Alert/AlertFeed";
-import TelemetryExceptionTable from "../../../Components/Exceptions/ExceptionsTable";
+import ExceptionInstanceTable from "../../../Components/Exceptions/ExceptionInstanceTable";
 import Query from "Common/Types/BaseDatabase/Query";
-import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
+import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import Span from "Common/Models/AnalyticsModels/Span";
+import Log from "Common/Models/AnalyticsModels/Log";
 
 const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -529,7 +531,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             <Card title={"Logs"} description={"Logs for this alert."}>
               <DashboardLogsViewer
                 id="logs-preview"
-                logQuery={telemetryQuery.telemetryQuery}
+                logQuery={telemetryQuery.telemetryQuery as Query<Log>}
                 limit={10}
                 noLogsMessage="No logs found"
               />
@@ -541,7 +543,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         telemetryQuery.telemetryType === TelemetryType.Trace &&
         telemetryQuery.telemetryQuery && (
           <div>
-            <TraceTable spanQuery={telemetryQuery.telemetryQuery} />
+            <TraceTable
+              spanQuery={telemetryQuery.telemetryQuery as Query<Span>}
+            />
           </div>
         )}
 
@@ -584,10 +588,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       {telemetryQuery &&
         telemetryQuery.telemetryType === TelemetryType.Exception &&
         telemetryQuery.telemetryQuery && (
-          <TelemetryExceptionTable
+          <ExceptionInstanceTable
             title="Exceptions"
             description="Exceptions for this alert."
-            query={telemetryQuery.telemetryQuery as Query<TelemetryException>}
+            query={telemetryQuery.telemetryQuery as Query<ExceptionInstance>}
           />
         )}
 

@@ -53,9 +53,11 @@ import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
-import TelemetryExceptionTable from "../../../Components/Exceptions/ExceptionsTable";
+import ExceptionInstanceTable from "../../../Components/Exceptions/ExceptionInstanceTable";
 import Query from "Common/Types/BaseDatabase/Query";
-import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
+import Span from "Common/Models/AnalyticsModels/Span";
+import Log from "Common/Models/AnalyticsModels/Log";
+import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -623,7 +625,7 @@ const IncidentView: FunctionComponent<
             <Card title={"Logs"} description={"Logs for this incident."}>
               <DashboardLogsViewer
                 id="logs-preview"
-                logQuery={telemetryQuery.telemetryQuery}
+                logQuery={telemetryQuery.telemetryQuery as Query<Log>}
                 limit={10}
                 noLogsMessage="No logs found"
               />
@@ -635,7 +637,9 @@ const IncidentView: FunctionComponent<
         telemetryQuery.telemetryType === TelemetryType.Trace &&
         telemetryQuery.telemetryQuery && (
           <div>
-            <TraceTable spanQuery={telemetryQuery.telemetryQuery} />
+            <TraceTable
+              spanQuery={telemetryQuery.telemetryQuery as Query<Span>}
+            />
           </div>
         )}
 
@@ -678,10 +682,10 @@ const IncidentView: FunctionComponent<
       {telemetryQuery &&
         telemetryQuery.telemetryType === TelemetryType.Exception &&
         telemetryQuery.telemetryQuery && (
-          <TelemetryExceptionTable
+          <ExceptionInstanceTable
             title="Exceptions"
             description="Exceptions related to this incident."
-            query={telemetryQuery.telemetryQuery as Query<TelemetryException>}
+            query={telemetryQuery.telemetryQuery as Query<ExceptionInstance>}
           />
         )}
 

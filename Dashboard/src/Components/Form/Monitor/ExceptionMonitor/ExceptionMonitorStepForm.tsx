@@ -17,8 +17,8 @@ import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import ObjectID from "Common/Types/ObjectID";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import Query from "Common/Types/BaseDatabase/Query";
-import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
-import TelemetryExceptionTable from "../../../Exceptions/ExceptionsTable";
+import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import ExceptionInstanceTable from "../../../Exceptions/ExceptionInstanceTable";
 
 export interface ComponentProps {
   monitorStepExceptionMonitor: MonitorStepExceptionMonitor;
@@ -159,13 +159,13 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
     });
   };
 
-  const previewQuery: Query<TelemetryException> = useMemo(() => {
+  const previewQuery: Query<ExceptionInstance> = useMemo(() => {
     const monitorConfig: MonitorStepExceptionMonitor =
       toMonitorConfig(formValues);
 
     return JSONFunctions.anyObjectToJSONObject(
-      MonitorStepExceptionMonitorUtil.toQuery(monitorConfig),
-    ) as Query<TelemetryException>;
+      MonitorStepExceptionMonitorUtil.toAnalyticsQuery(monitorConfig),
+    ) as Query<ExceptionInstance>;
   }, [formValues]);
 
   return (
@@ -282,7 +282,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
           isHeading={true}
         />
         <div className="mt-5 mb-5">
-          <TelemetryExceptionTable
+          <ExceptionInstanceTable
             title="Exceptions Preview"
             description="Exceptions matching the current monitor filters."
             query={previewQuery}

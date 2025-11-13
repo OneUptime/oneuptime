@@ -1,4 +1,4 @@
-import TelemetryException from "../../Models/DatabaseModels/TelemetryException";
+import ExceptionInstance from "../../Models/AnalyticsModels/ExceptionInstance";
 import InBetween from "../BaseDatabase/InBetween";
 import Includes from "../BaseDatabase/Includes";
 import Query from "../BaseDatabase/Query";
@@ -17,16 +17,17 @@ export default interface MonitorStepExceptionMonitor {
 }
 
 export class MonitorStepExceptionMonitorUtil {
-  public static toQuery(
+
+  public static toAnalyticsQuery(
     monitorStepExceptionMonitor: MonitorStepExceptionMonitor,
-  ): Query<TelemetryException> {
-    const query: Query<TelemetryException> = {};
+  ): Query<ExceptionInstance> {
+    const query: Query<ExceptionInstance> = {};
 
     if (
       monitorStepExceptionMonitor.telemetryServiceIds &&
       monitorStepExceptionMonitor.telemetryServiceIds.length > 0
     ) {
-      query.telemetryServiceId = new Includes(
+      query.serviceId = new Includes(
         monitorStepExceptionMonitor.telemetryServiceIds,
       );
     }
@@ -44,21 +45,13 @@ export class MonitorStepExceptionMonitorUtil {
       query.message = new Search(monitorStepExceptionMonitor.message);
     }
 
-    if (!monitorStepExceptionMonitor.includeResolved) {
-      query.isResolved = false;
-    }
-
-    if (!monitorStepExceptionMonitor.includeArchived) {
-      query.isArchived = false;
-    }
-
     if (monitorStepExceptionMonitor.lastXSecondsOfExceptions) {
       const endDate: Date = OneUptimeDate.getCurrentDate();
       const startDate: Date = OneUptimeDate.addRemoveSeconds(
         endDate,
         monitorStepExceptionMonitor.lastXSecondsOfExceptions * -1,
       );
-      query.lastSeenAt = new InBetween(startDate, endDate);
+      query.time = new InBetween(startDate, endDate);
     }
 
     return query;

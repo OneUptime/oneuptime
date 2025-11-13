@@ -24,8 +24,8 @@ export interface RequestOptions {
   // Per-request proxy agent support (Probe supplies these instead of mutating global axios defaults)
   httpAgent?: HttpAgent | undefined;
   httpsAgent?: HttpsAgent | undefined;
+  disableDefaultErrorHandling?: boolean | undefined;
   skipAuthRefresh?: boolean | undefined;
-  hasAttemptedAuthRefresh?: boolean | undefined;
 }
 
 export interface APIRequestOptions {
@@ -43,18 +43,6 @@ export interface APIFetchOptions {
   headers?: Headers;
   params?: Dictionary<string>;
   options?: RequestOptions;
-}
-
-export interface AuthRetryContext {
-  error: HTTPErrorResponse;
-  request: {
-    method: HTTPMethod;
-    url: URL;
-    data?: JSONObject | JSONArray;
-    headers?: Headers;
-    params?: Dictionary<string>;
-    options?: RequestOptions;
-  };
 }
 
 export default class API {
@@ -95,12 +83,6 @@ export default class API {
     } else {
       this.baseRoute = new Route("/");
     }
-  }
-
-  protected static async tryRefreshAuth(
-    _context: AuthRetryContext,
-  ): Promise<boolean> {
-    return false;
   }
 
   public async get<
@@ -441,64 +423,17 @@ export default class API {
       return response;
     } catch (e) {
       const error: Error | AxiosError = e as Error | AxiosError;
-
-      if (!axios.isAxiosError(error)) {
+      let errorResponse: HTTPErrorResponse;
+      if (axios.isAxiosError(error)) {
+        // Do whatever you want with native error
+        errorResponse = this.getErrorResponse(error);
+      } else {
         throw new APIException(error.message);
       }
 
-      const errorResponse: HTTPErrorResponse = this.getErrorResponse(error);
-
-      if (
-        error.response?.status === 401 &&
-        !options?.skipAuthRefresh &&
-        !options?.hasAttemptedAuthRefresh
-      ) {
-        const retryUrl: URL = URL.fromString(url.toString());
-
-        const requestContext: AuthRetryContext["request"] = {
-          method,
-          url: retryUrl,
-        };
-
-        if (data) {
-          requestContext.data = data;
-        }
-
-        if (headers) {
-          requestContext.headers = headers;
-        }
-
-        if (params) {
-          requestContext.params = params;
-        }
-
-        if (options) {
-          requestContext.options = options;
-        }
-
-        const refreshed: boolean = await this.tryRefreshAuth({
-          error: errorResponse,
-          request: requestContext,
-        });
-
-        if (refreshed) {
-          const nextOptions: RequestOptions = {
-            ...(options || {}),
-            hasAttemptedAuthRefresh: true,
-          };
-
-          return await this.fetchInternal(
-            method,
-            retryUrl,
-            data,
-            headers,
-            params,
-            nextOptions,
-          );
-        }
+      if (!options?.disableDefaultErrorHandling) {
+        this.handleError(errorResponse);
       }
-
-      this.handleError(errorResponse);
       return errorResponse;
     }
   }
