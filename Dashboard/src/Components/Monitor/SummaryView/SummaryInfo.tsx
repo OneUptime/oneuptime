@@ -193,9 +193,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      {(props.monitorType === MonitorType.Logs ||
-        props.monitorType === MonitorType.Traces ||
-        props.monitorType === MonitorType.Metrics) && (
+      {MonitorTypeHelper.isTelemetryMonitor(props.monitorType) && (
         <div className="space-y-6">
           <TelemetryMonitorSummaryView
             telemetryMonitorSummary={props.telemetryMonitorSummary}
