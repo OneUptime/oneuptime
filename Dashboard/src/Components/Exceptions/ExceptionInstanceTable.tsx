@@ -12,6 +12,7 @@ import React, {
 } from "react";
 import TraceElement from "../Traces/TraceElement";
 import SpanStatusElement from "../Span/SpanStatusElement";
+import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
   title: string;
@@ -27,7 +28,7 @@ const ExceptionInstanceTable: FunctionComponent<ComponentProps> = (
       ...(props.query || {}),
     };
 
-    const projectId = ProjectUtil.getCurrentProjectId();
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
     if (projectId && !query.projectId) {
       query.projectId = projectId;
