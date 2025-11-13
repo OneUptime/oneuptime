@@ -121,6 +121,33 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
+    if (arg.monitorType === MonitorType.Exceptions) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.ExceptionCount,
+            filterType: FilterType.EqualTo,
+            value: 0,
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        changeMonitorStatus: true,
+        createIncidents: false,
+        createAlerts: false,
+        name: `Check if ${arg.monitorName} has no exceptions`,
+        description: `This criteria checks if the ${arg.monitorName} has no exceptions.`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
     if (arg.monitorType === MonitorType.Metrics) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
@@ -459,6 +486,46 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createIncidents: true,
         name: `Check if ${arg.monitorName} is offline`,
         description: `This criteria checks if the ${arg.monitorName} is offline`,
+      };
+    }
+
+    if (arg.monitorType === MonitorType.Exceptions) {
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.ExceptionCount,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+          },
+        ],
+        incidents: [
+          {
+            title: `${arg.monitorName} has exceptions`,
+            description: `${arg.monitorName} has active exceptions.`,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        alerts: [
+          {
+            title: `${arg.monitorName} has exceptions`,
+            description: `${arg.monitorName} has active exceptions.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        createAlerts: false,
+        changeMonitorStatus: true,
+        createIncidents: true,
+        name: `Check if ${arg.monitorName} has exceptions`,
+        description: `This criteria checks if the ${arg.monitorName} has exceptions.`,
       };
     }
 
