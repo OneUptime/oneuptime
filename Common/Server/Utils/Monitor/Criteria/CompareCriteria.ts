@@ -636,7 +636,15 @@ export default class CompareCriteria {
     }
 
     if (typeof value === Typeof.Number) {
-      return (value as number).toFixed(2);
+      const numericValue: number = value as number;
+
+      if (Number.isInteger(numericValue)) {
+        return numericValue.toString();
+      }
+
+      const roundedValue: number = Number(numericValue.toFixed(2));
+
+      return roundedValue.toString();
     }
 
     if (typeof value === Typeof.Boolean) {
