@@ -1,5 +1,5 @@
 import { IDENTITY_URL } from "../Config";
-import { AppApiRoute } from "../ServiceRoute";
+import { AppApiRoute } from "../../ServiceRoute";
 import LocalStorage from "./LocalStorage";
 import URL from "../../Types/API/URL";
 import Route from "../../Types/API/Route";
