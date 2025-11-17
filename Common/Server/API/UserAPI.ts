@@ -1,16 +1,23 @@
+import path from "path";
 import User from "../../Models/DatabaseModels/User";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ObjectID from "../../Types/ObjectID";
 import UserService, {
   Service as UserServiceType,
 } from "../Services/UserService";
-import {
-  ExpressRequest,
-  ExpressResponse,
-} from "../Utils/Express";
+import { ExpressRequest, ExpressResponse } from "../Utils/Express";
 import logger from "../Utils/Logger";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+
+const BLANK_PROFILE_PICTURE_PATH: string = path.resolve(
+  process.cwd(),
+  "Common",
+  "UI",
+  "Images",
+  "users",
+  "blank-profile.svg",
+);
 
 export default class UserAPI extends BaseAPI<User, UserServiceType> {
   public constructor() {
@@ -22,11 +29,7 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
         const userIdParam: string | undefined = req.params["userId"];
 
         if (!userIdParam) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException("User profile picture not found"),
-          );
+          return this.sendBlankProfile(req, res);
         }
 
         let userId: ObjectID;
@@ -34,11 +37,7 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
         try {
           userId = new ObjectID(userIdParam);
         } catch (_error) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException("User profile picture not found"),
-          );
+          return this.sendBlankProfile(req, res);
         }
 
         try {
@@ -62,6 +61,7 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
           });
 
           if (userById && userById.profilePictureFile) {
+            this.setNoCacheHeaders(res);
             return Response.sendFileResponse(
               req,
               res,
@@ -69,20 +69,36 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
             );
           }
 
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException("User profile picture not found"),
-          );
+          return this.sendBlankProfile(req, res);
         } catch (error) {
           logger.error(error);
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException("User profile picture not found"),
-          );
+          return this.sendBlankProfile(req, res);
         }
       },
     );
+  }
+
+  private setNoCacheHeaders(res: ExpressResponse): void {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+  }
+
+  private sendBlankProfile(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): void {
+    this.setNoCacheHeaders(res);
+
+    try {
+      Response.sendFileByPath(req, res, BLANK_PROFILE_PICTURE_PATH);
+    } catch (error) {
+      logger.error(error);
+      Response.sendErrorResponse(
+        req,
+        res,
+        new NotFoundException("User profile picture not found"),
+      );
+    }
   }
 }

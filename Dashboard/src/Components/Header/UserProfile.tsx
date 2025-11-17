@@ -64,14 +64,18 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
+  let profileImageUrl: string = BlankProfilePic;
+
+  if (userId) {
+    const route: Route = User.getProfilePictureRoute(userId as ObjectID);
+    profileImageUrl = route.toString();
+  }
+
   return (
     <>
       <HeaderIconDropdownButton
-        iconImageUrl={
-          profilePictureId && userId
-            ? User.getProfilePictureRoute(userId as ObjectID)
-            : BlankProfilePic
-        }
+        key={profilePictureId?.toString() || "default"}
+        iconImageUrl={profileImageUrl}
         name="User Profile"
         showDropdown={isDropdownVisible}
         onClick={() => {

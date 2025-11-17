@@ -53,24 +53,10 @@ const UserElement: FunctionComponent<ComponentProps> = (
     return null;
   };
 
-  const getProfilePictureId = (): ObjectID | null => {
-    if (props.user instanceof User) {
-      return (props.user.profilePictureId as ObjectID | undefined) || null;
-    }
-
-    if (user && user["profilePictureId"]) {
-      try {
-        return new ObjectID(user["profilePictureId"] as string);
-      } catch (_error) {
-        return null;
-      }
-    }
-
-    return null;
-  };
-
   const userId: ObjectID | null = getUserId();
-  const profilePictureId: ObjectID | null = getProfilePictureId();
+  const profileImageRoute: Route = userId
+    ? UserUtil.getProfilePictureRoute(userId)
+    : Route.fromString(`${BlankProfilePic}`);
 
   if (JSONFunctions.isEmptyObject(user)) {
     return (
@@ -109,22 +95,11 @@ const UserElement: FunctionComponent<ComponentProps> = (
     return (
       <div className="flex">
         <div>
-          {profilePictureId && userId && (
-            <Image
-              className="h-8 w-8 rounded-full"
-              imageUrl={UserUtil.getProfilePictureRoute(
-                userId as ObjectID,
-              )}
-              alt={user["name"]?.toString() || "User"}
-            />
-          )}
-          {(!profilePictureId || !userId) && (
-            <Image
-              className="h-8 w-8 rounded-full"
-              imageUrl={Route.fromString(`${BlankProfilePic}`)}
-              alt={user["name"]?.toString() || "User"}
-            />
-          )}
+          <Image
+            className="h-8 w-8 rounded-full"
+            imageUrl={profileImageRoute}
+            alt={user["name"]?.toString() || "User"}
+          />
         </div>
         <div className="mt-1 mr-1 ml-3">
           <div>
