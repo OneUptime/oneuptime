@@ -17,12 +17,11 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
     super(User, UserService);
 
     this.router.get(
-      `${new this.entityType().getCrudApiPath()?.toString()}/profile-picture/:profilePictureId`,
+      `${new this.entityType().getCrudApiPath()?.toString()}/profile-picture/:userId`,
       async (req: ExpressRequest, res: ExpressResponse) => {
-        const profilePictureIdParam: string | undefined =
-          req.params["profilePictureId"];
+        const userIdParam: string | undefined = req.params["userId"];
 
-        if (!profilePictureIdParam) {
+        if (!userIdParam) {
           return Response.sendErrorResponse(
             req,
             res,
@@ -30,10 +29,10 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
           );
         }
 
-        let identifier: ObjectID;
+        let userId: ObjectID;
 
         try {
-          identifier = new ObjectID(profilePictureIdParam);
+          userId = new ObjectID(userIdParam);
         } catch (_error) {
           return Response.sendErrorResponse(
             req,
@@ -54,7 +53,7 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
 
           const userById: User | null = await UserService.findOneBy({
             query: {
-              _id: identifier,
+              _id: userId,
             },
             select: profilePictureSelect,
             props: {
@@ -67,28 +66,6 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
               req,
               res,
               userById.profilePictureFile,
-            );
-          }
-
-          const userByProfilePictureId: User | null =
-            await UserService.findOneBy({
-              query: {
-                profilePictureId: identifier,
-              },
-              select: profilePictureSelect,
-              props: {
-                isRoot: true,
-              },
-            });
-
-          if (
-            userByProfilePictureId &&
-            userByProfilePictureId.profilePictureFile
-          ) {
-            return Response.sendFileResponse(
-              req,
-              res,
-              userByProfilePictureId.profilePictureFile,
             );
           }
 

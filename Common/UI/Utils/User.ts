@@ -46,10 +46,10 @@ export default class UserUtil {
     );
   }
 
-  public static getProfilePictureRoute(profilePictureId: ObjectID): Route {
+  public static getProfilePictureRoute(userId: ObjectID): Route {
     return Route.fromString(AppApiRoute.toString())
       .addRoute("/user/profile-picture")
-      .addRoute(`/${profilePictureId.toString()}`);
+      .addRoute(`/${userId.toString()}`);
   }
 
   public static isCardRegistered(): boolean {

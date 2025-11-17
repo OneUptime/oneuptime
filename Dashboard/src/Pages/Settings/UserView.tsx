@@ -132,7 +132,7 @@ const UserView: FunctionComponent<PageComponentProps> = (
                   <Image
                     className="h-12 w-12 rounded-full"
                     imageUrl={UserUtil.getProfilePictureRoute(
-                      item.profilePictureId!,
+                      item.id!,
                     )}
                     alt={
                       item.name?.toString() ||

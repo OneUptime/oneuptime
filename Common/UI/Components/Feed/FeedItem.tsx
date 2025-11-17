@@ -69,11 +69,11 @@ const FeedItem: FunctionComponent<ComponentProps> = (
           />
         )}
 
-        {props.user?.profilePictureId && (
+        {props.user?.profilePictureId && props.user.id && (
           <Image
             className="flex size-10 items-center justify-center rounded-full bg-gray-400 ring-8 ring-white"
             imageUrl={UserUtil.getProfilePictureRoute(
-              props.user!.profilePictureId as ObjectID,
+              props.user.id as ObjectID,
             )}
           />
         )}

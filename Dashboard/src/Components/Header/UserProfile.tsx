@@ -32,6 +32,14 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
     User.getProfilePicId(),
   );
 
+  let userId: ObjectID | null = null;
+
+  try {
+    userId = User.getUserId();
+  } catch (_error) {
+    userId = null;
+  }
+
   type SetPictureFunction = (event: CustomEvent) => void;
 
   const setPicture: SetPictureFunction = (event: CustomEvent): void => {
@@ -60,8 +68,8 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
     <>
       <HeaderIconDropdownButton
         iconImageUrl={
-          profilePictureId
-            ? User.getProfilePictureRoute(profilePictureId)
+          profilePictureId && userId
+            ? User.getProfilePictureRoute(userId as ObjectID)
             : BlankProfilePic
         }
         name="User Profile"
