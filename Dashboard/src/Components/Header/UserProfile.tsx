@@ -9,7 +9,6 @@ import IconDropdownItem from "Common/UI/Components/Header/IconDropdown/IconDropd
 import IconDropdownMenu from "Common/UI/Components/Header/IconDropdown/IconDropdownMenu";
 import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
 import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
-import FileUtil from "Common/UI/Utils/File";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/UI/Utils/User";
@@ -32,6 +31,14 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
   const [profilePictureId, setProfilePictureId] = useState<ObjectID | null>(
     User.getProfilePicId(),
   );
+
+  let userId: ObjectID | null = null;
+
+  try {
+    userId = User.getUserId();
+  } catch {
+    userId = null;
+  }
 
   type SetPictureFunction = (event: CustomEvent) => void;
 
@@ -57,14 +64,18 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
+  let profileImageUrl: string = BlankProfilePic;
+
+  if (userId) {
+    const route: Route = User.getProfilePictureRoute(userId as ObjectID);
+    profileImageUrl = route.toString();
+  }
+
   return (
     <>
       <HeaderIconDropdownButton
-        iconImageUrl={
-          profilePictureId
-            ? FileUtil.getFileRoute(profilePictureId)
-            : BlankProfilePic
-        }
+        key={profilePictureId?.toString() || "default"}
+        iconImageUrl={profileImageUrl}
         name="User Profile"
         showDropdown={isDropdownVisible}
         onClick={() => {

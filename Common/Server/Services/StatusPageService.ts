@@ -42,7 +42,7 @@ import StatusPageSubscriberService from "./StatusPageSubscriberService";
 import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
 import MailService from "./MailService";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
-import { FileRoute } from "../../ServiceRoute";
+import { StatusPageApiRoute } from "../../ServiceRoute";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import StatusPageResourceService from "./StatusPageResourceService";
@@ -750,6 +750,9 @@ export class Service extends DatabaseService<StatusPage> {
     const statusPageName: string =
       statuspage.pageTitle || statuspage.name || "Status Page";
 
+    const statusPageIdString: string | null =
+      statuspage.id?.toString() || statuspage._id?.toString() || null;
+
     const report: StatusPageReport = await this.getReportByStatusPage({
       statusPageId: statuspage.id!,
       historyDays: statuspage.reportDataInDays || 14,
@@ -777,12 +780,13 @@ export class Service extends DatabaseService<StatusPage> {
             statusPageUrl: statusPageURL,
             hasResources: report.totalResources > 0 ? "true" : "false",
             report: report as any,
-            logoUrl: statuspage.logoFileId
-              ? new URL(httpProtocol, host)
-                  .addRoute(FileRoute)
-                  .addRoute("/image/" + statuspage.logoFileId)
-                  .toString()
-              : "",
+            logoUrl:
+              statuspage.logoFileId && statusPageIdString
+                ? new URL(httpProtocol, host)
+                    .addRoute(StatusPageApiRoute)
+                    .addRoute(`/logo/${statusPageIdString}`)
+                    .toString()
+                : "",
             isPublicStatusPage: statuspage.isPublicStatusPage
               ? "true"
               : "false",

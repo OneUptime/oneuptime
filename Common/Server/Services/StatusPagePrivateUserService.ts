@@ -5,7 +5,7 @@ import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
 import StatusPageService from "./StatusPageService";
-import { FileRoute } from "../../ServiceRoute";
+import { StatusPageApiRoute } from "../../ServiceRoute";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
@@ -106,6 +106,8 @@ export class Service extends DatabaseService<Model> {
     const host: Hostname = await DatabaseConfig.getHost();
 
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+    const statusPageIdString: string | null =
+      statusPage.id?.toString() || statusPage._id?.toString() || null;
 
     MailService.sendMail(
       {
@@ -115,12 +117,13 @@ export class Service extends DatabaseService<Model> {
         vars: {
           statusPageName: statusPageName!,
           statusPageUrl: statusPageURL,
-          logoUrl: statusPage.logoFileId
-            ? new URL(httpProtocol, host)
-                .addRoute(FileRoute)
-                .addRoute("/image/" + statusPage.logoFileId)
-                .toString()
-            : "",
+          logoUrl:
+            statusPage.logoFileId && statusPageIdString
+              ? new URL(httpProtocol, host)
+                  .addRoute(StatusPageApiRoute)
+                  .addRoute(`/logo/${statusPageIdString}`)
+                  .toString()
+              : "",
           homeURL: statusPageURL,
           tokenVerifyUrl: URL.fromString(statusPageURL)
             .addRoute("/reset-password/" + token)

@@ -16,7 +16,7 @@ import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
 import SmsService from "./SmsService";
 import StatusPageService from "./StatusPageService";
-import { FileRoute } from "../../ServiceRoute";
+import { StatusPageApiRoute } from "../../ServiceRoute";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
@@ -522,6 +522,8 @@ Stay informed about service availability! 🚀`;
 
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
     logger.debug(`HTTP Protocol: ${httpProtocol}`);
+    const statusPageIdString: string | null =
+      statusPage.id?.toString() || statusPage._id?.toString() || null;
 
     const confirmSubscriptionLink: string = this.getConfirmSubscriptionLink({
       statusPageUrl: statusPageURL,
@@ -547,12 +549,13 @@ Stay informed about service availability! 🚀`;
           templateType: EmailTemplateType.ConfirmStatusPageSubscription,
           vars: {
             statusPageName: statusPageName,
-            logoUrl: statusPage.logoFileId
-              ? new URL(httpProtocol, host)
-                  .addRoute(FileRoute)
-                  .addRoute("/image/" + statusPage.logoFileId)
-                  .toString()
-              : "",
+            logoUrl:
+              statusPage.logoFileId && statusPageIdString
+                ? new URL(httpProtocol, host)
+                    .addRoute(StatusPageApiRoute)
+                    .addRoute(`/logo/${statusPageIdString}`)
+                    .toString()
+                : "",
             statusPageUrl: statusPageURL,
             isPublicStatusPage: statusPage.isPublicStatusPage
               ? "true"
@@ -656,6 +659,8 @@ Stay informed about service availability! 🚀`;
 
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
     logger.debug(`HTTP Protocol: ${httpProtocol}`);
+    const statusPageIdString: string | null =
+      statusPage.id?.toString() || statusPage._id?.toString() || null;
 
     const unsubscribeLink: string = this.getUnsubscribeLink(
       URL.fromString(statusPageURL),
@@ -675,12 +680,13 @@ Stay informed about service availability! 🚀`;
           templateType: EmailTemplateType.SubscribedToStatusPage,
           vars: {
             statusPageName: statusPageName,
-            logoUrl: statusPage.logoFileId
-              ? new URL(httpProtocol, host)
-                  .addRoute(FileRoute)
-                  .addRoute("/image/" + statusPage.logoFileId)
-                  .toString()
-              : "",
+            logoUrl:
+              statusPage.logoFileId && statusPageIdString
+                ? new URL(httpProtocol, host)
+                    .addRoute(StatusPageApiRoute)
+                    .addRoute(`/logo/${statusPageIdString}`)
+                    .toString()
+                : "",
             statusPageUrl: statusPageURL,
             isPublicStatusPage: statusPage.isPublicStatusPage
               ? "true"

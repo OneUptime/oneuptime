@@ -1,6 +1,8 @@
 import { IDENTITY_URL } from "../Config";
+import { AppApiRoute } from "../../ServiceRoute";
 import LocalStorage from "./LocalStorage";
 import URL from "../../Types/API/URL";
+import Route from "../../Types/API/Route";
 import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -42,6 +44,12 @@ export default class UserUtil {
     return new ObjectID(
       (LocalStorage.getItem("profile_pic_id") as string) || "",
     );
+  }
+
+  public static getProfilePictureRoute(userId: ObjectID): Route {
+    return Route.fromString(AppApiRoute.toString())
+      .addRoute("/user/profile-picture")
+      .addRoute(`/${userId.toString()}`);
   }
 
   public static isCardRegistered(): boolean {

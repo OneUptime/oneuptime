@@ -6,7 +6,7 @@ import Image from "Common/UI/Components/Image/Image";
 import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
-import FileUtil from "Common/UI/Utils/File";
+import UserUtil from "Common/UI/Utils/User";
 import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
@@ -28,6 +28,35 @@ const UserElement: FunctionComponent<ComponentProps> = (
   } else {
     user = props.user;
   }
+
+  const getUserId: () => ObjectID | null = () => {
+    if (props.user instanceof User) {
+      return props.user.id || null;
+    }
+
+    if (user && user["_id"]) {
+      try {
+        return new ObjectID(user["_id"] as string);
+      } catch {
+        return null;
+      }
+    }
+
+    if (user && user["id"]) {
+      try {
+        return new ObjectID(user["id"] as string);
+      } catch {
+        return null;
+      }
+    }
+
+    return null;
+  };
+
+  const userId: ObjectID | null = getUserId();
+  const profileImageRoute: Route = userId
+    ? UserUtil.getProfilePictureRoute(userId)
+    : Route.fromString(`${BlankProfilePic}`);
 
   if (JSONFunctions.isEmptyObject(user)) {
     return (
@@ -66,22 +95,11 @@ const UserElement: FunctionComponent<ComponentProps> = (
     return (
       <div className="flex">
         <div>
-          {props.user?.profilePictureId && (
-            <Image
-              className="h-8 w-8 rounded-full"
-              imageUrl={FileUtil.getFileRoute(
-                props.user!.profilePictureId as ObjectID,
-              )}
-              alt={user["name"]?.toString() || "User"}
-            />
-          )}
-          {!props.user?.profilePictureId && (
-            <Image
-              className="h-8 w-8 rounded-full"
-              imageUrl={Route.fromString(`${BlankProfilePic}`)}
-              alt={user["name"]?.toString() || "User"}
-            />
-          )}
+          <Image
+            className="h-8 w-8 rounded-full"
+            imageUrl={profileImageRoute}
+            alt={user["name"]?.toString() || "User"}
+          />
         </div>
         <div className="mt-1 mr-1 ml-3">
           <div>

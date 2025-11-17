@@ -4,7 +4,7 @@ import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import Image from "../Image/Image";
 import Route from "../../../Types/API/Route";
 import BlankProfilePic from "../../Images/users/blank-profile.svg";
-import FileUtil from "../../Utils/File";
+import UserUtil from "../../Utils/User";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import Tooltip from "../Tooltip/Tooltip";
@@ -60,23 +60,16 @@ const FeedItem: FunctionComponent<ComponentProps> = (
   };
 
   const getUserIcon: GetReactElementFunction = (): ReactElement => {
+    const userImageRoute: Route = props.user?.id
+      ? UserUtil.getProfilePictureRoute(props.user.id as ObjectID)
+      : Route.fromString(`${BlankProfilePic}`);
+
     return (
       <div>
-        {!props.user?.profilePictureId && (
-          <Image
-            className="h-10 w-10 rounded-full"
-            imageUrl={Route.fromString(`${BlankProfilePic}`)}
-          />
-        )}
-
-        {props.user?.profilePictureId && (
-          <Image
-            className="flex size-10 items-center justify-center rounded-full bg-gray-400 ring-8 ring-white"
-            imageUrl={FileUtil.getFileRoute(
-              props.user!.profilePictureId as ObjectID,
-            )}
-          />
-        )}
+        <Image
+          className="flex size-10 items-center justify-center rounded-full bg-gray-400 ring-8 ring-white"
+          imageUrl={userImageRoute}
+        />
 
         {props.icon && (
           <span className="absolute -bottom-0.5 -right-1 rounded-tl bg-white px-0.5 py-px">

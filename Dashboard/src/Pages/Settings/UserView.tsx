@@ -30,10 +30,11 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Card from "Common/UI/Components/Card/Card";
-import FileUtil from "Common/UI/Utils/File";
+import UserUtil from "Common/UI/Utils/User";
 import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
 import RemoveUserFromProject from "../../Components/User/RemoveUserFromProject";
 import PageMap from "../../Utils/PageMap";
+import Route from "Common/Types/API/Route";
 
 const UserView: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -114,11 +115,11 @@ const UserView: FunctionComponent<PageComponentProps> = (
               title: "Profile Picture",
               placeholder: "No profile picture uploaded.",
               getElement: (item: User): ReactElement => {
-                if (!item.profilePictureId) {
+                if (!item.id) {
                   return (
                     <Image
                       className="h-12 w-12 rounded-full"
-                      imageUrl={BlankProfilePic}
+                      imageUrl={Route.fromString(`${BlankProfilePic}`)}
                       alt={
                         item.name?.toString() ||
                         item.email?.toString() ||
@@ -128,10 +129,14 @@ const UserView: FunctionComponent<PageComponentProps> = (
                   );
                 }
 
+                const imageUrl: Route = UserUtil.getProfilePictureRoute(
+                  item.id,
+                );
+
                 return (
                   <Image
                     className="h-12 w-12 rounded-full"
-                    imageUrl={FileUtil.getFileRoute(item.profilePictureId!)}
+                    imageUrl={imageUrl}
                     alt={
                       item.name?.toString() ||
                       item.email?.toString() ||

@@ -19,6 +19,7 @@ import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscr
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger from "Common/Server/Utils/Logger";
+import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -196,6 +197,8 @@ RunCron(
               await StatusPageService.getStatusPageURL(statuspage.id);
             const statusPageName: string =
               statuspage.pageTitle || statuspage.name || "Status Page";
+            const statusPageIdString: string | null =
+              statuspage.id?.toString() || statuspage._id?.toString() || null;
 
             logger.debug(
               `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for announcement ${announcement.id}.`,
@@ -369,11 +372,13 @@ RunCron(
                       vars: {
                         statusPageName: statusPageName,
                         statusPageUrl: statusPageURL,
-                        logoUrl: statuspage.logoFileId
-                          ? new URL(httpProtocol, host)
-                              .addRoute("/image/" + statuspage.logoFileId)
-                              .toString()
-                          : "",
+                        logoUrl:
+                          statuspage.logoFileId && statusPageIdString
+                            ? new URL(httpProtocol, host)
+                                .addRoute(StatusPageApiRoute)
+                                .addRoute(`/logo/${statusPageIdString}`)
+                                .toString()
+                            : "",
                         isPublicStatusPage: statuspage.isPublicStatusPage
                           ? "true"
                           : "false",
