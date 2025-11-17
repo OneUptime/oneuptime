@@ -1,4 +1,3 @@
-import path from "path";
 import User from "../../Models/DatabaseModels/User";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ObjectID from "../../Types/ObjectID";
@@ -10,15 +9,8 @@ import logger from "../Utils/Logger";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 
-const BLANK_PROFILE_PICTURE_PATH: string = path.resolve(
-  process.cwd(),
-  "..",
-  "Common",
-  "UI",
-  "Images",
-  "users",
-  "blank-profile.svg",
-);
+const BLANK_PROFILE_PICTURE_PATH: string =
+  "/usr/src/Common/UI/Images/users/blank-profile.svg";
 
 export default class UserAPI extends BaseAPI<User, UserServiceType> {
   public constructor() {
