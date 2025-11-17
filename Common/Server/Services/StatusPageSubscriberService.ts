@@ -553,7 +553,7 @@ Stay informed about service availability! 🚀`;
               statusPage.logoFileId && statusPageIdString
                 ? new URL(httpProtocol, host)
                     .addRoute(StatusPageApiRoute)
-                    .addRoute(`/status-page/logo/${statusPageIdString}`)
+                    .addRoute(`/logo/${statusPageIdString}`)
                     .toString()
                 : "",
             statusPageUrl: statusPageURL,
@@ -684,7 +684,7 @@ Stay informed about service availability! 🚀`;
               statusPage.logoFileId && statusPageIdString
                 ? new URL(httpProtocol, host)
                     .addRoute(StatusPageApiRoute)
-                    .addRoute(`/status-page/logo/${statusPageIdString}`)
+                    .addRoute(`/logo/${statusPageIdString}`)
                     .toString()
                 : "",
             statusPageUrl: statusPageURL,

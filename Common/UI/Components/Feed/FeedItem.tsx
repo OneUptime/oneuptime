@@ -4,7 +4,7 @@ import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import Image from "../Image/Image";
 import Route from "../../../Types/API/Route";
 import BlankProfilePic from "../../Images/users/blank-profile.svg";
-import FileUtil from "../../Utils/File";
+import UserUtil from "../../Utils/User";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import Tooltip from "../Tooltip/Tooltip";
@@ -72,7 +72,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
         {props.user?.profilePictureId && (
           <Image
             className="flex size-10 items-center justify-center rounded-full bg-gray-400 ring-8 ring-white"
-            imageUrl={FileUtil.getFileRoute(
+            imageUrl={UserUtil.getProfilePictureRoute(
               props.user!.profilePictureId as ObjectID,
             )}
           />

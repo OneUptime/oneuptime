@@ -428,7 +428,7 @@ router.post(
                 statusPage.logoFileId && statusPageIdString
                   ? new URL(httpProtocol, host)
                       .addRoute(StatusPageApiRoute)
-                      .addRoute(`/status-page/logo/${statusPageIdString}`)
+                      .addRoute(`/logo/${statusPageIdString}`)
                       .toString()
                   : "",
               homeURL: statusPageURL,
@@ -574,7 +574,7 @@ router.post(
               statusPage.logoFileId && statusPageIdString
                 ? new URL(httpProtocol, host)
                     .addRoute(StatusPageApiRoute)
-                    .addRoute(`/status-page/logo/${statusPageIdString}`)
+                    .addRoute(`/logo/${statusPageIdString}`)
                     .toString()
                 : "",
           },

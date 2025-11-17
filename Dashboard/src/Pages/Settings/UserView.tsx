@@ -30,7 +30,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Card from "Common/UI/Components/Card/Card";
-import FileUtil from "Common/UI/Utils/File";
+import UserUtil from "Common/UI/Utils/User";
 import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
 import RemoveUserFromProject from "../../Components/User/RemoveUserFromProject";
 import PageMap from "../../Utils/PageMap";
@@ -131,7 +131,9 @@ const UserView: FunctionComponent<PageComponentProps> = (
                 return (
                   <Image
                     className="h-12 w-12 rounded-full"
-                    imageUrl={FileUtil.getFileRoute(item.profilePictureId!)}
+                    imageUrl={UserUtil.getProfilePictureRoute(
+                      item.profilePictureId!,
+                    )}
                     alt={
                       item.name?.toString() ||
                       item.email?.toString() ||

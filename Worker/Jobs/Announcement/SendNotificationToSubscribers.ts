@@ -377,7 +377,7 @@ RunCron(
                             ? new URL(httpProtocol, host)
                                 .addRoute(StatusPageApiRoute)
                                 .addRoute(
-                                  `/status-page/logo/${statusPageIdString}`,
+                                  `/logo/${statusPageIdString}`,
                                 )
                                 .toString()
                             : "",

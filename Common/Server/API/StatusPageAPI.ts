@@ -2659,7 +2659,7 @@ export default class StatusPageAPI extends BaseAPI<
                 statusPage.logoFileId && statusPageIdString
                   ? new URL(httpProtocol, host)
                       .addRoute(StatusPageApiRoute)
-                      .addRoute(`/status-page/logo/${statusPageIdString}`)
+                      .addRoute(`/logo/${statusPageIdString}`)
                       .toString()
                   : "",
               isPublicStatusPage: statusPage.isPublicStatusPage

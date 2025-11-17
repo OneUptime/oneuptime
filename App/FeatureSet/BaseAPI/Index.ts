@@ -35,6 +35,7 @@ import UserNotificationLogTimelineAPI from "Common/Server/API/UserOnCallLogTimel
 import UserSMSAPI from "Common/Server/API/UserSmsAPI";
 import UserWhatsAppAPI from "Common/Server/API/UserWhatsAppAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
+import UserAPI from "Common/Server/API/UserAPI";
 import ApiKeyPermissionService, {
   Service as ApiKeyPermissionServiceType,
 } from "Common/Server/Services/ApiKeyPermissionService";
@@ -353,9 +354,6 @@ import UserNotificationSettingService, {
 import UserOnCallLogService, {
   Service as UserNotificationLogServiceType,
 } from "Common/Server/Services/UserOnCallLogService";
-import UserService, {
-  Service as UserServiceType,
-} from "Common/Server/Services/UserService";
 import WorkflowLogService, {
   Service as WorkflowLogServiceType,
 } from "Common/Server/Services/WorkflowLogService";
@@ -482,7 +480,6 @@ import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
-import User from "Common/Models/DatabaseModels/User";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
@@ -1876,7 +1873,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     //attach api's
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<User, UserServiceType>(User, UserService).getRouter(),
+      new UserAPI().getRouter(),
     );
   },
 };

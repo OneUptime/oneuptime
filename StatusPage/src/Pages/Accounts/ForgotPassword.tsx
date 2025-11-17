@@ -42,7 +42,7 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
   const logoUrl: string | null =
     props.logoFileId && props.logoFileId.toString() && statusPageId
       ? URL.fromString(STATUS_PAGE_API_URL.toString())
-          .addRoute(`/status-page/logo/${statusPageId}`)
+          .addRoute(`/logo/${statusPageId}`)
           .toString()
       : null;
 

@@ -6,7 +6,7 @@ import Image from "Common/UI/Components/Image/Image";
 import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
-import FileUtil from "Common/UI/Utils/File";
+import UserUtil from "Common/UI/Utils/User";
 import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
@@ -69,7 +69,7 @@ const UserElement: FunctionComponent<ComponentProps> = (
           {props.user?.profilePictureId && (
             <Image
               className="h-8 w-8 rounded-full"
-              imageUrl={FileUtil.getFileRoute(
+              imageUrl={UserUtil.getProfilePictureRoute(
                 props.user!.profilePictureId as ObjectID,
               )}
               alt={user["name"]?.toString() || "User"}

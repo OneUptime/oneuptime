@@ -9,7 +9,6 @@ import IconDropdownItem from "Common/UI/Components/Header/IconDropdown/IconDropd
 import IconDropdownMenu from "Common/UI/Components/Header/IconDropdown/IconDropdownMenu";
 import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
 import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
-import FileUtil from "Common/UI/Utils/File";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/UI/Utils/User";
@@ -62,7 +61,7 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
       <HeaderIconDropdownButton
         iconImageUrl={
           profilePictureId
-            ? FileUtil.getFileRoute(profilePictureId)
+            ? User.getProfilePictureRoute(profilePictureId)
             : BlankProfilePic
         }
         name="User Profile"
