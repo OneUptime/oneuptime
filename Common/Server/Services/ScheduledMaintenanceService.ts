@@ -27,7 +27,7 @@ import User from "../../Models/DatabaseModels/User";
 import Recurring from "../../Types/Events/Recurring";
 import OneUptimeDate from "../../Types/Date";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { FileRoute } from "../../ServiceRoute";
+import { StatusPageApiRoute } from "../../ServiceRoute";
 import Dictionary from "../../Types/Dictionary";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import SMS from "../../Types/SMS/SMS";
@@ -280,6 +280,8 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
           if (subscriber.subscriberEmail) {
             // send email here.
+            const statusPageIdString: string | null =
+              statuspage.id?.toString() || statuspage._id?.toString() || null;
 
             MailService.sendMail(
               {
@@ -289,12 +291,15 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                 vars: {
                   statusPageName: statusPageName,
                   statusPageUrl: statusPageURL,
-                  logoUrl: statuspage.logoFileId
-                    ? new URL(httpProtocol, host)
-                        .addRoute(FileRoute)
-                        .addRoute("/image/" + statuspage.logoFileId)
-                        .toString()
-                    : "",
+                  logoUrl:
+                    statuspage.logoFileId && statusPageIdString
+                      ? new URL(httpProtocol, host)
+                          .addRoute(StatusPageApiRoute)
+                          .addRoute(
+                            `/status-page/logo/${statusPageIdString}`,
+                          )
+                          .toString()
+                      : "",
                   isPublicStatusPage: statuspage.isPublicStatusPage
                     ? "true"
                     : "false",

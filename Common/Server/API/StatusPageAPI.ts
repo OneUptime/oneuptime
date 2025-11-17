@@ -86,10 +86,52 @@ import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import DatabaseConfig from "../DatabaseConfig";
-import { FileRoute } from "../../ServiceRoute";
+import { StatusPageApiRoute } from "../../ServiceRoute";
 import ProjectSmtpConfigService from "../Services/ProjectSmtpConfigService";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
+
+const resolveStatusPageIdOrThrow = async (
+  statusPageIdOrDomain: string,
+): Promise<ObjectID> => {
+  if (!statusPageIdOrDomain) {
+    throw new NotFoundException("Status Page not found");
+  }
+
+  if (statusPageIdOrDomain.includes(".")) {
+    const statusPageDomain: StatusPageDomain | null =
+      await StatusPageDomainService.findOneBy({
+        query: {
+          fullDomain: statusPageIdOrDomain,
+          domain: {
+            isVerified: true,
+          } as any,
+        },
+        select: {
+          statusPageId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!statusPageDomain || !statusPageDomain.statusPageId) {
+      throw new NotFoundException("Status Page not found");
+    }
+
+    return statusPageDomain.statusPageId;
+  }
+
+  try {
+    return new ObjectID(statusPageIdOrDomain);
+  } catch (err) {
+    logger.error(
+      `Error converting statusPageIdOrDomain to ObjectID: ${statusPageIdOrDomain}`,
+    );
+    logger.error(err);
+    throw new NotFoundException("Status Page not found");
+  }
+};
 
 export default class StatusPageAPI extends BaseAPI<
   StatusPage,
@@ -190,89 +232,160 @@ export default class StatusPageAPI extends BaseAPI<
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/favicon/:statusPageIdOrDomain`,
       async (req: ExpressRequest, res: ExpressResponse) => {
-        const statusPageIdOrDomain: string = req.params[
-          "statusPageIdOrDomain"
-        ] as string;
+        try {
+          const statusPageId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
+          );
 
-        let statusPageId: ObjectID | null = null;
-
-        if (statusPageIdOrDomain && statusPageIdOrDomain.includes(".")) {
-          // then this is a domain and not the status page id. We need to get the status page id from the domain.
-
-          const statusPageDomain: StatusPageDomain | null =
-            await StatusPageDomainService.findOneBy({
+          const statusPage: StatusPage | null =
+            await StatusPageService.findOneBy({
               query: {
-                fullDomain: statusPageIdOrDomain,
-                domain: {
-                  isVerified: true,
-                } as any,
+                _id: statusPageId,
               },
               select: {
-                statusPageId: true,
+                faviconFile: {
+                  file: true,
+                  _id: true,
+                  fileType: true,
+                  name: true,
+                },
               },
               props: {
                 isRoot: true,
               },
             });
 
-          if (!statusPageDomain || !statusPageDomain.statusPageId) {
-            return Response.sendErrorResponse(
+          if (!statusPage || !statusPage.faviconFile) {
+            logger.debug("Favicon file not found. Returning default favicon.");
+
+            return Response.sendFileByPath(
               req,
               res,
-              new NotFoundException("Status Page not found"),
+              `/usr/src/Common/UI/Images/favicon/status-green.png`,
             );
           }
 
-          statusPageId = statusPageDomain.statusPageId;
-        } else {
-          // then this is a status page id. We need to get the status page id from the id.
-          try {
-            statusPageId = new ObjectID(statusPageIdOrDomain);
-          } catch (err) {
-            logger.error(err);
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotFoundException("Status Page not found"),
-            );
-          }
-        }
+          logger.debug(
+            `Favicon file found. Sending file: ${statusPage.faviconFile.name}`,
+          );
 
-        const statusPage: StatusPage | null = await StatusPageService.findOneBy(
-          {
-            query: {
-              _id: statusPageId,
-            },
-            select: {
-              faviconFile: {
-                file: true,
-                _id: true,
-                fileType: true,
-                name: true,
-              },
-            },
-            props: {
-              isRoot: true,
-            },
-          },
-        );
-
-        if (!statusPage || !statusPage.faviconFile) {
-          logger.debug("Favicon file not found. Returning default favicon.");
-
-          // return default favicon.
-          return Response.sendFileByPath(
+          return Response.sendFileResponse(
             req,
             res,
-            `/usr/src/Common/UI/Images/favicon/status-green.png`,
+            statusPage.faviconFile,
+          );
+        } catch (error) {
+          if (error instanceof NotFoundException) {
+            return Response.sendErrorResponse(req, res, error);
+          }
+
+          logger.error(error);
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Status Page not found"),
           );
         }
+      },
+    );
 
-        logger.debug(
-          `Favicon file found. Sending file: ${statusPage.faviconFile.name}`,
-        );
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/logo/:statusPageIdOrDomain`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const statusPageId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
+          );
 
-        return Response.sendFileResponse(req, res, statusPage.faviconFile!);
+          const statusPage: StatusPage | null =
+            await StatusPageService.findOneBy({
+              query: {
+                _id: statusPageId,
+              },
+              select: {
+                logoFile: {
+                  file: true,
+                  _id: true,
+                  fileType: true,
+                  name: true,
+                },
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!statusPage || !statusPage.logoFile) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotFoundException("Status Page logo not found"),
+            );
+          }
+
+          return Response.sendFileResponse(req, res, statusPage.logoFile);
+        } catch (error) {
+          if (error instanceof NotFoundException) {
+            return Response.sendErrorResponse(req, res, error);
+          }
+
+          logger.error(error);
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Status Page logo not found"),
+          );
+        }
+      },
+    );
+
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/cover-image/:statusPageIdOrDomain`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const statusPageId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
+          );
+
+          const statusPage: StatusPage | null =
+            await StatusPageService.findOneBy({
+              query: {
+                _id: statusPageId,
+              },
+              select: {
+                coverImageFile: {
+                  file: true,
+                  _id: true,
+                  fileType: true,
+                  name: true,
+                },
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!statusPage || !statusPage.coverImageFile) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotFoundException("Status Page cover image not found"),
+            );
+          }
+
+          return Response.sendFileResponse(req, res, statusPage.coverImageFile);
+        } catch (error) {
+          if (error instanceof NotFoundException) {
+            return Response.sendErrorResponse(req, res, error);
+          }
+
+          logger.error(error);
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Status Page cover image not found"),
+          );
+        }
       },
     );
 
@@ -2531,6 +2644,8 @@ export default class StatusPageAPI extends BaseAPI<
       if (email) {
         const host: Hostname = await DatabaseConfig.getHost();
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+        const statusPageIdString: string | null =
+          statusPage.id?.toString() || statusPage._id?.toString() || null;
 
         MailService.sendMail(
           {
@@ -2540,12 +2655,15 @@ export default class StatusPageAPI extends BaseAPI<
             vars: {
               statusPageName: statusPage.name || "Status Page",
               statusPageUrl: statusPageURL,
-              logoUrl: statusPage.logoFileId
-                ? new URL(httpProtocol, host)
-                    .addRoute(FileRoute)
-                    .addRoute("/image/" + statusPage.logoFileId)
-                    .toString()
-                : "",
+              logoUrl:
+                statusPage.logoFileId && statusPageIdString
+                  ? new URL(httpProtocol, host)
+                      .addRoute(StatusPageApiRoute)
+                      .addRoute(
+                        `/status-page/logo/${statusPageIdString}`,
+                      )
+                      .toString()
+                  : "",
               isPublicStatusPage: statusPage.isPublicStatusPage
                 ? "true"
                 : "false",

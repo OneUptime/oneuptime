@@ -9,7 +9,6 @@ import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelList from "Common/UI/Components/ModelList/ModelList";
-import { FILE_URL } from "Common/UI/Config";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
@@ -24,6 +23,14 @@ const LoginPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const statusPageId: string | undefined =
+    StatusPageUtil.getStatusPageId()?.toString();
+  const logoUrl: string | null =
+    props.logoFileId && props.logoFileId.toString() && statusPageId
+      ? URL.fromString(STATUS_PAGE_API_URL.toString())
+          .addRoute(`/status-page/logo/${statusPageId}`)
+          .toString()
+      : null;
 
   if (!StatusPageUtil.getStatusPageId()) {
     return <></>;
@@ -73,12 +80,10 @@ const LoginPage: FunctionComponent<ComponentProps> = (
   return (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        {props.logoFileId && props.logoFileId.toString() ? (
+        {logoUrl ? (
           <img
             style={{ height: "70px", margin: "auto" }}
-            src={`${URL.fromString(FILE_URL.toString()).addRoute(
-              "/image/" + props.logoFileId.toString(),
-            )}`}
+            src={logoUrl}
           />
         ) : (
           <></>

@@ -9,7 +9,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Link from "Common/UI/Components/Link/Link";
-import { FILE_URL } from "Common/UI/Config";
+import { STATUS_PAGE_API_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import React, { FunctionComponent, useEffect, useState } from "react";
@@ -36,6 +36,15 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
   const apiUrl: URL = FORGOT_PASSWORD_API_URL;
 
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
+
+  const statusPageId: string | undefined =
+    StatusPageUtil.getStatusPageId()?.toString();
+  const logoUrl: string | null =
+    props.logoFileId && props.logoFileId.toString() && statusPageId
+      ? URL.fromString(STATUS_PAGE_API_URL.toString())
+          .addRoute(`/status-page/logo/${statusPageId}`)
+          .toString()
+      : null;
 
   if (!StatusPageUtil.getStatusPageId()) {
     return <></>;
@@ -67,12 +76,10 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
   return (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        {props.logoFileId && props.logoFileId.toString() ? (
+        {logoUrl ? (
           <img
             style={{ height: "70px", margin: "auto" }}
-            src={`${URL.fromString(FILE_URL.toString()).addRoute(
-              "/image/" + props.logoFileId.toString(),
-            )}`}
+            src={logoUrl}
           />
         ) : (
           <></>

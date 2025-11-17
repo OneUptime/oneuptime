@@ -1,5 +1,5 @@
 import RunCron from "../../Utils/Cron";
-import { FileRoute } from "Common/ServiceRoute";
+import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
@@ -279,6 +279,8 @@ RunCron(
         );
         const statusPageName: string =
           statuspage.pageTitle || statuspage.name || "Status Page";
+        const statusPageIdString: string | null =
+          statuspage.id?.toString() || statuspage._id?.toString() || null;
 
         logger.debug(
           `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for incident state timeline ${incidentStateTimeline.id}.`,
@@ -374,12 +376,15 @@ RunCron(
                   emailTitle: emailTitle,
                   statusPageName: statusPageName,
                   statusPageUrl: statusPageURL,
-                  logoUrl: statuspage.logoFileId
-                    ? new URL(httpProtocol, host)
-                        .addRoute(FileRoute)
-                        .addRoute("/image/" + statuspage.logoFileId)
-                        .toString()
-                    : "",
+                  logoUrl:
+                    statuspage.logoFileId && statusPageIdString
+                      ? new URL(httpProtocol, host)
+                          .addRoute(StatusPageApiRoute)
+                          .addRoute(
+                            `/status-page/logo/${statusPageIdString}`,
+                          )
+                          .toString()
+                      : "",
                   isPublicStatusPage: statuspage.isPublicStatusPage
                     ? "true"
                     : "false",
