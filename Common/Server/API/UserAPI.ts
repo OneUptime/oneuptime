@@ -12,6 +12,7 @@ import BaseAPI from "./BaseAPI";
 
 const BLANK_PROFILE_PICTURE_PATH: string = path.resolve(
   process.cwd(),
+  "..",
   "Common",
   "UI",
   "Images",
