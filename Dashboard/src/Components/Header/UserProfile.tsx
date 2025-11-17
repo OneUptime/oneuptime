@@ -36,7 +36,7 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
 
   try {
     userId = User.getUserId();
-  } catch (_error) {
+  } catch {
     userId = null;
   }
 

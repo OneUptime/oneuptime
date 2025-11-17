@@ -36,19 +36,26 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
 
         try {
           userId = new ObjectID(userIdParam);
-        } catch (_error) {
+        } catch {
           return this.sendBlankProfile(req, res);
         }
 
         try {
-          const profilePictureSelect = {
+          const profilePictureSelect: {
+            profilePictureFile: {
+              _id: boolean;
+              file: boolean;
+              fileType: boolean;
+              name: boolean;
+            };
+          } = {
             profilePictureFile: {
               _id: true,
               file: true,
               fileType: true,
               name: true,
             },
-          } as const;
+          };
 
           const userById: User | null = await UserService.findOneBy({
             query: {
@@ -84,10 +91,7 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
     res.setHeader("Expires", "0");
   }
 
-  private sendBlankProfile(
-    req: ExpressRequest,
-    res: ExpressResponse,
-  ): void {
+  private sendBlankProfile(req: ExpressRequest, res: ExpressResponse): void {
     this.setNoCacheHeaders(res);
 
     try {

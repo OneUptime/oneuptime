@@ -1871,10 +1871,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryAPI);
 
     //attach api's
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new UserAPI().getRouter(),
-    );
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserAPI().getRouter());
   },
 };
 

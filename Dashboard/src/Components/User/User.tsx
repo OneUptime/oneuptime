@@ -29,7 +29,7 @@ const UserElement: FunctionComponent<ComponentProps> = (
     user = props.user;
   }
 
-  const getUserId = (): ObjectID | null => {
+  const getUserId: () => ObjectID | null = () => {
     if (props.user instanceof User) {
       return props.user.id || null;
     }
@@ -37,7 +37,7 @@ const UserElement: FunctionComponent<ComponentProps> = (
     if (user && user["_id"]) {
       try {
         return new ObjectID(user["_id"] as string);
-      } catch (_error) {
+      } catch {
         return null;
       }
     }
@@ -45,7 +45,7 @@ const UserElement: FunctionComponent<ComponentProps> = (
     if (user && user["id"]) {
       try {
         return new ObjectID(user["id"] as string);
-      } catch (_error) {
+      } catch {
         return null;
       }
     }

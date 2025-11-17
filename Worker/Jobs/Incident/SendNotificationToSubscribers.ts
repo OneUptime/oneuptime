@@ -337,9 +337,7 @@ RunCron(
                           statuspage.logoFileId && statusPageIdString
                             ? new URL(httpProtocol, host)
                                 .addRoute(StatusPageApiRoute)
-                                .addRoute(
-                                  `/logo/${statusPageIdString}`,
-                                )
+                                .addRoute(`/logo/${statusPageIdString}`)
                                 .toString()
                             : "",
                         isPublicStatusPage: statuspage.isPublicStatusPage
