@@ -91,7 +91,11 @@ import ProjectSmtpConfigService from "../Services/ProjectSmtpConfigService";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 
-const resolveStatusPageIdOrThrow = async (
+type ResolveStatusPageIdOrThrowFunction = (
+  statusPageIdOrDomain: string,
+) => Promise<ObjectID>;
+
+const resolveStatusPageIdOrThrow: ResolveStatusPageIdOrThrowFunction = async (
   statusPageIdOrDomain: string,
 ): Promise<ObjectID> => {
   if (!statusPageIdOrDomain) {
@@ -269,11 +273,7 @@ export default class StatusPageAPI extends BaseAPI<
             `Favicon file found. Sending file: ${statusPage.faviconFile.name}`,
           );
 
-          return Response.sendFileResponse(
-            req,
-            res,
-            statusPage.faviconFile,
-          );
+          return Response.sendFileResponse(req, res, statusPage.faviconFile);
         } catch (error) {
           if (error instanceof NotFoundException) {
             return Response.sendErrorResponse(req, res, error);
@@ -2659,9 +2659,7 @@ export default class StatusPageAPI extends BaseAPI<
                 statusPage.logoFileId && statusPageIdString
                   ? new URL(httpProtocol, host)
                       .addRoute(StatusPageApiRoute)
-                      .addRoute(
-                        `/status-page/logo/${statusPageIdString}`,
-                      )
+                      .addRoute(`/status-page/logo/${statusPageIdString}`)
                       .toString()
                   : "",
               isPublicStatusPage: statusPage.isPublicStatusPage
