@@ -188,9 +188,16 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         const url: string = URL.createObjectURL(blob);
         return (
           <div key={key} className="relative flex-none">
+            <button
+              type="button"
+              onClick={removeFile}
+              className="bg-black/60 text-white text-xs px-2 py-1 rounded absolute left-1 top-1 hover:bg-black"
+            >
+              Remove
+            </button>
             <Icon
               icon={IconProp.Close}
-              className="bg-gray-400 rounded text-white h-7 w-7 flex items-center justify-center absolute -right-2 -top-2 hover:bg-gray-500 cursor-pointer"
+              className="bg-gray-400 rounded text-white h-6 w-6 flex items-center justify-center absolute -right-2 -top-2 hover:bg-gray-500 cursor-pointer"
               size={SizeProp.Regular}
               onClick={removeFile}
             />
@@ -218,12 +225,21 @@ const FilePicker: FunctionComponent<ComponentProps> = (
               </p>
             </div>
           </div>
-          <Icon
-            icon={IconProp.Close}
-            className="text-gray-400 hover:text-gray-600 cursor-pointer"
-            onClick={removeFile}
-            size={SizeProp.Regular}
-          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="text-xs font-medium text-red-600 hover:text-red-700"
+              onClick={removeFile}
+            >
+              Remove
+            </button>
+            <Icon
+              icon={IconProp.Close}
+              className="text-gray-400 hover:text-gray-600 cursor-pointer"
+              onClick={removeFile}
+              size={SizeProp.Regular}
+            />
+          </div>
         </div>
       );
     });
