@@ -9,6 +9,8 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "./AlertService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import File from "../../Models/DatabaseModels/File";
+import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -21,12 +23,23 @@ export class Service extends DatabaseService<Model> {
     alertId: ObjectID;
     projectId: ObjectID;
     note: string;
+    attachmentFileIds?: Array<ObjectID>;
   }): Promise<Model> {
     const internalNote: Model = new Model();
     internalNote.createdByUserId = data.userId;
     internalNote.alertId = data.alertId;
     internalNote.projectId = data.projectId;
     internalNote.note = data.note;
+
+    if (data.attachmentFileIds && data.attachmentFileIds.length > 0) {
+      internalNote.attachments = data.attachmentFileIds.map(
+        (fileId: ObjectID) => {
+          const file: File = new File();
+          file.id = fileId;
+          return file;
+        },
+      );
+    }
 
     return this.create({
       data: internalNote,
@@ -50,6 +63,11 @@ export class Service extends DatabaseService<Model> {
       alertId: alertId,
     });
 
+    const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
+      createdItem.id!,
+      "/alert-internal-note/attachment",
+    );
+
     await AlertFeedService.createAlertFeedItem({
       alertId: createdItem.alertId!,
       projectId: createdItem.projectId!,
@@ -59,7 +77,7 @@ export class Service extends DatabaseService<Model> {
 
       feedInfoInMarkdown: `📄 posted **private note** for this [Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(createdItem.projectId!, alertId)).toString()}):
       
-${createdItem.note}
+${(createdItem.note || "") + attachmentsMarkdown}
                 `,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -104,6 +122,10 @@ ${createdItem.note}
 
       for (const updatedItem of updatedItems) {
         const alert: Alert = updatedItem.alert!;
+        const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
+          updatedItem.id!,
+          "/alert-internal-note/attachment",
+        );
         await AlertFeedService.createAlertFeedItem({
           alertId: updatedItem.alertId!,
           projectId: updatedItem.projectId!,
@@ -113,7 +135,7 @@ ${createdItem.note}
 
           feedInfoInMarkdown: `📄 updated **Private Note** for this [Alert ${alert.alertNumber}](${(await AlertService.getAlertLinkInDashboard(alert.projectId!, alert.id!)).toString()})
           
-${updatedItem.note}
+${(updatedItem.note || "") + attachmentsMarkdown}
                     `,
           workspaceNotification: {
             sendWorkspaceNotification: true,
@@ -123,6 +145,55 @@ ${updatedItem.note}
       }
     }
     return onUpdate;
+  }
+
+  private async getAttachmentsMarkdown(
+    modelId: ObjectID,
+    attachmentApiPath: string,
+  ): Promise<string> {
+    if (!modelId) {
+      return "";
+    }
+
+    const noteWithAttachments: Model | null = await this.findOneById({
+      id: modelId,
+      select: {
+        attachments: {
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!noteWithAttachments || !noteWithAttachments.attachments) {
+      return "";
+    }
+
+    const attachmentIds: Array<ObjectID> = noteWithAttachments.attachments
+      .map((file: File) => {
+        if (file.id) {
+          return file.id;
+        }
+
+        if (file._id) {
+          return new ObjectID(file._id);
+        }
+
+        return null;
+      })
+      .filter((id): id is ObjectID => Boolean(id));
+
+    if (!attachmentIds.length) {
+      return "";
+    }
+
+    return await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
+      modelId,
+      attachmentIds,
+      attachmentApiPath,
+    });
   }
 }
 

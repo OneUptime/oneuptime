@@ -65,9 +65,7 @@ import EmailVerificationTokenService, {
 import AlertCustomFieldService, {
   Service as AlertCustomFieldServiceType,
 } from "Common/Server/Services/AlertCustomFieldService";
-import AlertInternalNoteService, {
-  Service as AlertInternalNoteServiceType,
-} from "Common/Server/Services/AlertInternalNoteService";
+import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import AlertNoteTemplateService, {
   Service as AlertNoteTemplateServiceType,
 } from "Common/Server/Services/AlertNoteTemplateService";
@@ -390,7 +388,6 @@ import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
-import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
@@ -833,10 +830,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertInternalNote, AlertInternalNoteServiceType>(
-        AlertInternalNote,
-        AlertInternalNoteService,
-      ).getRouter(),
+      new AlertInternalNoteAPI().getRouter(),
     );
 
     app.use(
