@@ -12,6 +12,8 @@ import IncidentService from "./IncidentService";
 import Incident from "../../Models/DatabaseModels/Incident";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import File from "../../Models/DatabaseModels/File";
+import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -24,6 +26,7 @@ export class Service extends DatabaseService<Model> {
     incidentId: ObjectID;
     projectId: ObjectID;
     note: string;
+    attachmentFileIds?: Array<ObjectID>;
   }): Promise<Model> {
     const publicNote: Model = new Model();
     publicNote.createdByUserId = data.userId;
@@ -31,6 +34,16 @@ export class Service extends DatabaseService<Model> {
     publicNote.projectId = data.projectId;
     publicNote.note = data.note;
     publicNote.postedAt = OneUptimeDate.getCurrentDate();
+
+    if (data.attachmentFileIds && data.attachmentFileIds.length > 0) {
+      publicNote.attachments = data.attachmentFileIds.map(
+        (fileId: ObjectID) => {
+          const file: File = new File();
+          file.id = fileId;
+          return file;
+        },
+      );
+    }
 
     return this.create({
       data: publicNote,
@@ -84,6 +97,11 @@ export class Service extends DatabaseService<Model> {
         incidentId: incidentId,
       });
 
+    const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
+      createdItem.id!,
+      "/incident-public-note/attachment",
+    );
+
     await IncidentFeedService.createIncidentFeedItem({
       incidentId: createdItem.incidentId!,
       projectId: createdItem.projectId!,
@@ -92,7 +110,7 @@ export class Service extends DatabaseService<Model> {
       userId: userId || undefined,
       feedInfoInMarkdown: `📄 posted **public note** for this [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) on status page:
 
-${createdItem.note}
+${(createdItem.note || "") + attachmentsMarkdown}
           `,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -138,6 +156,11 @@ ${createdItem.note}
       for (const updatedItem of updatedItems) {
         const incident: Incident = updatedItem.incident!;
 
+        const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
+          updatedItem.id!,
+          "/incident-public-note/attachment",
+        );
+
         await IncidentFeedService.createIncidentFeedItem({
           incidentId: updatedItem.incidentId!,
           projectId: updatedItem.projectId!,
@@ -147,7 +170,7 @@ ${createdItem.note}
 
           feedInfoInMarkdown: `📄 updated **Public Note** for this [Incident ${incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})
         
-${updatedItem.note}
+${(updatedItem.note || "") + attachmentsMarkdown}
                   `,
           workspaceNotification: {
             sendWorkspaceNotification: true,
@@ -157,6 +180,55 @@ ${updatedItem.note}
       }
     }
     return onUpdate;
+  }
+
+  private async getAttachmentsMarkdown(
+    modelId: ObjectID,
+    attachmentApiPath: string,
+  ): Promise<string> {
+    if (!modelId) {
+      return "";
+    }
+
+    const noteWithAttachments: Model | null = await this.findOneById({
+      id: modelId,
+      select: {
+        attachments: {
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!noteWithAttachments || !noteWithAttachments.attachments) {
+      return "";
+    }
+
+    const attachmentIds: Array<ObjectID> = noteWithAttachments.attachments
+      .map((file: File) => {
+        if (file.id) {
+          return file.id;
+        }
+
+        if (file._id) {
+          return new ObjectID(file._id);
+        }
+
+        return null;
+      })
+      .filter((id): id is ObjectID => Boolean(id));
+
+    if (!attachmentIds.length) {
+      return "";
+    }
+
+    return await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
+      modelId,
+      attachmentIds,
+      attachmentApiPath,
+    });
   }
 }
 
