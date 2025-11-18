@@ -16,15 +16,23 @@ export default class FileAttachmentMarkdownUtil {
   public static async buildAttachmentMarkdown(
     input: FileAttachmentMarkdownInput,
   ): Promise<string> {
-    if (!input.modelId || !input.attachmentIds || input.attachmentIds.length === 0) {
+    if (
+      !input.modelId ||
+      !input.attachmentIds ||
+      input.attachmentIds.length === 0
+    ) {
       return "";
     }
 
     const uniqueIds: Array<string> = Array.from(
       new Set(
         input.attachmentIds
-          .map((id: ObjectID) => id.toString())
-          .filter((value: string) => Boolean(value)),
+          .map((id: ObjectID) => {
+            return id.toString();
+          })
+          .filter((value: string) => {
+            return Boolean(value);
+          }),
       ),
     );
 
@@ -53,8 +61,12 @@ export default class FileAttachmentMarkdownUtil {
 
     const fileById: Map<string, File> = new Map(
       files
-        .filter((file: File) => Boolean(file._id))
-        .map((file: File) => [file._id!.toString(), file]),
+        .filter((file: File) => {
+          return Boolean(file._id);
+        })
+        .map((file: File) => {
+          return [file._id!.toString(), file];
+        }),
     );
 
     const attachmentLines: Array<string> = [];

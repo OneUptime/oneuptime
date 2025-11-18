@@ -18,7 +18,10 @@ export default class ScheduledMaintenancePublicNoteAPI extends BaseAPI<
   ScheduledMaintenancePublicNoteServiceType
 > {
   public constructor() {
-    super(ScheduledMaintenancePublicNote, ScheduledMaintenancePublicNoteService);
+    super(
+      ScheduledMaintenancePublicNote,
+      ScheduledMaintenancePublicNoteService,
+    );
 
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/attachment/:noteId/:fileId`,

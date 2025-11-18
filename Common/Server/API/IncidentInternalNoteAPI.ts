@@ -57,21 +57,20 @@ export default class IncidentInternalNoteAPI extends BaseAPI<
 
     const props = await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    const note: IncidentInternalNote | null =
-      await this.service.findOneBy({
-        query: {
-          _id: noteId,
+    const note: IncidentInternalNote | null = await this.service.findOneBy({
+      query: {
+        _id: noteId,
+      },
+      select: {
+        attachments: {
+          _id: true,
+          file: true,
+          fileType: true,
+          name: true,
         },
-        select: {
-          attachments: {
-            _id: true,
-            file: true,
-            fileType: true,
-            name: true,
-          },
-        },
-        props,
-      });
+      },
+      props,
+    });
 
     const attachment = note?.attachments?.find((file) => {
       const attachmentId: string | null = file._id

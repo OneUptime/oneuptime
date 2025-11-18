@@ -617,12 +617,7 @@ const FormField: <T extends GenericObject>(
                 props.field.fileTypes
                   ? props.field.fileTypes
                   : props.field.fieldType === FormFieldSchemaType.ImageFile
-                    ? [
-                        MimeType.png,
-                        MimeType.jpeg,
-                        MimeType.jpg,
-                        MimeType.svg,
-                      ]
+                    ? [MimeType.png, MimeType.jpeg, MimeType.jpg, MimeType.svg]
                     : []
               }
               isMultiFilePicker={isMultiFileField}

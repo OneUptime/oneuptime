@@ -67,7 +67,7 @@ export default class IncidentPublicNoteAPI extends BaseAPI<
           name: true,
         },
       },
-      props
+      props,
     });
 
     const attachment = note?.attachments?.find((file) => {

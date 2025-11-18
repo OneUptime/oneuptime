@@ -36,7 +36,8 @@ export default class StatusPageAnnouncementAPI extends BaseAPI<
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
-    const announcementIdParam: string | undefined = req.params["announcementId"];
+    const announcementIdParam: string | undefined =
+      req.params["announcementId"];
     const fileIdParam: string | undefined = req.params["fileId"];
 
     if (!announcementIdParam || !fileIdParam) {

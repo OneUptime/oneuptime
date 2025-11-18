@@ -192,7 +192,9 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
 
         return null;
       })
-      .filter((id): id is ObjectID => Boolean(id));
+      .filter((id): id is ObjectID => {
+        return Boolean(id);
+      });
 
     if (!attachmentIds.length) {
       return "";
