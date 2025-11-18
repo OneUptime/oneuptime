@@ -90,16 +90,57 @@ const FilePicker: FunctionComponent<ComponentProps> = (
 
         // Upload these files.
         const filesResult: Array<FileModel> = [];
+        const resolveMimeType = (file: File): MimeType | undefined => {
+          const direct: string | undefined = file.type || undefined;
+          if (direct && Object.values(MimeType).includes(direct as MimeType)) {
+            return direct as MimeType;
+          }
+
+            // fallback based on extension
+          const ext: string | undefined = file.name
+            .split(".")
+            .pop()
+            ?.toLowerCase();
+          if (!ext) {
+            return undefined;
+          }
+          const map: { [key: string]: MimeType } = {
+            png: MimeType.png,
+            jpg: MimeType.jpg,
+            jpeg: MimeType.jpeg,
+            svg: MimeType.svg,
+            gif: MimeType.gif,
+            webp: MimeType.webp,
+            pdf: MimeType.pdf,
+            doc: MimeType.doc,
+            docx: MimeType.docx,
+            txt: MimeType.txt,
+            log: MimeType.txt,
+            md: MimeType.md,
+            markdown: MimeType.md,
+            csv: MimeType.csv,
+            json: MimeType.json,
+            zip: MimeType.zip,
+            rtf: MimeType.rtf,
+            odt: MimeType.odt,
+            xls: MimeType.xls,
+            xlsx: MimeType.xlsx,
+            ods: MimeType.ods,
+            ppt: MimeType.ppt,
+            pptx: MimeType.pptx,
+            odp: MimeType.odp,
+          };
+          return map[ext];
+        };
+
         for (const acceptedFile of acceptedFiles) {
           const fileModel: FileModel = new FileModel();
           fileModel.name = acceptedFile.name;
-
           const arrayBuffer: ArrayBuffer = await acceptedFile.arrayBuffer();
-
           const fileBuffer: Uint8Array = new Uint8Array(arrayBuffer);
           fileModel.file = Buffer.from(fileBuffer);
           fileModel.isPublic = false;
-          fileModel.fileType = acceptedFile.type as MimeType;
+          fileModel.fileType = resolveMimeType(acceptedFile) || MimeType.txt; // default to text/plain to satisfy required field
 
           const result: HTTPResponse<FileModel> =
             (await ModelAPI.create<FileModel>({
@@ -183,84 +224,77 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         data-testid={props.dataTestId}
         className="flex max-w-lg justify-center rounded-md border-2 border-dashed border-gray-300 px-6 pt-5 pb-6"
       >
-        {props.isMultiFilePicker ||
-          (filesModel.length === 0 && (
-            <div
-              {...getRootProps({
-                className: "space-y-1 text-center",
-              })}
-            >
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400"
-                stroke="currentColor"
-                fill="none"
-                viewBox="0 0 48 48"
-                aria-hidden="true"
-              >
-                <path
-                  d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                ></path>
-              </svg>
-              <div className="flex text-sm text-gray-600">
-                <label className="relative cursor-pointer rounded-md bg-white font-medium text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:text-indigo-500">
-                  {!props.placeholder && !error && (
-                    <span>{"Upload a file"}</span>
-                  )}
-
-                  {error && (
-                    <span>
-                      <span>{error}</span>
-                    </span>
-                  )}
-
-                  {props.placeholder && !error && (
-                    <span>{props.placeholder}</span>
-                  )}
-
-                  <input
-                    tabIndex={props.tabIndex}
-                    {...(getInputProps() as any)}
-                    id="file-upload"
-                    name="file-upload"
-                    type="file"
-                    className="sr-only"
-                  />
-                </label>
-                <p className="pl-1">or drag and drop</p>
+        <div
+          {...getRootProps({
+            className: "w-full space-y-3 text-center",
+          })}
+        >
+          {(filesModel.length === 0 || props.isMultiFilePicker) && (
+            <>
+              <div className="flex flex-col items-center space-y-2">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  stroke="currentColor"
+                  fill="none"
+                  viewBox="0 0 48 48"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  ></path>
+                </svg>
+                <div className="flex flex-col items-center text-sm text-gray-600 space-y-1">
+                  <label className="relative cursor-pointer rounded-md bg-white font-medium text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:text-indigo-500">
+                    {!props.placeholder && !error && (
+                      <span>{filesModel.length > 0 ? "Add more files" : "Upload files"}</span>
+                    )}
+                    {error && (
+                      <span>
+                        <span>{error}</span>
+                      </span>
+                    )}
+                    {props.placeholder && !error && (
+                      <span>{props.placeholder}</span>
+                    )}
+                    <input
+                      tabIndex={props.tabIndex}
+                      {...(getInputProps() as any)}
+                      id="file-upload"
+                      name="file-upload"
+                      type="file"
+                      className="sr-only"
+                    />
+                  </label>
+                  <p className="text-gray-500">
+                    {filesModel.length === 0 ? "Click to choose files" : "Click to add more"} or drag & drop.
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {props.mimeTypes && props.mimeTypes?.length > 0 && (
+                      <span>Types: </span>
+                    )}
+                    {props.mimeTypes &&
+                      props.mimeTypes
+                        .map((type: MimeType) => {
+                          const enumKey: string | undefined =
+                            Object.keys(MimeType)[
+                              Object.values(MimeType).indexOf(type)
+                            ];
+                          return enumKey?.toUpperCase() || "";
+                        })
+                        .filter((item: string | undefined, pos: number, array: Array<string | undefined>) => {
+                          return array.indexOf(item) === pos;
+                        })
+                        .join(", ")}
+                    {props.mimeTypes && props.mimeTypes?.length > 0 && <span>.</span>} Max 10MB each.
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-gray-500">
-                {props.mimeTypes && props.mimeTypes?.length > 0 && (
-                  <span>File types: </span>
-                )}
-                {props.mimeTypes &&
-                  props.mimeTypes
-                    .map((type: MimeType) => {
-                      const enumKey: string | undefined =
-                        Object.keys(MimeType)[
-                          Object.values(MimeType).indexOf(type)
-                        ];
-                      return enumKey?.toUpperCase() || "";
-                    })
-                    .filter(
-                      (
-                        item: string | undefined,
-                        pos: number,
-                        array: Array<string | undefined>,
-                      ) => {
-                        return array.indexOf(item) === pos;
-                      },
-                    )
-                    .join(", ")}
-                {props.mimeTypes && props.mimeTypes?.length > 0 && (
-                  <span>.</span>
-                )}
-                &nbsp;10 MB or less.
-              </p>
-            </div>
-          ))}
+            </>
+          )}
+        </div>
         <aside>{getThumbs()}</aside>
       </div>
       {props.error && (
