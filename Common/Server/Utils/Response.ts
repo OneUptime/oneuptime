@@ -42,6 +42,7 @@ export default class Response {
     res: ExpressResponse,
     path: string,
   ): void {
+    Response.setNoCacheHeaders(res);
     res.sendFile(path);
   }
 
@@ -56,6 +57,7 @@ export default class Response {
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     if (headers) {
+    Response.setNoCacheHeaders(oneUptimeResponse);
       for (const key in headers) {
         oneUptimeResponse.set(key, headers[key]?.toString() || "");
       }
@@ -321,5 +323,16 @@ export default class Response {
     oneUptimeResponse.logBody = { javascript: javascript as string };
     oneUptimeResponse.writeHead(200, { "Content-Type": "text/javascript" });
     oneUptimeResponse.end(javascript);
+  }
+
+  public static setNoCacheHeaders(res: ExpressResponse): void {
+    const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+    oneUptimeResponse.setHeader(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate",
+    );
+    oneUptimeResponse.setHeader("Pragma", "no-cache");
+    oneUptimeResponse.setHeader("Expires", "0");
   }
 }

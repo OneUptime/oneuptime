@@ -61,7 +61,7 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
           });
 
           if (userById && userById.profilePictureFile) {
-            this.setNoCacheHeaders(res);
+            Response.setNoCacheHeaders(res);
             return Response.sendFileResponse(
               req,
               res,
@@ -78,14 +78,8 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
     );
   }
 
-  private setNoCacheHeaders(res: ExpressResponse): void {
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
-  }
-
   private sendBlankProfile(req: ExpressRequest, res: ExpressResponse): void {
-    this.setNoCacheHeaders(res);
+    Response.setNoCacheHeaders(res);
 
     try {
       Response.sendFileByPath(req, res, BLANK_PROFILE_PICTURE_PATH);

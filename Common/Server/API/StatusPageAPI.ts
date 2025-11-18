@@ -3759,7 +3759,7 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    this.setNoCacheHeaders(res);
+    Response.setNoCacheHeaders(res);
     return Response.sendFileResponse(req, res, attachment);
   }
 
@@ -3881,7 +3881,7 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    this.setNoCacheHeaders(res);
+    Response.setNoCacheHeaders(res);
     return Response.sendFileResponse(req, res, attachment);
   }
 
@@ -4011,14 +4011,8 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    this.setNoCacheHeaders(res);
+    Response.setNoCacheHeaders(res);
     return Response.sendFileResponse(req, res, attachment);
-  }
-
-  private setNoCacheHeaders(res: ExpressResponse): void {
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
   }
 
   public async checkHasReadAccess(data: {
