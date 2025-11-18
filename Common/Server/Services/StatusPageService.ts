@@ -810,6 +810,7 @@ export class Service extends DatabaseService<StatusPage> {
     if (data.email) {
       // force send to this email instead of sending to all subscribers.
       await sendEmail(data.email, null);
+      return; // don't notify subscribers when explicitly sending a test email.
     }
 
     const subscribers: Array<StatusPageSubscriber> =
