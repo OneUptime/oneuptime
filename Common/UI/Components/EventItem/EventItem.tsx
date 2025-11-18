@@ -16,6 +16,11 @@ export enum TimelineItemType {
   Note = "Note",
 }
 
+export interface TimelineAttachment {
+  name: string;
+  downloadUrl: string;
+}
+
 export interface TimelineItem {
   date: Date;
   note?: string;
@@ -23,6 +28,7 @@ export interface TimelineItem {
   state?: BaseModel;
   icon: IconProp;
   iconColor: Color;
+  attachments?: Array<TimelineAttachment>;
 }
 
 export interface EventItemLabel {
@@ -278,6 +284,29 @@ const EventItem: FunctionComponent<ComponentProps> = (
                               <p>
                                 <MarkdownViewer text={item.note || ""} />
                               </p>
+                              {item.attachments &&
+                                item.attachments.length > 0 && (
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    {item.attachments.map(
+                                      (
+                                        attachment: TimelineAttachment,
+                                        attachmentIndex: number,
+                                      ) => {
+                                        return (
+                                          <a
+                                            key={attachmentIndex}
+                                            href={attachment.downloadUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-indigo-600 hover:text-indigo-500 text-sm break-words"
+                                          >
+                                            {attachment.name}
+                                          </a>
+                                        );
+                                      },
+                                    )}
+                                  </div>
+                                )}
                             </div>
                           </div>
                         </div>

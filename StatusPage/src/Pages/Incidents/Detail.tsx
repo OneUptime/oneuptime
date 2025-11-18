@@ -23,9 +23,11 @@ import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EventItem, {
   ComponentProps as EventItemComponentProps,
+  TimelineAttachment,
   TimelineItem,
   TimelineItemType,
 } from "Common/UI/Components/EventItem/EventItem";
+import { StatusPageApiRoute } from "Common/ServiceRoute";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -75,6 +77,16 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
   let currentStateStatus: string = "";
   let currentStatusColor: Color = Green;
 
+  const statusPageId: ObjectID | null = StatusPageUtil.getStatusPageId();
+  const statusPageIdString: string | null = statusPageId
+    ? statusPageId.toString()
+    : null;
+  const incidentIdString: string | null = incident.id
+    ? incident.id.toString()
+    : incident._id
+      ? incident._id.toString()
+      : null;
+
   if (isSummary) {
     // If this is summary then reverse the order so we show the latest first
     incidentPublicNotes.sort((a: IncidentPublicNote, b: IncidentPublicNote) => {
@@ -95,12 +107,53 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
       incidentPublicNote.incidentId?.toString() === incident.id?.toString() &&
       incidentPublicNote?.note
     ) {
+      const noteIdString: string | null = incidentPublicNote.id
+        ? incidentPublicNote.id.toString()
+        : incidentPublicNote._id
+          ? incidentPublicNote._id.toString()
+          : null;
+
+      const attachments: Array<TimelineAttachment> =
+        statusPageIdString && incidentIdString && noteIdString
+          ? (incidentPublicNote.attachments || [])
+              .map((attachment) => {
+                const attachmentId: string | null = attachment.id
+                  ? attachment.id.toString()
+                  : attachment._id
+                    ? attachment._id.toString()
+                    : null;
+
+                if (!attachmentId) {
+                  return null;
+                }
+
+                const downloadRoute: Route = Route.fromString(
+                  StatusPageApiRoute.toString(),
+                ).addRoute(
+                  `/incident-public-note/attachment/${statusPageIdString}/${incidentIdString}/${noteIdString}/${attachmentId}`,
+                );
+
+                return {
+                  name: attachment.name || "Attachment",
+                  downloadUrl: downloadRoute.toString(),
+                };
+              })
+              .filter((attachment): attachment is TimelineAttachment => {
+                return Boolean(attachment);
+              })
+          : [];
+
       timeline.push({
         note: incidentPublicNote?.note,
         date: incidentPublicNote?.postedAt as Date,
         type: TimelineItemType.Note,
         icon: IconProp.Chat,
         iconColor: Gray500,
+        ...(attachments.length > 0
+          ? {
+              attachments,
+            }
+          : {}),
       });
 
       // If this incident is a sumamry then don't include all the notes .
