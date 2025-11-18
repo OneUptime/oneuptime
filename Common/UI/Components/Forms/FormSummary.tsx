@@ -11,6 +11,110 @@ import FieldType from "../Types/FieldType";
 import { FormStep } from "./Types/FormStep";
 import HorizontalRule from "../HorizontalRule/HorizontalRule";
 
+type SummaryElementFn<T extends GenericObject> = (
+  item: FormValues<T>,
+) => ReactElement | undefined;
+
+type FileSummaryItem = {
+  name?: string;
+  fileName?: string;
+  slug?: string;
+  _id?: string;
+};
+
+const getFieldName: <T extends GenericObject>(
+  field: Field<T>,
+) => string | undefined = <T extends GenericObject>(
+  field: Field<T>,
+): string | undefined => {
+  if (field.overrideFieldKey) {
+    return field.overrideFieldKey;
+  }
+
+  const key: string | undefined = Object.keys(field.field || {})[0];
+  return key;
+};
+
+const getFileSummaryElement: <T extends GenericObject>(
+  field: Field<T>,
+) => SummaryElementFn<T> | undefined = <T extends GenericObject>(
+  field: Field<T>,
+): SummaryElementFn<T> | undefined => {
+  if (
+    field.fieldType !== FormFieldSchemaType.File &&
+    field.fieldType !== FormFieldSchemaType.MultipleFiles
+  ) {
+    return undefined;
+  }
+
+  const fieldName: string | undefined = getFieldName(field);
+
+  if (!fieldName) {
+    return undefined;
+  }
+
+  const formatFileName: (
+    file: FileSummaryItem | string,
+    index: number,
+  ) => string = (file: FileSummaryItem | string, index: number): string => {
+    if (!file) {
+      return `File ${index + 1}`;
+    }
+
+    if (typeof file === "string") {
+      return file;
+    }
+
+    const fileObject: FileSummaryItem = file as FileSummaryItem;
+
+    return (
+      fileObject.name ||
+      fileObject.fileName ||
+      fileObject.slug ||
+      fileObject._id ||
+      `File ${index + 1}`
+    );
+  };
+
+  const renderFiles: SummaryElementFn<T> = (
+    item: FormValues<T>,
+  ): ReactElement | undefined => {
+    const formValuesRecord: Record<string, unknown> =
+      (item as Record<string, unknown>) || {};
+
+    const value: FileSummaryItem | Array<FileSummaryItem | string> | string | null =
+      (formValuesRecord[fieldName] as
+        | FileSummaryItem
+        | Array<FileSummaryItem | string>
+        | string
+        | null
+        | undefined) || null;
+
+    if (!value || (Array.isArray(value) && value.length === 0)) {
+      return <span className="text-gray-500">No files selected.</span>;
+    }
+
+    const files: Array<FileSummaryItem | string> = Array.isArray(value)
+      ? (value as Array<FileSummaryItem | string>)
+      : [value as FileSummaryItem | string];
+
+    return (
+      <ul className="list-disc pl-5 space-y-1">
+        {files.map((file: FileSummaryItem | string, index: number) => {
+          const displayName: string = formatFileName(file, index);
+          const key: string =
+            (typeof file === "object" && file && (file as FileSummaryItem)._id) ||
+            `${displayName}-${index}`;
+
+          return <li key={key}>{displayName}</li>;
+        })}
+      </ul>
+    );
+  };
+
+  return renderFiles;
+};
+
 export interface ComponentProps<T> {
   formValues: FormValues<T>;
   formFields: Fields<T>;
@@ -37,6 +141,9 @@ const FormSummary: <T extends GenericObject>(
           item={formValues as T}
           fields={
             formFields.map((field: Field<T>) => {
+              const defaultSummaryElement: SummaryElementFn<T> | undefined =
+                getFileSummaryElement(field);
+
               const detailField: DetailField<T> = {
                 title: field.title || "",
                 fieldType: field.getSummaryElement
@@ -45,11 +152,15 @@ const FormSummary: <T extends GenericObject>(
                       field.fieldType || FormFieldSchemaType.Text,
                     ),
                 description: field.description || "",
-                getElement: field.getSummaryElement as any,
+                getElement: (field.getSummaryElement || defaultSummaryElement) as any,
                 sideLink: field.sideLink,
                 key: (Object.keys(field.field || {})[0]?.toString() ||
                   "") as keyof T,
               };
+
+              if (defaultSummaryElement && !field.getSummaryElement) {
+                detailField.fieldType = FieldType.Element;
+              }
               return detailField;
             }) as DetailField<GenericObject>[]
           }
