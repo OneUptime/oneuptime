@@ -28,7 +28,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import User from "Common/Models/DatabaseModels/User";
-import FileModel from "Common/Models/DatabaseModels/File";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import React, {
@@ -37,8 +36,8 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-import URL from "Common/Types/API/URL";
-import { APP_API_URL } from "Common/UI/Config";
+import AttachmentList from "../../../Components/Attachment/AttachmentList";
+import { getModelIdString } from "../../../Utils/ModelId";
 
 const PublicNote: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -55,77 +54,6 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
   const [initialValuesForIncident, setInitialValuesForIncident] =
     useState<JSONObject>({});
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
-
-  const getModelIdString: (item: {
-    id?: ObjectID | string | null | undefined;
-    _id?: ObjectID | string | null | undefined;
-  }) => string | null = (item): string | null => {
-    const identifier: ObjectID | string | null | undefined =
-      item.id || item._id;
-
-    if (!identifier) {
-      return null;
-    }
-
-    return identifier.toString();
-  };
-
-  const renderAttachments = (
-    noteId: string | null,
-    attachments: Array<FileModel> | null | undefined,
-    attachmentApiPath: string,
-  ): ReactElement | null => {
-    if (!noteId || !attachments || attachments.length === 0) {
-      return null;
-    }
-
-    const attachmentLinks: Array<ReactElement> = [];
-
-    for (const file of attachments) {
-      const fileIdentifier: ObjectID | string | null | undefined =
-        file._id || file.id;
-
-      if (!fileIdentifier) {
-        continue;
-      }
-
-      const fileIdAsString: string = fileIdentifier.toString();
-
-      const downloadUrl: string = URL.fromURL(APP_API_URL)
-        .addRoute(attachmentApiPath)
-        .addRoute(`/${noteId}`)
-        .addRoute(`/${fileIdAsString}`)
-        .toString();
-
-      attachmentLinks.push(
-        <li key={fileIdAsString}>
-          <a
-            href={downloadUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-indigo-600 hover:text-indigo-500"
-          >
-            {file.name || "Download attachment"}
-          </a>
-        </li>,
-      );
-    }
-
-    if (!attachmentLinks.length) {
-      return null;
-    }
-
-    return (
-      <div className="space-y-1">
-        <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-          Attachments
-        </div>
-        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
-          {attachmentLinks}
-        </ul>
-      </div>
-    );
-  };
 
   const handleResendNotification: (
     item: IncidentPublicNote,
@@ -386,11 +314,11 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
               return (
                 <div className="space-y-3">
                   <MarkdownViewer text={item.note || ""} />
-                  {renderAttachments(
-                    getModelIdString(item),
-                    item.attachments,
-                    "/incident-public-note/attachment",
-                  )}
+                  <AttachmentList
+                    modelId={getModelIdString(item)}
+                    attachments={item.attachments}
+                    attachmentApiPath="/incident-public-note/attachment"
+                  />
                 </div>
               );
             },
