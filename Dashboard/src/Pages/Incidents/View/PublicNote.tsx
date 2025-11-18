@@ -8,6 +8,7 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 
 import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -27,6 +28,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import User from "Common/Models/DatabaseModels/User";
+import FileModel from "Common/Models/DatabaseModels/File";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import React, {
@@ -35,6 +37,8 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import URL from "Common/Types/API/URL";
+import { APP_API_URL } from "Common/UI/Config";
 
 const PublicNote: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -51,6 +55,77 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
   const [initialValuesForIncident, setInitialValuesForIncident] =
     useState<JSONObject>({});
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+
+  const getModelIdString: (item: {
+    id?: ObjectID | string | null | undefined;
+    _id?: ObjectID | string | null | undefined;
+  }) => string | null = (item): string | null => {
+    const identifier: ObjectID | string | null | undefined =
+      item.id || item._id;
+
+    if (!identifier) {
+      return null;
+    }
+
+    return identifier.toString();
+  };
+
+  const renderAttachments = (
+    noteId: string | null,
+    attachments: Array<FileModel> | null | undefined,
+    attachmentApiPath: string,
+  ): ReactElement | null => {
+    if (!noteId || !attachments || attachments.length === 0) {
+      return null;
+    }
+
+    const attachmentLinks: Array<ReactElement> = [];
+
+    for (const file of attachments) {
+      const fileIdentifier: ObjectID | string | null | undefined =
+        file._id || file.id;
+
+      if (!fileIdentifier) {
+        continue;
+      }
+
+      const fileIdAsString: string = fileIdentifier.toString();
+
+      const downloadUrl: string = URL.fromURL(APP_API_URL)
+        .addRoute(attachmentApiPath)
+        .addRoute(`/${noteId}`)
+        .addRoute(`/${fileIdAsString}`)
+        .toString();
+
+      attachmentLinks.push(
+        <li key={fileIdAsString}>
+          <a
+            href={downloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-indigo-600 hover:text-indigo-500"
+          >
+            {file.name || "Download attachment"}
+          </a>
+        </li>,
+      );
+    }
+
+    if (!attachmentLinks.length) {
+      return null;
+    }
+
+    return (
+      <div className="space-y-1">
+        <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+          Attachments
+        </div>
+        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+          {attachmentLinks}
+        </ul>
+      </div>
+    );
+  };
 
   const handleResendNotification: (
     item: IncidentPublicNote,
@@ -224,6 +299,10 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         viewPageRoute={Navigation.getCurrentRoute()}
         selectMoreFields={{
           subscriberNotificationStatusMessage: true,
+          attachments: {
+            _id: true,
+            name: true,
+          },
         }}
         filters={[
           {
@@ -300,9 +379,21 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             },
 
             title: "",
-            type: FieldType.Markdown,
-            contentClassName: "-mt-3 space-y-1 text-sm text-gray-800",
+            type: FieldType.Element,
+            contentClassName: "-mt-3 space-y-3 text-sm text-gray-800",
             colSpan: 2,
+            getElement: (item: IncidentPublicNote): ReactElement => {
+              return (
+                <div className="space-y-3">
+                  <MarkdownViewer text={item.note || ""} />
+                  {renderAttachments(
+                    getModelIdString(item),
+                    item.attachments,
+                    "/incident-public-note/attachment",
+                  )}
+                </div>
+              );
+            },
           },
           {
             field: {
