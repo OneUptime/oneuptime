@@ -22,7 +22,6 @@ import ObjectID from "Common/Types/ObjectID";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EventItem, {
-import EventItem, {
   ComponentProps as EventItemComponentProps,
   TimelineAttachment,
 } from "Common/UI/Components/EventItem/EventItem";
@@ -31,6 +30,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
+import FileModel from "Common/Models/DatabaseModels/File";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -116,7 +116,7 @@ export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
   const attachments: Array<TimelineAttachment> =
     statusPageIdString && announcementIdString
       ? (announcement.attachments || [])
-          .map((attachment) => {
+          .map((attachment: FileModel) => {
             const attachmentId: string | null = attachment.id
               ? attachment.id.toString()
               : attachment._id
@@ -138,9 +138,11 @@ export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
               downloadUrl: downloadRoute.toString(),
             };
           })
-          .filter((item): item is TimelineAttachment => {
-            return Boolean(item);
-          })
+          .filter(
+            (item: TimelineAttachment | null): item is TimelineAttachment => {
+              return Boolean(item);
+            },
+          )
       : [];
 
   return {

@@ -5,7 +5,7 @@ export interface ModelIdentifier {
   _id?: ObjectID | string | null | undefined;
 }
 
-export const getModelIdString = (item: ModelIdentifier): string | null => {
+export function getModelIdString(item: ModelIdentifier): string | null {
   const identifier: ObjectID | string | null | undefined = item.id || item._id;
 
   if (!identifier) {
@@ -13,4 +13,4 @@ export const getModelIdString = (item: ModelIdentifier): string | null => {
   }
 
   return identifier.toString();
-};
+}

@@ -63,6 +63,7 @@ import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMain
 import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "../../Models/DatabaseModels/StatusPageAnnouncement";
+import File from "../../Models/DatabaseModels/File";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
 import StatusPageFooterLink from "../../Models/DatabaseModels/StatusPageFooterLink";
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
@@ -3688,7 +3689,7 @@ export default class StatusPageAPI extends BaseAPI<
       statusPageId = new ObjectID(statusPageIdParam);
       announcementId = new ObjectID(announcementIdParam);
       fileId = new ObjectID(fileIdParam);
-    } catch (error) {
+    } catch {
       throw new NotFoundException("Attachment not found");
     }
 
@@ -3743,14 +3744,16 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    const attachment = announcement.attachments?.find((file) => {
-      const attachmentId: string | null = file._id
-        ? file._id.toString()
-        : file.id
-          ? file.id.toString()
-          : null;
-      return attachmentId === fileId.toString();
-    });
+    const attachment: File | undefined = announcement.attachments?.find(
+      (file: File) => {
+        const attachmentId: string | null = file._id
+          ? file._id.toString()
+          : file.id
+            ? file.id.toString()
+            : null;
+        return attachmentId === fileId.toString();
+      },
+    );
 
     if (!attachment || !attachment.file) {
       throw new NotFoundException("Attachment not found");
@@ -3789,7 +3792,7 @@ export default class StatusPageAPI extends BaseAPI<
       scheduledMaintenanceId = new ObjectID(scheduledMaintenanceIdParam);
       noteId = new ObjectID(noteIdParam);
       fileId = new ObjectID(fileIdParam);
-    } catch (error) {
+    } catch {
       throw new NotFoundException("Attachment not found");
     }
 
@@ -3864,16 +3867,15 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    const attachment = scheduledMaintenancePublicNote.attachments?.find(
-      (file) => {
+    const attachment: File | undefined =
+      scheduledMaintenancePublicNote.attachments?.find((file: File) => {
         const attachmentId: string | null = file._id
           ? file._id.toString()
           : file.id
             ? file.id.toString()
             : null;
         return attachmentId === fileId.toString();
-      },
-    );
+      });
 
     if (!attachment || !attachment.file) {
       throw new NotFoundException("Attachment not found");
@@ -3911,7 +3913,7 @@ export default class StatusPageAPI extends BaseAPI<
       incidentId = new ObjectID(incidentIdParam);
       noteId = new ObjectID(noteIdParam);
       fileId = new ObjectID(fileIdParam);
-    } catch (error) {
+    } catch {
       throw new NotFoundException("Attachment not found");
     }
 
@@ -3994,14 +3996,16 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    const attachment = incidentPublicNote.attachments?.find((file) => {
-      const attachmentId: string | null = file._id
-        ? file._id.toString()
-        : file.id
-          ? file.id.toString()
-          : null;
-      return attachmentId === fileId.toString();
-    });
+    const attachment: File | undefined = incidentPublicNote.attachments?.find(
+      (file: File) => {
+        const attachmentId: string | null = file._id
+          ? file._id.toString()
+          : file.id
+            ? file.id.toString()
+            : null;
+        return attachmentId === fileId.toString();
+      },
+    );
 
     if (!attachment || !attachment.file) {
       throw new NotFoundException("Attachment not found");

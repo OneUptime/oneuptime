@@ -37,6 +37,7 @@ import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTim
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import FileModel from "Common/Models/DatabaseModels/File";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -116,7 +117,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
       const attachments: Array<TimelineAttachment> =
         statusPageIdString && incidentIdString && noteIdString
           ? (incidentPublicNote.attachments || [])
-              .map((attachment) => {
+              .map((attachment: FileModel) => {
                 const attachmentId: string | null = attachment.id
                   ? attachment.id.toString()
                   : attachment._id
@@ -138,9 +139,13 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
                   downloadUrl: downloadRoute.toString(),
                 };
               })
-              .filter((attachment): attachment is TimelineAttachment => {
-                return Boolean(attachment);
-              })
+              .filter(
+                (
+                  attachment: TimelineAttachment | null,
+                ): attachment is TimelineAttachment => {
+                  return Boolean(attachment);
+                },
+              )
           : [];
 
       timeline.push({

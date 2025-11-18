@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import FileModel from "Common/Models/DatabaseModels/File";
 import URL from "Common/Types/API/URL";
+import ObjectID from "Common/Types/ObjectID";
 import { APP_API_URL } from "Common/UI/Config";
 
 export interface AttachmentListProps {
@@ -31,7 +32,8 @@ const AttachmentList: FunctionComponent<AttachmentListProps> = (
   const attachmentLinks: Array<ReactElement> = [];
 
   for (const file of attachments) {
-    const fileIdentifier = file._id || file.id;
+    const fileIdentifier: string | ObjectID | null | undefined =
+      file._id || file.id;
 
     if (!fileIdentifier) {
       continue;

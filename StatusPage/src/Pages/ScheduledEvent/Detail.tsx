@@ -37,6 +37,7 @@ import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/Schedul
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import { StatusPageApiRoute } from "Common/ServiceRoute";
+import FileModel from "Common/Models/DatabaseModels/File";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -128,7 +129,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
       const attachments: Array<TimelineAttachment> =
         statusPageIdString && scheduledMaintenanceIdString && noteIdString
           ? (scheduledMaintenancePublicNote.attachments || [])
-              .map((attachment) => {
+              .map((attachment: FileModel) => {
                 const attachmentId: string | null = attachment.id
                   ? attachment.id.toString()
                   : attachment._id
@@ -150,9 +151,13 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
                   downloadUrl: downloadRoute.toString(),
                 };
               })
-              .filter((attachment): attachment is TimelineAttachment => {
-                return Boolean(attachment);
-              })
+              .filter(
+                (
+                  attachment: TimelineAttachment | null,
+                ): attachment is TimelineAttachment => {
+                  return Boolean(attachment);
+                },
+              )
           : [];
 
       timeline.push({

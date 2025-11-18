@@ -1,4 +1,5 @@
 import IncidentInternalNote from "../../Models/DatabaseModels/IncidentInternalNote";
+import File from "../../Models/DatabaseModels/File";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ObjectID from "../../Types/ObjectID";
 import IncidentInternalNoteService, {
@@ -8,6 +9,7 @@ import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -51,11 +53,12 @@ export default class IncidentInternalNoteAPI extends BaseAPI<
     try {
       noteId = new ObjectID(noteIdParam);
       fileId = new ObjectID(fileIdParam);
-    } catch (error) {
+    } catch {
       throw new NotFoundException("Attachment not found");
     }
 
-    const props = await CommonAPI.getDatabaseCommonInteractionProps(req);
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
 
     const note: IncidentInternalNote | null = await this.service.findOneBy({
       query: {
@@ -72,14 +75,16 @@ export default class IncidentInternalNoteAPI extends BaseAPI<
       props,
     });
 
-    const attachment = note?.attachments?.find((file) => {
-      const attachmentId: string | null = file._id
-        ? file._id.toString()
-        : file.id
-          ? file.id.toString()
-          : null;
-      return attachmentId === fileId.toString();
-    });
+    const attachment: File | undefined = note?.attachments?.find(
+      (file: File) => {
+        const attachmentId: string | null = file._id
+          ? file._id.toString()
+          : file.id
+            ? file.id.toString()
+            : null;
+        return attachmentId === fileId.toString();
+      },
+    );
 
     if (!attachment || !attachment.file) {
       throw new NotFoundException("Attachment not found");

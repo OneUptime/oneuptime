@@ -192,7 +192,7 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
 
         return null;
       })
-      .filter((id): id is ObjectID => {
+      .filter((id: ObjectID | null): id is ObjectID => {
         return Boolean(id);
       });
 
