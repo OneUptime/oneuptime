@@ -222,7 +222,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           props.onFocus?.();
         }}
         data-testid={props.dataTestId}
-        className="flex max-w-lg justify-center rounded-md border-2 border-dashed border-gray-300 px-6 pt-5 pb-6"
+        className="flex w-full justify-center rounded-md border-2 border-dashed border-gray-300 px-6 pt-5 pb-6"
       >
         <div
           {...getRootProps({
