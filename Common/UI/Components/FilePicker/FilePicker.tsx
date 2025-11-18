@@ -191,7 +191,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               onClick={removeFile}
-              className="bg-black/60 text-white text-xs px-2 py-1 rounded absolute left-1 top-1 hover:bg-black"
+              className="bg-gray-600 text-white text-xs px-2 py-1 rounded absolute left-1 top-1 hover:bg-gray-700"
             >
               Remove
             </button>
@@ -228,7 +228,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="text-xs font-medium text-red-600 hover:text-red-700"
+              className="text-xs font-medium text-gray-600 hover:text-gray-800"
               onClick={removeFile}
             >
               Remove
