@@ -403,6 +403,20 @@ export default class StatusPageAPI extends BaseAPI<
       },
     );
 
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/scheduled-maintenance-public-note/attachment/:statusPageId/:scheduledMaintenanceId/:noteId/:fileId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getScheduledMaintenancePublicNoteAttachment(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
     // embedded overall status badge api
     this.router.get(
       `${new this.entityType()
@@ -1585,6 +1599,10 @@ export default class StatusPageAPI extends BaseAPI<
                   postedAt: true,
                   note: true,
                   scheduledMaintenanceId: true,
+                  attachments: {
+                    _id: true,
+                    name: true,
+                  },
                 },
                 sort: {
                   postedAt: SortOrder.Ascending,
@@ -2124,6 +2142,10 @@ export default class StatusPageAPI extends BaseAPI<
             postedAt: true,
             note: true,
             scheduledMaintenanceId: true,
+            attachments: {
+              _id: true,
+              name: true,
+            },
           },
           sort: {
             postedAt: SortOrder.Ascending,
@@ -3625,6 +3647,129 @@ export default class StatusPageAPI extends BaseAPI<
       monitorsOnStatusPage,
       monitorsInGroup,
     };
+  }
+
+  private async getScheduledMaintenancePublicNoteAttachment(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const statusPageIdParam: string | undefined = req.params["statusPageId"];
+    const scheduledMaintenanceIdParam: string | undefined =
+      req.params["scheduledMaintenanceId"];
+    const noteIdParam: string | undefined = req.params["noteId"];
+    const fileIdParam: string | undefined = req.params["fileId"];
+
+    if (
+      !statusPageIdParam ||
+      !scheduledMaintenanceIdParam ||
+      !noteIdParam ||
+      !fileIdParam
+    ) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    let statusPageId: ObjectID;
+    let scheduledMaintenanceId: ObjectID;
+    let noteId: ObjectID;
+    let fileId: ObjectID;
+
+    try {
+      statusPageId = new ObjectID(statusPageIdParam);
+      scheduledMaintenanceId = new ObjectID(scheduledMaintenanceIdParam);
+      noteId = new ObjectID(noteIdParam);
+      fileId = new ObjectID(fileIdParam);
+    } catch (error) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        showScheduledMaintenanceEventsOnStatusPage: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (
+      !statusPage ||
+      !statusPage.projectId ||
+      !statusPage.showScheduledMaintenanceEventsOnStatusPage
+    ) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const scheduledMaintenance: ScheduledMaintenance | null =
+      await ScheduledMaintenanceService.findOneBy({
+        query: {
+          _id: scheduledMaintenanceId.toString(),
+          projectId: statusPage.projectId!,
+          isVisibleOnStatusPage: true,
+          statusPages: statusPageId as any,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!scheduledMaintenance) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const scheduledMaintenancePublicNote: ScheduledMaintenancePublicNote | null =
+      await ScheduledMaintenancePublicNoteService.findOneBy({
+        query: {
+          _id: noteId.toString(),
+          scheduledMaintenanceId: scheduledMaintenanceId.toString(),
+          projectId: statusPage.projectId!,
+        },
+        select: {
+          attachments: {
+            _id: true,
+            file: true,
+            fileType: true,
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!scheduledMaintenancePublicNote) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const attachment = scheduledMaintenancePublicNote.attachments?.find(
+      (file) => {
+        const attachmentId: string | null = file._id
+          ? file._id.toString()
+          : file.id
+            ? file.id.toString()
+            : null;
+        return attachmentId === fileId.toString();
+      },
+    );
+
+    if (!attachment || !attachment.file) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    this.setNoCacheHeaders(res);
+    return Response.sendFileResponse(req, res, attachment);
   }
 
   private async getIncidentPublicNoteAttachment(

@@ -31,6 +31,8 @@ import UserWebAuthnAPI from "Common/Server/API/UserWebAuthnAPI";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import IncidentInternalNoteAPI from "Common/Server/API/IncidentInternalNoteAPI";
 import IncidentPublicNoteAPI from "Common/Server/API/IncidentPublicNoteAPI";
+import ScheduledMaintenanceInternalNoteAPI from "Common/Server/API/ScheduledMaintenanceInternalNoteAPI";
+import ScheduledMaintenancePublicNoteAPI from "Common/Server/API/ScheduledMaintenancePublicNoteAPI";
 // User Notification methods.
 import UserEmailAPI from "Common/Server/API/UserEmailAPI";
 import UserNotificationLogTimelineAPI from "Common/Server/API/UserOnCallLogTimelineAPI";
@@ -229,9 +231,6 @@ import ResellerService, {
 import ScheduledMaintenanceCustomFieldService, {
   Service as ScheduledMaintenanceCustomFieldServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceCustomFieldService";
-import ScheduledMaintenanceInternalNoteService, {
-  Service as ScheduledMaintenanceInternalNoteServiceType,
-} from "Common/Server/Services/ScheduledMaintenanceInternalNoteService";
 import ScheduledMaintenanceNoteTemplateService, {
   Service as ScheduledMaintenanceNoteTemplateServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceNoteTemplateService";
@@ -241,9 +240,6 @@ import ScheduledMaintenanceOwnerTeamService, {
 import ScheduledMaintenanceOwnerUserService, {
   Service as ScheduledMaintenanceOwnerUserServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceOwnerUserService";
-import ScheduledMaintenancePublicNoteService, {
-  Service as ScheduledMaintenancePublicNoteServiceType,
-} from "Common/Server/Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService, {
   Service as ScheduledMaintenanceServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceService";
@@ -442,11 +438,9 @@ import PromoCode from "Common/Models/DatabaseModels/PromoCode";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
-import ScheduledMaintenanceInternalNote from "Common/Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
-import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import ServiceCatalog from "Common/Models/DatabaseModels/ServiceCatalog";
@@ -1715,24 +1709,12 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        ScheduledMaintenancePublicNote,
-        ScheduledMaintenancePublicNoteServiceType
-      >(
-        ScheduledMaintenancePublicNote,
-        ScheduledMaintenancePublicNoteService,
-      ).getRouter(),
+      new ScheduledMaintenancePublicNoteAPI().getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        ScheduledMaintenanceInternalNote,
-        ScheduledMaintenanceInternalNoteServiceType
-      >(
-        ScheduledMaintenanceInternalNote,
-        ScheduledMaintenanceInternalNoteService,
-      ).getRouter(),
+      new ScheduledMaintenanceInternalNoteAPI().getRouter(),
     );
 
     app.use(
