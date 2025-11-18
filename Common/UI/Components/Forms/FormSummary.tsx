@@ -10,6 +10,8 @@ import Field from "./Types/Field";
 import FieldType from "../Types/FieldType";
 import { FormStep } from "./Types/FormStep";
 import HorizontalRule from "../HorizontalRule/HorizontalRule";
+import Icon from "../Icon/Icon";
+import IconProp from "../../../Types/Icon/IconProp";
 
 type SummaryElementFn<T extends GenericObject> = (
   item: FormValues<T>,
@@ -20,6 +22,9 @@ type FileSummaryItem = {
   fileName?: string;
   slug?: string;
   _id?: string;
+  fileType?: string;
+  isPublic?: boolean;
+  [key: string]: unknown;
 };
 
 const getFieldName: <T extends GenericObject>(
@@ -76,6 +81,32 @@ const getFileSummaryElement: <T extends GenericObject>(
     );
   };
 
+  const getFileSubtitle: (file: FileSummaryItem) => string | undefined = (
+    file: FileSummaryItem,
+  ): string | undefined => {
+    const subtitleParts: Array<string> = [];
+
+    if (file.fileType && typeof file.fileType === "string") {
+      subtitleParts.push(file.fileType);
+    }
+
+    if (file.slug && typeof file.slug === "string") {
+      subtitleParts.push(file.slug);
+    }
+
+    return subtitleParts.length > 0 ? subtitleParts.join(" • ") : undefined;
+  };
+
+  const getAccessLabel: (file: FileSummaryItem) => string | undefined = (
+    file: FileSummaryItem,
+  ): string | undefined => {
+    if (typeof file.isPublic === "boolean") {
+      return file.isPublic ? "Public" : "Private";
+    }
+
+    return undefined;
+  };
+
   const renderFiles: SummaryElementFn<T> = (
     item: FormValues<T>,
   ): ReactElement | undefined => {
@@ -99,16 +130,46 @@ const getFileSummaryElement: <T extends GenericObject>(
       : [value as FileSummaryItem | string];
 
     return (
-      <ul className="list-disc pl-5 space-y-1">
-        {files.map((file: FileSummaryItem | string, index: number) => {
-          const displayName: string = formatFileName(file, index);
-          const key: string =
-            (typeof file === "object" && file && (file as FileSummaryItem)._id) ||
-            `${displayName}-${index}`;
+      <div className="rounded-md border border-gray-200 bg-gray-50">
+        <ul className="divide-y divide-gray-200">
+          {files.map((file: FileSummaryItem | string, index: number) => {
+            const fileObject: FileSummaryItem =
+              typeof file === "string" ? { name: file } : file;
 
-          return <li key={key}>{displayName}</li>;
-        })}
-      </ul>
+            const displayName: string = formatFileName(fileObject, index);
+            const subtitle: string | undefined = getFileSubtitle(fileObject);
+            const accessLabel: string | undefined =
+              getAccessLabel(fileObject);
+
+            const key: string =
+              fileObject._id || `${displayName}-${index}`;
+
+            return (
+              <li
+                key={key}
+                className="flex items-center gap-3 px-3 py-2"
+              >
+                
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-gray-900">
+                    {displayName}
+                  </p>
+                  {subtitle && (
+                    <p className="truncate text-xs text-gray-500">
+                      {subtitle}
+                    </p>
+                  )}
+                </div>
+                {accessLabel && (
+                  <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-xs font-medium text-gray-600">
+                    {accessLabel}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     );
   };
 
