@@ -287,22 +287,14 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                   ></path>
                 </svg>
                 <div className="flex flex-col items-center text-sm text-gray-600 space-y-1">
-                  <label className="relative cursor-pointer rounded-md bg-white px-4 py-2 font-medium text-indigo-600 shadow-sm focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:text-indigo-500">
-                    {!props.placeholder && !error && (
-                      <span>
-                        {filesModel.length > 0
+                  <label className="relative cursor-pointer rounded-md bg-white px-4 py-2 font-medium text-indigo-600 hover:text-indigo-500">
+                    <span>
+                      {props.placeholder
+                        ? props.placeholder
+                        : filesModel.length > 0
                           ? "Add more files"
                           : "Upload files"}
-                      </span>
-                    )}
-                    {error && (
-                      <span>
-                        <span>{error}</span>
-                      </span>
-                    )}
-                    {props.placeholder && !error && (
-                      <span>{props.placeholder}</span>
-                    )}
+                    </span>
                     <input
                       tabIndex={props.tabIndex}
                       {...(getInputProps() as any)}
@@ -336,6 +328,11 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                         .join(", ")}
                     {props.mimeTypes && props.mimeTypes?.length > 0 && <span>.</span>} Max 10MB each.
                   </p>
+                  {error && (
+                    <p className="text-xs text-red-500 font-medium">
+                      {error}
+                    </p>
+                  )}
                 </div>
               </div>
             </>
