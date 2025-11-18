@@ -168,6 +168,16 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
               "Add a private note to this incident here. This is private to your team and is not visible on Status Page",
             ),
           },
+          {
+            field: {
+              attachments: true,
+            },
+            title: "Attachments",
+            fieldType: FormFieldSchemaType.MultipleFiles,
+            required: false,
+            description:
+              "Attach files that should be visible to the incident response team.",
+          },
         ]}
         showAs={ShowAs.List}
         showRefreshButton={true}

@@ -168,6 +168,16 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (
               "Add a private note to this alert here. This is private to your team and is not visible on Status Page",
             ),
           },
+          {
+            field: {
+              attachments: true,
+            },
+            title: "Attachments",
+            fieldType: FormFieldSchemaType.MultipleFiles,
+            required: false,
+            description:
+              "Attach files that should be visible to the alert response team.",
+          },
         ]}
         showAs={ShowAs.List}
         showRefreshButton={true}

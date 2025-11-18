@@ -180,6 +180,16 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
               "Add a private note to this scheduled maintenance here",
             ),
           },
+          {
+            field: {
+              attachments: true,
+            },
+            title: "Attachments",
+            fieldType: FormFieldSchemaType.MultipleFiles,
+            required: false,
+            description:
+              "Attach files that should be visible to the scheduled maintenance response team.",
+          },
         ]}
         showRefreshButton={true}
         showAs={ShowAs.List}

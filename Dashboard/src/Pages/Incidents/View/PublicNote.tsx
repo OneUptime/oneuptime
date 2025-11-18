@@ -196,6 +196,16 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              attachments: true,
+            },
+            title: "Attachments",
+            fieldType: FormFieldSchemaType.MultipleFiles,
+            required: false,
+            description:
+              "Attach files that should be shared with subscribers on the status page.",
+          },
+          {
+            field: {
               shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
             },
 
