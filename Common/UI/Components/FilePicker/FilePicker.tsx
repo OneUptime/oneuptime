@@ -153,10 +153,14 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           filesResult.push(result.data as FileModel);
         }
 
-        setFilesModel(filesResult);
+        const updatedFiles: Array<FileModel> = props.isMultiFilePicker
+          ? [...filesModel, ...filesResult]
+          : filesResult;
+
+        setFilesModel(updatedFiles);
 
         props.onBlur?.();
-        props.onChange?.(filesResult);
+        props.onChange?.(updatedFiles);
       } catch (err) {
         setError(API.getFriendlyMessage(err));
       }
@@ -168,39 +172,58 @@ const FilePicker: FunctionComponent<ComponentProps> = (
 
   const getThumbs: GetThumbsFunction = (): Array<ReactElement> => {
     return filesModel.map((file: FileModel, i: number) => {
-      if (!file.file) {
-        return <></>;
-      }
+      const hasPreview: boolean = Boolean(file.file);
+      const key: string = file._id?.toString() || `${file.name || "file"}-${i}`;
+      const removeFile = (): void => {
+        const tempFileModel: Array<FileModel> = [...filesModel];
+        tempFileModel.splice(i, 1);
+        setFilesModel(tempFileModel);
+        props.onChange?.(tempFileModel);
+      };
 
-      const blob: Blob = new Blob([file.file!.buffer as ArrayBuffer], {
-        type: file.fileType as string,
-      });
-      const url: string = URL.createObjectURL(blob);
-
-      return (
-        <div key={file.name}>
-          <div className="text-right flex justify-end">
+      if (hasPreview && file.file) {
+        const blob: Blob = new Blob([file.file!.buffer as ArrayBuffer], {
+          type: file.fileType as string,
+        });
+        const url: string = URL.createObjectURL(blob);
+        return (
+          <div key={key} className="relative flex-none">
             <Icon
               icon={IconProp.Close}
-              className="bg-gray-400 rounded text-white h-7 w-7 align-right items-right p-1 absolute hover:bg-gray-500 cursor-pointer -ml-7"
+              className="bg-gray-400 rounded text-white h-7 w-7 flex items-center justify-center absolute -right-2 -top-2 hover:bg-gray-500 cursor-pointer"
               size={SizeProp.Regular}
-              onClick={() => {
-                const tempFileModel: Array<FileModel> = [...filesModel];
-                tempFileModel.splice(i, 1);
-                setFilesModel(tempFileModel);
-                props.onChange?.(tempFileModel);
-              }}
+              onClick={removeFile}
             />
-          </div>
-          <div>
             <img
               src={url}
-              className="rounded"
-              style={{
-                height: "100px",
-              }}
+              className="rounded border border-gray-200 h-24 w-24 object-cover"
             />
           </div>
+        );
+      }
+
+      return (
+        <div
+          key={key}
+          className="flex w-full items-center justify-between rounded border border-gray-200 bg-gray-50 px-3 py-2"
+        >
+          <div className="flex items-center gap-3 text-left">
+            <Icon icon={IconProp.File} className="text-gray-500" />
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                {file.name || `File ${i + 1}`}
+              </p>
+              <p className="text-xs text-gray-500">
+                {file.fileType || "Unknown type"}
+              </p>
+            </div>
+          </div>
+          <Icon
+            icon={IconProp.Close}
+            className="text-gray-400 hover:text-gray-600 cursor-pointer"
+            onClick={removeFile}
+            size={SizeProp.Regular}
+          />
         </div>
       );
     });
@@ -215,18 +238,19 @@ const FilePicker: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div>
+    <div className="space-y-4 w-full">
       <div
         onClick={() => {
           props.onClick?.();
           props.onFocus?.();
         }}
         data-testid={props.dataTestId}
-        className="flex w-full justify-center rounded-md border-2 border-dashed border-gray-300 px-6 pt-5 pb-6"
+        className="flex w-full justify-center rounded-md border-2 border-dashed border-gray-300 px-6 py-8"
       >
         <div
           {...getRootProps({
-            className: "w-full space-y-3 text-center",
+            className:
+              "w-full flex flex-col items-center justify-center space-y-3 text-center",
           })}
         >
           {(filesModel.length === 0 || props.isMultiFilePicker) && (
@@ -247,9 +271,13 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                   ></path>
                 </svg>
                 <div className="flex flex-col items-center text-sm text-gray-600 space-y-1">
-                  <label className="relative cursor-pointer rounded-md bg-white font-medium text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:text-indigo-500">
+                  <label className="relative cursor-pointer rounded-md bg-white px-4 py-2 font-medium text-indigo-600 shadow-sm focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:text-indigo-500">
                     {!props.placeholder && !error && (
-                      <span>{filesModel.length > 0 ? "Add more files" : "Upload files"}</span>
+                      <span>
+                        {filesModel.length > 0
+                          ? "Add more files"
+                          : "Upload files"}
+                      </span>
                     )}
                     {error && (
                       <span>
@@ -269,7 +297,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                     />
                   </label>
                   <p className="text-gray-500">
-                    {filesModel.length === 0 ? "Click to choose files" : "Click to add more"} or drag & drop.
+                    {filesModel.length === 0
+                      ? "Click to choose files"
+                      : "Click to add more"} or drag & drop.
                   </p>
                   <p className="text-xs text-gray-500">
                     {props.mimeTypes && props.mimeTypes?.length > 0 && (
@@ -295,10 +325,17 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             </>
           )}
         </div>
-        <aside>{getThumbs()}</aside>
       </div>
+      {filesModel.length > 0 && (
+        <div className="space-y-2 w-full">
+          <p className="text-sm font-medium text-gray-700 text-left">
+            Uploaded files
+          </p>
+          <div className="flex flex-wrap gap-4">{getThumbs()}</div>
+        </div>
+      )}
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
+        <p data-testid="error-message" className="text-sm text-red-400">
           {props.error}
         </p>
       )}
