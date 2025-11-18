@@ -11,7 +11,12 @@ import URL from "../Types/API/URL";
 import Dictionary from "../Types/Dictionary";
 import APIException from "../Types/Exception/ApiException";
 import { JSONArray, JSONObject } from "../Types/JSON";
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
+import axios, {
+  AxiosError,
+  AxiosProgressEvent,
+  AxiosRequestConfig,
+  AxiosResponse,
+} from "axios";
 import Sleep from "../Types/Sleep";
 import type { Agent as HttpAgent } from "http";
 import type { Agent as HttpsAgent } from "https";
@@ -26,6 +31,7 @@ export interface RequestOptions {
   httpsAgent?: HttpsAgent | undefined;
   skipAuthRefresh?: boolean | undefined;
   hasAttemptedAuthRefresh?: boolean | undefined;
+  onUploadProgress?: ((event: AxiosProgressEvent) => void) | undefined;
 }
 
 export interface APIRequestOptions {
@@ -406,6 +412,10 @@ export default class API {
           if (options?.httpsAgent) {
             (axiosOptions as AxiosRequestConfig).httpsAgent =
               options.httpsAgent;
+          }
+
+          if (options?.onUploadProgress) {
+            axiosOptions.onUploadProgress = options.onUploadProgress;
           }
 
           result = await axios(axiosOptions);

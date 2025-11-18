@@ -1,7 +1,6 @@
 import { FILE_URL } from "../../Config";
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Icon, { SizeProp } from "../Icon/Icon";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import CommonURL from "../../../Types/API/URL";
@@ -34,6 +33,14 @@ export interface ComponentProps {
   error?: string | undefined;
 }
 
+type UploadStatus = {
+  id: string;
+  name: string;
+  progress: number;
+  status: "uploading" | "error";
+  errorMessage?: string | undefined;
+};
+
 const FilePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -42,6 +49,57 @@ const FilePicker: FunctionComponent<ComponentProps> = (
   const [filesModel, setFilesModel] = useState<Array<FileModel>>([]);
 
   const [acceptTypes, setAcceptTypes] = useState<Dictionary<Array<string>>>({});
+  const [uploadStatuses, setUploadStatuses] = useState<Array<UploadStatus>>([]);
+
+  const addUploadStatus = (status: UploadStatus): void => {
+    setUploadStatuses((current: Array<UploadStatus>) => [
+      ...current,
+      status,
+    ]);
+  };
+
+  const updateUploadStatus = (
+    id: string,
+    updates: Partial<UploadStatus>,
+  ): void => {
+    setUploadStatuses((current: Array<UploadStatus>) =>
+      current.map((upload: UploadStatus) =>
+        upload.id === id
+          ? {
+              ...upload,
+              ...updates,
+            }
+          : upload,
+      ),
+    );
+  };
+
+  const updateUploadProgress = (id: string, total?: number, loaded?: number): void => {
+    setUploadStatuses((current: Array<UploadStatus>) =>
+      current.map((upload: UploadStatus) => {
+        if (upload.id !== id || upload.status === "error") {
+          return upload;
+        }
+
+        const hasTotal: boolean = Boolean(total && total > 0);
+        const progressFromEvent: number | null = hasTotal
+          ? Math.min(100, Math.round(((loaded || 0) / (total as number)) * 100))
+          : null;
+        const fallbackProgress: number = Math.min(upload.progress + 5, 95);
+
+        return {
+          ...upload,
+          progress: progressFromEvent !== null ? progressFromEvent : fallbackProgress,
+        };
+      }),
+    );
+  };
+
+  const removeUploadStatus = (id: string): void => {
+    setUploadStatuses((current: Array<UploadStatus>) =>
+      current.filter((upload: UploadStatus) => upload.id !== id),
+    );
+  };
 
   useEffect(() => {
     const _acceptTypes: Dictionary<Array<string>> = {};
@@ -77,17 +135,20 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     }
   }, [props.value]);
 
-  const { getRootProps, getInputProps } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: acceptTypes,
     multiple: props.isMultiFilePicker,
     noClick: true,
+    disabled: props.readOnly || isLoading,
     onDrop: async (acceptedFiles: Array<File>) => {
-      setIsLoading(true);
-      try {
-        if (props.readOnly) {
-          return;
-        }
+      if (props.readOnly) {
+        return;
+      }
 
+      setIsLoading(true);
+      setError("");
+
+      try {
         // Upload these files.
         const filesResult: Array<FileModel> = [];
         const resolveMimeType = (file: File): MimeType | undefined => {
@@ -96,7 +157,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             return direct as MimeType;
           }
 
-            // fallback based on extension
+          // fallback based on extension
           const ext: string | undefined = file.name
             .split(".")
             .pop()
@@ -134,37 +195,68 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         };
 
         for (const acceptedFile of acceptedFiles) {
-          const fileModel: FileModel = new FileModel();
-          fileModel.name = acceptedFile.name;
-          const arrayBuffer: ArrayBuffer = await acceptedFile.arrayBuffer();
-          const fileBuffer: Uint8Array = new Uint8Array(arrayBuffer);
-          fileModel.file = Buffer.from(fileBuffer);
-          fileModel.isPublic = false;
-          fileModel.fileType = resolveMimeType(acceptedFile) || MimeType.txt; // default to text/plain to satisfy required field
+          const uploadId: string = `${acceptedFile.name}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+          addUploadStatus({
+            id: uploadId,
+            name: acceptedFile.name,
+            progress: 0,
+            status: "uploading",
+          });
 
-          const result: HTTPResponse<FileModel> =
-            (await ModelAPI.create<FileModel>({
-              model: fileModel,
-              modelType: FileModel,
-              requestOptions: {
-                overrideRequestUrl: CommonURL.fromURL(FILE_URL),
-              },
-            })) as HTTPResponse<FileModel>;
-          filesResult.push(result.data as FileModel);
+          try {
+            const fileModel: FileModel = new FileModel();
+            fileModel.name = acceptedFile.name;
+            const arrayBuffer: ArrayBuffer = await acceptedFile.arrayBuffer();
+            const fileBuffer: Uint8Array = new Uint8Array(arrayBuffer);
+            fileModel.file = Buffer.from(fileBuffer);
+            fileModel.isPublic = false;
+            fileModel.fileType = resolveMimeType(acceptedFile) || MimeType.txt; // default to text/plain to satisfy required field
+
+            const result: HTTPResponse<FileModel> =
+              (await ModelAPI.create<FileModel>({
+                model: fileModel,
+                modelType: FileModel,
+                requestOptions: {
+                  overrideRequestUrl: CommonURL.fromURL(FILE_URL),
+                  apiRequestOptions: {
+                    onUploadProgress: (progressEvent) => {
+                      updateUploadProgress(
+                        uploadId,
+                        progressEvent.total,
+                        progressEvent.loaded,
+                      );
+                    },
+                  },
+                },
+              })) as HTTPResponse<FileModel>;
+            filesResult.push(result.data as FileModel);
+            removeUploadStatus(uploadId);
+          } catch (uploadErr) {
+            const friendlyMessage: string = API.getFriendlyMessage(uploadErr);
+            updateUploadStatus(uploadId, {
+              status: "error",
+              errorMessage: friendlyMessage,
+              progress: 100,
+            });
+            setError(friendlyMessage);
+          }
         }
 
-        const updatedFiles: Array<FileModel> = props.isMultiFilePicker
-          ? [...filesModel, ...filesResult]
-          : filesResult;
+        if (filesResult.length > 0) {
+          const updatedFiles: Array<FileModel> = props.isMultiFilePicker
+            ? [...filesModel, ...filesResult]
+            : filesResult;
 
-        setFilesModel(updatedFiles);
+          setFilesModel(updatedFiles);
 
-        props.onBlur?.();
-        props.onChange?.(updatedFiles);
+          props.onBlur?.();
+          props.onChange?.(updatedFiles);
+        }
       } catch (err) {
         setError(API.getFriendlyMessage(err));
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     },
   });
 
@@ -245,13 +337,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     });
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center w-full">
-        <ComponentLoader />
-      </div>
-    );
-  }
+  const hasActiveUploads: boolean = uploadStatuses.some(
+    (upload: UploadStatus) => upload.status === "uploading",
+  );
 
   return (
     <div className="space-y-4 w-full">
@@ -261,12 +349,13 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           props.onFocus?.();
         }}
         data-testid={props.dataTestId}
-        className="flex w-full justify-center rounded-md border-2 border-dashed border-gray-300 px-6 py-8"
+        className={`flex w-full justify-center rounded-md border-2 border-dashed px-6 py-8 transition ${props.readOnly ? "cursor-not-allowed bg-gray-50 border-gray-200" : "bg-white border-gray-300"} ${hasActiveUploads ? "ring-1 ring-indigo-200" : ""} ${isDragActive ? "border-indigo-400" : ""}`}
       >
         <div
           {...getRootProps({
             className:
               "w-full flex flex-col items-center justify-center space-y-3 text-center",
+            "aria-busy": hasActiveUploads || isLoading,
           })}
         >
           {(filesModel.length === 0 || props.isMultiFilePicker) && (
@@ -305,9 +394,12 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                     />
                   </label>
                   <p className="text-gray-500">
-                    {filesModel.length === 0
-                      ? "Click to choose files"
-                      : "Click to add more"} or drag & drop.
+                    {isDragActive
+                      ? "Release to start uploading"
+                      : filesModel.length === 0
+                        ? "Click to choose files"
+                        : "Click to add more"}{" "}
+                    or drag & drop.
                   </p>
                   <p className="text-xs text-gray-500">
                     {props.mimeTypes && props.mimeTypes?.length > 0 && (
@@ -339,6 +431,58 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           )}
         </div>
       </div>
+      {uploadStatuses.length > 0 && (
+        <div className="space-y-2 w-full">
+          <p className="text-sm font-medium text-gray-700 text-left">
+            {hasActiveUploads ? "Uploading files" : "Upload status"}
+          </p>
+          <div className="space-y-2">
+            {uploadStatuses.map((upload: UploadStatus) => (
+              <div
+                key={upload.id}
+                className={`rounded border px-3 py-2 ${upload.status === "error" ? "border-red-200 bg-red-50" : "border-gray-200 bg-white"}`}
+              >
+                <div className="flex items-center justify-between text-sm">
+                  <p className="font-medium text-gray-800 truncate">
+                    {upload.name}
+                  </p>
+                  <span
+                    className={`text-xs ${upload.status === "error" ? "text-red-600" : "text-gray-500"}`}
+                  >
+                    {upload.status === "error"
+                      ? "Failed"
+                      : `${upload.progress}%`}
+                  </span>
+                </div>
+                <div className="mt-2 h-2 rounded bg-gray-200 overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${upload.status === "error" ? "bg-red-400" : "bg-indigo-500"}`}
+                    style={{ width: `${Math.min(upload.progress, 100)}%` }}
+                  ></div>
+                </div>
+                {upload.status === "error" && upload.errorMessage && (
+                  <p className="mt-2 text-xs text-red-600 text-left">
+                    {upload.errorMessage}
+                  </p>
+                )}
+                {upload.status === "error" && (
+                  <div className="mt-2 text-right">
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-gray-600 hover:text-gray-800"
+                      onClick={() => {
+                        removeUploadStatus(upload.id);
+                      }}
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {filesModel.length > 0 && (
         <div className="space-y-2 w-full">
           <p className="text-sm font-medium text-gray-700 text-left">

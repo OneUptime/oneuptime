@@ -101,6 +101,9 @@ export default class ModelAPI {
         data: data.data,
       },
       headers: this.getCommonHeaders(data.requestOptions),
+      ...(data.requestOptions?.apiRequestOptions
+        ? { options: data.requestOptions.apiRequestOptions }
+        : {}),
     });
 
     if (result.isSuccess()) {
@@ -156,6 +159,9 @@ export default class ModelAPI {
           ...this.getCommonHeaders(data.requestOptions),
           ...(data.requestOptions?.requestHeaders || {}),
         },
+        ...(data.requestOptions?.apiRequestOptions
+          ? { options: data.requestOptions.apiRequestOptions }
+          : {}),
       });
 
     if (apiResult.isSuccess() && apiResult instanceof HTTPResponse) {
@@ -231,6 +237,9 @@ export default class ModelAPI {
           limit: data.limit.toString(),
           skip: data.skip.toString(),
         },
+        ...(data.requestOptions?.apiRequestOptions
+          ? { options: data.requestOptions.apiRequestOptions }
+          : {}),
       });
 
     if (result.isSuccess()) {
@@ -294,6 +303,9 @@ export default class ModelAPI {
           query: JSONFunctions.serialize(data.query as JSONObject),
         },
         headers,
+        ...(data.requestOptions?.apiRequestOptions
+          ? { options: data.requestOptions.apiRequestOptions }
+          : {}),
       });
 
     if (result.isSuccess()) {
@@ -383,6 +395,9 @@ export default class ModelAPI {
           select: JSONFunctions.serialize(data.select as JSONObject) || {},
         },
         headers: this.getCommonHeaders(data.requestOptions),
+        ...(data.requestOptions?.apiRequestOptions
+          ? { options: data.requestOptions.apiRequestOptions }
+          : {}),
       });
 
     if (result.isSuccess()) {
@@ -426,6 +441,9 @@ export default class ModelAPI {
         method: HTTPMethod.DELETE,
         url: apiUrl,
         headers: this.getCommonHeaders(data.requestOptions),
+        ...(data.requestOptions?.apiRequestOptions
+          ? { options: data.requestOptions.apiRequestOptions }
+          : {}),
       });
 
     if (result.isSuccess()) {
