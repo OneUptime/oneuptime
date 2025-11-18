@@ -29,6 +29,8 @@ import UserCallAPI from "Common/Server/API/UserCallAPI";
 import UserTotpAuthAPI from "Common/Server/API/UserTotpAuthAPI";
 import UserWebAuthnAPI from "Common/Server/API/UserWebAuthnAPI";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
+import IncidentInternalNoteAPI from "Common/Server/API/IncidentInternalNoteAPI";
+import IncidentPublicNoteAPI from "Common/Server/API/IncidentPublicNoteAPI";
 // User Notification methods.
 import UserEmailAPI from "Common/Server/API/UserEmailAPI";
 import UserNotificationLogTimelineAPI from "Common/Server/API/UserOnCallLogTimelineAPI";
@@ -94,9 +96,6 @@ import AlertStateTimelineService, {
 import IncidentCustomFieldService, {
   Service as IncidentCustomFieldServiceType,
 } from "Common/Server/Services/IncidentCustomFieldService";
-import IncidentInternalNoteService, {
-  Service as IncidentInternalNoteServiceType,
-} from "Common/Server/Services/IncidentInternalNoteService";
 import IncidentNoteTemplateService, {
   Service as IncidentNoteTemplateServiceType,
 } from "Common/Server/Services/IncidentNoteTemplateService";
@@ -112,9 +111,6 @@ import IncidentOwnerTeamService, {
 import IncidentOwnerUserService, {
   Service as IncidentOwnerUserServiceType,
 } from "Common/Server/Services/IncidentOwnerUserService";
-import IncidentPublicNoteService, {
-  Service as IncidentPublicNoteServiceType,
-} from "Common/Server/Services/IncidentPublicNoteService";
 import IncidentService, {
   Service as IncidentServiceType,
 } from "Common/Server/Services/IncidentService";
@@ -408,12 +404,10 @@ import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline"
 
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
-import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentPostmortemTemplate from "Common/Models/DatabaseModels/IncidentPostmortemTemplate";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
-import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
@@ -1743,18 +1737,12 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentPublicNote, IncidentPublicNoteServiceType>(
-        IncidentPublicNote,
-        IncidentPublicNoteService,
-      ).getRouter(),
+      new IncidentPublicNoteAPI().getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentInternalNote, IncidentInternalNoteServiceType>(
-        IncidentInternalNote,
-        IncidentInternalNoteService,
-      ).getRouter(),
+      new IncidentInternalNoteAPI().getRouter(),
     );
 
     app.use(

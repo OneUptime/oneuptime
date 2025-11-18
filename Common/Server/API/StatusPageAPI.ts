@@ -1382,6 +1382,10 @@ export default class StatusPageAPI extends BaseAPI<
                 note: true,
                 incidentId: true,
                 postedAt: true,
+                attachments: {
+                  _id: true,
+                  name: true,
+                },
               },
               sort: {
                 postedAt: SortOrder.Descending, // new note first
@@ -3271,6 +3275,10 @@ export default class StatusPageAPI extends BaseAPI<
           postedAt: true,
           note: true,
           incidentId: true,
+          attachments: {
+            _id: true,
+            name: true,
+          },
         },
         sort: {
           postedAt: SortOrder.Descending, // new note first
