@@ -7,6 +7,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
+import FileModel from "Common/Models/DatabaseModels/File";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -23,12 +24,84 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import Page from "Common/UI/Components/Page/Page";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import URL from "Common/Types/API/URL";
+import { APP_API_URL } from "Common/UI/Config";
 
 const AnnouncementView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+
+  const getModelIdString: (item: {
+    id?: ObjectID | string | null | undefined;
+    _id?: ObjectID | string | null | undefined;
+  }) => string | null = (item): string | null => {
+    const identifier: ObjectID | string | null | undefined =
+      item.id || item._id;
+
+    if (!identifier) {
+      return null;
+    }
+
+    return identifier.toString();
+  };
+
+  const renderAttachments = (
+    announcementId: string | null,
+    attachments: Array<FileModel> | null | undefined,
+  ): ReactElement | null => {
+    if (!announcementId || !attachments || attachments.length === 0) {
+      return null;
+    }
+
+    const attachmentLinks: Array<ReactElement> = [];
+
+    for (const file of attachments) {
+      const fileIdentifier: ObjectID | string | null | undefined =
+        file._id || file.id;
+
+      if (!fileIdentifier) {
+        continue;
+      }
+
+      const fileIdAsString: string = fileIdentifier.toString();
+
+      const downloadUrl: string = URL.fromURL(APP_API_URL)
+        .addRoute("/status-page-announcement/attachment")
+        .addRoute(`/${announcementId}`)
+        .addRoute(`/${fileIdAsString}`)
+        .toString();
+
+      attachmentLinks.push(
+        <li key={fileIdAsString}>
+          <a
+            href={downloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-indigo-600 hover:text-indigo-500"
+          >
+            {file.name || "Download attachment"}
+          </a>
+        </li>,
+      );
+    }
+
+    if (!attachmentLinks.length) {
+      return null;
+    }
+
+    return (
+      <div className="space-y-1">
+        <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+          Attachments
+        </div>
+        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+          {attachmentLinks}
+        </ul>
+      </div>
+    );
+  };
 
   const handleResendNotification: () => Promise<void> =
     async (): Promise<void> => {
@@ -133,6 +206,17 @@ const AnnouncementView: FunctionComponent<
             },
             {
               field: {
+                attachments: true,
+              },
+              title: "Attachments",
+              stepId: "basic",
+              fieldType: FormFieldSchemaType.MultipleFiles,
+              required: false,
+              description:
+                "Attach files that should be available with this announcement on the status page.",
+            },
+            {
+              field: {
                 statusPages: true,
               },
               title: "Show announcement on these status pages",
@@ -201,6 +285,10 @@ const AnnouncementView: FunctionComponent<
             id: "model-detail-status-page-announcement",
             selectMoreFields: {
               subscriberNotificationStatusMessage: true,
+              attachments: {
+                _id: true,
+                name: true,
+              },
             },
             fields: [
               {
@@ -223,6 +311,24 @@ const AnnouncementView: FunctionComponent<
                 },
                 title: "Description",
                 fieldType: FieldType.Markdown,
+              },
+              {
+                field: {
+                  attachments: {
+                    _id: true,
+                    name: true,
+                  },
+                },
+                title: "Attachments",
+                fieldType: FieldType.Element,
+                getElement: (item: StatusPageAnnouncement): ReactElement => {
+                  return (
+                    renderAttachments(
+                      getModelIdString(item),
+                      item.attachments,
+                    ) || <></>
+                  );
+                },
               },
               {
                 field: {

@@ -118,6 +118,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const [currentStatus, setCurrentStatus] = useState<MonitorStatus | null>(
     null,
   );
+  const statusPageId: ObjectID | null = StatusPageUtil.getStatusPageId();
 
   const [monitorsInGroup, setMonitorsInGroup] = useState<
     Dictionary<Array<ObjectID>>
@@ -635,6 +636,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                       monitorsInGroup,
                       isPreviewPage: StatusPageUtil.isPreviewPage(),
                       isSummary: true,
+                      statusPageId,
                     })}
                     isDetailItem={false}
                     key={i}

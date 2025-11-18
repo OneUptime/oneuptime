@@ -284,9 +284,7 @@ import PushNotificationLogService, {
 import SpanService, {
   SpanService as SpanServiceType,
 } from "Common/Server/Services/SpanService";
-import StatusPageAnnouncementService, {
-  Service as StatusPageAnnouncementServiceType,
-} from "Common/Server/Services/StatusPageAnnouncementService";
+import StatusPageAnnouncementAPI from "Common/Server/API/StatusPageAnnouncementAPI";
 import StatusPageCustomFieldService, {
   Service as StatusPageCustomFieldServiceType,
 } from "Common/Server/Services/StatusPageCustomFieldService";
@@ -446,7 +444,6 @@ import ServiceCatalogOwnerUser from "Common/Models/DatabaseModels/ServiceCatalog
 import ServiceCopilotCodeRepository from "Common/Models/DatabaseModels/ServiceCopilotCodeRepository";
 import ShortLink from "Common/Models/DatabaseModels/ShortLink";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
-import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 // Custom Fields API
 import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
 import StatusPageFooterLink from "Common/Models/DatabaseModels/StatusPageFooterLink";
@@ -1027,10 +1024,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<StatusPageAnnouncement, StatusPageAnnouncementServiceType>(
-        StatusPageAnnouncement,
-        StatusPageAnnouncementService,
-      ).getRouter(),
+      new StatusPageAnnouncementAPI().getRouter(),
     );
 
     app.use(

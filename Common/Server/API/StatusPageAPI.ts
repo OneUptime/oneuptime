@@ -417,6 +417,20 @@ export default class StatusPageAPI extends BaseAPI<
       },
     );
 
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getStatusPageAnnouncementAttachment(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
     // embedded overall status badge api
     this.router.get(
       `${new this.entityType()
@@ -2372,6 +2386,10 @@ export default class StatusPageAPI extends BaseAPI<
             _id: true,
             name: true,
           },
+          attachments: {
+            _id: true,
+            name: true,
+          },
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -3647,6 +3665,99 @@ export default class StatusPageAPI extends BaseAPI<
       monitorsOnStatusPage,
       monitorsInGroup,
     };
+  }
+
+  private async getStatusPageAnnouncementAttachment(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const statusPageIdParam: string | undefined = req.params["statusPageId"];
+    const announcementIdParam: string | undefined =
+      req.params["announcementId"];
+    const fileIdParam: string | undefined = req.params["fileId"];
+
+    if (!statusPageIdParam || !announcementIdParam || !fileIdParam) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    let statusPageId: ObjectID;
+    let announcementId: ObjectID;
+    let fileId: ObjectID;
+
+    try {
+      statusPageId = new ObjectID(statusPageIdParam);
+      announcementId = new ObjectID(announcementIdParam);
+      fileId = new ObjectID(fileIdParam);
+    } catch (error) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        showAnnouncementsOnStatusPage: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (
+      !statusPage ||
+      !statusPage.projectId ||
+      !statusPage.showAnnouncementsOnStatusPage
+    ) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const announcement: StatusPageAnnouncement | null =
+      await StatusPageAnnouncementService.findOneBy({
+        query: {
+          _id: announcementId.toString(),
+          projectId: statusPage.projectId!,
+          statusPages: [statusPageId] as any,
+        },
+        select: {
+          attachments: {
+            _id: true,
+            file: true,
+            fileType: true,
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!announcement) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const attachment = announcement.attachments?.find((file) => {
+      const attachmentId: string | null = file._id
+        ? file._id.toString()
+        : file.id
+          ? file.id.toString()
+          : null;
+      return attachmentId === fileId.toString();
+    });
+
+    if (!attachment || !attachment.file) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    this.setNoCacheHeaders(res);
+    return Response.sendFileResponse(req, res, attachment);
   }
 
   private async getScheduledMaintenancePublicNoteAttachment(

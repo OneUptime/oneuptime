@@ -22,8 +22,11 @@ import ObjectID from "Common/Types/ObjectID";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EventItem, {
+import EventItem, {
   ComponentProps as EventItemComponentProps,
+  TimelineAttachment,
 } from "Common/UI/Components/EventItem/EventItem";
+import { StatusPageApiRoute } from "Common/ServiceRoute";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -42,6 +45,7 @@ type GetAnnouncementEventItemFunctionProps = {
   monitorsInGroup: Dictionary<Array<ObjectID>>;
   isPreviewPage: boolean;
   isSummary: boolean;
+  statusPageId?: ObjectID | null;
 };
 
 type GetAnnouncementEventItemFunction = (
@@ -57,6 +61,7 @@ export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
     monitorsInGroup,
     isPreviewPage,
     isSummary,
+    statusPageId,
   } = data;
 
   // Get affected resources based on monitors in the announcement
@@ -99,6 +104,45 @@ export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
     }),
   );
 
+  const statusPageIdString: string | null = statusPageId
+    ? statusPageId.toString()
+    : null;
+  const announcementIdString: string | null = announcement.id
+    ? announcement.id.toString()
+    : announcement._id
+      ? announcement._id.toString()
+      : null;
+
+  const attachments: Array<TimelineAttachment> =
+    statusPageIdString && announcementIdString
+      ? (announcement.attachments || [])
+          .map((attachment) => {
+            const attachmentId: string | null = attachment.id
+              ? attachment.id.toString()
+              : attachment._id
+                ? attachment._id.toString()
+                : null;
+
+            if (!attachmentId) {
+              return null;
+            }
+
+            const downloadRoute: Route = Route.fromString(
+              StatusPageApiRoute.toString(),
+            ).addRoute(
+              `/status-page-announcement/attachment/${statusPageIdString}/${announcementIdString}/${attachmentId}`,
+            );
+
+            return {
+              name: attachment.name || "Attachment",
+              downloadUrl: downloadRoute.toString(),
+            };
+          })
+          .filter((item): item is TimelineAttachment => {
+            return Boolean(item);
+          })
+      : [];
+
   return {
     eventTitle: announcement.title || "",
     eventDescription: announcement.description,
@@ -123,6 +167,11 @@ export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
           announcement.showAnnouncementAt!,
         )
       : "",
+    ...(attachments.length > 0
+      ? {
+          eventAttachments: attachments,
+        }
+      : {}),
   };
 };
 
@@ -142,6 +191,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const [parsedData, setParsedData] = useState<EventItemComponentProps | null>(
     null,
   );
+  const [statusPageId, setStatusPageId] = useState<ObjectID | null>(null);
 
   StatusPageUtil.checkIfUserHasLoggedIn();
 
@@ -157,6 +207,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
       if (!id) {
         throw new BadDataException("Status Page ID is required");
       }
+
+      setStatusPageId(id);
 
       const announcementId: string | undefined =
         Navigation.getLastParamAsObjectID().toString();
@@ -227,9 +279,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
         monitorsInGroup,
         isPreviewPage: Boolean(StatusPageUtil.isPreviewPage()),
         isSummary: false,
+        statusPageId,
       }),
     );
-  }, [isLoading]);
+  }, [isLoading, statusPageId]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
