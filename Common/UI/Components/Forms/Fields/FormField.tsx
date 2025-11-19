@@ -167,6 +167,14 @@ const FormField: <T extends GenericObject>(
       ? getFieldType(props.field.fieldType)
       : "text";
 
+    const isFileField: boolean =
+      props.field.fieldType === FormFieldSchemaType.File ||
+      props.field.fieldType === FormFieldSchemaType.ImageFile ||
+      props.field.fieldType === FormFieldSchemaType.MultipleFiles;
+
+    const isMultiFileField: boolean =
+      props.field.fieldType === FormFieldSchemaType.MultipleFiles;
+
     if (Object.keys(props.field.field || {}).length === 0) {
       throw new BadDataException("Object cannot be without Field");
     }
@@ -569,49 +577,58 @@ const FormField: <T extends GenericObject>(
             />
           )}
 
-          {(props.field.fieldType === FormFieldSchemaType.File ||
-            props.field.fieldType === FormFieldSchemaType.ImageFile) && (
+          {isFileField && (
             <FilePicker
               error={props.touched && props.error ? props.error : undefined}
               tabIndex={index}
               onChange={async (files: Array<FileModel>) => {
-                let fileResult: FileModel | Array<FileModel> | null = files.map(
+                const strippedFiles: Array<FileModel> = files.map(
                   (i: FileModel) => {
                     const strippedModel: FileModel = new FileModel();
                     strippedModel._id = i._id!;
+                    if (i.name) {
+                      strippedModel.name = i.name;
+                    }
+                    if (i.fileType) {
+                      strippedModel.fileType = i.fileType;
+                    }
                     return strippedModel;
                   },
                 );
 
-                if (
-                  (props.field.fieldType === FormFieldSchemaType.File ||
-                    props.field.fieldType === FormFieldSchemaType.ImageFile) &&
-                  Array.isArray(fileResult)
-                ) {
-                  if (fileResult.length > 0) {
-                    fileResult = fileResult[0] as FileModel;
+                let fileResult: FileModel | Array<FileModel> | null =
+                  strippedFiles;
+
+                if (!isMultiFileField) {
+                  if (strippedFiles.length > 0) {
+                    fileResult = strippedFiles[0] as FileModel;
                   } else {
                     fileResult = null;
                   }
                 }
 
-                onChange(fileResult);
+                onChange(fileResult as any);
                 props.setFieldValue(props.fieldName, fileResult);
               }}
               onBlur={async () => {
                 props.setFieldTouched(props.fieldName, true);
               }}
               mimeTypes={
-                props.field.fieldType === FormFieldSchemaType.ImageFile
-                  ? [MimeType.png, MimeType.jpeg, MimeType.jpg, MimeType.svg]
-                  : []
+                props.field.fileTypes
+                  ? props.field.fileTypes
+                  : props.field.fieldType === FormFieldSchemaType.ImageFile
+                    ? [MimeType.png, MimeType.jpeg, MimeType.jpg, MimeType.svg]
+                    : []
               }
+              isMultiFilePicker={isMultiFileField}
               dataTestId={props.field.dataTestId}
               initialValue={
                 props.currentValues &&
                 (props.currentValues as any)[props.fieldName]
                   ? (props.currentValues as any)[props.fieldName]
-                  : []
+                  : isMultiFileField
+                    ? []
+                    : undefined
               }
               placeholder={props.field.placeholder || ""}
             />

@@ -8,6 +8,7 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 
 import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -35,6 +36,8 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import AttachmentList from "../../../Components/Attachment/AttachmentList";
+import { getModelIdString } from "../../../Utils/ModelId";
 
 const PublicNote: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -193,6 +196,16 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              attachments: true,
+            },
+            title: "Attachments",
+            fieldType: FormFieldSchemaType.MultipleFiles,
+            required: false,
+            description:
+              "Attach files that should be shared with subscribers on the status page.",
+          },
+          {
+            field: {
               shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
             },
 
@@ -224,6 +237,10 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         viewPageRoute={Navigation.getCurrentRoute()}
         selectMoreFields={{
           subscriberNotificationStatusMessage: true,
+          attachments: {
+            _id: true,
+            name: true,
+          },
         }}
         filters={[
           {
@@ -300,9 +317,21 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             },
 
             title: "",
-            type: FieldType.Markdown,
-            contentClassName: "-mt-3 space-y-1 text-sm text-gray-800",
+            type: FieldType.Element,
+            contentClassName: "-mt-3 space-y-3 text-sm text-gray-800",
             colSpan: 2,
+            getElement: (item: IncidentPublicNote): ReactElement => {
+              return (
+                <div className="space-y-3">
+                  <MarkdownViewer text={item.note || ""} />
+                  <AttachmentList
+                    modelId={getModelIdString(item)}
+                    attachments={item.attachments}
+                    attachmentApiPath="/incident-public-note/attachment"
+                  />
+                </div>
+              );
+            },
           },
           {
             field: {

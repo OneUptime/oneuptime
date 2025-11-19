@@ -50,6 +50,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const [monitorsInGroup, setMonitorsInGroup] = useState<
     Dictionary<Array<ObjectID>>
   >({});
+  const [statusPageId, setStatusPageId] = useState<ObjectID | null>(null);
 
   const [activeAnnounementsParsedData, setActiveAnnouncementsParsedData] =
     useState<EventHistoryListComponentProps | null>(null);
@@ -69,6 +70,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       if (!id) {
         throw new BadDataException("Status Page ID is required");
       }
+      setStatusPageId(id);
       const response: HTTPResponse<JSONObject> = await API.post<JSONObject>({
         url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
           `/announcements/${id.toString()}`,
@@ -146,6 +148,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           monitorsInGroup,
           isPreviewPage: Boolean(StatusPageUtil.isPreviewPage()),
           isSummary: true,
+          statusPageId,
         }),
       );
     }
@@ -193,7 +196,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       getAnouncementsParsedData(activeAnnouncement),
     );
     setPastAnnouncementsParsedData(getAnouncementsParsedData(pastAnnouncement));
-  }, [isLoading]);
+  }, [isLoading, statusPageId]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

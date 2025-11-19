@@ -23,6 +23,8 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import Page from "Common/UI/Components/Page/Page";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import AttachmentList from "../../Components/Attachment/AttachmentList";
+import { getModelIdString } from "../../Utils/ModelId";
 
 const AnnouncementView: FunctionComponent<
   PageComponentProps
@@ -133,6 +135,17 @@ const AnnouncementView: FunctionComponent<
             },
             {
               field: {
+                attachments: true,
+              },
+              title: "Attachments",
+              stepId: "basic",
+              fieldType: FormFieldSchemaType.MultipleFiles,
+              required: false,
+              description:
+                "Attach files that should be available with this announcement on the status page.",
+            },
+            {
+              field: {
                 statusPages: true,
               },
               title: "Show announcement on these status pages",
@@ -201,6 +214,10 @@ const AnnouncementView: FunctionComponent<
             id: "model-detail-status-page-announcement",
             selectMoreFields: {
               subscriberNotificationStatusMessage: true,
+              attachments: {
+                _id: true,
+                name: true,
+              },
             },
             fields: [
               {
@@ -223,6 +240,31 @@ const AnnouncementView: FunctionComponent<
                 },
                 title: "Description",
                 fieldType: FieldType.Markdown,
+              },
+              {
+                field: {
+                  attachments: {
+                    _id: true,
+                    name: true,
+                  },
+                },
+                title: "Attachments",
+                fieldType: FieldType.Element,
+                getElement: (item: StatusPageAnnouncement): ReactElement => {
+                  const modelIdString: string | null = getModelIdString(item);
+
+                  if (!modelIdString || !item.attachments?.length) {
+                    return <></>;
+                  }
+
+                  return (
+                    <AttachmentList
+                      modelId={modelIdString}
+                      attachments={item.attachments}
+                      attachmentApiPath="/status-page-announcement/attachment"
+                    />
+                  );
+                },
               },
               {
                 field: {

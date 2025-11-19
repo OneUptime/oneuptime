@@ -382,6 +382,16 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
                 },
                 {
                   field: {
+                    attachments: true,
+                  },
+                  fieldType: FormFieldSchemaType.MultipleFiles,
+                  description:
+                    "Attach files that should be shared with subscribers on the status page.",
+                  title: "Attachments",
+                  required: false,
+                },
+                {
+                  field: {
                     postedAt: true,
                   },
                   fieldType: FormFieldSchemaType.DateTime,
@@ -451,6 +461,16 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
                     "Post a private note about this incident. This note will be visible only to the team members of this incident.",
                   title: "Private Note",
                   required: true,
+                },
+                {
+                  field: {
+                    attachments: true,
+                  },
+                  fieldType: FormFieldSchemaType.MultipleFiles,
+                  description:
+                    "Attach files that should be visible to the incident response team.",
+                  title: "Attachments",
+                  required: false,
                 },
               ],
               formType: FormType.Create,

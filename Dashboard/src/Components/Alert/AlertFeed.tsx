@@ -324,6 +324,16 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
                   title: "Private Note",
                   required: true,
                 },
+                {
+                  field: {
+                    attachments: true,
+                  },
+                  fieldType: FormFieldSchemaType.MultipleFiles,
+                  description:
+                    "Attach files that should be visible to the alert response team.",
+                  title: "Attachments",
+                  required: false,
+                },
               ],
               formType: FormType.Create,
             }}

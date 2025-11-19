@@ -1,6 +1,7 @@
 import Project from "./Project";
 import ScheduledMaintenance from "./ScheduledMaintenance";
 import User from "./User";
+import File from "./File";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
@@ -16,7 +17,15 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from "typeorm";
 
 @CanAccessIfCanReadOn("scheduledMaintenance")
 @TenantColumn("projectId")
@@ -339,6 +348,54 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     unique: false,
   })
   public note?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenanceInternalNote,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenanceInternalNote,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditScheduledMaintenanceInternalNote,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.EntityArray,
+    modelType: File,
+    title: "Attachments",
+    description: "Files attached to this note",
+    required: false,
+  })
+  @ManyToMany(
+    () => {
+      return File;
+    },
+    {
+      eager: false,
+    },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceInternalNoteFile",
+    joinColumn: {
+      name: "scheduledMaintenanceInternalNoteId",
+      referencedColumnName: "_id",
+    },
+    inverseJoinColumn: {
+      name: "fileId",
+      referencedColumnName: "_id",
+    },
+  })
+  public attachments?: Array<File> = undefined;
 
   @ColumnAccessControl({
     create: [],

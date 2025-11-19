@@ -2,6 +2,7 @@ import Monitor from "./Monitor";
 import Project from "./Project";
 import StatusPage from "./StatusPage";
 import User from "./User";
+import File from "./File";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
@@ -374,6 +375,54 @@ export default class StatusPageAnnouncement extends BaseModel {
     type: ColumnType.Markdown,
   })
   public description?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageAnnouncement,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadStatusPageAnnouncement,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditStatusPageAnnouncement,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.EntityArray,
+    modelType: File,
+    title: "Attachments",
+    description: "Files attached to this announcement",
+    required: false,
+  })
+  @ManyToMany(
+    () => {
+      return File;
+    },
+    {
+      eager: false,
+    },
+  )
+  @JoinTable({
+    name: "StatusPageAnnouncementFile",
+    joinColumn: {
+      name: "statusPageAnnouncementId",
+      referencedColumnName: "_id",
+    },
+    inverseJoinColumn: {
+      name: "fileId",
+      referencedColumnName: "_id",
+    },
+  })
+  public attachments?: Array<File> = undefined;
 
   @ColumnAccessControl({
     create: [

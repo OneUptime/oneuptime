@@ -19,6 +19,7 @@ enum FormFieldSchemaType {
   Color = "Color",
   Dropdown = "Dropdown",
   File = "File",
+  MultipleFiles = "MultipleFiles",
   MultiSelectDropdown = "MultiSelectDropdown",
   OptionChooserButton = "OptionChooserButton",
   Toggle = "Boolean",

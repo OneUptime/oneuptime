@@ -28,12 +28,15 @@ import User from "Common/Models/DatabaseModels/User";
 import ProjectUtil from "Common/UI/Utils/Project";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
   useState,
 } from "react";
+import AttachmentList from "../../../Components/Attachment/AttachmentList";
+import { getModelIdString } from "../../../Utils/ModelId";
 
 const PublicNote: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -206,6 +209,16 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              attachments: true,
+            },
+            title: "Attachments",
+            fieldType: FormFieldSchemaType.MultipleFiles,
+            required: false,
+            description:
+              "Attach files that should be shared with subscribers on the status page.",
+          },
+          {
+            field: {
               shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
             },
 
@@ -237,6 +250,10 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         viewPageRoute={Navigation.getCurrentRoute()}
         selectMoreFields={{
           subscriberNotificationStatusMessage: true,
+          attachments: {
+            _id: true,
+            name: true,
+          },
         }}
         filters={[
           {
@@ -314,9 +331,23 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             },
 
             title: "",
-            type: FieldType.Markdown,
-            contentClassName: "-mt-3 space-y-6 text-sm text-gray-800",
+            type: FieldType.Element,
+            contentClassName: "-mt-3 space-y-3 text-sm text-gray-800",
             colSpan: 2,
+            getElement: (
+              item: ScheduledMaintenancePublicNote,
+            ): ReactElement => {
+              return (
+                <div className="space-y-3">
+                  <MarkdownViewer text={item.note || ""} />
+                  <AttachmentList
+                    modelId={getModelIdString(item)}
+                    attachments={item.attachments}
+                    attachmentApiPath="/scheduled-maintenance-public-note/attachment"
+                  />
+                </div>
+              );
+            },
           },
           {
             field: {

@@ -1,7 +1,6 @@
 import { FILE_URL } from "../../Config";
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Icon, { SizeProp } from "../Icon/Icon";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import CommonURL from "../../../Types/API/URL";
@@ -34,6 +33,14 @@ export interface ComponentProps {
   error?: string | undefined;
 }
 
+type UploadStatus = {
+  id: string;
+  name: string;
+  progress: number;
+  status: "uploading" | "error";
+  errorMessage?: string | undefined;
+};
+
 const FilePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -42,6 +49,57 @@ const FilePicker: FunctionComponent<ComponentProps> = (
   const [filesModel, setFilesModel] = useState<Array<FileModel>>([]);
 
   const [acceptTypes, setAcceptTypes] = useState<Dictionary<Array<string>>>({});
+  const [uploadStatuses, setUploadStatuses] = useState<Array<UploadStatus>>([]);
+
+  const addUploadStatus = (status: UploadStatus): void => {
+    setUploadStatuses((current: Array<UploadStatus>) => [
+      ...current,
+      status,
+    ]);
+  };
+
+  const updateUploadStatus = (
+    id: string,
+    updates: Partial<UploadStatus>,
+  ): void => {
+    setUploadStatuses((current: Array<UploadStatus>) =>
+      current.map((upload: UploadStatus) =>
+        upload.id === id
+          ? {
+              ...upload,
+              ...updates,
+            }
+          : upload,
+      ),
+    );
+  };
+
+  const updateUploadProgress = (id: string, total?: number, loaded?: number): void => {
+    setUploadStatuses((current: Array<UploadStatus>) =>
+      current.map((upload: UploadStatus) => {
+        if (upload.id !== id || upload.status === "error") {
+          return upload;
+        }
+
+        const hasTotal: boolean = Boolean(total && total > 0);
+        const progressFromEvent: number | null = hasTotal
+          ? Math.min(100, Math.round(((loaded || 0) / (total as number)) * 100))
+          : null;
+        const fallbackProgress: number = Math.min(upload.progress + 5, 95);
+
+        return {
+          ...upload,
+          progress: progressFromEvent !== null ? progressFromEvent : fallbackProgress,
+        };
+      }),
+    );
+  };
+
+  const removeUploadStatus = (id: string): void => {
+    setUploadStatuses((current: Array<UploadStatus>) =>
+      current.filter((upload: UploadStatus) => upload.id !== id),
+    );
+  };
 
   useEffect(() => {
     const _acceptTypes: Dictionary<Array<string>> = {};
@@ -77,49 +135,128 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     }
   }, [props.value]);
 
-  const { getRootProps, getInputProps } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: acceptTypes,
     multiple: props.isMultiFilePicker,
     noClick: true,
+    disabled: props.readOnly || isLoading,
     onDrop: async (acceptedFiles: Array<File>) => {
-      setIsLoading(true);
-      try {
-        if (props.readOnly) {
-          return;
-        }
+      if (props.readOnly) {
+        return;
+      }
 
+      setIsLoading(true);
+      setError("");
+
+      try {
         // Upload these files.
         const filesResult: Array<FileModel> = [];
+        const resolveMimeType = (file: File): MimeType | undefined => {
+          const direct: string | undefined = file.type || undefined;
+          if (direct && Object.values(MimeType).includes(direct as MimeType)) {
+            return direct as MimeType;
+          }
+
+          // fallback based on extension
+          const ext: string | undefined = file.name
+            .split(".")
+            .pop()
+            ?.toLowerCase();
+          if (!ext) {
+            return undefined;
+          }
+          const map: { [key: string]: MimeType } = {
+            png: MimeType.png,
+            jpg: MimeType.jpg,
+            jpeg: MimeType.jpeg,
+            svg: MimeType.svg,
+            gif: MimeType.gif,
+            webp: MimeType.webp,
+            pdf: MimeType.pdf,
+            doc: MimeType.doc,
+            docx: MimeType.docx,
+            txt: MimeType.txt,
+            log: MimeType.txt,
+            md: MimeType.md,
+            markdown: MimeType.md,
+            csv: MimeType.csv,
+            json: MimeType.json,
+            zip: MimeType.zip,
+            rtf: MimeType.rtf,
+            odt: MimeType.odt,
+            xls: MimeType.xls,
+            xlsx: MimeType.xlsx,
+            ods: MimeType.ods,
+            ppt: MimeType.ppt,
+            pptx: MimeType.pptx,
+            odp: MimeType.odp,
+          };
+          return map[ext];
+        };
+
         for (const acceptedFile of acceptedFiles) {
-          const fileModel: FileModel = new FileModel();
-          fileModel.name = acceptedFile.name;
+          const uploadId: string = `${acceptedFile.name}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+          addUploadStatus({
+            id: uploadId,
+            name: acceptedFile.name,
+            progress: 0,
+            status: "uploading",
+          });
 
-          const arrayBuffer: ArrayBuffer = await acceptedFile.arrayBuffer();
+          try {
+            const fileModel: FileModel = new FileModel();
+            fileModel.name = acceptedFile.name;
+            const arrayBuffer: ArrayBuffer = await acceptedFile.arrayBuffer();
+            const fileBuffer: Uint8Array = new Uint8Array(arrayBuffer);
+            fileModel.file = Buffer.from(fileBuffer);
+            fileModel.isPublic = false;
+            fileModel.fileType = resolveMimeType(acceptedFile) || MimeType.txt; // default to text/plain to satisfy required field
 
-          const fileBuffer: Uint8Array = new Uint8Array(arrayBuffer);
-          fileModel.file = Buffer.from(fileBuffer);
-          fileModel.isPublic = false;
-          fileModel.fileType = acceptedFile.type as MimeType;
-
-          const result: HTTPResponse<FileModel> =
-            (await ModelAPI.create<FileModel>({
-              model: fileModel,
-              modelType: FileModel,
-              requestOptions: {
-                overrideRequestUrl: CommonURL.fromURL(FILE_URL),
-              },
-            })) as HTTPResponse<FileModel>;
-          filesResult.push(result.data as FileModel);
+            const result: HTTPResponse<FileModel> =
+              (await ModelAPI.create<FileModel>({
+                model: fileModel,
+                modelType: FileModel,
+                requestOptions: {
+                  overrideRequestUrl: CommonURL.fromURL(FILE_URL),
+                  apiRequestOptions: {
+                    onUploadProgress: (progressEvent) => {
+                      updateUploadProgress(
+                        uploadId,
+                        progressEvent.total,
+                        progressEvent.loaded,
+                      );
+                    },
+                  },
+                },
+              })) as HTTPResponse<FileModel>;
+            filesResult.push(result.data as FileModel);
+            removeUploadStatus(uploadId);
+          } catch (uploadErr) {
+            const friendlyMessage: string = API.getFriendlyMessage(uploadErr);
+            updateUploadStatus(uploadId, {
+              status: "error",
+              errorMessage: friendlyMessage,
+              progress: 100,
+            });
+            setError(friendlyMessage);
+          }
         }
 
-        setFilesModel(filesResult);
+        if (filesResult.length > 0) {
+          const updatedFiles: Array<FileModel> = props.isMultiFilePicker
+            ? [...filesModel, ...filesResult]
+            : filesResult;
 
-        props.onBlur?.();
-        props.onChange?.(filesResult);
+          setFilesModel(updatedFiles);
+
+          props.onBlur?.();
+          props.onChange?.(updatedFiles);
+        }
       } catch (err) {
         setError(API.getFriendlyMessage(err));
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     },
   });
 
@@ -127,37 +264,72 @@ const FilePicker: FunctionComponent<ComponentProps> = (
 
   const getThumbs: GetThumbsFunction = (): Array<ReactElement> => {
     return filesModel.map((file: FileModel, i: number) => {
-      if (!file.file) {
-        return <></>;
-      }
+      const hasPreview: boolean = Boolean(file.file);
+      const key: string = file._id?.toString() || `${file.name || "file"}-${i}`;
+      const removeFile = (): void => {
+        const tempFileModel: Array<FileModel> = [...filesModel];
+        tempFileModel.splice(i, 1);
+        setFilesModel(tempFileModel);
+        props.onChange?.(tempFileModel);
+      };
 
-      const blob: Blob = new Blob([file.file!.buffer as ArrayBuffer], {
-        type: file.fileType as string,
-      });
-      const url: string = URL.createObjectURL(blob);
-
-      return (
-        <div key={file.name}>
-          <div className="text-right flex justify-end">
+      if (hasPreview && file.file) {
+        const blob: Blob = new Blob([file.file!.buffer as ArrayBuffer], {
+          type: file.fileType as string,
+        });
+        const url: string = URL.createObjectURL(blob);
+        return (
+          <div key={key} className="relative flex-none">
+            <button
+              type="button"
+              onClick={removeFile}
+              className="bg-gray-600 text-white text-xs px-2 py-1 rounded absolute left-1 top-1 hover:bg-gray-700"
+            >
+              Remove
+            </button>
             <Icon
               icon={IconProp.Close}
-              className="bg-gray-400 rounded text-white h-7 w-7 align-right items-right p-1 absolute hover:bg-gray-500 cursor-pointer -ml-7"
+              className="bg-gray-400 rounded text-white h-6 w-6 flex items-center justify-center absolute -right-2 -top-2 hover:bg-gray-500 cursor-pointer"
               size={SizeProp.Regular}
-              onClick={() => {
-                const tempFileModel: Array<FileModel> = [...filesModel];
-                tempFileModel.splice(i, 1);
-                setFilesModel(tempFileModel);
-                props.onChange?.(tempFileModel);
-              }}
+              onClick={removeFile}
             />
-          </div>
-          <div>
             <img
               src={url}
-              className="rounded"
-              style={{
-                height: "100px",
-              }}
+              className="rounded border border-gray-200 h-24 w-24 object-cover"
+            />
+          </div>
+        );
+      }
+
+      return (
+        <div
+          key={key}
+          className="flex w-full items-center justify-between rounded border border-gray-200 bg-gray-50 px-3 py-2"
+        >
+          <div className="flex items-center gap-3 text-left">
+            <Icon icon={IconProp.File} className="text-gray-500" />
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                {file.name || `File ${i + 1}`}
+              </p>
+              <p className="text-xs text-gray-500">
+                {file.fileType || "Unknown type"}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="text-xs font-medium text-gray-600 hover:text-gray-800"
+              onClick={removeFile}
+            >
+              Remove
+            </button>
+            <Icon
+              icon={IconProp.Close}
+              className="text-gray-400 hover:text-gray-600 cursor-pointer"
+              onClick={removeFile}
+              size={SizeProp.Regular}
             />
           </div>
         </div>
@@ -165,106 +337,162 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     });
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center w-full">
-        <ComponentLoader />
-      </div>
-    );
-  }
+  const hasActiveUploads: boolean = uploadStatuses.some(
+    (upload: UploadStatus) => upload.status === "uploading",
+  );
 
   return (
-    <div>
+    <div className="space-y-4 w-full">
       <div
         onClick={() => {
           props.onClick?.();
           props.onFocus?.();
         }}
         data-testid={props.dataTestId}
-        className="flex max-w-lg justify-center rounded-md border-2 border-dashed border-gray-300 px-6 pt-5 pb-6"
+        className={`flex w-full justify-center rounded-md border-2 border-dashed px-6 py-8 transition ${props.readOnly ? "cursor-not-allowed bg-gray-50 border-gray-200" : "bg-white border-gray-300"} ${hasActiveUploads ? "ring-1 ring-indigo-200" : ""} ${isDragActive ? "border-indigo-400" : ""}`}
       >
-        {props.isMultiFilePicker ||
-          (filesModel.length === 0 && (
-            <div
-              {...getRootProps({
-                className: "space-y-1 text-center",
-              })}
-            >
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400"
-                stroke="currentColor"
-                fill="none"
-                viewBox="0 0 48 48"
-                aria-hidden="true"
-              >
-                <path
-                  d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                ></path>
-              </svg>
-              <div className="flex text-sm text-gray-600">
-                <label className="relative cursor-pointer rounded-md bg-white font-medium text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:text-indigo-500">
-                  {!props.placeholder && !error && (
-                    <span>{"Upload a file"}</span>
-                  )}
-
-                  {error && (
+        <div
+          {...getRootProps({
+            className:
+              "w-full flex flex-col items-center justify-center space-y-3 text-center",
+            "aria-busy": hasActiveUploads || isLoading,
+          })}
+        >
+          {(filesModel.length === 0 || props.isMultiFilePicker) && (
+            <>
+              <div className="flex flex-col items-center space-y-2">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  stroke="currentColor"
+                  fill="none"
+                  viewBox="0 0 48 48"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  ></path>
+                </svg>
+                <div className="flex flex-col items-center text-sm text-gray-600 space-y-1">
+                  <label className="relative cursor-pointer rounded-md bg-white px-4 py-2 font-medium text-indigo-600 hover:text-indigo-500">
                     <span>
-                      <span>{error}</span>
+                      {props.placeholder
+                        ? props.placeholder
+                        : filesModel.length > 0
+                          ? "Add more files"
+                          : "Upload files"}
                     </span>
+                    <input
+                      tabIndex={props.tabIndex}
+                      {...(getInputProps() as any)}
+                      id="file-upload"
+                      name="file-upload"
+                      type="file"
+                      className="sr-only"
+                    />
+                  </label>
+                  <p className="text-gray-500">
+                    {isDragActive
+                      ? "Release to start uploading"
+                      : filesModel.length === 0
+                        ? "Click to choose files"
+                        : "Click to add more"}{" "}
+                    or drag & drop.
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {props.mimeTypes && props.mimeTypes?.length > 0 && (
+                      <span>Types: </span>
+                    )}
+                    {props.mimeTypes &&
+                      props.mimeTypes
+                        .map((type: MimeType) => {
+                          const enumKey: string | undefined =
+                            Object.keys(MimeType)[
+                              Object.values(MimeType).indexOf(type)
+                            ];
+                          return enumKey?.toUpperCase() || "";
+                        })
+                        .filter((item: string | undefined, pos: number, array: Array<string | undefined>) => {
+                          return array.indexOf(item) === pos;
+                        })
+                        .join(", ")}
+                    {props.mimeTypes && props.mimeTypes?.length > 0 && <span>.</span>} Max 10MB each.
+                  </p>
+                  {error && (
+                    <p className="text-xs text-red-500 font-medium">
+                      {error}
+                    </p>
                   )}
-
-                  {props.placeholder && !error && (
-                    <span>{props.placeholder}</span>
-                  )}
-
-                  <input
-                    tabIndex={props.tabIndex}
-                    {...(getInputProps() as any)}
-                    id="file-upload"
-                    name="file-upload"
-                    type="file"
-                    className="sr-only"
-                  />
-                </label>
-                <p className="pl-1">or drag and drop</p>
+                </div>
               </div>
-              <p className="text-xs text-gray-500">
-                {props.mimeTypes && props.mimeTypes?.length > 0 && (
-                  <span>File types: </span>
-                )}
-                {props.mimeTypes &&
-                  props.mimeTypes
-                    .map((type: MimeType) => {
-                      const enumKey: string | undefined =
-                        Object.keys(MimeType)[
-                          Object.values(MimeType).indexOf(type)
-                        ];
-                      return enumKey?.toUpperCase() || "";
-                    })
-                    .filter(
-                      (
-                        item: string | undefined,
-                        pos: number,
-                        array: Array<string | undefined>,
-                      ) => {
-                        return array.indexOf(item) === pos;
-                      },
-                    )
-                    .join(", ")}
-                {props.mimeTypes && props.mimeTypes?.length > 0 && (
-                  <span>.</span>
-                )}
-                &nbsp;10 MB or less.
-              </p>
-            </div>
-          ))}
-        <aside>{getThumbs()}</aside>
+            </>
+          )}
+        </div>
       </div>
+      {uploadStatuses.length > 0 && (
+        <div className="space-y-2 w-full">
+          <p className="text-sm font-medium text-gray-700 text-left">
+            {hasActiveUploads ? "Uploading files" : "Upload status"}
+          </p>
+          <div className="space-y-2">
+            {uploadStatuses.map((upload: UploadStatus) => (
+              <div
+                key={upload.id}
+                className={`rounded border px-3 py-2 ${upload.status === "error" ? "border-red-200 bg-red-50" : "border-gray-200 bg-white"}`}
+              >
+                <div className="flex items-center justify-between text-sm">
+                  <p className="font-medium text-gray-800 truncate">
+                    {upload.name}
+                  </p>
+                  <span
+                    className={`text-xs ${upload.status === "error" ? "text-red-600" : "text-gray-500"}`}
+                  >
+                    {upload.status === "error"
+                      ? "Failed"
+                      : `${upload.progress}%`}
+                  </span>
+                </div>
+                <div className="mt-2 h-2 rounded bg-gray-200 overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${upload.status === "error" ? "bg-red-400" : "bg-indigo-500"}`}
+                    style={{ width: `${Math.min(upload.progress, 100)}%` }}
+                  ></div>
+                </div>
+                {upload.status === "error" && upload.errorMessage && (
+                  <p className="mt-2 text-xs text-red-600 text-left">
+                    {upload.errorMessage}
+                  </p>
+                )}
+                {upload.status === "error" && (
+                  <div className="mt-2 text-right">
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-gray-600 hover:text-gray-800"
+                      onClick={() => {
+                        removeUploadStatus(upload.id);
+                      }}
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {filesModel.length > 0 && (
+        <div className="space-y-2 w-full">
+          <p className="text-sm font-medium text-gray-700 text-left">
+            Uploaded files
+          </p>
+          <div className="flex flex-wrap gap-4">{getThumbs()}</div>
+        </div>
+      )}
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
+        <p data-testid="error-message" className="text-sm text-red-400">
           {props.error}
         </p>
       )}

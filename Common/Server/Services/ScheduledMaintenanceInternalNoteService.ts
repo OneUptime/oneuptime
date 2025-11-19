@@ -9,6 +9,8 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import File from "../../Models/DatabaseModels/File";
+import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -21,12 +23,23 @@ export class Service extends DatabaseService<Model> {
     scheduledMaintenanceId: ObjectID;
     projectId: ObjectID;
     note: string;
+    attachmentFileIds?: Array<ObjectID>;
   }): Promise<Model> {
     const internalNote: Model = new Model();
     internalNote.createdByUserId = data.userId;
     internalNote.scheduledMaintenanceId = data.scheduledMaintenanceId;
     internalNote.projectId = data.projectId;
     internalNote.note = data.note;
+
+    if (data.attachmentFileIds && data.attachmentFileIds.length > 0) {
+      internalNote.attachments = data.attachmentFileIds.map(
+        (fileId: ObjectID) => {
+          const file: File = new File();
+          file.id = fileId;
+          return file;
+        },
+      );
+    }
 
     return this.create({
       data: internalNote,
@@ -52,6 +65,11 @@ export class Service extends DatabaseService<Model> {
         scheduledMaintenanceId: scheduledMaintenanceId,
       });
 
+    const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
+      createdItem.id!,
+      "/scheduled-maintenance-internal-note/attachment",
+    );
+
     await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
       scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
       projectId: createdItem.projectId!,
@@ -62,7 +80,7 @@ export class Service extends DatabaseService<Model> {
 
       feedInfoInMarkdown: `📄 posted **private note** for this [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(createdItem.projectId!, scheduledMaintenanceId)).toString()}):
     
-${createdItem.note}
+    ${(createdItem.note || "") + attachmentsMarkdown}
               `,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -109,6 +127,11 @@ ${createdItem.note}
         const scheduledMaintenance: ScheduledMaintenance =
           updatedItem.scheduledMaintenance!;
 
+        const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
+          updatedItem.id!,
+          "/scheduled-maintenance-internal-note/attachment",
+        );
+
         await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
           {
             scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
@@ -120,7 +143,7 @@ ${createdItem.note}
 
             feedInfoInMarkdown: `📄 updated **Private Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
         
-${updatedItem.note}
+${(updatedItem.note || "") + attachmentsMarkdown}
                   `,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -131,6 +154,57 @@ ${updatedItem.note}
       }
     }
     return onUpdate;
+  }
+
+  private async getAttachmentsMarkdown(
+    modelId: ObjectID,
+    attachmentApiPath: string,
+  ): Promise<string> {
+    if (!modelId) {
+      return "";
+    }
+
+    const noteWithAttachments: Model | null = await this.findOneById({
+      id: modelId,
+      select: {
+        attachments: {
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!noteWithAttachments || !noteWithAttachments.attachments) {
+      return "";
+    }
+
+    const attachmentIds: Array<ObjectID> = noteWithAttachments.attachments
+      .map((file: File) => {
+        if (file.id) {
+          return file.id;
+        }
+
+        if (file._id) {
+          return new ObjectID(file._id);
+        }
+
+        return null;
+      })
+      .filter((id: ObjectID | null): id is ObjectID => {
+        return Boolean(id);
+      });
+
+    if (!attachmentIds.length) {
+      return "";
+    }
+
+    return await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
+      modelId,
+      attachmentIds,
+      attachmentApiPath,
+    });
   }
 }
 

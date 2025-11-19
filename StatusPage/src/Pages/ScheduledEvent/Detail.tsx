@@ -23,6 +23,7 @@ import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EventItem, {
   ComponentProps as EventItemComponentProps,
+  TimelineAttachment,
   TimelineItem,
   TimelineItemType,
 } from "Common/UI/Components/EventItem/EventItem";
@@ -35,6 +36,8 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import { StatusPageApiRoute } from "Common/ServiceRoute";
+import FileModel from "Common/Models/DatabaseModels/File";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -76,6 +79,16 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
 
   const timeline: Array<TimelineItem> = [];
 
+  const statusPageId: ObjectID | null = StatusPageUtil.getStatusPageId();
+  const statusPageIdString: string | null = statusPageId
+    ? statusPageId.toString()
+    : null;
+  const scheduledMaintenanceIdString: string | null = scheduledMaintenance.id
+    ? scheduledMaintenance.id.toString()
+    : scheduledMaintenance._id
+      ? scheduledMaintenance._id.toString()
+      : null;
+
   if (isSummary) {
     // If this is summary then reverse the order so we show the latest first
     scheduledMaintenanceEventsPublicNotes.sort(
@@ -107,12 +120,57 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
         scheduledMaintenance.id?.toString() &&
       scheduledMaintenancePublicNote?.note
     ) {
+      const noteIdString: string | null = scheduledMaintenancePublicNote.id
+        ? scheduledMaintenancePublicNote.id.toString()
+        : scheduledMaintenancePublicNote._id
+          ? scheduledMaintenancePublicNote._id.toString()
+          : null;
+
+      const attachments: Array<TimelineAttachment> =
+        statusPageIdString && scheduledMaintenanceIdString && noteIdString
+          ? (scheduledMaintenancePublicNote.attachments || [])
+              .map((attachment: FileModel) => {
+                const attachmentId: string | null = attachment.id
+                  ? attachment.id.toString()
+                  : attachment._id
+                    ? attachment._id.toString()
+                    : null;
+
+                if (!attachmentId) {
+                  return null;
+                }
+
+                const downloadRoute: Route = Route.fromString(
+                  StatusPageApiRoute.toString(),
+                ).addRoute(
+                  `/scheduled-maintenance-public-note/attachment/${statusPageIdString}/${scheduledMaintenanceIdString}/${noteIdString}/${attachmentId}`,
+                );
+
+                return {
+                  name: attachment.name || "Attachment",
+                  downloadUrl: downloadRoute.toString(),
+                };
+              })
+              .filter(
+                (
+                  attachment: TimelineAttachment | null,
+                ): attachment is TimelineAttachment => {
+                  return Boolean(attachment);
+                },
+              )
+          : [];
+
       timeline.push({
         note: scheduledMaintenancePublicNote?.note || "",
         date: scheduledMaintenancePublicNote?.postedAt as Date,
         type: TimelineItemType.Note,
         icon: IconProp.Chat,
         iconColor: Gray500,
+        ...(attachments.length > 0
+          ? {
+              attachments,
+            }
+          : {}),
       });
 
       if (isSummary) {

@@ -31,6 +31,9 @@ import React, {
   useState,
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import AttachmentList from "../../../Components/Attachment/AttachmentList";
+import { getModelIdString } from "../../../Utils/ModelId";
 
 const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -177,10 +180,26 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
               "Add a private note to this scheduled maintenance here",
             ),
           },
+          {
+            field: {
+              attachments: true,
+            },
+            title: "Attachments",
+            fieldType: FormFieldSchemaType.MultipleFiles,
+            required: false,
+            description:
+              "Attach files that should be visible to the scheduled maintenance response team.",
+          },
         ]}
         showRefreshButton={true}
         showAs={ShowAs.List}
         viewPageRoute={Navigation.getCurrentRoute()}
+        selectMoreFields={{
+          attachments: {
+            _id: true,
+            name: true,
+          },
+        }}
         filters={[
           {
             field: {
@@ -257,9 +276,23 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
             },
 
             title: "",
-            type: FieldType.Markdown,
+            type: FieldType.Element,
             contentClassName: "-mt-3 space-y-6 text-sm text-gray-800",
             colSpan: 2,
+            getElement: (
+              item: ScheduledMaintenanceInternalNote,
+            ): ReactElement => {
+              return (
+                <div className="space-y-4">
+                  <MarkdownViewer text={item.note || ""} />
+                  <AttachmentList
+                    modelId={getModelIdString(item)}
+                    attachments={item.attachments}
+                    attachmentApiPath="/scheduled-maintenance-internal-note/attachment"
+                  />
+                </div>
+              );
+            },
           },
         ]}
       />

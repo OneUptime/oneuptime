@@ -5,6 +5,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import IconProp from "../../Types/Icon/IconProp";
+import Permission from "../../Types/Permission";
 import { Entity } from "typeorm";
 
 @EnableDocumentation()
@@ -20,7 +21,7 @@ import { Entity } from "typeorm";
 })
 @CrudApiEndpoint(new Route("/file"))
 @TableAccessControl({
-  create: [],
+  create: [Permission.CurrentUser, Permission.AuthenticatedRequest],
   read: [],
   delete: [],
   update: [],

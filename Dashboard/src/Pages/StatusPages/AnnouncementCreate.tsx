@@ -167,6 +167,17 @@ const AnnouncementCreate: FunctionComponent<
                 },
                 {
                   field: {
+                    attachments: true,
+                  },
+                  title: "Attachments",
+                  stepId: "basic",
+                  fieldType: FormFieldSchemaType.MultipleFiles,
+                  required: false,
+                  description:
+                    "Attach files that should be available with this announcement on the status page.",
+                },
+                {
+                  field: {
                     statusPages: true,
                   },
                   title: "Show announcement on these status pages",
