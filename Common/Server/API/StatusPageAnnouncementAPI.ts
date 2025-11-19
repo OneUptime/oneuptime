@@ -7,6 +7,7 @@ import StatusPageAnnouncementService, {
 } from "../Services/StatusPageAnnouncementService";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
@@ -24,6 +25,7 @@ export default class StatusPageAnnouncementAPI extends BaseAPI<
 
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/attachment/:announcementId/:fileId`,
+      UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getAttachment(req, res);

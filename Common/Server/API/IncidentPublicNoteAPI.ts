@@ -7,6 +7,7 @@ import IncidentPublicNoteService, {
 } from "../Services/IncidentPublicNoteService";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+import UserMiddleware from "../Middleware/UserAuthorization";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -24,6 +25,7 @@ export default class IncidentPublicNoteAPI extends BaseAPI<
 
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/attachment/:noteId/:fileId`,
+      UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getAttachment(req, res);
