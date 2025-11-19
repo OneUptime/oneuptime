@@ -41,6 +41,8 @@ type UploadStatus = {
   errorMessage?: string | undefined;
 };
 
+const MAX_FILE_SIZE_BYTES: number = 10 * 1024 * 1024; // 10MB limit
+
 const FilePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -135,11 +137,33 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     }
   }, [props.value]);
 
+  const buildFileSizeError = (fileNames: Array<string>): string => {
+    if (fileNames.length === 0) {
+      return "";
+    }
+
+    if (fileNames.length === 1) {
+      return `"${fileNames[0]}" exceeds the 10MB limit.`;
+    }
+
+    return `These files exceed the 10MB limit: ${fileNames.join(", ")}.`;
+  };
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: acceptTypes,
     multiple: props.isMultiFilePicker,
     noClick: true,
     disabled: props.readOnly || isLoading,
+    maxSize: MAX_FILE_SIZE_BYTES,
+    onDropRejected: (fileRejections) => {
+      const oversizedFiles: Array<string> = fileRejections
+        .filter((rejection) => rejection.file.size > MAX_FILE_SIZE_BYTES)
+        .map((rejection) => rejection.file.name);
+
+      if (oversizedFiles.length > 0) {
+        setError(buildFileSizeError(oversizedFiles));
+      }
+    },
     onDrop: async (acceptedFiles: Array<File>) => {
       if (props.readOnly) {
         return;
@@ -194,7 +218,14 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           return map[ext];
         };
 
+        const oversizedFiles: Array<string> = [];
+
         for (const acceptedFile of acceptedFiles) {
+          if (acceptedFile.size > MAX_FILE_SIZE_BYTES) {
+            oversizedFiles.push(acceptedFile.name);
+            continue;
+          }
+
           const uploadId: string = `${acceptedFile.name}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
           addUploadStatus({
             id: uploadId,
@@ -240,6 +271,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             });
             setError(friendlyMessage);
           }
+        }
+
+        if (oversizedFiles.length > 0) {
+          setError(buildFileSizeError(oversizedFiles));
         }
 
         if (filesResult.length > 0) {
