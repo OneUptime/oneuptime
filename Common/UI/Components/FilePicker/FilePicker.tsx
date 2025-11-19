@@ -1,7 +1,7 @@
 import { FILE_URL } from "../../Config";
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
-import Icon, { SizeProp } from "../Icon/Icon";
+import Icon from "../Icon/Icon";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import CommonURL from "../../../Types/API/URL";
 import Dictionary from "../../../Types/Dictionary";
@@ -297,9 +297,22 @@ const FilePicker: FunctionComponent<ComponentProps> = (
 
   type GetThumbsFunction = () => Array<ReactElement>;
 
+  const formatFileSize = (file: FileModel): string | null => {
+    const buffer: Buffer | undefined = file.file;
+    if (!buffer) {
+      return null;
+    }
+
+    const sizeInKB: number = buffer.byteLength / 1024;
+    if (sizeInKB < 1024) {
+      return `${sizeInKB.toFixed(1)} KB`;
+    }
+
+    return `${(sizeInKB / 1024).toFixed(2)} MB`;
+  };
+
   const getThumbs: GetThumbsFunction = (): Array<ReactElement> => {
     return filesModel.map((file: FileModel, i: number) => {
-      const hasPreview: boolean = Boolean(file.file);
       const key: string = file._id?.toString() || `${file.name || "file"}-${i}`;
       const removeFile = (): void => {
         const tempFileModel: Array<FileModel> = [...filesModel];
@@ -308,65 +321,59 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         props.onChange?.(tempFileModel);
       };
 
-      if (hasPreview && file.file) {
+      const thumbnailSource: string | null = (() => {
+        if (!file.file) {
+          return null;
+        }
+
         const blob: Blob = new Blob([file.file!.buffer as ArrayBuffer], {
           type: file.fileType as string,
         });
-        const url: string = URL.createObjectURL(blob);
-        return (
-          <div key={key} className="relative flex-none">
-            <button
-              type="button"
-              onClick={removeFile}
-              className="bg-gray-600 text-white text-xs px-2 py-1 rounded absolute left-1 top-1 hover:bg-gray-700"
-            >
-              Remove
-            </button>
-            <Icon
-              icon={IconProp.Close}
-              className="bg-gray-400 rounded text-white h-6 w-6 flex items-center justify-center absolute -right-2 -top-2 hover:bg-gray-500 cursor-pointer"
-              size={SizeProp.Regular}
-              onClick={removeFile}
-            />
-            <img
-              src={url}
-              className="rounded border border-gray-200 h-24 w-24 object-cover"
-            />
-          </div>
-        );
+        return URL.createObjectURL(blob);
+      })();
+
+      const metadata: Array<string> = [];
+      if (file.fileType) {
+        metadata.push(file.fileType);
+      }
+      const readableSize: string | null = formatFileSize(file);
+      if (readableSize) {
+        metadata.push(readableSize);
       }
 
       return (
         <div
           key={key}
-          className="flex w-full items-center justify-between rounded border border-gray-200 bg-gray-50 px-3 py-2"
+          className="flex w-full items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm"
         >
-          <div className="flex items-center gap-3 text-left">
-            <Icon icon={IconProp.File} className="text-gray-500" />
-            <div>
+          <div className="flex items-start gap-3 text-left">
+            {thumbnailSource ? (
+              <img
+                src={thumbnailSource}
+                className="h-12 w-12 rounded border border-gray-200 object-cover"
+                alt={file.name || `File ${i + 1}`}
+              />
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center rounded border border-gray-200 bg-gray-50">
+                <Icon icon={IconProp.File} className="text-gray-500" />
+              </div>
+            )}
+            <div className="flex flex-col">
               <p className="text-sm font-medium text-gray-900">
                 {file.name || `File ${i + 1}`}
               </p>
-              <p className="text-xs text-gray-500">
-                {file.fileType || "Unknown type"}
-              </p>
+              {metadata.length > 0 && (
+                <p className="text-xs text-gray-500">{metadata.join(" • ")}</p>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="text-xs font-medium text-gray-600 hover:text-gray-800"
-              onClick={removeFile}
-            >
-              Remove
-            </button>
-            <Icon
-              icon={IconProp.Close}
-              className="text-gray-400 hover:text-gray-600 cursor-pointer"
-              onClick={removeFile}
-              size={SizeProp.Regular}
-            />
-          </div>
+          <button
+            type="button"
+            className="rounded-md border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+            onClick={removeFile}
+          >
+            Remove
+          </button>
         </div>
       );
     });

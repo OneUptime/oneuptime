@@ -360,34 +360,59 @@ const ModelForm: <TBaseModel extends BaseModel>(
     const relationSelect: Select<TBaseModel> = getRelationSelect();
 
     for (const key in relationSelect) {
-      if (item) {
-        if (Array.isArray((item as any)[key])) {
-          const idArray: Array<string> = [];
-          let isModelArray: boolean = false;
-          for (const itemInArray of (item as any)[key] as any) {
-            if (typeof (itemInArray as any) === "object") {
-              if ((itemInArray as any as JSONObject)["_id"]) {
-                isModelArray = true;
-                idArray.push(
-                  (itemInArray as any as JSONObject)["_id"] as string,
-                );
-              }
+      if (!item) {
+        continue;
+      }
+
+      const isFileColumn: boolean = model.isFileColumn(key);
+
+      if (Array.isArray((item as any)[key])) {
+        if (isFileColumn) {
+          (item as any)[key] = ((item as any)[key] as Array<JSONObject>).map(
+            (file: JSONObject) => {
+              return BaseModel.fromJSON(file, FileModel) as FileModel;
+            },
+          );
+          continue;
+        }
+
+        const idArray: Array<string> = [];
+        let isModelArray: boolean = false;
+
+        for (const itemInArray of (item as any)[key] as Array<JSONObject>) {
+          if (typeof itemInArray === "object" && itemInArray) {
+            const id: string | undefined = itemInArray["_id"] as
+              | string
+              | undefined;
+            if (id) {
+              isModelArray = true;
+              idArray.push(id);
             }
           }
-
-          if (isModelArray) {
-            (item as any)[key] = idArray;
-          }
         }
-        if (
-          (item as any)[key] &&
-          typeof (item as any)[key] === "object" &&
-          !((item as any)[key] instanceof FileModel)
-        ) {
-          if (((item as any)[key] as JSONObject)["_id"]) {
-            (item as any)[key] = ((item as any)[key] as JSONObject)[
-              "_id"
-            ] as string;
+
+        if (isModelArray) {
+          (item as any)[key] = idArray;
+        }
+      } else if (
+        (item as any)[key] &&
+        typeof (item as any)[key] === "object"
+      ) {
+        if (isFileColumn) {
+          (item as any)[key] = BaseModel.fromJSON(
+            (item as any)[key] as JSONObject,
+            FileModel,
+          );
+          continue;
+        }
+
+        if (!((item as any)[key] instanceof FileModel)) {
+          const id: string | undefined = (
+            (item as any)[key] as JSONObject
+          )["_id"] as string | undefined;
+
+          if (id) {
+            (item as any)[key] = id;
           }
         }
       }
