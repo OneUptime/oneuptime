@@ -379,17 +379,16 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
       let notificationSettings: Array<Recurring> | null = null;
 
-      const updatedNotificationSettings:
-        | Array<Recurring>
-        | null
-        | undefined =
-        updateBy.data
-          .sendSubscriberNotificationsOnBeforeTheEvent as
+      const updatedNotificationSettings: Array<Recurring> | null | undefined =
+        updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent as
           | Array<Recurring>
           | null
           | undefined;
 
-      if (updatedNotificationSettings !== null && updatedNotificationSettings !== undefined) {
+      if (
+        updatedNotificationSettings !== null &&
+        updatedNotificationSettings !== undefined
+      ) {
         notificationSettings = updatedNotificationSettings;
       } else {
         const existingNotificationSettings:

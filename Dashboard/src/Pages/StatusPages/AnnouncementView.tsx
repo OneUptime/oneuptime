@@ -52,279 +52,279 @@ const AnnouncementView: FunctionComponent<
 
   return (
     <Fragment>
-        {/* Status Page Announcement View  */}
-        <CardModelDetail<StatusPageAnnouncement>
-          name="Status Page Announcement Details"
-          cardProps={{
-            title: "Status Page Announcement Details",
-            description: "Here are more details for this announcement.",
-          }}
-          createEditModalWidth={ModalWidth.Large}
-          formSteps={[
-            {
-              title: "Basic Information",
-              id: "basic",
+      {/* Status Page Announcement View  */}
+      <CardModelDetail<StatusPageAnnouncement>
+        name="Status Page Announcement Details"
+        cardProps={{
+          title: "Status Page Announcement Details",
+          description: "Here are more details for this announcement.",
+        }}
+        createEditModalWidth={ModalWidth.Large}
+        formSteps={[
+          {
+            title: "Basic Information",
+            id: "basic",
+          },
+          {
+            title: "Status Pages",
+            id: "status-pages",
+          },
+          {
+            title: "Resources Affected",
+            id: "resources-affected",
+          },
+          {
+            title: "Schedule & Settings",
+            id: "more",
+          },
+        ]}
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              title: true,
             },
-            {
-              title: "Status Pages",
-              id: "status-pages",
+            stepId: "basic",
+            title: "Announcement Title",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "Announcement Title",
+            validation: {
+              minLength: 2,
             },
-            {
-              title: "Resources Affected",
-              id: "resources-affected",
+          },
+          {
+            field: {
+              description: true,
             },
-            {
-              title: "Schedule & Settings",
-              id: "more",
+            title: "Description",
+            stepId: "basic",
+            fieldType: FormFieldSchemaType.Markdown,
+            required: false,
+            description: MarkdownUtil.getMarkdownCheatsheet(
+              "Add an announcement note",
+            ),
+          },
+          {
+            field: {
+              attachments: true,
             },
-          ]}
-          isEditable={true}
-          formFields={[
+            title: "Attachments",
+            stepId: "basic",
+            fieldType: FormFieldSchemaType.MultipleFiles,
+            required: false,
+            description:
+              "Attach files that should be available with this announcement on the status page.",
+          },
+          {
+            field: {
+              statusPages: true,
+            },
+            title: "Show announcement on these status pages",
+            stepId: "status-pages",
+            description: "Select status pages to show this announcement on",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: StatusPage,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: true,
+            placeholder: "Select Status Pages",
+          },
+          {
+            field: {
+              monitors: true,
+            },
+            title: "Monitors affected (Optional)",
+            stepId: "resources-affected",
+            description:
+              "Select monitors affected by this announcement. If none selected, all subscribers will be notified.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Monitor,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Select Monitors (Optional)",
+          },
+          {
+            field: {
+              showAnnouncementAt: true,
+            },
+            stepId: "more",
+            title: "Start Showing Announcement At",
+            fieldType: FormFieldSchemaType.DateTime,
+            required: true,
+            placeholder: "Pick Date and Time",
+          },
+          {
+            field: {
+              endAnnouncementAt: true,
+            },
+            stepId: "more",
+            title: "End Showing Announcement At",
+            fieldType: FormFieldSchemaType.DateTime,
+            required: false,
+            placeholder: "Pick Date and Time",
+          },
+          {
+            field: {
+              shouldStatusPageSubscribersBeNotified: true,
+            },
+            title: "Notify Status Page Subscribers",
+            stepId: "more",
+            description: "Should status page subscribers be notified?",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 2,
+          modelType: StatusPageAnnouncement,
+          id: "model-detail-status-page-announcement",
+          selectMoreFields: {
+            subscriberNotificationStatusMessage: true,
+          },
+          fields: [
+            {
+              field: {
+                _id: true,
+              },
+              title: "Announcement ID",
+              fieldType: FieldType.ObjectID,
+            },
             {
               field: {
                 title: true,
               },
-              stepId: "basic",
-              title: "Announcement Title",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "Announcement Title",
-              validation: {
-                minLength: 2,
-              },
+              title: "Title",
+              fieldType: FieldType.Text,
             },
             {
               field: {
-                description: true,
+                statusPages: {
+                  name: true,
+                  _id: true,
+                },
               },
-              title: "Description",
-              stepId: "basic",
-              fieldType: FormFieldSchemaType.Markdown,
-              required: false,
-              description: MarkdownUtil.getMarkdownCheatsheet(
-                "Add an announcement note",
-              ),
-            },
-            {
-              field: {
-                attachments: true,
+              title: "Shown on Status Pages",
+              fieldType: FieldType.Element,
+              getElement: (item: StatusPageAnnouncement): ReactElement => {
+                return (
+                  <StatusPagesElement statusPages={item.statusPages || []} />
+                );
               },
-              title: "Attachments",
-              stepId: "basic",
-              fieldType: FormFieldSchemaType.MultipleFiles,
-              required: false,
-              description:
-                "Attach files that should be available with this announcement on the status page.",
-            },
-            {
-              field: {
-                statusPages: true,
-              },
-              title: "Show announcement on these status pages",
-              stepId: "status-pages",
-              description: "Select status pages to show this announcement on",
-              fieldType: FormFieldSchemaType.MultiSelectDropdown,
-              dropdownModal: {
-                type: StatusPage,
-                labelField: "name",
-                valueField: "_id",
-              },
-              required: true,
-              placeholder: "Select Status Pages",
-            },
-            {
-              field: {
-                monitors: true,
-              },
-              title: "Monitors affected (Optional)",
-              stepId: "resources-affected",
-              description:
-                "Select monitors affected by this announcement. If none selected, all subscribers will be notified.",
-              fieldType: FormFieldSchemaType.MultiSelectDropdown,
-              dropdownModal: {
-                type: Monitor,
-                labelField: "name",
-                valueField: "_id",
-              },
-              required: false,
-              placeholder: "Select Monitors (Optional)",
             },
             {
               field: {
                 showAnnouncementAt: true,
               },
-              stepId: "more",
-              title: "Start Showing Announcement At",
-              fieldType: FormFieldSchemaType.DateTime,
-              required: true,
-              placeholder: "Pick Date and Time",
+              title: "Show Announcement At",
+              fieldType: FieldType.DateTime,
             },
             {
               field: {
                 endAnnouncementAt: true,
               },
-              stepId: "more",
-              title: "End Showing Announcement At",
-              fieldType: FormFieldSchemaType.DateTime,
-              required: false,
-              placeholder: "Pick Date and Time",
+              title: "End Announcement At",
+              fieldType: FieldType.DateTime,
             },
             {
               field: {
-                shouldStatusPageSubscribersBeNotified: true,
+                subscriberNotificationStatus: true,
               },
-              title: "Notify Status Page Subscribers",
-              stepId: "more",
-              description: "Should status page subscribers be notified?",
-              fieldType: FormFieldSchemaType.Checkbox,
-              required: false,
+              title: "Subscriber Notification Status",
+              fieldType: FieldType.Element,
+              getElement: (item: StatusPageAnnouncement): ReactElement => {
+                return (
+                  <SubscriberNotificationStatus
+                    status={item.subscriberNotificationStatus}
+                    subscriberNotificationStatusMessage={
+                      item.subscriberNotificationStatusMessage
+                    }
+                    onResendNotification={handleResendNotification}
+                  />
+                );
+              },
             },
-          ]}
-          modelDetailProps={{
-            showDetailsInNumberOfColumns: 2,
-            modelType: StatusPageAnnouncement,
-            id: "model-detail-status-page-announcement",
-            selectMoreFields: {
-              subscriberNotificationStatusMessage: true,
+            {
+              field: {
+                createdAt: true,
+              },
+              title: "Created",
+              fieldType: FieldType.DateTime,
             },
-            fields: [
-              {
-                field: {
+            {
+              field: {
+                updatedAt: true,
+              },
+              title: "Updated",
+              fieldType: FieldType.DateTime,
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+      <div className="mt-4"></div>
+      <CardModelDetail<StatusPageAnnouncement>
+        name="Status Page Announcement Content"
+        cardProps={{
+          title: "Announcement Content",
+          description:
+            "Rich-text description and any attachments shared with subscribers.",
+        }}
+        isEditable={false}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: StatusPageAnnouncement,
+          id: "model-detail-status-page-announcement-content",
+          selectMoreFields: {
+            attachments: {
+              _id: true,
+              name: true,
+            },
+          },
+          fields: [
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              fieldType: FieldType.Markdown,
+            },
+            {
+              field: {
+                attachments: {
                   _id: true,
-                },
-                title: "Announcement ID",
-                fieldType: FieldType.ObjectID,
-              },
-              {
-                field: {
-                  title: true,
-                },
-                title: "Title",
-                fieldType: FieldType.Text,
-              },
-              {
-                field: {
-                  statusPages: {
-                    name: true,
-                    _id: true,
-                  },
-                },
-                title: "Shown on Status Pages",
-                fieldType: FieldType.Element,
-                getElement: (item: StatusPageAnnouncement): ReactElement => {
-                  return (
-                    <StatusPagesElement statusPages={item.statusPages || []} />
-                  );
+                  name: true,
                 },
               },
-              {
-                field: {
-                  showAnnouncementAt: true,
-                },
-                title: "Show Announcement At",
-                fieldType: FieldType.DateTime,
-              },
-              {
-                field: {
-                  endAnnouncementAt: true,
-                },
-                title: "End Announcement At",
-                fieldType: FieldType.DateTime,
-              },
-              {
-                field: {
-                  subscriberNotificationStatus: true,
-                },
-                title: "Subscriber Notification Status",
-                fieldType: FieldType.Element,
-                getElement: (item: StatusPageAnnouncement): ReactElement => {
-                  return (
-                    <SubscriberNotificationStatus
-                      status={item.subscriberNotificationStatus}
-                      subscriberNotificationStatusMessage={
-                        item.subscriberNotificationStatusMessage
-                      }
-                      onResendNotification={handleResendNotification}
-                    />
-                  );
-                },
-              },
-              {
-                field: {
-                  createdAt: true,
-                },
-                title: "Created",
-                fieldType: FieldType.DateTime,
-              },
-              {
-                field: {
-                  updatedAt: true,
-                },
-                title: "Updated",
-                fieldType: FieldType.DateTime,
-              },
-            ],
-            modelId: modelId,
-          }}
-        />
-        <div className="mt-4"></div>
-        <CardModelDetail<StatusPageAnnouncement>
-          name="Status Page Announcement Content"
-          cardProps={{
-            title: "Announcement Content",
-            description:
-              "Rich-text description and any attachments shared with subscribers.",
-          }}
-          isEditable={false}
-          modelDetailProps={{
-            showDetailsInNumberOfColumns: 1,
-            modelType: StatusPageAnnouncement,
-            id: "model-detail-status-page-announcement-content",
-            selectMoreFields: {
-              attachments: {
-                _id: true,
-                name: true,
+              title: "Attachments",
+              fieldType: FieldType.Element,
+              getElement: (item: StatusPageAnnouncement): ReactElement => {
+                const modelIdString: string | null = getModelIdString(item);
+
+                if (!modelIdString || !item.attachments?.length) {
+                  return <></>;
+                }
+
+                return (
+                  <AttachmentList
+                    modelId={modelIdString}
+                    attachments={item.attachments}
+                    attachmentApiPath="/status-page-announcement/attachment"
+                  />
+                );
               },
             },
-            fields: [
-              {
-                field: {
-                  description: true,
-                },
-                title: "Description",
-                fieldType: FieldType.Markdown,
-              },
-              {
-                field: {
-                  attachments: {
-                    _id: true,
-                    name: true,
-                  },
-                },
-                title: "Attachments",
-                fieldType: FieldType.Element,
-                getElement: (item: StatusPageAnnouncement): ReactElement => {
-                  const modelIdString: string | null = getModelIdString(item);
-
-                  if (!modelIdString || !item.attachments?.length) {
-                    return <></>;
-                  }
-
-                  return (
-                    <AttachmentList
-                      modelId={modelIdString}
-                      attachments={item.attachments}
-                      attachmentApiPath="/status-page-announcement/attachment"
-                    />
-                  );
-                },
-              },
-            ],
-            modelId: modelId,
-          }}
-        />
-        <div className="mt-4"></div>
-      </Fragment>
+          ],
+          modelId: modelId,
+        }}
+      />
+      <div className="mt-4"></div>
+    </Fragment>
   );
 };
 
