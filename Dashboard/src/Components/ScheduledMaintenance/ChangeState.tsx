@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
@@ -236,6 +237,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
 
       {showModal && (
         <ModelFormModal
+          modalWidth={ModalWidth.Large}
           modelType={ScheduledMaintenanceStateTimeline}
           name={"create-scheduledMaintenance-state-timeline"}
           title={
