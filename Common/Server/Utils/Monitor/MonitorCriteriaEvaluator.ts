@@ -474,9 +474,7 @@ ${contextBlock}
     const responseDetails: Array<string> = [];
 
     const probeResponse: ProbeMonitorResponse | null =
-      MonitorCriteriaDataExtractor.getProbeMonitorResponse(
-        input.dataToProcess,
-      );
+      MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
 
     const destination: string | null =
       MonitorCriteriaEvaluator.getMonitorDestinationString({
@@ -506,7 +504,6 @@ ${contextBlock}
     if (requestMethod) {
       requestDetails.push(`- Request Method: ${requestMethod}`);
     }
-
 
     if (probeResponse?.responseCode !== undefined) {
       responseDetails.push(
@@ -588,7 +585,10 @@ ${contextBlock}
     monitor: Monitor;
     monitorStep: MonitorStep;
   }): string | null {
-    if (input.monitor.monitorType === MonitorType.API && input.monitorStep.data) {
+    if (
+      input.monitor.monitorType === MonitorType.API &&
+      input.monitorStep.data
+    ) {
       return `${input.monitorStep.data.requestType}`;
     }
 
