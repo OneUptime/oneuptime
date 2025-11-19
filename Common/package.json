@@ -104,7 +104,7 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^7.0.7",
     "otpauth": "^9.3.1",
-    "pg": "^8.7.3",
+    "pg": "^8.16.3",
     "playwright": "^1.56.0",
     "posthog-js": "^1.275.3",
     "prop-types": "^15.8.1",
