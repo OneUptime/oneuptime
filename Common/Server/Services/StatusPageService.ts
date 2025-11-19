@@ -778,7 +778,7 @@ export class Service extends DatabaseService<StatusPage> {
             subscriberEmailNotificationFooterText:
               Service.getSubscriberEmailFooterText(statuspage),
             statusPageUrl: statusPageURL,
-                detailsUrl: statusPageURL,
+            detailsUrl: statusPageURL,
             hasResources: report.totalResources > 0 ? "true" : "false",
             report: report as any,
             logoUrl:
