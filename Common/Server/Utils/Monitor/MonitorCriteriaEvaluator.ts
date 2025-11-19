@@ -11,6 +11,8 @@ import MetricMonitorCriteria from "./Criteria/MetricMonitorCriteria";
 import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
 import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
 import MonitorCriteriaMessageBuilder from "./MonitorCriteriaMessageBuilder";
+import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
+import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
 import DataToProcess from "./DataToProcess";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
@@ -97,6 +99,19 @@ export default class MonitorCriteriaEvaluator {
         input.probeApiIngestResponse.rootCause += `
 **Filter Conditions Met**: ${rootCause}
 `;
+
+        const contextBlock: string | null =
+          MonitorCriteriaEvaluator.buildRootCauseContext({
+            dataToProcess: input.dataToProcess,
+            monitorStep: input.monitorStep,
+            monitor: input.monitor,
+          });
+
+        if (contextBlock) {
+          input.probeApiIngestResponse.rootCause += `
+${contextBlock}
+`;
+        }
 
         if ((input.dataToProcess as ProbeMonitorResponse).failureCause) {
           input.probeApiIngestResponse.rootCause += `
@@ -448,5 +463,161 @@ export default class MonitorCriteriaEvaluator {
     }
 
     return null;
+  }
+
+  private static buildRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }): string | null {
+    const requestDetails: Array<string> = [];
+    const responseDetails: Array<string> = [];
+
+    const probeResponse: ProbeMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getProbeMonitorResponse(
+        input.dataToProcess,
+      );
+
+    const destination: string | null =
+      MonitorCriteriaEvaluator.getMonitorDestinationString({
+        monitorStep: input.monitorStep,
+        probeResponse: probeResponse,
+      });
+
+    if (destination) {
+      requestDetails.push(`- Destination: ${destination}`);
+    }
+
+    const port: string | null = MonitorCriteriaEvaluator.getMonitorPortString({
+      monitorStep: input.monitorStep,
+      probeResponse: probeResponse,
+    });
+
+    if (port) {
+      requestDetails.push(`- Destination Port: ${port}`);
+    }
+
+    const requestMethod: string | null =
+      MonitorCriteriaEvaluator.getRequestMethodString({
+        monitor: input.monitor,
+        monitorStep: input.monitorStep,
+      });
+
+    if (requestMethod) {
+      requestDetails.push(`- Request Method: ${requestMethod}`);
+    }
+
+
+    if (probeResponse?.responseCode !== undefined) {
+      responseDetails.push(
+        `- Response Status Code: ${probeResponse.responseCode}`,
+      );
+    }
+
+    const responseTime: string | null =
+      MonitorCriteriaEvaluator.formatMilliseconds(
+        probeResponse?.responseTimeInMs,
+      );
+
+    if (responseTime) {
+      responseDetails.push(`- Response Time: ${responseTime}`);
+    }
+
+    if (probeResponse?.isTimeout !== undefined) {
+      responseDetails.push(
+        `- Timed Out: ${probeResponse.isTimeout ? "Yes" : "No"}`,
+      );
+    }
+
+    const sections: Array<string> = [];
+
+    if (requestDetails.length > 0) {
+      sections.push(`**Request Details**\n${requestDetails.join("\n")}`);
+    }
+
+    if (responseDetails.length > 0) {
+      sections.push(`**Response Snapshot**\n${responseDetails.join("\n")}`);
+    }
+
+    if (!sections.length) {
+      return null;
+    }
+
+    return sections.join("\n");
+  }
+
+  private static getMonitorDestinationString(input: {
+    monitorStep: MonitorStep;
+    probeResponse: ProbeMonitorResponse | null;
+  }): string | null {
+    if (input.probeResponse?.monitorDestination) {
+      return MonitorCriteriaEvaluator.stringifyValue(
+        input.probeResponse.monitorDestination,
+      );
+    }
+
+    if (input.monitorStep.data?.monitorDestination) {
+      return MonitorCriteriaEvaluator.stringifyValue(
+        input.monitorStep.data.monitorDestination,
+      );
+    }
+
+    return null;
+  }
+
+  private static getMonitorPortString(input: {
+    monitorStep: MonitorStep;
+    probeResponse: ProbeMonitorResponse | null;
+  }): string | null {
+    if (input.probeResponse?.monitorDestinationPort) {
+      return MonitorCriteriaEvaluator.stringifyValue(
+        input.probeResponse.monitorDestinationPort,
+      );
+    }
+
+    if (input.monitorStep.data?.monitorDestinationPort) {
+      return MonitorCriteriaEvaluator.stringifyValue(
+        input.monitorStep.data.monitorDestinationPort,
+      );
+    }
+
+    return null;
+  }
+
+  private static getRequestMethodString(input: {
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+  }): string | null {
+    if (input.monitor.monitorType === MonitorType.API && input.monitorStep.data) {
+      return `${input.monitorStep.data.requestType}`;
+    }
+
+    return null;
+  }
+
+  private static formatMilliseconds(value?: number): string | null {
+    if (value === undefined || value === null || isNaN(value)) {
+      return null;
+    }
+
+    const formatted: string | null =
+      MonitorCriteriaMessageFormatter.formatNumber(value, {
+        maximumFractionDigits: value < 100 ? 2 : value < 1000 ? 1 : 0,
+      });
+
+    return `${formatted ?? value} ms`;
+  }
+
+  private static stringifyValue(value: unknown): string | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    try {
+      return String(value).trim();
+    } catch (err) {
+      logger.error(err);
+      return null;
+    }
   }
 }
