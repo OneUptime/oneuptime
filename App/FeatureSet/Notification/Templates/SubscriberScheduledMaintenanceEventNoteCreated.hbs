@@ -25,8 +25,11 @@
 {{> InfoBlock info=(concat subscriberEmailNotificationFooterText "") }}
 
 
-{{> InfoBlock info="You can visit the status page here:"}}
-{{> InfoBlock info=statusPageUrl}}
+{{#if detailsUrl}}
+{{> InfoBlock info=(concat "Find further information here: " detailsUrl)}}
+{{else}}
+{{> InfoBlock info=(concat "Find further information here: " statusPageUrl)}}
+{{/if}}
 
 {{> UnsubscribeBlock this}}
 {{> VerticalSpace this}}

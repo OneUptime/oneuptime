@@ -282,6 +282,13 @@ RunCron(
         const statusPageIdString: string | null =
           statuspage.id?.toString() || statuspage._id?.toString() || null;
 
+        const incidentDetailsUrl: string =
+          incident.id && statusPageURL
+            ? URL.fromString(statusPageURL)
+                .addRoute(`/incidents/${incident.id.toString()}`)
+                .toString()
+            : statusPageURL;
+
         logger.debug(
           `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for incident state timeline ${incidentStateTimeline.id}.`,
         );
@@ -376,6 +383,7 @@ RunCron(
                   emailTitle: emailTitle,
                   statusPageName: statusPageName,
                   statusPageUrl: statusPageURL,
+                  detailsUrl: incidentDetailsUrl,
                   logoUrl:
                     statuspage.logoFileId && statusPageIdString
                       ? new URL(httpProtocol, host)

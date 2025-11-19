@@ -245,6 +245,13 @@ RunCron(
           const statusPageIdString: string | null =
             statuspage.id?.toString() || statuspage._id?.toString() || null;
 
+          const scheduledEventDetailsUrl: string =
+            event.id && statusPageURL
+              ? URL.fromString(statusPageURL)
+                  .addRoute(`/scheduled-events/${event.id.toString()}`)
+                  .toString()
+              : statusPageURL;
+
           // Send email to Email subscribers.
 
           for (const subscriber of subscribers) {
@@ -361,6 +368,7 @@ RunCron(
                   vars: {
                     statusPageName: statusPageName,
                     statusPageUrl: statusPageURL,
+                    detailsUrl: scheduledEventDetailsUrl,
                     logoUrl:
                       statuspage.logoFileId && statusPageIdString
                         ? new URL(httpProtocol, host)

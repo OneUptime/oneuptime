@@ -193,6 +193,13 @@ export class Service extends DatabaseService<Model> {
         const statusPageName: string =
           statuspage.pageTitle || statuspage.name || "Status Page";
 
+        const scheduledEventDetailsUrl: string =
+          event.id && statusPageURL
+            ? URL.fromString(statusPageURL)
+                .addRoute(`/scheduled-events/${event.id.toString()}`)
+                .toString()
+            : statusPageURL;
+
         // Send email to Email subscribers.
 
         const resourcesAffected: string =
@@ -291,6 +298,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                 vars: {
                   statusPageName: statusPageName,
                   statusPageUrl: statusPageURL,
+                  detailsUrl: scheduledEventDetailsUrl,
                   logoUrl:
                     statuspage.logoFileId && statusPageIdString
                       ? new URL(httpProtocol, host)
