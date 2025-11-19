@@ -24,7 +24,9 @@ export default class ProjectMiddleware {
   @CaptureSpan()
   public static getProjectId(req: ExpressRequest): ObjectID | null {
     let projectId: ObjectID | null = null;
-    if (req.params && req.params["tenantid"]) {
+    if (req.params && req.params["projectId"]) {
+      projectId = new ObjectID(req.params["projectId"]);
+    } else if (req.params && req.params["tenantid"]) {
       projectId = new ObjectID(req.params["tenantid"]);
     } else if (req.query && req.query["tenantid"]) {
       projectId = new ObjectID(req.query["tenantid"] as string);

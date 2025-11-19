@@ -24,7 +24,7 @@ export default class AlertInternalNoteAPI extends BaseAPI<
     super(AlertInternalNote, AlertInternalNoteService);
 
     this.router.get(
-      `${new this.entityType().getCrudApiPath()?.toString()}/attachment/:noteId/:fileId`,
+      `${new this.entityType().getCrudApiPath()?.toString()}/attachment/:projectId/:noteId/:fileId`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {

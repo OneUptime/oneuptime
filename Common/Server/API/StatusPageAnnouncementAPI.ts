@@ -24,7 +24,7 @@ export default class StatusPageAnnouncementAPI extends BaseAPI<
     super(StatusPageAnnouncement, StatusPageAnnouncementService);
 
     this.router.get(
-      `${new this.entityType().getCrudApiPath()?.toString()}/attachment/:announcementId/:fileId`,
+      `${new this.entityType().getCrudApiPath()?.toString()}/attachment/:projectId/:announcementId/:fileId`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {

@@ -24,7 +24,7 @@ export default class IncidentPublicNoteAPI extends BaseAPI<
     super(IncidentPublicNote, IncidentPublicNoteService);
 
     this.router.get(
-      `${new this.entityType().getCrudApiPath()?.toString()}/attachment/:noteId/:fileId`,
+      `${new this.entityType().getCrudApiPath()?.toString()}/attachment/:projectId/:noteId/:fileId`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {

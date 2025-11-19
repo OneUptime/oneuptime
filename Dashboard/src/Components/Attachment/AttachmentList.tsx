@@ -6,6 +6,7 @@ import { APP_API_URL } from "Common/UI/Config";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 export interface AttachmentListProps {
   modelId?: string | null;
@@ -33,6 +34,8 @@ const AttachmentList: FunctionComponent<AttachmentListProps> = (
   }
 
   const attachmentLinks: Array<ReactElement> = [];
+  const projectId: string | null =
+    ProjectUtil.getCurrentProjectId()?.toString() || null;
 
   const getFileExtension = (fileName?: string | null): string | null => {
     if (!fileName) {
@@ -91,12 +94,14 @@ const AttachmentList: FunctionComponent<AttachmentListProps> = (
 
     if (buildAttachmentUrl) {
       downloadUrl = buildAttachmentUrl(fileIdAsString);
-    } else if (modelId) {
-      downloadUrl = URL.fromURL(APP_API_URL)
+    } else if (modelId && projectId) {
+      const attachmentUrl: URL = URL.fromURL(APP_API_URL)
         .addRoute(attachmentApiPath)
+        .addRoute(`/${projectId}`)
         .addRoute(`/${modelId}`)
-        .addRoute(`/${fileIdAsString}`)
-        .toString();
+        .addRoute(`/${fileIdAsString}`);
+
+      downloadUrl = attachmentUrl.toString();
     }
 
     if (!downloadUrl) {
