@@ -133,7 +133,7 @@
     "socket.io": "^4.7.4",
     "socket.io-client": "^4.7.5",
     "stripe": "^10.17.0",
-    "tailwind-merge": "^2.5.2",
+    "tailwind-merge": "^2.6.0",
     "tippy.js": "^6.3.7",
     "twilio": "^4.22.0",
     "typeorm": "^0.3.26",
