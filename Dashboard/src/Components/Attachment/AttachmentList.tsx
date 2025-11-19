@@ -112,11 +112,11 @@ const AttachmentList: FunctionComponent<AttachmentListProps> = (
           href={downloadUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white/80 px-4 py-3 text-sm text-gray-900 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="group flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white/80 px-4 py-3 text-sm text-gray-900 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
         >
           <span className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-              <Icon icon={IconProp.File} className="h-5 w-5" />
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
+              <Icon icon={IconProp.File} className="h-5 w-5 text-gray-500" />
             </span>
             <span className="flex flex-col">
               <span className="font-medium text-gray-900">
@@ -130,13 +130,13 @@ const AttachmentList: FunctionComponent<AttachmentListProps> = (
 
           <span className="flex items-center gap-3">
             {fileExtension && (
-              <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-700">
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-gray-600">
                 {fileExtension}
               </span>
             )}
             <Icon
               icon={IconProp.Download}
-              className="h-5 w-5 text-gray-400 transition group-hover:text-indigo-600"
+              className="h-5 w-5 text-gray-400 transition group-hover:text-gray-600"
             />
           </span>
         </a>
