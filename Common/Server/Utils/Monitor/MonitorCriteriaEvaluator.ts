@@ -533,7 +533,7 @@ ${contextBlock}
     }
 
     if (responseDetails.length > 0) {
-      sections.push(`**Response Snapshot**\n${responseDetails.join("\n")}`);
+      sections.push(`\n\n**Response Snapshot**\n${responseDetails.join("\n")}`);
     }
 
     if (!sections.length) {
