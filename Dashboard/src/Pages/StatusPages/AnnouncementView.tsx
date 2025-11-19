@@ -214,10 +214,6 @@ const AnnouncementView: FunctionComponent<
             id: "model-detail-status-page-announcement",
             selectMoreFields: {
               subscriberNotificationStatusMessage: true,
-              attachments: {
-                _id: true,
-                name: true,
-              },
             },
             fields: [
               {
@@ -233,38 +229,6 @@ const AnnouncementView: FunctionComponent<
                 },
                 title: "Title",
                 fieldType: FieldType.Text,
-              },
-              {
-                field: {
-                  description: true,
-                },
-                title: "Description",
-                fieldType: FieldType.Markdown,
-              },
-              {
-                field: {
-                  attachments: {
-                    _id: true,
-                    name: true,
-                  },
-                },
-                title: "Attachments",
-                fieldType: FieldType.Element,
-                getElement: (item: StatusPageAnnouncement): ReactElement => {
-                  const modelIdString: string | null = getModelIdString(item);
-
-                  if (!modelIdString || !item.attachments?.length) {
-                    return <></>;
-                  }
-
-                  return (
-                    <AttachmentList
-                      modelId={modelIdString}
-                      attachments={item.attachments}
-                      attachmentApiPath="/status-page-announcement/attachment"
-                    />
-                  );
-                },
               },
               {
                 field: {
@@ -326,6 +290,62 @@ const AnnouncementView: FunctionComponent<
                 },
                 title: "Updated",
                 fieldType: FieldType.DateTime,
+              },
+            ],
+            modelId: modelId,
+          }}
+        />
+        <div className="mt-4"></div>
+        <CardModelDetail<StatusPageAnnouncement>
+          name="Status Page Announcement Content"
+          cardProps={{
+            title: "Announcement Content",
+            description:
+              "Rich-text description and any attachments shared with subscribers.",
+          }}
+          isEditable={false}
+          modelDetailProps={{
+            showDetailsInNumberOfColumns: 1,
+            modelType: StatusPageAnnouncement,
+            id: "model-detail-status-page-announcement-content",
+            selectMoreFields: {
+              attachments: {
+                _id: true,
+                name: true,
+              },
+            },
+            fields: [
+              {
+                field: {
+                  description: true,
+                },
+                title: "Description",
+                fieldType: FieldType.Markdown,
+              },
+              {
+                field: {
+                  attachments: {
+                    _id: true,
+                    name: true,
+                  },
+                },
+                title: "Attachments",
+                fieldType: FieldType.Element,
+                getElement: (item: StatusPageAnnouncement): ReactElement => {
+                  const modelIdString: string | null = getModelIdString(item);
+
+                  if (!modelIdString || !item.attachments?.length) {
+                    return <></>;
+                  }
+
+                  return (
+                    <AttachmentList
+                      modelId={modelIdString}
+                      attachments={item.attachments}
+                      attachmentApiPath="/status-page-announcement/attachment"
+                    />
+                  );
+                },
               },
             ],
             modelId: modelId,
