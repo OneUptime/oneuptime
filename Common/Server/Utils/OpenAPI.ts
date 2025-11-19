@@ -669,32 +669,42 @@ export default class OpenAPIUtil {
     modelType: new () => DatabaseBaseModel,
     model: DatabaseBaseModel,
   ): void {
-    // Check if model has create permissions and should not exclude API generation
-    if (!this.shouldExcludeApiForPermissions(model.createRecordPermissions)) {
+    const canCreate: boolean = !this.shouldExcludeApiForPermissions(
+      model.createRecordPermissions,
+    );
+    const canRead: boolean = !this.shouldExcludeApiForPermissions(
+      model.readRecordPermissions,
+    );
+    const canUpdate: boolean = !this.shouldExcludeApiForPermissions(
+      model.updateRecordPermissions,
+    );
+    const canDelete: boolean = !this.shouldExcludeApiForPermissions(
+      model.deleteRecordPermissions,
+    );
+
+    if (canCreate) {
       const createSchema: ModelSchemaType = ModelSchema.getCreateModelSchema({
         modelType,
       });
       registry.register(`${tableName}CreateSchema`, createSchema);
     }
 
-    // Check if model has read permissions and should not exclude API generation
-    if (!this.shouldExcludeApiForPermissions(model.readRecordPermissions)) {
+    // Register read schema whenever any operation might return it (create/update/read)
+    if (canRead || canCreate || canUpdate) {
       const readSchema: ModelSchemaType = ModelSchema.getReadModelSchema({
         modelType,
       });
       registry.register(`${tableName}ReadSchema`, readSchema);
     }
 
-    // Check if model has update permissions and should not exclude API generation
-    if (!this.shouldExcludeApiForPermissions(model.updateRecordPermissions)) {
+    if (canUpdate) {
       const updateSchema: ModelSchemaType = ModelSchema.getUpdateModelSchema({
         modelType,
       });
       registry.register(`${tableName}UpdateSchema`, updateSchema);
     }
 
-    // Check if model has delete permissions and should not exclude API generation
-    if (!this.shouldExcludeApiForPermissions(model.deleteRecordPermissions)) {
+    if (canDelete) {
       const deleteSchema: ModelSchemaType = ModelSchema.getDeleteModelSchema({
         modelType,
       });
@@ -766,8 +776,20 @@ export default class OpenAPIUtil {
     modelType: new () => AnalyticsBaseModel,
     model: AnalyticsBaseModel,
   ): void {
-    // Check if model has create permissions and should not exclude API generation
-    if (!this.shouldExcludeApiForPermissions(model.getCreatePermissions())) {
+    const canCreate: boolean = !this.shouldExcludeApiForPermissions(
+      model.getCreatePermissions(),
+    );
+    const canRead: boolean = !this.shouldExcludeApiForPermissions(
+      model.getReadPermissions(),
+    );
+    const canUpdate: boolean = !this.shouldExcludeApiForPermissions(
+      model.getUpdatePermissions(),
+    );
+    const canDelete: boolean = !this.shouldExcludeApiForPermissions(
+      model.getDeletePermissions(),
+    );
+
+    if (canCreate) {
       const createSchema: AnalyticsModelSchemaType =
         AnalyticsModelSchema.getCreateModelSchema({
           modelType,
@@ -775,8 +797,7 @@ export default class OpenAPIUtil {
       registry.register(`${tableName}CreateSchema`, createSchema);
     }
 
-    // Check if model has read permissions and should not exclude API generation
-    if (!this.shouldExcludeApiForPermissions(model.getReadPermissions())) {
+    if (canRead || canCreate || canUpdate) {
       const readSchema: AnalyticsModelSchemaType =
         AnalyticsModelSchema.getModelSchema({
           modelType,
@@ -784,8 +805,7 @@ export default class OpenAPIUtil {
       registry.register(`${tableName}ReadSchema`, readSchema);
     }
 
-    // Check if model has update permissions and should not exclude API generation
-    if (!this.shouldExcludeApiForPermissions(model.getUpdatePermissions())) {
+    if (canUpdate) {
       const updateSchema: AnalyticsModelSchemaType =
         AnalyticsModelSchema.getCreateModelSchema({
           modelType,
@@ -793,8 +813,7 @@ export default class OpenAPIUtil {
       registry.register(`${tableName}UpdateSchema`, updateSchema);
     }
 
-    // Check if model has delete permissions and should not exclude API generation
-    if (!this.shouldExcludeApiForPermissions(model.getDeletePermissions())) {
+    if (canDelete) {
       const deleteSchema: AnalyticsModelSchemaType =
         AnalyticsModelSchema.getModelSchema({
           modelType,
