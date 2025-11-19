@@ -2,6 +2,7 @@ import Icon from "../Icon/Icon";
 import Link from "../Link/Link";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import Pill from "../Pill/Pill";
+import EventAttachmentList from "../AttachmentList/EventAttachmentList";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
@@ -110,28 +111,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
         )}
 
         {props.eventAttachments && props.eventAttachments.length > 0 && (
-          <div className="mt-3 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Attachments
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {props.eventAttachments.map(
-                (attachment: TimelineAttachment, index: number) => {
-                  return (
-                    <a
-                      href={attachment.downloadUrl}
-                      key={index}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-indigo-600 hover:text-indigo-500 text-sm break-words"
-                    >
-                      {attachment.name}
-                    </a>
-                  );
-                },
-              )}
-            </div>
-          </div>
+          <EventAttachmentList attachments={props.eventAttachments} />
         )}
 
         {props.eventSecondDescription && (
@@ -312,26 +292,13 @@ const EventItem: FunctionComponent<ComponentProps> = (
                               </p>
                               {item.attachments &&
                                 item.attachments.length > 0 && (
-                                  <div className="mt-3 flex flex-wrap gap-2">
-                                    {item.attachments.map(
-                                      (
-                                        attachment: TimelineAttachment,
-                                        attachmentIndex: number,
-                                      ) => {
-                                        return (
-                                          <a
-                                            key={attachmentIndex}
-                                            href={attachment.downloadUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-indigo-600 hover:text-indigo-500 text-sm break-words"
-                                          >
-                                            {attachment.name}
-                                          </a>
-                                        );
-                                      },
-                                    )}
-                                  </div>
+                                  <EventAttachmentList
+                                    attachments={item.attachments}
+                                    variant="inline"
+                                    showHeader={false}
+                                    showCount={false}
+                                    className="mt-3"
+                                  />
                                 )}
                             </div>
                           </div>
