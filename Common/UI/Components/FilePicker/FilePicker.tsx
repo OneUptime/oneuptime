@@ -321,17 +321,6 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         props.onChange?.(tempFileModel);
       };
 
-      const thumbnailSource: string | null = (() => {
-        if (!file.file) {
-          return null;
-        }
-
-        const blob: Blob = new Blob([file.file!.buffer as ArrayBuffer], {
-          type: file.fileType as string,
-        });
-        return URL.createObjectURL(blob);
-      })();
-
       const metadata: Array<string> = [];
       if (file.fileType) {
         metadata.push(file.fileType);
@@ -347,17 +336,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           className="flex w-full items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm"
         >
           <div className="flex items-start gap-3 text-left">
-            {thumbnailSource ? (
-              <img
-                src={thumbnailSource}
-                className="h-12 w-12 rounded border border-gray-200 object-cover"
-                alt={file.name || `File ${i + 1}`}
-              />
-            ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded border border-gray-200 bg-gray-50">
-                <Icon icon={IconProp.File} className="text-gray-500" />
-              </div>
-            )}
+            <div className="flex h-10 w-10 items-center justify-center rounded border border-gray-200 bg-gray-50">
+              <Icon icon={IconProp.File} className="text-gray-500" />
+            </div>
             <div className="flex flex-col">
               <p className="text-sm font-medium text-gray-900">
                 {file.name || `File ${i + 1}`}
