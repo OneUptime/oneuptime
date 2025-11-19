@@ -17,6 +17,10 @@ export interface AttachmentListProps {
   buildAttachmentUrl?: (fileId: string) => string;
 }
 
+type GetFileExtensionFunction = (fileName?: string | null) => string | null;
+type GetFileMetadataFunction = (file: FileModel) => string | null;
+type GetAttachmentNameFunction = (file: FileModel) => string;
+
 const AttachmentList: FunctionComponent<AttachmentListProps> = (
   props: AttachmentListProps,
 ): ReactElement | null => {
@@ -37,7 +41,9 @@ const AttachmentList: FunctionComponent<AttachmentListProps> = (
   const projectId: string | null =
     ProjectUtil.getCurrentProjectId()?.toString() || null;
 
-  const getFileExtension = (fileName?: string | null): string | null => {
+  const getFileExtension: GetFileExtensionFunction = (
+    fileName?: string | null,
+  ): string | null => {
     if (!fileName) {
       return null;
     }
@@ -52,7 +58,9 @@ const AttachmentList: FunctionComponent<AttachmentListProps> = (
     return trimmedName.substring(lastDotIndex + 1).toUpperCase();
   };
 
-  const getFileMetadata = (file: FileModel): string | null => {
+  const getFileMetadata: GetFileMetadataFunction = (
+    file: FileModel,
+  ): string | null => {
     const metadataParts: Array<string> = [];
 
     if (file.fileType) {
@@ -72,7 +80,9 @@ const AttachmentList: FunctionComponent<AttachmentListProps> = (
     return metadataParts.join(" • ");
   };
 
-  const getAttachmentName = (file: FileModel): string => {
+  const getAttachmentName: GetAttachmentNameFunction = (
+    file: FileModel,
+  ): string => {
     if (file.name) {
       return file.name;
     }

@@ -14,7 +14,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { useDropzone } from "react-dropzone";
+import { useDropzone, type FileRejection } from "react-dropzone";
+import type { AxiosProgressEvent } from "axios";
 
 export interface ComponentProps {
   initialValue?: undefined | Array<FileModel> | FileModel;
@@ -41,6 +42,21 @@ type UploadStatus = {
   errorMessage?: string | undefined;
 };
 
+type AddUploadStatusFunction = (status: UploadStatus) => void;
+type UpdateUploadStatusFunction = (
+  id: string,
+  updates: Partial<UploadStatus>,
+) => void;
+type UpdateUploadProgressFunction = (
+  id: string,
+  total?: number,
+  loaded?: number,
+) => void;
+type RemoveUploadStatusFunction = (id: string) => void;
+type BuildFileSizeErrorFunction = (fileNames: Array<string>) => string;
+type ResolveMimeTypeFunction = (file: File) => MimeType | undefined;
+type FormatFileSizeFunction = (file: FileModel) => string | null;
+
 const MAX_FILE_SIZE_BYTES: number = 10 * 1024 * 1024; // 10MB limit
 
 const FilePicker: FunctionComponent<ComponentProps> = (
@@ -53,13 +69,15 @@ const FilePicker: FunctionComponent<ComponentProps> = (
   const [acceptTypes, setAcceptTypes] = useState<Dictionary<Array<string>>>({});
   const [uploadStatuses, setUploadStatuses] = useState<Array<UploadStatus>>([]);
 
-  const addUploadStatus = (status: UploadStatus): void => {
+  const addUploadStatus: AddUploadStatusFunction = (
+    status: UploadStatus,
+  ): void => {
     setUploadStatuses((current: Array<UploadStatus>) => {
       return [...current, status];
     });
   };
 
-  const updateUploadStatus = (
+  const updateUploadStatus: UpdateUploadStatusFunction = (
     id: string,
     updates: Partial<UploadStatus>,
   ): void => {
@@ -75,7 +93,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     });
   };
 
-  const updateUploadProgress = (
+  const updateUploadProgress: UpdateUploadProgressFunction = (
     id: string,
     total?: number,
     loaded?: number,
@@ -101,7 +119,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     });
   };
 
-  const removeUploadStatus = (id: string): void => {
+  const removeUploadStatus: RemoveUploadStatusFunction = (id: string): void => {
     setUploadStatuses((current: Array<UploadStatus>) => {
       return current.filter((upload: UploadStatus) => {
         return upload.id !== id;
@@ -143,7 +161,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     }
   }, [props.value]);
 
-  const buildFileSizeError = (fileNames: Array<string>): string => {
+  const buildFileSizeError: BuildFileSizeErrorFunction = (
+    fileNames: Array<string>,
+  ): string => {
     if (fileNames.length === 0) {
       return "";
     }
@@ -161,12 +181,12 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     noClick: true,
     disabled: props.readOnly || isLoading,
     maxSize: MAX_FILE_SIZE_BYTES,
-    onDropRejected: (fileRejections) => {
+    onDropRejected: (fileRejections: Array<FileRejection>) => {
       const oversizedFiles: Array<string> = fileRejections
-        .filter((rejection) => {
+        .filter((rejection: FileRejection) => {
           return rejection.file.size > MAX_FILE_SIZE_BYTES;
         })
-        .map((rejection) => {
+        .map((rejection: FileRejection) => {
           return rejection.file.name;
         });
 
@@ -185,7 +205,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
       try {
         // Upload these files.
         const filesResult: Array<FileModel> = [];
-        const resolveMimeType = (file: File): MimeType | undefined => {
+        const resolveMimeType: ResolveMimeTypeFunction = (
+          file: File,
+        ): MimeType | undefined => {
           const direct: string | undefined = file.type || undefined;
           if (direct && Object.values(MimeType).includes(direct as MimeType)) {
             return direct as MimeType;
@@ -260,7 +282,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 requestOptions: {
                   overrideRequestUrl: CommonURL.fromURL(FILE_URL),
                   apiRequestOptions: {
-                    onUploadProgress: (progressEvent) => {
+                    onUploadProgress: (progressEvent: AxiosProgressEvent) => {
                       updateUploadProgress(
                         uploadId,
                         progressEvent.total,
@@ -307,7 +329,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
 
   type GetThumbsFunction = () => Array<ReactElement>;
 
-  const formatFileSize = (file: FileModel): string | null => {
+  const formatFileSize: FormatFileSizeFunction = (
+    file: FileModel,
+  ): string | null => {
     const buffer: Buffer | undefined = file.file;
     if (!buffer) {
       return null;
@@ -324,7 +348,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
   const getThumbs: GetThumbsFunction = (): Array<ReactElement> => {
     return filesModel.map((file: FileModel, i: number) => {
       const key: string = file._id?.toString() || `${file.name || "file"}-${i}`;
-      const removeFile = (): void => {
+      const removeFile: VoidFunction = (): void => {
         const tempFileModel: Array<FileModel> = [...filesModel];
         tempFileModel.splice(i, 1);
         setFilesModel(tempFileModel);
