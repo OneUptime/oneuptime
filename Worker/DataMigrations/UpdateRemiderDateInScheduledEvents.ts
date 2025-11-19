@@ -40,7 +40,7 @@ export default class UpdateRemiderDateInScheduledEvent extends DataMigrationBase
           ScheduledMaintenanceService.getNextTimeToNotify({
             eventScheduledDate: event.startsAt!,
             sendSubscriberNotifiationsOn:
-              event.sendSubscriberNotificationsOnBeforeTheEvent!,
+              event.sendSubscriberNotificationsOnBeforeTheEvent,
           });
 
         await ScheduledMaintenanceService.updateOneById({

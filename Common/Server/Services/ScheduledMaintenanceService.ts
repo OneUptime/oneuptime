@@ -377,27 +377,61 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         (updateBy.data.startsAt as Date) ||
         (scheduledMaintenance.startsAt! as Date);
 
-      const notificationSettings: Array<Recurring> =
-        (updateBy.data
-          .sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>) ||
-        (scheduledMaintenance.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>);
+      let notificationSettings: Array<Recurring> | null = null;
+
+      const updatedNotificationSettings:
+        | Array<Recurring>
+        | null
+        | undefined =
+        updateBy.data
+          .sendSubscriberNotificationsOnBeforeTheEvent as
+          | Array<Recurring>
+          | null
+          | undefined;
+
+      if (updatedNotificationSettings !== null && updatedNotificationSettings !== undefined) {
+        notificationSettings = updatedNotificationSettings;
+      } else {
+        const existingNotificationSettings:
+          | Array<Recurring>
+          | null
+          | undefined =
+          scheduledMaintenance.sendSubscriberNotificationsOnBeforeTheEvent as
+            | Array<Recurring>
+            | null
+            | undefined;
+
+        if (
+          existingNotificationSettings !== null &&
+          existingNotificationSettings !== undefined
+        ) {
+          notificationSettings = existingNotificationSettings;
+        }
+      }
 
       logger.debug(
         `Using startsAt: ${startsAt} and notificationSettings: ${JSON.stringify(notificationSettings)}`,
       );
 
-      const nextTimeToNotifyBeforeTheEvent: Date | null =
-        this.getNextTimeToNotify({
-          eventScheduledDate: startsAt,
-          sendSubscriberNotifiationsOn: notificationSettings,
-        });
+      if (!notificationSettings || notificationSettings.length === 0) {
+        logger.debug(
+          "No subscriber notification schedule configured. Clearing nextSubscriberNotificationBeforeTheEventAt.",
+        );
+        updateBy.data.nextSubscriberNotificationBeforeTheEventAt = null;
+      } else {
+        const nextTimeToNotifyBeforeTheEvent: Date | null =
+          this.getNextTimeToNotify({
+            eventScheduledDate: startsAt,
+            sendSubscriberNotifiationsOn: notificationSettings,
+          });
 
-      updateBy.data.nextSubscriberNotificationBeforeTheEventAt =
-        nextTimeToNotifyBeforeTheEvent;
+        updateBy.data.nextSubscriberNotificationBeforeTheEventAt =
+          nextTimeToNotifyBeforeTheEvent;
 
-      logger.debug(
-        `nextSubscriberNotificationBeforeTheEventAt set to: ${nextTimeToNotifyBeforeTheEvent}`,
-      );
+        logger.debug(
+          `nextSubscriberNotificationBeforeTheEventAt set to: ${nextTimeToNotifyBeforeTheEvent}`,
+        );
+      }
     }
 
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnEventCreated if it's being updated
@@ -475,7 +509,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
   public getNextTimeToNotify(data: {
     eventScheduledDate: Date;
-    sendSubscriberNotifiationsOn: Array<Recurring>;
+    sendSubscriberNotifiationsOn?: Array<Recurring> | null | undefined;
   }): Date | null {
     let recurringDate: Date | null = null;
 
@@ -486,7 +520,23 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       `Calculating next time to notify for event scheduled date: ${data.eventScheduledDate}`,
     );
 
-    for (const recurringItem of data.sendSubscriberNotifiationsOn) {
+    const notificationSchedules: Array<Recurring> = Array.isArray(
+      data.sendSubscriberNotifiationsOn,
+    )
+      ? (data.sendSubscriberNotifiationsOn as Array<Recurring>)
+      : [];
+
+    if (notificationSchedules.length === 0) {
+      logger.debug(
+        "No sendSubscriberNotifiationsOn entries. Returning null for next notification time.",
+      );
+      return null;
+    }
+
+    for (const recurringItem of notificationSchedules) {
+      if (!recurringItem) {
+        continue;
+      }
       const notificationDate: Date = Recurring.getNextDateInterval(
         data.eventScheduledDate,
         recurringItem,
