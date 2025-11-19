@@ -922,28 +922,28 @@ export class PermissionHelper {
         title: "Create Dashboard",
         description: "This permission can create Dashboards of this project",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
       },
       {
         permission: Permission.DeleteDashboard,
         title: "Delete Dashboard",
         description: "This permission can delete Dashboard of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
       },
       {
         permission: Permission.EditDashboard,
         title: "Edit Dashboard",
         description: "This permission can edit Dashboards of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
       },
       {
         permission: Permission.ReadDashboard,
         title: "Read Dashboard",
         description: "This permission can read Dashboards of this project.",
         isAssignableToTenant: true,
-        isAccessControlPermission: false,
+        isAccessControlPermission: true,
       },
 
       // Table view permissions
