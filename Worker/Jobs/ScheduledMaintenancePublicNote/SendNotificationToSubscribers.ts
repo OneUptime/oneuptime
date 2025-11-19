@@ -264,6 +264,13 @@ RunCron(
           const statusPageIdString: string | null =
             statuspage.id?.toString() || statuspage._id?.toString() || null;
 
+          const scheduledEventDetailsUrl: string =
+            event.id && statusPageURL
+              ? URL.fromString(statusPageURL)
+                  .addRoute(`/scheduled-events/${event.id.toString()}`)
+                  .toString()
+              : statusPageURL;
+
           logger.debug(
             `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for public note ${publicNote.id}.`,
           );
@@ -402,6 +409,7 @@ RunCron(
                     ),
                     statusPageName: statusPageName,
                     statusPageUrl: statusPageURL,
+                    detailsUrl: scheduledEventDetailsUrl,
                     logoUrl:
                       statuspage.logoFileId && statusPageIdString
                         ? new URL(httpProtocol, host)

@@ -62,7 +62,7 @@ RunCron(
           ScheduledMaintenanceService.getNextTimeToNotify({
             eventScheduledDate: event.startsAt!,
             sendSubscriberNotifiationsOn:
-              event.sendSubscriberNotificationsOnBeforeTheEvent!,
+              event.sendSubscriberNotificationsOnBeforeTheEvent,
           });
 
         logger.debug(

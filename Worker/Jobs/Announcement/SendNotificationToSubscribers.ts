@@ -200,6 +200,13 @@ RunCron(
             const statusPageIdString: string | null =
               statuspage.id?.toString() || statuspage._id?.toString() || null;
 
+            const announcementDetailsUrl: string =
+              announcement.id && statusPageURL
+                ? URL.fromString(statusPageURL)
+                    .addRoute(`/announcements/${announcement.id.toString()}`)
+                    .toString()
+                : statusPageURL;
+
             logger.debug(
               `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for announcement ${announcement.id}.`,
             );
@@ -372,6 +379,7 @@ RunCron(
                       vars: {
                         statusPageName: statusPageName,
                         statusPageUrl: statusPageURL,
+                        detailsUrl: announcementDetailsUrl,
                         logoUrl:
                           statuspage.logoFileId && statusPageIdString
                             ? new URL(httpProtocol, host)

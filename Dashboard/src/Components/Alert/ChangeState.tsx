@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -210,6 +211,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
 
       {showModal && (
         <ModelFormModal
+          modalWidth={ModalWidth.Large}
           modelType={AlertStateTimeline}
           name={"create-alert-state-timeline"}
           title={"Mark Alert as " + selectedAlertState?.name}
