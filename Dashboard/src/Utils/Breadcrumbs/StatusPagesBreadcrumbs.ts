@@ -12,6 +12,29 @@ export function getStatusPagesBreadcrumbs(
       "Status Pages",
       "View Status Page",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ANNOUNCEMENT_VIEW, [
+      "Project",
+      "Status Pages",
+      "All Announcements",
+      "View Announcement",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS,
+      [
+        "Project",
+        "Status Pages",
+        "All Announcements",
+        "View Announcement",
+        "Notification Logs",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ANNOUNCEMENT_VIEW_DELETE, [
+      "Project",
+      "Status Pages",
+      "All Announcements",
+      "View Announcement",
+      "Delete Announcement",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_ANNOUNCEMENTS, [
       "Project",
       "Status Pages",

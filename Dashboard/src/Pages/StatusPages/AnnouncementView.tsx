@@ -18,10 +18,6 @@ import React, {
   useState,
 } from "react";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import Route from "Common/Types/API/Route";
-import Page from "Common/UI/Components/Page/Page";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import AttachmentList from "../../Components/Attachment/AttachmentList";
 import { getModelIdString } from "../../Utils/ModelId";
@@ -55,31 +51,7 @@ const AnnouncementView: FunctionComponent<
     };
 
   return (
-    <Page
-      title={"Announcement"}
-      breadcrumbLinks={[
-        {
-          title: "Status Pages",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.STATUS_PAGES] as Route,
-          ),
-        },
-        {
-          title: "Announcements",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route,
-          ),
-        },
-        {
-          title: "View Announcement",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.ANNOUNCEMENT_VIEW] as Route,
-            { modelId },
-          ),
-        },
-      ]}
-    >
-      <Fragment>
+    <Fragment>
         {/* Status Page Announcement View  */}
         <CardModelDetail<StatusPageAnnouncement>
           name="Status Page Announcement Details"
@@ -353,7 +325,6 @@ const AnnouncementView: FunctionComponent<
         />
         <div className="mt-4"></div>
       </Fragment>
-    </Page>
   );
 };
 
