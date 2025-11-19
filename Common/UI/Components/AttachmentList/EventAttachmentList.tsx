@@ -1,5 +1,3 @@
-import Icon from "../Icon/Icon";
-import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface EventAttachment {
@@ -50,12 +48,9 @@ const AttachmentCard: FunctionComponent<AttachmentCardProps> = (
         target="_blank"
         rel="noopener noreferrer"
         title={attachment.name}
-        className="group flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white/90 px-3 py-2 text-sm text-gray-900 shadow-sm transition hover:border-gray-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200"
+        className="group flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 transition hover:border-gray-300 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-200"
       >
-        <span className="flex items-center gap-2 min-w-0">
-          <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-600">
-            <Icon icon={IconProp.File} className="h-4 w-4" />
-          </span>
+        <span className="flex items-center gap-3 min-w-0">
           <span className="flex flex-col min-w-0">
             <span className="text-sm font-medium text-gray-900 truncate">
               {attachment.name || "Attachment"}
@@ -68,14 +63,8 @@ const AttachmentCard: FunctionComponent<AttachmentCardProps> = (
           </span>
         </span>
 
-        <span className="flex flex-shrink-0 items-center gap-1 text-indigo-600">
-          <span className="text-xs font-semibold uppercase tracking-wide text-indigo-500">
-            Download
-          </span>
-          <Icon
-            icon={IconProp.Download}
-            className="h-4 w-4 text-indigo-400 transition group-hover:text-indigo-600"
-          />
+        <span className="flex flex-shrink-0 items-center text-gray-500 text-xs font-semibold uppercase tracking-wide">
+          Download
         </span>
       </a>
     </li>
