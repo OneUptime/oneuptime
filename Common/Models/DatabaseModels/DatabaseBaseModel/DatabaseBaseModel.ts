@@ -58,6 +58,7 @@ export default class DatabaseBaseModel extends BaseEntity {
     type: TableColumnType.ObjectID,
     description: "ID of this object",
     computed: true,
+    canReadOnRelationQuery: true,
   })
   @PrimaryGeneratedColumn("uuid")
   public _id?: string = undefined;
