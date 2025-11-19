@@ -54,31 +54,34 @@ const FilePicker: FunctionComponent<ComponentProps> = (
   const [uploadStatuses, setUploadStatuses] = useState<Array<UploadStatus>>([]);
 
   const addUploadStatus = (status: UploadStatus): void => {
-    setUploadStatuses((current: Array<UploadStatus>) => [
-      ...current,
-      status,
-    ]);
+    setUploadStatuses((current: Array<UploadStatus>) => {
+      return [...current, status];
+    });
   };
 
   const updateUploadStatus = (
     id: string,
     updates: Partial<UploadStatus>,
   ): void => {
-    setUploadStatuses((current: Array<UploadStatus>) =>
-      current.map((upload: UploadStatus) =>
-        upload.id === id
+    setUploadStatuses((current: Array<UploadStatus>) => {
+      return current.map((upload: UploadStatus) => {
+        return upload.id === id
           ? {
               ...upload,
               ...updates,
             }
-          : upload,
-      ),
-    );
+          : upload;
+      });
+    });
   };
 
-  const updateUploadProgress = (id: string, total?: number, loaded?: number): void => {
-    setUploadStatuses((current: Array<UploadStatus>) =>
-      current.map((upload: UploadStatus) => {
+  const updateUploadProgress = (
+    id: string,
+    total?: number,
+    loaded?: number,
+  ): void => {
+    setUploadStatuses((current: Array<UploadStatus>) => {
+      return current.map((upload: UploadStatus) => {
         if (upload.id !== id || upload.status === "error") {
           return upload;
         }
@@ -91,16 +94,19 @@ const FilePicker: FunctionComponent<ComponentProps> = (
 
         return {
           ...upload,
-          progress: progressFromEvent !== null ? progressFromEvent : fallbackProgress,
+          progress:
+            progressFromEvent !== null ? progressFromEvent : fallbackProgress,
         };
-      }),
-    );
+      });
+    });
   };
 
   const removeUploadStatus = (id: string): void => {
-    setUploadStatuses((current: Array<UploadStatus>) =>
-      current.filter((upload: UploadStatus) => upload.id !== id),
-    );
+    setUploadStatuses((current: Array<UploadStatus>) => {
+      return current.filter((upload: UploadStatus) => {
+        return upload.id !== id;
+      });
+    });
   };
 
   useEffect(() => {
@@ -157,8 +163,12 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     maxSize: MAX_FILE_SIZE_BYTES,
     onDropRejected: (fileRejections) => {
       const oversizedFiles: Array<string> = fileRejections
-        .filter((rejection) => rejection.file.size > MAX_FILE_SIZE_BYTES)
-        .map((rejection) => rejection.file.name);
+        .filter((rejection) => {
+          return rejection.file.size > MAX_FILE_SIZE_BYTES;
+        })
+        .map((rejection) => {
+          return rejection.file.name;
+        });
 
       if (oversizedFiles.length > 0) {
         setError(buildFileSizeError(oversizedFiles));
@@ -361,7 +371,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
   };
 
   const hasActiveUploads: boolean = uploadStatuses.some(
-    (upload: UploadStatus) => upload.status === "uploading",
+    (upload: UploadStatus) => {
+      return upload.status === "uploading";
+    },
   );
 
   return (
@@ -437,16 +449,23 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                             ];
                           return enumKey?.toUpperCase() || "";
                         })
-                        .filter((item: string | undefined, pos: number, array: Array<string | undefined>) => {
-                          return array.indexOf(item) === pos;
-                        })
+                        .filter(
+                          (
+                            item: string | undefined,
+                            pos: number,
+                            array: Array<string | undefined>,
+                          ) => {
+                            return array.indexOf(item) === pos;
+                          },
+                        )
                         .join(", ")}
-                    {props.mimeTypes && props.mimeTypes?.length > 0 && <span>.</span>} Max 10MB each.
+                    {props.mimeTypes && props.mimeTypes?.length > 0 && (
+                      <span>.</span>
+                    )}{" "}
+                    Max 10MB each.
                   </p>
                   {error && (
-                    <p className="text-xs text-red-500 font-medium">
-                      {error}
-                    </p>
+                    <p className="text-xs text-red-500 font-medium">{error}</p>
                   )}
                 </div>
               </div>
@@ -460,49 +479,51 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             {hasActiveUploads ? "Uploading files" : "Upload status"}
           </p>
           <div className="space-y-2">
-            {uploadStatuses.map((upload: UploadStatus) => (
-              <div
-                key={upload.id}
-                className={`rounded border px-3 py-2 ${upload.status === "error" ? "border-red-200 bg-red-50" : "border-gray-200 bg-white"}`}
-              >
-                <div className="flex items-center justify-between text-sm">
-                  <p className="font-medium text-gray-800 truncate">
-                    {upload.name}
-                  </p>
-                  <span
-                    className={`text-xs ${upload.status === "error" ? "text-red-600" : "text-gray-500"}`}
-                  >
-                    {upload.status === "error"
-                      ? "Failed"
-                      : `${upload.progress}%`}
-                  </span>
-                </div>
-                <div className="mt-2 h-2 rounded bg-gray-200 overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-300 ${upload.status === "error" ? "bg-red-400" : "bg-indigo-500"}`}
-                    style={{ width: `${Math.min(upload.progress, 100)}%` }}
-                  ></div>
-                </div>
-                {upload.status === "error" && upload.errorMessage && (
-                  <p className="mt-2 text-xs text-red-600 text-left">
-                    {upload.errorMessage}
-                  </p>
-                )}
-                {upload.status === "error" && (
-                  <div className="mt-2 text-right">
-                    <button
-                      type="button"
-                      className="text-xs font-medium text-gray-600 hover:text-gray-800"
-                      onClick={() => {
-                        removeUploadStatus(upload.id);
-                      }}
+            {uploadStatuses.map((upload: UploadStatus) => {
+              return (
+                <div
+                  key={upload.id}
+                  className={`rounded border px-3 py-2 ${upload.status === "error" ? "border-red-200 bg-red-50" : "border-gray-200 bg-white"}`}
+                >
+                  <div className="flex items-center justify-between text-sm">
+                    <p className="font-medium text-gray-800 truncate">
+                      {upload.name}
+                    </p>
+                    <span
+                      className={`text-xs ${upload.status === "error" ? "text-red-600" : "text-gray-500"}`}
                     >
-                      Dismiss
-                    </button>
+                      {upload.status === "error"
+                        ? "Failed"
+                        : `${upload.progress}%`}
+                    </span>
                   </div>
-                )}
-              </div>
-            ))}
+                  <div className="mt-2 h-2 rounded bg-gray-200 overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 ${upload.status === "error" ? "bg-red-400" : "bg-indigo-500"}`}
+                      style={{ width: `${Math.min(upload.progress, 100)}%` }}
+                    ></div>
+                  </div>
+                  {upload.status === "error" && upload.errorMessage && (
+                    <p className="mt-2 text-xs text-red-600 text-left">
+                      {upload.errorMessage}
+                    </p>
+                  )}
+                  {upload.status === "error" && (
+                    <div className="mt-2 text-right">
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-gray-600 hover:text-gray-800"
+                        onClick={() => {
+                          removeUploadStatus(upload.id);
+                        }}
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

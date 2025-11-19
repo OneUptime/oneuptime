@@ -57,7 +57,7 @@ export default class Response {
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     if (headers) {
-    Response.setNoCacheHeaders(oneUptimeResponse);
+      Response.setNoCacheHeaders(oneUptimeResponse);
       for (const key in headers) {
         oneUptimeResponse.set(key, headers[key]?.toString() || "");
       }

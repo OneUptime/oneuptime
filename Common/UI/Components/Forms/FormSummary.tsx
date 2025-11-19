@@ -10,8 +10,6 @@ import Field from "./Types/Field";
 import FieldType from "../Types/FieldType";
 import { FormStep } from "./Types/FormStep";
 import HorizontalRule from "../HorizontalRule/HorizontalRule";
-import Icon from "../Icon/Icon";
-import IconProp from "../../../Types/Icon/IconProp";
 
 type SummaryElementFn<T extends GenericObject> = (
   item: FormValues<T>,
@@ -113,7 +111,11 @@ const getFileSummaryElement: <T extends GenericObject>(
     const formValuesRecord: Record<string, unknown> =
       (item as Record<string, unknown>) || {};
 
-    const value: FileSummaryItem | Array<FileSummaryItem | string> | string | null =
+    const value:
+      | FileSummaryItem
+      | Array<FileSummaryItem | string>
+      | string
+      | null =
       (formValuesRecord[fieldName] as
         | FileSummaryItem
         | Array<FileSummaryItem | string>
@@ -138,26 +140,18 @@ const getFileSummaryElement: <T extends GenericObject>(
 
             const displayName: string = formatFileName(fileObject, index);
             const subtitle: string | undefined = getFileSubtitle(fileObject);
-            const accessLabel: string | undefined =
-              getAccessLabel(fileObject);
+            const accessLabel: string | undefined = getAccessLabel(fileObject);
 
-            const key: string =
-              fileObject._id || `${displayName}-${index}`;
+            const key: string = fileObject._id || `${displayName}-${index}`;
 
             return (
-              <li
-                key={key}
-                className="flex items-center gap-3 px-3 py-2"
-              >
-                
+              <li key={key} className="flex items-center gap-3 px-3 py-2">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-gray-900">
                     {displayName}
                   </p>
                   {subtitle && (
-                    <p className="truncate text-xs text-gray-500">
-                      {subtitle}
-                    </p>
+                    <p className="truncate text-xs text-gray-500">{subtitle}</p>
                   )}
                 </div>
                 {accessLabel && (
@@ -213,7 +207,8 @@ const FormSummary: <T extends GenericObject>(
                       field.fieldType || FormFieldSchemaType.Text,
                     ),
                 description: field.description || "",
-                getElement: (field.getSummaryElement || defaultSummaryElement) as any,
+                getElement: (field.getSummaryElement ||
+                  defaultSummaryElement) as any,
                 sideLink: field.sideLink,
                 key: (Object.keys(field.field || {})[0]?.toString() ||
                   "") as keyof T,

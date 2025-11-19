@@ -394,10 +394,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         if (isModelArray) {
           (item as any)[key] = idArray;
         }
-      } else if (
-        (item as any)[key] &&
-        typeof (item as any)[key] === "object"
-      ) {
+      } else if ((item as any)[key] && typeof (item as any)[key] === "object") {
         if (isFileColumn) {
           (item as any)[key] = BaseModel.fromJSON(
             (item as any)[key] as JSONObject,
@@ -407,9 +404,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
         }
 
         if (!((item as any)[key] instanceof FileModel)) {
-          const id: string | undefined = (
-            (item as any)[key] as JSONObject
-          )["_id"] as string | undefined;
+          const id: string | undefined = ((item as any)[key] as JSONObject)[
+            "_id"
+          ] as string | undefined;
 
           if (id) {
             (item as any)[key] = id;
