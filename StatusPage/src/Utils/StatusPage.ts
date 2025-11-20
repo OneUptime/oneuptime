@@ -42,12 +42,53 @@ export default class StatusPageUtil {
     return Boolean(LocalStorage.getItem("requiresMasterPassword"));
   }
 
+  private static getMasterPasswordValidationStorageKey(): string {
+    const statusPageId: ObjectID | null = StatusPageUtil.getStatusPageId();
+
+    if (!statusPageId) {
+      return "masterPasswordValidated";
+    }
+
+    return `masterPasswordValidated-${statusPageId.toString()}`;
+  }
+
   public static setMasterPasswordValidated(value: boolean): void {
-    LocalStorage.setItem("masterPasswordValidated", value);
+    const storageKey: string =
+      StatusPageUtil.getMasterPasswordValidationStorageKey();
+
+    LocalStorage.setItem(storageKey, value);
+
+    if (storageKey !== "masterPasswordValidated") {
+      LocalStorage.removeItem("masterPasswordValidated");
+    }
   }
 
   public static isMasterPasswordValidated(): boolean {
-    return Boolean(LocalStorage.getItem("masterPasswordValidated"));
+    const storageKey: string =
+      StatusPageUtil.getMasterPasswordValidationStorageKey();
+
+    const currentValue: boolean = Boolean(LocalStorage.getItem(storageKey));
+
+    if (currentValue) {
+      return true;
+    }
+
+    if (storageKey === "masterPasswordValidated") {
+      return false;
+    }
+
+    const legacyValue: boolean = Boolean(
+      LocalStorage.getItem("masterPasswordValidated"),
+    );
+
+    LocalStorage.removeItem("masterPasswordValidated");
+
+    if (legacyValue) {
+      LocalStorage.setItem(storageKey, legacyValue);
+      return true;
+    }
+
+    return false;
   }
 
   public static isPreviewPage(): boolean {
