@@ -36,22 +36,67 @@
   ],
   "screenshots": [
     {
-      "src": "/dashboard/assets/img/OneUptimePNG/1.png",
+      "src": "/dashboard/assets/img/Screenshots/Desktop/incident-management.png",
       "type": "image/png",
-      "sizes": "1500x1500",
-      "label": "Unified observability overview"
+      "sizes": "3840x2160",
+      "label": "Desktop incident management workspace",
+      "form_factor": "wide"
     },
     {
-      "src": "/dashboard/assets/img/OneUptimePNG/2.png",
+      "src": "/dashboard/assets/img/Screenshots/Desktop/monitors.png",
       "type": "image/png",
-      "sizes": "1500x1500",
-      "label": "Incident collaboration workspace"
+      "sizes": "3840x2160",
+      "label": "Desktop monitor analytics view",
+      "form_factor": "wide"
     },
     {
-      "src": "/dashboard/assets/img/OneUptimePNG/3.png",
+      "src": "/dashboard/assets/img/Screenshots/Desktop/status-page.png",
       "type": "image/png",
-      "sizes": "1500x1500",
-      "label": "Real-time status pages"
+      "sizes": "3840x2160",
+      "label": "Desktop status page customization",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/dashboard/assets/img/Screenshots/Desktop/workflows.png",
+      "type": "image/png",
+      "sizes": "3840x2160",
+      "label": "Desktop automation workflows",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/dashboard/assets/img/Screenshots/Mobile/incident-management.png",
+      "type": "image/png",
+      "sizes": "1082x2402",
+      "label": "Mobile incident management overview",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/dashboard/assets/img/Screenshots/Mobile/monitor-view.png",
+      "type": "image/png",
+      "sizes": "1082x2402",
+      "label": "Mobile detailed monitor view",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/dashboard/assets/img/Screenshots/Mobile/monitors.png",
+      "type": "image/png",
+      "sizes": "1082x2402",
+      "label": "Mobile monitors list",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/dashboard/assets/img/Screenshots/Mobile/status-page.png",
+      "type": "image/png",
+      "sizes": "1082x2402",
+      "label": "Mobile status page view",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/dashboard/assets/img/Screenshots/Mobile/workflow.png",
+      "type": "image/png",
+      "sizes": "1082x2402",
+      "label": "Mobile workflow runbook",
+      "form_factor": "narrow"
     }
   ],
   "start_url": "/dashboard/",
