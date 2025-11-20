@@ -28,11 +28,19 @@ export default class API extends BaseAPI {
   }
 
   public static override getLoginRoute(): Route {
-    return new Route(
-      StatusPageUtil.isPreviewPage()
-        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login`
-        : "/login",
-    );
+    const basePath: string = StatusPageUtil.isPreviewPage()
+      ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}`
+      : "";
+
+    if (
+      StatusPageUtil.isPrivateStatusPage() &&
+      StatusPageUtil.requiresMasterPassword() &&
+      !StatusPageUtil.isMasterPasswordValidated()
+    ) {
+      return new Route(`${basePath}/master-password`);
+    }
+
+    return new Route(`${basePath}/login`);
   }
 
   public static override logoutUser(): void {
