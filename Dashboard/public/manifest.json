@@ -1,6 +1,7 @@
 {
   "short_name": "OneUptime",
   "name": "OneUptime - Complete Observability Platform",
+  "id": "/dashboard/oneuptime-app",
   "description": "Monitor, observe, debug, and resolve. Everything you need to build reliable software in one open source platform.",
   "icons": [
     {
@@ -31,6 +32,26 @@
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/dashboard/assets/img/OneUptimePNG/1.png",
+      "type": "image/png",
+      "sizes": "1500x1500",
+      "label": "Unified observability overview"
+    },
+    {
+      "src": "/dashboard/assets/img/OneUptimePNG/2.png",
+      "type": "image/png",
+      "sizes": "1500x1500",
+      "label": "Incident collaboration workspace"
+    },
+    {
+      "src": "/dashboard/assets/img/OneUptimePNG/3.png",
+      "type": "image/png",
+      "sizes": "1500x1500",
+      "label": "Real-time status pages"
     }
   ],
   "start_url": "/dashboard/",
