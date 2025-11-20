@@ -925,7 +925,14 @@ export default class StatusPage extends BaseModel {
       Permission.ProjectMember,
       Permission.CreateProjectStatusPage,
     ],
-    read: [],
+
+    // This is a hashed column. So, reading the value is does not affect anything.
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectStatusPage,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
