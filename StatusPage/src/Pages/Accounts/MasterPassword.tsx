@@ -5,9 +5,7 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, {
-  AlertType,
-} from "Common/UI/Components/Alerts/Alert";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -16,7 +14,12 @@ import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import API from "../../Utils/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import React, { FormEvent, FunctionComponent, useEffect, useState } from "react";
+import React, {
+  FormEvent,
+  FunctionComponent,
+  useEffect,
+  useState,
+} from "react";
 
 export interface ComponentProps {
   statusPageName: string;
@@ -51,10 +54,7 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    if (
-      statusPageId &&
-      UserUtil.isLoggedIn(statusPageId)
-    ) {
+    if (statusPageId && UserUtil.isLoggedIn(statusPageId)) {
       redirectToOverview();
       return;
     }
