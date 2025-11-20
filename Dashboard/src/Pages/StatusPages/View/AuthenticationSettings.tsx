@@ -31,17 +31,7 @@ const StatusPageDelete: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             placeholder: "Is this status page visible to public",
-          },
-          {
-            field: {
-              enableMasterPassword: true,
-            },
-            title: "Require Master Password",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "When enabled, visitors must enter the master password before viewing a private status page.",
-          },
+          }
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
@@ -54,15 +44,7 @@ const StatusPageDelete: FunctionComponent<
               },
               fieldType: FieldType.Boolean,
               title: "Is Visible to Public",
-            },
-            {
-              field: {
-                enableMasterPassword: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Require Master Password",
-              placeholder: "No",
-            },
+            }
           ],
           modelId: modelId,
         }}
@@ -80,6 +62,16 @@ const StatusPageDelete: FunctionComponent<
         formFields={[
           {
             field: {
+              enableMasterPassword: true,
+            },
+            title: "Require Master Password",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "When enabled, visitors must enter the master password before viewing a private status page.",
+          },
+          {
+            field: {
               masterPassword: true,
             },
             title: "Master Password",
@@ -95,6 +87,14 @@ const StatusPageDelete: FunctionComponent<
           modelType: StatusPage,
           id: "model-detail-status-page-master-password",
           fields: [
+            {
+              field: {
+                enableMasterPassword: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Require Master Password",
+              placeholder: "No",
+            },
             {
               title: "Master Password",
               fieldType: FieldType.Element,
