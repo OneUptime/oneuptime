@@ -230,6 +230,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{ steps.version.outputs.version }}"
             docker buildx build \
               --no-cache \
@@ -320,6 +321,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -404,6 +406,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -488,6 +491,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -572,6 +576,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -659,6 +664,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -743,6 +749,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -829,6 +836,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -913,6 +921,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -997,6 +1006,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -1082,6 +1092,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -1168,6 +1179,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -1253,6 +1265,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -1337,6 +1350,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -1421,6 +1435,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -1506,6 +1521,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -1590,6 +1606,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -1675,6 +1692,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -1759,6 +1777,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
@@ -1887,6 +1906,7 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: |
+            set -euo pipefail
             VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
             docker buildx build \
               --no-cache \
