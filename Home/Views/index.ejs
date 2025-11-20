@@ -102,23 +102,6 @@
 
                         <%- include('./Partials/video-script') -%>
 
-  <!-- PWA Service Worker Registration -->
-  <script>
-    // Service Worker Registration for PWA
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/service-worker.js', {
-          scope: '/'
-        }).then(function(registration) {
-          console.log('OneUptime Home PWA: Service Worker registered successfully', registration.scope);
-        }).catch(function(error) {
-          console.log('OneUptime Home PWA: Service Worker registration failed', error);
-        });
-      });
-    }
-
-  </script>
-
 </body>
 
 </html>

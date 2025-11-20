@@ -33,8 +33,11 @@
       "purpose": "maskable"
     }
   ],
-  "start_url": "/dashboard",
-  "scope": "/",
+  "start_url": "/dashboard/",
+  "scope": "/dashboard/",
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },  
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#000000",
