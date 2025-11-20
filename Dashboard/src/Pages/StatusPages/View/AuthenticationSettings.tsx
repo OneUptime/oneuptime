@@ -32,6 +32,27 @@ const StatusPageDelete: FunctionComponent<
             required: false,
             placeholder: "Is this status page visible to public",
           },
+          {
+            field: {
+              enableMasterPassword: true,
+            },
+            title: "Require Master Password",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "When enabled, visitors must enter the master password before viewing a private status page.",
+          },
+          {
+            field: {
+              masterPassword: true,
+            },
+            title: "Master Password",
+            fieldType: FormFieldSchemaType.Password,
+            required: false,
+            placeholder: "Enter a new master password",
+            description:
+              "Updating this value immediately replaces the existing master password.",
+          },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
@@ -44,6 +65,14 @@ const StatusPageDelete: FunctionComponent<
               },
               fieldType: FieldType.Boolean,
               title: "Is Visible to Public",
+            },
+            {
+              field: {
+                enableMasterPassword: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Require Master Password",
+              placeholder: "No",
             },
           ],
           modelId: modelId,

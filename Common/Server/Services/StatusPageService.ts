@@ -47,6 +47,7 @@ import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import StatusPageResourceService from "./StatusPageResourceService";
 import Dictionary from "../../Types/Dictionary";
+import { JSONObject } from "../../Types/JSON";
 import MonitorGroupResource from "../../Models/DatabaseModels/MonitorGroupResource";
 import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -61,6 +62,11 @@ import IP from "../../Types/IP/IP";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import CommonAPI from "../API/CommonAPI";
+import MasterPasswordRequiredException from "../../Types/Exception/MasterPasswordRequiredException";
+import {
+  MASTER_PASSWORD_COOKIE_IDENTIFIER,
+  MASTER_PASSWORD_REQUIRED_MESSAGE,
+} from "../../Types/StatusPage/MasterPassword";
 
 export interface StatusPageReportItem {
   resourceName: string;
@@ -389,6 +395,8 @@ export class Service extends DatabaseService<StatusPage> {
           _id: true,
           isPublicStatusPage: true,
           ipWhitelist: true,
+          enableMasterPassword: true,
+          masterPassword: true,
         },
       });
 
@@ -481,6 +489,34 @@ export class Service extends DatabaseService<StatusPage> {
           hasReadAccess: true,
         };
       }
+
+      const shouldEnforceMasterPassword: boolean = Boolean(
+        statusPage &&
+          statusPage.enableMasterPassword &&
+          statusPage.masterPassword &&
+          !statusPage.isPublicStatusPage,
+      );
+
+      if (shouldEnforceMasterPassword) {
+        const hasValidMasterPassword: boolean =
+          this.hasValidMasterPasswordCookie({
+            req,
+            statusPageId,
+          });
+
+        if (hasValidMasterPassword) {
+          return {
+            hasReadAccess: true,
+          };
+        }
+
+        return {
+          hasReadAccess: false,
+          error: new MasterPasswordRequiredException(
+            MASTER_PASSWORD_REQUIRED_MESSAGE,
+          ),
+        };
+      }
     } catch (err) {
       logger.error(err);
     }
@@ -491,6 +527,33 @@ export class Service extends DatabaseService<StatusPage> {
         "You do not have access to this status page. Please login to view the status page.",
       ),
     };
+  }
+
+  private hasValidMasterPasswordCookie(data: {
+    req: ExpressRequest;
+    statusPageId: ObjectID;
+  }): boolean {
+    const token: string | undefined = CookieUtil.getCookieFromExpressRequest(
+      data.req,
+      CookieUtil.getStatusPageMasterPasswordKey(data.statusPageId),
+    );
+
+    if (!token) {
+      return false;
+    }
+
+    try {
+      const payload: JSONObject = JSONWebToken.decodeJsonPayload(token);
+
+      return (
+        payload["statusPageId"] === data.statusPageId.toString() &&
+        payload["type"] === MASTER_PASSWORD_COOKIE_IDENTIFIER
+      );
+    } catch (err) {
+      logger.error(err);
+    }
+
+    return false;
   }
 
   @CaptureSpan()

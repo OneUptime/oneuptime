@@ -31,6 +31,25 @@ export default class StatusPageUtil {
     return Boolean(LocalStorage.getItem("isPrivateStatusPage"));
   }
 
+  public static setRequiresMasterPassword(value: boolean): void {
+    LocalStorage.setItem("requiresMasterPassword", value);
+    if (!value) {
+      StatusPageUtil.setMasterPasswordValidated(false);
+    }
+  }
+
+  public static requiresMasterPassword(): boolean {
+    return Boolean(LocalStorage.getItem("requiresMasterPassword"));
+  }
+
+  public static setMasterPasswordValidated(value: boolean): void {
+    LocalStorage.setItem("masterPasswordValidated", value);
+  }
+
+  public static isMasterPasswordValidated(): boolean {
+    return Boolean(LocalStorage.getItem("masterPasswordValidated"));
+  }
+
   public static isPreviewPage(): boolean {
     return Navigation.containsInPath("/status-page/");
   }
@@ -45,8 +64,36 @@ export default class StatusPageUtil {
     Navigation.navigate(route, { forceNavigate: true });
   }
 
+  public static navigateToMasterPasswordPage(): void {
+    if (Navigation.getCurrentRoute().toString().includes("master-password")) {
+      return;
+    }
+
+    const basePath: string = StatusPageUtil.isPreviewPage()
+      ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}`
+      : "";
+
+    const route: Route = new Route(
+      `${basePath}/master-password?redirectUrl=${Navigation.getCurrentPath()}`,
+    );
+
+    Navigation.navigate(route, { forceNavigate: true });
+  }
+
   public static checkIfUserHasLoggedIn(): void {
     const statusPageId: ObjectID | null = StatusPageUtil.getStatusPageId();
+
+    if (
+      statusPageId &&
+      StatusPageUtil.isPrivateStatusPage() &&
+      StatusPageUtil.requiresMasterPassword() &&
+      !UserUtil.isLoggedIn(statusPageId)
+    ) {
+      if (!StatusPageUtil.isMasterPasswordValidated()) {
+        StatusPageUtil.navigateToMasterPasswordPage();
+      }
+      return;
+    }
 
     if (
       statusPageId &&
