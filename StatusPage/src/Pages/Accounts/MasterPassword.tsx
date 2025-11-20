@@ -15,6 +15,7 @@ import API from "../../Utils/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import React, {
+  ChangeEvent,
   FormEvent,
   FunctionComponent,
   useEffect,
@@ -35,7 +36,7 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
 
   const statusPageId: ObjectID | null = StatusPageUtil.getStatusPageId();
 
-  const redirectToOverview = (): void => {
+  const redirectToOverview: () => void = (): void => {
     const path: string = StatusPageUtil.isPreviewPage()
       ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}`
       : "/";
@@ -76,7 +77,11 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
           .toString()
       : null;
 
-  const onSubmit = async (): Promise<void> => {
+  const privatePageCopy: string = props.statusPageName
+    ? `${props.statusPageName} is private. Please enter the master password to continue.`
+    : "This status page is private. Please enter the master password to continue.";
+
+  const onSubmit: () => Promise<void> = async (): Promise<void> => {
     if (!password) {
       setError("Master password is required.");
       return;
@@ -119,7 +124,9 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
+  const handleSubmit: (event: FormEvent<HTMLFormElement>) => void = (
+    event: FormEvent<HTMLFormElement>,
+  ): void => {
     event.preventDefault();
     void onSubmit();
   };
@@ -131,11 +138,12 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
           <img style={{ height: "70px", margin: "auto" }} src={logoUrl} />
         ) : null}
         <h2 className="mt-6 text-center text-2xl tracking-tight text-gray-900">
-          Enter Master Password
+          {props.statusPageName
+            ? `Enter ${props.statusPageName} Master Password`
+            : "Enter Master Password"}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          This status page is private. Please enter the master password to
-          continue.
+          {privatePageCopy}
         </p>
       </div>
 
@@ -165,7 +173,7 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
                   autoComplete="current-password"
                   required={true}
                   value={password}
-                  onChange={(event) => {
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
                     setPassword(event.target.value);
                   }}
                   className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
