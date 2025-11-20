@@ -55,6 +55,15 @@ export default class StatusPageUtil {
   }
 
   public static navigateToLoginPage(): void {
+    if (
+      StatusPageUtil.isPrivateStatusPage() &&
+      StatusPageUtil.requiresMasterPassword() &&
+      !StatusPageUtil.isMasterPasswordValidated()
+    ) {
+      StatusPageUtil.navigateToMasterPasswordPage();
+      return;
+    }
+
     const route: Route = new Route(
       StatusPageUtil.isPreviewPage()
         ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login?redirectUrl=${Navigation.getCurrentPath()}`
@@ -111,6 +120,15 @@ export default class StatusPageUtil {
       errorResponse instanceof HTTPErrorResponse &&
       errorResponse.statusCode === 401
     ) {
+      if (
+        StatusPageUtil.isPrivateStatusPage() &&
+        StatusPageUtil.requiresMasterPassword() &&
+        !StatusPageUtil.isMasterPasswordValidated()
+      ) {
+        StatusPageUtil.navigateToMasterPasswordPage();
+        return;
+      }
+
       await UserUtil.logout(StatusPageUtil.getStatusPageId()!);
       StatusPageUtil.navigateToLoginPage();
     }

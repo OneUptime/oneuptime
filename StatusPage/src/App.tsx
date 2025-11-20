@@ -21,6 +21,7 @@ import { SubscribePageProps } from "./Pages/Subscribe/SubscribePageUtils";
 import { ComponentProps as ForgotPasswordComponentProps } from "./Pages/Accounts/ForgotPassword";
 import { ComponentProps as LoginComponentProps } from "./Pages/Accounts/Login";
 import { ComponentProps as ResetPasswordComponentProps } from "./Pages/Accounts/ResetPassword";
+import { ComponentProps as MasterPasswordComponentProps } from "./Pages/Accounts/MasterPassword";
 import { ComponentProps as SsoComponentProps } from "./Pages/Accounts/SSO";
 import PageComponentProps from "./Pages/PageComponentProps";
 
@@ -42,6 +43,11 @@ const ResetPassword: React.LazyExoticComponent<
   React.FunctionComponent<ResetPasswordComponentProps>
 > = lazy(() => {
   return import("./Pages/Accounts/ResetPassword");
+});
+const MasterPassword: React.LazyExoticComponent<
+  React.FunctionComponent<MasterPasswordComponentProps>
+> = lazy(() => {
+  return import("./Pages/Accounts/MasterPassword");
 });
 const Sso: React.LazyExoticComponent<
   React.FunctionComponent<SsoComponentProps>
@@ -214,6 +220,13 @@ const App: () => JSX.Element = () => {
           "statusPage.isPublicStatusPage",
         ) as boolean;
 
+        const enableMasterPassword: boolean = Boolean(
+          JSONFunctions.getJSONValueInPath(
+            masterpage || {},
+            "statusPage.enableMasterPassword",
+          ) as boolean,
+        );
+
         const enableEmailSubscribers: boolean =
           JSONFunctions.getJSONValueInPath(
             masterpage || {},
@@ -261,6 +274,7 @@ const App: () => JSX.Element = () => {
 
         StatusPageUtil.setIsPrivateStatusPage(isPrivateStatusPage);
         setIsPrivateStatusPage(isPrivateStatusPage);
+        StatusPageUtil.setRequiresMasterPassword(enableMasterPassword);
 
         const statusPageId: string | null = JSONFunctions.getJSONValueInPath(
           masterpage || {},
@@ -330,6 +344,16 @@ const App: () => JSX.Element = () => {
                 logoFileId={new ObjectID(statusPageLogoFileId)}
                 forceSSO={forceSSO}
                 hasEnabledSSOConfig={hasEnabledSSO}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.MASTER_PASSWORD]?.toString() || ""}
+            element={
+              <MasterPassword
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
               />
             }
           />
@@ -827,6 +851,16 @@ const App: () => JSX.Element = () => {
                 logoFileId={new ObjectID(statusPageLogoFileId)}
                 forceSSO={forceSSO}
                 hasEnabledSSOConfig={hasEnabledSSO}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_MASTER_PASSWORD]?.toString() || ""}
+            element={
+              <MasterPassword
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
               />
             }
           />
