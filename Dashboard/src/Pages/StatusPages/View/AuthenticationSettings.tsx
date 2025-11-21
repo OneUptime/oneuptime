@@ -51,6 +51,70 @@ const StatusPageDelete: FunctionComponent<
       />
 
       <CardModelDetail<StatusPage>
+        name="Status Page > Master Password"
+        cardProps={{
+          title: "Master Password",
+          description:
+            "Rotate the password required to unlock a private status page. This value is stored as a secure hash and cannot be retrieved. When master password is enabled, SSO/SCIM and Email + Password authentication are disabled.",
+        }}
+        editButtonText="Update Master Password"
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              enableMasterPassword: true,
+            },
+            title: "Require Master Password",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "When enabled, visitors must enter the master password before viewing a private status page.",
+          },
+          {
+            field: {
+              masterPassword: true,
+            },
+            title: "Master Password",
+            fieldType: FormFieldSchemaType.Password,
+            required: false,
+            placeholder: "Enter a new master password",
+            description:
+              "Updating this value immediately replaces the existing master password.",
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: StatusPage,
+          id: "model-detail-status-page-master-password",
+          fields: [
+            {
+              field: {
+                enableMasterPassword: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Require Master Password",
+              placeholder: "No",
+            },
+            {
+              title: "Master Password",
+              fieldType: FieldType.Element,
+              placeholder: "Hidden",
+              getElement: (): ReactElement => {
+                return (
+                  <p className="text-sm text-gray-500">
+                    For security reasons, the current master password is never
+                    displayed. Use the update button to set a new password at
+                    any time.
+                  </p>
+                );
+              },
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      <CardModelDetail<StatusPage>
         name="Status Page > IP Whitelist"
         cardProps={{
           title: "IP Whitelist",

@@ -23,8 +23,12 @@ const LoginPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const statusPageId: string | undefined =
-    StatusPageUtil.getStatusPageId()?.toString();
+  const statusPageObjectId: ObjectID | null = StatusPageUtil.getStatusPageId();
+  const statusPageId: string | undefined = statusPageObjectId?.toString();
+  const requiresMasterPasswordLock: boolean =
+    StatusPageUtil.isPrivateStatusPage() &&
+    StatusPageUtil.requiresMasterPassword() &&
+    !StatusPageUtil.isMasterPasswordValidated();
   const logoUrl: string | null =
     props.logoFileId && props.logoFileId.toString() && statusPageId
       ? URL.fromString(STATUS_PAGE_API_URL.toString())
@@ -32,7 +36,12 @@ const LoginPage: FunctionComponent<ComponentProps> = (
           .toString()
       : null;
 
-  if (!StatusPageUtil.getStatusPageId()) {
+  if (!statusPageObjectId) {
+    return <></>;
+  }
+
+  if (requiresMasterPasswordLock) {
+    StatusPageUtil.navigateToMasterPasswordPage();
     return <></>;
   }
 
@@ -46,10 +55,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
     );
   }
 
-  if (
-    StatusPageUtil.getStatusPageId() &&
-    UserUtil.isLoggedIn(StatusPageUtil.getStatusPageId()!)
-  ) {
+  if (statusPageObjectId && UserUtil.isLoggedIn(statusPageObjectId)) {
     if (Navigation.getQueryStringByName("redirectUrl")) {
       Navigation.navigate(
         new Route(Navigation.getQueryStringByName("redirectUrl")!),

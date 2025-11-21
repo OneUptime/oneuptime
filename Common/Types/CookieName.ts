@@ -7,6 +7,7 @@ enum CookieName {
   Timezone = "user-timezone",
   IsMasterAdmin = "user-is-master-admin",
   ProfilePicID = "user-profile-pic-id",
+  StatusPageMasterPassword = "status-page-master-password",
 }
 
 export default CookieName;

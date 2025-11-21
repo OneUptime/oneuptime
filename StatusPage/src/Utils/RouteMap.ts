@@ -28,6 +28,7 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.LOGOUT]: new Route(`/logout`),
   [PageMap.FORGOT_PASSWORD]: new Route(`/forgot-password`),
   [PageMap.RESET_PASSWORD]: new Route(`/reset-password/:token`),
+  [PageMap.MASTER_PASSWORD]: new Route(`/master-password`),
 
   // forbidden page
   [PageMap.FORBIDDEN]: new Route(`/forbidden`),
@@ -90,6 +91,9 @@ const RouteMap: Dictionary<Route> = {
   ),
   [PageMap.PREVIEW_RESET_PASSWORD]: new Route(
     `/status-page/${RouteParams.StatusPageId}/reset-password/:token`,
+  ),
+  [PageMap.PREVIEW_MASTER_PASSWORD]: new Route(
+    `/status-page/${RouteParams.StatusPageId}/master-password`,
   ),
 
   [PageMap.PREVIEW_SSO]: new Route(
