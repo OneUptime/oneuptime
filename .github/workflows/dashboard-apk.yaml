@@ -4,10 +4,10 @@ on:
   push:
 
 env:
-  MANIFEST_URL: https://app.oneuptime.com/dashboard/manifest.json
-  PWA_ORIGIN: https://app.oneuptime.com
+  MANIFEST_URL: https://oneuptime.com/dashboard/manifest.json
+  PWA_ORIGIN: https://oneuptime.com
   PACKAGE_ID: com.oneuptime.dashboard
-  HOST_NAME: app.oneuptime.com
+  HOST_NAME: oneuptime.com
   SIGNING_KEYSTORE_BASE64: ""
   SIGNING_KEY_ALIAS: ""
   SIGNING_KEY_PASSWORD: ""
