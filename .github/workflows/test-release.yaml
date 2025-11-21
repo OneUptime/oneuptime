@@ -6,7 +6,8 @@ concurrency:
 
 on:
   push:
-    
+    branches:
+      - master
 jobs:
   generate-build-number:
     runs-on: ubuntu-latest
