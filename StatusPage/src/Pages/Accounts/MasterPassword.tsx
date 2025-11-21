@@ -12,6 +12,8 @@ import API from "../../Utils/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import React, { FunctionComponent, useEffect, useState } from "react";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 
 export interface ComponentProps {
   statusPageName: string;
@@ -98,12 +100,13 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
     setFormError(null);
 
     try {
-      const response = await API.post({
-        url,
-        data: {
-          password: submittedPassword,
-        },
-      });
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url,
+          data: {
+            password: submittedPassword,
+          },
+        });
 
       if (response.isFailure()) {
         throw response;

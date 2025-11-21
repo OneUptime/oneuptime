@@ -25,9 +25,10 @@ const StatusPageDelete: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [isMasterPasswordEnabled, setIsMasterPasswordEnabled] =
     useState<boolean>(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchStatusPage = async (): Promise<void> => {
+    const fetchStatusPage: () => Promise<void> = async (): Promise<void> => {
       try {
         const statusPage: StatusPage | null = await ModelAPI.getItem({
           modelType: StatusPage,
@@ -38,8 +39,13 @@ const StatusPageDelete: FunctionComponent<
         });
 
         setIsMasterPasswordEnabled(Boolean(statusPage?.enableMasterPassword));
+        setFetchError(null);
       } catch (error) {
-        console.error("Failed to fetch status page details", error);
+        const newErrorMessage: string =
+          error instanceof Error && error.message
+            ? error.message
+            : "Failed to fetch status page details.";
+        setFetchError(newErrorMessage);
       }
     };
 
@@ -48,6 +54,9 @@ const StatusPageDelete: FunctionComponent<
 
   return (
     <Fragment>
+      {fetchError && (
+        <Alert className="mb-5" type={AlertType.DANGER} title={fetchError} />
+      )}
       {isMasterPasswordEnabled && (
         <Alert
           className="mb-5"
