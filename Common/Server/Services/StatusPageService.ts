@@ -470,26 +470,6 @@ export class Service extends DatabaseService<StatusPage> {
         }
       }
 
-      // if it does not have public access, check if this user has access.
-
-      const items: Array<StatusPage> = await this.findBy({
-        query: {
-          _id: statusPageId.toString(),
-        },
-        select: {
-          _id: true,
-        },
-        skip: 0,
-        limit: 1,
-        props: props,
-      });
-
-      if (items.length > 0) {
-        return {
-          hasReadAccess: true,
-        };
-      }
-
       const shouldEnforceMasterPassword: boolean = Boolean(
         statusPage &&
           statusPage.enableMasterPassword &&
@@ -515,6 +495,26 @@ export class Service extends DatabaseService<StatusPage> {
           error: new MasterPasswordRequiredException(
             MASTER_PASSWORD_REQUIRED_MESSAGE,
           ),
+        };
+      }
+
+      // if it does not have public access, check if this user has access.
+
+      const items: Array<StatusPage> = await this.findBy({
+        query: {
+          _id: statusPageId.toString(),
+        },
+        select: {
+          _id: true,
+        },
+        skip: 0,
+        limit: 1,
+        props: props,
+      });
+
+      if (items.length > 0) {
+        return {
+          hasReadAccess: true,
         };
       }
     } catch (err) {
