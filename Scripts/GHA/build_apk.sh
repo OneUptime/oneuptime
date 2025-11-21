@@ -35,11 +35,18 @@ if [[ ! -x "${SDK_MANAGER}" ]]; then
   exit 1
 fi
 
-yes | "${SDK_MANAGER}" --sdk_root="${ANDROID_HOME}" --licenses >/dev/null
-yes | "${SDK_MANAGER}" --sdk_root="${ANDROID_HOME}" \
-  "platform-tools" \
-  "platforms;android-34" \
-  "build-tools;34.0.0"
+# Disable pipefail so sdkmanager can close stdin without breaking the pipeline.
+(
+  set +o pipefail
+  yes | "${SDK_MANAGER}" --sdk_root="${ANDROID_HOME}" --licenses >/dev/null
+)
+(
+  set +o pipefail
+  yes | "${SDK_MANAGER}" --sdk_root="${ANDROID_HOME}" \
+    "platform-tools" \
+    "platforms;android-34" \
+    "build-tools;34.0.0"
+)
 
 if ! command -v bubblewrap >/dev/null 2>&1; then
   if ! command -v npm >/dev/null 2>&1; then
