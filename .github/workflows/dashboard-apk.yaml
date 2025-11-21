@@ -2,16 +2,15 @@ name: Build Dashboard Android APK
 
 on:
   push:
+    branches:
+      - master
+      - release
 
 env:
   MANIFEST_URL: https://oneuptime.com/dashboard/manifest.json
   PWA_ORIGIN: https://oneuptime.com
   PACKAGE_ID: com.oneuptime.dashboard
   HOST_NAME: oneuptime.com
-  SIGNING_KEYSTORE_BASE64: ""
-  SIGNING_KEY_ALIAS: ""
-  SIGNING_KEY_PASSWORD: ""
-  SIGNING_STORE_PASSWORD: ""
 
 jobs:
   build-apk:
@@ -48,6 +47,10 @@ jobs:
         env:
           VERSION_NAME: ${{ steps.version.outputs.name }}
           VERSION_CODE: ${{ steps.version.outputs.code }}
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.ANDROID_APK_SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_APK_SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_APK_SIGNING_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_APK_SIGNING_STORE_PASSWORD }}
         run: |
           set -euo pipefail
           APK_PATH=$(./scripts/GHA/build_apk.sh)
