@@ -19,6 +19,7 @@ import StatusPagePrivateUserSessionService, {
   SessionMetadata as StatusPageSessionMetadata,
 } from "Common/Server/Services/StatusPagePrivateUserSessionService";
 import CookieUtil from "Common/Server/Utils/Cookie";
+import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -33,10 +34,56 @@ import Response from "Common/Server/Utils/Response";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import StatusPagePrivateUserSession from "Common/Models/DatabaseModels/StatusPagePrivateUserSession";
+import { MASTER_PASSWORD_COOKIE_IDENTIFIER } from "Common/Types/StatusPage/MasterPassword";
 
 const router: ExpressRouter = Express.getRouter();
 
 const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
+
+type MasterPasswordAuthInput = {
+  req: ExpressRequest;
+  res?: ExpressResponse;
+  statusPageId: ObjectID;
+};
+
+const hasValidMasterPasswordSession: (
+  data: MasterPasswordAuthInput,
+) => boolean = (data: MasterPasswordAuthInput): boolean => {
+  const token: string | undefined = CookieUtil.getCookieFromExpressRequest(
+    data.req,
+    CookieUtil.getStatusPageMasterPasswordKey(data.statusPageId),
+  );
+
+  if (!token) {
+    return false;
+  }
+
+  try {
+    const payload: JSONObject = JSONWebToken.decodeJsonPayload(token);
+
+    return (
+      payload["statusPageId"] === data.statusPageId.toString() &&
+      payload["type"] === MASTER_PASSWORD_COOKIE_IDENTIFIER
+    );
+  } catch (err) {
+    logger.error(err);
+  }
+
+  return false;
+};
+
+const respondWithMasterPasswordAccess: (
+  data: MasterPasswordAuthInput & { res: ExpressResponse };
+) => boolean = (
+  data: MasterPasswordAuthInput & { res: ExpressResponse },
+): boolean => {
+  if (!hasValidMasterPasswordSession(data)) {
+    return false;
+  }
+
+  Response.sendEmptySuccessResponse(data.req, data.res);
+  return true;
+};
 
 type FinalizeStatusPageLoginInput = {
   req: ExpressRequest;
@@ -157,6 +204,16 @@ router.post(
           CookieUtil.getRefreshTokenKey(statusPageId),
         );
 
+        if (
+          respondWithMasterPasswordAccess({
+            req,
+            res,
+            statusPageId,
+          })
+        ) {
+          return;
+        }
+
         return Response.sendErrorResponse(
           req,
           res,
@@ -178,6 +235,16 @@ router.post(
           CookieUtil.getRefreshTokenKey(statusPageId),
         );
 
+        if (
+          respondWithMasterPasswordAccess({
+            req,
+            res,
+            statusPageId,
+          })
+        ) {
+          return;
+        }
+
         return Response.sendErrorResponse(
           req,
           res,
@@ -198,6 +265,16 @@ router.post(
           res,
           CookieUtil.getRefreshTokenKey(statusPageId),
         );
+
+        if (
+          respondWithMasterPasswordAccess({
+            req,
+            res,
+            statusPageId,
+          })
+        ) {
+          return;
+        }
 
         return Response.sendErrorResponse(
           req,
@@ -223,6 +300,16 @@ router.post(
           CookieUtil.getRefreshTokenKey(statusPageId),
         );
 
+        if (
+          respondWithMasterPasswordAccess({
+            req,
+            res,
+            statusPageId,
+          })
+        ) {
+          return;
+        }
+
         return Response.sendErrorResponse(
           req,
           res,
@@ -243,6 +330,16 @@ router.post(
           res,
           CookieUtil.getRefreshTokenKey(statusPageId),
         );
+
+        if (
+          respondWithMasterPasswordAccess({
+            req,
+            res,
+            statusPageId,
+          })
+        ) {
+          return;
+        }
 
         return Response.sendErrorResponse(
           req,
@@ -278,6 +375,16 @@ router.post(
           res,
           CookieUtil.getRefreshTokenKey(statusPageId),
         );
+
+        if (
+          respondWithMasterPasswordAccess({
+            req,
+            res,
+            statusPageId,
+          })
+        ) {
+          return;
+        }
 
         return Response.sendErrorResponse(
           req,
