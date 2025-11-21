@@ -1,6 +1,7 @@
 {
   "short_name": "OneUptime",
   "name": "OneUptime - Complete Observability Platform",
+  "id": "/dashboard/oneuptime",
   "description": "Monitor, observe, debug, and resolve. Everything you need to build reliable software in one open source platform.",
   "icons": [
     {
@@ -33,8 +34,77 @@
       "purpose": "maskable"
     }
   ],
-  "start_url": "/dashboard",
-  "scope": "/",
+  "screenshots": [
+    {
+      "src": "/dashboard/assets/img/Screenshots/Desktop/incident-management.png",
+      "type": "image/png",
+      "sizes": "3840x2160",
+      "label": "Desktop incident management workspace",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/dashboard/assets/img/Screenshots/Desktop/monitors.png",
+      "type": "image/png",
+      "sizes": "3840x2160",
+      "label": "Desktop monitor analytics view",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/dashboard/assets/img/Screenshots/Desktop/status-page.png",
+      "type": "image/png",
+      "sizes": "3840x2160",
+      "label": "Desktop status page customization",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/dashboard/assets/img/Screenshots/Desktop/workflows.png",
+      "type": "image/png",
+      "sizes": "3840x2160",
+      "label": "Desktop automation workflows",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/dashboard/assets/img/Screenshots/Mobile/incident-management.png",
+      "type": "image/png",
+      "sizes": "1082x2402",
+      "label": "Mobile incident management overview",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/dashboard/assets/img/Screenshots/Mobile/monitor-view.png",
+      "type": "image/png",
+      "sizes": "1082x2402",
+      "label": "Mobile detailed monitor view",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/dashboard/assets/img/Screenshots/Mobile/monitors.png",
+      "type": "image/png",
+      "sizes": "1082x2402",
+      "label": "Mobile monitors list",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/dashboard/assets/img/Screenshots/Mobile/status-page.png",
+      "type": "image/png",
+      "sizes": "1082x2402",
+      "label": "Mobile status page view",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/dashboard/assets/img/Screenshots/Mobile/workflow.png",
+      "type": "image/png",
+      "sizes": "1082x2402",
+      "label": "Mobile workflow runbook",
+      "form_factor": "narrow"
+    }
+  ],
+  "start_url": "/dashboard/",
+  "scope": "/dashboard/",
+  
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },  
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#000000",
