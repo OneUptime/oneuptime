@@ -7,6 +7,15 @@ import { IDENTITY_URL } from "Common/UI/Config";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 
 export default class User {
+  private static getMasterPasswordStorageKeys(
+    statusPageId: ObjectID,
+  ): Array<string> {
+    return [
+      `masterPasswordValidated-${statusPageId.toString()}`,
+      "masterPasswordValidated",
+    ];
+  }
+
   public static setUserId(statusPageId: ObjectID, userId: ObjectID): void {
     LocalStorage.setItem(
       statusPageId.toString() + "user_id",
@@ -82,5 +91,8 @@ export default class User {
         .addRoute("/" + statusPageId.toString()),
     });
     this.removeUser(statusPageId);
+    for (const storageKey of this.getMasterPasswordStorageKeys(statusPageId)) {
+      LocalStorage.removeItem(storageKey);
+    }
   }
 }
