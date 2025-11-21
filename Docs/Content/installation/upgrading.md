@@ -8,6 +8,16 @@ This guide covers how to safely upgrade your self-hosted OneUptime installation.
 - You can leapfrog minor/patch versions (for example, 8.1 → 8.4) as long as you follow the release notes.
 - Always take backups before upgrading, and validate you can restore them.
 
+## Upgrading from OneUptime 8 → 9
+
+The Helm chart no longer provisions a Kubernetes Ingress resource. OneUptime ships an ingress gateway container that already terminates TLS, manages status page domains, and routes traffic for the platform, so a cluster ingress controller is no longer necessary.
+
+- Remove any `oneuptimeIngress` overrides from your custom `values.yaml` files before upgrading. Those keys are now ignored and will cause validation errors if left in place.
+- Ensure `nginx.service.type` reflects how you want to expose the bundled ingress gateway (for example `LoadBalancer`, `NodePort`, or `ClusterIP` with an external load balancer).
+- Verify any DNS records for status pages or primary hosts still point to the Service or load balancer that fronts the OneUptime ingress gateway.
+- After the upgrade, confirm TLS certificates continue to renew via the embedded gateway and that status page domains resolve correctly.
+
+
 ## Upgrading from OneUptime 7 → 8
 
 If you're running on Kubernetes, there are important breaking changes:
@@ -18,3 +28,4 @@ If you're running on Kubernetes, there are important breaking changes:
 
 
 > Tip: Test the upgrade in a staging environment first. Confirm your workloads are healthy and data is intact before upgrading production.
+
