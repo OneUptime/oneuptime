@@ -8,6 +8,10 @@ import StatusPagePrivateUser from "../../Models/DatabaseModels/StatusPagePrivate
 import OneUptimeDate from "../../Types/Date";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CookieName from "../../Types/CookieName";
+import {
+  MASTER_PASSWORD_COOKIE_IDENTIFIER,
+  MASTER_PASSWORD_COOKIE_MAX_AGE_IN_DAYS,
+} from "../../Types/StatusPage/MasterPassword";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 
 export default class CookieUtil {
@@ -234,6 +238,34 @@ export default class CookieUtil {
   }
 
   @CaptureSpan()
+  public static setStatusPageMasterPasswordCookie(data: {
+    expressResponse: ExpressResponse;
+    statusPageId: ObjectID;
+  }): void {
+    const expiresInDays: PositiveNumber = new PositiveNumber(
+      MASTER_PASSWORD_COOKIE_MAX_AGE_IN_DAYS,
+    );
+
+    const token: string = JSONWebToken.signJsonPayload(
+      {
+        statusPageId: data.statusPageId.toString(),
+        type: MASTER_PASSWORD_COOKIE_IDENTIFIER,
+      },
+      OneUptimeDate.getSecondsInDays(expiresInDays),
+    );
+
+    CookieUtil.setCookie(
+      data.expressResponse,
+      CookieUtil.getStatusPageMasterPasswordKey(data.statusPageId),
+      token,
+      {
+        maxAge: OneUptimeDate.getMillisecondsInDays(expiresInDays),
+        httpOnly: true,
+      },
+    );
+  }
+
+  @CaptureSpan()
   public static setCookie(
     res: ExpressResponse,
     name: string | CookieName,
@@ -280,6 +312,17 @@ export default class CookieUtil {
     });
   }
 
+  @CaptureSpan()
+  public static removeStatusPageMasterPasswordCookie(
+    res: ExpressResponse,
+    statusPageId: ObjectID,
+  ): void {
+    CookieUtil.removeCookie(
+      res,
+      CookieUtil.getStatusPageMasterPasswordKey(statusPageId),
+    );
+  }
+
   // get all cookies with express request
   @CaptureSpan()
   public static getAllCookies(req: ExpressRequest): Dictionary<string> {
@@ -302,6 +345,11 @@ export default class CookieUtil {
     }
 
     return `${CookieName.RefreshToken}-${id.toString()}`;
+  }
+
+  @CaptureSpan()
+  public static getStatusPageMasterPasswordKey(id: ObjectID): string {
+    return `${CookieName.StatusPageMasterPassword}-${id.toString()}`;
   }
 
   @CaptureSpan()

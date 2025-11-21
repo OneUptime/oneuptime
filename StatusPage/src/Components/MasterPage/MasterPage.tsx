@@ -244,7 +244,8 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     Navigation.getCurrentRoute().toString().includes("forgot-password") ||
     Navigation.getCurrentRoute().toString().includes("reset-password") ||
     Navigation.getCurrentRoute().toString().includes("sso") ||
-    Navigation.getCurrentRoute().toString().includes("forbidden")
+    Navigation.getCurrentRoute().toString().includes("forbidden") ||
+    Navigation.getCurrentRoute().toString().includes("master-password")
   ) {
     return <>{props.children}</>;
   }

@@ -27,8 +27,20 @@ export interface ComponentProps {
 const LoginPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
+  const statusPageId: ObjectID | null = StatusPageUtil.getStatusPageId();
+  const statusPageIdString: string | undefined = statusPageId?.toString();
+  const requiresMasterPasswordLock: boolean =
+    StatusPageUtil.isPrivateStatusPage() &&
+    StatusPageUtil.requiresMasterPassword() &&
+    !StatusPageUtil.isMasterPasswordValidated();
+
   useEffect(() => {
-    if (props.forceSSO && StatusPageUtil.getStatusPageId()) {
+    if (requiresMasterPasswordLock || !statusPageId) {
+      StatusPageUtil.navigateToMasterPasswordPage();
+      return;
+    }
+
+    if (props.forceSSO) {
       if (Navigation.getQueryStringByName("redirectUrl")) {
         // forward redirect url to sso page
 
@@ -36,11 +48,11 @@ const LoginPage: FunctionComponent<ComponentProps> = (
           (!StatusPageUtil.isPreviewPage()
             ? RouteUtil.populateRouteParams(
                 RouteMap[PageMap.SSO]!,
-                StatusPageUtil.getStatusPageId()!,
+                statusPageId,
               )
             : RouteUtil.populateRouteParams(
                 RouteMap[PageMap.PREVIEW_SSO]!,
-                StatusPageUtil.getStatusPageId()!,
+                statusPageId,
               )
           ).toString() +
             `?redirectUrl=${Navigation.getQueryStringByName("redirectUrl")}`,
@@ -49,31 +61,33 @@ const LoginPage: FunctionComponent<ComponentProps> = (
         Navigation.navigate(navRoute);
       } else {
         const navRoute: Route = !StatusPageUtil.isPreviewPage()
-          ? RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SSO]!,
-              StatusPageUtil.getStatusPageId()!,
-            )
+          ? RouteUtil.populateRouteParams(RouteMap[PageMap.SSO]!, statusPageId)
           : RouteUtil.populateRouteParams(
               RouteMap[PageMap.PREVIEW_SSO]!,
-              StatusPageUtil.getStatusPageId()!,
+              statusPageId,
             );
 
         Navigation.navigate(navRoute);
       }
     }
-  }, [props.forceSSO, StatusPageUtil.getStatusPageId()]);
+  }, [props.forceSSO, statusPageIdString, requiresMasterPasswordLock]);
 
   const apiUrl: URL = LOGIN_API_URL;
-  const statusPageId: string | undefined =
+  const statusPageIdForLogo: string | undefined =
     StatusPageUtil.getStatusPageId()?.toString();
   const logoUrl: string | null =
-    props.logoFileId && props.logoFileId.toString() && statusPageId
+    props.logoFileId && props.logoFileId.toString() && statusPageIdForLogo
       ? URL.fromString(STATUS_PAGE_API_URL.toString())
-          .addRoute(`/logo/${statusPageId}`)
+          .addRoute(`/logo/${statusPageIdForLogo}`)
           .toString()
       : null;
 
-  if (!StatusPageUtil.getStatusPageId()) {
+  if (!statusPageId) {
+    return <></>;
+  }
+
+  if (requiresMasterPasswordLock) {
+    StatusPageUtil.navigateToMasterPasswordPage();
     return <></>;
   }
 
@@ -87,10 +101,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
     Navigation.navigate(navRoute);
   }
 
-  if (
-    StatusPageUtil.getStatusPageId() &&
-    UserUtil.isLoggedIn(StatusPageUtil.getStatusPageId()!)
-  ) {
+  if (statusPageId && UserUtil.isLoggedIn(statusPageId)) {
     if (Navigation.getQueryStringByName("redirectUrl")) {
       Navigation.navigate(
         new Route(Navigation.getQueryStringByName("redirectUrl")!),

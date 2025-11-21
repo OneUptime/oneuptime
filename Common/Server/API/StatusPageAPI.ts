@@ -49,6 +49,7 @@ import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
 import PositiveNumber from "../../Types/PositiveNumber";
+import HashedString from "../../Types/HashedString";
 import AcmeChallenge from "../../Models/DatabaseModels/AcmeChallenge";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentPublicNote from "../../Models/DatabaseModels/IncidentPublicNote";
@@ -87,10 +88,13 @@ import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import DatabaseConfig from "../DatabaseConfig";
+import CookieUtil from "../Utils/Cookie";
+import { EncryptionSecret } from "../EnvironmentConfig";
 import { StatusPageApiRoute } from "../../ServiceRoute";
 import ProjectSmtpConfigService from "../Services/ProjectSmtpConfigService";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import { MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/StatusPage/MasterPassword";
 
 type ResolveStatusPageIdOrThrowFunction = (
   statusPageIdOrDomain: string,
@@ -798,6 +802,7 @@ export default class StatusPageAPI extends BaseAPI<
             enableMicrosoftTeamsSubscribers: true,
             enableSmsSubscribers: true,
             isPublicStatusPage: true,
+            enableMasterPassword: true,
             allowSubscribersToChooseResources: true,
             allowSubscribersToChooseEventTypes: true,
             requireSsoForLogin: true,
@@ -904,6 +909,80 @@ export default class StatusPageAPI extends BaseAPI<
           };
 
           return Response.sendJsonObjectResponse(req, res, response);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/master-password/:statusPageId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          if (!req.params["statusPageId"]) {
+            throw new BadDataException("Status Page ID not found");
+          }
+
+          const statusPageId: ObjectID = new ObjectID(
+            req.params["statusPageId"] as string,
+          );
+
+          const password: string | undefined =
+            req.body && (req.body["password"] as string);
+
+          if (!password) {
+            throw new BadDataException("Master password is required.");
+          }
+
+          const statusPage: StatusPage | null =
+            await StatusPageService.findOneById({
+              id: statusPageId,
+              select: {
+                _id: true,
+                projectId: true,
+                enableMasterPassword: true,
+                masterPassword: true,
+                isPublicStatusPage: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!statusPage) {
+            throw new NotFoundException("Status Page not found");
+          }
+
+          if (statusPage.isPublicStatusPage) {
+            throw new BadDataException(
+              "This status page is already visible to everyone.",
+            );
+          }
+
+          if (!statusPage.enableMasterPassword || !statusPage.masterPassword) {
+            throw new BadDataException(
+              "Master password has not been configured for this status page.",
+            );
+          }
+
+          const hashedInput: string = await HashedString.hashValue(
+            password,
+            EncryptionSecret,
+          );
+
+          if (hashedInput !== statusPage.masterPassword.toString()) {
+            throw new BadDataException(MASTER_PASSWORD_INVALID_MESSAGE);
+          }
+
+          CookieUtil.setStatusPageMasterPasswordCookie({
+            expressResponse: res,
+            statusPageId,
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
           next(err);
         }

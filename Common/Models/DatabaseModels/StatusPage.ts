@@ -30,6 +30,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Timezone from "../../Types/Timezone";
+import HashedString from "../../Types/HashedString";
 import {
   Column,
   Entity,
@@ -882,6 +883,78 @@ export default class StatusPage extends BaseModel {
     create: PlanType.Free,
   })
   public isPublicStatusPage?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Master Password",
+    description:
+      "Require visitors to enter a master password before viewing a private status page.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public enableMasterPassword?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectStatusPage,
+    ],
+
+    // This is a hashed column. So, reading the value is does not affect anything.
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    title: "Master Password",
+    description:
+      "Password required to unlock a private status page. This value is stored as a secure hash.",
+    hashed: true,
+    type: TableColumnType.HashedString,
+    placeholder: "Enter a new master password",
+  })
+  @Column({
+    type: ColumnType.HashedString,
+    length: ColumnLength.HashedString,
+    nullable: true,
+    transformer: HashedString.getDatabaseTransformer(),
+  })
+  public masterPassword?: HashedString = undefined;
 
   @ColumnAccessControl({
     create: [

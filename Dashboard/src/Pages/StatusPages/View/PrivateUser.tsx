@@ -6,17 +6,64 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
 
 const StatusPageDelete: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const [isMasterPasswordEnabled, setIsMasterPasswordEnabled] =
+    useState<boolean>(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchStatusPage: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const statusPage: StatusPage | null = await ModelAPI.getItem({
+          modelType: StatusPage,
+          id: modelId,
+          select: {
+            enableMasterPassword: true,
+          },
+        });
+
+        setIsMasterPasswordEnabled(Boolean(statusPage?.enableMasterPassword));
+        setFetchError(null);
+      } catch (error) {
+        const newErrorMessage: string =
+          error instanceof Error && error.message
+            ? error.message
+            : "Failed to fetch status page details.";
+        setFetchError(newErrorMessage);
+      }
+    };
+
+    void fetchStatusPage();
+  }, [modelId]);
 
   return (
     <Fragment>
+      {fetchError && (
+        <Alert className="mb-5" type={AlertType.DANGER} title={fetchError} />
+      )}
+      {isMasterPasswordEnabled && (
+        <Alert
+          className="mb-5"
+          type={AlertType.INFO}
+          title="Master password is enabled for this status page. Private users authentication is disabled while the master password is active."
+        />
+      )}
       <ModelTable<StatusPagePrivateUser>
         modelType={StatusPagePrivateUser}
         id="status-page-group"
