@@ -2328,7 +2328,7 @@ jobs:
           SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_APK_SIGNING_STORE_PASSWORD }}
         run: |
           set -euo pipefail
-          APK_PATH=$(./scripts/GHA/build_apk.sh)
+          APK_PATH=$(./Scripts/GHA/build_apk.sh)
           echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
           echo "Built APK at $APK_PATH"
 
