@@ -73,7 +73,7 @@ const hasValidMasterPasswordSession: (
 };
 
 const respondWithMasterPasswordAccess: (
-  data: MasterPasswordAuthInput & { res: ExpressResponse }
+  data: MasterPasswordAuthInput & { res: ExpressResponse },
 ) => boolean = (
   data: MasterPasswordAuthInput & { res: ExpressResponse },
 ): boolean => {

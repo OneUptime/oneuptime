@@ -31,7 +31,7 @@ const StatusPageDelete: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             placeholder: "Is this status page visible to public",
-          }
+          },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
@@ -44,7 +44,7 @@ const StatusPageDelete: FunctionComponent<
               },
               fieldType: FieldType.Boolean,
               title: "Is Visible to Public",
-            }
+            },
           ],
           modelId: modelId,
         }}

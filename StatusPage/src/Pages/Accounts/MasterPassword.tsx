@@ -105,7 +105,7 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
         },
       });
 
-      if(response.isFailure()){
+      if (response.isFailure()) {
         throw response;
       }
 

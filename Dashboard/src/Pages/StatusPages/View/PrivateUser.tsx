@@ -37,9 +37,7 @@ const StatusPageDelete: FunctionComponent<
           },
         });
 
-        setIsMasterPasswordEnabled(
-          Boolean(statusPage?.enableMasterPassword),
-        );
+        setIsMasterPasswordEnabled(Boolean(statusPage?.enableMasterPassword));
       } catch (error) {
         console.error("Failed to fetch status page details", error);
       }

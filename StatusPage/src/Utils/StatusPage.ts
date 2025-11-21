@@ -66,9 +66,7 @@ export default class StatusPageUtil {
   }
 
   private static getIsPrivateStatusPageStorageKey(): string {
-    return StatusPageUtil.getStatusPageScopedStorageKey(
-      "isPrivateStatusPage",
-    );
+    return StatusPageUtil.getStatusPageScopedStorageKey("isPrivateStatusPage");
   }
 
   private static getRequiresMasterPasswordStorageKey(): string {
