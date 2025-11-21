@@ -76,7 +76,7 @@ The following table lists the configurable parameters of the OneUptime chart and
 | Parameter                                         | Description                                                                                                                                                                            | Default         | Change Required |
 |---------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|-----------------|
 | `global.storageClass`                             | Storage class to be used for all persistent volumes                                                                                                                                    | `nil`           | 🚨              |
-| `host`                                            | Hostname for the ingress                                                                                                                                                               | `localhost`     | 🚨              |
+| `host`                                            | Primary hostname served by OneUptime (used for routing and certificate management)                                                                                                     | `localhost`     | 🚨              |
 | `ssl.provision`                                   | Automatically provision a Let's Encrypt certificate for the primary host (requires public access on ports 80 and 443)                                                                  | `false`         |                 |
 | `httpProtocol`                                    | If the server is hosted with SSL/TLS cert then change this value to https                                                                                                              | `http`          | 🚨              |
 | `oneuptimeSecret`                                 | Value used to define ONEUPTIME_SECRET                                                                                                                                                  | `nil`           |                 |
@@ -94,7 +94,7 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `autoscaling.targetCPUUtilizationPercentage`      | Target CPU utilization percentage                                                                                                                                                      | `80`            |                 |
 | `autoscaling.targetMemoryUtilizationPercentage`   | Target memory utilization percentage                                                                                                                                                   | `80`            |                 |
 | `nodeEnvironment`                                 | Node environment (please dont change this unless you're doing local development)                                                                                                       | `production`    |                 |
-| `nginx.service.type`                              | nginx service type                                                                                                                                                                     | `LoadBalancer`  |                 |
+| `nginx.service.type`                              | nginx service type (exposes the bundled OneUptime ingress gateway)                                                                                                                     | `LoadBalancer`  |                 |
 | `nginx.service.loadBalancerIP`                    | nginx service load balancer IP                                                                                                                                                         | `nil`           |                 |
 | `deployment.replicaCount`                         | Number of replicas                                                                                                                                                                     | `1`             |                 |
 | `probes.<key>.name`                               | Probe name                                                                                                                                                                             | `<key>`         |                 |
@@ -119,11 +119,6 @@ The following table lists the configurable parameters of the OneUptime chart and
 | `tolerations`                                     | Tolerations. Please refer to Kubernetes documentation on how to use them.                                                                                                              | `[]`            |                 |
 | `affinity`                                        | Affinity. Please refer to Kubernetes documentation on how to use them.                                                                                                                 | `{}`            |                 |
 | `extraTemplates`                                  | Extra templates to be added to the deployment                                                                                                                                          | `[]`            |                 |
-| `oneuptimeIngress.enabled`                        | Enable ingress                                                                                                                                                                         | `true`          |                 |
-| `oneuptimeIngress.annotations`                    | Ingress annotations                                                                                                                                                                    | `{}`            |                 |
-| `oneuptimeIngress.hosts`                          | Ingress hosts                                                                                                                                                                          | `[]`            |                 |
-| `oneuptimeIngress.tls`                            | Ingress TLS. Please refer to values.yaml to set these                                                                                                                                  | `[]`            |                 |
-| `oneuptimeIngress.className`                      | Ingress class name. Change this to your cloud providers ingress class                                                                                                                  | `nginx`         |                 |
 | `script.workflowScriptTimeoutInMs`                | Timeout for workflow script                                                                                                                                                            | `5000`          |                 |
 
 
@@ -425,6 +420,10 @@ clickhouse:
 ## Releases 
 
 We release frequently, sometimes multiple times a day. It's usually safe to upgrade to the latest version. Any breaking changes will be documented in the release notes. Please make sure you read the release notes before upgrading.
+
+## Upgrade Notes
+
+- **9.0.0 (2025-11-21)**: Kubernetes Ingress objects are no longer created. OneUptime already ships an ingress gateway container that manages TLS certificates, status page domains, and routing. Remove any `oneuptimeIngress` overrides from your values files and ensure `nginx.service.type` matches how you expose the ingress gateway (for example `LoadBalancer`).
 
 ## Chart Dependencies
 

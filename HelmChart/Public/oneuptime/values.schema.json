@@ -970,51 +970,6 @@
       },
       "additionalProperties": false
     },
-    "oneuptimeIngress": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean"
-        },
-        "annotations": {
-          "type": ["object", "null"]
-        },
-        "className": {
-          "type": "string"
-        },
-        "hosts": {
-          "type": ["array", "null"],
-          "items": {
-            "type": "string"
-          }
-        },
-        "tls": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean"
-            },
-            "hosts": {
-              "type": ["array", "null"],
-              "items": {
-                "type": "object",
-                "properties": {
-                  "host": {
-                    "type": "string"
-                  },
-                  "secretName": {
-                    "type": "string"
-                  }
-                },
-                "additionalProperties": false
-              }
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
     "script": {
       "type": "object",
       "properties": {

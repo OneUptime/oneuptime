@@ -60,6 +60,7 @@ metalLb:
       # - 51.158.55.153/32 # List of IP addresses of all the servers in the cluster.
 
 nginx:
+  # OneUptime ships with its own ingress gateway container, so Kubernetes Ingress resources are not required.
   enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
@@ -420,21 +421,6 @@ letsEncrypt:
   # Email address to register with letsencrypt for notifications
   # Example: "hello@yourcompany.com"
   email:
-
-oneuptimeIngress:
-  enabled: false
-  annotations:
-  # Please change this to the ingress class name for your cluster. If you use a cloud provider, this is usually the default ingress class name.
-  # If you dont have nginx ingress controller installed, please install it by going to https://kubernetes.github.io/ingress-nginx/deploy/
-  className: nginx # Required. Please change this to the ingress class name for your cluster. If you use a cloud provider, this is usually the default ingress class name.
-  hosts: # List of hosts for the ingress. Please change this to your hosts
-    # - "oneuptime.com" # Host 1
-    # - "www.oneuptime.com" # Host 2
-  tls:
-    enabled: false
-    hosts:
-      # - host: "oneuptime.com" # Host 1
-      #   secretName: "oneuptime-tls"
 
 script:
   workflowScriptTimeoutInMs: 5000
