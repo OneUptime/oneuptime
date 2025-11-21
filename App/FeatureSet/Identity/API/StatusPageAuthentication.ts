@@ -170,6 +170,7 @@ router.post(
 
       CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
       CookieUtil.removeCookie(res, CookieUtil.getRefreshTokenKey(statusPageId));
+      CookieUtil.removeStatusPageMasterPasswordCookie(res, statusPageId);
 
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
