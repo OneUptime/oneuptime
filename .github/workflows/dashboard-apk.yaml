@@ -43,125 +43,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Android SDK components
-        run: |
-          set -euo pipefail
-          ANDROID_HOME=${ANDROID_HOME:-/usr/local/lib/android/sdk}
-          ANDROID_SDK_ROOT=$ANDROID_HOME
-          echo "ANDROID_HOME=${ANDROID_HOME}" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT}" >> $GITHUB_ENV
-          yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --sdk_root="${ANDROID_HOME}" --licenses >/dev/null
-          yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --sdk_root="${ANDROID_HOME}" \
-            "platform-tools" \
-            "platforms;android-34" \
-            "build-tools;34.0.0"
-
-      - name: Install Bubblewrap CLI
-        run: npm install -g @bubblewrap/cli
-
-      - name: Prepare signing key
-        id: signing_key
-        env:
-          INPUT_KEYSTORE: ${{ env.SIGNING_KEYSTORE_BASE64 }}
-          INPUT_KEY_ALIAS: ${{ env.SIGNING_KEY_ALIAS }}
-          INPUT_KEY_PASS: ${{ env.SIGNING_KEY_PASSWORD }}
-          INPUT_STORE_PASS: ${{ env.SIGNING_STORE_PASSWORD }}
-        run: |
-          set -euo pipefail
-          if [ -n "${INPUT_KEYSTORE}" ]; then
-            echo "${INPUT_KEYSTORE}" | base64 --decode > android.keystore
-            STORE_PASS="${INPUT_STORE_PASS:-android}"
-            KEY_PASS="${INPUT_KEY_PASS:-${STORE_PASS}}"
-            KEY_ALIAS="${INPUT_KEY_ALIAS:-release}"
-            echo "Restored signing key from workflow input"
-          else
-            STORE_PASS=android
-            KEY_PASS=android
-            KEY_ALIAS=oneuptimeDebug
-            keytool -genkeypair \
-              -keystore android.keystore \
-              -storepass "${STORE_PASS}" \
-              -alias "${KEY_ALIAS}" \
-              -keypass "${KEY_PASS}" \
-              -validity 3650 \
-              -keyalg RSA \
-              -dname "CN=OneUptime, OU=Engineering, O=OneUptime, L=San Francisco, S=CA, C=US"
-            echo "Generated temporary debug keystore"
-          fi
-          echo "signing_alias=${KEY_ALIAS}" >> $GITHUB_OUTPUT
-          echo "signing_key_pass=${KEY_PASS}" >> $GITHUB_OUTPUT
-          echo "signing_store_pass=${STORE_PASS}" >> $GITHUB_OUTPUT
-
-      - name: Generate TWA manifest config
+      - name: Build APK
+        id: build_apk
         env:
           VERSION_NAME: ${{ steps.version.outputs.name }}
           VERSION_CODE: ${{ steps.version.outputs.code }}
-          SIGNING_ALIAS: ${{ steps.signing_key.outputs.signing_alias }}
-          SIGNING_KEY_PASS: ${{ steps.signing_key.outputs.signing_key_pass }}
-          SIGNING_STORE_PASS: ${{ steps.signing_key.outputs.signing_store_pass }}
         run: |
           set -euo pipefail
-          mkdir -p android
-          node <<'NODE'
-          const fs = require('fs');
-          const path = require('path');
-          const manifestPath = path.join(process.env.GITHUB_WORKSPACE, process.env.MANIFEST_SOURCE_PATH);
-          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-          const icons = manifest.icons || [];
-          const pickIcon = (predicate) => icons.find(predicate) || icons[0];
-          const bestIcon = pickIcon(icon => /512x512/.test(icon?.sizes || ''));
-          const maskableIcon = pickIcon(icon => (icon?.purpose || '').includes('maskable'));
-          const abs = (src) => src ? new URL(src, process.env.PWA_ORIGIN).href : undefined;
-          const twaManifest = {
-            packageId: process.env.PACKAGE_ID,
-            host: process.env.HOST_NAME,
-            name: manifest.name || manifest.short_name || 'OneUptime',
-            launcherName: manifest.short_name || manifest.name || 'OneUptime',
-            display: manifest.display || 'standalone',
-            themeColor: manifest.theme_color || '#000000',
-            navigationColor: manifest.theme_color || '#000000',
-            backgroundColor: manifest.background_color || '#ffffff',
-            enableNotifications: true,
-            startUrl: manifest.start_url || '/dashboard/',
-            webManifestUrl: process.env.MANIFEST_URL,
-            iconUrl: abs(bestIcon?.src),
-            maskableIconUrl: abs(maskableIcon?.src || bestIcon?.src),
-            shortcuts: manifest.shortcuts || [],
-            appVersion: process.env.VERSION_NAME,
-            appVersionCode: Number(process.env.VERSION_CODE),
-            signingKey: {
-              path: path.join(process.env.GITHUB_WORKSPACE, 'android.keystore'),
-              alias: process.env.SIGNING_ALIAS,
-              password: process.env.SIGNING_KEY_PASS,
-              keystorePassword: process.env.SIGNING_STORE_PASS
-            },
-            features: {
-              notifications: {
-                enabled: true
-              }
-            },
-            splashScreenFadeOutDuration: 300
-          };
-          fs.writeFileSync(path.join(process.env.GITHUB_WORKSPACE, 'android', 'twa-manifest.json'), JSON.stringify(twaManifest, null, 2));
-          NODE
-
-      - name: Scaffold Android project
-        working-directory: android
-        run: bubblewrap init --suppressPrompts
-
-      - name: Build signed APK
-        working-directory: android
-        run: bubblewrap build
-
-      - name: Locate APK
-        id: locate_apk
-        run: |
-          set -euo pipefail
-          APK_PATH=$(find android -type f -name "*release*.apk" | head -n 1)
-          if [ -z "$APK_PATH" ]; then
-            echo "Failed to locate release APK" >&2
-            exit 1
-          fi
+          APK_PATH=$(./scripts/GHA/build_apk.sh)
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
           echo "Found APK at $APK_PATH"
 
@@ -169,4 +58,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dashboard-apk-${{ steps.version.outputs.name }}
-          path: ${{ steps.locate_apk.outputs.apk_path }}
+          path: ${{ steps.build_apk.outputs.apk_path }}
