@@ -98,12 +98,16 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
     setFormError(null);
 
     try {
-      await API.post({
+      const response = await API.post({
         url,
         data: {
           password: submittedPassword,
         },
       });
+
+      if(response.isFailure()){
+        throw response;
+      }
 
       StatusPageUtil.setMasterPasswordValidated(true);
 
