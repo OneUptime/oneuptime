@@ -1,29 +1,18 @@
 name: Build Dashboard iOS Wrapper
 
 on:
-  workflow_dispatch:
-    inputs:
-      pwa_origin:
-        description: "Origin that serves the Dashboard (used to resolve relative asset paths)"
-        required: false
-        default: "https://app.oneuptime.com"
-      package_id:
-        description: "iOS bundle identifier (reverse DNS style)"
-        required: false
-        default: "com.oneuptime.dashboard"
-      host_name:
-        description: "Host name for entitlement allow list (optional)"
-        required: false
-        default: "app.oneuptime.com"
+  push:
+
+env:
+  PWA_ORIGIN: https://app.oneuptime.com
+  PACKAGE_ID: com.oneuptime.dashboard
+  HOST_NAME: app.oneuptime.com
 
 jobs:
   build-ios:
     runs-on: macos-latest
     env:
       MANIFEST_SOURCE_PATH: Dashboard/public/manifest.json
-      PWA_ORIGIN: ${{ inputs.pwa_origin }}
-      PACKAGE_ID: ${{ inputs.package_id }}
-      HOST_NAME: ${{ inputs.host_name }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
