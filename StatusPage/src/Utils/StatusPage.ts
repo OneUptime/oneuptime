@@ -24,22 +24,57 @@ export default class StatusPageUtil {
   }
 
   public static setIsPrivateStatusPage(isPrivate: boolean): void {
-    LocalStorage.setItem("isPrivateStatusPage", isPrivate);
+    const storageKey: string =
+      StatusPageUtil.getIsPrivateStatusPageStorageKey();
+
+    LocalStorage.setItem(storageKey, isPrivate);
   }
 
   public static isPrivateStatusPage(): boolean {
-    return Boolean(LocalStorage.getItem("isPrivateStatusPage"));
+    const storageKey: string =
+      StatusPageUtil.getIsPrivateStatusPageStorageKey();
+
+    return Boolean(LocalStorage.getItem(storageKey));
   }
 
   public static setRequiresMasterPassword(value: boolean): void {
-    LocalStorage.setItem("requiresMasterPassword", value);
+    const storageKey: string =
+      StatusPageUtil.getRequiresMasterPasswordStorageKey();
+
+    LocalStorage.setItem(storageKey, value);
+
     if (!value) {
       StatusPageUtil.setMasterPasswordValidated(false);
     }
   }
 
   public static requiresMasterPassword(): boolean {
-    return Boolean(LocalStorage.getItem("requiresMasterPassword"));
+    const storageKey: string =
+      StatusPageUtil.getRequiresMasterPasswordStorageKey();
+
+    return Boolean(LocalStorage.getItem(storageKey));
+  }
+
+  private static getStatusPageScopedStorageKey(baseKey: string): string {
+    const statusPageId: ObjectID | null = StatusPageUtil.getStatusPageId();
+
+    if (!statusPageId) {
+      return baseKey;
+    }
+
+    return `${baseKey}-${statusPageId.toString()}`;
+  }
+
+  private static getIsPrivateStatusPageStorageKey(): string {
+    return StatusPageUtil.getStatusPageScopedStorageKey(
+      "isPrivateStatusPage",
+    );
+  }
+
+  private static getRequiresMasterPasswordStorageKey(): string {
+    return StatusPageUtil.getStatusPageScopedStorageKey(
+      "requiresMasterPassword",
+    );
   }
 
   private static getMasterPasswordValidationStorageKey(): string {
