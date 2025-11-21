@@ -974,9 +974,7 @@ export default class StatusPageAPI extends BaseAPI<
           );
 
           if (hashedInput !== statusPage.masterPassword.toString()) {
-            throw new NotAuthenticatedException(
-              MASTER_PASSWORD_INVALID_MESSAGE,
-            );
+            throw new BadDataException(MASTER_PASSWORD_INVALID_MESSAGE);
           }
 
           CookieUtil.setStatusPageMasterPasswordCookie({
