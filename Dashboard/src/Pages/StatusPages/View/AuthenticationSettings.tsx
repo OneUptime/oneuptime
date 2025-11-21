@@ -55,7 +55,7 @@ const StatusPageDelete: FunctionComponent<
         cardProps={{
           title: "Master Password",
           description:
-            "Rotate the password required to unlock a private status page. This value is stored as a secure hash and cannot be retrieved.",
+            "Rotate the password required to unlock a private status page. This value is stored as a secure hash and cannot be retrieved. When master password is enabled, SSO/SCIM and Email + Password authentication are disabled.",
         }}
         editButtonText="Update Master Password"
         isEditable={true}
