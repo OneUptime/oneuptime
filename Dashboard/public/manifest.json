@@ -101,10 +101,13 @@
   ],
   "start_url": "/dashboard/",
   "scope": "/dashboard/",
-  
+  "scope_extensions": [
+    {"origin": "*.oneuptime.com"}
+  ],
   "launch_handler": {
-    "client_mode": "focus-existing"
+    "client_mode": ["focus-existing"]
   },  
+  "file_handlers": [],
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#000000",
