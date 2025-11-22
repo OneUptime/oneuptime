@@ -6,7 +6,7 @@
     "type": "module",
     "dependencies": {
         "eslint-plugin-react": "^7.37.5",
-        "eslint-plugin-unused-imports": "^4.1.0",
+        "eslint-plugin-unused-imports": "^4.3.0",
         "globals": "^15.15.0",
         "jest": "^30.2.0",
         "mailparser": "^3.7.5",
