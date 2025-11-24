@@ -2809,7 +2809,7 @@ export default class StatusPageAPI extends BaseAPI<
               manageSubscriptionUrl: manageUrlink,
             },
             subject:
-              "Manage your Subscription for" +
+              "Manage your Subscription for " +
               (statusPage.name || "Status Page"),
           },
           {
