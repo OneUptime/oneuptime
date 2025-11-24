@@ -329,11 +329,9 @@ export const ProvisionSsl: boolean = process.env["PROVISION_SSL"] === "true";
 export const CaptchaEnabled: boolean =
   process.env["CAPTCHA_ENABLED"] === "true";
 
-export const CaptchaSecretKey: string =
-  process.env["CAPTCHA_SECRET_KEY"] || "";
+export const CaptchaSecretKey: string = process.env["CAPTCHA_SECRET_KEY"] || "";
 
-export const CaptchaSiteKey: string =
-  process.env["CAPTCHA_SITE_KEY"] || "";
+export const CaptchaSiteKey: string = process.env["CAPTCHA_SITE_KEY"] || "";
 
 export const WorkflowScriptTimeoutInMS: number = process.env[
   "WORKFLOW_SCRIPT_TIMEOUT_IN_MS"

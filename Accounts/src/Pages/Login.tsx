@@ -7,7 +7,12 @@ import {
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import ModelForm, { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
+import ModelForm, {
+  FormType,
+  ModelField,
+} from "Common/UI/Components/Forms/ModelForm";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Link from "Common/UI/Components/Link/Link";
 import Captcha from "Common/UI/Components/Captcha/Captcha";
@@ -85,8 +90,10 @@ const LoginPage: () => JSX.Element = () => {
     React.useState<boolean>(false);
   const [captchaResetSignal, setCaptchaResetSignal] = React.useState<number>(0);
 
-  const handleCaptchaReset = React.useCallback(() => {
-    setCaptchaResetSignal((current: number) => current + 1);
+  const handleCaptchaReset: () => void = React.useCallback(() => {
+    setCaptchaResetSignal((current: number) => {
+      return current + 1;
+    });
   }, []);
   let loginFields: Array<ModelField<User>> = [
     {
@@ -134,17 +141,22 @@ const LoginPage: () => JSX.Element = () => {
           "Complete the captcha challenge so we know you're not a bot.",
         required: true,
         showEvenIfPermissionDoesNotExist: true,
-        getCustomElement: (_values, customProps) => (
-          <Captcha
-            siteKey={CAPTCHA_SITE_KEY}
-            resetSignal={captchaResetSignal}
-            error={customProps.error}
-            onTokenChange={(token: string) => {
-              customProps.onChange?.(token);
-            }}
-            onBlur={customProps.onBlur}
-          />
-        ),
+        getCustomElement: (
+          _values: FormValues<User>,
+          customProps: CustomElementProps,
+        ) => {
+          return (
+            <Captcha
+              siteKey={CAPTCHA_SITE_KEY}
+              resetSignal={captchaResetSignal}
+              error={customProps.error}
+              onTokenChange={(token: string) => {
+                customProps.onChange?.(token);
+              }}
+              onBlur={customProps.onBlur}
+            />
+          );
+        },
       },
     ]);
   }

@@ -1,4 +1,4 @@
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, AxiosResponse } from "axios";
 import BadDataException from "../../Types/Exception/BadDataException";
 import logger from "./Logger";
 import { CaptchaEnabled, CaptchaSecretKey } from "../EnvironmentConfig";
@@ -11,6 +11,11 @@ export interface VerifyCaptchaOptions {
 const REQUEST_TIMEOUT_MS: number = 5000;
 const GENERIC_ERROR_MESSAGE: string =
   "Captcha verification failed. Please try again.";
+
+type HCaptchaResponse = {
+  success?: boolean;
+  [key: string]: unknown;
+};
 
 class CaptchaUtil {
   public static isCaptchaEnabled(): boolean {
@@ -69,16 +74,17 @@ class CaptchaUtil {
       params.append("remoteip", remoteIp);
     }
 
-    const response = await axios.post(
-      "https://hcaptcha.com/siteverify",
-      params.toString(),
-      {
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
+    const response: AxiosResponse<HCaptchaResponse> =
+      await axios.post<HCaptchaResponse>(
+        "https://hcaptcha.com/siteverify",
+        params.toString(),
+        {
+          headers: {
+            "content-type": "application/x-www-form-urlencoded",
+          },
+          timeout: REQUEST_TIMEOUT_MS,
         },
-        timeout: REQUEST_TIMEOUT_MS,
-      },
-    );
+      );
 
     if (!response.data?.success) {
       logger.warn(

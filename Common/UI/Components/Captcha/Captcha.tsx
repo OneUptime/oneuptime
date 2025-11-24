@@ -18,16 +18,22 @@ const Captcha: React.FC<CaptchaProps> = ({
   onBlur,
   className,
 }: CaptchaProps): JSX.Element => {
-  const captchaRef = React.useRef<HCaptcha | null>(null);
-  const onTokenChangeRef = React.useRef<typeof onTokenChange>(onTokenChange);
+  const captchaRef: React.MutableRefObject<HCaptcha | null> =
+    React.useRef<HCaptcha | null>(null);
+  const onTokenChangeRef: React.MutableRefObject<
+    CaptchaProps["onTokenChange"]
+  > = React.useRef<CaptchaProps["onTokenChange"]>(onTokenChange);
 
   React.useEffect(() => {
     onTokenChangeRef.current = onTokenChange;
   }, [onTokenChange]);
 
-  const handleTokenChange = React.useCallback((token: string | null) => {
-    onTokenChangeRef.current?.(token || "");
-  }, []);
+  const handleTokenChange: (token: string | null) => void = React.useCallback(
+    (token: string | null) => {
+      onTokenChangeRef.current?.(token || "");
+    },
+    [],
+  );
 
   React.useEffect(() => {
     captchaRef.current?.resetCaptcha();

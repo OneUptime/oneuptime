@@ -4,8 +4,13 @@ import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ModelForm, { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
+import ModelForm, {
+  FormType,
+  ModelField,
+} from "Common/UI/Components/Forms/ModelForm";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Link from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Captcha from "Common/UI/Components/Captcha/Captcha";
@@ -48,8 +53,10 @@ const RegisterPage: () => JSX.Element = () => {
     React.useState<boolean>(false);
   const [captchaResetSignal, setCaptchaResetSignal] = React.useState<number>(0);
 
-  const handleCaptchaReset = React.useCallback(() => {
-    setCaptchaResetSignal((current: number) => current + 1);
+  const handleCaptchaReset: () => void = React.useCallback(() => {
+    setCaptchaResetSignal((current: number) => {
+      return current + 1;
+    });
   }, []);
 
   if (UserUtil.isLoggedIn()) {
@@ -212,17 +219,22 @@ const RegisterPage: () => JSX.Element = () => {
           "Complete the captcha challenge so we know you're not a bot.",
         required: true,
         showEvenIfPermissionDoesNotExist: true,
-        getCustomElement: (_values, customProps) => (
-          <Captcha
-            siteKey={CAPTCHA_SITE_KEY}
-            resetSignal={captchaResetSignal}
-            error={customProps.error}
-            onTokenChange={(token: string) => {
-              customProps.onChange?.(token);
-            }}
-            onBlur={customProps.onBlur}
-          />
-        ),
+        getCustomElement: (
+          _values: FormValues<User>,
+          customProps: CustomElementProps,
+        ) => {
+          return (
+            <Captcha
+              siteKey={CAPTCHA_SITE_KEY}
+              resetSignal={captchaResetSignal}
+              error={customProps.error}
+              onTokenChange={(token: string) => {
+                customProps.onChange?.(token);
+              }}
+              onBlur={customProps.onBlur}
+            />
+          );
+        },
       },
     ]);
   }
@@ -266,7 +278,10 @@ const RegisterPage: () => JSX.Element = () => {
             maxPrimaryButtonWidth={true}
             fields={formFields}
             createOrUpdateApiUrl={apiUrl}
-            onBeforeCreate={(item: User, miscDataProps: JSONObject): Promise<User> => {
+            onBeforeCreate={(
+              item: User,
+              miscDataProps: JSONObject,
+            ): Promise<User> => {
               if (isCaptchaEnabled) {
                 const captchaToken: string | undefined = (
                   miscDataProps["captchaToken"] as string | undefined
