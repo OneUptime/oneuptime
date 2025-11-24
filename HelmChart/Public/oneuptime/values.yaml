@@ -257,6 +257,9 @@ analytics:
   host:
   key:
 
+
+# CAPTCHA Configuration
+# We support hCaptcha. You can get site key and secret key from https://hcaptcha.com/
 captcha:
   enabled: false
   siteKey:
