@@ -14,7 +14,7 @@ import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import Team from "Common/Models/DatabaseModels/Team";
@@ -31,6 +31,7 @@ import {
   generateServiceProviderConfig,
   generateUsersListResponse,
   parseSCIMQueryParams,
+  extractEmailFromSCIM,
 } from "../Utils/SCIMUtils";
 import {
   AppApiClientUrl,
@@ -178,6 +179,321 @@ const formatTeamForSCIM: (
       location: `${AppApiClientUrl.toString()}scim/v2/${projectScimId}/Groups/${team.id?.toString()}`,
     },
   };
+};
+
+const mergeJSONObject: (target: JSONObject, source: JSONObject) => void = (
+  target: JSONObject,
+  source: JSONObject,
+): void => {
+  for (const key of Object.keys(source)) {
+    const value: unknown = source[key];
+
+    if (
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      target[key] &&
+      typeof target[key] === "object" &&
+      !Array.isArray(target[key])
+    ) {
+      mergeJSONObject(target[key] as JSONObject, value as JSONObject);
+    } else {
+      target[key] = value as JSONValue;
+    }
+  }
+};
+
+const extractEmailFromPatchValue: (value: unknown) => string | undefined = (
+  value: unknown,
+): string | undefined => {
+  if (!value) {
+    return undefined;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const extracted: string | undefined = extractEmailFromPatchValue(entry);
+      if (extracted) {
+        return extracted;
+      }
+    }
+    return undefined;
+  }
+
+  if (typeof value === "object") {
+    const obj: JSONObject = value as JSONObject;
+    const directValue: unknown = obj["value"] ?? obj["email"];
+    if (typeof directValue === "string") {
+      return directValue;
+    }
+  }
+
+  return undefined;
+};
+
+const normalizeBoolean: (value: unknown) => boolean | undefined = (
+  value: unknown,
+): boolean | undefined => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const lowered: string = value.toLowerCase();
+    if (lowered === "true") {
+      return true;
+    }
+    if (lowered === "false") {
+      return false;
+    }
+  }
+
+  return undefined;
+};
+
+const applyPatchPathValue: (
+  payload: JSONObject,
+  rawPath: string,
+  value: unknown,
+) => void = (payload: JSONObject, rawPath: string, value: unknown): void => {
+  const trimmedPath: string = rawPath.trim();
+  if (!trimmedPath) {
+    return;
+  }
+
+  const sanitizedPath: string = trimmedPath.replace(/\[[^\]]+\]/g, "");
+  const lowerPath: string = sanitizedPath.toLowerCase();
+
+  if (lowerPath === "active") {
+    const boolValue: boolean | undefined = normalizeBoolean(value);
+    if (boolValue !== undefined) {
+      payload["active"] = boolValue;
+    }
+    return;
+  }
+
+  if (lowerPath === "username") {
+    if (typeof value === "string") {
+      payload["userName"] = value;
+    }
+    return;
+  }
+
+  if (lowerPath === "displayname") {
+    if (typeof value === "string") {
+      payload["displayName"] = value;
+    }
+    return;
+  }
+
+  if (lowerPath === "name") {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const existingName: JSONObject = (payload["name"] as JSONObject) || {};
+      mergeJSONObject(existingName, value as JSONObject);
+      payload["name"] = existingName;
+    } else if (typeof value === "string") {
+      payload["name"] = { formatted: value } as JSONObject;
+    }
+    return;
+  }
+
+  if (lowerPath.startsWith("name.")) {
+    const [, attribute] = sanitizedPath.split(".");
+    if (attribute) {
+      const existingName: JSONObject = (payload["name"] as JSONObject) || {};
+      existingName[attribute] = value as JSONValue;
+      payload["name"] = existingName;
+    }
+    return;
+  }
+
+  if (
+    lowerPath === "emails" ||
+    lowerPath === "emails.value" ||
+    lowerPath === "email"
+  ) {
+    const emailValue: string | undefined = extractEmailFromPatchValue(value);
+    if (emailValue) {
+      payload["emails"] = [
+        {
+          value: emailValue,
+          type: "work",
+          primary: true,
+        },
+      ];
+      if (!payload["userName"]) {
+        payload["userName"] = emailValue;
+      }
+    }
+    return;
+  }
+
+  const segments: Array<string> = sanitizedPath.split(".");
+  if (segments.length === 1) {
+    payload[segments[0] as keyof JSONObject] = value as JSONValue;
+    return;
+  }
+
+  let current: JSONObject = payload;
+  for (let i: number = 0; i < segments.length - 1; i++) {
+    const segment: string = segments[i]!;
+    const existing: JSONObject =
+      (current[segment] as JSONObject) || ({} as JSONObject);
+    current[segment] = existing as JSONValue;
+    current = existing;
+  }
+
+  current[segments[segments.length - 1]!] = value as JSONValue;
+};
+
+const buildScimPayloadFromPatchOperations: (
+  operations: Array<JSONObject>,
+) => JSONObject = (operations: Array<JSONObject>): JSONObject => {
+  const payload: JSONObject = {};
+
+  for (const operation of operations) {
+    if (!operation) {
+      continue;
+    }
+
+    const opRaw: unknown = operation["op"] ?? operation["operation"];
+    if (typeof opRaw !== "string") {
+      continue;
+    }
+
+    const op: string = opRaw.toLowerCase();
+    const path: string | undefined = operation["path"] as string | undefined;
+    const value: unknown = operation["value"];
+
+    if (op === "remove") {
+      if (path) {
+        const sanitizedPath: string = path.replace(/\[[^\]]+\]/g, "");
+        delete payload[sanitizedPath];
+      }
+      continue;
+    }
+
+    if (path) {
+      applyPatchPathValue(payload, path, value);
+      continue;
+    }
+
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      mergeJSONObject(payload, value as JSONObject);
+    }
+  }
+
+  return payload;
+};
+
+const updateProjectSCIMUser: (data: {
+  req: ExpressRequest;
+  projectId: ObjectID;
+  projectScimId: string;
+  userId: string;
+  scimPayload: JSONObject;
+  scimConfig: ProjectSCIM;
+}) => Promise<JSONObject> = async (data: {
+  req: ExpressRequest;
+  projectId: ObjectID;
+  projectScimId: string;
+  userId: string;
+  scimPayload: JSONObject;
+  scimConfig: ProjectSCIM;
+}): Promise<JSONObject> => {
+  const { req, projectId, projectScimId, userId, scimPayload, scimConfig } =
+    data;
+
+  const projectUser: TeamMember | null = await TeamMemberService.findOneBy({
+    query: {
+      projectId: projectId,
+      userId: new ObjectID(userId),
+    },
+    select: {
+      userId: true,
+      user: {
+        _id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    },
+    props: { isRoot: true },
+  });
+
+  if (!projectUser || !projectUser.user) {
+    throw new NotFoundException("User not found or not part of this project");
+  }
+
+  const email: string = extractEmailFromSCIM(scimPayload);
+  const name: string = parseNameFromSCIM(scimPayload);
+  const hasActiveField: boolean = Object.prototype.hasOwnProperty.call(
+    scimPayload,
+    "active",
+  );
+  const active: boolean | undefined = hasActiveField
+    ? (scimPayload["active"] as boolean)
+    : undefined;
+
+  if (hasActiveField && active === false && !scimConfig.enablePushGroups) {
+    await handleUserTeamOperations(
+      "remove",
+      projectId,
+      new ObjectID(userId),
+      scimConfig,
+    );
+  }
+
+  if (hasActiveField && active === true && !scimConfig.enablePushGroups) {
+    await handleUserTeamOperations(
+      "add",
+      projectId,
+      new ObjectID(userId),
+      scimConfig,
+    );
+  }
+
+  const updateData: {
+    email?: Email;
+    name?: Name;
+  } = {};
+
+  if (email) {
+    updateData.email = new Email(email);
+  }
+
+  if (name) {
+    updateData.name = new Name(name);
+  }
+
+  if (Object.keys(updateData).length > 0) {
+    await UserService.updateOneById({
+      id: new ObjectID(userId),
+      data: updateData,
+      props: { isRoot: true },
+    });
+  }
+
+  const updatedUser: User | null = await UserService.findOneById({
+    id: new ObjectID(userId),
+    select: {
+      _id: true,
+      email: true,
+      name: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+    props: { isRoot: true },
+  });
+
+  const userForResponse: User = updatedUser || projectUser.user;
+
+  return formatUserForSCIM(userForResponse, req, projectScimId, "project");
 };
 
 // SCIM Service Provider Configuration - GET /scim/v2/ServiceProviderConfig
@@ -502,135 +818,70 @@ router.put(
         throw new BadRequestException("User ID is required");
       }
 
-      // Check if user exists and is part of the project
-      const projectUser: TeamMember | null = await TeamMemberService.findOneBy({
-        query: {
-          projectId: projectId,
-          userId: new ObjectID(userId),
-        },
-        select: {
-          userId: true,
-          user: {
-            _id: true,
-            email: true,
-            name: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        },
-        props: { isRoot: true },
+      const scimConfig: ProjectSCIM = bearerData["scimConfig"] as ProjectSCIM;
+      const user: JSONObject = await updateProjectSCIMUser({
+        req,
+        projectId,
+        projectScimId: req.params["projectScimId"]!,
+        userId,
+        scimPayload: scimUser,
+        scimConfig,
       });
 
-      if (!projectUser || !projectUser.user) {
-        logger.debug(
-          `SCIM Update user - user not found or not part of project for userId: ${userId}`,
-        );
-        throw new NotFoundException(
-          "User not found or not part of this project",
-        );
-      }
+      return Response.sendJsonObjectResponse(req, res, user);
+    } catch (err) {
+      logger.error(err);
+      return next(err);
+    }
+  },
+);
 
-      // Update user information
-      const email: string =
-        (scimUser["userName"] as string) ||
-        ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string);
-      const name: string = parseNameFromSCIM(scimUser);
-      const active: boolean = scimUser["active"] as boolean;
-
+router.patch(
+  "/scim/v2/:projectScimId/Users/:userId",
+  SCIMMiddleware.isAuthorizedSCIMRequest,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
       logger.debug(
-        `SCIM Update user - email: ${email}, name: ${name}, active: ${active}`,
+        `SCIM Patch user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`,
       );
-
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      const projectId: ObjectID = bearerData["projectId"] as ObjectID;
+      const userId: string = req.params["userId"]!;
       const scimConfig: ProjectSCIM = bearerData["scimConfig"] as ProjectSCIM;
 
-      // Handle user deactivation by removing from teams
-      if (active === false && !scimConfig.enablePushGroups) {
-        logger.debug(
-          `SCIM Update user - user marked as inactive, removing from teams`,
-        );
-        await handleUserTeamOperations(
-          "remove",
-          projectId,
-          new ObjectID(userId),
-          scimConfig,
-        );
-        logger.debug(
-          `SCIM Update user - user successfully removed from teams due to deactivation`,
+      if (!userId) {
+        throw new BadRequestException("User ID is required");
+      }
+
+      const operationsInput: unknown =
+        req.body?.Operations ?? req.body?.operations;
+      const operations: Array<JSONObject> = Array.isArray(operationsInput)
+        ? (operationsInput as Array<JSONObject>)
+        : [];
+
+      if (operations.length === 0) {
+        throw new BadRequestException(
+          "SCIM Patch requires at least one operation",
         );
       }
 
-      // Handle user activation by adding to teams
-      if (active === true && !scimConfig.enablePushGroups) {
-        logger.debug(
-          `SCIM Update user - user marked as active, adding to teams`,
-        );
-        await handleUserTeamOperations(
-          "add",
-          projectId,
-          new ObjectID(userId),
-          scimConfig,
-        );
-        logger.debug(
-          `SCIM Update user - user successfully added to teams due to activation`,
-        );
-      }
+      const scimPayload: JSONObject =
+        buildScimPayloadFromPatchOperations(operations);
 
-      if (email || name) {
-        const updateData: any = {};
-        if (email) {
-          updateData.email = new Email(email);
-        }
-        if (name) {
-          updateData.name = new Name(name);
-        }
-
-        logger.debug(
-          `SCIM Update user - updating user with data: ${JSON.stringify(updateData)}`,
-        );
-
-        await UserService.updateOneById({
-          id: new ObjectID(userId),
-          data: updateData,
-          props: { isRoot: true },
-        });
-
-        logger.debug(`SCIM Update user - user updated successfully`);
-
-        // Fetch updated user
-        const updatedUser: User | null = await UserService.findOneById({
-          id: new ObjectID(userId),
-          select: {
-            _id: true,
-            email: true,
-            name: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-          props: { isRoot: true },
-        });
-
-        if (updatedUser) {
-          const user: JSONObject = formatUserForSCIM(
-            updatedUser,
-            req,
-            req.params["projectScimId"]!,
-            "project",
-          );
-          return Response.sendJsonObjectResponse(req, res, user);
-        }
-      }
-
-      logger.debug(
-        `SCIM Update user - no updates made, returning existing user`,
-      );
-
-      // If no updates were made, return the existing user
-      const user: JSONObject = formatUserForSCIM(
-        projectUser.user,
+      const user: JSONObject = await updateProjectSCIMUser({
         req,
-        req.params["projectScimId"]!,
-        "project",
-      );
+        projectId,
+        projectScimId: req.params["projectScimId"]!,
+        userId,
+        scimPayload,
+        scimConfig,
+      });
 
       return Response.sendJsonObjectResponse(req, res, user);
     } catch (err) {
