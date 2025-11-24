@@ -1,4 +1,5 @@
 import {
+  IsBillingEnabled,
   LetsEncryptAccountKey,
   LetsEncryptNotificationEmail,
 } from "../../../Server/EnvironmentConfig";
@@ -36,8 +37,8 @@ export default class GreenlockUtil {
             expiresAt: QueryHelper.lessThanEqualTo(
               OneUptimeDate.addRemoveDays(
                 OneUptimeDate.getCurrentDate(),
-                40, // 40 days before expiry
-              ),
+                40 // 40 days before expiry
+              )
             ),
           },
           limit: LIMIT_MAX,
@@ -54,7 +55,7 @@ export default class GreenlockUtil {
         });
 
       logger.debug(
-        `Found ${certificates.length} certificates which are expiring soon`,
+        `Found ${certificates.length} certificates which are expiring soon`
       );
 
       // order certificate for each domain
@@ -69,12 +70,12 @@ export default class GreenlockUtil {
         try {
           //validate cname
           const isValidCname: boolean = await data.validateCname(
-            certificate.domain,
+            certificate.domain
           );
 
           if (!isValidCname) {
             logger.debug(
-              `CNAME is not valid for domain: ${certificate.domain}`,
+              `CNAME is not valid for domain: ${certificate.domain}`
             );
 
             // if cname is not valid then remove the domain
@@ -82,7 +83,7 @@ export default class GreenlockUtil {
             await data.notifyDomainRemoved(certificate.domain);
 
             logger.error(
-              `Cname is not valid for domain: ${certificate.domain}`,
+              `Cname is not valid for domain: ${certificate.domain}`
             );
           } else {
             logger.debug(`CNAME is valid for domain: ${certificate.domain}`);
@@ -93,12 +94,12 @@ export default class GreenlockUtil {
             });
 
             logger.debug(
-              `Certificate renewed for domain: ${certificate.domain}`,
+              `Certificate renewed for domain: ${certificate.domain}`
             );
           }
         } catch (e) {
           logger.error(
-            `Error renewing certificate for domain: ${certificate.domain}`,
+            `Error renewing certificate for domain: ${certificate.domain}`
           );
           logger.error(e);
         }
@@ -138,7 +139,7 @@ export default class GreenlockUtil {
   }): Promise<void> {
     try {
       logger.debug(
-        `GreenlockUtil - Ordering certificate for domain: ${data.domain}`,
+        `GreenlockUtil - Ordering certificate for domain: ${data.domain}`
       );
 
       let { domain } = data;
@@ -149,13 +150,13 @@ export default class GreenlockUtil {
 
       if (!acmeAccountKeyInBase64) {
         throw new ServerException(
-          "No lets encrypt account key found in environment variables. Please add one.",
+          "No lets encrypt account key found in environment variables. Please add one."
         );
       }
 
       let acmeAccountKey: string = Buffer.from(
         acmeAccountKeyInBase64,
-        "base64",
+        "base64"
       ).toString();
 
       acmeAccountKey = Text.replaceAll(acmeAccountKey, "\\n", "\n");
@@ -196,13 +197,13 @@ export default class GreenlockUtil {
         challengeCreateFn: async (
           authz: acme.Authorization,
           challenge: Challenge,
-          keyAuthorization: string,
+          keyAuthorization: string
         ) => {
           // Satisfy challenge here
           /* http-01 */
           if (challenge.type === "http-01") {
             logger.debug(
-              `Creating challenge for domain: ${authz.identifier.value}`,
+              `Creating challenge for domain: ${authz.identifier.value}`
             );
 
             const acmeChallenge: AcmeChallenge = new AcmeChallenge();
@@ -218,18 +219,18 @@ export default class GreenlockUtil {
             });
 
             logger.debug(
-              `Challenge created for domain: ${authz.identifier.value}`,
+              `Challenge created for domain: ${authz.identifier.value}`
             );
           }
         },
         challengeRemoveFn: async (
           authz: acme.Authorization,
-          challenge: Challenge,
+          challenge: Challenge
         ) => {
           // Clean up challenge here
 
           logger.debug(
-            `Removing challenge for domain: ${authz.identifier.value}`,
+            `Removing challenge for domain: ${authz.identifier.value}`
           );
 
           if (challenge.type === "http-01") {
@@ -246,7 +247,7 @@ export default class GreenlockUtil {
           }
 
           logger.debug(
-            `Challenge removed for domain: ${authz.identifier.value}`,
+            `Challenge removed for domain: ${authz.identifier.value}`
           );
         },
       });
@@ -325,9 +326,15 @@ export default class GreenlockUtil {
         throw e;
       }
 
-      throw new ServerException(
-        `Unable to order certificate for ${data.domain}. Please contact support at support@oneuptime.com for more information.`,
-      );
+      if (IsBillingEnabled) {
+        throw new ServerException(
+          `Unable to order certificate for ${data.domain}. Please contact support at support@oneuptime.com for more information.`
+        );
+      } else {
+        throw new ServerException(
+          `Unable to order certificate for ${data.domain}. Please make sure that your server can be accessed publicly over port 80 (HTTP) and port 443 (HTTPS). If the problem persists, please refer to server logs for more information. Please also set up LOG_LEVEL=DEBUG to get more detailed server logs.`
+        );
+      }
     }
   }
 }
