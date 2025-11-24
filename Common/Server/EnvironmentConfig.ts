@@ -44,6 +44,8 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "DISABLE_TELEMETRY",
   "SLACK_APP_CLIENT_ID",
   "MICROSOFT_TEAMS_APP_CLIENT_ID",
+  "CAPTCHA_ENABLED",
+  "CAPTCHA_SITE_KEY",
 ];
 
 const FRONTEND_ENV_ALLOW_PREFIXES: Array<string> = [
@@ -323,6 +325,15 @@ export const HttpProtocol: Protocol =
 export const Host: string = process.env["HOST"] || "";
 
 export const ProvisionSsl: boolean = process.env["PROVISION_SSL"] === "true";
+
+export const CaptchaEnabled: boolean =
+  process.env["CAPTCHA_ENABLED"] === "true";
+
+export const CaptchaSecretKey: string =
+  process.env["CAPTCHA_SECRET_KEY"] || "";
+
+export const CaptchaSiteKey: string =
+  process.env["CAPTCHA_SITE_KEY"] || "";
 
 export const WorkflowScriptTimeoutInMS: number = process.env[
   "WORKFLOW_SCRIPT_TIMEOUT_IN_MS"

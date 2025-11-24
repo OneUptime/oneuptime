@@ -38,6 +38,7 @@ import Express, {
   getClientIp,
   headerValueToString,
 } from "Common/Server/Utils/Express";
+import CaptchaUtil from "Common/Server/Utils/Captcha";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import TotpAuth from "Common/Server/Utils/TotpAuth";
@@ -106,6 +107,16 @@ router.post(
           ),
         );
       }
+
+      const miscDataProps: JSONObject =
+        (req.body["miscDataProps"] as JSONObject) || {};
+
+      await CaptchaUtil.verifyCaptcha({
+        token:
+          (miscDataProps["captchaToken"] as string | undefined) ||
+          (req.body["captchaToken"] as string | undefined),
+        remoteIp: getClientIp(req) || null,
+      });
 
       const data: JSONObject = req.body["data"];
 
