@@ -92,6 +92,8 @@ build_variant() {
 	local variant_prefix="$1"       # "" or "enterprise-"
 	local enterprise_flag="$2"      # false/true
 	local -n extra_tags_ref="$3"    # Array reference with extra tag suffixes
+	local sanitized_version
+	sanitized_version="${VERSION//+/-}"
 
 	local -a args
 	args=(
@@ -103,8 +105,8 @@ build_variant() {
 	)
 
 	args+=(
-		--tag "oneuptime/${IMAGE}:${variant_prefix}${VERSION}"
-		--tag "ghcr.io/oneuptime/${IMAGE}:${variant_prefix}${VERSION}"
+		--tag "oneuptime/${IMAGE}:${variant_prefix}${sanitized_version}"
+		--tag "ghcr.io/oneuptime/${IMAGE}:${variant_prefix}${sanitized_version}"
 	)
 
 	for tag_suffix in "${extra_tags_ref[@]}"; do

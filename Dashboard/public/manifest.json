@@ -3,6 +3,7 @@
   "name": "OneUptime - Complete Observability Platform",
   "id": "/dashboard/oneuptime",
   "description": "Monitor, observe, debug, and resolve. Everything you need to build reliable software in one open source platform.",
+  "widgets": [],
   "icons": [
     {
       "src": "/dashboard/assets/img/favicons/favicon.ico",
@@ -101,10 +102,13 @@
   ],
   "start_url": "/dashboard/",
   "scope": "/dashboard/",
-  
+  "scope_extensions": [
+    {"origin": "*.oneuptime.com"}
+  ],
   "launch_handler": {
-    "client_mode": "focus-existing"
+    "client_mode": ["focus-existing"]
   },  
+  "file_handlers": [],
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#000000",
