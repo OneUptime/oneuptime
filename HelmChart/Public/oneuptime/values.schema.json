@@ -663,6 +663,21 @@
       },
       "additionalProperties": false
     },
+    "captcha": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "siteKey": {
+          "type": ["string", "null"]
+        },
+        "secretKey": {
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": false
+    },
     "vapid": {
       "type": "object",
       "properties": {

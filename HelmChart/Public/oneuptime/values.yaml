@@ -257,6 +257,11 @@ analytics:
   host:
   key:
 
+captcha:
+  enabled: false
+  siteKey:
+  secretKey:
+
 # VAPID Configuration for Web Push Notifications
 # Generate VAPID keys using: npx web-push generate-vapid-keys
 vapid:

@@ -81,6 +81,10 @@ Usage:
   value: {{ $.Values.analytics.key }}
 - name: ANALYTICS_HOST
   value: {{ $.Values.analytics.host }}
+- name: CAPTCHA_ENABLED
+  value: {{ ternary "true" "false" (default false $.Values.captcha.enabled) | quote }}
+- name: CAPTCHA_SITE_KEY
+  value: {{ default "" $.Values.captcha.siteKey | quote }}
 - name: VAPID_PUBLIC_KEY
   value: {{ $.Values.vapid.publicKey }}
 - name: VAPID_SUBJECT
@@ -189,6 +193,9 @@ Usage:
 
 - name: MICROSOFT_TEAMS_APP_CLIENT_SECRET
   value: {{ $.Values.microsoftTeamsApp.clientSecret }}
+
+- name: CAPTCHA_SECRET_KEY
+  value: {{ default "" $.Values.captcha.secretKey | quote }}
 
 
 - name: NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER
