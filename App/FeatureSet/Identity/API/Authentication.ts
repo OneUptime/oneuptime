@@ -815,6 +815,18 @@ const login: LoginFunction = async (options: {
   const verifyWebAuthn: boolean = options.verifyWebAuthn;
 
   try {
+    const miscDataProps: JSONObject =
+      (req.body["miscDataProps"] as JSONObject) || {};
+
+    if (!verifyTotpAuth && !verifyWebAuthn) {
+      await CaptchaUtil.verifyCaptcha({
+        token:
+          (miscDataProps["captchaToken"] as string | undefined) ||
+          (req.body["captchaToken"] as string | undefined),
+        remoteIp: getClientIp(req) || null,
+      });
+    }
+
     const data: JSONObject = req.body["data"];
 
     logger.debug("Login request data: " + JSON.stringify(req.body, null, 2));
