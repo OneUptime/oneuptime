@@ -13,6 +13,7 @@ import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 export default class MonitorUtil {
   public static async loadMonitorSecrets(
@@ -20,7 +21,7 @@ export default class MonitorUtil {
   ): Promise<MonitorSecret[]> {
     const secrets: Array<MonitorSecret> = await MonitorSecretService.findBy({
       query: {
-        monitors: [monitorId] as any,
+        monitors: QueryHelper.inRelationArray([monitorId]),
       },
       select: {
         secretValue: true,

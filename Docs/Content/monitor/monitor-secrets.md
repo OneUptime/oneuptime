@@ -25,6 +25,8 @@ You can use secrets in the following monitoring types:
 
 To use a secret, add `{{monitorSecrets.SECRET_NAME}}` in the field where you want to use the secret. For example, in this case we added `{{monitorSecrets.ApiKey}}` in the Requets Header field.
 
+Secrets are injected on the probe before Synthetic or Custom Code monitor scripts execute, so references such as `{{monitorSecrets.ApiKey}}` resolve to the decrypted value inside the running script.
+
 
 ### Monitor Secret Permissions
 
