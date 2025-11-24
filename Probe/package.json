@@ -18,7 +18,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@types/ping": "^0.4.4",
-    "axios": "^1.12.2",
+    "axios": "^1.13.1",
     "Common": "file:../Common",
     "ejs": "^3.1.10",
     "http-proxy-agent": "^7.0.2",
