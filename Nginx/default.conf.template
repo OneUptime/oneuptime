@@ -393,7 +393,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        proxy_pass  http://home/public/.well-known/assetlinks.json;
+        proxy_pass  http://home/.well-known/assetlinks.json;
     }
 
     # PWA manifest and service worker with proper headers for home
