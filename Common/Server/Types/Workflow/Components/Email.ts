@@ -115,8 +115,17 @@ export default class Email extends ComponentCode {
       const smtpTransport: SMTPTransport.Options = {
         host: args["smtp-host"]?.toString(),
         port: args["smtp-port"] as number,
-        secure: Boolean(args["secure"]),
       };
+
+      if (
+        args["secure"] === true ||
+        args["secure"] === "true" ||
+        args["secure"] === 1
+      ) {
+        smtpTransport.secure = true;
+      } else {
+        smtpTransport.secure = false;
+      }
 
       if (username && password) {
         smtpTransport.auth = {
