@@ -1921,7 +1921,7 @@ jobs:
 
   test-e2e-test-saas: 
     runs-on: ubuntu-latest
-    needs: [test-helm-chart]
+    needs: [test-helm-chart, generate-build-number, read-version]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -1942,9 +1942,30 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: latest
-      - run: npm run prerun && bash ./Tests/Scripts/change-release-to-test-tag.sh
+      - name: Preinstall
+        run: |
+          set -euo pipefail
+          npm run prerun
+      - name: Pin APP_TAG to test release
+        run: |
+          set -euo pipefail
+          VERSION="${{needs.read-version.outputs.major_minor}}-test+build.${{needs.generate-build-number.outputs.build_number}}"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          if [ -f config.env ]; then
+            if grep -q '^APP_TAG=' config.env; then
+              sed -i "s/^APP_TAG=.*/APP_TAG=${SANITIZED_VERSION}/" config.env
+            else
+              echo "APP_TAG=${SANITIZED_VERSION}" >> config.env
+            fi
+          else
+            echo "APP_TAG=${SANITIZED_VERSION}" > config.env
+          fi
       - name: Start Server with release tag
-        run: npm run start
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test-build.${{needs.generate-build-number.outputs.build_number}}
+          npm run start
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
       - name: Run E2E Tests. Run docker container e2e in docker compose file
@@ -1953,7 +1974,10 @@ jobs:
           timeout_minutes: 90
           max_attempts: 3
           on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
-          command: export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
+          command: |
+            export $(grep -v '^#' config.env | xargs)
+            export APP_TAG=${{needs.read-version.outputs.major_minor}}-test-build.${{needs.generate-build-number.outputs.build_number}}
+            docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
         # Run this on failure
@@ -1979,7 +2003,7 @@ jobs:
   test-e2e-test-self-hosted: 
     runs-on: ubuntu-latest
     # After all the jobs runs
-    needs: [test-helm-chart]
+    needs: [test-helm-chart, generate-build-number, read-version]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -2000,9 +2024,30 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: latest
-      - run: npm run prerun && bash ./Tests/Scripts/change-release-to-test-tag.sh
+      - name: Preinstall
+        run: |
+          set -euo pipefail
+          npm run prerun
+      - name: Pin APP_TAG to test release
+        run: |
+          set -euo pipefail
+          VERSION="${{needs.read-version.outputs.major_minor}}-test+build.${{needs.generate-build-number.outputs.build_number}}"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          if [ -f config.env ]; then
+            if grep -q '^APP_TAG=' config.env; then
+              sed -i "s/^APP_TAG=.*/APP_TAG=${SANITIZED_VERSION}/" config.env
+            else
+              echo "APP_TAG=${SANITIZED_VERSION}" >> config.env
+            fi
+          else
+            echo "APP_TAG=${SANITIZED_VERSION}" > config.env
+          fi
       - name: Start Server with release tag
-        run: npm run start
+        run: |
+          set -euo pipefail
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test-build.${{needs.generate-build-number.outputs.build_number}}
+          npm run start
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
       - name: Run E2E Tests. Run docker container e2e in docker compose file
@@ -2011,7 +2056,10 @@ jobs:
           timeout_minutes: 90
           max_attempts: 3
           on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
-          command: export $(grep -v '^#' config.env | xargs) && docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
+          command: |
+            export $(grep -v '^#' config.env | xargs)
+            export APP_TAG=${{needs.read-version.outputs.major_minor}}-test-build.${{needs.generate-build-number.outputs.build_number}}
+            docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
         # Run this on failure
