@@ -19,15 +19,15 @@ const Captcha: React.FC<CaptchaProps> = ({
   className,
 }: CaptchaProps): JSX.Element => {
   const captchaRef = React.useRef<HCaptcha | null>(null);
+  const onTokenChangeRef = React.useRef<typeof onTokenChange>(onTokenChange);
 
-  const handleTokenChange = React.useCallback(
-    (token: string | null) => {
-      if (onTokenChange) {
-        onTokenChange(token || "");
-      }
-    },
-    [onTokenChange],
-  );
+  React.useEffect(() => {
+    onTokenChangeRef.current = onTokenChange;
+  }, [onTokenChange]);
+
+  const handleTokenChange = React.useCallback((token: string | null) => {
+    onTokenChangeRef.current?.(token || "");
+  }, []);
 
   React.useEffect(() => {
     captchaRef.current?.resetCaptcha();

@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.oneuptime.twa",
+        "sha256_cert_fingerprints": ["54:96:AD:87:CD:1E:61:66:A3:7A:C4:34:89:84:8E:90:2A:64:FA:A9:33:EB:F6:08:1E:09:48:19:D7:A1:79:70"]
+      }
+    }]
