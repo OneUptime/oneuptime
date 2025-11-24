@@ -257,6 +257,14 @@ analytics:
   host:
   key:
 
+
+# CAPTCHA Configuration
+# We support hCaptcha. You can get site key and secret key from https://hcaptcha.com/
+captcha:
+  enabled: false
+  siteKey:
+  secretKey:
+
 # VAPID Configuration for Web Push Notifications
 # Generate VAPID keys using: npx web-push generate-vapid-keys
 vapid:

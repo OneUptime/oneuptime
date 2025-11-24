@@ -42,17 +42,16 @@ export default class UserAPI extends BaseAPI<
           const userPermissions: Array<UserPermission> = (
             await this.getPermissionsForTenant(req)
           ).filter((permission: UserPermission) => {
-            return (
-              permission.permission.toString() ===
-                Permission.ProjectOwner.toString() ||
-              permission.permission.toString() ===
-                Permission.CreateBillingPaymentMethod.toString()
-            );
+            return [
+              Permission.ProjectOwner,
+              Permission.ManageProjectBilling,
+              Permission.CreateBillingPaymentMethod,
+            ].includes(permission.permission);
           });
 
           if (userPermissions.length === 0) {
             throw new BadDataException(
-              "Only Project owner can add payment methods.",
+              "Only project owners or members with Manage Billing access can add payment methods.",
             );
           }
 

@@ -19,6 +19,8 @@ x-common-variables: &common-variables
     SUBSCRIPTION_PLAN_ENTERPRISE: ${SUBSCRIPTION_PLAN_ENTERPRISE}
     ANALYTICS_KEY: ${ANALYTICS_KEY}
     ANALYTICS_HOST: ${ANALYTICS_HOST}
+    CAPTCHA_ENABLED: ${CAPTCHA_ENABLED}
+    CAPTCHA_SITE_KEY: ${CAPTCHA_SITE_KEY}
 
     # VAPID keys for Web Push Notifications
     VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
@@ -133,6 +135,7 @@ x-common-runtime-variables: &common-runtime-variables
     # Microsoft Teams Configuration
     
     MICROSOFT_TEAMS_APP_CLIENT_SECRET: ${MICROSOFT_TEAMS_APP_CLIENT_SECRET}
+    CAPTCHA_SECRET_KEY: ${CAPTCHA_SECRET_KEY}
 
 services:
 

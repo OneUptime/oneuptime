@@ -30,7 +30,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
-  create: [Permission.Public],
+  create: [],
   read: [Permission.CurrentUser],
   delete: [Permission.CurrentUser],
   update: [Permission.CurrentUser],

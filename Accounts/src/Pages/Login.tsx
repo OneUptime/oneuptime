@@ -7,10 +7,20 @@ import {
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
+import ModelForm, {
+  FormType,
+  ModelField,
+} from "Common/UI/Components/Forms/ModelForm";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Link from "Common/UI/Components/Link/Link";
-import { DASHBOARD_URL } from "Common/UI/Config";
+import Captcha from "Common/UI/Components/Captcha/Captcha";
+import {
+  DASHBOARD_URL,
+  CAPTCHA_ENABLED,
+  CAPTCHA_SITE_KEY,
+} from "Common/UI/Config";
 import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
 import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
 import UiAnalytics from "Common/UI/Utils/Analytics";
@@ -72,6 +82,84 @@ const LoginPage: () => JSX.Element = () => {
     React.useState<boolean>(false);
   const [twofactorAuthError, setTwoFactorAuthError] =
     React.useState<string>("");
+
+  const isCaptchaEnabled: boolean =
+    CAPTCHA_ENABLED && Boolean(CAPTCHA_SITE_KEY);
+
+  const [shouldResetCaptcha, setShouldResetCaptcha] =
+    React.useState<boolean>(false);
+  const [captchaResetSignal, setCaptchaResetSignal] = React.useState<number>(0);
+
+  const handleCaptchaReset: () => void = React.useCallback(() => {
+    setCaptchaResetSignal((current: number) => {
+      return current + 1;
+    });
+  }, []);
+  let loginFields: Array<ModelField<User>> = [
+    {
+      field: {
+        email: true,
+      },
+      fieldType: FormFieldSchemaType.Email,
+      placeholder: "jeff@example.com",
+      required: true,
+      disabled: Boolean(initialValues && initialValues["email"]),
+      title: "Email",
+      dataTestId: "email",
+      disableSpellCheck: true,
+    },
+    {
+      field: {
+        password: true,
+      },
+      title: "Password",
+      required: true,
+      validation: {
+        minLength: 6,
+      },
+      fieldType: FormFieldSchemaType.Password,
+      sideLink: {
+        text: "Forgot password?",
+        url: new Route("/accounts/forgot-password"),
+        openLinkInNewTab: false,
+      },
+      dataTestId: "password",
+      disableSpellCheck: true,
+    },
+  ];
+
+  if (isCaptchaEnabled) {
+    loginFields = loginFields.concat([
+      {
+        overrideField: {
+          captchaToken: true,
+        },
+        overrideFieldKey: "captchaToken",
+        fieldType: FormFieldSchemaType.CustomComponent,
+        title: "Human Verification",
+        description:
+          "Complete the captcha challenge so we know you're not a bot.",
+        required: true,
+        showEvenIfPermissionDoesNotExist: true,
+        getCustomElement: (
+          _values: FormValues<User>,
+          customProps: CustomElementProps,
+        ) => {
+          return (
+            <Captcha
+              siteKey={CAPTCHA_SITE_KEY}
+              resetSignal={captchaResetSignal}
+              error={customProps.error}
+              onTokenChange={(token: string) => {
+                customProps.onChange?.(token);
+              }}
+              onBlur={customProps.onBlur}
+            />
+          );
+        },
+      },
+    ]);
+  }
 
   useAsyncEffect(async () => {
     if (Navigation.getQueryStringByName("email")) {
@@ -228,44 +316,40 @@ const LoginPage: () => JSX.Element = () => {
               modelType={User}
               id="login-form"
               name="Login"
-              fields={[
-                {
-                  field: {
-                    email: true,
-                  },
-                  fieldType: FormFieldSchemaType.Email,
-                  placeholder: "jeff@example.com",
-                  required: true,
-                  disabled: Boolean(initialValues && initialValues["email"]),
-                  title: "Email",
-                  dataTestId: "email",
-                  disableSpellCheck: true,
-                },
-                {
-                  field: {
-                    password: true,
-                  },
-                  title: "Password",
-                  required: true,
-                  validation: {
-                    minLength: 6,
-                  },
-                  fieldType: FormFieldSchemaType.Password,
-                  sideLink: {
-                    text: "Forgot password?",
-                    url: new Route("/accounts/forgot-password"),
-                    openLinkInNewTab: false,
-                  },
-                  dataTestId: "password",
-                  disableSpellCheck: true,
-                },
-              ]}
+              fields={loginFields}
               createOrUpdateApiUrl={apiUrl}
               formType={FormType.Create}
               submitButtonText={"Login"}
-              onBeforeCreate={(data: User) => {
+              onBeforeCreate={(data: User, miscDataProps: JSONObject) => {
+                if (isCaptchaEnabled) {
+                  const captchaToken: string | undefined = (
+                    miscDataProps["captchaToken"] as string | undefined
+                  )
+                    ?.toString()
+                    .trim();
+
+                  if (!captchaToken) {
+                    throw new Error(
+                      "Please complete the captcha challenge before signing in.",
+                    );
+                  }
+
+                  miscDataProps["captchaToken"] = captchaToken;
+                  setShouldResetCaptcha(true);
+                }
+
                 setInitialValues(User.toJSON(data, User));
                 return Promise.resolve(data);
+              }}
+              onLoadingChange={(loading: boolean) => {
+                if (!isCaptchaEnabled) {
+                  return;
+                }
+
+                if (!loading && shouldResetCaptcha) {
+                  setShouldResetCaptcha(false);
+                  handleCaptchaReset();
+                }
               }}
               onSuccess={(
                 value: User | JSONObject,

@@ -20,7 +20,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @AllowAccessIfSubscriptionIsUnpaid()
 @TenantColumn("projectId")
 @TableAccessControl({
-  create: [Permission.ProjectOwner, Permission.CreateBillingPaymentMethod],
+  create: [
+    Permission.ProjectOwner,
+    Permission.ManageProjectBilling,
+    Permission.CreateBillingPaymentMethod,
+  ],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectUser,
@@ -28,7 +32,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.ReadBillingPaymentMethod,
   ],
-  delete: [Permission.ProjectOwner, Permission.DeleteBillingPaymentMethod],
+  delete: [
+    Permission.ProjectOwner,
+    Permission.ManageProjectBilling,
+    Permission.DeleteBillingPaymentMethod,
+  ],
   update: [],
 })
 @CrudApiEndpoint(new Route("/billing-payment-methods"))
@@ -45,7 +53,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 export default class BillingPaymentMethod extends BaseModel {
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.CreateBillingPaymentMethod],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+      Permission.CreateBillingPaymentMethod,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectUser,
@@ -77,7 +89,11 @@ export default class BillingPaymentMethod extends BaseModel {
   public project?: Project = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.CreateBillingPaymentMethod],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+      Permission.CreateBillingPaymentMethod,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -103,7 +119,11 @@ export default class BillingPaymentMethod extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.CreateBillingPaymentMethod],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+      Permission.CreateBillingPaymentMethod,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -136,7 +156,11 @@ export default class BillingPaymentMethod extends BaseModel {
   public createdByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.CreateBillingPaymentMethod],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+      Permission.CreateBillingPaymentMethod,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -218,7 +242,11 @@ export default class BillingPaymentMethod extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.CreateBillingPaymentMethod],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+      Permission.CreateBillingPaymentMethod,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -278,7 +306,11 @@ export default class BillingPaymentMethod extends BaseModel {
   public paymentProviderCustomerId?: string = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.CreateBillingPaymentMethod],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+      Permission.CreateBillingPaymentMethod,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -298,7 +330,11 @@ export default class BillingPaymentMethod extends BaseModel {
   public last4Digits?: string = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.CreateBillingPaymentMethod],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+      Permission.CreateBillingPaymentMethod,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

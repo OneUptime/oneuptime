@@ -1,4 +1,5 @@
 import {
+  IsBillingEnabled,
   LetsEncryptAccountKey,
   LetsEncryptNotificationEmail,
 } from "../../../Server/EnvironmentConfig";
@@ -325,9 +326,15 @@ export default class GreenlockUtil {
         throw e;
       }
 
-      throw new ServerException(
-        `Unable to order certificate for ${data.domain}. Please contact support at support@oneuptime.com for more information.`,
-      );
+      if (IsBillingEnabled) {
+        throw new ServerException(
+          `Unable to order certificate for ${data.domain}. Please contact support at support@oneuptime.com for more information.`,
+        );
+      } else {
+        throw new ServerException(
+          `Unable to order certificate for ${data.domain}. Please make sure that your server can be accessed publicly over port 80 (HTTP) and port 443 (HTTPS). If the problem persists, please refer to server logs for more information. Please also set up LOG_LEVEL=DEBUG to get more detailed server logs.`,
+        );
+      }
     }
   }
 }

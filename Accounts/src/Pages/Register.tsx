@@ -4,12 +4,22 @@ import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
-import Fields from "Common/UI/Components/Forms/Types/Fields";
+import ModelForm, {
+  FormType,
+  ModelField,
+} from "Common/UI/Components/Forms/ModelForm";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Link from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import { BILLING_ENABLED, DASHBOARD_URL } from "Common/UI/Config";
+import Captcha from "Common/UI/Components/Captcha/Captcha";
+import {
+  BILLING_ENABLED,
+  DASHBOARD_URL,
+  CAPTCHA_ENABLED,
+  CAPTCHA_SITE_KEY,
+} from "Common/UI/Config";
 import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
 import BaseAPI from "Common/UI/Utils/API/API";
 import UiAnalytics from "Common/UI/Utils/Analytics";
@@ -35,6 +45,19 @@ const RegisterPage: () => JSX.Element = () => {
   const [reseller, setResller] = React.useState<Reseller | undefined>(
     undefined,
   );
+
+  const isCaptchaEnabled: boolean =
+    CAPTCHA_ENABLED && Boolean(CAPTCHA_SITE_KEY);
+
+  const [shouldResetCaptcha, setShouldResetCaptcha] =
+    React.useState<boolean>(false);
+  const [captchaResetSignal, setCaptchaResetSignal] = React.useState<number>(0);
+
+  const handleCaptchaReset: () => void = React.useCallback(() => {
+    setCaptchaResetSignal((current: number) => {
+      return current + 1;
+    });
+  }, []);
 
   if (UserUtil.isLoggedIn()) {
     Navigation.navigate(DASHBOARD_URL);
@@ -93,7 +116,7 @@ const RegisterPage: () => JSX.Element = () => {
     }
   }, []);
 
-  let formFields: Fields<User> = [
+  let formFields: Array<ModelField<User>> = [
     {
       field: {
         email: true,
@@ -183,6 +206,39 @@ const RegisterPage: () => JSX.Element = () => {
     },
   ]);
 
+  if (isCaptchaEnabled) {
+    formFields = formFields.concat([
+      {
+        overrideField: {
+          captchaToken: true,
+        },
+        overrideFieldKey: "captchaToken",
+        fieldType: FormFieldSchemaType.CustomComponent,
+        title: "Human Verification",
+        description:
+          "Complete the captcha challenge so we know you're not a bot.",
+        required: true,
+        showEvenIfPermissionDoesNotExist: true,
+        getCustomElement: (
+          _values: FormValues<User>,
+          customProps: CustomElementProps,
+        ) => {
+          return (
+            <Captcha
+              siteKey={CAPTCHA_SITE_KEY}
+              resetSignal={captchaResetSignal}
+              error={customProps.error}
+              onTokenChange={(token: string) => {
+                customProps.onChange?.(token);
+              }}
+              onBlur={customProps.onBlur}
+            />
+          );
+        },
+      },
+    ]);
+  }
+
   if (error) {
     return <ErrorMessage message={error} />;
   }
@@ -222,7 +278,27 @@ const RegisterPage: () => JSX.Element = () => {
             maxPrimaryButtonWidth={true}
             fields={formFields}
             createOrUpdateApiUrl={apiUrl}
-            onBeforeCreate={(item: User): Promise<User> => {
+            onBeforeCreate={(
+              item: User,
+              miscDataProps: JSONObject,
+            ): Promise<User> => {
+              if (isCaptchaEnabled) {
+                const captchaToken: string | undefined = (
+                  miscDataProps["captchaToken"] as string | undefined
+                )
+                  ?.toString()
+                  .trim();
+
+                if (!captchaToken) {
+                  throw new Error(
+                    "Please complete the captcha challenge before signing up.",
+                  );
+                }
+
+                miscDataProps["captchaToken"] = captchaToken;
+                setShouldResetCaptcha(true);
+              }
+
               const utmParams: Dictionary<string> = UserUtil.getUtmParams();
 
               if (utmParams && Object.keys(utmParams).length > 0) {
@@ -240,6 +316,16 @@ const RegisterPage: () => JSX.Element = () => {
             }}
             formType={FormType.Create}
             submitButtonText={"Sign Up"}
+            onLoadingChange={(loading: boolean) => {
+              if (!isCaptchaEnabled) {
+                return;
+              }
+
+              if (!loading && shouldResetCaptcha) {
+                setShouldResetCaptcha(false);
+                handleCaptchaReset();
+              }
+            }}
             onSuccess={(value: User, miscData: JSONObject | undefined) => {
               if (value && value.email) {
                 UiAnalytics.userAuth(value.email);
