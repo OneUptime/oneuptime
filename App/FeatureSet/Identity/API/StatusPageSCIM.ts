@@ -369,7 +369,8 @@ const handleStatusPageUserUpdate: (
       `Status Page SCIM Update user request for userId: ${req.params["userId"]}, statusPageScimId: ${req.params["statusPageScimId"]}`,
     );
     const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-    const bearerData: JSONObject = oneuptimeRequest.bearerTokenData as JSONObject;
+    const bearerData: JSONObject =
+      oneuptimeRequest.bearerTokenData as JSONObject;
     const statusPageId: ObjectID = bearerData["statusPageId"] as ObjectID;
     const userId: string = req.params["userId"]!;
     const scimUser: JSONObject = req.body;
@@ -406,7 +407,9 @@ const handleStatusPageUserUpdate: (
       logger.debug(
         `Status Page SCIM Update user - user not found for userId: ${userId}`,
       );
-      throw new NotFoundException("User not found or not part of this status page");
+      throw new NotFoundException(
+        "User not found or not part of this status page",
+      );
     }
 
     // Update user information
@@ -425,7 +428,9 @@ const handleStatusPageUserUpdate: (
         `Status Page SCIM Update user - user marked as inactive, removing from status page`,
       );
 
-      const scimConfig: StatusPageSCIM = bearerData["scimConfig"] as StatusPageSCIM;
+      const scimConfig: StatusPageSCIM = bearerData[
+        "scimConfig"
+      ] as StatusPageSCIM;
       if (scimConfig.autoDeprovisionUsers) {
         await StatusPagePrivateUserService.deleteOneById({
           id: new ObjectID(userId),

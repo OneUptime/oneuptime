@@ -484,7 +484,8 @@ const handleUserUpdate: (
       `SCIM Update user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`,
     );
     const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-    const bearerData: JSONObject = oneuptimeRequest.bearerTokenData as JSONObject;
+    const bearerData: JSONObject =
+      oneuptimeRequest.bearerTokenData as JSONObject;
     const projectId: ObjectID = bearerData["projectId"] as ObjectID;
     const userId: string = req.params["userId"]!;
     const scimUser: JSONObject = req.body;
@@ -558,9 +559,7 @@ const handleUserUpdate: (
 
     // Handle user activation by adding to teams
     if (active === true && !scimConfig.enablePushGroups) {
-      logger.debug(
-        `SCIM Update user - user marked as active, adding to teams`,
-      );
+      logger.debug(`SCIM Update user - user marked as active, adding to teams`);
       await handleUserTeamOperations(
         "add",
         projectId,
