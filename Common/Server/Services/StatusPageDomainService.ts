@@ -48,19 +48,26 @@ export class Service extends DatabaseService<StatusPageDomain> {
       );
     }
 
-    if (createBy.data.subdomain) {
-      // trim and lowercase the subdomain.
-      createBy.data.subdomain = createBy.data.subdomain.trim().toLowerCase();
+    let normalizedSubdomain: string =
+      createBy.data.subdomain?.trim().toLowerCase() || "";
+
+    if (normalizedSubdomain === "@") {
+      normalizedSubdomain = "";
     }
 
+    createBy.data.subdomain = normalizedSubdomain;
+
     if (domain) {
-      createBy.data.fullDomain = (
-        createBy.data.subdomain +
-        "." +
-        domain.domain?.toString()
-      )
-        .toLowerCase()
-        .trim();
+      const baseDomain: string =
+        domain.domain?.toString().toLowerCase().trim() || "";
+
+      if (!baseDomain) {
+        throw new BadDataException("Please select a valid domain.");
+      }
+
+      createBy.data.fullDomain = normalizedSubdomain
+        ? `${normalizedSubdomain}.${baseDomain}`
+        : baseDomain;
     }
 
     createBy.data.cnameVerificationToken = ObjectID.generate().toString();

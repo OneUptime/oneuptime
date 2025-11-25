@@ -282,8 +282,9 @@ export default class StatusPageDomain extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
-    title: "Sumdomain",
-    description: "Subdomain of your status page - like (status)",
+    title: "Subdomain",
+    description:
+      "Subdomain label for your status page such as 'status'. Leave blank or enter @ to use the root domain.",
   })
   @Column({
     nullable: false,

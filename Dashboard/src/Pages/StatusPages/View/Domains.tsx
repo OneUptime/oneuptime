@@ -164,11 +164,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               },
               title: "Subdomain",
               fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "status",
-              validation: {
-                minLength: 2,
-              },
+              required: false,
+              placeholder: "status (leave blank for root)",
+              description:
+                "Enter the subdomain label only (for example, status). Leave blank or enter @ to use the root/apex domain.",
               stepId: "basic",
               disableSpellCheck: true,
             },
