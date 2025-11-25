@@ -254,10 +254,10 @@ jobs:
       #   run: mkdir -p ./LLM/Models && cd ./LLM/Models && git clone https://${{ secrets.HUGGING_FACE_USERNAME }}:${{ secrets.HUGGING_FACE_PASSWORD }}@huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -326,10 +326,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -398,10 +398,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -469,10 +469,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -540,10 +540,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -611,10 +611,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -682,10 +682,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -755,10 +755,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -828,10 +828,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -899,10 +899,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -972,10 +972,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -1046,10 +1046,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -1117,10 +1117,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -1188,10 +1188,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -1259,10 +1259,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -1330,10 +1330,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -1401,10 +1401,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -1475,10 +1475,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -1548,10 +1548,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -1619,10 +1619,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -1690,10 +1690,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -1762,10 +1762,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
@@ -1834,10 +1834,10 @@ jobs:
           node-version: latest
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
         uses: nick-fields/retry@v3
