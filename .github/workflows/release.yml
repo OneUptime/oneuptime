@@ -131,7 +131,7 @@ jobs:
           cd oneuptime/HelmChart/Public
           helm lint oneuptime
           helm template oneuptime --values oneuptime/values.yaml
-          helm package --sign --key 'key@oneuptime.com' --keyring ~/.gnupg/secring.gpg oneuptime --version ${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}} --app-version ${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}} 
+          helm package --sign --key 'key@oneuptime.com' --keyring ~/.gnupg/secring.gpg oneuptime --version ${{needs.read-version.outputs.major_minor}} --app-version ${{needs.read-version.outputs.major_minor}} 
           echo "Helm Chart Package created successfully"
           cd ..
           ls
@@ -147,7 +147,7 @@ jobs:
           echo "Adding the package to helm-chart repo"
           helm repo index .
           git add -A
-          git commit -m "Helm Chart Release ${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}"
+          git commit -m "Helm Chart Release ${{needs.read-version.outputs.major_minor}}"
           git push origin master
 
   publish-mcp-server:
@@ -180,7 +180,7 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}"
+          VERSION="${{needs.read-version.outputs.major_minor}}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing MCP server version: $VERSION"
 
@@ -324,7 +324,7 @@ jobs:
             ghcr.io/oneuptime/nginx
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -373,7 +373,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image nginx \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./Nginx/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -392,7 +392,7 @@ jobs:
             ghcr.io/oneuptime/e2e
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -441,7 +441,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image e2e \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./E2E/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -460,7 +460,7 @@ jobs:
             ghcr.io/oneuptime/isolated-vm
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -509,7 +509,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image isolated-vm \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./IsolatedVM/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -528,7 +528,7 @@ jobs:
             ghcr.io/oneuptime/home
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -577,7 +577,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image home \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./Home/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -599,7 +599,7 @@ jobs:
             ghcr.io/oneuptime/test-server
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -648,7 +648,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image test-server \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./TestServer/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -667,7 +667,7 @@ jobs:
             ghcr.io/oneuptime/otel-collector
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -716,7 +716,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image otel-collector \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./OTelCollector/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -737,7 +737,7 @@ jobs:
             ghcr.io/oneuptime/status-page
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -786,7 +786,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image status-page \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./StatusPage/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -805,7 +805,7 @@ jobs:
             ghcr.io/oneuptime/test
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -854,7 +854,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image test \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./Tests/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -873,7 +873,7 @@ jobs:
             ghcr.io/oneuptime/probe-ingest
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -922,7 +922,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image probe-ingest \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./ProbeIngest/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -942,7 +942,7 @@ jobs:
             ghcr.io/oneuptime/server-monitor-ingest
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -991,7 +991,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image server-monitor-ingest \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./ServerMonitorIngest/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -1012,7 +1012,7 @@ jobs:
             ghcr.io/oneuptime/telemetry
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -1061,7 +1061,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image telemetry \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./Telemetry/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -1081,7 +1081,7 @@ jobs:
             ghcr.io/oneuptime/incoming-request-ingest
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -1130,7 +1130,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image incoming-request-ingest \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./IncomingRequestIngest/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -1149,7 +1149,7 @@ jobs:
             ghcr.io/oneuptime/probe
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -1198,7 +1198,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image probe \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./Probe/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -1217,7 +1217,7 @@ jobs:
             ghcr.io/oneuptime/admin-dashboard
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -1266,7 +1266,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image admin-dashboard \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./AdminDashboard/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -1286,7 +1286,7 @@ jobs:
             ghcr.io/oneuptime/dashboard
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -1335,7 +1335,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image dashboard \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./Dashboard/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -1354,7 +1354,7 @@ jobs:
             ghcr.io/oneuptime/app
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -1403,7 +1403,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image app \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./App/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -1423,7 +1423,7 @@ jobs:
             ghcr.io/oneuptime/copilot
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -1472,7 +1472,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image copilot \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./Copilot/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -1491,7 +1491,7 @@ jobs:
             ghcr.io/oneuptime/accounts
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
       - uses: actions/checkout@v4
         with:
@@ -1540,7 +1540,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image accounts \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./Accounts/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -1553,7 +1553,7 @@ jobs:
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       NPM_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
-      PACKAGE_VERSION: ${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}
+      PACKAGE_VERSION: ${{needs.read-version.outputs.major_minor}}
     steps:
       - name: Checkout 
         uses: actions/checkout@v4
@@ -1595,7 +1595,7 @@ jobs:
             ghcr.io/oneuptime/llm
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1652,7 +1652,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image llm \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./LLM/Dockerfile \
               --context ./LLM \
               --platforms linux/amd64 \
@@ -1672,7 +1672,7 @@ jobs:
             ghcr.io/oneuptime/docs
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1722,7 +1722,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image docs \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./Docs/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -1745,7 +1745,7 @@ jobs:
             ghcr.io/oneuptime/worker
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1795,7 +1795,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image worker \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./Worker/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -1818,7 +1818,7 @@ jobs:
             ghcr.io/oneuptime/workflow
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1868,7 +1868,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image workflow \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./Workflow/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -1913,7 +1913,7 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}"
+          VERSION="${{needs.read-version.outputs.major_minor}}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing Terraform provider version: $VERSION"
 
@@ -1951,7 +1951,7 @@ jobs:
             ghcr.io/oneuptime/api-reference
           tags: |
             type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}},pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -2001,7 +2001,7 @@ jobs:
           command: |
             bash ./Scripts/GHA/build_docker_images.sh \
               --image api-reference \
-              --version "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}" \
+              --version "${{needs.read-version.outputs.major_minor}}" \
               --dockerfile ./APIReference/Dockerfile \
               --context . \
               --platforms linux/amd64,linux/arm64 \
@@ -2090,28 +2090,28 @@ jobs:
 
       - name: Create Docker Hub release tag from version
         run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}"
+          VERSION="${{needs.read-version.outputs.major_minor}}"
           docker buildx imagetools create \
             --tag oneuptime/${{ matrix.image }}:release \
             ghcr.io/oneuptime/${{ matrix.image }}:${VERSION}
 
       - name: Create GHCR release tag from version
         run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}"
+          VERSION="${{needs.read-version.outputs.major_minor}}"
           docker buildx imagetools create \
             --tag ghcr.io/oneuptime/${{ matrix.image }}:release \
             ghcr.io/oneuptime/${{ matrix.image }}:${VERSION}
 
       - name: Create Docker Hub enterprise release tag from version
         run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}"
+          VERSION="${{needs.read-version.outputs.major_minor}}"
           docker buildx imagetools create \
             --tag oneuptime/${{ matrix.image }}:enterprise-release \
             ghcr.io/oneuptime/${{ matrix.image }}:enterprise-${VERSION}
 
       - name: Create GHCR enterprise release tag from version
         run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}"
+          VERSION="${{needs.read-version.outputs.major_minor}}"
           docker buildx imagetools create \
             --tag ghcr.io/oneuptime/${{ matrix.image }}:enterprise-release \
             ghcr.io/oneuptime/${{ matrix.image }}:enterprise-${VERSION}
@@ -2149,7 +2149,7 @@ jobs:
           bash ./Tests/Scripts/enable-billing-env-var.sh
       - name: Pin APP_TAG to versioned release
         run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}"
+          VERSION="${{needs.read-version.outputs.major_minor}}"
           SANITIZED_VERSION="${VERSION//+/-}"
           if [ -f config.env ]; then
             if grep -q '^APP_TAG=' config.env; then
@@ -2236,7 +2236,7 @@ jobs:
           npm run prerun
       - name: Pin APP_TAG to versioned release
         run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}"
+          VERSION="${{needs.read-version.outputs.major_minor}}"
           SANITIZED_VERSION="${VERSION//+/-}"
           if [ -f config.env ]; then
             if grep -q '^APP_TAG=' config.env; then
@@ -2350,7 +2350,7 @@ jobs:
           fi
       - uses: ncipollo/release-action@v1
         with:
-          tag: "${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}"
+          tag: "${{needs.read-version.outputs.major_minor}}"
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
@@ -2385,10 +2385,10 @@ jobs:
         run: goreleaser -v
 
       - name: Run GoReleaser
-        run: cd InfrastructureAgent && export GORELEASER_CURRENT_TAG=${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}} && goreleaser release --clean --snapshot
+        run: cd InfrastructureAgent && export GORELEASER_CURRENT_TAG=${{needs.read-version.outputs.major_minor}} && goreleaser release --clean --snapshot
 
       - name: Release MSI Images
-        run: cd InfrastructureAgent && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}
+        run: cd InfrastructureAgent && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}
       
       # Upload binaries to github release
       - name: Release
@@ -2399,7 +2399,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
           prerelease: false
-          tag_name: ${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}
+          tag_name: ${{needs.read-version.outputs.major_minor}}
 
 
   finalize-github-release:
@@ -2415,7 +2415,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const tag = '${{needs.read-version.outputs.major_minor}}+build.${{needs.generate-build-number.outputs.build_number}}';
+            const tag = '${{needs.read-version.outputs.major_minor}}';
             try {
               const releases = await github.paginate(github.rest.repos.listReleases, {
                 owner: context.repo.owner,
