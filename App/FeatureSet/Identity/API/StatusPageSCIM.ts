@@ -355,45 +355,119 @@ router.post(
   },
 );
 
-// Update Status Page User - PUT /status-page-scim/v2/Users/{id}
-router.put(
-  "/status-page-scim/v2/:statusPageScimId/Users/:userId",
-  SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
-    try {
-      logger.debug(
-        `Status Page SCIM Update user request for userId: ${req.params["userId"]}, statusPageScimId: ${req.params["statusPageScimId"]}`,
-      );
-      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-      const bearerData: JSONObject =
-        oneuptimeRequest.bearerTokenData as JSONObject;
-      const statusPageId: ObjectID = bearerData["statusPageId"] as ObjectID;
-      const userId: string = req.params["userId"]!;
-      const scimUser: JSONObject = req.body;
+const handleStatusPageUserUpdate: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    logger.debug(
+      `Status Page SCIM Update user request for userId: ${req.params["userId"]}, statusPageScimId: ${req.params["statusPageScimId"]}`,
+    );
+    const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+    const bearerData: JSONObject = oneuptimeRequest.bearerTokenData as JSONObject;
+    const statusPageId: ObjectID = bearerData["statusPageId"] as ObjectID;
+    const userId: string = req.params["userId"]!;
+    const scimUser: JSONObject = req.body;
 
+    logger.debug(
+      `Status Page SCIM Update user - statusPageId: ${statusPageId}, userId: ${userId}`,
+    );
+
+    logger.debug(
+      `Request body for Status Page SCIM Update user: ${JSON.stringify(scimUser, null, 2)}`,
+    );
+
+    if (!userId) {
+      throw new BadRequestException("User ID is required");
+    }
+
+    // Check if user exists and belongs to this status page
+    const statusPageUser: StatusPagePrivateUser | null =
+      await StatusPagePrivateUserService.findOneBy({
+        query: {
+          statusPageId: statusPageId,
+          _id: new ObjectID(userId),
+        },
+        select: {
+          _id: true,
+          email: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        props: { isRoot: true },
+      });
+
+    if (!statusPageUser) {
       logger.debug(
-        `Status Page SCIM Update user - statusPageId: ${statusPageId}, userId: ${userId}`,
+        `Status Page SCIM Update user - user not found for userId: ${userId}`,
+      );
+      throw new NotFoundException("User not found or not part of this status page");
+    }
+
+    // Update user information
+    const email: string =
+      (scimUser["userName"] as string) ||
+      ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string);
+    const active: boolean = scimUser["active"] as boolean;
+
+    logger.debug(
+      `Status Page SCIM Update user - email: ${email}, active: ${active}`,
+    );
+
+    // Handle user deactivation by deleting from status page
+    if (active === false) {
+      logger.debug(
+        `Status Page SCIM Update user - user marked as inactive, removing from status page`,
       );
 
-      logger.debug(
-        `Request body for Status Page SCIM Update user: ${JSON.stringify(scimUser, null, 2)}`,
-      );
+      const scimConfig: StatusPageSCIM = bearerData["scimConfig"] as StatusPageSCIM;
+      if (scimConfig.autoDeprovisionUsers) {
+        await StatusPagePrivateUserService.deleteOneById({
+          id: new ObjectID(userId),
+          props: { isRoot: true },
+        });
 
-      if (!userId) {
-        throw new BadRequestException("User ID is required");
+        logger.debug(
+          `Status Page SCIM Update user - user removed from status page`,
+        );
+
+        // Return empty response for deleted user
+        return Response.sendJsonObjectResponse(req, res, {});
       }
+    }
 
-      // Check if user exists and belongs to this status page
-      const statusPageUser: StatusPagePrivateUser | null =
-        await StatusPagePrivateUserService.findOneBy({
-          query: {
-            statusPageId: statusPageId,
-            _id: new ObjectID(userId),
-          },
+    // Prepare update data
+    const updateData: {
+      email?: Email;
+    } = {};
+
+    if (email && email !== statusPageUser.email?.toString()) {
+      updateData.email = new Email(email);
+    }
+
+    // Only update if there are changes
+    if (Object.keys(updateData).length > 0) {
+      logger.debug(
+        `Status Page SCIM Update user - updating user with data: ${JSON.stringify(updateData)}`,
+      );
+
+      await StatusPagePrivateUserService.updateOneById({
+        id: new ObjectID(userId),
+        data: updateData,
+        props: { isRoot: true },
+      });
+
+      logger.debug(`Status Page SCIM Update user - user updated successfully`);
+
+      // Fetch updated user
+      const updatedUser: StatusPagePrivateUser | null =
+        await StatusPagePrivateUserService.findOneById({
+          id: new ObjectID(userId),
           select: {
             _id: true,
             email: true,
@@ -403,116 +477,48 @@ router.put(
           props: { isRoot: true },
         });
 
-      if (!statusPageUser) {
-        logger.debug(
-          `Status Page SCIM Update user - user not found for userId: ${userId}`,
+      if (updatedUser) {
+        const user: JSONObject = formatUserForSCIM(
+          updatedUser,
+          req,
+          req.params["statusPageScimId"]!,
+          "status-page",
         );
-        throw new NotFoundException(
-          "User not found or not part of this status page",
-        );
+        return Response.sendJsonObjectResponse(req, res, user);
       }
-
-      // Update user information
-      const email: string =
-        (scimUser["userName"] as string) ||
-        ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string);
-      const active: boolean = scimUser["active"] as boolean;
-
-      logger.debug(
-        `Status Page SCIM Update user - email: ${email}, active: ${active}`,
-      );
-
-      // Handle user deactivation by deleting from status page
-      if (active === false) {
-        logger.debug(
-          `Status Page SCIM Update user - user marked as inactive, removing from status page`,
-        );
-
-        const scimConfig: StatusPageSCIM = bearerData[
-          "scimConfig"
-        ] as StatusPageSCIM;
-        if (scimConfig.autoDeprovisionUsers) {
-          await StatusPagePrivateUserService.deleteOneById({
-            id: new ObjectID(userId),
-            props: { isRoot: true },
-          });
-
-          logger.debug(
-            `Status Page SCIM Update user - user removed from status page`,
-          );
-
-          // Return empty response for deleted user
-          return Response.sendJsonObjectResponse(req, res, {});
-        }
-      }
-
-      // Prepare update data
-      const updateData: {
-        email?: Email;
-      } = {};
-
-      if (email && email !== statusPageUser.email?.toString()) {
-        updateData.email = new Email(email);
-      }
-
-      // Only update if there are changes
-      if (Object.keys(updateData).length > 0) {
-        logger.debug(
-          `Status Page SCIM Update user - updating user with data: ${JSON.stringify(updateData)}`,
-        );
-
-        await StatusPagePrivateUserService.updateOneById({
-          id: new ObjectID(userId),
-          data: updateData,
-          props: { isRoot: true },
-        });
-
-        logger.debug(
-          `Status Page SCIM Update user - user updated successfully`,
-        );
-
-        // Fetch updated user
-        const updatedUser: StatusPagePrivateUser | null =
-          await StatusPagePrivateUserService.findOneById({
-            id: new ObjectID(userId),
-            select: {
-              _id: true,
-              email: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-            props: { isRoot: true },
-          });
-
-        if (updatedUser) {
-          const user: JSONObject = formatUserForSCIM(
-            updatedUser,
-            req,
-            req.params["statusPageScimId"]!,
-            "status-page",
-          );
-          return Response.sendJsonObjectResponse(req, res, user);
-        }
-      }
-
-      logger.debug(
-        `Status Page SCIM Update user - no updates made, returning existing user`,
-      );
-
-      // If no updates were made, return the existing user
-      const user: JSONObject = formatUserForSCIM(
-        statusPageUser,
-        req,
-        req.params["statusPageScimId"]!,
-        "status-page",
-      );
-
-      return Response.sendJsonObjectResponse(req, res, user);
-    } catch (err) {
-      logger.error(err);
-      return next(err);
     }
-  },
+
+    logger.debug(
+      `Status Page SCIM Update user - no updates made, returning existing user`,
+    );
+
+    // If no updates were made, return the existing user
+    const user: JSONObject = formatUserForSCIM(
+      statusPageUser,
+      req,
+      req.params["statusPageScimId"]!,
+      "status-page",
+    );
+
+    return Response.sendJsonObjectResponse(req, res, user);
+  } catch (err) {
+    logger.error(err);
+    return next(err);
+  }
+};
+
+// Update Status Page User - PUT /status-page-scim/v2/Users/{id}
+router.put(
+  "/status-page-scim/v2/:statusPageScimId/Users/:userId",
+  SCIMMiddleware.isAuthorizedSCIMRequest,
+  handleStatusPageUserUpdate,
+);
+
+// Update Status Page User - PATCH /status-page-scim/v2/Users/{id}
+router.patch(
+  "/status-page-scim/v2/:statusPageScimId/Users/:userId",
+  SCIMMiddleware.isAuthorizedSCIMRequest,
+  handleStatusPageUserUpdate,
 );
 
 // Delete Status Page User - DELETE /status-page-scim/v2/Users/{id}
