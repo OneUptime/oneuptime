@@ -92,10 +92,15 @@ const MICROSOFT_TEAMS_APP_TYPE: string = "SingleTenant";
 const MICROSOFT_TEAMS_MAX_PAGES: number = 500;
 
 export default class MicrosoftTeamsUtil extends WorkspaceBase {
+  private static cachedAdapter: CloudAdapter | null = null;
   private static readonly WELCOME_CARD_STATE_KEY: string =
     "oneuptime.microsoftTeams.welcomeCardSent";
   // Get or create Bot Framework adapter for a specific tenant
   private static getBotAdapter(): CloudAdapter {
+    if (this.cachedAdapter) {
+      return this.cachedAdapter;
+    }
+
     if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
       throw new BadDataException(
         "Microsoft Teams App credentials not configured",
@@ -125,6 +130,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const botFrameworkAuthentication: ConfigurationBotFrameworkAuthentication =
       new ConfigurationBotFrameworkAuthentication(authConfig);
     const adapter: CloudAdapter = new CloudAdapter(botFrameworkAuthentication);
+    this.cachedAdapter = adapter;
 
     logger.debug("Bot Framework adapter created successfully");
     return adapter;
