@@ -40,6 +40,8 @@ Usage:
   value: {{ (ternary "true" "false" $isEnterpriseEdition) | squote }}
 - name: MICROSOFT_TEAMS_APP_CLIENT_ID
   value: {{ $.Values.microsoftTeamsApp.clientId }}
+- name: MICROSOFT_TEAMS_APP_TENANT_ID
+  value: {{ $.Values.microsoftTeamsApp.tenantId }}
 
 {{- if $.Values.openTelemetryExporter.endpoint }}
 - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT

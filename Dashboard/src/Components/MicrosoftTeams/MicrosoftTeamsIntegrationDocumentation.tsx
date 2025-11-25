@@ -87,6 +87,7 @@ If you are using Docker Compose then,
 \`\`\`bash
 MICROSOFT_TEAMS_APP_CLIENT_ID=YOUR_TEAMS_APP_CLIENT_ID
 MICROSOFT_TEAMS_APP_CLIENT_SECRET=YOUR_TEAMS_APP_CLIENT_SECRET
+MICROSOFT_TEAMS_APP_TENANT_ID=YOUR_MICROSOFT_TENANT_ID
 \`\`\`
 
 If you are using Kubernetes with Helm then, add these to your \`values.yaml\` file
@@ -95,6 +96,7 @@ If you are using Kubernetes with Helm then, add these to your \`values.yaml\` fi
 microsoftTeamsApp:
   clientId:
   clientSecret:
+  tenantId:
 \`\`\`
 
 

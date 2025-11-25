@@ -86,6 +86,7 @@ If you are using Docker Compose, add these environment variables to your configu
 ```bash
 MICROSOFT_TEAMS_APP_CLIENT_ID=YOUR_TEAMS_APP_CLIENT_ID
 MICROSOFT_TEAMS_APP_CLIENT_SECRET=YOUR_TEAMS_APP_CLIENT_SECRET
+MICROSOFT_TEAMS_APP_TENANT_ID=YOUR_MICROSOFT_TENANT_ID
 ```
 
 #### Kubernetes with Helm
@@ -96,6 +97,7 @@ If you are using Kubernetes with Helm, add these to your `values.yaml` file:
 microsoftTeamsApp:
   clientId: YOUR_TEAMS_APP_CLIENT_ID
   clientSecret: YOUR_TEAMS_APP_CLIENT_SECRET
+   tenantId: YOUR_MICROSOFT_TENANT_ID
 ```
 
 **Important:** Restart your OneUptime server after adding these environment variables so they take effect.

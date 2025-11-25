@@ -72,6 +72,7 @@ x-common-variables: &common-variables
 
 
     MICROSOFT_TEAMS_APP_CLIENT_ID: ${MICROSOFT_TEAMS_APP_CLIENT_ID}
+    MICROSOFT_TEAMS_APP_TENANT_ID: ${MICROSOFT_TEAMS_APP_TENANT_ID}
 
 x-common-runtime-variables: &common-runtime-variables
     <<: *common-variables

@@ -795,6 +795,7 @@ slackApp:
 microsoftTeamsApp:
   clientId:
   clientSecret:
+  tenantId:
 
 keda:
   enabled: true

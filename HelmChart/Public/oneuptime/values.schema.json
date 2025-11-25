@@ -2004,6 +2004,9 @@
         },
         "clientSecret": {
           "type": ["string", "null"]
+        },
+        "tenantId": {
+          "type": ["string", "null"]
         }
       },
       "additionalProperties": false

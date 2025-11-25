@@ -43,6 +43,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import {
   MicrosoftTeamsAppClientId,
   MicrosoftTeamsAppClientSecret,
+  MicrosoftTeamsAppTenantId,
 } from "../../../EnvironmentConfig";
 
 // Import services for bot commands
@@ -94,15 +95,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   private static readonly WELCOME_CARD_STATE_KEY: string =
     "oneuptime.microsoftTeams.welcomeCardSent";
   // Get or create Bot Framework adapter for a specific tenant
-  private static getBotAdapter(microsoftAppTenantId: string): CloudAdapter {
+  private static getBotAdapter(): CloudAdapter {
     if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
       throw new BadDataException(
         "Microsoft Teams App credentials not configured",
       );
     }
 
-    if (!microsoftAppTenantId) {
-      throw new BadDataException("Microsoft Teams tenant ID is required");
+    if (!MicrosoftTeamsAppTenantId) {
+      throw new BadDataException(
+        "Microsoft Teams app tenant ID is not configured",
+      );
     }
 
     logger.debug(
@@ -110,13 +113,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     );
     logger.debug(`App ID: ${MicrosoftTeamsAppClientId}`);
     logger.debug(`App Type: ${MICROSOFT_TEAMS_APP_TYPE}`);
-    logger.debug(`Tenant ID: ${microsoftAppTenantId}`);
+    logger.debug(`Tenant ID: ${MicrosoftTeamsAppTenantId}`);
 
     const authConfig: ConfigurationBotFrameworkAuthenticationOptions = {
       MicrosoftAppId: MicrosoftTeamsAppClientId,
       MicrosoftAppPassword: MicrosoftTeamsAppClientSecret,
       MicrosoftAppType: MICROSOFT_TEAMS_APP_TYPE,
-      MicrosoftAppTenantId: microsoftAppTenantId,
+      MicrosoftAppTenantId: MicrosoftTeamsAppTenantId,
     };
 
     const botFrameworkAuthentication: ConfigurationBotFrameworkAuthentication =
@@ -1141,7 +1144,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug(`Using bot ID: ${miscData.botId}`);
 
       // Get Bot Framework adapter
-      const adapter: CloudAdapter = this.getBotAdapter(tenantId);
+      const adapter: CloudAdapter = this.getBotAdapter();
 
       // Create conversation reference for the channel
       const conversationReference: ConversationReference = {
@@ -2564,7 +2567,7 @@ All monitoring checks are passing normally.`;
       }
 
       // Get Bot Framework adapter
-      const adapter: CloudAdapter = this.getBotAdapter(tenantId);
+      const adapter: CloudAdapter = this.getBotAdapter();
 
       // Create custom activity handler class that extends TeamsActivityHandler
       class OneUptimeTeamsActivityHandler extends TeamsActivityHandler {
