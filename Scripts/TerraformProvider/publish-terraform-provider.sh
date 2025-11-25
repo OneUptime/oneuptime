@@ -27,6 +27,7 @@ VERSION=""
 TEST_RELEASE=false
 SKIP_TESTS=false
 FORCE=false
+RELEASE_ALREADY_EXISTS=false
 
 # Function to print colored output
 print_status() {
@@ -464,6 +465,28 @@ create_github_release() {
         use_gh_cli=false
     fi
 
+    # Skip release creation if the release already exists
+    local release_exists=false
+    if [[ "$use_gh_cli" == true ]]; then
+        if gh release view "v$VERSION" --repo "$GITHUB_ORG/$PROVIDER_REPO" >/dev/null 2>&1; then
+            release_exists=true
+        fi
+    else
+        local existing_release_response=$(curl -s \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/tags/v$VERSION")
+        if echo "$existing_release_response" | jq -e '.id' >/dev/null 2>&1; then
+            release_exists=true
+        fi
+    fi
+
+    if [[ "$release_exists" == true ]]; then
+        print_warning "GitHub release v$VERSION already exists. Skipping release creation."
+        RELEASE_ALREADY_EXISTS=true
+        return
+    fi
+
     # Create release notes
     local release_notes_file="release-notes-v$VERSION.md"
     cat > "$release_notes_file" << EOF
@@ -592,6 +615,11 @@ EOF
 # Function to publish to terraform registry
 publish_to_registry() {
     print_step "Publishing to Terraform Registry..."
+
+    if [[ "$RELEASE_ALREADY_EXISTS" == true ]]; then
+        print_status "Release already existed. Skipping Terraform Registry publish step."
+        return
+    fi
 
     if [[ "$TEST_RELEASE" == true ]]; then
         print_warning "TEST RELEASE: Skipping Terraform Registry publishing"
@@ -876,6 +904,18 @@ show_summary() {
     echo "GitHub Repository: https://github.com/$GITHUB_ORG/$PROVIDER_REPO"
     echo "Terraform Registry: https://registry.terraform.io/providers/oneuptime/oneuptime"
     echo ""
+
+    if [[ "$RELEASE_ALREADY_EXISTS" == true ]]; then
+        print_warning "GitHub release v$VERSION already existed. Skipped release creation and registry publishing."
+        echo "✓ Generated Terraform provider"
+        echo "✓ Ran tests (if not skipped)"
+        echo "✓ Pushed code to terraform-provider-oneuptime repository"
+        echo "✗ Release creation skipped"
+        echo "✗ Terraform Registry publish skipped"
+        echo ""
+        print_status "If you need to update the existing release, delete it first or rerun with --force."
+        return
+    fi
     
     if [[ "$TEST_RELEASE" == true ]]; then
         print_warning "This was a TEST RELEASE with the following actions taken:"
