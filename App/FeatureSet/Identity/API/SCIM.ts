@@ -470,174 +470,182 @@ router.get(
   },
 );
 
-// Update User - PUT /scim/v2/Users/{id}
-router.put(
-  "/scim/v2/:projectScimId/Users/:userId",
-  SCIMMiddleware.isAuthorizedSCIMRequest,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
-    try {
-      logger.debug(
-        `SCIM Update user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`,
-      );
-      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-      const bearerData: JSONObject =
-        oneuptimeRequest.bearerTokenData as JSONObject;
-      const projectId: ObjectID = bearerData["projectId"] as ObjectID;
-      const userId: string = req.params["userId"]!;
-      const scimUser: JSONObject = req.body;
+const handleUserUpdate: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    logger.debug(
+      `SCIM Update user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`,
+    );
+    const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+    const bearerData: JSONObject = oneuptimeRequest.bearerTokenData as JSONObject;
+    const projectId: ObjectID = bearerData["projectId"] as ObjectID;
+    const userId: string = req.params["userId"]!;
+    const scimUser: JSONObject = req.body;
 
-      logger.debug(
-        `SCIM Update user - projectId: ${projectId}, userId: ${userId}`,
-      );
+    logger.debug(
+      `SCIM Update user - projectId: ${projectId}, userId: ${userId}`,
+    );
 
-      logger.debug(
-        `Request body for SCIM Update user: ${JSON.stringify(scimUser, null, 2)}`,
-      );
+    logger.debug(
+      `Request body for SCIM Update user: ${JSON.stringify(scimUser, null, 2)}`,
+    );
 
-      if (!userId) {
-        throw new BadRequestException("User ID is required");
+    if (!userId) {
+      throw new BadRequestException("User ID is required");
+    }
+
+    // Check if user exists and is part of the project
+    const projectUser: TeamMember | null = await TeamMemberService.findOneBy({
+      query: {
+        projectId: projectId,
+        userId: new ObjectID(userId),
+      },
+      select: {
+        userId: true,
+        user: {
+          _id: true,
+          email: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
+      props: { isRoot: true },
+    });
+
+    if (!projectUser || !projectUser.user) {
+      logger.debug(
+        `SCIM Update user - user not found or not part of project for userId: ${userId}`,
+      );
+      throw new NotFoundException("User not found or not part of this project");
+    }
+
+    // Update user information
+    const email: string =
+      (scimUser["userName"] as string) ||
+      ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string);
+    const name: string = parseNameFromSCIM(scimUser);
+    const active: boolean = scimUser["active"] as boolean;
+
+    logger.debug(
+      `SCIM Update user - email: ${email}, name: ${name}, active: ${active}`,
+    );
+
+    const scimConfig: ProjectSCIM = bearerData["scimConfig"] as ProjectSCIM;
+
+    // Handle user deactivation by removing from teams
+    if (active === false && !scimConfig.enablePushGroups) {
+      logger.debug(
+        `SCIM Update user - user marked as inactive, removing from teams`,
+      );
+      await handleUserTeamOperations(
+        "remove",
+        projectId,
+        new ObjectID(userId),
+        scimConfig,
+      );
+      logger.debug(
+        `SCIM Update user - user successfully removed from teams due to deactivation`,
+      );
+    }
+
+    // Handle user activation by adding to teams
+    if (active === true && !scimConfig.enablePushGroups) {
+      logger.debug(
+        `SCIM Update user - user marked as active, adding to teams`,
+      );
+      await handleUserTeamOperations(
+        "add",
+        projectId,
+        new ObjectID(userId),
+        scimConfig,
+      );
+      logger.debug(
+        `SCIM Update user - user successfully added to teams due to activation`,
+      );
+    }
+
+    if (email || name) {
+      const updateData: any = {};
+      if (email) {
+        updateData.email = new Email(email);
+      }
+      if (name) {
+        updateData.name = new Name(name);
       }
 
-      // Check if user exists and is part of the project
-      const projectUser: TeamMember | null = await TeamMemberService.findOneBy({
-        query: {
-          projectId: projectId,
-          userId: new ObjectID(userId),
-        },
+      logger.debug(
+        `SCIM Update user - updating user with data: ${JSON.stringify(updateData)}`,
+      );
+
+      await UserService.updateOneById({
+        id: new ObjectID(userId),
+        data: updateData,
+        props: { isRoot: true },
+      });
+
+      logger.debug(`SCIM Update user - user updated successfully`);
+
+      // Fetch updated user
+      const updatedUser: User | null = await UserService.findOneById({
+        id: new ObjectID(userId),
         select: {
-          userId: true,
-          user: {
-            _id: true,
-            email: true,
-            name: true,
-            createdAt: true,
-            updatedAt: true,
-          },
+          _id: true,
+          email: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
         },
         props: { isRoot: true },
       });
 
-      if (!projectUser || !projectUser.user) {
-        logger.debug(
-          `SCIM Update user - user not found or not part of project for userId: ${userId}`,
+      if (updatedUser) {
+        const user: JSONObject = formatUserForSCIM(
+          updatedUser,
+          req,
+          req.params["projectScimId"]!,
+          "project",
         );
-        throw new NotFoundException(
-          "User not found or not part of this project",
-        );
+        return Response.sendJsonObjectResponse(req, res, user);
       }
-
-      // Update user information
-      const email: string =
-        (scimUser["userName"] as string) ||
-        ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string);
-      const name: string = parseNameFromSCIM(scimUser);
-      const active: boolean = scimUser["active"] as boolean;
-
-      logger.debug(
-        `SCIM Update user - email: ${email}, name: ${name}, active: ${active}`,
-      );
-
-      const scimConfig: ProjectSCIM = bearerData["scimConfig"] as ProjectSCIM;
-
-      // Handle user deactivation by removing from teams
-      if (active === false && !scimConfig.enablePushGroups) {
-        logger.debug(
-          `SCIM Update user - user marked as inactive, removing from teams`,
-        );
-        await handleUserTeamOperations(
-          "remove",
-          projectId,
-          new ObjectID(userId),
-          scimConfig,
-        );
-        logger.debug(
-          `SCIM Update user - user successfully removed from teams due to deactivation`,
-        );
-      }
-
-      // Handle user activation by adding to teams
-      if (active === true && !scimConfig.enablePushGroups) {
-        logger.debug(
-          `SCIM Update user - user marked as active, adding to teams`,
-        );
-        await handleUserTeamOperations(
-          "add",
-          projectId,
-          new ObjectID(userId),
-          scimConfig,
-        );
-        logger.debug(
-          `SCIM Update user - user successfully added to teams due to activation`,
-        );
-      }
-
-      if (email || name) {
-        const updateData: any = {};
-        if (email) {
-          updateData.email = new Email(email);
-        }
-        if (name) {
-          updateData.name = new Name(name);
-        }
-
-        logger.debug(
-          `SCIM Update user - updating user with data: ${JSON.stringify(updateData)}`,
-        );
-
-        await UserService.updateOneById({
-          id: new ObjectID(userId),
-          data: updateData,
-          props: { isRoot: true },
-        });
-
-        logger.debug(`SCIM Update user - user updated successfully`);
-
-        // Fetch updated user
-        const updatedUser: User | null = await UserService.findOneById({
-          id: new ObjectID(userId),
-          select: {
-            _id: true,
-            email: true,
-            name: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-          props: { isRoot: true },
-        });
-
-        if (updatedUser) {
-          const user: JSONObject = formatUserForSCIM(
-            updatedUser,
-            req,
-            req.params["projectScimId"]!,
-            "project",
-          );
-          return Response.sendJsonObjectResponse(req, res, user);
-        }
-      }
-
-      logger.debug(
-        `SCIM Update user - no updates made, returning existing user`,
-      );
-
-      // If no updates were made, return the existing user
-      const user: JSONObject = formatUserForSCIM(
-        projectUser.user,
-        req,
-        req.params["projectScimId"]!,
-        "project",
-      );
-
-      return Response.sendJsonObjectResponse(req, res, user);
-    } catch (err) {
-      logger.error(err);
-      return next(err);
     }
-  },
+
+    logger.debug(`SCIM Update user - no updates made, returning existing user`);
+
+    // If no updates were made, return the existing user
+    const user: JSONObject = formatUserForSCIM(
+      projectUser.user,
+      req,
+      req.params["projectScimId"]!,
+      "project",
+    );
+
+    return Response.sendJsonObjectResponse(req, res, user);
+  } catch (err) {
+    logger.error(err);
+    return next(err);
+  }
+};
+
+// Update User - PUT /scim/v2/Users/{id}
+router.put(
+  "/scim/v2/:projectScimId/Users/:userId",
+  SCIMMiddleware.isAuthorizedSCIMRequest,
+  handleUserUpdate,
+);
+
+// Update User - PATCH /scim/v2/Users/{id}
+router.patch(
+  "/scim/v2/:projectScimId/Users/:userId",
+  SCIMMiddleware.isAuthorizedSCIMRequest,
+  handleUserUpdate,
 );
 
 // Groups endpoint - GET /scim/v2/Groups
