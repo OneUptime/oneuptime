@@ -68,12 +68,12 @@ COPY ./Common /usr/src/Common
 ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
-
-RUN npx playwright install --with-deps
-
-# Install app dependencies
+# Install app dependencies first so local Playwright CLI is available
 COPY ./Probe/package*.json /usr/src/app/
 RUN npm install
+
+# Install browsers with the same Playwright version we just installed
+RUN npx playwright install --with-deps
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
