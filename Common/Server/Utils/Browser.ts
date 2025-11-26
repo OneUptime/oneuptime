@@ -166,7 +166,18 @@ export default class BrowserUtil {
       throw new BadDataException("Chrome executable path not found.");
     }
 
-    return `/root/.cache/ms-playwright/${chromeInstallationName}/chrome-linux/chrome`;
+    const chromeExecutableCandidates: Array<string> = [
+      `/root/.cache/ms-playwright/${chromeInstallationName}/chrome-linux/chrome`,
+      `/root/.cache/ms-playwright/${chromeInstallationName}/chrome-linux64/chrome`,
+    ];
+
+    for (const executablePath of chromeExecutableCandidates) {
+      if (await LocalFile.doesFileExist(executablePath)) {
+        return executablePath;
+      }
+    }
+
+    throw new BadDataException("Chrome executable path not found.");
   }
 
   @CaptureSpan()
