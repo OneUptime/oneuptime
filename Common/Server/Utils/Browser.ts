@@ -169,6 +169,8 @@ export default class BrowserUtil {
     const chromeExecutableCandidates: Array<string> = [
       `/root/.cache/ms-playwright/${chromeInstallationName}/chrome-linux/chrome`,
       `/root/.cache/ms-playwright/${chromeInstallationName}/chrome-linux64/chrome`,
+      `/root/.cache/ms-playwright/${chromeInstallationName}/chrome64/chrome`,
+      `/root/.cache/ms-playwright/${chromeInstallationName}/chrome/chrome`,
     ];
 
     for (const executablePath of chromeExecutableCandidates) {
@@ -208,6 +210,19 @@ export default class BrowserUtil {
       throw new BadDataException("Firefox executable path not found.");
     }
 
-    return `/root/.cache/ms-playwright/${firefoxInstallationName}/firefox/firefox`;
+    const firefoxExecutableCandidates: Array<string> = [
+      `/root/.cache/ms-playwright/${firefoxInstallationName}/firefox/firefox`,
+      `/root/.cache/ms-playwright/${firefoxInstallationName}/firefox-linux64/firefox`,
+      `/root/.cache/ms-playwright/${firefoxInstallationName}/firefox64/firefox`,
+      `/root/.cache/ms-playwright/${firefoxInstallationName}/firefox-64/firefox`,
+    ];
+
+    for (const executablePath of firefoxExecutableCandidates) {
+      if (await LocalFile.doesFileExist(executablePath)) {
+        return executablePath;
+      }
+    }
+
+    throw new BadDataException("Firefox executable path not found.");
   }
 }
