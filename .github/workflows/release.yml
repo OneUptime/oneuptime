@@ -2186,7 +2186,7 @@ jobs:
       - name: Start Server with version tag
         run: |
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}-build.${{needs.generate-build-number.outputs.build_number}}
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}
           docker compose up --remove-orphans -d
           npm run status-check
       - name: Wait for server to start
@@ -2195,13 +2195,13 @@ jobs:
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}-build.${{needs.generate-build-number.outputs.build_number}}
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}
           docker compose -f docker-compose.e2e.yml pull e2e
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}-build.${{needs.generate-build-number.outputs.build_number}}
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}
           trap 'docker compose -f docker-compose.e2e.yml down -v || true' EXIT
           if ! docker compose -f docker-compose.e2e.yml up --exit-code-from e2e --abort-on-container-exit e2e; then
             docker compose -f docker-compose.e2e.yml logs e2e
@@ -2273,7 +2273,7 @@ jobs:
       - name: Start Server with version tag
         run: |
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}-build.${{needs.generate-build-number.outputs.build_number}}
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}
           docker compose up --remove-orphans -d
           npm run status-check
       - name: Wait for server to start
@@ -2282,13 +2282,13 @@ jobs:
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}-build.${{needs.generate-build-number.outputs.build_number}}
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}
           docker compose -f docker-compose.e2e.yml pull e2e
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}-build.${{needs.generate-build-number.outputs.build_number}}
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}
           trap 'docker compose -f docker-compose.e2e.yml down -v || true' EXIT
           if ! docker compose -f docker-compose.e2e.yml up --exit-code-from e2e --abort-on-container-exit e2e; then
             docker compose -f docker-compose.e2e.yml logs e2e

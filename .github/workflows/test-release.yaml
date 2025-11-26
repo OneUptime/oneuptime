@@ -1964,7 +1964,7 @@ jobs:
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test-build.${{needs.generate-build-number.outputs.build_number}}
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
           npm run start
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
@@ -1976,7 +1976,7 @@ jobs:
           on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
           command: |
             export $(grep -v '^#' config.env | xargs)
-            export APP_TAG=${{needs.read-version.outputs.major_minor}}-test-build.${{needs.generate-build-number.outputs.build_number}}
+            export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
             docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -2046,7 +2046,7 @@ jobs:
         run: |
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
-          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test-build.${{needs.generate-build-number.outputs.build_number}}
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
           npm run start
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
@@ -2058,7 +2058,7 @@ jobs:
           on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
           command: |
             export $(grep -v '^#' config.env | xargs)
-            export APP_TAG=${{needs.read-version.outputs.major_minor}}-test-build.${{needs.generate-build-number.outputs.build_number}}
+            export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
             docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
