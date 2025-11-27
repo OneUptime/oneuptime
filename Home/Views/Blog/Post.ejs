@@ -136,6 +136,23 @@
                 font-weight: 400 !important;
             }
 
+            /* Inline code chips */
+            .blog-body :not(pre) > code {
+                font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+                font-size: 0.80em;
+                padding: 0.15rem 0.35rem;
+                border-radius: 0.45rem;
+                background: rgba(148, 163, 184, 0.15);
+                border: 1px solid rgba(71, 85, 105, 0.35);
+                color: #0f172a;
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+                white-space: nowrap;
+            }
+
+            .blog-body :not(pre) > code strong {
+                font-weight: 600;
+            }
+
             .blog-body blockquote {
                 border-left: 4px solid #a5b4fc;
                 background: rgba(224, 231, 255, 0.45);
