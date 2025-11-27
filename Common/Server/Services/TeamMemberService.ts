@@ -44,9 +44,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   }
 
   @CaptureSpan()
-  private async isSCIMPushGroupsEnabled(
-    projectId: ObjectID,
-  ): Promise<boolean> {
+  private async isSCIMPushGroupsEnabled(projectId: ObjectID): Promise<boolean> {
     const count: PositiveNumber = await ProjectSCIMService.countBy({
       query: {
         projectId: projectId,
@@ -349,8 +347,9 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         });
 
         // Skip the one-member guard when SCIM manages membership for the project.
-        const isPushGroupsManaged: boolean =
-          await this.isSCIMPushGroupsEnabled(member.projectId!);
+        const isPushGroupsManaged: boolean = await this.isSCIMPushGroupsEnabled(
+          member.projectId!,
+        );
 
         if (!isPushGroupsManaged && membersInTeam.toNumber() <= 1) {
           throw new BadDataException(

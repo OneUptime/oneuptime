@@ -446,7 +446,9 @@ describe("TeamMemberService", () => {
         });
 
         expect(teamMember).toBeDefined();
-        expect(teamMember.projectId?.toString()).toEqual(project._id?.toString());
+        expect(teamMember.projectId?.toString()).toEqual(
+          project._id?.toString(),
+        );
       });
     });
 
