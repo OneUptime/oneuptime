@@ -6,6 +6,7 @@ import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
+import ProjectSCIM from "../../../Models/DatabaseModels/ProjectSCIM";
 import Errors from "../../../Server/Utils/Errors";
 import "../TestingUtils/Init";
 import ProjectServiceHelper from "../TestingUtils/Services/ProjectServiceHelper";
@@ -364,13 +365,14 @@ describe("TeamMemberService", () => {
             isRoot: true,
           });
 
+        const scimWithPushGroups: ProjectSCIM = new ProjectSCIM();
+        scimWithPushGroups.projectId = new ObjectID(project._id!);
+        scimWithPushGroups.name = "Test SCIM Push Groups";
+        scimWithPushGroups.bearerToken = ObjectID.generate().toString();
+        scimWithPushGroups.enablePushGroups = true;
+
         await ProjectSCIMService.create({
-          data: {
-            projectId: new ObjectID(project._id!),
-            name: "Test SCIM Push Groups",
-            bearerToken: ObjectID.generate().toString(),
-            enablePushGroups: true,
-          },
+          data: scimWithPushGroups,
           props: {
             isRoot: true,
           },
@@ -420,13 +422,14 @@ describe("TeamMemberService", () => {
             isRoot: true,
           });
 
+        const scimWithoutPushGroups: ProjectSCIM = new ProjectSCIM();
+        scimWithoutPushGroups.projectId = new ObjectID(project._id!);
+        scimWithoutPushGroups.name = "Test SCIM without Push Groups";
+        scimWithoutPushGroups.bearerToken = ObjectID.generate().toString();
+        scimWithoutPushGroups.enablePushGroups = false;
+
         await ProjectSCIMService.create({
-          data: {
-            projectId: new ObjectID(project._id!),
-            name: "Test SCIM without Push Groups",
-            bearerToken: ObjectID.generate().toString(),
-            enablePushGroups: false,
-          },
+          data: scimWithoutPushGroups,
           props: {
             isRoot: true,
           },
