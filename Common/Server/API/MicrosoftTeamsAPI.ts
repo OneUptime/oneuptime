@@ -477,6 +477,8 @@ export default class MicrosoftTeamsAPI {
           const availableTeams: Record<string, MicrosoftTeamsTeam> =
             await MicrosoftTeamsUtil.refreshTeams({
               projectId: projectId,
+              userId: userId,
+              userAccessToken: accessToken,
             });
           const matchedTeam: MicrosoftTeamsTeam | undefined = Object.values(
             availableTeams,
@@ -1077,6 +1079,7 @@ export default class MicrosoftTeamsAPI {
           const availableTeams: Record<string, MicrosoftTeamsTeam> =
             await MicrosoftTeamsUtil.refreshTeams({
               projectId: projectId,
+              ...(databaseProps.userId && { userId: databaseProps.userId }),
             });
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -1110,6 +1113,7 @@ export default class MicrosoftTeamsAPI {
           const availableTeams: Record<string, MicrosoftTeamsTeam> =
             await MicrosoftTeamsUtil.refreshTeams({
               projectId: projectId,
+              ...(databaseProps.userId && { userId: databaseProps.userId }),
             });
 
           return Response.sendJsonObjectResponse(req, res, {
