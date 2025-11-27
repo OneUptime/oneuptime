@@ -21,6 +21,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Banner from "Common/UI/Components/Banner/Banner";
 
 const Teams: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -30,7 +31,8 @@ const Teams: FunctionComponent<PageComponentProps> = (
   const [showScimErrorModal, setShowScimErrorModal] =
     React.useState<boolean>(false);
   const [isFilterApplied, setIsFilterApplied] = React.useState<boolean>(false);
-  const [isScimEnabled, setIsScimEnabled] = React.useState<boolean>(false);
+  const [isPushGroupsManaged, setIsPushGroupsManaged] =
+    React.useState<boolean>(false);
 
   React.useEffect(() => {
     const checkScim: () => Promise<void> = async () => {
@@ -42,9 +44,10 @@ const Teams: FunctionComponent<PageComponentProps> = (
           modelType: ProjectSCIM,
           query: {
             projectId: props.currentProject._id,
+            enablePushGroups: true,
           },
         });
-        setIsScimEnabled(scimCount > 0);
+        setIsPushGroupsManaged(scimCount > 0);
       } catch {
         // ignore
       }
@@ -54,12 +57,19 @@ const Teams: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
+      {isPushGroupsManaged && (
+        <Banner
+          title="Users are managed by SCIM Push Groups"
+          description="Invite or remove users from your identity provider or disable Push Groups in Settings > SCIM to manage them here."
+        />
+      )}
+
       <ModelTable<TeamMember>
         modelType={TeamMember}
         id="teams-table"
         name="Settings > Users"
         userPreferencesKey="users-table"
-        isDeleteable={!isScimEnabled}
+        isDeleteable={!isPushGroupsManaged}
         isEditable={false}
         isCreateable={false}
         onFilterApplied={(isApplied: boolean) => {
@@ -67,9 +77,9 @@ const Teams: FunctionComponent<PageComponentProps> = (
         }}
         isViewable={true}
         onBeforeDelete={async (item: TeamMember): Promise<TeamMember> => {
-          if (isScimEnabled) {
+          if (isPushGroupsManaged) {
             throw new BadDataException(
-              "Cannot remove team members when SCIM is enabled for this project.",
+              "Cannot remove team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
             );
           }
           return item;
@@ -84,7 +94,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
               buttonStyle: ButtonStyleType.NORMAL,
               icon: IconProp.Add,
               onClick: () => {
-                if (isScimEnabled) {
+                if (isPushGroupsManaged) {
                   setShowScimErrorModal(true);
                 } else {
                   setShowInviteUserModal(true);
@@ -185,7 +195,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
           },
         ]}
       />
-      {showInviteUserModal && !isScimEnabled && (
+      {showInviteUserModal && !isPushGroupsManaged && (
         <ModelFormModal<TeamMember>
           modelType={TeamMember}
           name="Invite New User"
@@ -250,8 +260,8 @@ const Teams: FunctionComponent<PageComponentProps> = (
       )}
       {showScimErrorModal && (
         <ConfirmModal
-          title="Users are managed by SCIM"
-          description="Cannot invite users when SCIM is enabled for this project. User management is handled by your identity provider."
+          title="Users are managed by SCIM Push Groups"
+          description="Team membership is being managed by your identity provider. Disable Push Groups in Settings > SCIM if you need to invite or promote users from OneUptime."
           onSubmit={() => {
             setShowScimErrorModal(false);
           }}

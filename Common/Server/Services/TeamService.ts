@@ -71,6 +71,7 @@ export class Service extends DatabaseService<Model> {
       const scimCount: PositiveNumber = await ProjectSCIMService.countBy({
         query: {
           projectId: projectId,
+          enablePushGroups: true,
         },
         skip: new PositiveNumber(0),
         limit: new PositiveNumber(1),
@@ -82,7 +83,7 @@ export class Service extends DatabaseService<Model> {
 
       if (scimCount.toNumber() > 0) {
         throw new BadDataException(
-          `Cannot ${data.action} teams when SCIM is enabled for this project.`,
+          `Cannot ${data.action} teams while SCIM Push Groups is enabled for this project. Disable Push Groups to manage teams from OneUptime.`,
         );
       }
     }

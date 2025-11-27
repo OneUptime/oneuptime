@@ -5,6 +5,7 @@ import MailService from "../../../Server/Services/MailService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
+import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import Errors from "../../../Server/Utils/Errors";
 import "../TestingUtils/Init";
 import ProjectServiceHelper from "../TestingUtils/Services/ProjectServiceHelper";
@@ -333,6 +334,119 @@ describe("TeamMemberService", () => {
             projectId: new ObjectID(project._id!),
           },
         );
+      });
+
+      it("should block inviting users when SCIM push groups is enabled", async () => {
+        const owner: User = await UserServiceHelper.genrateAndSaveRandomUser(
+          null,
+          {
+            isRoot: true,
+          },
+        );
+
+        const project: Project =
+          await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+            isRoot: true,
+            userId: owner.id!,
+          });
+
+        const team: Team = await TeamServiceHelper.generateAndSaveRandomTeam(
+          {
+            projectId: new ObjectID(project.id!),
+          },
+          {
+            isRoot: true,
+          },
+        );
+
+        const memberUser: User =
+          await UserServiceHelper.genrateAndSaveRandomUser(null, {
+            isRoot: true,
+          });
+
+        await ProjectSCIMService.create({
+          data: {
+            projectId: new ObjectID(project._id!),
+            name: "Test SCIM Push Groups",
+            bearerToken: ObjectID.generate().toString(),
+            enablePushGroups: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const tm: TeamMember = TeamMemberServiceHelper.generateRandomTeamMember(
+          {
+            projectId: new ObjectID(project._id!),
+            userId: new ObjectID(memberUser._id!),
+            teamId: new ObjectID(team._id!),
+          },
+        );
+
+        await expect(
+          TeamMemberService.create({
+            data: tm,
+            props: { isRoot: false, tenantId: project.id! },
+          }),
+        ).rejects.toThrow(/SCIM Push Groups/i);
+      });
+
+      it("should allow inviting users when SCIM push groups is disabled", async () => {
+        const owner: User = await UserServiceHelper.genrateAndSaveRandomUser(
+          null,
+          {
+            isRoot: true,
+          },
+        );
+
+        const project: Project =
+          await ProjectServiceHelper.generateAndSaveRandomProject(null, {
+            isRoot: true,
+            userId: owner.id!,
+          });
+
+        const team: Team = await TeamServiceHelper.generateAndSaveRandomTeam(
+          {
+            projectId: new ObjectID(project.id!),
+          },
+          {
+            isRoot: true,
+          },
+        );
+
+        const memberUser: User =
+          await UserServiceHelper.genrateAndSaveRandomUser(null, {
+            isRoot: true,
+          });
+
+        await ProjectSCIMService.create({
+          data: {
+            projectId: new ObjectID(project._id!),
+            name: "Test SCIM without Push Groups",
+            bearerToken: ObjectID.generate().toString(),
+            enablePushGroups: false,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const tm: TeamMember = TeamMemberServiceHelper.generateRandomTeamMember(
+          {
+            projectId: new ObjectID(project._id!),
+            userId: new ObjectID(memberUser._id!),
+            teamId: new ObjectID(team._id!),
+          },
+        );
+
+        const teamMember: TeamMember = await TeamMemberService.create({
+          data: tm,
+          props: { isRoot: false, tenantId: project.id! },
+        });
+
+        expect(teamMember).toBeDefined();
+        expect(teamMember.projectId?.toString()).toEqual(project._id?.toString());
       });
     });
 

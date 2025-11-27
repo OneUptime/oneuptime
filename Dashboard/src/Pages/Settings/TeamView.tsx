@@ -53,7 +53,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
   const complianceStatusTableRef: React.Ref<TeamComplianceStatusTableRef> =
     React.useRef<TeamComplianceStatusTableRef>(null);
 
-  const [isScimEnabled, setIsScimEnabled] = React.useState<boolean>(false);
+  const [isPushGroupsManaged, setIsPushGroupsManaged] =
+    React.useState<boolean>(false);
 
   React.useEffect(() => {
     const checkScim: () => Promise<void> = async () => {
@@ -65,9 +66,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
           modelType: ProjectSCIM,
           query: {
             projectId: props.currentProject._id,
+            enablePushGroups: true,
           },
         });
-        setIsScimEnabled(scimCount > 0);
+        setIsPushGroupsManaged(scimCount > 0);
       } catch {
         // ignore
       }
@@ -327,23 +329,30 @@ const TeamView: FunctionComponent<PageComponentProps> = (
 
       {/* Team Members Table */}
 
+      {isPushGroupsManaged && (
+        <Banner
+          title="Team membership is managed by SCIM Push Groups"
+          description="Manage team members from your identity provider or disable Push Groups in Settings > SCIM to make changes here."
+        />
+      )}
+
       <ModelTable<TeamMember>
         modelType={TeamMember}
         id="table-team-member"
         userPreferencesKey="team-member-table"
-        isDeleteable={true}
+        isDeleteable={!isPushGroupsManaged}
         name="Settings > Team > Member"
         createVerb={"Invite"}
-        isCreateable={true}
+        isCreateable={!isPushGroupsManaged}
         isViewable={false}
         query={{
           teamId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         onBeforeCreate={(item: TeamMember): Promise<TeamMember> => {
-          if (isScimEnabled) {
+          if (isPushGroupsManaged) {
             throw new BadDataException(
-              "Cannot invite users when SCIM is enabled for this project.",
+              "Cannot invite users while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
             );
           }
           if (!props.currentProject || !props.currentProject._id) {
@@ -354,9 +363,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
           return Promise.resolve(item);
         }}
         onBeforeDelete={async (item: TeamMember): Promise<TeamMember> => {
-          if (isScimEnabled) {
+          if (isPushGroupsManaged) {
             throw new BadDataException(
-              "Cannot remove team members when SCIM is enabled for this project.",
+              "Cannot remove team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
             );
           }
           return item;
