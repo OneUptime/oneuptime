@@ -226,7 +226,9 @@ export default class Telemetry {
       };
 
       if (logRecordProcessors.length > 0) {
-        loggerProviderConfig.processors = logRecordProcessors;
+        (loggerProviderConfig as LoggerProviderConfig & {
+          processors?: Array<LogRecordProcessor>;
+        }).processors = logRecordProcessors;
       }
 
       this.loggerProvider = new LoggerProvider(loggerProviderConfig);
@@ -254,7 +256,9 @@ export default class Telemetry {
        */
 
       if (logRecordProcessors.length > 0) {
-        nodeSdkConfiguration.logRecordProcessors = logRecordProcessors;
+        (nodeSdkConfiguration as opentelemetry.NodeSDKConfiguration & {
+          logRecordProcessors?: Array<LogRecordProcessor>;
+        }).logRecordProcessors = logRecordProcessors;
       }
 
       const sdk: opentelemetry.NodeSDK = new opentelemetry.NodeSDK(
