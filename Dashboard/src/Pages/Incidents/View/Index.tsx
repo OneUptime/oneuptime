@@ -535,7 +535,7 @@ const IncidentView: FunctionComponent<
             },
             {
               field: {
-                createdAt: true,
+                declaredAt: true,
               },
               title: "Declared At",
               fieldType: FieldType.DateTime,

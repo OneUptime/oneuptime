@@ -223,9 +223,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              createdAt: true,
+              declaredAt: true,
             },
-            title: "Created",
+            title: "Declared",
             type: FieldType.Date,
           },
           {
@@ -339,9 +339,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              createdAt: true,
+              declaredAt: true,
             },
-            title: "Created",
+            title: "Declared",
             type: FieldType.DateTime,
             hideOnMobile: true,
           },

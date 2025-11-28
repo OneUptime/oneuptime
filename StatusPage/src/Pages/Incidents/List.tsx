@@ -161,13 +161,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const days: Dictionary<EventHistoryDayListComponentProps> = {};
 
     for (const incident of incidents) {
-      const dayString: string = OneUptimeDate.getDateString(
-        incident.createdAt!,
-      );
+      const incidentDate: Date =
+        incident.declaredAt ||
+        (incident.createdAt as Date | undefined) ||
+        OneUptimeDate.getCurrentDate();
+      const dayString: string = OneUptimeDate.getDateString(incidentDate);
 
       if (!days[dayString]) {
         days[dayString] = {
-          date: incident.createdAt!,
+          date: incidentDate,
           items: [],
         };
       }

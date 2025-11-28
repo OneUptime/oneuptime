@@ -1,6 +1,7 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
+import OneUptimeDate from "Common/Types/Date";
 import Route from "Common/Types/API/Route";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
@@ -250,6 +251,20 @@ const IncidentCreate: FunctionComponent<
                   description: MarkdownUtil.getMarkdownCheatsheet(
                     "Describe the incident details here",
                   ),
+                },
+                {
+                  field: {
+                    declaredAt: true,
+                  },
+                  title: "Declared At",
+                  stepId: "incident-details",
+                  description: "When was this incident first declared?",
+                  fieldType: FormFieldSchemaType.DateTime,
+                  required: true,
+                  placeholder: "Pick date and time",
+                  getDefaultValue: () => {
+                    return OneUptimeDate.getCurrentDate();
+                  },
                 },
                 {
                   field: {

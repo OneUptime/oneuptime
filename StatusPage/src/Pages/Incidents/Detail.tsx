@@ -244,6 +244,9 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     }),
   );
 
+  const incidentDeclaredAt: Date | undefined =
+    incident.declaredAt || (incident.createdAt as Date | undefined);
+
   const data: EventItemComponentProps = {
     eventTitle: incident.title || "",
     eventDescription: incident.description,
@@ -265,10 +268,10 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     currentStatusColor: currentStatusColor,
     anotherStatusColor: incident.incidentSeverity?.color || undefined,
     anotherStatus: incident.incidentSeverity?.name,
-    eventSecondDescription: incident.createdAt
-      ? "Created at " +
+    eventSecondDescription: incidentDeclaredAt
+      ? "Declared at " +
         OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          incident.createdAt!,
+          incidentDeclaredAt,
         )
       : "",
     eventTypeColor: Red,
