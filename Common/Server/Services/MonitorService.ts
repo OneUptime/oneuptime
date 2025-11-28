@@ -63,14 +63,13 @@ import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Gray500, Green500 } from "../../Types/BrandColors";
 import LabelService from "./LabelService";
-import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
-import { FindWhere } from "../../Types/BaseDatabase/Query";
 import logger from "../Utils/Logger";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import Project from "../../Models/DatabaseModels/Project";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
+import MetricService from "./MetricService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -136,12 +135,26 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    if (deleteBy.query._id) {
-      // delete all the status page resource for this monitor.
+    const monitorsPendingDeletion: Array<Model> = await this.findBy({
+      query: deleteBy.query,
+      limit: LIMIT_MAX,
+      skip: 0,
+      select: {
+        _id: true,
+        projectId: true,
+      },
+      props: deleteBy.props,
+    });
 
+    for (const monitor of monitorsPendingDeletion) {
+      if (!monitor.id) {
+        continue;
+      }
+
+      // delete all the status page resources for this monitor.
       await StatusPageResourceService.deleteBy({
         query: {
-          monitorId: new ObjectID(deleteBy.query._id as string),
+          monitorId: monitor.id,
         },
         limit: LIMIT_MAX,
         skip: 0,
@@ -150,37 +163,19 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-      let projectId: FindWhere<ObjectID> | QueryOperator<ObjectID> | undefined =
-        deleteBy.query.projectId || deleteBy.props.tenantId;
+      const projectId: ObjectID | undefined = monitor.projectId as
+        | ObjectID
+        | undefined;
 
       if (!projectId) {
-        // fetch this monitor from the database to get the projectId.
-        const monitor: Model | null = await this.findOneById({
-          id: new ObjectID(deleteBy.query._id as string) as ObjectID,
-          select: {
-            projectId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        if (!monitor) {
-          throw new BadDataException(ExceptionMessages.MonitorNotFound);
-        }
-
-        if (!monitor.id) {
-          throw new BadDataException(ExceptionMessages.MonitorNotFound);
-        }
-
-        projectId = monitor.projectId!;
+        continue;
       }
 
       try {
         await WorkspaceNotificationRuleService.archiveWorkspaceChannels({
-          projectId: projectId as ObjectID,
+          projectId: projectId,
           notificationFor: {
-            monitorId: new ObjectID(deleteBy.query._id as string) as ObjectID,
+            monitorId: monitor.id,
           },
           sendMessageBeforeArchiving: {
             _type: "WorkspacePayloadMarkdown",
@@ -189,12 +184,17 @@ export class Service extends DatabaseService<Model> {
         });
       } catch (error) {
         logger.error(
-          `Error while archiving workspace channels for monitor ${deleteBy.query._id}: ${error}`,
+          `Error while archiving workspace channels for monitor ${monitor.id?.toString()}: ${error}`,
         );
       }
     }
 
-    return { deleteBy, carryForward: null };
+    return {
+      deleteBy,
+      carryForward: {
+        monitors: monitorsPendingDeletion,
+      },
+    };
   }
 
   @CaptureSpan()
@@ -206,6 +206,25 @@ export class Service extends DatabaseService<Model> {
       await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
         onDelete.deleteBy.props.tenantId,
       );
+    }
+
+    if (onDelete.carryForward && onDelete.carryForward.monitors) {
+      for (const monitor of onDelete.carryForward
+        .monitors as Array<Model>) {
+        if (!monitor.projectId || !monitor.id) {
+          continue;
+        }
+
+        await MetricService.deleteBy({
+          query: {
+            projectId: monitor.projectId,
+            serviceId: monitor.id,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
     }
 
     return onDelete;
