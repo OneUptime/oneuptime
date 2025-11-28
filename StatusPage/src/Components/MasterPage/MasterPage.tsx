@@ -20,12 +20,10 @@ import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import Link from "Common/Types/Link";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { ImageFunctions } from "Common/UI/Components/Image/Image";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
 import JSONWebToken from "Common/UI/Utils/JsonWebToken";
 import Navigation from "Common/UI/Utils/Navigation";
-import File from "Common/Models/DatabaseModels/File";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -183,15 +181,6 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
       );
 
       setStatusPage(statusPage);
-
-      // setfavicon.
-      const favIcon: File | undefined = statusPage.faviconFile;
-      if (favIcon && favIcon.file) {
-        const link: any = document.createElement("link");
-        link.rel = "icon";
-        (document as any).getElementsByTagName("head")[0].appendChild(link);
-        link.href = ImageFunctions.getImageURL(favIcon);
-      }
 
       // setcss.
       const css: string | null = statusPage.customCSS || null;
