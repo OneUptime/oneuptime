@@ -16,10 +16,7 @@
     "types": [
       "node"
     ],
-    "baseUrl": ".",
-    "paths": {
-      "Common/*": ["src/@types/Common/*"]
-    }
+    "baseUrl": "."
   },
   "include": ["src"],
   "exclude": ["node_modules", "build"]
