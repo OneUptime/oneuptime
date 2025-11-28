@@ -5,6 +5,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import DashboardChartComponentUtil from "./DashboardChartComponent";
 import DashboardTextComponentUtil from "./DashboardTextComponent";
 import DashboardValueComponentUtil from "./DashboardValueComponent";
+import DashboardLogsComponentUtil from "./DashboardLogsComponent";
 
 export default class DashboardComponentsUtil {
   public static getComponentSettingsArguments(
@@ -24,6 +25,12 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.Value) {
       return DashboardValueComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.Logs) {
+      return DashboardLogsComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

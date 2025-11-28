@@ -3,9 +3,11 @@ import DashboardTextComponentType from "Common/Types/Dashboard/DashboardComponen
 import DashboardChartComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardChartComponent";
 import DashboardValueComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
+import DashboardLogsComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardLogsComponent";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
 import DashboardTextComponent from "./DashboardTextComponent";
+import DashboardLogsComponent from "./DashboardLogsComponent";
 import DefaultDashboardSize, {
   GetDashboardComponentHeightInDashboardUnits,
   GetDashboardComponentWidthInDashboardUnits,
@@ -402,6 +404,14 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           isSelected={props.isSelected}
           isEditMode={props.isEditMode}
           component={component as DashboardValueComponentType}
+        />
+      )}
+      {component.componentType === DashboardComponentType.Logs && (
+        <DashboardLogsComponent
+          {...props}
+          isSelected={props.isSelected}
+          isEditMode={props.isEditMode}
+          component={component as DashboardLogsComponentType}
         />
       )}
 
