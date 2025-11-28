@@ -42,15 +42,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          VERSION_PREFIX_RAW="$(tr -d ' \n' < VERSION_PREFIX)"
-          if [[ -z "$VERSION_PREFIX_RAW" ]]; then
-            echo "VERSION_PREFIX is empty" >&2
+          VERSION_RAW="$(tr -d ' \n' < VERSION)"
+          if [[ -z "$VERSION_RAW" ]]; then
+            echo "VERSION is empty" >&2
             exit 1
           fi
 
-          IFS='.' read -r major minor patch <<< "$VERSION_PREFIX_RAW"
+          IFS='.' read -r major minor patch <<< "$VERSION_RAW"
           if [[ -z "$minor" ]]; then
-            echo "VERSION_PREFIX must contain major and minor components" >&2
+            echo "VERSION must contain major and minor components" >&2
             exit 1
           fi
           patch="${patch:-0}"
@@ -58,7 +58,7 @@ jobs:
           for part_name in major minor patch; do
             part="${!part_name}"
             if ! [[ "$part" =~ ^[0-9]+$ ]]; then
-              echo "Invalid ${part_name} component '$part' in VERSION_PREFIX" >&2
+              echo "Invalid ${part_name} component '$part' in VERSION" >&2
               exit 1
             fi
           done
@@ -82,18 +82,18 @@ jobs:
           fi
 
           new_version="${major}.${minor}.${target_patch}"
-          if [[ "$new_version" != "$VERSION_PREFIX_RAW" ]]; then
-            echo "$new_version" > VERSION_PREFIX
+          if [[ "$new_version" != "$VERSION_RAW" ]]; then
+            echo "$new_version" > VERSION
             git config --global user.name "github-actions[bot]"
             git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            git add VERSION_PREFIX
+            git add VERSION
             if ! git diff --cached --quiet; then
-              branch_name="chore/bump-version-prefix-${new_version}-$(date +%s)"
+              branch_name="chore/bump-version-${new_version}-$(date +%s)"
               git checkout -b "$branch_name"
-              git commit -m "chore: bump version prefix to ${new_version} [skip ci]"
+              git commit -m "chore: bump version to ${new_version} [skip ci]"
               git push origin "$branch_name"
-              pr_title="chore: bump version prefix to ${new_version}"
-              pr_body=$'Automated change to VERSION_PREFIX to align release workflow with master.\n\nCreated by GitHub Actions release workflow.'
+              pr_title="chore: bump version to ${new_version}"
+              pr_body=$'Automated change to VERSION to align release workflow with master.\n\nCreated by GitHub Actions release workflow.'
               gh pr create --repo "$REPOSITORY" --base master --head "$branch_name" --title "$pr_title" --body "$pr_body"
               pr_url="$(gh pr view "$branch_name" --repo "$REPOSITORY" --json url --jq '.url' 2>/dev/null || true)"
               updated="true"

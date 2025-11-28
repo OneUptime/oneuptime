@@ -41,15 +41,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          VERSION_PREFIX_RAW="$(tr -d ' \n' < VERSION_PREFIX)"
-          if [[ -z "$VERSION_PREFIX_RAW" ]]; then
-            echo "VERSION_PREFIX is empty" >&2
+          VERSION_RAW="$(tr -d ' \n' < VERSION)"
+          if [[ -z "$VERSION_RAW" ]]; then
+            echo "VERSION is empty" >&2
             exit 1
           fi
 
-          IFS='.' read -r major minor patch <<< "$VERSION_PREFIX_RAW"
+          IFS='.' read -r major minor patch <<< "$VERSION_RAW"
           if [[ -z "$minor" ]]; then
-            echo "VERSION_PREFIX must contain major and minor components" >&2
+            echo "VERSION must contain major and minor components" >&2
             exit 1
           fi
           patch="${patch:-0}"
@@ -57,7 +57,7 @@ jobs:
           for part_name in major minor patch; do
             part="${!part_name}"
             if ! [[ "$part" =~ ^[0-9]+$ ]]; then
-              echo "Invalid ${part_name} component '$part' in VERSION_PREFIX" >&2
+              echo "Invalid ${part_name} component '$part' in VERSION" >&2
               exit 1
             fi
           done
