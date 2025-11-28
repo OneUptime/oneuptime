@@ -22,13 +22,8 @@ export default class DashboardLogsComponentUtil extends DashboardBaseComponentUt
       minWidthInDashboardUnits: 6,
       arguments: {
         title: "Logs",
-        showFilters: false,
-        enableRealtime: false,
-        limit: 100,
         telemetryServiceIdsCsv: "",
         logQueryJson: "",
-        noLogsMessage: "No logs found.",
-        respectDashboardTimeRange: true,
       },
     };
   }
@@ -49,31 +44,6 @@ export default class DashboardLogsComponentUtil extends DashboardBaseComponentUt
     });
 
     componentArguments.push({
-      name: "Show Filters",
-      description:
-        "Display the interactive filter builder inside the logs widget.",
-      required: false,
-      type: ComponentInputType.Boolean,
-      id: "showFilters",
-    });
-
-    componentArguments.push({
-      name: "Enable Realtime Refresh",
-      description: "Automatically refresh logs every few seconds.",
-      required: false,
-      type: ComponentInputType.Boolean,
-      id: "enableRealtime",
-    });
-
-    componentArguments.push({
-      name: "Results Limit",
-      description: "Maximum number of rows to fetch per page (default 100).",
-      required: false,
-      type: ComponentInputType.Number,
-      id: "limit",
-    });
-
-    componentArguments.push({
       name: "Telemetry Service IDs",
       description:
         "Comma separated telemetry service IDs (UUIDs) to scope logs.",
@@ -84,15 +54,6 @@ export default class DashboardLogsComponentUtil extends DashboardBaseComponentUt
     });
 
     componentArguments.push({
-      name: "Respect Dashboard Time Range",
-      description:
-        "When enabled the widget constrains results to the dashboard time selection.",
-      required: false,
-      type: ComponentInputType.Boolean,
-      id: "respectDashboardTimeRange",
-    });
-
-    componentArguments.push({
       name: "Advanced Log Query (JSON)",
       description:
         "Optional JSON object merged with the generated query for advanced filters.",
@@ -100,14 +61,6 @@ export default class DashboardLogsComponentUtil extends DashboardBaseComponentUt
       type: ComponentInputType.LongText,
       id: "logQueryJson",
       placeholder: '{ "attributes.environment": "prod" }',
-    });
-
-    componentArguments.push({
-      name: "Empty State Message",
-      description: "Message shown when no logs are found.",
-      required: false,
-      type: ComponentInputType.Text,
-      id: "noLogsMessage",
     });
 
     return componentArguments;

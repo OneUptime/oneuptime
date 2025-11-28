@@ -48,20 +48,7 @@ const DashboardLogsComponent: FunctionComponent<ComponentProps> = (
     );
   }, [args.telemetryServiceIdsCsv]);
 
-  const limit: number = useMemo(() => {
-    const parsedLimit: number = Number(args.limit);
-
-    if (!isNaN(parsedLimit) && parsedLimit > 0) {
-      return parsedLimit;
-    }
-
-    return 100;
-  }, [args.limit]);
-
-  const respectDashboardTimeRange: boolean =
-    args.respectDashboardTimeRange !== undefined
-      ? Boolean(args.respectDashboardTimeRange)
-      : true;
+  const limit: number = 100;
 
   const logQueryResult: {
     query: Query<Log>;
@@ -83,10 +70,7 @@ const DashboardLogsComponent: FunctionComponent<ComponentProps> = (
       }
     }
 
-    if (
-      respectDashboardTimeRange &&
-      !(mergedQuery as Record<string, unknown>)["time"]
-    ) {
+    if (!(mergedQuery as Record<string, unknown>)["time"]) {
       const range: InBetween<Date> =
         RangeStartAndEndDateTimeUtil.getStartAndEndDate(
           props.dashboardStartAndEndDate,
@@ -104,16 +88,15 @@ const DashboardLogsComponent: FunctionComponent<ComponentProps> = (
   }, [
     args.logQueryJson,
     props.dashboardStartAndEndDate,
-    respectDashboardTimeRange,
   ]);
 
   if (logQueryResult.error) {
     return <ErrorMessage message={logQueryResult.error} />;
   }
 
-  const showFilters: boolean = Boolean(args.showFilters);
-  const enableRealtime: boolean = Boolean(args.enableRealtime);
-  const noLogsMessage: string = args.noLogsMessage || "No logs found.";
+  const showFilters: boolean = true;
+  const enableRealtime: boolean = true;
+  const noLogsMessage: string = "No logs found.";
   const title: string = args.title || "Logs";
 
   return (

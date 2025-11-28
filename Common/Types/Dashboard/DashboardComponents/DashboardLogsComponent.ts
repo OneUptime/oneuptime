@@ -7,12 +7,7 @@ export default interface DashboardLogsComponent extends BaseComponent {
   componentId: ObjectID;
   arguments: {
     title?: string | undefined;
-    showFilters?: boolean | undefined;
-    enableRealtime?: boolean | undefined;
-    limit?: number | undefined;
     telemetryServiceIdsCsv?: string | undefined;
     logQueryJson?: string | undefined;
-    noLogsMessage?: string | undefined;
-    respectDashboardTimeRange?: boolean | undefined;
   };
 }
