@@ -40,6 +40,7 @@ oneuptime-copilot-agent \
 | `--timeout` | LLM HTTP timeout per request in milliseconds (default `120000`). |
 | `--api-key` | Optional bearer token if the endpoint is secured. |
 | `--log-level` | `debug`, `info`, `warn`, or `error` (default `info`). |
+| `--log-file` | Optional file path. When provided, all logs are appended to this file in addition to stdout. |
 
 ## Architecture snapshot
 

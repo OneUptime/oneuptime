@@ -3,6 +3,7 @@ import { z } from "zod";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
+import AgentLogger from "../utils/AgentLogger";
 
 interface WriteFileArgs {
   path: string;
@@ -47,6 +48,11 @@ export class WriteFileTool extends StructuredTool<WriteFileArgs> {
     runtime: ToolRuntime,
   ): Promise<ToolResponse> {
     const absolutePath: string = runtime.workspacePaths.resolve(args.path);
+    AgentLogger.debug("WriteFileTool executing", {
+      path: args.path,
+      mode: args.mode,
+      contentLength: args.content.length,
+    });
     await runtime.workspacePaths.ensureParentDirectory(absolutePath);
 
     if (args.mode === "append" && (await LocalFile.doesFileExist(absolutePath))) {
@@ -56,6 +62,10 @@ export class WriteFileTool extends StructuredTool<WriteFileArgs> {
     }
 
     const relative: string = runtime.workspacePaths.relative(absolutePath);
+    AgentLogger.debug("WriteFileTool completed", {
+      relative,
+      mode: args.mode ?? "overwrite",
+    });
     return {
       content: `${args.mode === "append" ? "Appended to" : "Wrote"} ${relative} (${args.content.length} characters).`,
     };

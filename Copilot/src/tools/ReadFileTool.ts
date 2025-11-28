@@ -2,6 +2,7 @@ import { z } from "zod";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
+import AgentLogger from "../utils/AgentLogger";
 
 interface ReadFileArgs {
   path: string;
@@ -60,6 +61,12 @@ export class ReadFileTool extends StructuredTool<ReadFileArgs> {
     args: ReadFileArgs,
     runtime: ToolRuntime,
   ): Promise<ToolResponse> {
+    AgentLogger.debug("ReadFileTool executing", {
+      path: args.path,
+      startLine: args.startLine,
+      endLine: args.endLine,
+      limit: args.limit,
+    });
     const absolutePath: string = runtime.workspacePaths.resolve(args.path);
 
     if (!(await LocalFile.doesFileExist(absolutePath))) {
@@ -86,6 +93,11 @@ export class ReadFileTool extends StructuredTool<ReadFileArgs> {
     const relative: string = runtime.workspacePaths.relative(absolutePath);
     const header: string = `Contents of ${relative} (lines ${start + 1}-${Math.min(end, lines.length)})`;
 
+    AgentLogger.debug("ReadFileTool completed", {
+      relative,
+      truncated,
+      returnedChars: text.length,
+    });
     return {
       content: truncated ? `${header}\n${text}\n... [truncated]` : `${header}\n${text}`,
     };

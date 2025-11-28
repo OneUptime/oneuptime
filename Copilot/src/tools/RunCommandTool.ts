@@ -1,9 +1,9 @@
 import { ExecOptions } from "node:child_process";
 import { z } from "zod";
 import Execute from "Common/Server/Utils/Execute";
-import logger from "Common/Server/Utils/Logger";
 import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
+import AgentLogger from "../utils/AgentLogger";
 
 interface RunCommandArgs {
   command: string;
@@ -52,6 +52,11 @@ export class RunCommandTool extends StructuredTool<RunCommandArgs> {
     const cwd: string = args.path
       ? runtime.workspacePaths.resolve(args.path)
       : runtime.workspaceRoot;
+    AgentLogger.debug("RunCommandTool executing", {
+      command: args.command,
+      cwd,
+      timeoutMs: args.timeoutMs,
+    });
 
     const options: ExecOptions = {
       cwd,
@@ -61,11 +66,16 @@ export class RunCommandTool extends StructuredTool<RunCommandArgs> {
 
     try {
       const output: string = await Execute.executeCommand(args.command, options);
+      AgentLogger.debug("RunCommandTool succeeded", {
+        command: args.command,
+        cwd,
+        outputPreview: output.slice(0, 500),
+      });
       return {
         content: `Command executed in ${runtime.workspacePaths.relative(cwd) || "."}\n$ ${args.command}\n${output.trim()}`,
       };
     } catch (error) {
-      logger.error(error);
+      AgentLogger.error("RunCommandTool failed", error as Error);
       return {
         content: `Command failed: ${args.command}\n${(error as Error).message}`,
         isError: true,

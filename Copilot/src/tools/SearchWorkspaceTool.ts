@@ -2,6 +2,7 @@ import { z } from "zod";
 import Execute from "Common/Server/Utils/Execute";
 import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
+import AgentLogger from "../utils/AgentLogger";
 
 interface SearchArgs {
   query: string;
@@ -58,9 +59,18 @@ export class SearchWorkspaceTool extends StructuredTool<SearchArgs> {
       : runtime.workspaceRoot;
 
     const relativeScope: string = runtime.workspacePaths.relative(cwd);
+    AgentLogger.debug("SearchWorkspaceTool executing", {
+      query: args.query,
+      path: args.path,
+      useRegex: args.useRegex,
+      maxResults: args.maxResults,
+    });
 
     try {
       const rgOutput: string = await this.runRipgrep(args, cwd);
+      AgentLogger.debug("SearchWorkspaceTool ripgrep success", {
+        scope: relativeScope,
+      });
       return {
         content: this.decorateSearchResult({
           engine: "ripgrep",
@@ -69,6 +79,9 @@ export class SearchWorkspaceTool extends StructuredTool<SearchArgs> {
         }),
       };
     } catch (rgError) {
+      AgentLogger.debug("SearchWorkspaceTool ripgrep failed, falling back to grep", {
+        error: (rgError as Error).message,
+      });
       const fallbackOutput: string = await this.runGrep(args, cwd);
       return {
         content: this.decorateSearchResult({

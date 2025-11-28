@@ -4,6 +4,7 @@ import { z } from "zod";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
+import AgentLogger from "../utils/AgentLogger";
 
 interface ListDirectoryArgs {
   path?: string | undefined;
@@ -55,6 +56,12 @@ export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {
     args: ListDirectoryArgs,
     runtime: ToolRuntime,
   ): Promise<ToolResponse> {
+    AgentLogger.debug("ListDirectoryTool executing", {
+      path: args.path,
+      depth: args.depth,
+      includeFiles: args.includeFiles,
+      limit: args.limit,
+    });
     const targetPath: string = runtime.workspacePaths.resolve(
       args.path ?? ".",
     );
@@ -80,6 +87,10 @@ export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {
     const relativeRoot: string = runtime.workspacePaths.relative(targetPath);
     const header: string = `Listing ${rows.length} item(s) under ${relativeRoot || "."}`;
 
+    AgentLogger.debug("ListDirectoryTool completed", {
+      relativeRoot,
+      rowCount: rows.length,
+    });
     return {
       content: [header, ...rows].join("\n"),
     };

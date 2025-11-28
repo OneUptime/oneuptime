@@ -1,6 +1,6 @@
-import logger from "Common/Server/Utils/Logger";
 import { fetch, Response } from "undici";
 import { ChatMessage, ToolDefinition } from "../types";
+import AgentLogger from "../utils/AgentLogger";
 
 type SerializableMessage = Omit<ChatMessage, "tool_calls"> & {
   tool_calls?: Array<{
@@ -58,6 +58,13 @@ export class LMStudioClient {
     }, this.options.timeoutMs);
 
     try {
+      AgentLogger.debug("Dispatching LLM request", {
+        endpoint: this.options.endpoint,
+        model: this.options.model,
+        messageCount: data.messages.length,
+        toolCount: data.tools?.length ?? 0,
+        temperature: this.options.temperature,
+      });
       const payload = {
         model: this.options.model,
         messages: data.messages.map((message: ChatMessage) => {
@@ -102,12 +109,20 @@ export class LMStudioClient {
 
       if (!response.ok) {
         const errorBody: string = await response.text();
+        AgentLogger.error("LLM request failed", {
+          status: response.status,
+          bodyPreview: errorBody.slice(0, 500),
+        });
         throw new Error(
           `LLM request failed (${response.status}): ${errorBody}`,
         );
       }
 
       const body = (await response.json()) as OpenAIChatCompletionResponse;
+      AgentLogger.debug("LLM request succeeded", {
+        tokenUsage: body.usage,
+        choiceCount: body.choices?.length ?? 0,
+      });
 
       if (!body.choices?.length) {
         throw new Error("LLM returned no choices");
@@ -129,11 +144,11 @@ export class LMStudioClient {
 
       return assistantResponse;
     } catch (error) {
-      logger.error("LLM request failed");
-      logger.error(error);
+      AgentLogger.error("LLM request error", error as Error);
       throw error;
     } finally {
       clearTimeout(timeout);
+      AgentLogger.debug("LLM request finalized");
     }
   }
 

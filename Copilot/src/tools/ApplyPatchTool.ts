@@ -3,10 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import { z } from "zod";
 import Execute from "Common/Server/Utils/Execute";
-import logger from "Common/Server/Utils/Logger";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
+import AgentLogger from "../utils/AgentLogger";
 
 interface ApplyPatchArgs {
   patch: string;
@@ -44,6 +44,9 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
     args: ApplyPatchArgs,
     runtime: ToolRuntime,
   ): Promise<ToolResponse> {
+    AgentLogger.debug("ApplyPatchTool invoked", {
+      note: args.note,
+    });
     const normalizedPatch: string = this.normalizePatchFormat(
       args.patch,
       runtime,
@@ -79,8 +82,7 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
         content: `Patch applied successfully${args.note ? `: ${args.note}` : "."}`,
       };
     } catch (error) {
-      logger.error("Patch application failed");
-      logger.error(error);
+      AgentLogger.error("Patch application failed", error as Error);
       const filePreview: string = await LocalFile.read(patchFile);
       return {
         content: `Failed to apply patch. Please review the diff and adjust.\n${filePreview}`,

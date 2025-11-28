@@ -1,12 +1,15 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import Execute from "Common/Server/Utils/Execute";
-import logger from "Common/Server/Utils/Logger";
+import AgentLogger from "../utils/AgentLogger";
 
 export class WorkspaceContextBuilder {
   public static async buildSnapshot(workspaceRoot: string): Promise<string> {
     const absoluteRoot: string = path.resolve(workspaceRoot);
     const sections: Array<string> = [`Workspace root: ${absoluteRoot}`];
+    AgentLogger.debug("Building workspace snapshot", {
+      workspaceRoot: absoluteRoot,
+    });
 
     const branch: string | null = await this.tryGitCommand(
       ["rev-parse", "--abbrev-ref", "HEAD"],
@@ -14,6 +17,7 @@ export class WorkspaceContextBuilder {
     );
     if (branch) {
       sections.push(`Git branch: ${branch.trim()}`);
+      AgentLogger.debug("Detected git branch", { branch: branch.trim() });
     }
 
     const status: string | null = await this.tryGitCommand(
@@ -22,10 +26,16 @@ export class WorkspaceContextBuilder {
     );
     if (status) {
       sections.push(`Git status:\n${status.trim()}`);
+      AgentLogger.debug("Captured git status", {
+        statusLength: status.length,
+      });
     }
 
     const entries: Array<string> = await this.listTopLevelEntries(absoluteRoot);
     sections.push(`Top-level entries (${entries.length}): ${entries.join(", ")}`);
+    AgentLogger.debug("Listed top-level entries", {
+      entryCount: entries.length,
+    });
 
     return sections.join("\n");
   }
@@ -42,8 +52,7 @@ export class WorkspaceContextBuilder {
           return entry.isDirectory() ? `${entry.name}/` : entry.name;
         });
     } catch (error) {
-      logger.error("Unable to list workspace entries");
-      logger.error(error);
+      AgentLogger.error("Unable to list workspace entries", error as Error);
       return [];
     }
   }
@@ -58,11 +67,14 @@ export class WorkspaceContextBuilder {
         args,
         cwd,
       });
+      AgentLogger.debug("Git command succeeded", { args, cwd });
       return output;
     } catch (error) {
-      logger.debug(
-        `Git command failed in ${cwd}: git ${args.join(" ")} (${(error as Error).message})`,
-      );
+      AgentLogger.debug("Git command failed", {
+        cwd,
+        args,
+        error: (error as Error).message,
+      });
       return null;
     }
   }

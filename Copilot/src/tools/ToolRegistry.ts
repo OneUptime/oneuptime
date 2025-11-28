@@ -1,4 +1,3 @@
-import logger from "Common/Server/Utils/Logger";
 import { OpenAIToolCall, ToolDefinition, ToolExecutionResult } from "../types";
 import { WorkspacePaths } from "../utils/WorkspacePaths";
 import { ApplyPatchTool } from "./ApplyPatchTool";
@@ -8,6 +7,7 @@ import { RunCommandTool } from "./RunCommandTool";
 import { SearchWorkspaceTool } from "./SearchWorkspaceTool";
 import { AgentTool, ToolRuntime } from "./Tool";
 import { WriteFileTool } from "./WriteFileTool";
+import AgentLogger from "../utils/AgentLogger";
 
 export class ToolRegistry {
   private readonly tools: Map<string, AgentTool<unknown>>;
@@ -19,6 +19,9 @@ export class ToolRegistry {
       workspacePaths,
       workspaceRoot: workspacePaths.getRoot(),
     };
+    AgentLogger.debug("Tool registry initialized", {
+      workspaceRoot: workspacePaths.getRoot(),
+    });
 
     const toolInstances: Array<AgentTool<unknown>> = [
       new ListDirectoryTool(),
@@ -49,7 +52,7 @@ export class ToolRegistry {
 
     if (!tool) {
       const message: string = `Tool ${call.function.name} is not available.`;
-      logger.error(message);
+      AgentLogger.error(message);
       return {
         toolCallId: call.id,
         output: message,
@@ -63,7 +66,7 @@ export class ToolRegistry {
         : {};
     } catch (error) {
       const message: string = `Unable to parse tool arguments for ${call.function.name}: ${(error as Error).message}`;
-      logger.error(message);
+      AgentLogger.error(message);
       return {
         toolCallId: call.id,
         output: message,
@@ -71,16 +74,23 @@ export class ToolRegistry {
     }
 
     try {
+      AgentLogger.debug("Executing tool via registry", {
+        toolName: call.function.name,
+      });
       const typedArgs: unknown = tool.parse(parsedArgs);
       const response = await tool.execute(typedArgs, this.runtime);
       const prefix: string = response.isError ? "ERROR: " : "";
+      AgentLogger.debug("Tool execution result", {
+        toolName: call.function.name,
+        isError: response.isError ?? false,
+      });
       return {
         toolCallId: call.id,
         output: `${prefix}${response.content}`,
       };
     } catch (error) {
       const message: string = `Tool ${call.function.name} failed: ${(error as Error).message}`;
-      logger.error(message);
+      AgentLogger.error(message, error as Error);
       return {
         toolCallId: call.id,
         output: message,
