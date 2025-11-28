@@ -1799,6 +1799,7 @@ ${incidentSeverity.name}
       limit: LIMIT_MAX,
       skip: 0,
       select: {
+        _id: true,
         projectId: true,
         monitors: {
           _id: true,
@@ -1829,6 +1830,18 @@ ${incidentSeverity.name}
             incident.projectId!,
             incident.monitors,
           );
+        }
+
+        if (incident.projectId && incident.id) {
+          await MetricService.deleteBy({
+            query: {
+              projectId: incident.projectId,
+              serviceId: incident.id,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
         }
       }
     }
