@@ -209,8 +209,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (onDelete.carryForward && onDelete.carryForward.monitors) {
-      for (const monitor of onDelete.carryForward
-        .monitors as Array<Model>) {
+      for (const monitor of onDelete.carryForward.monitors as Array<Model>) {
         if (!monitor.projectId || !monitor.id) {
           continue;
         }
