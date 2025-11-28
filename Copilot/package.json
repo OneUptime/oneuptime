@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc",
     "compile": "tsc",
-    "dev": "ts-node --transpile-only src/index.ts",
+    "dev": "ts-node --transpile-only -r tsconfig-paths/register src/index.ts",
     "start": "node --enable-source-maps ./build/dist/index.js",
     "clear-modules": "rm -rf node_modules && rm -f package-lock.json && npm install"
   },
@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "^17.0.45",
+    "tsconfig-paths": "^4.2.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3"
   },
