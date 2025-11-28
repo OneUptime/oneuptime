@@ -15,6 +15,7 @@ import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/D
 import DashboardChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardChartComponent";
 import DashboardValueComponentUtil from "Common/Utils/Dashboard/Components/DashboardValueComponent";
 import DashboardTextComponentUtil from "Common/Utils/Dashboard/Components/DashboardTextComponent";
+import DashboardLogsComponentUtil from "Common/Utils/Dashboard/Components/DashboardLogsComponent";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -251,6 +252,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
           if (componentType === DashboardComponentType.Text) {
             newComponent = DashboardTextComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.Logs) {
+            newComponent = DashboardLogsComponentUtil.getDefaultComponent();
           }
 
           if (!newComponent) {
