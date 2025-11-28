@@ -73,7 +73,11 @@ export class CopilotAgent {
       messageCount: messages.length,
     });
 
-    for (let iteration = 0; iteration < this.options.maxIterations; iteration++) {
+    for (
+      let iteration = 0;
+      iteration < this.options.maxIterations;
+      iteration++
+    ) {
       AgentLogger.info(`Starting iteration ${iteration + 1}`);
       AgentLogger.debug("Sending messages to LLM", {
         iteration: iteration + 1,
@@ -103,7 +107,8 @@ export class CopilotAgent {
         continue;
       }
 
-      const finalMessage: string = response.content?.trim() ||
+      const finalMessage: string =
+        response.content?.trim() ||
         "Model ended the conversation without a reply.";
       // eslint-disable-next-line no-console
       console.log(`\n${finalMessage}`);

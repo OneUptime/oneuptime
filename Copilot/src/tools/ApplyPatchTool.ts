@@ -28,7 +28,8 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
       },
       note: {
         type: "string",
-        description: "Optional short description of why this patch is being applied.",
+        description:
+          "Optional short description of why this patch is being applied.",
       },
     },
   };
@@ -127,7 +128,9 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
         continue;
       }
       const fileBlocks: RegExpMatchArray[] = Array.from(
-        body.matchAll(/\*\*\* (Update|Add|Delete) File: (.+)\n([\s\S]*?)(?=\*\*\* (Update|Add|Delete) File: |$)/g),
+        body.matchAll(
+          /\*\*\* (Update|Add|Delete) File: (.+)\n([\s\S]*?)(?=\*\*\* (Update|Add|Delete) File: |$)/g,
+        ),
       );
 
       for (const block of fileBlocks) {
@@ -158,15 +161,30 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
 
         if (action === "Add") {
           sections.push(
-            [`diff --git a/${relative} b/${relative}`, `--- /dev/null`, `+++ b/${relative}`, diffBody].join("\n"),
+            [
+              `diff --git a/${relative} b/${relative}`,
+              `--- /dev/null`,
+              `+++ b/${relative}`,
+              diffBody,
+            ].join("\n"),
           );
         } else if (action === "Delete") {
           sections.push(
-            [`diff --git a/${relative} b/${relative}`, `--- a/${relative}`, `+++ /dev/null`, diffBody].join("\n"),
+            [
+              `diff --git a/${relative} b/${relative}`,
+              `--- a/${relative}`,
+              `+++ /dev/null`,
+              diffBody,
+            ].join("\n"),
           );
         } else {
           sections.push(
-            [`diff --git a/${relative} b/${relative}`, `--- a/${relative}`, `+++ b/${relative}`, diffBody].join("\n"),
+            [
+              `diff --git a/${relative} b/${relative}`,
+              `--- a/${relative}`,
+              `+++ b/${relative}`,
+              diffBody,
+            ].join("\n"),
           );
         }
       }

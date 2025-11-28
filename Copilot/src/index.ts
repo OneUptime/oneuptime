@@ -10,7 +10,10 @@ const program = new Command();
 program
   .name("oneuptime-copilot-agent")
   .description("Autonomous OneUptime coding agent for LM Studio hosted models")
-  .requiredOption("--prompt <text>", "Problem statement or set of tasks for the agent")
+  .requiredOption(
+    "--prompt <text>",
+    "Problem statement or set of tasks for the agent",
+  )
   .requiredOption(
     "--model <url>",
     "Full LM Studio chat-completions endpoint (for example http://localhost:1234/v1/chat/completions)",
@@ -39,7 +42,10 @@ program
     "HTTP timeout for each LLM request in milliseconds (default 120000)",
     "120000",
   )
-  .option("--api-key <token>", "API key if the endpoint requires authentication")
+  .option(
+    "--api-key <token>",
+    "API key if the endpoint requires authentication",
+  )
   .option(
     "--log-level <level>",
     "debug | info | warn | error (default info)",

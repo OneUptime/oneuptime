@@ -32,7 +32,9 @@ export class WorkspaceContextBuilder {
     }
 
     const entries: Array<string> = await this.listTopLevelEntries(absoluteRoot);
-    sections.push(`Top-level entries (${entries.length}): ${entries.join(", ")}`);
+    sections.push(
+      `Top-level entries (${entries.length}): ${entries.join(", ")}`,
+    );
     AgentLogger.debug("Listed top-level entries", {
       entryCount: entries.length,
     });
@@ -45,7 +47,9 @@ export class WorkspaceContextBuilder {
     return snapshot;
   }
 
-  private static async listTopLevelEntries(root: string): Promise<Array<string>> {
+  private static async listTopLevelEntries(
+    root: string,
+  ): Promise<Array<string>> {
     try {
       const dirEntries = await fs.readdir(root, { withFileTypes: true });
       return dirEntries
@@ -59,8 +63,7 @@ export class WorkspaceContextBuilder {
     } catch (error) {
       AgentLogger.error("Unable to list workspace entries", error as Error);
       return [];
-    }
-    finally {
+    } finally {
       AgentLogger.debug("listTopLevelEntries completed", {
         root,
       });

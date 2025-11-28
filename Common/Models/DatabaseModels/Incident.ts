@@ -259,7 +259,9 @@ export default class Incident extends BaseModel {
   @Column({
     type: ColumnType.Date,
     nullable: false,
-    default: () => "now()",
+    default: () => {
+      return "now()";
+    },
   })
   public declaredAt?: Date = undefined;
 

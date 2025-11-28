@@ -79,9 +79,12 @@ export class SearchWorkspaceTool extends StructuredTool<SearchArgs> {
         }),
       };
     } catch (rgError) {
-      AgentLogger.debug("SearchWorkspaceTool ripgrep failed, falling back to grep", {
-        error: (rgError as Error).message,
-      });
+      AgentLogger.debug(
+        "SearchWorkspaceTool ripgrep failed, falling back to grep",
+        {
+          error: (rgError as Error).message,
+        },
+      );
       const fallbackOutput: string = await this.runGrep(args, cwd);
       AgentLogger.debug("SearchWorkspaceTool grep success", {
         scope: relativeScope,

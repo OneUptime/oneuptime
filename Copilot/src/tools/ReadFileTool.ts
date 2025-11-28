@@ -105,7 +105,9 @@ export class ReadFileTool extends StructuredTool<ReadFileArgs> {
       returnedChars: text.length,
     });
     return {
-      content: truncated ? `${header}\n${text}\n... [truncated]` : `${header}\n${text}`,
+      content: truncated
+        ? `${header}\n${text}\n... [truncated]`
+        : `${header}\n${text}`,
     };
   }
 }

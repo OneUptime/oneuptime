@@ -40,7 +40,9 @@ export class ToolRegistry {
   }
 
   public getToolDefinitions(): Array<ToolDefinition> {
-    const definitions: Array<ToolDefinition> = Array.from(this.tools.values()).map((tool) => {
+    const definitions: Array<ToolDefinition> = Array.from(
+      this.tools.values(),
+    ).map((tool) => {
       return tool.getDefinition();
     });
     AgentLogger.debug("Tool definitions requested", {

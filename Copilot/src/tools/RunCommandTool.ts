@@ -70,7 +70,10 @@ export class RunCommandTool extends StructuredTool<RunCommandArgs> {
     });
 
     try {
-      const output: string = await Execute.executeCommand(args.command, options);
+      const output: string = await Execute.executeCommand(
+        args.command,
+        options,
+      );
       AgentLogger.debug("RunCommandTool succeeded", {
         command: args.command,
         cwd,

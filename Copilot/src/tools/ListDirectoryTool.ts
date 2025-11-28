@@ -62,9 +62,7 @@ export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {
       includeFiles: args.includeFiles,
       limit: args.limit,
     });
-    const targetPath: string = runtime.workspacePaths.resolve(
-      args.path ?? ".",
-    );
+    const targetPath: string = runtime.workspacePaths.resolve(args.path ?? ".");
 
     if (!(await LocalFile.doesDirectoryExist(targetPath))) {
       AgentLogger.warn("ListDirectoryTool target missing", {
@@ -113,7 +111,9 @@ export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {
     }
 
     const entries = await fs.readdir(data.current, { withFileTypes: true });
-    entries.sort((a, b) => a.name.localeCompare(b.name));
+    entries.sort((a, b) => {
+      return a.name.localeCompare(b.name);
+    });
     AgentLogger.debug("Listing directory entries", {
       current: data.current,
       depth: data.currentDepth,

@@ -30,7 +30,8 @@ export class WriteFileTool extends StructuredTool<WriteFileArgs> {
       mode: {
         type: "string",
         enum: ["overwrite", "append"],
-        description: "Overwrite replaces the file (default). Append adds content to the end of the file.",
+        description:
+          "Overwrite replaces the file (default). Append adds content to the end of the file.",
       },
     },
   };
@@ -55,7 +56,10 @@ export class WriteFileTool extends StructuredTool<WriteFileArgs> {
     });
     await runtime.workspacePaths.ensureParentDirectory(absolutePath);
 
-    if (args.mode === "append" && (await LocalFile.doesFileExist(absolutePath))) {
+    if (
+      args.mode === "append" &&
+      (await LocalFile.doesFileExist(absolutePath))
+    ) {
       await fs.appendFile(absolutePath, args.content);
     } else {
       await LocalFile.write(absolutePath, args.content);

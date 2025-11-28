@@ -10,7 +10,9 @@ export class AgentLogger {
   private static exitHandlersRegistered: boolean = false;
   private static fileWriteFailed: boolean = false;
 
-  public static async configure(options: { logFilePath?: string | undefined }): Promise<void> {
+  public static async configure(options: {
+    logFilePath?: string | undefined;
+  }): Promise<void> {
     const targetPath: string | undefined = options.logFilePath?.trim()
       ? path.resolve(options.logFilePath)
       : undefined;
@@ -68,7 +70,11 @@ export class AgentLogger {
     logger.debug("File logging stream closed");
   }
 
-  private static writeToFile(level: AgentLogLevel, message: LogBody, meta?: unknown): void {
+  private static writeToFile(
+    level: AgentLogLevel,
+    message: LogBody,
+    meta?: unknown,
+  ): void {
     if (!this.logStream) {
       return;
     }
