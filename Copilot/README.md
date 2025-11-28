@@ -55,4 +55,13 @@ npm run build   # Compile TypeScript -> build/dist
 npm run dev     # Run with ts-node for quick experiments
 ```
 
+For example: 
+
+```
+npm run dev -- --prompt "Write tests for this project" \
+  --model http://localhost:1234/v1/chat/completions \
+  --model-name openai/gpt-oss-20b \
+  --workspace-path ./
+```
+
 The agent intentionally mirrors Copilot’s workflow: it iteratively plans, reads files, edits them through patches or full rewrites, and executes commands/tests via the terminal tool. Logs stream to stdout so you can follow each tool invocation in real time.
