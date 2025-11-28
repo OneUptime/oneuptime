@@ -480,6 +480,14 @@ export class Service extends DatabaseService<Model> {
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
+    if (!createBy.data.declaredAt) {
+      createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
+    } else {
+      createBy.data.declaredAt = OneUptimeDate.fromString(
+        createBy.data.declaredAt as Date,
+      );
+    }
+
     // Determine the initial incident state
     let initialIncidentStateId: ObjectID | undefined = undefined;
 
@@ -975,6 +983,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
         notifyOwners: false,
         rootCause: createdItem.rootCause,
         stateChangeLog: createdItem.createdStateLog,
+        timelineStartsAt: createdItem.declaredAt,
         props: {
           isRoot: true,
         },
@@ -1838,6 +1847,7 @@ ${incidentSeverity.name}
     rootCause: string | undefined;
     stateChangeLog: JSONObject | undefined;
     props: DatabaseCommonInteractionProps | undefined;
+    timelineStartsAt?: Date | string | undefined;
   }): Promise<void> {
     const {
       projectId,
@@ -1849,7 +1859,12 @@ ${incidentSeverity.name}
       rootCause,
       stateChangeLog,
       props,
+      timelineStartsAt,
     } = data;
+
+    const declaredTimelineStart: Date | undefined = timelineStartsAt
+      ? OneUptimeDate.fromString(timelineStartsAt as Date)
+      : undefined;
 
     // get last monitor status timeline.
     const lastIncidentStatusTimeline: IncidentStateTimeline | null =
@@ -1888,6 +1903,10 @@ ${incidentSeverity.name}
     statusTimeline.shouldStatusPageSubscribersBeNotified =
       shouldNotifyStatusPageSubscribers;
 
+    if (!lastIncidentStatusTimeline && declaredTimelineStart) {
+      statusTimeline.startsAt = declaredTimelineStart;
+    }
+
     // Map boolean to enum value
     statusTimeline.subscriberNotificationStatus = isSubscribersNotified
       ? StatusPageSubscriberNotificationStatus.Success
@@ -1914,6 +1933,7 @@ ${incidentSeverity.name}
       id: data.incidentId,
       select: {
         projectId: true,
+        declaredAt: true,
         monitors: {
           _id: true,
           name: true,
@@ -1983,6 +2003,7 @@ ${incidentSeverity.name}
 
     const incidentStartsAt: Date =
       firstIncidentStateTimeline?.startsAt ||
+      incident.declaredAt ||
       incident.createdAt ||
       OneUptimeDate.getCurrentDate();
 
@@ -2075,6 +2096,7 @@ ${incidentSeverity.name}
 
         timeToAcknowledgeMetric.time =
           ackIncidentStateTimeline?.startsAt ||
+          incident.declaredAt ||
           incident.createdAt ||
           OneUptimeDate.getCurrentDate();
         timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
@@ -2140,6 +2162,7 @@ ${incidentSeverity.name}
 
         timeToResolveMetric.time =
           resolvedIncidentStateTimeline?.startsAt ||
+          incident.declaredAt ||
           incident.createdAt ||
           OneUptimeDate.getCurrentDate();
         timeToResolveMetric.timeUnixNano = OneUptimeDate.toUnixNano(
@@ -2200,6 +2223,7 @@ ${incidentSeverity.name}
 
       incidentDurationMetric.time =
         lastIncidentStateTimeline?.startsAt ||
+        incident.declaredAt ||
         incident.createdAt ||
         OneUptimeDate.getCurrentDate();
       incidentDurationMetric.timeUnixNano = OneUptimeDate.toUnixNano(

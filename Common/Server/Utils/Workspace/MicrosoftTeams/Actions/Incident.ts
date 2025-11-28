@@ -320,6 +320,7 @@ export default class MicrosoftTeamsIncidentActions {
             name: true,
           },
           createdAt: true,
+          declaredAt: true,
         },
         props: {
           isRoot: true,
@@ -331,7 +332,9 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
-      const message: string = `**Incident Details**\n\n**Title:** ${incident.title}\n**Description:** ${incident.description || "No description"}\n**State:** ${incident.currentIncidentState?.name || "Unknown"}\n**Severity:** ${incident.incidentSeverity?.name || "Unknown"}\n**Created At:** ${incident.createdAt ? new Date(incident.createdAt).toLocaleString() : "Unknown"}`;
+      const declaredAt: Date | undefined =
+        incident.declaredAt || incident.createdAt || undefined;
+      const message: string = `**Incident Details**\n\n**Title:** ${incident.title}\n**Description:** ${incident.description || "No description"}\n**State:** ${incident.currentIncidentState?.name || "Unknown"}\n**Severity:** ${incident.incidentSeverity?.name || "Unknown"}\n**Declared At:** ${declaredAt ? new Date(declaredAt).toLocaleString() : "Unknown"}`;
 
       await turnContext.sendActivity(message);
       return;

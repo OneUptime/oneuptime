@@ -228,6 +228,41 @@ export default class Incident extends BaseModel {
   })
   public description?: string = undefined;
 
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Date,
+    title: "Declared At",
+    description: "Date and time when this incident was declared.",
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: false,
+    default: () => "now()",
+  })
+  public declaredAt?: Date = undefined;
+
   @Index()
   @ColumnAccessControl({
     create: [],

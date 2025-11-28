@@ -1929,11 +1929,13 @@ Just type any of these commands to get the information you need!`;
             color: true,
           },
           createdAt: true,
+          declaredAt: true,
           monitors: {
             name: true,
           },
         },
         sort: {
+          declaredAt: SortOrder.Descending,
           createdAt: SortOrder.Descending,
         },
         limit: 10,
@@ -1958,8 +1960,10 @@ If you need to report an incident or check historical incidents, please visit th
       for (const incident of activeIncidents) {
         const severity: string = incident.incidentSeverity?.name || "Unknown";
         const state: string = incident.currentIncidentState?.name || "Unknown";
-        const createdAt: string = incident.createdAt
-          ? OneUptimeDate.getDateAsFormattedString(incident.createdAt)
+        const declaredAt: Date | undefined =
+          incident.declaredAt || incident.createdAt;
+        const declaredAtText: string = declaredAt
+          ? OneUptimeDate.getDateAsFormattedString(declaredAt)
           : "Unknown";
 
         const severityIcon: string = ["Critical", "Major"].includes(severity)
@@ -1977,7 +1981,7 @@ If you need to report an incident or check historical incidents, please visit th
         message += `${severityIcon} **[Incident #${incident.incidentNumber}: ${incident.title}](${incidentUrl.toString()})**
 • **Severity:** ${severity}
 • **Status:** ${state}
-• **Created:** ${createdAt}
+• **Declared:** ${declaredAtText}
 `;
 
         if (incident.monitors && incident.monitors.length > 0) {

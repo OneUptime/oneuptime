@@ -1421,6 +1421,7 @@ export default class StatusPageAPI extends BaseAPI<
           if (monitorsOnStatusPage.length > 0) {
             let select: Select<Incident> = {
               createdAt: true,
+              declaredAt: true,
               title: true,
               description: true,
               _id: true,
@@ -1474,6 +1475,7 @@ export default class StatusPageAPI extends BaseAPI<
                 },
                 select: select,
                 sort: {
+                  declaredAt: SortOrder.Descending,
                   createdAt: SortOrder.Descending,
                 },
 
@@ -3303,6 +3305,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     let selectIncidents: Select<Incident> = {
       createdAt: true,
+      declaredAt: true,
       title: true,
       description: true,
       _id: true,
@@ -3336,6 +3339,7 @@ export default class StatusPageAPI extends BaseAPI<
         query: incidentQuery,
         select: selectIncidents,
         sort: {
+          declaredAt: SortOrder.Descending,
           createdAt: SortOrder.Descending,
         },
         skip: 0,
@@ -3373,6 +3377,7 @@ export default class StatusPageAPI extends BaseAPI<
           },
           select: selectIncidents,
           sort: {
+            declaredAt: SortOrder.Descending,
             createdAt: SortOrder.Descending,
           },
 

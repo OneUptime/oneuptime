@@ -44,10 +44,11 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   }
 
   @CaptureSpan()
-  private async isSCIMEnabled(projectId: ObjectID): Promise<boolean> {
+  private async isSCIMPushGroupsEnabled(projectId: ObjectID): Promise<boolean> {
     const count: PositiveNumber = await ProjectSCIMService.countBy({
       query: {
         projectId: projectId,
+        enablePushGroups: true,
       },
       props: {
         isRoot: true,
@@ -63,12 +64,12 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     // Check if SCIM is enabled for the project
     if (
       !createBy.props.isRoot &&
-      (await this.isSCIMEnabled(
+      (await this.isSCIMPushGroupsEnabled(
         createBy.data.projectId! || createBy.props.tenantId,
       ))
     ) {
       throw new BadDataException(
-        "Cannot invite team members when SCIM is enabled for this project.",
+        "Cannot invite team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
       );
     }
 
@@ -311,10 +312,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       !deleteBy.props.isRoot &&
       members.length > 0 &&
       members[0]?.projectId &&
-      (await this.isSCIMEnabled(members[0].projectId))
+      (await this.isSCIMPushGroupsEnabled(members[0].projectId))
     ) {
       throw new BadDataException(
-        "Cannot delete team members when SCIM is enabled for this project.",
+        "Cannot delete team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
       );
     }
 
@@ -346,11 +347,11 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         });
 
         // Skip the one-member guard when SCIM manages membership for the project.
-        const isSCIMEnabled: boolean = await this.isSCIMEnabled(
+        const isPushGroupsManaged: boolean = await this.isSCIMPushGroupsEnabled(
           member.projectId!,
         );
 
-        if (!isSCIMEnabled && membersInTeam.toNumber() <= 1) {
+        if (!isPushGroupsManaged && membersInTeam.toNumber() <= 1) {
           throw new BadDataException(
             Errors.TeamMemberService.ONE_MEMBER_REQUIRED,
           );
