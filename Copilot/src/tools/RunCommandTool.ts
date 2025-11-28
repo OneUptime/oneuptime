@@ -63,6 +63,11 @@ export class RunCommandTool extends StructuredTool<RunCommandArgs> {
       timeout: args.timeoutMs ?? 10 * 60 * 1000,
       maxBuffer: 8 * 1024 * 1024,
     };
+    AgentLogger.debug("RunCommandTool options prepared", {
+      cwd,
+      timeout: options.timeout,
+      maxBuffer: options.maxBuffer,
+    });
 
     try {
       const output: string = await Execute.executeCommand(args.command, options);

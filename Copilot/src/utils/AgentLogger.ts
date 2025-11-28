@@ -18,6 +18,7 @@ export class AgentLogger {
     if (!targetPath) {
       await this.closeStream();
       this.logFilePath = null;
+      logger.debug("File logging disabled");
       return;
     }
 
@@ -64,6 +65,7 @@ export class AgentLogger {
     });
 
     this.logStream = null;
+    logger.debug("File logging stream closed");
   }
 
   private static writeToFile(level: AgentLogLevel, message: LogBody, meta?: unknown): void {

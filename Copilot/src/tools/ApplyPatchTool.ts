@@ -51,6 +51,10 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
       args.patch,
       runtime,
     );
+    AgentLogger.debug("Patch normalized", {
+      originalLength: args.patch.length,
+      normalizedLength: normalizedPatch.length,
+    });
 
     if (!normalizedPatch.trim()) {
       return {
@@ -95,6 +99,9 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
 
   private normalizePatchFormat(input: string, runtime: ToolRuntime): string {
     if (input.includes("diff --git")) {
+      AgentLogger.debug("Patch already in diff format", {
+        length: input.length,
+      });
       return input;
     }
 
@@ -103,10 +110,16 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
     );
 
     if (!matches.length) {
+      AgentLogger.debug("No patch sections detected", {
+        inputLength: input.length,
+      });
       return input;
     }
 
     const sections: Array<string> = [];
+    AgentLogger.debug("Processing patch sections", {
+      sectionCount: matches.length,
+    });
 
     for (const match of matches) {
       const body: string | undefined = match[1];
@@ -129,11 +142,19 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
         const filePath: string = filePathRaw.trim();
         const diffBody: string = diffBodyRaw.trim();
         if (!diffBody) {
+          AgentLogger.debug("Skipping empty patch block", {
+            action,
+            filePath,
+          });
           continue;
         }
 
         const absolute: string = runtime.workspacePaths.resolve(filePath);
         const relative: string = runtime.workspacePaths.relative(absolute);
+        AgentLogger.debug("Patch block resolved", {
+          action,
+          relative,
+        });
 
         if (action === "Add") {
           sections.push(
@@ -151,6 +172,11 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
       }
     }
 
-    return sections.join("\n");
+    const finalPatch: string = sections.join("\n");
+    AgentLogger.debug("Patch sections assembled", {
+      sectionCount: sections.length,
+      finalLength: finalPatch.length,
+    });
+    return finalPatch;
   }
 }

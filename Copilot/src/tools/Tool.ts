@@ -2,6 +2,7 @@ import { z } from "zod";
 import { JSONObject } from "Common/Types/JSON";
 import { ToolDefinition } from "../types";
 import { WorkspacePaths } from "../utils/WorkspacePaths";
+import AgentLogger from "../utils/AgentLogger";
 
 export interface ToolRuntime {
   workspacePaths: WorkspacePaths;
@@ -40,7 +41,15 @@ export abstract class StructuredTool<TArgs> implements AgentTool<TArgs> {
   }
 
   public parse(input: unknown): TArgs {
-    return this.schema.parse(input ?? {});
+    AgentLogger.debug("Parsing tool arguments", {
+      tool: this.name,
+      inputType: typeof input,
+    });
+    const parsed: TArgs = this.schema.parse(input ?? {});
+    AgentLogger.debug("Parsed tool arguments", {
+      tool: this.name,
+    });
+    return parsed;
   }
 
   public abstract execute(

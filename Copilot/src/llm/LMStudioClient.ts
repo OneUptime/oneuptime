@@ -91,6 +91,14 @@ export class LMStudioClient {
         tool_choice: "auto",
         tools: data.tools,
       };
+      AgentLogger.debug("LLM payload prepared", {
+        messageRoles: data.messages.map((message) => {
+          return message.role;
+        }),
+        toolNames: data.tools?.map((tool) => {
+          return tool.function.name;
+        }),
+      });
 
       const headers: Record<string, string> = {
         "Content-Type": "application/json",

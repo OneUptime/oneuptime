@@ -37,7 +37,12 @@ export class WorkspaceContextBuilder {
       entryCount: entries.length,
     });
 
-    return sections.join("\n");
+    const snapshot: string = sections.join("\n");
+    AgentLogger.debug("Workspace snapshot complete", {
+      sectionCount: sections.length,
+      snapshotLength: snapshot.length,
+    });
+    return snapshot;
   }
 
   private static async listTopLevelEntries(root: string): Promise<Array<string>> {
@@ -55,6 +60,11 @@ export class WorkspaceContextBuilder {
       AgentLogger.error("Unable to list workspace entries", error as Error);
       return [];
     }
+    finally {
+      AgentLogger.debug("listTopLevelEntries completed", {
+        root,
+      });
+    }
   }
 
   private static async tryGitCommand(
@@ -67,7 +77,11 @@ export class WorkspaceContextBuilder {
         args,
         cwd,
       });
-      AgentLogger.debug("Git command succeeded", { args, cwd });
+      AgentLogger.debug("Git command succeeded", {
+        args,
+        cwd,
+        outputLength: output.length,
+      });
       return output;
     } catch (error) {
       AgentLogger.debug("Git command failed", {

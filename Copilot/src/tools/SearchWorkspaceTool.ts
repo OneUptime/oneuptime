@@ -83,6 +83,9 @@ export class SearchWorkspaceTool extends StructuredTool<SearchArgs> {
         error: (rgError as Error).message,
       });
       const fallbackOutput: string = await this.runGrep(args, cwd);
+      AgentLogger.debug("SearchWorkspaceTool grep success", {
+        scope: relativeScope,
+      });
       return {
         content: this.decorateSearchResult({
           engine: "grep",

@@ -69,9 +69,16 @@ export class CopilotAgent {
         content: this.composeUserPrompt(this.options.prompt, contextSnapshot),
       },
     ];
+    AgentLogger.debug("Initial conversation seeded", {
+      messageCount: messages.length,
+    });
 
     for (let iteration = 0; iteration < this.options.maxIterations; iteration++) {
       AgentLogger.info(`Starting iteration ${iteration + 1}`);
+      AgentLogger.debug("Sending messages to LLM", {
+        iteration: iteration + 1,
+        messageCount: messages.length,
+      });
       const response: ChatMessage = await this.client.createChatCompletion({
         messages,
         tools: this.registry.getToolDefinitions(),
@@ -102,10 +109,15 @@ export class CopilotAgent {
       console.log(`\n${finalMessage}`);
       AgentLogger.debug("Conversation completed", {
         iterationsUsed: iteration + 1,
+        finalMessagePreview: finalMessage.slice(0, 500),
       });
       return;
     }
 
+    AgentLogger.error("Iteration limit reached", {
+      maxIterations: this.options.maxIterations,
+      prompt: this.options.prompt,
+    });
     throw new Error(
       `Reached the iteration limit (${this.options.maxIterations}) without a final response.`,
     );
@@ -131,11 +143,15 @@ export class CopilotAgent {
         toolName: call.function.name,
         callId: call.id,
         isError: result.output.startsWith("ERROR"),
+        outputLength: result.output.length,
       });
       messages.push({
         role: "tool",
         content: result.output,
         tool_call_id: result.toolCallId,
+      });
+      AgentLogger.debug("Tool result appended to conversation", {
+        totalMessages: messages.length,
       });
     }
   }
@@ -155,6 +171,12 @@ export class CopilotAgent {
   }
 
   private composeUserPrompt(task: string, snapshot: string): string {
-    return `# Task\n${task.trim()}\n\n# Workspace snapshot\n${snapshot}\n\nPlease reason step-by-step, gather any missing context with the tools, and keep iterating until the task is complete.`;
+    const prompt: string = `# Task\n${task.trim()}\n\n# Workspace snapshot\n${snapshot}\n\nPlease reason step-by-step, gather any missing context with the tools, and keep iterating until the task is complete.`;
+    AgentLogger.debug("Composed user prompt", {
+      taskLength: task.length,
+      snapshotLength: snapshot.length,
+      promptLength: prompt.length,
+    });
+    return prompt;
   }
 }

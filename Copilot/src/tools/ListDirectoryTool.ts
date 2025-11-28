@@ -67,6 +67,9 @@ export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {
     );
 
     if (!(await LocalFile.doesDirectoryExist(targetPath))) {
+      AgentLogger.warn("ListDirectoryTool target missing", {
+        targetPath,
+      });
       return {
         content: `Directory ${args.path ?? "."} does not exist in the workspace`,
         isError: true,
@@ -111,6 +114,11 @@ export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {
 
     const entries = await fs.readdir(data.current, { withFileTypes: true });
     entries.sort((a, b) => a.name.localeCompare(b.name));
+    AgentLogger.debug("Listing directory entries", {
+      current: data.current,
+      depth: data.currentDepth,
+      entryCount: entries.length,
+    });
 
     for (const entry of entries) {
       if (data.output.length >= data.limit) {
@@ -118,6 +126,9 @@ export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {
       }
 
       if (this.shouldSkip(entry.name)) {
+        AgentLogger.debug("Skipping directory entry", {
+          entry: entry.name,
+        });
         continue;
       }
 

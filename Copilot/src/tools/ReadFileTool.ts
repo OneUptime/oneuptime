@@ -70,6 +70,9 @@ export class ReadFileTool extends StructuredTool<ReadFileArgs> {
     const absolutePath: string = runtime.workspacePaths.resolve(args.path);
 
     if (!(await LocalFile.doesFileExist(absolutePath))) {
+      AgentLogger.warn("ReadFileTool missing file", {
+        absolutePath,
+      });
       return {
         content: `File ${args.path} does not exist in the workspace`,
         isError: true,
@@ -88,6 +91,9 @@ export class ReadFileTool extends StructuredTool<ReadFileArgs> {
     if (text.length > limit) {
       text = text.substring(0, limit);
       truncated = true;
+      AgentLogger.debug("ReadFileTool output truncated", {
+        limit,
+      });
     }
 
     const relative: string = runtime.workspacePaths.relative(absolutePath);

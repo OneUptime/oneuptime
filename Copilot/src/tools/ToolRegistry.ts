@@ -40,9 +40,16 @@ export class ToolRegistry {
   }
 
   public getToolDefinitions(): Array<ToolDefinition> {
-    return Array.from(this.tools.values()).map((tool) => {
+    const definitions: Array<ToolDefinition> = Array.from(this.tools.values()).map((tool) => {
       return tool.getDefinition();
     });
+    AgentLogger.debug("Tool definitions requested", {
+      count: definitions.length,
+      toolNames: definitions.map((definition) => {
+        return definition.function.name;
+      }),
+    });
+    return definitions;
   }
 
   public async execute(call: OpenAIToolCall): Promise<ToolExecutionResult> {
@@ -64,6 +71,13 @@ export class ToolRegistry {
       parsedArgs = call.function.arguments
         ? JSON.parse(call.function.arguments)
         : {};
+      AgentLogger.debug("Tool arguments parsed", {
+        toolName: call.function.name,
+        argumentKeys:
+          typeof parsedArgs === "object" && parsedArgs !== null
+            ? Object.keys(parsedArgs as Record<string, unknown>)
+            : [],
+      });
     } catch (error) {
       const message: string = `Unable to parse tool arguments for ${call.function.name}: ${(error as Error).message}`;
       AgentLogger.error(message);
@@ -78,6 +92,9 @@ export class ToolRegistry {
         toolName: call.function.name,
       });
       const typedArgs: unknown = tool.parse(parsedArgs);
+      AgentLogger.debug("Tool arguments validated", {
+        toolName: call.function.name,
+      });
       const response = await tool.execute(typedArgs, this.runtime);
       const prefix: string = response.isError ? "ERROR: " : "";
       AgentLogger.debug("Tool execution result", {
