@@ -250,15 +250,16 @@ export default class Incident extends BaseModel {
   })
   @Index()
   @TableColumn({
-    required: false,
+    required: true,
     type: TableColumnType.Date,
     title: "Declared At",
     description: "Date and time when this incident was declared.",
-    isDefaultValueColumn: false,
+    isDefaultValueColumn: true,
   })
   @Column({
     type: ColumnType.Date,
-    nullable: true,
+    nullable: false,
+    default: () => "now()",
   })
   public declaredAt?: Date = undefined;
 
