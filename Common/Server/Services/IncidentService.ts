@@ -1990,6 +1990,7 @@ ${incidentSeverity.name}
 
     await MetricService.deleteBy({
       query: {
+        projectId: incident.projectId,
         serviceId: data.incidentId,
       },
       props: {
