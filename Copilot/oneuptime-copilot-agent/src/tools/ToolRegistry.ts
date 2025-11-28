@@ -1,0 +1,90 @@
+import logger from "Common/Server/Utils/Logger";
+import { OpenAIToolCall, ToolDefinition, ToolExecutionResult } from "../types";
+import { WorkspacePaths } from "../utils/WorkspacePaths";
+import { ApplyPatchTool } from "./ApplyPatchTool";
+import { ListDirectoryTool } from "./ListDirectoryTool";
+import { ReadFileTool } from "./ReadFileTool";
+import { RunCommandTool } from "./RunCommandTool";
+import { SearchWorkspaceTool } from "./SearchWorkspaceTool";
+import { AgentTool, ToolRuntime } from "./Tool";
+import { WriteFileTool } from "./WriteFileTool";
+
+export class ToolRegistry {
+  private readonly tools: Map<string, AgentTool<unknown>>;
+  private readonly runtime: ToolRuntime;
+
+  public constructor(workspaceRoot: string) {
+    const workspacePaths: WorkspacePaths = new WorkspacePaths(workspaceRoot);
+    this.runtime = {
+      workspacePaths,
+      workspaceRoot: workspacePaths.getRoot(),
+    };
+
+    const toolInstances: Array<AgentTool<unknown>> = [
+      new ListDirectoryTool(),
+      new ReadFileTool(),
+      new SearchWorkspaceTool(),
+      new ApplyPatchTool(),
+      new WriteFileTool(),
+      new RunCommandTool(),
+    ];
+
+    this.tools = new Map(
+      toolInstances.map((tool: AgentTool<unknown>) => {
+        return [tool.name, tool];
+      }),
+    );
+  }
+
+  public getToolDefinitions(): Array<ToolDefinition> {
+    return Array.from(this.tools.values()).map((tool) => {
+      return tool.getDefinition();
+    });
+  }
+
+  public async execute(call: OpenAIToolCall): Promise<ToolExecutionResult> {
+    const tool: AgentTool<unknown> | undefined = this.tools.get(
+      call.function.name,
+    );
+
+    if (!tool) {
+      const message: string = `Tool ${call.function.name} is not available.`;
+      logger.error(message);
+      return {
+        toolCallId: call.id,
+        output: message,
+      };
+    }
+
+    let parsedArgs: unknown;
+    try {
+      parsedArgs = call.function.arguments
+        ? JSON.parse(call.function.arguments)
+        : {};
+    } catch (error) {
+      const message: string = `Unable to parse tool arguments for ${call.function.name}: ${(error as Error).message}`;
+      logger.error(message);
+      return {
+        toolCallId: call.id,
+        output: message,
+      };
+    }
+
+    try {
+      const typedArgs: unknown = tool.parse(parsedArgs);
+      const response = await tool.execute(typedArgs, this.runtime);
+      const prefix: string = response.isError ? "ERROR: " : "";
+      return {
+        toolCallId: call.id,
+        output: `${prefix}${response.content}`,
+      };
+    } catch (error) {
+      const message: string = `Tool ${call.function.name} failed: ${(error as Error).message}`;
+      logger.error(message);
+      return {
+        toolCallId: call.id,
+        output: message,
+      };
+    }
+  }
+}

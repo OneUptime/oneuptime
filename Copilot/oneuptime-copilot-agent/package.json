@@ -1,0 +1,30 @@
+{
+  "name": "@oneuptime/copilot-agent",
+  "version": "0.1.0",
+  "description": "Standalone OneUptime Copilot coding agent CLI",
+  "private": true,
+  "bin": {
+    "oneuptime-copilot-agent": "./build/dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "compile": "tsc",
+    "dev": "ts-node --transpile-only src/index.ts",
+    "start": "node --enable-source-maps ./build/dist/index.js",
+    "clear-modules": "rm -rf node_modules && rm -f package-lock.json && npm install"
+  },
+  "dependencies": {
+    "Common": "file:../../Common",
+    "commander": "^12.1.0",
+    "undici": "^6.19.8",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.45",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
