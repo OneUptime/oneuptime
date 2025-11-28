@@ -7,8 +7,8 @@ import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
 
 interface RunCommandArgs {
   command: string;
-  path?: string;
-  timeoutMs?: number;
+  path?: string | undefined;
+  timeoutMs?: number | undefined;
 }
 
 export class RunCommandTool extends StructuredTool<RunCommandArgs> {

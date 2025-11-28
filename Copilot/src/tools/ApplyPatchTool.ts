@@ -10,7 +10,7 @@ import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
 
 interface ApplyPatchArgs {
   patch: string;
-  note?: string;
+  note?: string | undefined;
 }
 
 export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
@@ -107,15 +107,25 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
     const sections: Array<string> = [];
 
     for (const match of matches) {
-      const body: string = match[1];
+      const body: string | undefined = match[1];
+      if (!body) {
+        continue;
+      }
       const fileBlocks: RegExpMatchArray[] = Array.from(
         body.matchAll(/\*\*\* (Update|Add|Delete) File: (.+)\n([\s\S]*?)(?=\*\*\* (Update|Add|Delete) File: |$)/g),
       );
 
       for (const block of fileBlocks) {
-        const action: string = block[1];
-        const filePath: string = block[2].trim();
-        const diffBody: string = block[3].trim();
+        const action: string | undefined = block[1];
+        const filePathRaw: string | undefined = block[2];
+        const diffBodyRaw: string | undefined = block[3];
+
+        if (!action || !filePathRaw || !diffBodyRaw) {
+          continue;
+        }
+
+        const filePath: string = filePathRaw.trim();
+        const diffBody: string = diffBodyRaw.trim();
         if (!diffBody) {
           continue;
         }

@@ -6,10 +6,10 @@ import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
 
 interface ListDirectoryArgs {
-  path?: string;
-  depth?: number;
-  includeFiles?: boolean;
-  limit?: number;
+  path?: string | undefined;
+  depth?: number | undefined;
+  includeFiles?: boolean | undefined;
+  limit?: number | undefined;
 }
 
 export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {

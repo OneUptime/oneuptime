@@ -1,4 +1,3 @@
-import path from "node:path";
 import { z } from "zod";
 import Execute from "Common/Server/Utils/Execute";
 import { JSONObject } from "Common/Types/JSON";
@@ -6,9 +5,9 @@ import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
 
 interface SearchArgs {
   query: string;
-  path?: string;
-  useRegex?: boolean;
-  maxResults?: number;
+  path?: string | undefined;
+  useRegex?: boolean | undefined;
+  maxResults?: number | undefined;
 }
 
 export class SearchWorkspaceTool extends StructuredTool<SearchArgs> {

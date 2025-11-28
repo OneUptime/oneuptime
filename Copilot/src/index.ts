@@ -43,7 +43,7 @@ program
   .option(
     "--log-level <level>",
     "debug | info | warn | error (default info)",
-    process.env.LOG_LEVEL ?? "info",
+    process.env["LOG_LEVEL"] ?? "info",
   )
   .parse(process.argv);
 
@@ -60,7 +60,7 @@ program
     logLevel?: string;
   }>();
 
-  process.env.LOG_LEVEL = opts.logLevel?.toUpperCase() ?? "INFO";
+  process.env["LOG_LEVEL"] = opts.logLevel?.toUpperCase() ?? "INFO";
 
   const config: CopilotAgentOptions = {
     prompt: opts.prompt,

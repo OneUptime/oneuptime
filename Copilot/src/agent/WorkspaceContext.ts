@@ -19,7 +19,6 @@ export class WorkspaceContextBuilder {
     const status: string | null = await this.tryGitCommand(
       ["status", "-sb"],
       absoluteRoot,
-      5000,
     );
     if (status) {
       sections.push(`Git status:\n${status.trim()}`);
@@ -52,7 +51,6 @@ export class WorkspaceContextBuilder {
   private static async tryGitCommand(
     args: Array<string>,
     cwd: string,
-    timeout: number = 3000,
   ): Promise<string | null> {
     try {
       const output: string = await Execute.executeCommandFile({

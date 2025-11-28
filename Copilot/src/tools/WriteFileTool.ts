@@ -7,7 +7,7 @@ import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
 interface WriteFileArgs {
   path: string;
   content: string;
-  mode?: "overwrite" | "append";
+  mode?: "overwrite" | "append" | undefined;
 }
 
 export class WriteFileTool extends StructuredTool<WriteFileArgs> {

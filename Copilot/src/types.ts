@@ -5,9 +5,9 @@ export type ChatRole = "system" | "user" | "assistant" | "tool";
 export interface ChatMessage {
   role: ChatRole;
   content: string | null;
-  name?: string;
-  tool_call_id?: string;
-  tool_calls?: Array<OpenAIToolCall>;
+  name?: string | undefined;
+  tool_call_id?: string | undefined;
+  tool_calls?: Array<OpenAIToolCall> | undefined;
 }
 
 export interface OpenAIToolCall {

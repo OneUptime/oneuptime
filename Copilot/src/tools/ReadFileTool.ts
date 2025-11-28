@@ -5,9 +5,9 @@ import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
 
 interface ReadFileArgs {
   path: string;
-  startLine?: number;
-  endLine?: number;
-  limit?: number;
+  startLine?: number | undefined;
+  endLine?: number | undefined;
+  limit?: number | undefined;
 }
 
 export class ReadFileTool extends StructuredTool<ReadFileArgs> {

@@ -42,7 +42,7 @@ export interface LMStudioClientOptions {
   model: string;
   temperature: number;
   timeoutMs: number;
-  apiKey?: string;
+  apiKey?: string | undefined;
 }
 
 export class LMStudioClient {
@@ -61,13 +61,24 @@ export class LMStudioClient {
       const payload = {
         model: this.options.model,
         messages: data.messages.map((message: ChatMessage) => {
-          return {
+          const serialized: SerializableMessage = {
             role: message.role,
             content: message.content,
-            name: message.name,
-            tool_call_id: message.tool_call_id,
-            tool_calls: message.tool_calls,
-          } satisfies SerializableMessage;
+          };
+
+          if (message.name !== undefined) {
+            serialized.name = message.name;
+          }
+
+          if (message.tool_call_id !== undefined) {
+            serialized.tool_call_id = message.tool_call_id;
+          }
+
+          if (message.tool_calls !== undefined) {
+            serialized.tool_calls = message.tool_calls;
+          }
+
+          return serialized;
         }),
         temperature: this.options.temperature,
         tool_choice: "auto",
@@ -107,11 +118,16 @@ export class LMStudioClient {
         throw new Error("LLM response missing assistant message");
       }
 
-      return {
+      const assistantResponse: ChatMessage = {
         role: "assistant",
         content: this.normalizeContent(assistantMessage.content),
-        tool_calls: assistantMessage.tool_calls,
       };
+
+      if (assistantMessage.tool_calls !== undefined) {
+        assistantResponse.tool_calls = assistantMessage.tool_calls;
+      }
+
+      return assistantResponse;
     } catch (error) {
       logger.error("LLM request failed");
       logger.error(error);

@@ -15,7 +15,7 @@ export interface CopilotAgentOptions {
   temperature: number;
   maxIterations: number;
   requestTimeoutMs: number;
-  apiKey?: string;
+  apiKey?: string | undefined;
 }
 
 export class CopilotAgent {
