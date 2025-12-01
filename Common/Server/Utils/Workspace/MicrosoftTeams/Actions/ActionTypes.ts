@@ -16,7 +16,7 @@ export enum MicrosoftTeamsIncidentActionType {
   SubmitExecuteIncidentOnCallPolicy = "SubmitExecuteIncidentOnCallPolicy",
   ViewChangeIncidentState = "ViewChangeIncidentState",
   SubmitChangeIncidentState = "SubmitChangeIncidentState",
-  NewIncident = "/incident", // new incident slash command
+  NewIncident = "CreateIncident", 
   SubmitNewIncident = "SubmitNewIncident",
 }
 
@@ -57,7 +57,7 @@ export enum MicrosoftTeamsScheduledMaintenanceActionType {
   SubmitScheduledMaintenanceNote = "SubmitScheduledMaintenanceNote",
   ViewChangeScheduledMaintenanceState = "ViewChangeScheduledMaintenanceState",
   SubmitChangeScheduledMaintenanceState = "SubmitChangeScheduledMaintenanceState",
-  NewScheduledMaintenance = "/maintenance", // new scheduled maintenance slash command
+  NewScheduledMaintenance = "CreateMaintenance", 
   SubmitNewScheduledMaintenance = "SubmitNewScheduledMaintenance",
 }
 

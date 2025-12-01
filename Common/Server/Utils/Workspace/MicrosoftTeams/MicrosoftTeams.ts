@@ -1798,14 +1798,19 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     let responseText: string = "";
 
     try {
+      const isCreateIncidentCommand: boolean =
+        cleanText === "create incident" ||
+        cleanText.startsWith("create incident ");
+
+      const isCreateMaintenanceCommand: boolean =
+        cleanText === "create maintenance" ||
+        cleanText.startsWith("create maintenance ");
+
       if (cleanText.includes("help") || cleanText === "") {
         responseText = this.getHelpMessage();
-      } else if (
-        cleanText === "/incident" ||
-        cleanText.startsWith("/incident ")
-      ) {
-        // Handle /incident slash command
-        logger.debug("Processing /incident command");
+      } else if (isCreateIncidentCommand) {
+        // Handle create incident command (legacy slash command supported)
+        logger.debug("Processing create incident command");
         const card: JSONObject =
           await MicrosoftTeamsIncidentActions.buildNewIncidentCard(projectId);
         await data.turnContext.sendActivity({
@@ -1818,12 +1823,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         });
         logger.debug("New incident card sent successfully");
         return;
-      } else if (
-        cleanText === "/maintenance" ||
-        cleanText.startsWith("/maintenance ")
-      ) {
-        // Handle /maintenance slash command
-        logger.debug("Processing /maintenance command");
+      } else if (isCreateMaintenanceCommand) {
+        // Handle create maintenance command (legacy slash command supported)
+        logger.debug("Processing create maintenance command");
         const card: JSONObject =
           await MicrosoftTeamsScheduledMaintenanceActions.buildNewScheduledMaintenanceCard(
             projectId,
@@ -1880,8 +1882,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
 **Available Commands:**
 - **help** — Show this help message
-- **/incident** — Create a new incident
-- **/maintenance** — Create a new scheduled maintenance event
+- **create incident** — Create a new incident
+- **create maintenance** — Create a new scheduled maintenance event
 - **show active incidents** — Display all currently active incidents
 - **show scheduled maintenance** — Show upcoming scheduled maintenance events
 - **show ongoing maintenance** — Display currently ongoing maintenance events
@@ -2720,11 +2722,11 @@ All monitoring checks are passing normally.`;
               value: "Show quick help and useful links",
             },
             {
-              title: "/incident",
+              title: "create incident",
               value: "Create a new incident without leaving Teams",
             },
             {
-              title: "/maintenance",
+              title: "create maintenance",
               value: "Schedule or review maintenance windows",
             },
             {
