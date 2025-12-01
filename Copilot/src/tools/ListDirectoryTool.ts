@@ -124,7 +124,14 @@ export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {
     });
 
     for (let index: number = 0; index < entries.length; index += 1) {
-      const entry: Dirent = entries[index];
+      const entry: Dirent | undefined = entries[index];
+      if (entry === undefined) {
+        AgentLogger.warn("Missing directory entry during traversal", {
+          directory: data.current,
+          requestedIndex: index,
+        });
+        continue;
+      }
       if (data.output.length >= data.limit) {
         break;
       }

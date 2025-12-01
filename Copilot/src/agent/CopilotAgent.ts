@@ -137,11 +137,20 @@ export class CopilotAgent {
     messages: Array<ChatMessage>,
   ): Promise<void> {
     for (let index: number = 0; index < calls.length; index += 1) {
-      const call: {
-        id: string;
-        type: "function";
-        function: { name: string; arguments: string };
-      } = calls[index];
+      const call:
+        | {
+            id: string;
+            type: "function";
+            function: { name: string; arguments: string };
+          }
+        | undefined = calls[index];
+      if (call === undefined) {
+        AgentLogger.warn("Missing tool call entry", {
+          requestedIndex: index,
+          totalCalls: calls.length,
+        });
+        continue;
+      }
       AgentLogger.debug("Executing tool", {
         toolName: call.function.name,
         callId: call.id,

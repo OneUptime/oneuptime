@@ -97,7 +97,7 @@ export class LMStudioClient {
         }),
         temperature: this.options.temperature,
         tool_choice: "auto",
-        tools: data.tools,
+        ...(data.tools !== undefined ? { tools: data.tools } : {}),
       };
       AgentLogger.debug("LLM payload prepared", {
         messageRoles: data.messages.map((message: ChatMessage) => {
