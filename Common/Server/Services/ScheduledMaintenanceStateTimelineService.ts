@@ -518,8 +518,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       });
 
     const hasProgressedBeyondScheduledState: boolean = Boolean(
-      scheduledMaintenanceState &&
-        !scheduledMaintenanceState.isScheduledState,
+      scheduledMaintenanceState && !scheduledMaintenanceState.isScheduledState,
     );
 
     if (
