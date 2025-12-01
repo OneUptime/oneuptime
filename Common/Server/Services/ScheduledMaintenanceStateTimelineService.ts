@@ -510,11 +510,29 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
           monitors: {
             _id: true,
           },
+          nextSubscriberNotificationBeforeTheEventAt: true,
         },
         props: {
           isRoot: true,
         },
       });
+
+    const hasProgressedBeyondScheduledState: boolean = Boolean(
+      scheduledMaintenanceState && !scheduledMaintenanceState.isScheduledState,
+    );
+
+    if (
+      hasProgressedBeyondScheduledState &&
+      scheduledMaintenanceEvent?.nextSubscriberNotificationBeforeTheEventAt
+    ) {
+      await ScheduledMaintenanceService.updateOneById({
+        id: createdItem.scheduledMaintenanceId!,
+        data: {
+          nextSubscriberNotificationBeforeTheEventAt: null,
+        },
+        props: onCreate.createBy.props,
+      });
+    }
 
     if (isOngoingState) {
       if (
