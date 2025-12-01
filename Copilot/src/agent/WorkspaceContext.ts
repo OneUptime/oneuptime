@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import type { Dirent } from "node:fs";
 import path from "node:path";
 import Execute from "Common/Server/Utils/Execute";
 import AgentLogger from "../utils/AgentLogger";
@@ -51,13 +52,15 @@ export class WorkspaceContextBuilder {
     root: string,
   ): Promise<Array<string>> {
     try {
-      const dirEntries = await fs.readdir(root, { withFileTypes: true });
+      const dirEntries: Array<Dirent> = await fs.readdir(root, {
+        withFileTypes: true,
+      });
       return dirEntries
-        .filter((entry) => {
+        .filter((entry: Dirent) => {
           return !entry.name.startsWith(".") && entry.name !== "node_modules";
         })
         .slice(0, 25)
-        .map((entry) => {
+        .map((entry: Dirent) => {
           return entry.isDirectory() ? `${entry.name}/` : entry.name;
         });
     } catch (error) {

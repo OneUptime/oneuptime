@@ -50,7 +50,7 @@ export class ReadFileTool extends StructuredTool<ReadFileArgs> {
       limit: z.number().int().min(100).max(20000).optional().default(6000),
     })
     .strict()
-    .refine((data) => {
+    .refine((data: ReadFileArgs) => {
       if (data.startLine && data.endLine) {
         return data.endLine >= data.startLine;
       }

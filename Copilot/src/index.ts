@@ -5,7 +5,7 @@ import { Command } from "commander";
 import { CopilotAgent, CopilotAgentOptions } from "./agent/CopilotAgent";
 import AgentLogger from "./utils/AgentLogger";
 
-const program = new Command();
+const program: Command = new Command();
 
 program
   .name("oneuptime-copilot-agent")
@@ -58,7 +58,18 @@ program
   .parse(process.argv);
 
 (async () => {
-  const opts = program.opts<{
+  const opts: {
+    prompt: string;
+    model: string;
+    workspacePath: string;
+    modelName?: string;
+    temperature: string;
+    maxIterations: string;
+    timeout: string;
+    apiKey?: string;
+    logLevel?: string;
+    logFile?: string;
+  } = program.opts<{
     prompt: string;
     model: string;
     workspacePath: string;
@@ -97,7 +108,7 @@ program
   };
 
   try {
-    const agent = new CopilotAgent(config);
+    const agent: CopilotAgent = new CopilotAgent(config);
     await agent.run();
   } catch (error) {
     AgentLogger.error("Agent run failed", error as Error);

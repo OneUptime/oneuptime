@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import type { Dirent } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import LocalFile from "Common/Server/Utils/LocalFile";
@@ -110,8 +111,10 @@ export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {
       return;
     }
 
-    const entries = await fs.readdir(data.current, { withFileTypes: true });
-    entries.sort((a, b) => {
+    const entries: Array<Dirent> = await fs.readdir(data.current, {
+      withFileTypes: true,
+    });
+    entries.sort((a: Dirent, b: Dirent) => {
       return a.name.localeCompare(b.name);
     });
     AgentLogger.debug("Listing directory entries", {
@@ -120,7 +123,8 @@ export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {
       entryCount: entries.length,
     });
 
-    for (const entry of entries) {
+    for (let index: number = 0; index < entries.length; index += 1) {
+      const entry: Dirent = entries[index];
       if (data.output.length >= data.limit) {
         break;
       }
@@ -151,7 +155,7 @@ export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {
   }
 
   private shouldSkip(entryName: string): boolean {
-    const blocked = [
+    const blocked: Array<string> = [
       ".git",
       "node_modules",
       ".turbo",

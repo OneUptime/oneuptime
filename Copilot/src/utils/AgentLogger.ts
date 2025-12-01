@@ -62,7 +62,7 @@ export class AgentLogger {
       return;
     }
 
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve: () => void) => {
       this.logStream?.end(resolve);
     });
 
@@ -119,7 +119,7 @@ export class AgentLogger {
       return;
     }
 
-    const cleanup = (): void => {
+    const cleanup: () => void = () => {
       void this.closeStream();
     };
 

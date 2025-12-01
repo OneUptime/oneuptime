@@ -5,7 +5,7 @@ import { ListDirectoryTool } from "./ListDirectoryTool";
 import { ReadFileTool } from "./ReadFileTool";
 import { RunCommandTool } from "./RunCommandTool";
 import { SearchWorkspaceTool } from "./SearchWorkspaceTool";
-import { AgentTool, ToolRuntime } from "./Tool";
+import { AgentTool, ToolResponse, ToolRuntime } from "./Tool";
 import { WriteFileTool } from "./WriteFileTool";
 import AgentLogger from "../utils/AgentLogger";
 
@@ -42,12 +42,12 @@ export class ToolRegistry {
   public getToolDefinitions(): Array<ToolDefinition> {
     const definitions: Array<ToolDefinition> = Array.from(
       this.tools.values(),
-    ).map((tool) => {
+    ).map((tool: AgentTool<unknown>) => {
       return tool.getDefinition();
     });
     AgentLogger.debug("Tool definitions requested", {
       count: definitions.length,
-      toolNames: definitions.map((definition) => {
+      toolNames: definitions.map((definition: ToolDefinition) => {
         return definition.function.name;
       }),
     });
@@ -97,7 +97,10 @@ export class ToolRegistry {
       AgentLogger.debug("Tool arguments validated", {
         toolName: call.function.name,
       });
-      const response = await tool.execute(typedArgs, this.runtime);
+      const response: ToolResponse = await tool.execute(
+        typedArgs,
+        this.runtime,
+      );
       const prefix: string = response.isError ? "ERROR: " : "";
       AgentLogger.debug("Tool execution result", {
         toolName: call.function.name,

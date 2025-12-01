@@ -4,7 +4,7 @@ import { LMStudioClient } from "../llm/LMStudioClient";
 import { buildSystemPrompt } from "./SystemPrompt";
 import { WorkspaceContextBuilder } from "./WorkspaceContext";
 import { ToolRegistry } from "../tools/ToolRegistry";
-import { ChatMessage, ToolExecutionResult } from "../types";
+import { ChatMessage, OpenAIToolCall, ToolExecutionResult } from "../types";
 import AgentLogger from "../utils/AgentLogger";
 
 export interface CopilotAgentOptions {
@@ -74,9 +74,9 @@ export class CopilotAgent {
     });
 
     for (
-      let iteration = 0;
+      let iteration: number = 0;
       iteration < this.options.maxIterations;
-      iteration++
+      iteration += 1
     ) {
       AgentLogger.info(`Starting iteration ${iteration + 1}`);
       AgentLogger.debug("Sending messages to LLM", {
@@ -97,7 +97,7 @@ export class CopilotAgent {
       if (response.tool_calls?.length) {
         AgentLogger.info(
           `Model requested tools: ${response.tool_calls
-            .map((call) => {
+            .map((call: OpenAIToolCall) => {
               return call.function.name;
             })
             .join(", ")}`,
@@ -136,7 +136,12 @@ export class CopilotAgent {
     }>,
     messages: Array<ChatMessage>,
   ): Promise<void> {
-    for (const call of calls) {
+    for (let index: number = 0; index < calls.length; index += 1) {
+      const call: {
+        id: string;
+        type: "function";
+        function: { name: string; arguments: string };
+      } = calls[index];
       AgentLogger.debug("Executing tool", {
         toolName: call.function.name,
         callId: call.id,

@@ -13,6 +13,14 @@ type SerializableMessage = Omit<ChatMessage, "tool_calls"> & {
   }>;
 };
 
+interface ChatCompletionRequestPayload {
+  model: string;
+  messages: Array<SerializableMessage>;
+  temperature: number;
+  tool_choice: "auto";
+  tools?: Array<ToolDefinition>;
+}
+
 interface OpenAIChatCompletionResponse {
   choices: Array<{
     index: number;
@@ -65,7 +73,7 @@ export class LMStudioClient {
         toolCount: data.tools?.length ?? 0,
         temperature: this.options.temperature,
       });
-      const payload = {
+      const payload: ChatCompletionRequestPayload = {
         model: this.options.model,
         messages: data.messages.map((message: ChatMessage) => {
           const serialized: SerializableMessage = {
@@ -92,10 +100,10 @@ export class LMStudioClient {
         tools: data.tools,
       };
       AgentLogger.debug("LLM payload prepared", {
-        messageRoles: data.messages.map((message) => {
+        messageRoles: data.messages.map((message: ChatMessage) => {
           return message.role;
         }),
-        toolNames: data.tools?.map((tool) => {
+        toolNames: data.tools?.map((tool: ToolDefinition) => {
           return tool.function.name;
         }),
       });
@@ -126,7 +134,8 @@ export class LMStudioClient {
         );
       }
 
-      const body = (await response.json()) as OpenAIChatCompletionResponse;
+      const body: OpenAIChatCompletionResponse =
+        (await response.json()) as OpenAIChatCompletionResponse;
       AgentLogger.debug("LLM request succeeded", {
         tokenUsage: body.usage,
         choiceCount: body.choices?.length ?? 0,
@@ -136,7 +145,9 @@ export class LMStudioClient {
         throw new Error("LLM returned no choices");
       }
 
-      const assistantMessage = body.choices[0]?.message;
+      const assistantMessage:
+        | OpenAIChatCompletionResponse["choices"][number]["message"]
+        | undefined = body.choices[0]?.message;
       if (!assistantMessage) {
         throw new Error("LLM response missing assistant message");
       }
@@ -171,12 +182,17 @@ export class LMStudioClient {
 
     if (Array.isArray(content)) {
       return content
-        .map((item: any) => {
+        .map((item: unknown) => {
           if (typeof item === "string") {
             return item;
           }
-          if (item && typeof item.text === "string") {
-            return item.text;
+          if (
+            typeof item === "object" &&
+            item !== null &&
+            "text" in item &&
+            typeof (item as { text?: unknown }).text === "string"
+          ) {
+            return (item as { text: string }).text;
           }
           return JSON.stringify(item);
         })
