@@ -101,7 +101,46 @@ export default class MicrosoftTeamsAPI {
           supportsCalling: false,
           supportsVideo: false,
           // Provide basic command lists to improve client compatibility (esp. mobile)
-          commandLists: [],
+          commandLists: [
+            {
+              scopes: ["team", "groupChat", "personal"],
+              commands: [
+                {
+                  title: "help",
+                  description: "Show instructions for interacting with the OneUptime bot.",
+                },
+                {
+                  title: "create incident",
+                  description: "Launch the adaptive card to declare a new incident in OneUptime.",
+                },
+                {
+                  title: "create maintenance",
+                  description:
+                    "Open the workflow to schedule maintenance directly from Teams.",
+                },
+                {
+                  title: "show active incidents",
+                  description:
+                    "List all ongoing incidents with severity and state context.",
+                },
+                {
+                  title: "show scheduled maintenance",
+                  description:
+                    "Display upcoming scheduled maintenance events for the workspace.",
+                },
+                {
+                  title: "show ongoing maintenance",
+                  description:
+                    "Surface maintenance windows that are currently in progress.",
+                },
+                {
+                  title: "show active alerts",
+                  description:
+                    "Provide a summary of alerts that still require attention.",
+                },
+              ],
+            },
+          ],
         },
       ],
       permissions: ["identity", "messageTeamMembers"],
