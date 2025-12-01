@@ -107,11 +107,13 @@ export default class MicrosoftTeamsAPI {
               commands: [
                 {
                   title: "help",
-                  description: "Show instructions for interacting with the OneUptime bot.",
+                  description:
+                    "Show instructions for interacting with the OneUptime bot.",
                 },
                 {
                   title: "create incident",
-                  description: "Launch the adaptive card to declare a new incident in OneUptime.",
+                  description:
+                    "Launch the adaptive card to declare a new incident in OneUptime.",
                 },
                 {
                   title: "create maintenance",
