@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Distributed Operations Use Case</title>
+  <meta name="description" content="Give distributed operations teams a single system to monitor sites, edge devices, and services while coordinating field response." />
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <section class="relative isolate overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-900 py-24 sm:py-32 text-white">
+    <div class="mx-auto max-w-5xl px-6 lg:px-8 text-center">
+      <p class="text-xs font-semibold uppercase tracking-[0.5em] text-emerald-300">Use Case · Distributed Ops</p>
+      <h1 class="mt-6 text-4xl font-bold tracking-tight sm:text-6xl">Edge, plants, and branches — managed as one system.</h1>
+      <p class="mt-6 text-lg text-slate-200">OneUptime blends IoT telemetry, SCADA, and cloud services so operations, SRE, and field crews get the same live picture.</p>
+      <div class="mt-10 flex flex-wrap justify-center gap-4">
+        <a href="/accounts/register" class="rounded-full bg-emerald-500 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white shadow-lg shadow-emerald-500/30 transition hover:-translate-y-0.5 hover:bg-emerald-400">Launch distributed workspace</a>
+        <a href="/enterprise/demo" class="rounded-full border border-white/40 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:border-white hover:bg-white/10">See operations demo</a>
+      </div>
+    </div>
+    <div class="pointer-events-none absolute inset-0 -z-10">
+      <div class="mx-auto h-full w-full bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_60%)]"></div>
+    </div>
+  </section>
+
+  <%- include('logo-roll') -%>
+
+  <section class="bg-white py-16 sm:py-24">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <div class="grid gap-8 md:grid-cols-3">
+        <div class="rounded-3xl border border-slate-200 p-6 text-center shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-emerald-400">Visibility</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">Global map</p>
+          <p class="mt-2 text-sm text-slate-500">Layer sensors, connectivity, and workloads per site.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 text-center shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-emerald-400">Coordination</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">One timeline</p>
+          <p class="mt-2 text-sm text-slate-500">Ops, IT, and field teams act from the same runbook.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 text-center shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-emerald-400">Compliance</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">Audit-ready</p>
+          <p class="mt-2 text-sm text-slate-500">Capture approvals, data, and communications automatically.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-slate-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="grid gap-16 lg:grid-cols-2">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-emerald-500">Situational awareness</p>
+          <h2 class="mt-4 text-4xl font-bold tracking-tight text-slate-900">Correlate telemetry, maintenance, and workforce data.</h2>
+          <p class="mt-6 text-lg text-slate-600">Stream metrics from PLCs, historians, OT gateways, and cloud apps into a normalized fabric enriched with asset metadata.</p>
+          <dl class="mt-8 space-y-6">
+            <div class="rounded-3xl bg-white/80 p-6 shadow-sm ring-1 ring-black/5">
+              <dt class="text-sm font-semibold text-emerald-500">Asset-aware alerting</dt>
+              <dd class="mt-3 text-base text-slate-600">Tag incidents with site, asset criticality, and safety class to prioritize the right crews.</dd>
+            </div>
+            <div class="rounded-3xl bg-white/80 p-6 shadow-sm ring-1 ring-black/5">
+              <dt class="text-sm font-semibold text-emerald-500">Maintenance integrations</dt>
+              <dd class="mt-3 text-base text-slate-600">Sync work orders in Maximo, SAP PM, or ServiceNow automatically.</dd>
+            </div>
+          </dl>
+        </div>
+        <div class="space-y-8">
+          <div class="overflow-hidden rounded-3xl border border-slate-200 shadow-lg">
+            <img src="/img/monitor-list.png" alt="Distributed operations map" class="w-full object-cover" />
+          </div>
+          <div class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+            <h3 class="text-2xl font-semibold text-slate-900">Field-ready workflows</h3>
+            <p class="mt-4 text-base text-slate-600">Trigger multi-hop playbooks: notify site leads, push mobile alerts, log regulatory updates, and post to status pages.</p>
+            <ul class="mt-6 space-y-3 text-sm text-slate-500">
+              <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>Escalations by geography, asset type, and SLA.</li>
+              <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>Optional approvals for safety-critical actions.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white py-24 sm:py-32">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <div class="rounded-4xl border border-slate-200 bg-slate-900 p-10 text-white shadow-2xl">
+        <div class="grid gap-8 lg:grid-cols-3">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.4em] text-emerald-300">Playbook</p>
+            <h3 class="mt-4 text-3xl font-bold">Distributed ops loop</h3>
+            <p class="mt-4 text-sm text-slate-200">Stay ahead of failures and keep teams aligned.</p>
+          </div>
+          <div class="rounded-3xl bg-white/10 p-6">
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">Sense</p>
+            <p class="mt-3 text-xl font-semibold">Unified telemetry</p>
+            <p class="mt-2 text-sm text-slate-200">Edge agents stream metrics, logs, and events securely.</p>
+          </div>
+          <div class="rounded-3xl bg-white/10 p-6">
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">Decide</p>
+            <p class="mt-3 text-xl font-semibold">Context-rich incidents</p>
+            <p class="mt-2 text-sm text-slate-200">Auto-attach SOPs, docs, and recent changes.</p>
+          </div>
+          <div class="rounded-3xl bg-white/10 p-6 lg:col-span-3">
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">Act</p>
+            <p class="mt-3 text-xl font-semibold">Closed-loop workflows</p>
+            <p class="mt-2 text-sm text-slate-200">Trigger maintenance, notify customers, and capture lessons learned.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%- include('cta') -%>
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+</body>
+
+</html>

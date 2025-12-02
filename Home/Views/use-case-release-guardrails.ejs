@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Release Guardrails Use Case</title>
+  <meta name="description" content="Ship faster without surprises. OneUptime provides release guardrails, automated verifications, and rollback workflows in one place." />
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <section class="relative isolate overflow-hidden bg-gradient-to-br from-purple-950 via-slate-950 to-indigo-900 py-24 sm:py-32 text-white">
+    <div class="mx-auto max-w-4xl px-6 lg:px-8 text-center">
+      <p class="text-xs font-semibold uppercase tracking-[0.5em] text-indigo-300">Use Case · Release Guardrails</p>
+      <h1 class="mt-6 text-4xl font-bold tracking-tight sm:text-6xl">Launch every release with observability, SLOs, and comms baked in.</h1>
+      <p class="mt-6 text-lg text-slate-200">Connect feature flags, CI/CD pipelines, and OneUptime workflows so releases stay reversible and transparent.</p>
+      <div class="mt-10 flex flex-wrap justify-center gap-4">
+        <a href="/accounts/register" class="rounded-full bg-indigo-500 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white shadow-lg shadow-indigo-500/30 transition hover:-translate-y-0.5 hover:bg-indigo-400">Create release guardrails</a>
+        <a href="/enterprise/demo" class="rounded-full border border-white/40 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:border-white hover:bg-white/10">View blueprint</a>
+      </div>
+    </div>
+    <div class="pointer-events-none absolute inset-0 -z-10">
+      <div class="mx-auto h-full w-full bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.3),_transparent_60%)]"></div>
+    </div>
+  </section>
+
+  <%- include('logo-roll') -%>
+
+  <section class="bg-white py-16 sm:py-24">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <div class="grid gap-8 md:grid-cols-3">
+        <div class="rounded-3xl border border-slate-200 p-6 text-center shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-indigo-400">Confidence</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">Pre-flight</p>
+          <p class="mt-2 text-sm text-slate-500">Automated checks for SLOs, dependencies, and compliance.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 text-center shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-indigo-400">Speed</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">+30%</p>
+          <p class="mt-2 text-sm text-slate-500">Reusable templates reduce sign-off delays.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 text-center shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-indigo-400">Safety</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">1-click</p>
+          <p class="mt-2 text-sm text-slate-500">Launch rollbacks, feature toggles, and comms from the same panel.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-slate-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="grid gap-16 lg:grid-cols-2">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-indigo-500">Blueprint</p>
+          <h2 class="mt-4 text-4xl font-bold tracking-tight text-slate-900">Tie change tracking, observability, and communications together.</h2>
+          <p class="mt-6 text-lg text-slate-600">Every deployment becomes a structured incident with ready-made guardrails.</p>
+          <ul class="mt-8 space-y-5">
+            <li class="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+              <p class="text-base font-semibold text-slate-900">Pre-launch validation</p>
+              <p class="mt-2 text-sm text-slate-600">Check runbooks, pager coverage, and recent incidents automatically.</p>
+            </li>
+            <li class="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+              <p class="text-base font-semibold text-slate-900">Live telemetry overlays</p>
+              <p class="mt-2 text-sm text-slate-600">Compare real-time KPIs to historical baselines per cohort.</p>
+            </li>
+          </ul>
+        </div>
+        <div class="space-y-8">
+          <div class="overflow-hidden rounded-3xl border border-slate-200 shadow-lg">
+            <img src="/img/workflow-logs.png" alt="Release guardrail workflow" class="w-full object-cover" />
+          </div>
+          <div class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+            <h3 class="text-2xl font-semibold text-slate-900">Automated checkpoints</h3>
+            <p class="mt-4 text-base text-slate-600">Workflows pause if SLOs, error budgets, or security scans fail and notify the right approvers.</p>
+            <div class="mt-6 grid gap-4 sm:grid-cols-2">
+              <div class="rounded-2xl border border-slate-100 p-4 text-sm text-slate-600">
+                <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Integrations</p>
+                <p class="mt-2 font-semibold text-slate-900">GitHub, GitLab, Jenkins, CircleCI, ArgoCD.</p>
+              </div>
+              <div class="rounded-2xl border border-slate-100 p-4 text-sm text-slate-600">
+                <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Actions</p>
+                <p class="mt-2 font-semibold text-slate-900">Feature flags, rollbacks, status updates, Jira sync.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white py-24 sm:py-32">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <div class="rounded-4xl bg-slate-900 p-10 text-white shadow-2xl">
+        <div class="grid gap-8 lg:grid-cols-3">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.4em] text-indigo-300">Playbook</p>
+            <h3 class="mt-4 text-3xl font-bold">Guardrail loop</h3>
+            <p class="mt-4 text-sm text-slate-200">Visibility before, during, and after every change.</p>
+          </div>
+          <div class="rounded-3xl bg-white/10 p-6">
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-200">Plan</p>
+            <p class="mt-3 text-xl font-semibold">Change templates</p>
+            <p class="mt-2 text-sm text-slate-200">Auto-fill owners, risk scoring, and approvals.</p>
+          </div>
+          <div class="rounded-3xl bg-white/10 p-6">
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-200">Observe</p>
+            <p class="mt-3 text-xl font-semibold">Live scorecards</p>
+            <p class="mt-2 text-sm text-slate-200">Compare KPIs vs. SLOs per market or customer tier.</p>
+          </div>
+          <div class="rounded-3xl bg-white/10 p-6 lg:col-span-3">
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-200">Communicate</p>
+            <p class="mt-3 text-xl font-semibold">Instant updates</p>
+            <p class="mt-2 text-sm text-slate-200">Publish stage gates, ETA, and final notes to stakeholders via email, Slack, or status page.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%- include('cta') -%>
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+</body>
+
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Cloud Migration Assurance Use Case</title>
+  <meta name="description" content="De-risk migrations and modernizations with unified observability, incident workflows, and stakeholder communications from OneUptime." />
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <section class="relative isolate overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-sky-900 py-24 sm:py-32 text-white">
+    <div class="mx-auto max-w-5xl px-6 lg:px-8 text-center">
+      <p class="text-xs font-semibold uppercase tracking-[0.5em] text-sky-300">Use Case · Cloud Migration</p>
+      <h1 class="mt-6 text-4xl font-bold tracking-tight sm:text-6xl">Move workloads with confidence, visibility, and control.</h1>
+      <p class="mt-6 text-lg text-slate-200">Plan, execute, and stabilize migrations using one shared platform for runbooks, telemetry, and communications.</p>
+      <div class="mt-10 flex flex-wrap justify-center gap-4">
+        <a href="/accounts/register" class="rounded-full bg-sky-500 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white shadow-lg shadow-sky-500/30 transition hover:-translate-y-0.5 hover:bg-sky-400">Create migration hub</a>
+        <a href="/enterprise/demo" class="rounded-full border border-white/40 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:border-white hover:bg-white/10">Schedule workshop</a>
+      </div>
+    </div>
+    <div class="pointer-events-none absolute inset-0 -z-10">
+      <div class="mx-auto h-full w-full bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.25),_transparent_60%)]"></div>
+    </div>
+  </section>
+
+  <%- include('logo-roll') -%>
+
+  <section class="bg-white py-16 sm:py-24">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <div class="grid gap-8 md:grid-cols-3">
+        <div class="rounded-3xl border border-slate-200 p-6 text-center shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-sky-400">Planning</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">Single backlog</p>
+          <p class="mt-2 text-sm text-slate-500">Track waves, dependencies, and risks centrally.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 text-center shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-sky-400">Execution</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">Live KPIs</p>
+          <p class="mt-2 text-sm text-slate-500">Measure latency, error budgets, and cost deltas per wave.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 text-center shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-sky-400">Stabilization</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">Faster</p>
+          <p class="mt-2 text-sm text-slate-500">Automated runbooks shrink hypercare windows.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-slate-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="grid gap-16 lg:grid-cols-2">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-sky-500">Migration cockpit</p>
+          <h2 class="mt-4 text-4xl font-bold tracking-tight text-slate-900">From inventory to hypercare without switching tools.</h2>
+          <p class="mt-6 text-lg text-slate-600">Attach observability, on-call, and communications to every wave.</p>
+          <dl class="mt-8 space-y-6">
+            <div class="rounded-3xl bg-white/80 p-6 shadow-sm ring-1 ring-black/5">
+              <dt class="text-sm font-semibold text-sky-500">Wave planning</dt>
+              <dd class="mt-3 text-base text-slate-600">Categorize apps by complexity, business impact, and dependencies. Auto-generate guardrails.</dd>
+            </div>
+            <div class="rounded-3xl bg-white/80 p-6 shadow-sm ring-1 ring-black/5">
+              <dt class="text-sm font-semibold text-sky-500">Change calendar</dt>
+              <dd class="mt-3 text-base text-slate-600">Share schedules with business stakeholders and freeze windows when needed.</dd>
+            </div>
+          </dl>
+        </div>
+        <div class="space-y-8">
+          <div class="overflow-hidden rounded-3xl border border-slate-200 shadow-lg">
+            <img src="/img/workflow-builder.png" alt="Cloud migration workflow" class="w-full object-cover" />
+          </div>
+          <div class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+            <h3 class="text-2xl font-semibold text-slate-900">Automation toolkit</h3>
+            <p class="mt-4 text-base text-slate-600">Kick off infrastructure builds, smoke tests, and rollback plans with branching workflows.</p>
+            <ul class="mt-6 space-y-3 text-sm text-slate-500">
+              <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-sky-400"></span>Call Terraform, CloudFormation, or Pulumi steps inline.</li>
+              <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-sky-400"></span>Notify finance, security, and product teams with templated updates.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white py-24 sm:py-32">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <div class="rounded-4xl border border-slate-200 bg-slate-900 p-10 text-white shadow-2xl">
+        <div class="grid gap-8 lg:grid-cols-3">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.4em] text-sky-300">Playbook</p>
+            <h3 class="mt-4 text-3xl font-bold">Migration assurance loop</h3>
+            <p class="mt-4 text-sm text-slate-200">Keep migrations transparent and measurable.</p>
+          </div>
+          <div class="rounded-3xl bg-white/10 p-6">
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-sky-200">Assess</p>
+            <p class="mt-3 text-xl font-semibold">Readiness scorecards</p>
+            <p class="mt-2 text-sm text-slate-200">Score risk, testing, and rollback depth before go-live.</p>
+          </div>
+          <div class="rounded-3xl bg-white/10 p-6">
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-sky-200">Execute</p>
+            <p class="mt-3 text-xl font-semibold">Live dashboards</p>
+            <p class="mt-2 text-sm text-slate-200">Monitor workload health plus cost, latency, and errors.</p>
+          </div>
+          <div class="rounded-3xl bg-white/10 p-6 lg:col-span-3">
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-sky-200">Stabilize</p>
+            <p class="mt-3 text-xl font-semibold">Hypercare workflows</p>
+            <p class="mt-2 text-sm text-slate-200">Route issues, capture lessons, and hand off to steady-state teams.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%- include('cta') -%>
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+</body>
+
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Insurance Cloud Operations</title>
+  <meta name="description"
+    content="Give underwriting, claims, and distribution teams real-time visibility. Detect outages across policy admin, portals, and partner APIs with OneUptime." />
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <section class="relative isolate overflow-hidden bg-gradient-to-br from-blue-950 via-slate-900 to-sky-900 py-24 sm:py-32 text-white">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <p class="text-sm font-semibold uppercase tracking-[0.4em] text-sky-300">Insurance</p>
+      <h1 class="mt-6 text-4xl font-bold tracking-tight sm:text-6xl">Reliability for claims, underwriting, and digital distribution.</h1>
+      <p class="mt-6 text-lg text-slate-200 sm:text-xl">Give policyholders instant answers, empower adjusters, and keep broker portals fast. OneUptime correlates every workflow—FNOL, quote, bind, renew—with the infrastructure underneath.</p>
+      <div class="mt-10 flex flex-wrap gap-4">
+        <a href="/accounts/register" class="rounded-full bg-indigo-500 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white shadow-lg shadow-indigo-500/30 transition hover:-translate-y-0.5 hover:bg-indigo-400">Launch sandbox</a>
+        <a href="/enterprise/demo" class="rounded-full border border-white/50 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:border-white hover:bg-white/10">Request walkthrough</a>
+      </div>
+    </div>
+    <div class="pointer-events-none absolute inset-0 -z-10 opacity-60">
+      <div class="mx-auto h-full w-full bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.35),_transparent_60%)]"></div>
+    </div>
+  </section>
+
+  <%- include('logo-roll') -%>
+
+  <section class="bg-white py-16 sm:py-24">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <dl class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">Quote latency</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">&lt; 2s</dd>
+          <p class="mt-2 text-sm text-slate-500">Detect actuarial service regressions before brokers notice.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">Claims SLAs</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">Predictive</dd>
+          <p class="mt-2 text-sm text-slate-500">Blend customer sentiment, adjuster queues, and API health.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">Partner reliability</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">360° view</dd>
+          <p class="mt-2 text-sm text-slate-500">Track MGAs, insurtech add-ons, and data providers in real-time.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">Compliance</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">Always-on</dd>
+          <p class="mt-2 text-sm text-slate-500">Map every incident to NAIC, NYDFS, and ISO controls.</p>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="bg-slate-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="max-w-3xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.4em] text-sky-500">Unified stack</p>
+        <h2 class="mt-4 text-4xl font-bold tracking-tight text-slate-900">Tie policy admin cores, CRM, and AI-driven experiences together.</h2>
+        <p class="mt-6 text-lg text-slate-600">OneUptime ingests telemetry from Guidewire, Duck Creek, Salesforce, Azure, AWS, and custom underwriting engines. Every alert is enriched with the business context operations teams need.</p>
+      </div>
+      <div class="mt-14 grid gap-8 lg:grid-cols-3">
+        <article class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75l8.954 5.37a1.125 1.125 0 001.092 0l8.954-5.37M4.5 19.5h15a2.25 2.25 0 002.25-2.25V8.106a2.25 2.25 0 00-1.125-1.944L12 2.25 3.375 6.162A2.25 2.25 0 002.25 8.106V17.25A2.25 2.25 0 004.5 19.5z" />
+            </svg>
+          </div>
+          <h3 class="mt-6 text-2xl font-semibold text-slate-900">Claims-aware automation</h3>
+          <p class="mt-4 text-base text-slate-600">Trigger workflows when claim intake spikes, document upload services stall, or inspection vendors fall behind.</p>
+          <ul class="mt-6 space-y-3 text-sm text-slate-500">
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-indigo-400"></span>Blend telematics, IoT sensors, and customer comms in one view.</li>
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-indigo-400"></span>Spin up virtual war rooms with underwriting, actuarial, and CX instantly.</li>
+          </ul>
+        </article>
+        <article class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75v10.5A2.25 2.25 0 006 19.5h12a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0018 4.5H6a2.25 2.25 0 00-2.25 2.25z" />
+            </svg>
+          </div>
+          <h3 class="mt-6 text-2xl font-semibold text-slate-900">Broker &amp; partner trust</h3>
+          <p class="mt-4 text-base text-slate-600">Share curated service health with captive agents, MGAs, TPAs, and ecosystem fintechs. Keep everyone aligned with proactive messaging.</p>
+          <ul class="mt-6 space-y-3 text-sm text-slate-500">
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>Segmented status pages by product line, geography, and channel.</li>
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>Automated subscriber updates that mirror regulatory templates.</li>
+          </ul>
+        </article>
+        <article class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-100 text-sky-600">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 8.25h6m-6 3H15m-6 3h3M3 5.25C3 4.007 4.007 3 5.25 3h13.5C19.993 3 21 4.007 21 5.25v13.5A2.25 2.25 0 0118.75 21H5.25A2.25 2.25 0 013 18.75z" />
+            </svg>
+          </div>
+          <h3 class="mt-6 text-2xl font-semibold text-slate-900">Regulated workflows</h3>
+          <p class="mt-4 text-base text-slate-600">Enforce separation of duties, maintain evidence, and accelerate market conduct exams with trackable communications.</p>
+          <ul class="mt-6 space-y-3 text-sm text-slate-500">
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-sky-400"></span>Built-in audit timelines for NAIC Model Law 668 and NYDFS cyber regs.</li>
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-sky-400"></span>Role-aware runbooks for first, second, and third lines of defense.</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl gap-16 px-6 lg:grid lg:grid-cols-2 lg:px-8">
+      <div class="overflow-hidden rounded-3xl border border-slate-100 shadow-lg">
+        <img src="/img/monitor.png" alt="Insurance reliability dashboards" class="w-full object-cover" />
+      </div>
+      <div>
+        <p class="text-sm font-semibold uppercase tracking-[0.4em] text-sky-500">Blueprint</p>
+        <h3 class="mt-4 text-3xl font-bold text-slate-900">Modernize the policy lifecycle without risking downtime.</h3>
+        <p class="mt-4 text-base text-slate-600">Connect legacy cores and modern composable platforms. OneUptime helps digital transformation teams ship faster—and safer.</p>
+        <div class="mt-10 space-y-6">
+          <div class="rounded-2xl border border-slate-200 p-6">
+            <p class="text-sm font-semibold text-slate-500">Experience layer</p>
+            <p class="mt-2 text-lg font-semibold text-slate-900">Customer apps, agent portals, kiosks</p>
+            <p class="mt-2 text-sm text-slate-500">Synthetic testing mimics binding flows, premium payments, and endorsements.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 p-6">
+            <p class="text-sm font-semibold text-slate-500">Core &amp; data</p>
+            <p class="mt-2 text-lg font-semibold text-slate-900">Policy admin, rating, data science</p>
+            <p class="mt-2 text-sm text-slate-500">Correlate Kafka events, ETL pipelines, and actuarial jobs with customer impact.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 p-6">
+            <p class="text-sm font-semibold text-slate-500">Ecosystem</p>
+            <p class="mt-2 text-lg font-semibold text-slate-900">Partners &amp; data providers</p>
+            <p class="mt-2 text-sm text-slate-500">Monitor E&S partners, inspection vendors, reinsurers, and telematics feeds.</p>
+          </div>
+        </div>
+        <div class="mt-10 flex flex-wrap gap-3 text-xs text-slate-500">
+          <span class="rounded-full border border-slate-200 px-4 py-1">ISO 27001 ready</span>
+          <span class="rounded-full border border-slate-200 px-4 py-1">NYDFS CFR 500</span>
+          <span class="rounded-full border border-slate-200 px-4 py-1">SOC 2 mapping</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%- include('cta') -%>
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+</body>
+
+</html>

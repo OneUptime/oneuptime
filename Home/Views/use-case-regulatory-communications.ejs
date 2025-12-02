@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Regulatory Communications Use Case</title>
+  <meta name="description" content="Coordinate legal, risk, and engineering teams with a single source of truth for regulatory communications and evidence." />
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <section class="relative isolate overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 py-24 sm:py-32 text-white">
+    <div class="mx-auto max-w-5xl px-6 lg:px-8 text-center">
+      <p class="text-xs font-semibold uppercase tracking-[0.5em] text-emerald-300">Use Case · Regulatory Communications</p>
+      <h1 class="mt-6 text-4xl font-bold tracking-tight sm:text-6xl">Respond to regulators with clarity and confidence.</h1>
+      <p class="mt-6 text-lg text-slate-200">When customers, auditors, or regulators ask for answers, you need more than scattered spreadsheets. OneUptime captures every signal, decision, and message in one verified timeline.</p>
+      <div class="mt-10 flex flex-wrap justify-center gap-4">
+        <a href="/accounts/register" class="rounded-full bg-emerald-500 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white shadow-lg shadow-emerald-500/30 transition hover:-translate-y-0.5 hover:bg-emerald-400">Launch secure workspace</a>
+        <a href="/enterprise/demo" class="rounded-full border border-white/40 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:border-white hover:bg-white/10">Request governance demo</a>
+      </div>
+    </div>
+    <div class="pointer-events-none absolute inset-0 -z-10">
+      <div class="mx-auto h-full w-full bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_70%)]"></div>
+    </div>
+  </section>
+
+  <%- include('logo-roll') -%>
+
+  <section class="bg-white py-16 sm:py-24">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <div class="grid gap-8 lg:grid-cols-3">
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-slate-500">Audit prep</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">Hours</p>
+          <p class="mt-2 text-sm text-slate-500">Pull complete evidence packages instantly.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-slate-500">Reg reporting</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">Templated</p>
+          <p class="mt-2 text-sm text-slate-500">Answer FFIEC, EBA, RBI, APRA, or SOC 2 requests consistently.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-slate-500">Risk insights</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">Live</p>
+          <p class="mt-2 text-sm text-slate-500">Share burn-up charts, SLAs, and impact analysis with executives.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-slate-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="grid gap-16 lg:grid-cols-2">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-emerald-500">Evidence automation</p>
+          <h2 class="mt-4 text-4xl font-bold tracking-tight text-slate-900">Capture every control test inside the incident workflow.</h2>
+          <p class="mt-6 text-lg text-slate-600">Attach screenshots, log excerpts, approvals, and remediation tasks without leaving OneUptime. Export signed PDFs or JSON bundles to whatever system of record you choose.</p>
+          <div class="mt-10 space-y-6">
+            <div class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+              <p class="text-base font-semibold text-slate-900">Control mappings</p>
+              <p class="mt-2 text-sm text-slate-600">Link incidents to SOC 2 CC7, ISO 27001 A.16, DORA Article 11, or custom policies.</p>
+            </div>
+            <div class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+              <p class="text-base font-semibold text-slate-900">Reviewer workflow</p>
+              <p class="mt-2 text-sm text-slate-600">Built-in sign-offs for legal, risk, privacy, and executive sponsors.</p>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-8">
+          <div class="overflow-hidden rounded-3xl border border-slate-200 shadow-lg">
+            <img src="/img/incident.png" alt="Regulatory communications timeline" class="w-full object-cover" />
+          </div>
+          <div class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+            <h3 class="text-2xl font-semibold text-slate-900">Communication templates</h3>
+            <p class="mt-4 text-base text-slate-600">Answer the "what happened?" question faster with smart templates for each stakeholder.</p>
+            <ul class="mt-6 space-y-3 text-sm text-slate-500">
+              <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>Regulator-ready SITREP and incident notification outlines.</li>
+              <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>Board / exec packs with metrics, actions, and investment asks.</li>
+              <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>Customer statements that reuse approved language.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white py-24 sm:py-32">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <p class="text-xs font-semibold uppercase tracking-[0.4em] text-emerald-400">Plan</p>
+          <h3 class="mt-4 text-xl font-semibold text-slate-900">Catalog obligations</h3>
+          <p class="mt-2 text-sm text-slate-600">Centralize regulatory clauses, timelines, and required evidence.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <p class="text-xs font-semibold uppercase tracking-[0.4em] text-emerald-400">Act</p>
+          <h3 class="mt-4 text-xl font-semibold text-slate-900">Orchestrate responses</h3>
+          <p class="mt-2 text-sm text-slate-600">Assign owners, due dates, and dependencies with reminders.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <p class="text-xs font-semibold uppercase tracking-[0.4em] text-emerald-400">Report</p>
+          <h3 class="mt-4 text-xl font-semibold text-slate-900">Deliver proof</h3>
+          <p class="mt-2 text-sm text-slate-600">One-click export to PDF, Confluence, or secure data rooms.</p>
+        </div>
+      </div>
+      <div class="mt-12 rounded-4xl bg-slate-900 p-10 text-white shadow-2xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.4em] text-emerald-300">Outcome</p>
+        <h3 class="mt-4 text-3xl font-bold">Always be audit-ready.</h3>
+        <p class="mt-4 text-base text-slate-200">Whether you're preparing for SOC 2, DORA, PCI, or a government notification, OneUptime keeps every fact, file, and decision traceable.</p>
+      </div>
+    </div>
+  </section>
+
+  <%- include('cta') -%>
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+</body>
+
+</html>

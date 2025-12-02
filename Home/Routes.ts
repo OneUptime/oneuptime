@@ -1072,6 +1072,69 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get(
+      "/solutions/financial-services",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/solutions-financial-services`, {
+          enableGoogleTagManager: IsBillingEnabled,
+        });
+      },
+    );
+
+    app.get(
+      "/solutions/insurance",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/solutions-insurance`, {
+          enableGoogleTagManager: IsBillingEnabled,
+        });
+      },
+    );
+
+    app.get(
+      "/solutions/healthcare",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/solutions-healthcare`, {
+          enableGoogleTagManager: IsBillingEnabled,
+        });
+      },
+    );
+
+    app.get(
+      "/solutions/government",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/solutions-government`, {
+          enableGoogleTagManager: IsBillingEnabled,
+        });
+      },
+    );
+
+    app.get(
+      "/use-cases/customer-trust",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/use-case-customer-trust`, {
+          enableGoogleTagManager: IsBillingEnabled,
+        });
+      },
+    );
+
+    app.get(
+      "/use-cases/platform-engineering",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/use-case-platform-engineering`, {
+          enableGoogleTagManager: IsBillingEnabled,
+        });
+      },
+    );
+
+    app.get(
+      "/use-cases/regulatory-communications",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render(`${ViewsPath}/use-case-regulatory-communications`, {
+          enableGoogleTagManager: IsBillingEnabled,
+        });
+      },
+    );
+
+    app.get(
       "/incident-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.redirect("/product/incident-management");

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Retail &amp; eCommerce Reliability</title>
+  <meta name="description" content="Deliver unforgettable retail and commerce experiences with unified observability, on-call, and customer communications from OneUptime." />
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <section class="relative isolate overflow-hidden bg-gradient-to-br from-slate-950 via-gray-900 to-rose-900 py-24 sm:py-32 text-white">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <p class="text-xs font-semibold uppercase tracking-[0.5em] text-rose-300">Retail &amp; eCommerce</p>
+      <h1 class="mt-6 text-4xl font-bold tracking-tight sm:text-6xl">Keep every cart, kiosk, and fulfillment workflow online.</h1>
+      <p class="mt-6 text-lg text-slate-200">Unify store tech, headless commerce, marketplaces, and supply-chain telemetry. Detect issues before buyers feel them and keep merchandisers, CX, and ops aligned.</p>
+      <div class="mt-10 flex flex-wrap gap-4">
+        <a href="/accounts/register" class="rounded-full bg-rose-500 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white shadow-lg shadow-rose-500/30 transition hover:-translate-y-0.5 hover:bg-rose-400">Launch workspace</a>
+        <a href="/enterprise/demo" class="rounded-full border border-white/40 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:border-white hover:bg-white/10">Book retail demo</a>
+      </div>
+    </div>
+    <div class="pointer-events-none absolute inset-0 -z-10">
+      <div class="mx-auto h-full w-full bg-[radial-gradient(circle_at_top,_rgba(248,113,113,0.25),_transparent_65%)]"></div>
+    </div>
+  </section>
+
+  <%- include('logo-roll') -%>
+
+  <section class="bg-white py-16 sm:py-24">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <dl class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">Checkout resilience</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">99.99%</dd>
+          <p class="mt-2 text-sm text-slate-500">Catch PSP, tax, and inventory errors instantly.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">Omnichannel ops</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">Unified</dd>
+          <p class="mt-2 text-sm text-slate-500">Monitor stores, web, mobile, and marketplaces together.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">Release velocity</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">+35%</dd>
+          <p class="mt-2 text-sm text-slate-500">Guardrails let teams ship personalized campaigns faster.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">CX transparency</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">Live</dd>
+          <p class="mt-2 text-sm text-slate-500">Segmented status pages for partners and support desks.</p>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="bg-slate-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="max-w-3xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.4em] text-rose-400">Unified commerce</p>
+        <h2 class="mt-4 text-4xl font-bold tracking-tight text-slate-900">Connect digital storefronts, physical retail, and fulfillment networks.</h2>
+        <p class="mt-6 text-lg text-slate-600">OneUptime ingests metrics from headless CMS, CDNs, POS, OMS, ERP, and logistics providers. Each incident is enriched with SKU, campaign, and region context.</p>
+      </div>
+      <div class="mt-14 grid gap-8 lg:grid-cols-3">
+        <article class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h18M9 3v18m6-18v18M3 9h18M3 15h18" />
+            </svg>
+          </div>
+          <h3 class="mt-6 text-2xl font-semibold text-slate-900">Campaign-aware monitoring</h3>
+          <p class="mt-4 text-base text-slate-600">Correlate conversion drops with releases, catalog changes, or promo traffic spikes.</p>
+          <ul class="mt-6 space-y-3 text-sm text-slate-500">
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-rose-400"></span>Edge synthetic tests replicate carts, coupons, and payment flows.</li>
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-rose-400"></span>Auto-rollbacks via workflows when KPIs regress.</li>
+          </ul>
+        </article>
+        <article class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 8.25h18M5.25 21h13.5A2.25 2.25 0 0021 18.75V8.25H3v10.5A2.25 2.25 0 005.25 21z" />
+            </svg>
+          </div>
+          <h3 class="mt-6 text-2xl font-semibold text-slate-900">Store &amp; supply visibility</h3>
+          <p class="mt-4 text-base text-slate-600">Blend IoT shelf sensors, POS, warehouses, and carrier feeds to prevent outages and stockouts.</p>
+          <ul class="mt-6 space-y-3 text-sm text-slate-500">
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>Impact heatmaps across channels, cities, and fulfillment nodes.</li>
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>Escalations route between SRE, retail ops, and 3PL partners.</li>
+          </ul>
+        </article>
+        <article class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-100 text-sky-600">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m4.5 5.25v-10.5a2.25 2.25 0 00-2.25-2.25h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5h15a2.25 2.25 0 002.25-2.25z" />
+            </svg>
+          </div>
+          <h3 class="mt-6 text-2xl font-semibold text-slate-900">Customer trust playbooks</h3>
+          <p class="mt-4 text-base text-slate-600">Segmented status pages keep shoppers, partners, and support aware of incidents and ETAs.</p>
+          <ul class="mt-6 space-y-3 text-sm text-slate-500">
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-sky-400"></span>Localized messaging in multiple languages and currencies.</li>
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-sky-400"></span>Ticket deflection via proactive emails, SMS, and chatbots.</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl gap-16 px-6 lg:grid lg:grid-cols-2 lg:px-8">
+      <div class="overflow-hidden rounded-3xl border border-slate-200 shadow-lg">
+        <img src="/img/status-page-dashboard.png" alt="Retail observability cockpit" class="w-full object-cover" />
+      </div>
+      <div>
+        <p class="text-sm font-semibold uppercase tracking-[0.4em] text-rose-400">Blueprint</p>
+        <h3 class="mt-4 text-3xl font-bold text-slate-900">From drop alerts to loyalty wins.</h3>
+        <p class="mt-4 text-base text-slate-600">Give growth, engineering, and CX one shared timeline.</p>
+        <div class="mt-10 space-y-6">
+          <div class="rounded-2xl border border-slate-200 p-6">
+            <p class="text-sm font-semibold text-slate-500">Sense</p>
+            <p class="mt-2 text-lg font-semibold text-slate-900">Edge synthetics &amp; POS sensors</p>
+            <p class="mt-2 text-sm text-slate-500">Spot latency or payment regression where buyers feel it first.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 p-6">
+            <p class="text-sm font-semibold text-slate-500">Coordinate</p>
+            <p class="mt-2 text-lg font-semibold text-slate-900">Fulfillment-aware on-call</p>
+            <p class="mt-2 text-sm text-slate-500">Route to dev, ops, merchandising, or partners instantly.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 p-6">
+            <p class="text-sm font-semibold text-slate-500">Delight</p>
+            <p class="mt-2 text-lg font-semibold text-slate-900">Transparent communications</p>
+            <p class="mt-2 text-sm text-slate-500">Reduce cancellations with proactive trust updates.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%- include('cta') -%>
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+</body>
+
+</html>

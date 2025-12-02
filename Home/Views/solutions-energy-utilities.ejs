@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Energy &amp; Utilities Reliability</title>
+  <meta name="description" content="Modernize grid, generation, and utility customer operations with OneUptime's secure observability and incident workflows." />
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <section class="relative isolate overflow-hidden bg-gradient-to-br from-emerald-950 via-slate-950 to-amber-900 py-24 sm:py-32 text-white">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <p class="text-xs font-semibold uppercase tracking-[0.5em] text-emerald-300">Energy &amp; Utilities</p>
+      <h1 class="mt-6 text-4xl font-bold tracking-tight sm:text-6xl">Reliability for grid, generation, and customer channels.</h1>
+      <p class="mt-6 text-lg text-slate-200">Blend OT telemetry, IT infrastructure, AMI data, and customer experience insights. Coordinate dispatch, field crews, and regulators with one playbook.</p>
+      <div class="mt-10 flex flex-wrap gap-4">
+        <a href="/accounts/register" class="rounded-full bg-emerald-500 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white shadow-lg shadow-emerald-500/30 transition hover:-translate-y-0.5 hover:bg-emerald-400">Start grid workspace</a>
+        <a href="/enterprise/demo" class="rounded-full border border-white/40 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:border-white hover:bg-white/10">Schedule briefing</a>
+      </div>
+    </div>
+    <div class="pointer-events-none absolute inset-0 -z-10">
+      <div class="mx-auto h-full w-full bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.25),_transparent_65%)]"></div>
+    </div>
+  </section>
+
+  <%- include('logo-roll') -%>
+
+  <section class="bg-white py-16 sm:py-24">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <dl class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">Grid uptime</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">99.995%</dd>
+          <p class="mt-2 text-sm text-slate-500">Monitor SCADA, DER, and microgrids with predictive SLOs.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">Crew coordination</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">Automated</dd>
+          <p class="mt-2 text-sm text-slate-500">Dispatch the right teams with location, asset, and safety context.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">Reg reporting</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">Real time</dd>
+          <p class="mt-2 text-sm text-slate-500">Generate NERC, FERC, or Ofgem-ready evidence instantly.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">Customer trust</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">Transparent</dd>
+          <p class="mt-2 text-sm text-slate-500">Outage maps, ETA banners, and proactive notifications.</p>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="bg-slate-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="max-w-3xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.4em] text-emerald-400">IT + OT convergence</p>
+        <h2 class="mt-4 text-4xl font-bold tracking-tight text-slate-900">Break silos between SCADA, DERMs, cloud, and customer platforms.</h2>
+        <p class="mt-6 text-lg text-slate-600">OneUptime ingests historian data, telemetry buses, EMS apps, customer portals, and billing systems to deliver a single incident narrative.</p>
+      </div>
+      <div class="mt-14 grid gap-8 lg:grid-cols-3">
+        <article class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v4.5M17.25 3v4.5m-12 3.75h13.5M5.25 21h13.5A2.25 2.25 0 0021 18.75V8.25H3v10.5A2.25 2.25 0 005.25 21z" />
+            </svg>
+          </div>
+          <h3 class="mt-6 text-2xl font-semibold text-slate-900">Grid-aware automation</h3>
+          <p class="mt-4 text-base text-slate-600">Trigger workflows when load, voltage, or asset health cross thresholds.</p>
+          <ul class="mt-6 space-y-3 text-sm text-slate-500">
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>Link incidents to substations, feeders, and DER assets.</li>
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>Integrate with ADMS, OMS, and outage analytics.</li>
+          </ul>
+        </article>
+        <article class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75h.008v.008H17.25zM6.75 6.75h.008v.008H6.75zM3 12h18" />
+            </svg>
+          </div>
+          <h3 class="mt-6 text-2xl font-semibold text-slate-900">Field &amp; control collaboration</h3>
+          <p class="mt-4 text-base text-slate-600">Automate callouts, track restorations, and share situational awareness from one timeline.</p>
+          <ul class="mt-6 space-y-3 text-sm text-slate-500">
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-amber-400"></span>Rules by operating district, crew skill, or asset class.</li>
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-amber-400"></span>Two-way sync with Maximo, SAP, or custom CMMS.</li>
+          </ul>
+        </article>
+        <article class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-3.866 0-7 2.239-7 5s3.134 5 7 5 7-2.239 7-5-3.134-5-7-5z" />
+            </svg>
+          </div>
+          <h3 class="mt-6 text-2xl font-semibold text-slate-900">Customer &amp; regulator transparency</h3>
+          <p class="mt-4 text-base text-slate-600">Share outage maps, ETRs, and compliance updates using templated communications.</p>
+          <ul class="mt-6 space-y-3 text-sm text-slate-500">
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-slate-400"></span>Multi-lingual portals for residential, C&amp;I, and municipalities.</li>
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-slate-400"></span>Automated reports for regulators and public affairs.</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl gap-16 px-6 lg:grid lg:grid-cols-2 lg:px-8">
+      <div class="overflow-hidden rounded-3xl border border-slate-200 shadow-lg">
+        <img src="/img/incident-state.png" alt="Utility reliability dashboard" class="w-full object-cover" />
+      </div>
+      <div>
+        <p class="text-sm font-semibold uppercase tracking-[0.4em] text-emerald-400">Resilience playbook</p>
+        <h3 class="mt-4 text-3xl font-bold text-slate-900">Predict, respond, and report faster.</h3>
+        <div class="mt-10 space-y-6">
+          <div class="rounded-2xl border border-slate-200 p-6">
+            <p class="text-sm font-semibold text-slate-500">Predict</p>
+            <p class="mt-2 text-lg font-semibold text-slate-900">Weather + asset intelligence</p>
+            <p class="mt-2 text-sm text-slate-500">Overlay storms, wildfires, or DER output to prioritize crews.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 p-6">
+            <p class="text-sm font-semibold text-slate-500">Respond</p>
+            <p class="mt-2 text-lg font-semibold text-slate-900">Cross-team command center</p>
+            <p class="mt-2 text-sm text-slate-500">Control room, field, CX, and comms teams share decisions live.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 p-6">
+            <p class="text-sm font-semibold text-slate-500">Report</p>
+            <p class="mt-2 text-lg font-semibold text-slate-900">Evidence on demand</p>
+            <p class="mt-2 text-sm text-slate-500">Produce regulator-ready PDFs, CSVs, or data room exports.</p>
+          </div>
+        </div>
+        <div class="mt-10 flex flex-wrap gap-3 text-xs text-slate-500">
+          <span class="rounded-full border border-slate-200 px-4 py-1">NERC CIP aware</span>
+          <span class="rounded-full border border-slate-200 px-4 py-1">Regional clouds</span>
+          <span class="rounded-full border border-slate-200 px-4 py-1">OT segmentation</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%- include('cta') -%>
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+</body>
+
+</html>

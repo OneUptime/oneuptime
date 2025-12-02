@@ -197,6 +197,118 @@
           </div>
         </div>
 
+        <div class="relative" onmouseenter="showSolutionsMenu()" onmouseover="showSolutionsMenu()"
+          onmouseleave="hideSolutionsMenu()">
+          <button onclick="showSolutionsMenu()" type="button"
+            class="text-gray-500 group inline-flex items-center rounded-md bg-white text-base font-medium hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            aria-expanded="false">
+            <span>Solutions</span>
+            <svg class="text-gray-400 ml-2 h-5 w-5 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd"
+                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                clip-rule="evenodd" />
+            </svg>
+          </button>
+
+          <div onmouseenter="showSolutionsMenu()" onmouseover="showSolutionsMenu()" onmouseleave="hideSolutionsMenu()"
+            class="absolute z-20 -ml-4 mt-3 w-screen max-w-4xl transform px-2 sm:px-0 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2"
+            id="solutions-menu" style="visibility: collapse;">
+            <div class="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5">
+              <div class="grid gap-6 bg-white px-5 py-6 sm:gap-8 sm:p-8 lg:grid-cols-2">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">Industry Solutions</p>
+                  <div class="mt-4 space-y-4">
+                    <a href="/solutions/financial-services" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                      <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M12 6v6l4 2m5.25 5.25V8.106a2.25 2.25 0 00-1.125-1.944L12 2.25 3.375 6.162A2.25 2.25 0 002.25 8.106V17.25A2.25 2.25 0 004.5 19.5h15a2.25 2.25 0 002.25-2.25z" />
+                      </svg>
+                      <div class="ml-4">
+                        <p class="text-base font-medium text-gray-900">Financial Services</p>
+                        <p class="mt-1 text-sm text-gray-500">Protect payments, trading, and banking experiences.</p>
+                      </div>
+                    </a>
+                    <a href="/solutions/insurance" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                      <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M4.5 12.75l7.5 4.5 7.5-4.5M4.5 9.75l7.5 4.5 7.5-4.5M4.5 6.75l7.5 4.5 7.5-4.5" />
+                      </svg>
+                      <div class="ml-4">
+                        <p class="text-base font-medium text-gray-900">Insurance</p>
+                        <p class="mt-1 text-sm text-gray-500">Give policyholders and brokers real-time clarity.</p>
+                      </div>
+                    </a>
+                    <a href="/solutions/healthcare" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                      <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M12 6v6l4 2m6 5.25v-10.5a2.25 2.25 0 00-2.25-2.25h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5h15a2.25 2.25 0 002.25-2.25z" />
+                      </svg>
+                      <div class="ml-4">
+                        <p class="text-base font-medium text-gray-900">Healthcare</p>
+                        <p class="mt-1 text-sm text-gray-500">Keep clinicians and patients informed during downtime.</p>
+                      </div>
+                    </a>
+                    <a href="/solutions/government" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                      <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M4.5 21h15" />
+                      </svg>
+                      <div class="ml-4">
+                        <p class="text-base font-medium text-gray-900">Government</p>
+                        <p class="mt-1 text-sm text-gray-500">Deliver resilient public services and mission systems.</p>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">Use Cases</p>
+                  <div class="mt-4 space-y-4">
+                    <a href="/use-cases/customer-trust" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                      <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-3.866 0-7 2.239-7 5s3.134 5 7 5 7-2.239 7-5-3.134-5-7-5z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 11c0-1.657 1.343-3 3-3s3 1.343 3 3" />
+                      </svg>
+                      <div class="ml-4">
+                        <p class="text-base font-medium text-gray-900">Customer Trust</p>
+                        <p class="mt-1 text-sm text-gray-500">Launch status pages and proactive comms.</p>
+                      </div>
+                    </a>
+                    <a href="/use-cases/platform-engineering"
+                      class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                      <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M4.5 6.75h15m-15 3.75h15m-15 3.75H12m-7.5 3.75H12" />
+                      </svg>
+                      <div class="ml-4">
+                        <p class="text-base font-medium text-gray-900">Platform Engineering</p>
+                        <p class="mt-1 text-sm text-gray-500">Provide paved roads for SRE and developer teams.</p>
+                      </div>
+                    </a>
+                    <a href="/use-cases/regulatory-communications"
+                      class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                      <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M6.75 3v4.5M17.25 3v4.5M3 8.25h18M5.25 21h13.5A2.25 2.25 0 0021 18.75V8.25H3v10.5A2.25 2.25 0 005.25 21z" />
+                      </svg>
+                      <div class="ml-4">
+                        <p class="text-base font-medium text-gray-900">Regulatory Communications</p>
+                        <p class="mt-1 text-sm text-gray-500">Coordinate risk, legal, and engineering in one timeline.</p>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <a href="/pricing" class="text-base font-medium text-gray-500 hover:text-gray-900">Pricing</a>
         <a href="/enterprise/overview" class="text-base font-medium text-gray-500 hover:text-gray-900">Enterprise</a>
         <a href="/enterprise/demo" class="text-base font-medium text-gray-500 hover:text-gray-900"
@@ -512,6 +624,75 @@
               <span class="ml-3 text-base font-medium text-gray-900">Workflows</span>
             </a>
 
+            <div class="border-t border-gray-100 pt-6">
+              <p class="text-xs font-semibold uppercase tracking-[0.4em] text-gray-400">Industry Solutions</p>
+              <div class="mt-4 space-y-4">
+                <a href="/solutions/financial-services" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 6v6l4 2m5.25 5.25V8.106a2.25 2.25 0 00-1.125-1.944L12 2.25 3.375 6.162A2.25 2.25 0 002.25 8.106V17.25A2.25 2.25 0 004.5 19.5h15a2.25 2.25 0 002.25-2.25z" />
+                  </svg>
+                  <span class="ml-3 text-base font-medium text-gray-900">Financial Services</span>
+                </a>
+                <a href="/solutions/insurance" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M4.5 12.75l7.5 4.5 7.5-4.5M4.5 9.75l7.5 4.5 7.5-4.5M4.5 6.75l7.5 4.5 7.5-4.5" />
+                  </svg>
+                  <span class="ml-3 text-base font-medium text-gray-900">Insurance</span>
+                </a>
+                <a href="/solutions/healthcare" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 6v6l4 2m6 5.25v-10.5a2.25 2.25 0 00-2.25-2.25h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5h15a2.25 2.25 0 002.25-2.25z" />
+                  </svg>
+                  <span class="ml-3 text-base font-medium text-gray-900">Healthcare</span>
+                </a>
+                <a href="/solutions/government" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M4.5 21h15" />
+                  </svg>
+                  <span class="ml-3 text-base font-medium text-gray-900">Government</span>
+                </a>
+              </div>
+            </div>
+
+            <div class="border-t border-gray-100 pt-6">
+              <p class="text-xs font-semibold uppercase tracking-[0.4em] text-gray-400">Use Cases</p>
+              <div class="mt-4 space-y-4">
+                <a href="/use-cases/customer-trust" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 8c-3.866 0-7 2.239-7 5s3.134 5 7 5 7-2.239 7-5-3.134-5-7-5z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 11c0-1.657 1.343-3 3-3s3 1.343 3 3" />
+                  </svg>
+                  <span class="ml-3 text-base font-medium text-gray-900">Customer Trust</span>
+                </a>
+                <a href="/use-cases/platform-engineering" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M4.5 6.75h15m-15 3.75h15m-15 3.75H12m-7.5 3.75H12" />
+                  </svg>
+                  <span class="ml-3 text-base font-medium text-gray-900">Platform Engineering</span>
+                </a>
+                <a href="/use-cases/regulatory-communications"
+                  class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+                  <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6.75 3v4.5M17.25 3v4.5M3 8.25h18M5.25 21h13.5A2.25 2.25 0 0021 18.75V8.25H3v10.5A2.25 2.25 0 005.25 21z" />
+                  </svg>
+                  <span class="ml-3 text-base font-medium text-gray-900">Regulatory Communications</span>
+                </a>
+              </div>
+            </div>
+
 
           </nav>
         </div>
@@ -545,6 +726,7 @@
 <script>
 
   let productMenuTimer = null;
+  let solutionsMenuTimer = null;
   let moreMenuTimer = null;
 
   function closeMobileMenu() {
@@ -572,6 +754,25 @@
     }
     productMenuTimer = setInterval(() => {
       document.getElementById("product-menu").style.visibility = "collapse";
+    }, 500);
+
+  }
+
+  function showSolutionsMenu() {
+
+    document.getElementById("solutions-menu").style.visibility = "visible";
+    if (solutionsMenuTimer) {
+      clearInterval(solutionsMenuTimer)
+    }
+  }
+
+  function hideSolutionsMenu() {
+
+    if (solutionsMenuTimer) {
+      clearInterval(solutionsMenuTimer)
+    }
+    solutionsMenuTimer = setInterval(() => {
+      document.getElementById("solutions-menu").style.visibility = "collapse";
     }, 500);
 
   }

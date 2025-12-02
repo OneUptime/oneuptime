@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Healthcare Reliability &amp; Compliance</title>
+  <meta name="description"
+    content="Protect patient experiences, keep clinicians productive, and document every workflow with HIPAA-aligned observability from OneUptime." />
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <section class="relative isolate overflow-hidden bg-slate-900 py-24 sm:py-32 text-white">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <p class="text-sm font-semibold uppercase tracking-[0.4em] text-rose-300">Healthcare</p>
+      <h1 class="mt-6 text-4xl font-bold tracking-tight sm:text-6xl">Reliability that puts patients and clinicians first.</h1>
+      <p class="mt-6 text-lg text-slate-200 sm:text-xl">Monitor EHRs, virtual care platforms, IoT devices, and revenue cycle tooling in one secure command center. OneUptime helps you minimize downtime, share transparent updates, and maintain HIPAA-ready evidence automatically.</p>
+      <div class="mt-10 flex flex-wrap gap-4">
+        <a href="/accounts/register" class="rounded-full bg-rose-500 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white shadow-lg shadow-rose-500/30 transition hover:-translate-y-0.5 hover:bg-rose-400">Deploy workspace</a>
+        <a href="/enterprise/demo" class="rounded-full border border-white/40 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:border-white hover:bg-white/10">See live demo</a>
+      </div>
+    </div>
+    <div class="pointer-events-none absolute inset-0 -z-10">
+      <div class="mx-auto h-full w-full bg-[radial-gradient(circle_at_top,_rgba(244,114,182,0.25),_transparent_60%)]"></div>
+    </div>
+  </section>
+
+  <%- include('logo-roll') -%>
+
+  <section class="bg-white py-16 sm:py-24">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <dl class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">Clinical uptime</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">99.99%</dd>
+          <p class="mt-2 text-sm text-slate-500">Protect EHR, LIS, PACS, pharmacy, and imaging workflows.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">Care team signals</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">Live</dd>
+          <p class="mt-2 text-sm text-slate-500">Route alerts by on-call clinical engineering rotations.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">PHI safeguarding</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">Encrypted</dd>
+          <p class="mt-2 text-sm text-slate-500">Role-based access, audit logs, and evidence trails.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <dt class="text-sm font-medium text-slate-500">Patient trust</dt>
+          <dd class="mt-3 text-4xl font-bold text-slate-900">Transparent</dd>
+          <p class="mt-2 text-sm text-slate-500">Segmented status pages for patients, clinicians, and partners.</p>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="bg-slate-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="max-w-3xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.4em] text-rose-400">Connected care</p>
+        <h2 class="mt-4 text-4xl font-bold tracking-tight text-slate-900">Keep the entire digital front door resilient—from triage bots to bedside devices.</h2>
+        <p class="mt-6 text-lg text-slate-600">OneUptime streams telemetry from Epic, Cerner, Meditech, custom FHIR APIs, medical IoT, and revenue cycle automation. Every incident ties directly to patient and clinician impact.</p>
+      </div>
+      <div class="mt-14 grid gap-8 lg:grid-cols-3">
+        <article class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6 5.25v-10.5a2.25 2.25 0 00-2.25-2.25h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5h15a2.25 2.25 0 002.25-2.25z" />
+            </svg>
+          </div>
+          <h3 class="mt-6 text-2xl font-semibold text-slate-900">PHI-first architecture</h3>
+          <p class="mt-4 text-base text-slate-600">Log redaction, encryption in transit and at rest, and granular RBAC keep patient data protected while teams collaborate.</p>
+          <ul class="mt-6 space-y-3 text-sm text-slate-500">
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-rose-400"></span>Map alerts to HIPAA, HITRUST, and local privacy controls.</li>
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-rose-400"></span>Automatic audit exports for compliance and security teams.</li>
+          </ul>
+        </article>
+        <article class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954 5.37a1.125 1.125 0 001.092 0L21.25 12" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5H19.5A2.25 2.25 0 0021.75 17.25V8.106a2.25 2.25 0 00-1.125-1.944L12 2.25 3.375 6.162A2.25 2.25 0 002.25 8.106V17.25A2.25 2.25 0 004.5 19.5z" />
+            </svg>
+          </div>
+          <h3 class="mt-6 text-2xl font-semibold text-slate-900">Care coordination signals</h3>
+          <p class="mt-4 text-base text-slate-600">Alert the right mix of clinical engineering, IT, and operations leaders with escalation policies that mirror hospital command structures.</p>
+          <ul class="mt-6 space-y-3 text-sm text-slate-500">
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>Dynamic routing for bio-med shifts, on-call physicians, and vendor teams.</li>
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>Cross-team huddles with embedded runbooks and context.</li>
+          </ul>
+        </article>
+        <article class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 8.25h18M3 12h18M3 15.75h18" />
+            </svg>
+          </div>
+          <h3 class="mt-6 text-2xl font-semibold text-slate-900">Digital front door reliability</h3>
+          <p class="mt-4 text-base text-slate-600">Synthetic monitoring mimics patient scheduling, telehealth visits, and prescription refills to surface regressions fast.</p>
+          <ul class="mt-6 space-y-3 text-sm text-slate-500">
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-slate-400"></span>Device labs for kiosks, tablets, and bedside monitors.</li>
+            <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-slate-400"></span>Patient-friendly status pages keep communities informed.</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl gap-16 px-6 lg:grid lg:grid-cols-2 lg:px-8">
+      <div class="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-10 text-white shadow-2xl">
+        <p class="text-sm font-semibold uppercase tracking-[0.4em] text-rose-300">Care delivery playbook</p>
+        <h3 class="mt-4 text-3xl font-bold">Resolve incidents before they delay care.</h3>
+        <p class="mt-4 text-base text-slate-200">Standardize the path from detection to patient communication.</p>
+        <ol class="mt-8 space-y-6 text-sm">
+          <li class="flex gap-4">
+            <span class="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-base font-semibold">1</span>
+            <div>
+              <p class="font-semibold">Sense</p>
+              <p class="text-slate-300">Collect metrics from EHR, network, biomedical devices, and cloud infrastructure.</p>
+            </div>
+          </li>
+          <li class="flex gap-4">
+            <span class="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-base font-semibold">2</span>
+            <div>
+              <p class="font-semibold">Coordinate</p>
+              <p class="text-slate-300">Assemble cross-functional huddles with escalations tuned for service lines and facilities.</p>
+            </div>
+          </li>
+          <li class="flex gap-4">
+            <span class="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-base font-semibold">3</span>
+            <div>
+              <p class="font-semibold">Communicate</p>
+              <p class="text-slate-300">Publish patient-ready updates, clinician advisories, and vendor actions from the same timeline.</p>
+            </div>
+          </li>
+        </ol>
+        <div class="mt-10 flex flex-wrap gap-3 text-xs text-slate-400">
+          <span class="rounded-full border border-white/20 px-4 py-1">HIPAA-aligned</span>
+          <span class="rounded-full border border-white/20 px-4 py-1">Regional clouds</span>
+          <span class="rounded-full border border-white/20 px-4 py-1">Zero trust ready</span>
+        </div>
+      </div>
+      <div class="mt-12 lg:mt-0">
+        <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
+          <img src="/img/incident-report.png" alt="Healthcare incident readiness" class="w-full object-cover" />
+        </div>
+        <div class="mt-8 grid gap-6 sm:grid-cols-2">
+          <div class="rounded-2xl border border-slate-100 p-6 shadow-sm">
+            <p class="text-sm font-semibold text-slate-500">Clinical innovation</p>
+            <p class="mt-2 text-2xl font-bold text-slate-900">Virtual care</p>
+            <p class="mt-2 text-sm text-slate-500">Measure quality-of-service for telehealth, remote monitoring, and digital therapeutics.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-100 p-6 shadow-sm">
+            <p class="text-sm font-semibold text-slate-500">Operations</p>
+            <p class="mt-2 text-2xl font-bold text-slate-900">Revenue cycle</p>
+            <p class="mt-2 text-sm text-slate-500">Trace prior auth, coding, and billing automations for faster cash flow.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%- include('cta') -%>
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+</body>
+
+</html>

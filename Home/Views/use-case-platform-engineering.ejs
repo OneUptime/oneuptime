@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Platform Engineering Use Case</title>
+  <meta name="description" content="Give platform and SRE teams a control plane for golden signals, self-service runbooks, and automated remediation with OneUptime." />
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <section class="relative isolate overflow-hidden bg-slate-950 py-24 sm:py-32 text-white">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <p class="text-xs font-semibold uppercase tracking-[0.5em] text-sky-300">Use Case · Platform</p>
+      <h1 class="mt-6 text-4xl font-bold tracking-tight sm:text-6xl">Operate every environment from one programmable surface.</h1>
+      <p class="mt-6 text-lg text-slate-200">Provision monitors, manage incident workflows, and expose paved roads to application teams. OneUptime is the reliability fabric for your internal developer platform.</p>
+      <div class="mt-10 flex flex-wrap gap-4">
+        <a href="/accounts/register" class="rounded-full bg-indigo-500 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white shadow-lg shadow-indigo-500/30 transition hover:-translate-y-0.5 hover:bg-indigo-400">Launch control plane</a>
+        <a href="/enterprise/demo" class="rounded-full border border-white/40 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:border-white hover:bg-white/10">See platform blueprints</a>
+      </div>
+    </div>
+    <div class="pointer-events-none absolute inset-0 -z-10 opacity-60">
+      <div class="mx-auto h-full w-full bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.3),_transparent_70%)]"></div>
+    </div>
+  </section>
+
+  <%- include('logo-roll') -%>
+
+  <section class="bg-white py-16 sm:py-24">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <div class="grid gap-8 lg:grid-cols-3">
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-slate-500">Lead time</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">-45%</p>
+          <p class="mt-2 text-sm text-slate-500">Blueprints reduce toil across onboarding and service maturity.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-slate-500">MTTR</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">&lt; 10m</p>
+          <p class="mt-2 text-sm text-slate-500">Golden signals, runbooks, and comms stay in sync.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-slate-500">Self-service</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">Templates</p>
+          <p class="mt-2 text-sm text-slate-500">Expose paved paths for onboarding monitors, SLOs, and alerts.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-slate-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="grid gap-16 lg:grid-cols-2">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-sky-500">Golden signals</p>
+          <h2 class="mt-4 text-4xl font-bold tracking-tight text-slate-900">Standardize reliability without slowing builders down.</h2>
+          <p class="mt-6 text-lg text-slate-600">Use infrastructure-as-code or UI kits to ship consistent monitors, dashboards, incident states, and escalation paths for every service.</p>
+          <ul class="mt-8 space-y-5">
+            <li class="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+              <p class="text-base font-semibold text-slate-900">Service catalogs &amp; maturity scores</p>
+              <p class="mt-2 text-sm text-slate-600">Scorecards show which teams have SLOs, autoscaling, on-call coverage, and tested runbooks.</p>
+            </li>
+            <li class="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+              <p class="text-base font-semibold text-slate-900">Extensible policy engine</p>
+              <p class="mt-2 text-sm text-slate-600">Automatically create incidents when guardrails fail (error budgets, config drift, compliance drifts).</p>
+            </li>
+          </ul>
+        </div>
+        <div class="space-y-8">
+          <div class="overflow-hidden rounded-3xl border border-slate-200 shadow-lg">
+            <img src="/img/workflow-builder.png" alt="Platform engineering workflows" class="w-full object-cover" />
+          </div>
+          <div class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+            <h3 class="text-2xl font-semibold text-slate-900">Workflow automation</h3>
+            <p class="mt-4 text-base text-slate-600">Chain no-code and low-code steps: run Terraform, restart services, page engineers, or update Jira—all from one timeline.</p>
+            <div class="mt-6 grid gap-4 sm:grid-cols-2">
+              <div class="rounded-2xl border border-slate-100 p-4 text-sm text-slate-600">
+                <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Inputs</p>
+                <p class="mt-2 font-semibold text-slate-900">Grafana, Prometheus, OpenTelemetry, custom events.</p>
+              </div>
+              <div class="rounded-2xl border border-slate-100 p-4 text-sm text-slate-600">
+                <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Outputs</p>
+                <p class="mt-2 font-semibold text-slate-900">PagerDuty, Slack, ServiceNow, GitHub, custom webhooks.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white py-24 sm:py-32">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <div class="rounded-4xl border border-slate-200 bg-slate-900 p-10 text-white shadow-2xl">
+        <div class="grid gap-8 lg:grid-cols-3">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.4em] text-sky-300">Playbook</p>
+            <h3 class="mt-4 text-3xl font-bold">Platform reliability loop</h3>
+            <p class="mt-4 text-sm text-slate-200">Codify continuous improvement without more meetings.</p>
+          </div>
+          <div class="rounded-3xl bg-white/10 p-6">
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-sky-200">Observe</p>
+            <p class="mt-3 text-xl font-semibold">Unified telemetry fabric</p>
+            <p class="mt-2 text-sm text-slate-200">Normalize metrics, logs, traces, and workflows with tags for team, stack, and priority.</p>
+          </div>
+          <div class="rounded-3xl bg-white/10 p-6">
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-sky-200">Automate</p>
+            <p class="mt-3 text-xl font-semibold">Safe self-healing</p>
+            <p class="mt-2 text-sm text-slate-200">Guardrails ensure scripts run only with approvals, canary checks, and observability proofs.</p>
+          </div>
+          <div class="rounded-3xl bg-white/10 p-6 lg:col-span-3">
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-sky-200">Share</p>
+            <p class="mt-3 text-xl font-semibold">Scorecards &amp; retros</p>
+            <p class="mt-2 text-sm text-slate-200">Feed metrics and lessons into docs, wiki, or town halls with one-click exports.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%- include('cta') -%>
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+</body>
+
+</html>

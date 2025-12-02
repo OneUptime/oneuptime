@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Customer Trust &amp; Communications Use Case</title>
+  <meta name="description" content="Keep customers informed with proactive status pages, targeted alerts, and transparent post-incident recaps—powered by OneUptime." />
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <section class="relative isolate overflow-hidden bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 py-24 sm:py-32 text-white">
+    <div class="mx-auto max-w-5xl px-6 lg:px-8 text-center">
+      <p class="text-xs font-semibold uppercase tracking-[0.5em] text-indigo-300">Use Case</p>
+      <h1 class="mt-6 text-4xl font-bold tracking-tight sm:text-6xl">Turn every incident into a moment of trust.</h1>
+      <p class="mt-6 text-lg text-slate-200">Customer trust breaks when updates are opaque, late, or missing. OneUptime synchronizes monitoring, incident response, and communication so your users know exactly what's happening and when it will be fixed.</p>
+      <div class="mt-10 flex flex-wrap justify-center gap-4">
+        <a href="/accounts/register" class="rounded-full bg-white px-8 py-3 text-sm font-semibold uppercase tracking-wide text-slate-900 shadow-lg shadow-white/20 transition hover:-translate-y-0.5">Build trust center</a>
+        <a href="/enterprise/demo" class="rounded-full border border-white/40 px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:border-white hover:bg-white/10">Watch customer comms demo</a>
+      </div>
+    </div>
+    <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-full bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.35),_transparent_65%)]"></div>
+  </section>
+
+  <%- include('logo-roll') -%>
+
+  <section class="bg-white py-16 sm:py-24">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <div class="grid gap-8 md:grid-cols-3">
+        <div class="rounded-3xl border border-slate-200 p-6 text-center shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-indigo-400">Transparency</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">+72% NPS</p>
+          <p class="mt-2 text-sm text-slate-500">Teams increase loyalty when customers receive real-time, honest updates.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 text-center shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-indigo-400">Efficiency</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">-35% tickets</p>
+          <p class="mt-2 text-sm text-slate-500">Proactive comms reduce repetitive support contacts.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 p-6 text-center shadow-sm">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-indigo-400">Clarity</p>
+          <p class="mt-3 text-4xl font-bold text-slate-900">Single source</p>
+          <p class="mt-2 text-sm text-slate-500">Status pages, subscriber emails, and internal briefs pull from a shared timeline.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-slate-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="grid gap-16 lg:grid-cols-2">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-indigo-500">Experience design</p>
+          <h2 class="mt-4 text-4xl font-bold tracking-tight text-slate-900">Design a beautiful trust center in minutes.</h2>
+          <p class="mt-6 text-lg text-slate-600">Drag-and-drop sections, rich media embeds, brand-safe typography, and dark mode ready layouts help you launch a premium public status page without code.</p>
+          <dl class="mt-8 space-y-6">
+            <div class="rounded-3xl bg-white/70 p-6 shadow-sm ring-1 ring-black/5">
+              <dt class="text-sm font-semibold text-indigo-500">Segmented messaging</dt>
+              <dd class="mt-3 text-base text-slate-600">Target enterprise customers, beta testers, or geography-specific audiences with unique components and RSS feeds.</dd>
+            </div>
+            <div class="rounded-3xl bg-white/70 p-6 shadow-sm ring-1 ring-black/5">
+              <dt class="text-sm font-semibold text-indigo-500">Embeddable badges</dt>
+              <dd class="mt-3 text-base text-slate-600">Embed live service health in docs, admin consoles, or marketing sites with a single snippet.</dd>
+            </div>
+          </dl>
+        </div>
+        <div class="space-y-8">
+          <div class="overflow-hidden rounded-3xl border border-slate-200 shadow-lg">
+            <img src="/img/status-page-new.png" alt="Customer trust center" class="w-full object-cover" />
+          </div>
+          <div class="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-black/5">
+            <h3 class="text-2xl font-semibold text-slate-900">End-to-end comms automation</h3>
+            <p class="mt-4 text-base text-slate-600">Trigger proactive emails, SMS, Slack posts, and webhook updates from the same incident timeline.</p>
+            <ul class="mt-6 space-y-3 text-sm text-slate-500">
+              <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-indigo-400"></span>Approval gates for legal, PR, or compliance review.</li>
+              <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-indigo-400"></span>Personalized ETA banners across web and mobile apps.</li>
+              <li class="flex gap-3"><span class="mt-1 h-2 w-2 rounded-full bg-indigo-400"></span>Post-incident retros with shareable, human-readable summaries.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-white py-24 sm:py-32">
+    <div class="mx-auto max-w-6xl px-6 lg:px-8">
+      <div class="rounded-4xl bg-slate-900 p-10 text-white shadow-2xl">
+        <div class="flex flex-col gap-10 lg:flex-row lg:items-center">
+          <div class="lg:w-1/2">
+            <p class="text-sm font-semibold uppercase tracking-[0.4em] text-indigo-300">Playbook</p>
+            <h3 class="mt-4 text-3xl font-bold">Customer trust loop</h3>
+            <p class="mt-4 text-base text-slate-200">Codify how your team informs customers from the first anomaly to final review.</p>
+          </div>
+          <div class="grid flex-1 gap-4 sm:grid-cols-3">
+            <div class="rounded-2xl bg-white/10 p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-200">Listen</p>
+              <p class="mt-2 text-lg font-semibold">Correlated signals</p>
+              <p class="mt-2 text-sm text-slate-200">Tie synthetic, API, and business KPIs to customer cohorts.</p>
+            </div>
+            <div class="rounded-2xl bg-white/10 p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-200">Explain</p>
+              <p class="mt-2 text-lg font-semibold">Guided updates</p>
+              <p class="mt-2 text-sm text-slate-200">Message templates adapt tone to severity and audience.</p>
+            </div>
+            <div class="rounded-2xl bg-white/10 p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-200">Learn</p>
+              <p class="mt-2 text-lg font-semibold">Close the loop</p>
+              <p class="mt-2 text-sm text-slate-200">Share RCA snapshots and recommended actions.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%- include('cta') -%>
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+</body>
+
+</html>
