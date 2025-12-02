@@ -2,7 +2,7 @@ import { z } from "zod";
 import Execute from "Common/Server/Utils/Execute";
 import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
-import AgentLogger from "../utils/AgentLogger";
+import AgentLogger from "../Utils/AgentLogger";
 
 interface SearchArgs {
   query: string;

@@ -1,11 +1,11 @@
 import path from "node:path";
 import LocalFile from "Common/Server/Utils/LocalFile";
-import { LMStudioClient } from "../llm/LMStudioClient";
+import { LMStudioClient } from "../LLM/LMStudioClient";
 import { buildSystemPrompt } from "./SystemPrompt";
 import { WorkspaceContextBuilder } from "./WorkspaceContext";
-import { ToolRegistry } from "../tools/ToolRegistry";
-import { ChatMessage, OpenAIToolCall, ToolExecutionResult } from "../types";
-import AgentLogger from "../utils/AgentLogger";
+import { ToolRegistry } from "../Tools/ToolRegistry";
+import { ChatMessage, OpenAIToolCall, ToolExecutionResult } from "../Types";
+import AgentLogger from "../Utils/AgentLogger";
 
 export interface CopilotAgentOptions {
   prompt: string;

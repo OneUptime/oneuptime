@@ -1,6 +1,6 @@
 import { fetch, Response } from "undici";
-import { ChatMessage, ToolDefinition } from "../types";
-import AgentLogger from "../utils/AgentLogger";
+import { ChatMessage, ToolDefinition } from "../Types";
+import AgentLogger from "../Utils/AgentLogger";
 
 type SerializableMessage = Omit<ChatMessage, "tool_calls"> & {
   tool_calls?: Array<{

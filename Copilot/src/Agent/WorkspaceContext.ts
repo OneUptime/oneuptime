@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import type { Dirent } from "node:fs";
 import path from "node:path";
 import Execute from "Common/Server/Utils/Execute";
-import AgentLogger from "../utils/AgentLogger";
+import AgentLogger from "../Utils/AgentLogger";
 
 export class WorkspaceContextBuilder {
   public static async buildSnapshot(workspaceRoot: string): Promise<string> {

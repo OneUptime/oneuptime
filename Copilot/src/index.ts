@@ -2,8 +2,8 @@
 
 import path from "node:path";
 import { Command } from "commander";
-import { CopilotAgent, CopilotAgentOptions } from "./agent/CopilotAgent";
-import AgentLogger from "./utils/AgentLogger";
+import { CopilotAgent, CopilotAgentOptions } from "./Agent/CopilotAgent";
+import AgentLogger from "./Utils/AgentLogger";
 
 const program: Command = new Command();
 

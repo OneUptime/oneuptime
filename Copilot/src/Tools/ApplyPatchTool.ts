@@ -6,7 +6,7 @@ import Execute from "Common/Server/Utils/Execute";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
-import AgentLogger from "../utils/AgentLogger";
+import AgentLogger from "../Utils/AgentLogger";
 
 interface ApplyPatchArgs {
   patch: string;

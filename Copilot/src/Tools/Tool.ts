@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { JSONObject } from "Common/Types/JSON";
-import { ToolDefinition } from "../types";
-import { WorkspacePaths } from "../utils/WorkspacePaths";
-import AgentLogger from "../utils/AgentLogger";
+import { ToolDefinition } from "../Types";
+import { WorkspacePaths } from "../Utils/WorkspacePaths";
+import AgentLogger from "../Utils/AgentLogger";
 
 export interface ToolRuntime {
   workspacePaths: WorkspacePaths;

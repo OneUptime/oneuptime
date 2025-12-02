@@ -3,7 +3,7 @@ import { z } from "zod";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
-import AgentLogger from "../utils/AgentLogger";
+import AgentLogger from "../Utils/AgentLogger";
 
 interface WriteFileArgs {
   path: string;

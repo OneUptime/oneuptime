@@ -1,5 +1,5 @@
-import { OpenAIToolCall, ToolDefinition, ToolExecutionResult } from "../types";
-import { WorkspacePaths } from "../utils/WorkspacePaths";
+import { OpenAIToolCall, ToolDefinition, ToolExecutionResult } from "../Types";
+import { WorkspacePaths } from "../Utils/WorkspacePaths";
 import { ApplyPatchTool } from "./ApplyPatchTool";
 import { ListDirectoryTool } from "./ListDirectoryTool";
 import { ReadFileTool } from "./ReadFileTool";
@@ -7,7 +7,7 @@ import { RunCommandTool } from "./RunCommandTool";
 import { SearchWorkspaceTool } from "./SearchWorkspaceTool";
 import { AgentTool, ToolResponse, ToolRuntime } from "./Tool";
 import { WriteFileTool } from "./WriteFileTool";
-import AgentLogger from "../utils/AgentLogger";
+import AgentLogger from "../Utils/AgentLogger";
 
 export class ToolRegistry {
   private readonly tools: Map<string, AgentTool<unknown>>;
