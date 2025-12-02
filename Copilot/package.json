@@ -4,13 +4,13 @@
   "description": "Standalone OneUptime Copilot coding agent CLI",
   "private": true,
   "bin": {
-    "oneuptime-copilot-agent": "./build/dist/index.js"
+    "oneuptime-copilot-agent": "./build/dist/Index.js"
   },
   "scripts": {
     "build": "tsc",
     "compile": "tsc",
-    "dev": "ts-node --transpile-only -r tsconfig-paths/register src/index.ts",
-    "start": "node --enable-source-maps ./build/dist/index.js",
+    "dev": "ts-node --transpile-only -r tsconfig-paths/register src/Index.ts",
+    "start": "node --enable-source-maps ./build/dist/Index.js",
     "clear-modules": "rm -rf node_modules && rm -f package-lock.json && npm install"
   },
   "dependencies": {
