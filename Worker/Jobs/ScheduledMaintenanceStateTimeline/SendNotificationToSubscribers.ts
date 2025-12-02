@@ -113,14 +113,17 @@ RunCron(
           continue;
         }
 
-        if (scheduledEventStateTimeline.scheduledMaintenanceState?.isScheduledState) {
+        if (
+          scheduledEventStateTimeline.scheduledMaintenanceState
+            ?.isScheduledState
+        ) {
           await ScheduledMaintenanceStateTimelineService.updateOneById({
             id: scheduledEventStateTimeline.id!,
             data: {
               subscriberNotificationStatus:
                 StatusPageSubscriberNotificationStatus.Skipped,
               subscriberNotificationStatusMessage:
-               "Notification already sent when the scheduled maintenance was created. So, maintenance event state change notifiction is skipped.",
+                "Notification already sent when the scheduled maintenance was created. So, maintenance event state change notifiction is skipped.",
             },
             props: { isRoot: true, ignoreHooks: true },
           });
