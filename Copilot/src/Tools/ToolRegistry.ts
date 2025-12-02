@@ -9,10 +9,18 @@ import { AgentTool, ToolResponse, ToolRuntime } from "./Tool";
 import { WriteFileTool } from "./WriteFileTool";
 import AgentLogger from "../Utils/AgentLogger";
 
+/**
+ * Holds every tool available to the agent and brokers invocation/argument
+ * parsing for tool calls originating from the LLM.
+ */
 export class ToolRegistry {
   private readonly tools: Map<string, AgentTool<unknown>>;
   private readonly runtime: ToolRuntime;
 
+  /**
+   * Builds the registry with all supported tools scoped to the provided
+   * workspace.
+   */
   public constructor(workspaceRoot: string) {
     const workspacePaths: WorkspacePaths = new WorkspacePaths(workspaceRoot);
     this.runtime = {
@@ -39,6 +47,7 @@ export class ToolRegistry {
     );
   }
 
+  /** Returns the OpenAI function metadata for every registered tool. */
   public getToolDefinitions(): Array<ToolDefinition> {
     const definitions: Array<ToolDefinition> = Array.from(
       this.tools.values(),
@@ -54,6 +63,10 @@ export class ToolRegistry {
     return definitions;
   }
 
+  /**
+   * Executes the tool requested by the LLM, handling JSON parsing, validation,
+   * and error reporting so the agent loop stays simple.
+   */
   public async execute(call: OpenAIToolCall): Promise<ToolExecutionResult> {
     const tool: AgentTool<unknown> | undefined = this.tools.get(
       call.function.name,

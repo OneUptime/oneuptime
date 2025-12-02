@@ -5,12 +5,14 @@ import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
 import AgentLogger from "../Utils/AgentLogger";
 
+/** Arguments describing what to write and where. */
 interface WriteFileArgs {
   path: string;
   content: string;
   mode?: "overwrite" | "append" | undefined;
 }
 
+/** Creates or appends to workspace files with validated inputs. */
 export class WriteFileTool extends StructuredTool<WriteFileArgs> {
   public readonly name: string = "write_file";
   public readonly description: string =
@@ -44,6 +46,7 @@ export class WriteFileTool extends StructuredTool<WriteFileArgs> {
     })
     .strict();
 
+  /** Persists the provided content at the resolved workspace path. */
   public async execute(
     args: WriteFileArgs,
     runtime: ToolRuntime,

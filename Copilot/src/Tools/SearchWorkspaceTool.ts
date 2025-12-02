@@ -4,6 +4,7 @@ import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
 import AgentLogger from "../Utils/AgentLogger";
 
+/** Parameters describing how to search the workspace. */
 interface SearchArgs {
   query: string;
   path?: string | undefined;
@@ -11,6 +12,7 @@ interface SearchArgs {
   maxResults?: number | undefined;
 }
 
+/** Wraps ripgrep/grep so the agent can quickly locate text across files. */
 export class SearchWorkspaceTool extends StructuredTool<SearchArgs> {
   public readonly name: string = "search_workspace";
   public readonly description: string =
@@ -50,6 +52,7 @@ export class SearchWorkspaceTool extends StructuredTool<SearchArgs> {
     })
     .strict();
 
+  /** Runs the configured search and decorates the raw CLI output. */
   public async execute(
     args: SearchArgs,
     runtime: ToolRuntime,
@@ -100,6 +103,7 @@ export class SearchWorkspaceTool extends StructuredTool<SearchArgs> {
     }
   }
 
+  /** Executes ripgrep with safe defaults and returns its stdout. */
   private async runRipgrep(args: SearchArgs, cwd: string): Promise<string> {
     const cliArgs: Array<string> = [
       "--line-number",
@@ -136,6 +140,7 @@ export class SearchWorkspaceTool extends StructuredTool<SearchArgs> {
     });
   }
 
+  /** Fallback search implementation using standard grep. */
   private async runGrep(args: SearchArgs, cwd: string): Promise<string> {
     const finalArgs: Array<string> = [
       "-R",
@@ -154,6 +159,7 @@ export class SearchWorkspaceTool extends StructuredTool<SearchArgs> {
     });
   }
 
+  /** Formats CLI output with context about scope and engine. */
   private decorateSearchResult(data: {
     engine: string;
     scope: string;

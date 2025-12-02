@@ -5,12 +5,14 @@ import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
 import AgentLogger from "../Utils/AgentLogger";
 
+/** Describes how to execute a shell command from the workspace. */
 interface RunCommandArgs {
   command: string;
   path?: string | undefined;
   timeoutMs?: number | undefined;
 }
 
+/** Runs shell commands so the agent can execute tests, linters, etc. */
 export class RunCommandTool extends StructuredTool<RunCommandArgs> {
   public readonly name: string = "run_command";
   public readonly description: string =
@@ -45,6 +47,7 @@ export class RunCommandTool extends StructuredTool<RunCommandArgs> {
     })
     .strict();
 
+  /** Executes the command with safe defaults and streams the result back. */
   public async execute(
     args: RunCommandArgs,
     runtime: ToolRuntime,

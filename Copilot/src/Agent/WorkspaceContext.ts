@@ -4,7 +4,16 @@ import path from "node:path";
 import Execute from "Common/Server/Utils/Execute";
 import AgentLogger from "../Utils/AgentLogger";
 
+/**
+ * Produces human-readable snapshots of the current workspace, including git
+ * metadata and directory listings, so the agent can reason about its
+ * environment.
+ */
 export class WorkspaceContextBuilder {
+  /**
+   * Builds a multi-section textual snapshot describing the workspace root,
+   * git branch/status, and top-level entries.
+   */
   public static async buildSnapshot(workspaceRoot: string): Promise<string> {
     const absoluteRoot: string = path.resolve(workspaceRoot);
     const sections: Array<string> = [`Workspace root: ${absoluteRoot}`];
@@ -48,6 +57,10 @@ export class WorkspaceContextBuilder {
     return snapshot;
   }
 
+  /**
+   * Returns an ordered, filtered list of top-level files and directories while
+   * hiding dotfiles and heavy folders like node_modules.
+   */
   private static async listTopLevelEntries(
     root: string,
   ): Promise<Array<string>> {
@@ -73,6 +86,10 @@ export class WorkspaceContextBuilder {
     }
   }
 
+  /**
+   * Executes a git command and returns the trimmed output, swallowing errors so
+   * snapshot generation never fails if git is unavailable.
+   */
   private static async tryGitCommand(
     args: Array<string>,
     cwd: string,

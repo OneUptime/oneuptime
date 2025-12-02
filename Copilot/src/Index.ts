@@ -5,6 +5,7 @@ import { Command } from "commander";
 import { CopilotAgent, CopilotAgentOptions } from "./Agent/CopilotAgent";
 import AgentLogger from "./Utils/AgentLogger";
 
+/** CLI harness for configuring and launching the Copilot agent. */
 const program: Command = new Command();
 
 program
@@ -57,6 +58,7 @@ program
   )
   .parse(process.argv);
 
+/** Entry point that parses CLI args, configures logging, and runs the agent. */
 (async () => {
   const opts: {
     prompt: string;

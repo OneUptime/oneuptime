@@ -7,6 +7,10 @@ import { ToolRegistry } from "../Tools/ToolRegistry";
 import { ChatMessage, OpenAIToolCall, ToolExecutionResult } from "../Types";
 import AgentLogger from "../Utils/AgentLogger";
 
+/**
+ * Configuration values that control how the Copilot agent connects to the
+ * model, how many iterations it may run, and which workspace it operates on.
+ */
 export interface CopilotAgentOptions {
   prompt: string;
   modelUrl: string;
@@ -18,12 +22,20 @@ export interface CopilotAgentOptions {
   apiKey?: string | undefined;
 }
 
+/**
+ * Coordinates the overall tool-using conversation loop with the target LLM,
+ * including prompt preparation, workspace validation, and tool execution.
+ */
 export class CopilotAgent {
   private readonly options: CopilotAgentOptions;
   private readonly workspaceRoot: string;
   private readonly client: LMStudioClient;
   private readonly registry: ToolRegistry;
 
+  /**
+   * Creates a new agent instance, wiring up the LM Studio client and tool
+   * registry for the provided workspace.
+   */
   public constructor(options: CopilotAgentOptions) {
     this.options = options;
     this.workspaceRoot = path.resolve(options.workspacePath);
@@ -47,6 +59,10 @@ export class CopilotAgent {
     });
   }
 
+  /**
+   * Executes the multi-iteration conversation loop until the model responds
+   * without tool calls or the iteration budget is exhausted.
+   */
   public async run(): Promise<void> {
     AgentLogger.debug("Ensuring workspace exists", {
       workspaceRoot: this.workspaceRoot,
@@ -128,6 +144,10 @@ export class CopilotAgent {
     );
   }
 
+  /**
+   * Executes every tool call requested by the model and appends the results to
+   * the running conversation so the LLM can observe tool outputs.
+   */
   private async handleToolCalls(
     calls: Array<{
       id: string;
@@ -175,6 +195,10 @@ export class CopilotAgent {
     }
   }
 
+  /**
+   * Verifies that the configured workspace root directory exists before any
+   * commands or tool calls attempt to touch the file system.
+   */
   private async ensureWorkspace(): Promise<void> {
     AgentLogger.debug("Validating workspace directory", {
       workspaceRoot: this.workspaceRoot,
@@ -189,6 +213,10 @@ export class CopilotAgent {
     });
   }
 
+  /**
+   * Builds the user-facing portion of the chat prompt by combining the task
+   * description with a structured workspace snapshot.
+   */
   private composeUserPrompt(task: string, snapshot: string): string {
     const prompt: string = `# Task\n${task.trim()}\n\n# Workspace snapshot\n${snapshot}\n\nPlease reason step-by-step, gather any missing context with the tools, and keep iterating until the task is complete.`;
     AgentLogger.debug("Composed user prompt", {

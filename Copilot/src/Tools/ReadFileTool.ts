@@ -4,6 +4,7 @@ import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
 import AgentLogger from "../Utils/AgentLogger";
 
+/** Describes how much of which file should be returned to the agent. */
 interface ReadFileArgs {
   path: string;
   startLine?: number | undefined;
@@ -11,6 +12,7 @@ interface ReadFileArgs {
   limit?: number | undefined;
 }
 
+/** Reads files from the workspace with optional line slicing and truncation. */
 export class ReadFileTool extends StructuredTool<ReadFileArgs> {
   public readonly name: string = "read_file";
   public readonly description: string =
@@ -57,6 +59,7 @@ export class ReadFileTool extends StructuredTool<ReadFileArgs> {
       return true;
     }, "endLine must be greater than startLine");
 
+  /** Provides the requested file slice or reports an error if missing. */
   public async execute(
     args: ReadFileArgs,
     runtime: ToolRuntime,

@@ -8,11 +8,16 @@ import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
 import AgentLogger from "../Utils/AgentLogger";
 
+/** Arguments accepted by the apply_patch tool. */
 interface ApplyPatchArgs {
   patch: string;
   note?: string | undefined;
 }
 
+/**
+ * Applies unified diffs (or the custom *** Begin Patch format) via git apply so
+ * the agent can make precise edits.
+ */
 export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
   public readonly name: string = "apply_patch";
   public readonly description: string =
@@ -41,6 +46,7 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
     })
     .strict();
 
+  /** Writes the diff to a temp file and feeds it to git apply. */
   public async execute(
     args: ApplyPatchArgs,
     runtime: ToolRuntime,
@@ -98,6 +104,10 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
     }
   }
 
+  /**
+   * Converts the *** Begin/End Patch format into standard unified diffs so git
+   * can apply the changes.
+   */
   private normalizePatchFormat(input: string, runtime: ToolRuntime): string {
     if (input.includes("diff --git")) {
       AgentLogger.debug("Patch already in diff format", {

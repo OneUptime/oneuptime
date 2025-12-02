@@ -2,6 +2,9 @@ import { fetch, Response } from "undici";
 import { ChatMessage, ToolDefinition } from "../Types";
 import AgentLogger from "../Utils/AgentLogger";
 
+/**
+ * Chat message payload in the minimal form accepted by the LM Studio API.
+ */
 type SerializableMessage = Omit<ChatMessage, "tool_calls"> & {
   tool_calls?: Array<{
     id: string;
@@ -13,6 +16,9 @@ type SerializableMessage = Omit<ChatMessage, "tool_calls"> & {
   }>;
 };
 
+/**
+ * Wire format expected by LM Studio's OpenAI-compatible chat completions API.
+ */
 interface ChatCompletionRequestPayload {
   model: string;
   messages: Array<SerializableMessage>;
@@ -21,6 +27,9 @@ interface ChatCompletionRequestPayload {
   tools?: Array<ToolDefinition>;
 }
 
+/**
+ * Subset of the OpenAI chat completions response returned by LM Studio.
+ */
 interface OpenAIChatCompletionResponse {
   choices: Array<{
     index: number;
@@ -45,6 +54,9 @@ interface OpenAIChatCompletionResponse {
   };
 }
 
+/**
+ * Options controlling how the local LM Studio endpoint is contacted.
+ */
 export interface LMStudioClientOptions {
   endpoint: string;
   model: string;
@@ -53,9 +65,19 @@ export interface LMStudioClientOptions {
   apiKey?: string | undefined;
 }
 
+/**
+ * Thin wrapper around fetch that speaks LM Studio's OpenAI-compatible API.
+ */
 export class LMStudioClient {
+  /**
+   * Persists the endpoint configuration for future chat completion requests.
+   */
   public constructor(private readonly options: LMStudioClientOptions) {}
 
+  /**
+   * Submits the provided chat history plus tool metadata and returns the
+   * assistant's reply (with optional tool calls).
+   */
   public async createChatCompletion(data: {
     messages: Array<ChatMessage>;
     tools?: Array<ToolDefinition>;
@@ -171,6 +193,10 @@ export class LMStudioClient {
     }
   }
 
+  /**
+   * Normalizes the flexible OpenAI `content` format into a simple string the
+   * rest of the agent expects.
+   */
   private normalizeContent(content: unknown): string | null {
     if (typeof content === "string" || content === null) {
       return content;

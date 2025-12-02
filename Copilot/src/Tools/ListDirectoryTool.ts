@@ -7,6 +7,9 @@ import { JSONObject } from "Common/Types/JSON";
 import { StructuredTool, ToolResponse, ToolRuntime } from "./Tool";
 import AgentLogger from "../Utils/AgentLogger";
 
+/**
+ * Arguments controlling how deep and how broad a directory listing should be.
+ */
 interface ListDirectoryArgs {
   path?: string | undefined;
   depth?: number | undefined;
@@ -14,6 +17,9 @@ interface ListDirectoryArgs {
   limit?: number | undefined;
 }
 
+/**
+ * Recursively lists workspace directories so the agent can orient itself.
+ */
 export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {
   public readonly name: string = "list_directory";
   public readonly description: string =
@@ -53,6 +59,10 @@ export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {
     })
     .strict();
 
+  /**
+   * Generates a formatted directory listing or reports if the target folder is
+   * missing.
+   */
   public async execute(
     args: ListDirectoryArgs,
     runtime: ToolRuntime,
@@ -98,6 +108,10 @@ export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {
     };
   }
 
+  /**
+   * Performs a depth-limited traversal while honoring entry skip rules and the
+   * caller's result limit.
+   */
   private async walkDirectory(data: {
     current: string;
     currentDepth: number;
@@ -161,6 +175,7 @@ export class ListDirectoryTool extends StructuredTool<ListDirectoryArgs> {
     }
   }
 
+  /** Returns true when an entry should be excluded from listings. */
   private shouldSkip(entryName: string): boolean {
     const blocked: Array<string> = [
       ".git",
