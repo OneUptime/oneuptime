@@ -74,8 +74,9 @@ export class CopilotAgent {
     const contextSnapshot: string = await WorkspaceContextBuilder.buildSnapshot(
       this.workspaceRoot,
     );
-    AgentLogger.debug("Workspace snapshot built", {
+    AgentLogger.debug(`Workspace snapshot built:\n${contextSnapshot}`, {
       snapshotLength: contextSnapshot.length,
+      snapshotContents: contextSnapshot,
     });
 
     const messages: Array<ChatMessage> = [
@@ -85,9 +86,13 @@ export class CopilotAgent {
         content: this.composeUserPrompt(this.options.prompt, contextSnapshot),
       },
     ];
-    AgentLogger.debug("Initial conversation seeded", {
-      messageCount: messages.length,
-    });
+    AgentLogger.debug(
+      `Initial conversation seeded:\n${this.describeMessages(messages)}`,
+      {
+        messageCount: messages.length,
+        seedMessages: messages,
+      },
+    );
 
     for (
       let iteration: number = 0;
@@ -95,20 +100,29 @@ export class CopilotAgent {
       iteration += 1
     ) {
       AgentLogger.info(`Starting iteration ${iteration + 1}`);
-      AgentLogger.debug("Sending messages to LLM", {
-        iteration: iteration + 1,
-        messageCount: messages.length,
-      });
+      AgentLogger.debug(
+        `Sending messages to LLM (iteration ${iteration + 1}):\n${this.describeMessages(messages)}`,
+        {
+          iteration: iteration + 1,
+          messageCount: messages.length,
+          outgoingMessages: messages,
+        },
+      );
       const response: ChatMessage = await this.client.createChatCompletion({
         messages,
         tools: this.registry.getToolDefinitions(),
       });
 
-      AgentLogger.debug("LLM response received", {
-        iteration: iteration + 1,
-        hasToolCalls: Boolean(response.tool_calls?.length),
-        contentPreview: response.content?.slice(0, 200) ?? null,
-      });
+      AgentLogger.debug(
+        `LLM response received (iteration ${iteration + 1}):\n${this.describeMessages([response])}`,
+        {
+          iteration: iteration + 1,
+          hasToolCalls: Boolean(response.tool_calls?.length),
+          responseContent: response.content ?? null,
+          responseObject: response,
+          responseToolCalls: response.tool_calls ?? null,
+        },
+      );
 
       if (response.tool_calls?.length) {
         AgentLogger.info(
@@ -128,10 +142,14 @@ export class CopilotAgent {
         "Model ended the conversation without a reply.";
       // eslint-disable-next-line no-console
       console.log(`\n${finalMessage}`);
-      AgentLogger.debug("Conversation completed", {
-        iterationsUsed: iteration + 1,
-        finalMessagePreview: finalMessage.slice(0, 500),
-      });
+      AgentLogger.debug(
+        `Conversation completed after ${iteration + 1} iterations:\n${finalMessage}`,
+        {
+          iterationsUsed: iteration + 1,
+          finalMessageLength: finalMessage.length,
+          finalMessage,
+        },
+      );
       return;
     }
 
@@ -178,20 +196,28 @@ export class CopilotAgent {
       const result: ToolExecutionResult = await this.registry.execute(call);
       // eslint-disable-next-line no-console
       console.log(`\n# Tool: ${call.function.name}\n${result.output}\n`);
-      AgentLogger.debug("Tool execution completed", {
-        toolName: call.function.name,
-        callId: call.id,
-        isError: result.output.startsWith("ERROR"),
-        outputLength: result.output.length,
-      });
+      AgentLogger.debug(
+        `Tool execution completed (${call.function.name}/${call.id}):\n${result.output}`,
+        {
+          toolName: call.function.name,
+          callId: call.id,
+          isError: result.output.startsWith("ERROR"),
+          outputLength: result.output.length,
+          outputContents: result.output,
+        },
+      );
       messages.push({
         role: "tool",
         content: result.output,
         tool_call_id: result.toolCallId,
       });
-      AgentLogger.debug("Tool result appended to conversation", {
-        totalMessages: messages.length,
-      });
+      AgentLogger.debug(
+        `Tool result appended to conversation (total ${messages.length} messages):\n${this.describeMessages(messages)}`,
+        {
+          totalMessages: messages.length,
+          updatedConversation: messages,
+        },
+      );
     }
   }
 
@@ -219,11 +245,44 @@ export class CopilotAgent {
    */
   private composeUserPrompt(task: string, snapshot: string): string {
     const prompt: string = `# Task\n${task.trim()}\n\n# Workspace snapshot\n${snapshot}\n\nPlease reason step-by-step, gather any missing context with the tools, and keep iterating until the task is complete.`;
-    AgentLogger.debug("Composed user prompt", {
+    AgentLogger.debug(`Composed user prompt:\n${prompt}`, {
       taskLength: task.length,
       snapshotLength: snapshot.length,
       promptLength: prompt.length,
+      taskContents: task,
+      snapshotContents: snapshot,
+      promptContents: prompt,
     });
     return prompt;
+  }
+
+  private describeMessages(messages: Array<ChatMessage>): string {
+    return messages
+      .map((message: ChatMessage, index: number) => {
+        const headerParts: Array<string> = [
+          `Message ${index + 1}`,
+          `role=${message.role}`,
+        ];
+
+        if (message.tool_call_id) {
+          headerParts.push(`tool_call_id=${message.tool_call_id}`);
+        }
+
+        const content: unknown = message.content;
+        const normalizedContent: string =
+          typeof content === "string"
+            ? content
+            : content
+              ? JSON.stringify(content, null, 2)
+              : "<no content>";
+
+        const toolCalls: string =
+          Array.isArray(message.tool_calls) && message.tool_calls.length
+            ? `\nTool calls:\n${JSON.stringify(message.tool_calls, null, 2)}`
+            : "";
+
+        return `${headerParts.join(" | ")}\n${normalizedContent}${toolCalls}`;
+      })
+      .join("\n\n");
   }
 }

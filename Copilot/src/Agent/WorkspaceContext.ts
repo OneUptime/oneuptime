@@ -27,7 +27,9 @@ export class WorkspaceContextBuilder {
     );
     if (branch) {
       sections.push(`Git branch: ${branch.trim()}`);
-      AgentLogger.debug("Detected git branch", { branch: branch.trim() });
+      AgentLogger.debug(`Detected git branch: ${branch.trim()}`, {
+        branch: branch.trim(),
+      });
     }
 
     const status: string | null = await this.tryGitCommand(
@@ -36,8 +38,9 @@ export class WorkspaceContextBuilder {
     );
     if (status) {
       sections.push(`Git status:\n${status.trim()}`);
-      AgentLogger.debug("Captured git status", {
+      AgentLogger.debug(`Captured git status:\n${status.trim()}`, {
         statusLength: status.length,
+        statusContents: status.trim(),
       });
     }
 
@@ -45,14 +48,19 @@ export class WorkspaceContextBuilder {
     sections.push(
       `Top-level entries (${entries.length}): ${entries.join(", ")}`,
     );
-    AgentLogger.debug("Listed top-level entries", {
-      entryCount: entries.length,
-    });
+    AgentLogger.debug(
+      `Listed top-level entries (${entries.length}): ${entries.join(", ")}`,
+      {
+        entryCount: entries.length,
+        entries,
+      },
+    );
 
     const snapshot: string = sections.join("\n");
-    AgentLogger.debug("Workspace snapshot complete", {
+    AgentLogger.debug(`Workspace snapshot complete:\n${snapshot}`, {
       sectionCount: sections.length,
       snapshotLength: snapshot.length,
+      snapshotContents: snapshot,
     });
     return snapshot;
   }
@@ -100,18 +108,26 @@ export class WorkspaceContextBuilder {
         args,
         cwd,
       });
-      AgentLogger.debug("Git command succeeded", {
-        args,
-        cwd,
-        outputLength: output.length,
-      });
+      AgentLogger.debug(
+        `Git command succeeded (${args.join(" ")}):\n${output}`,
+        {
+          args,
+          cwd,
+          outputLength: output.length,
+          outputContents: output,
+        },
+      );
       return output;
     } catch (error) {
-      AgentLogger.debug("Git command failed", {
-        cwd,
-        args,
-        error: (error as Error).message,
-      });
+      const message: string = (error as Error).message;
+      AgentLogger.debug(
+        `Git command failed (${args.join(" ")}) in ${cwd}: ${message}`,
+        {
+          cwd,
+          args,
+          error: message,
+        },
+      );
       return null;
     }
   }
