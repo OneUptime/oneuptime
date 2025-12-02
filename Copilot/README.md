@@ -42,6 +42,20 @@ oneuptime-copilot-agent \
 | `--log-level` | `debug`, `info`, `warn`, or `error` (default `info`). |
 | `--log-file` | Optional file path. When provided, all logs are appended to this file in addition to stdout. |
 
+### Debug logging
+
+Pass `--log-file` when running the agent to persist verbose debugging output (including `debug` level messages) for later inspection:
+
+```bash
+oneuptime-copilot-agent \
+  --prompt "Track flaky jest tests" \
+  --model http://localhost:1234/v1/chat/completions \
+  --workspace-path ./ \
+  --log-file ./logs/copilot-agent-debug.log
+```
+
+The agent will create any missing parent directories and continuously append to the specified file while still streaming logs to stdout.
+
 ## Architecture snapshot
 
 - `src/agent` – Orchestrates the conversation loop, builds the system prompt (inspired by the VS Code Copilot agent), snapshots the workspace, and streams messages to the LM Studio endpoint.
@@ -63,6 +77,7 @@ npm run dev -- --prompt "Write tests for this project. These tests should be in 
   --model http://localhost:1234/v1/chat/completions \
   --model-name oqwen3-vl-8b-instruct \
   --workspace-path ./
+  --log-file ./copilot-agent-debug.log
 ```
 
 The agent intentionally mirrors Copilot’s workflow: it iteratively plans, reads files, edits them through patches or full rewrites, and executes commands/tests via the terminal tool. Logs stream to stdout so you can follow each tool invocation in real time.
