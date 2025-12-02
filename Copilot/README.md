@@ -40,11 +40,11 @@ oneuptime-copilot-agent \
 | `--timeout` | LLM HTTP timeout per request in milliseconds (default `120000`). |
 | `--api-key` | Optional bearer token if the endpoint is secured. |
 | `--log-level` | `debug`, `info`, `warn`, or `error` (default `info`). |
-| `--log-file` | Optional file path. When provided, all logs are appended to this file in addition to stdout. |
+| `--log-file` | Optional file path (absolute, `~/`, or relative to the workspace root). When provided, all logs are appended to this file in addition to stdout. |
 
 ### Debug logging
 
-Pass `--log-file` when running the agent to persist verbose debugging output (including `debug` level messages) for later inspection:
+Pass `--log-file` when running the agent to persist verbose debugging output (including `debug` level messages) for later inspection. Relative paths are resolved from the workspace root so you always know where to look, even if you run the CLI from a different directory:
 
 ```bash
 oneuptime-copilot-agent \
