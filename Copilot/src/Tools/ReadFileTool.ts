@@ -59,6 +59,11 @@ export class ReadFileTool extends StructuredTool<ReadFileArgs> {
       return true;
     }, "endLine must be greater than startLine");
 
+  public override parse(input: unknown): ReadFileArgs {
+    const normalized: unknown = this.normalizeAliases(input);
+    return super.parse(normalized);
+  }
+
   /** Provides the requested file slice or reports an error if missing. */
   public async execute(
     args: ReadFileArgs,
@@ -112,5 +117,37 @@ export class ReadFileTool extends StructuredTool<ReadFileArgs> {
         ? `${header}\n${text}\n... [truncated]`
         : `${header}\n${text}`,
     };
+  }
+
+  /**
+   * Accepts historical argument names (lineStart/line_start/etc.) so older
+   * prompts do not immediately fail validation.
+   */
+  private normalizeAliases(input: unknown): unknown {
+    if (!input || typeof input !== "object") {
+      return input ?? {};
+    }
+
+    const original: Record<string, unknown> = input as Record<string, unknown>;
+    const normalized: Record<string, unknown> = { ...original };
+
+    this.applyAlias(normalized, ["lineStart", "line_start", "start_line"], "startLine");
+    this.applyAlias(normalized, ["lineEnd", "line_end", "end_line"], "endLine");
+    this.applyAlias(normalized, ["charLimit", "char_limit", "maxChars"], "limit");
+
+    return normalized;
+  }
+
+  private applyAlias(
+    target: Record<string, unknown>,
+    aliases: Array<string>,
+    canonical: string,
+  ): void {
+    for (const alias of aliases) {
+      if (target[alias] !== undefined && target[canonical] === undefined) {
+        target[canonical] = target[alias];
+      }
+      delete target[alias];
+    }
   }
 }
