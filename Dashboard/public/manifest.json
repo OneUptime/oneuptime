@@ -113,7 +113,7 @@
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#000000",
-  "background_color": "#ffffff",
+  "background_color": "#000000",
   "categories": ["productivity", "business", "utilities"],
   "lang": "en",
   "related_applications": [],
