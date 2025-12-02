@@ -61,6 +61,7 @@ RunCron(
           incidentStateId: true,
           incidentState: {
             name: true,
+            isCreatedState: true,
           },
         },
       });
@@ -114,6 +115,20 @@ RunCron(
               StatusPageSubscriberNotificationStatus.Skipped,
             subscriberNotificationStatusMessage:
               "Incident state has no name. Skipping notifications.",
+          },
+          props: { isRoot: true, ignoreHooks: true },
+        });
+        continue;
+      }
+
+      if (incidentStateTimeline.incidentState.isCreatedState) {
+        await IncidentStateTimelineService.updateOneById({
+          id: incidentStateTimeline.id!,
+          data: {
+            subscriberNotificationStatus:
+              StatusPageSubscriberNotificationStatus.Skipped,
+            subscriberNotificationStatusMessage:
+              "Notification already sent when the incident was created. So, incident state change notifiction is skipped.",
           },
           props: { isRoot: true, ignoreHooks: true },
         });

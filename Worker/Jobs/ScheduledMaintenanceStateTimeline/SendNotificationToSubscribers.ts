@@ -62,6 +62,7 @@ RunCron(
           scheduledMaintenanceStateId: true,
           scheduledMaintenanceState: {
             name: true,
+            isScheduledState: true,
           },
         },
       });
@@ -106,6 +107,20 @@ RunCron(
                 StatusPageSubscriberNotificationStatus.Skipped,
               subscriberNotificationStatusMessage:
                 "Scheduled maintenance state has no name. Skipping notifications.",
+            },
+            props: { isRoot: true, ignoreHooks: true },
+          });
+          continue;
+        }
+
+        if (scheduledEventStateTimeline.scheduledMaintenanceState?.isScheduledState) {
+          await ScheduledMaintenanceStateTimelineService.updateOneById({
+            id: scheduledEventStateTimeline.id!,
+            data: {
+              subscriberNotificationStatus:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+               "Notification already sent when the scheduled maintenance was created. So, maintenance event state change notifiction is skipped.",
             },
             props: { isRoot: true, ignoreHooks: true },
           });
