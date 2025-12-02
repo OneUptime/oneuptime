@@ -4,6 +4,447 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
+  <title>OneUptime | Compare <%= productConfig.productName %> with OneUptime.</title>
+  <meta name="description"
+    content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body class="bg-white text-slate-900">
+  <%- include('nav') -%>
+
+  <%
+    function formatValue(value) {
+      if (value === "tick") {
+        return "Included";
+      }
+      if (!value || value === "") {
+        return "Not available";
+      }
+      return value;
+    }
+  %>
+
+  <main>
+    <section class="relative isolate overflow-hidden bg-slate-950 text-white">
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.25),_transparent_60%)] opacity-80" aria-hidden="true"></div>
+      <div class="absolute inset-y-0 right-0 w-1/2 translate-x-1/4 bg-gradient-to-l from-indigo-500/30 via-transparent to-transparent blur-3xl" aria-hidden="true"></div>
+      <div class="relative mx-auto max-w-7xl px-6 py-24 lg:px-8">
+        <div class="grid gap-12 lg:grid-cols-[3fr,2fr] lg:items-center">
+          <div class="space-y-8">
+            <p class="text-xs font-semibold uppercase tracking-[0.45em] text-slate-300">Comparison guide</p>
+            <h1 class="text-4xl font-bold tracking-tight sm:text-5xl">Switch from <%= productConfig.productName %> to OneUptime</h1>
+            <p class="text-lg text-slate-200"><%= productConfig.description %></p>
+            <p class="text-base text-slate-300"><%= productConfig.descriptionLine2 %></p>
+            <div class="flex flex-wrap gap-4">
+              <a href="/accounts/register" class="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100">Start for free</a>
+              <a href="/enterprise/demo" class="inline-flex items-center justify-center rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white transition hover:border-white">Talk to an engineer</a>
+              <a href="/pricing" class="inline-flex items-center justify-center rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white/80 transition hover:text-white">See pricing</a>
+            </div>
+            <dl class="grid gap-6 sm:grid-cols-2">
+              <div class="rounded-2xl border border-white/15 bg-white/5 p-5">
+                <dt class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-300">Typical monthly licensing</dt>
+                <dd class="mt-3 text-2xl font-semibold"><%= productConfig.price %></dd>
+                <p class="mt-1 text-sm text-slate-300">with <%= productConfig.productName %></p>
+              </div>
+              <div class="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-5">
+                <dt class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200">OneUptime platform pricing</dt>
+                <dd class="mt-3 text-2xl font-semibold text-white"><%= productConfig.oneuptimePrice %></dd>
+                <p class="mt-1 text-sm text-emerald-100">Unlimited projects, incidents and alerts</p>
+              </div>
+              <div class="rounded-2xl border border-white/15 bg-white/5 p-5 sm:col-span-2">
+                <dt class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-300">What changes when you switch</dt>
+                <dd class="mt-3 text-base text-slate-200">Single observability workspace, native monitoring, status pages, incidents and on-call without juggling multiple vendors.</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div class="relative rounded-3xl border border-white/10 bg-white/10 p-8 shadow-2xl shadow-indigo-900/40 backdrop-blur">
+            <div class="flex items-center gap-4">
+              <% if (productConfig.iconUrl) { %>
+                <span class="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10">
+                  <img src="<%= productConfig.iconUrl %>" alt="<%= productConfig.productName %> logo" class="h-10 w-10 object-contain" loading="lazy" />
+                </span>
+              <% } %>
+              <div>
+                <p class="text-sm uppercase tracking-[0.4em] text-slate-300">Stack today</p>
+                <p class="text-2xl font-semibold"><%= productConfig.productName %></p>
+              </div>
+            </div>
+            <p class="mt-6 text-sm text-slate-200">Teams need more than status pages or alerts. OneUptime combines all the incident-response muscle without the seat-based surprises.</p>
+            <ul class="mt-6 space-y-4 text-sm text-slate-100">
+              <li class="flex gap-3">
+                <span class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs">1</span>
+                Replace <%= productConfig.productName %> + monitoring + on-call with a single command center.
+              </li>
+              <li class="flex gap-3">
+                <span class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs">2</span>
+                Unlimited status pages, subscribers, and monitors included from day one.
+              </li>
+              <li class="flex gap-3">
+                <span class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs">3</span>
+                SOC2-ready audit trails, workflows, and AI copilots streamline every incident review.
+              </li>
+              <li class="flex gap-3">
+                <span class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs">4</span>
+                Deploy SaaS or self-host. No lock-in, Apache-2.0 source available on GitHub.
+              </li>
+            </ul>
+            <div class="mt-8 rounded-2xl border border-white/15 bg-white/5 p-5 text-sm text-slate-200">
+              OneUptime consolidates paging, monitoring and customer comms so responders work from one playbook and customers stay informed automatically.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-slate-900/5 bg-white">
+      <div class="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+        <div class="grid gap-12 lg:grid-cols-2">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.4em] text-indigo-600">Why teams switch</p>
+            <h2 class="mt-4 text-3xl font-semibold text-slate-900">One platform for monitoring, incidents, on-call, and customer comms.</h2>
+            <p class="mt-4 text-lg text-slate-600">Customers move from <%= productConfig.productName %> when they need proactive response tooling, programmable workflows, and pricing that scales with usage instead of seats.</p>
+            <ul class="mt-8 space-y-5 text-base text-slate-700">
+              <li class="flex gap-3">
+                <span class="mt-1 h-5 w-5 rounded-full bg-emerald-500/20 text-emerald-700">✓</span>
+                Single incident command center that posts updates to status pages, Slack, Microsoft Teams, and email automatically.
+              </li>
+              <li class="flex gap-3">
+                <span class="mt-1 h-5 w-5 rounded-full bg-emerald-500/20 text-emerald-700">✓</span>
+                Deep automation with runbooks, escalation policies, and AI copilots for summaries and follow-ups.
+              </li>
+              <li class="flex gap-3">
+                <span class="mt-1 h-5 w-5 rounded-full bg-emerald-500/20 text-emerald-700">✓</span>
+                Unlimited read-only stakeholders and subscriber communications baked in—no extra contracts.
+              </li>
+              <li class="flex gap-3">
+                <span class="mt-1 h-5 w-5 rounded-full bg-emerald-500/20 text-emerald-700">✓</span>
+                Works with your existing monitors today, while shipping native infrastructure, API, and browser monitors.
+              </li>
+            </ul>
+          </div>
+          <div class="rounded-3xl border border-slate-200 bg-slate-50 p-8 shadow-sm">
+            <p class="text-sm font-semibold text-slate-500">Included with OneUptime</p>
+            <dl class="mt-8 space-y-6 text-base text-slate-600">
+              <div class="flex items-start justify-between gap-6">
+                <dt class="font-semibold text-slate-900">Unlimited public & private status pages</dt>
+                <dd class="text-sm text-slate-500">Custom domains + branding</dd>
+              </div>
+              <div class="flex items-start justify-between gap-6">
+                <dt class="font-semibold text-slate-900">On-call rotations & escalations</dt>
+                <dd class="text-sm text-slate-500">Phone, SMS, email, Slack, Teams</dd>
+              </div>
+              <div class="flex items-start justify-between gap-6">
+                <dt class="font-semibold text-slate-900">Native monitoring + integrations</dt>
+                <dd class="text-sm text-slate-500">HTTP, API, heartbeats, agents</dd>
+              </div>
+              <div class="flex items-start justify-between gap-6">
+                <dt class="font-semibold text-slate-900">AI-powered incident reviews</dt>
+                <dd class="text-sm text-slate-500">Summaries, action items, templates</dd>
+              </div>
+            </dl>
+            <div class="mt-10 rounded-2xl border border-dashed border-slate-400/60 p-6 text-sm text-slate-600">
+              Bring your own stack. OneUptime ingests alerts from <em>any</em> monitoring source, so you can switch gradually without risky rewrites.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-slate-50" id="capabilities">
+      <div class="mx-auto max-w-7xl px-6 py-24 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-indigo-600">Capabilities</p>
+          <h2 class="mt-4 text-3xl font-semibold text-slate-900">Every pillar your reliability program needs.</h2>
+          <p class="mt-4 text-lg text-slate-600">We organise the comparison into the four pillars teams ask about the most—status pages, monitoring, incident response, and extensibility.</p>
+        </div>
+        <div class="mt-16 grid gap-6 lg:grid-cols-3">
+          <% for (var i = 0; i < productConfig.items.length; i++) {
+               var category = productConfig.items[i];
+          %>
+            <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600"><%= category.name %></p>
+              <p class="mt-3 text-sm text-slate-600"><%= category.data[0] ? category.data[0].description : 'Included with OneUptime.' %></p>
+              <ul class="mt-6 space-y-4">
+                <% for (var j = 0; j < category.data.length && j < 4; j++) {
+                     var feature = category.data[j];
+                %>
+                  <li class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                    <div class="flex items-start justify-between gap-4">
+                      <p class="text-sm font-semibold text-slate-900"><%= feature.title %></p>
+                      <span class="text-xs font-semibold text-emerald-600"><%= formatValue(feature.oneuptimeColumn) %></span>
+                    </div>
+                    <p class="mt-2 text-sm text-slate-600"><%= feature.description %></p>
+                    <div class="mt-3 flex flex-wrap gap-3 text-xs font-medium">
+                      <span class="inline-flex items-center gap-2 rounded-full bg-slate-900/5 px-3 py-1 text-slate-600">
+                        <span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>
+                        <%= productConfig.productName %>: <%= formatValue(feature.productColumn) %>
+                      </span>
+                      <span class="inline-flex items-center gap-2 rounded-full bg-emerald-500/15 px-3 py-1 text-emerald-700">
+                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                        OneUptime: <%= formatValue(feature.oneuptimeColumn) %>
+                      </span>
+                    </div>
+                  </li>
+                <% } %>
+              </ul>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-white" id="comparison">
+      <div class="mx-auto max-w-7xl px-6 py-24 lg:px-8">
+        <div class="flex flex-col gap-4 text-center">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-indigo-600">Detailed view</p>
+          <h2 class="text-3xl font-semibold text-slate-900">Side-by-side comparison</h2>
+          <p class="text-base text-slate-600">Exact limits, inclusions, and differentiators for every capability.</p>
+        </div>
+
+        <div class="mt-16 space-y-10 lg:hidden">
+          <section class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-200 px-6 py-6">
+              <h3 class="text-lg font-semibold text-slate-900"><%= productConfig.productName %></h3>
+              <p class="mt-2 text-3xl font-bold text-slate-900"><%= productConfig.price %><span class="text-base font-medium text-slate-500"> / mo</span></p>
+              <p class="mt-2 text-sm text-slate-600"><%= productConfig.productDescription %></p>
+            </div>
+            <% for (var i = 0; i < productConfig.items.length; i++) { var category = productConfig.items[i]; %>
+              <div>
+                <p class="border-b border-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500"><%= category.name %></p>
+                <dl class="divide-y divide-slate-100">
+                  <% for (var j = 0; j < category.data.length; j++) {
+                       var feature = category.data[j];
+                       var value = feature.productColumn;
+                  %>
+                    <div class="flex items-start justify-between gap-4 px-6 py-4">
+                      <dt class="text-sm font-medium text-slate-700"><%= feature.title %></dt>
+                      <dd class="text-sm text-slate-900">
+                        <% if (value === "tick") { %>
+                          <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-900/5 text-slate-900">✓</span>
+                        <% } else if (!value || value === "") { %>
+                          <span class="text-slate-400">Not available</span>
+                        <% } else { %>
+                          <span class="font-semibold"><%= value %></span>
+                        <% } %>
+                      </dd>
+                    </div>
+                  <% } %>
+                </dl>
+              </div>
+            <% } %>
+          </section>
+
+          <section class="rounded-3xl border border-emerald-200 bg-emerald-50 shadow-sm">
+            <div class="border-b border-emerald-100 px-6 py-6">
+              <h3 class="text-lg font-semibold text-slate-900">OneUptime</h3>
+              <p class="mt-2 text-3xl font-bold text-slate-900"><%= productConfig.oneuptimePrice %><span class="text-base font-medium text-slate-500"> / mo</span></p>
+              <p class="mt-2 text-sm text-slate-600"><%= productConfig.oneUptimeDescription %></p>
+            </div>
+            <% for (var i = 0; i < productConfig.items.length; i++) { var category = productConfig.items[i]; %>
+              <div>
+                <p class="border-b border-emerald-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-emerald-800"><%= category.name %></p>
+                <dl class="divide-y divide-emerald-100">
+                  <% for (var j = 0; j < category.data.length; j++) {
+                       var feature = category.data[j];
+                       var value = feature.oneuptimeColumn;
+                  %>
+                    <div class="flex items-start justify-between gap-4 px-6 py-4">
+                      <dt class="text-sm font-medium text-slate-700"><%= feature.title %></dt>
+                      <dd class="text-sm text-slate-900">
+                        <% if (value === "tick") { %>
+                          <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-700">✓</span>
+                        <% } else if (!value || value === "") { %>
+                          <span class="text-slate-400">Not available</span>
+                        <% } else { %>
+                          <span class="font-semibold"><%= value %></span>
+                        <% } %>
+                      </dd>
+                    </div>
+                  <% } %>
+                </dl>
+              </div>
+            <% } %>
+          </section>
+        </div>
+
+        <div class="mt-16 hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl lg:block">
+          <table class="w-full table-fixed">
+            <caption class="sr-only">Detailed comparison between <%= productConfig.productName %> and OneUptime</caption>
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="w-1/3 px-6 py-5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Feature</th>
+                <th class="w-1/3 px-6 py-5 text-left text-lg font-semibold text-slate-900"><%= productConfig.productName %></th>
+                <th class="w-1/3 px-6 py-5 text-left text-lg font-semibold text-slate-900">OneUptime</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr>
+                <th class="bg-slate-50 px-6 py-5 text-left text-sm font-semibold text-slate-700">Pricing</th>
+                <td class="px-6 py-5 text-sm text-slate-900">
+                  <p class="text-2xl font-bold text-slate-900"><%= productConfig.price %><span class="text-base font-medium text-slate-500"> / mo</span></p>
+                  <p class="mt-1 text-sm text-slate-600"><%= productConfig.productDescription %></p>
+                </td>
+                <td class="px-6 py-5 text-sm text-slate-900">
+                  <p class="text-2xl font-bold text-slate-900"><%= productConfig.oneuptimePrice %><span class="text-base font-medium text-slate-500"> / mo</span></p>
+                  <p class="mt-1 text-sm text-slate-600"><%= productConfig.oneUptimeDescription %></p>
+                </td>
+              </tr>
+              <% for (var i = 0; i < productConfig.items.length; i++) { var category = productConfig.items[i]; %>
+                <tr>
+                  <th colspan="3" class="bg-slate-50 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"><%= category.name %></th>
+                </tr>
+                <% for (var j = 0; j < category.data.length; j++) {
+                     var feature = category.data[j];
+                %>
+                  <tr>
+                    <th class="px-6 py-4 text-left text-sm font-medium text-slate-700"><%= feature.title %></th>
+                    <td class="px-6 py-4 text-sm text-slate-900">
+                      <% if (feature.productColumn === "tick") { %>
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-900/5 text-slate-900">✓</span>
+                      <% } else if (!feature.productColumn || feature.productColumn === "") { %>
+                        <span class="text-slate-400">Not available</span>
+                      <% } else { %>
+                        <span class="font-semibold"><%= feature.productColumn %></span>
+                      <% } %>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-900">
+                      <% if (feature.oneuptimeColumn === "tick") { %>
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-700">✓</span>
+                      <% } else if (!feature.oneuptimeColumn || feature.oneuptimeColumn === "") { %>
+                        <span class="text-slate-400">Not available</span>
+                      <% } else { %>
+                        <span class="font-semibold"><%= feature.oneuptimeColumn %></span>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% } %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-slate-50" id="faq">
+      <div class="mx-auto max-w-4xl px-6 py-24 lg:px-8">
+        <div class="text-center">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-indigo-600">FAQ</p>
+          <h2 class="mt-4 text-3xl font-semibold text-slate-900">Questions teams ask while migrating</h2>
+        </div>
+        <div class="mt-12 space-y-4">
+          <% for (var i = 0; i < productConfig.faq.length; i++) { var faq = productConfig.faq[i]; %>
+            <details class="group rounded-3xl border border-slate-200 bg-white p-6" <%= i === 0 ? 'open' : '' %>>
+              <summary class="flex cursor-pointer items-center justify-between gap-6 text-left text-lg font-semibold text-slate-900">
+                <span><%= faq.question %></span>
+                <span class="text-sm text-slate-400 group-open:rotate-45">+</span>
+              </summary>
+              <p class="mt-4 text-base leading-7 text-slate-600"><%= faq.answer %></p>
+            </details>
+          <% } %>
+        </div>
+        <p class="mt-10 text-center text-sm text-slate-500">Need something specific? Email hello@oneuptime.com or open an issue on GitHub.</p>
+      </div>
+    </section>
+  </main>
+
+  <%- include('cta') -%>
+  <%- include('footer') -%>
+</body>
+
+</html><!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Compare <%= productConfig.productName %> with OneUptime.</title>
+  <meta name="description"
+    content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+    <div class="mx-auto max-w-7xl bg-white py-16 sm:py-24 sm:px-6 lg:px-8">
+      <!-- Legacy markup removed -->
+    </div>
+  </div>
+                  <p class="mt-1 text-sm text-slate-600"><%= productConfig.productDescription %></p>
+                </td>
+                <td class="px-6 py-5 text-sm text-slate-900">
+                  <p class="text-2xl font-bold text-slate-900"><%= productConfig.oneuptimePrice %><span class="text-base font-medium text-slate-500"> / mo</span></p>
+                  <p class="mt-1 text-sm text-slate-600"><%= productConfig.oneUptimeDescription %></p>
+                </td>
+              </tr>
+              <% for (var i = 0; i < productConfig.items.length; i++) { var category = productConfig.items[i]; %>
+                <tr>
+                  <th colspan="3" class="bg-slate-50 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"><%= category.name %></th>
+                </tr>
+                <% for (var j = 0; j < category.data.length; j++) {
+                     var feature = category.data[j];
+                %>
+                  <tr>
+                    <th class="px-6 py-4 text-left text-sm font-medium text-slate-700"><%= feature.title %></th>
+                    <td class="px-6 py-4 text-sm text-slate-900">
+                      <% if (feature.productColumn === "tick") { %>
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-900/5 text-slate-900">✓</span>
+                      <% } else if (!feature.productColumn || feature.productColumn === "") { %>
+                        <span class="text-slate-400">Not available</span>
+                      <% } else { %>
+                        <span class="font-semibold"><%= feature.productColumn %></span>
+                      <% } %>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-900">
+                      <% if (feature.oneuptimeColumn === "tick") { %>
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-700">✓</span>
+                      <% } else if (!feature.oneuptimeColumn || feature.oneuptimeColumn === "") { %>
+                        <span class="text-slate-400">Not available</span>
+                      <% } else { %>
+                        <span class="font-semibold"><%= feature.oneuptimeColumn %></span>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% } %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-slate-50" id="faq">
+      <div class="mx-auto max-w-4xl px-6 py-24 lg:px-8">
+        <div class="text-center">
+          <p class="text-sm font-semibold uppercase tracking-[0.4em] text-indigo-600">FAQ</p>
+          <h2 class="mt-4 text-3xl font-semibold text-slate-900">Questions teams ask while migrating</h2>
+        </div>
+        <div class="mt-12 space-y-4">
+          <% for (var i = 0; i < productConfig.faq.length; i++) { var faq = productConfig.faq[i]; %>
+            <details class="group rounded-3xl border border-slate-200 bg-white p-6" <%= i === 0 ? 'open' : '' %>>
+              <summary class="flex cursor-pointer items-center justify-between gap-6 text-left text-lg font-semibold text-slate-900">
+                <span><%= faq.question %></span>
+                <span class="text-sm text-slate-400 group-open:rotate-45">+</span>
+              </summary>
+              <p class="mt-4 text-base leading-7 text-slate-600"><%= faq.answer %></p>
+            </details>
+          <% } %>
+        </div>
+        <p class="mt-10 text-center text-sm text-slate-500">Need something specific? Email hello@oneuptime.com or open an issue on GitHub.</p>
+      </div>
+    </section>
+  </main>
+
+  <%- include('cta') -%>
+  <%- include('footer') -%>
+</body>
+
+</html><!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
     <title>OneUptime | Compare <%= productConfig.productName %> with OneUptime. </title>
     <meta name="description"
         content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
