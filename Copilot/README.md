@@ -23,8 +23,8 @@ npm link   # optional, provides the global oneuptime-copilot-agent command
 oneuptime-copilot-agent \
   --prompt "Refactor auth middleware and add unit tests" \
   --model http://localhost:1234/v1/chat/completions \
-  --model-name Meta-Llama-3-8B-Instruct \
-  --workspace-path /path/to/oneuptime
+  --model-name openai/gpt-oss-20b \
+  --workspace-path ./
 ```
 
 ### CLI options
@@ -59,9 +59,9 @@ npm run dev     # Run with ts-node for quick experiments
 For example: 
 
 ```
-npm run dev -- --prompt "Write tests for this project" \
+npm run dev -- --prompt "Write tests for this project. These tests should be in Jest and TypeScript." \
   --model http://localhost:1234/v1/chat/completions \
-  --model-name openai/gpt-oss-20b \
+  --model-name oqwen3-vl-8b-instruct \
   --workspace-path ./
 ```
 
