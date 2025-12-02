@@ -1,35 +1,9 @@
 #!/usr/bin/env node
 
 import path from "node:path";
-import os from "node:os";
 import { Command } from "commander";
 import { CopilotAgent, CopilotAgentOptions } from "./Agent/CopilotAgent";
 import AgentLogger from "./Utils/AgentLogger";
-
-/** Resolves log file paths relative to the workspace when not absolute. */
-const resolveLogFilePath = (
-  logFile: string | undefined,
-  workspacePath: string,
-): string | undefined => {
-  if (!logFile?.trim()) {
-    return undefined;
-  }
-
-  const trimmed: string = logFile.trim();
-
-  if (trimmed.startsWith("~")) {
-    const homeDir: string = os.homedir();
-    const withoutTilde: string = trimmed.slice(1);
-    const relativeFromHome: string = withoutTilde.startsWith(path.sep)
-      ? withoutTilde.slice(1)
-      : withoutTilde;
-    return path.resolve(homeDir, relativeFromHome);
-  }
-
-  return path.isAbsolute(trimmed)
-    ? trimmed
-    : path.resolve(workspacePath, trimmed);
-};
 
 /** CLI harness for configuring and launching the Copilot agent. */
 const program: Command = new Command();
@@ -110,16 +84,10 @@ program
     logFile?: string;
   }>();
 
-  const workspacePath: string = path.resolve(opts.workspacePath);
-  const logFilePath: string | undefined = resolveLogFilePath(
-    opts.logFile,
-    workspacePath,
-  );
-
   process.env["LOG_LEVEL"] = opts.logLevel?.toUpperCase() ?? "INFO";
-  await AgentLogger.configure({ logFilePath });
+  await AgentLogger.configure({ logFilePath: opts.logFile });
   AgentLogger.debug("CLI options parsed", {
-    workspacePath,
+    workspacePath: opts.workspacePath,
     model: opts.model,
     modelName: opts.modelName,
     temperature: opts.temperature,
@@ -127,14 +95,14 @@ program
     timeout: opts.timeout,
     hasApiKey: Boolean(opts.apiKey),
     logLevel: process.env["LOG_LEVEL"],
-    logFile: logFilePath,
+    logFile: opts.logFile,
   });
 
   const config: CopilotAgentOptions = {
     prompt: opts.prompt,
     modelUrl: opts.model,
     modelName: opts.modelName || "lmstudio",
-    workspacePath,
+    workspacePath: path.resolve(opts.workspacePath),
     temperature: Number(opts.temperature) || 0.1,
     maxIterations: Number(opts.maxIterations) || 12,
     requestTimeoutMs: Number(opts.timeout) || 120000,
