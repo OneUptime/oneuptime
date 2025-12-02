@@ -35,8 +35,8 @@ program
   )
   .option(
     "--max-iterations <count>",
-    "Maximum number of tool-calling rounds (default 12)",
-    "12",
+    "Maximum number of tool-calling rounds (default 100)",
+    "100",
   )
   .option(
     "--timeout <ms>",
@@ -104,7 +104,7 @@ program
     modelName: opts.modelName || "lmstudio",
     workspacePath: path.resolve(opts.workspacePath),
     temperature: Number(opts.temperature) || 0.1,
-    maxIterations: Number(opts.maxIterations) || 12,
+    maxIterations: Number(opts.maxIterations) || 100,
     requestTimeoutMs: Number(opts.timeout) || 120000,
     apiKey: opts.apiKey,
   };
