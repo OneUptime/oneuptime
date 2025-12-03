@@ -66,6 +66,9 @@ const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
       OneUptimeDate.getCurrentTimezoneString() +
       ".",
     placeholder: "Select date and time",
+    getDefaultValue: () => {
+      return OneUptimeDate.getCurrentDate();
+    },
   },
   {
     field: {
