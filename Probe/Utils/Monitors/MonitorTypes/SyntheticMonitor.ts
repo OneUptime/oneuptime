@@ -433,14 +433,13 @@ export default class SyntheticMonitor {
     try {
       await context.close();
     } catch (error) {
-      logger.warn(
-        "Failed to close Playwright browser context",
-        error as Error,
-      );
+      logger.warn("Failed to close Playwright browser context", error as Error);
     }
   }
 
-  private static async safeCloseBrowser(browser?: Browser | null): Promise<void> {
+  private static async safeCloseBrowser(
+    browser?: Browser | null,
+  ): Promise<void> {
     if (!browser) {
       return;
     }
