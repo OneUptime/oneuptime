@@ -259,7 +259,7 @@ const IncidentPostmortem: FunctionComponent<
               field: {
                 showPostmortemOnStatusPage: true,
               },
-              title: "Visible on Status Page?",
+              title: "Postmortem visible on Status Page?",
               fieldType: FieldType.Boolean,
             },
             {
@@ -268,6 +268,9 @@ const IncidentPostmortem: FunctionComponent<
               },
               title: "Notify Subscribers",
               fieldType: FieldType.Boolean,
+              showIf: (item: Incident): boolean => {
+                return Boolean(item.showPostmortemOnStatusPage);
+              }
             },
             {
               field: {
