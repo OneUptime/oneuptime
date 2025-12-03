@@ -116,11 +116,15 @@ RunCron(
 
           // Calculate how long the monitor was in the previous status
           if (previousTimeline.startsAt && monitorStatusTimeline.startsAt) {
-            const durationInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
-              monitorStatusTimeline.startsAt,
-              previousTimeline.startsAt,
-            );
-            previousStatusDuration = OneUptimeDate.convertMinutesToDaysHoursAndMinutes(durationInMinutes);
+            const durationInMinutes: number =
+              OneUptimeDate.getDifferenceInMinutes(
+                monitorStatusTimeline.startsAt,
+                previousTimeline.startsAt,
+              );
+            previousStatusDuration =
+              OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
+                durationInMinutes,
+              );
           }
         }
       }
