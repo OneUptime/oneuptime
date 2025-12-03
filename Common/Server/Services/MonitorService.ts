@@ -26,6 +26,8 @@ import { JSONObject } from "../../Types/JSON";
 import MonitorType, {
   MonitorTypeHelper,
 } from "../../Types/Monitor/MonitorType";
+import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import MonitorStep from "../../Types/Monitor/MonitorStep";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Typeof from "../../Types/Typeof";
@@ -71,9 +73,59 @@ import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import MetricService from "./MetricService";
 
+export interface MonitorDestinationInfo {
+  monitorDestination: string;
+  requestType: string;
+  monitorType: string;
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  public getMonitorDestinationInfo(monitor: Model): MonitorDestinationInfo {
+    let monitorDestination: string = "";
+    let requestType: string = "";
+    const monitorType: MonitorType | undefined = monitor.monitorType;
+
+    if (monitor.monitorSteps) {
+      const monitorSteps: MonitorSteps = monitor.monitorSteps;
+      const stepsArray: Array<MonitorStep> =
+        monitorSteps.data?.monitorStepsInstanceArray || [];
+
+      if (stepsArray.length > 0) {
+        const firstStep: MonitorStep | undefined = stepsArray[0];
+
+        // Get monitor destination
+        if (firstStep?.data?.monitorDestination) {
+          monitorDestination =
+            firstStep.data.monitorDestination.toString() || "";
+        }
+
+        // Get request type for API monitors
+        if (monitorType === MonitorType.API && firstStep?.data?.requestType) {
+          requestType = firstStep.data.requestType;
+        }
+
+        // For port monitors, append port to destination
+        if (
+          monitorType === MonitorType.Port &&
+          firstStep?.data?.monitorDestinationPort
+        ) {
+          const port: string = firstStep.data.monitorDestinationPort.toString();
+          if (monitorDestination && port) {
+            monitorDestination = `${monitorDestination}:${port}`;
+          }
+        }
+      }
+    }
+
+    return {
+      monitorDestination,
+      requestType,
+      monitorType: monitorType || "",
+    };
   }
 
   public async refreshMonitorCurrentStatus(monitorId: ObjectID): Promise<void> {
@@ -1135,6 +1187,8 @@ ${createdItem.description?.trim() || "No description provided."}
           name: true,
         },
         description: true,
+        monitorType: true,
+        monitorSteps: true,
       },
       props: {
         isRoot: true,
@@ -1172,6 +1226,10 @@ ${createdItem.description?.trim() || "No description provided."}
       ? "Disabled"
       : "Enabled";
 
+    // Get monitor destination info using the helper function
+    const destinationInfo: MonitorDestinationInfo =
+      this.getMonitorDestinationInfo(monitor);
+
     const vars: Dictionary<string> = {
       title: title,
       monitorName: monitor.name!,
@@ -1184,6 +1242,9 @@ ${createdItem.description?.trim() || "No description provided."}
       monitorViewLink: (
         await this.getMonitorLinkInDashboard(monitor.projectId!, monitor.id!)
       ).toString(),
+      monitorDestination: destinationInfo.monitorDestination,
+      requestType: destinationInfo.requestType,
+      monitorType: destinationInfo.monitorType,
     };
 
     if (doesResourceHasOwners === true) {
@@ -1259,6 +1320,8 @@ ${createdItem.description?.trim() || "No description provided."}
           name: true,
         },
         description: true,
+        monitorType: true,
+        monitorSteps: true,
       },
       props: {
         isRoot: true,
@@ -1292,6 +1355,10 @@ ${createdItem.description?.trim() || "No description provided."}
       ? "Disconnected"
       : "Connected";
 
+    // Get monitor destination info using the helper function
+    const destinationInfo: MonitorDestinationInfo =
+      this.getMonitorDestinationInfo(monitor);
+
     const vars: Dictionary<string> = {
       title: `Probes for monitor ${monitor.name} is ${status}.`,
       monitorName: monitor.name!,
@@ -1304,6 +1371,9 @@ ${createdItem.description?.trim() || "No description provided."}
       monitorViewLink: (
         await this.getMonitorLinkInDashboard(monitor.projectId!, monitor.id!)
       ).toString(),
+      monitorDestination: destinationInfo.monitorDestination,
+      requestType: destinationInfo.requestType,
+      monitorType: destinationInfo.monitorType,
     };
 
     if (doesResourceHasOwners === true) {

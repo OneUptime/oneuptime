@@ -11,6 +11,13 @@
 {{> DetailBoxStart this }}
 {{> StatusTransition this}}
 {{> DetailBoxField title="Monitor Name:" text=monitorName }}
+{{#ifNotCond monitorDestination ""}}
+{{#ifCond monitorType "API"}}
+{{> DetailBoxField title="Monitor URL:" text=(concat requestType " " monitorDestination) }}
+{{else}}
+{{> DetailBoxField title="Monitor Destination:" text=monitorDestination }}
+{{/ifCond}}
+{{/ifNotCond}}
 {{#ifNotCond rootCause ""}}
 {{> DetailBoxField title="Root Cause:" text=rootCause }}
 {{/ifNotCond}}

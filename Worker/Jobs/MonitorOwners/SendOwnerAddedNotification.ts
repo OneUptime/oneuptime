@@ -10,7 +10,9 @@ import PushNotificationMessage from "Common/Types/PushNotification/PushNotificat
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorOwnerTeamService from "Common/Server/Services/MonitorOwnerTeamService";
 import MonitorOwnerUserService from "Common/Server/Services/MonitorOwnerUserService";
-import MonitorService from "Common/Server/Services/MonitorService";
+import MonitorService, {
+  MonitorDestinationInfo,
+} from "Common/Server/Services/MonitorService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
@@ -143,12 +145,18 @@ RunCron(
           currentMonitorStatus: {
             name: true,
           },
+          monitorType: true,
+          monitorSteps: true,
         },
       });
 
       if (!monitor) {
         continue;
       }
+
+      // Get monitor destination info using the helper function
+      const destinationInfo: MonitorDestinationInfo =
+        MonitorService.getMonitorDestinationInfo(monitor);
 
       const vars: Dictionary<string> = {
         monitorName: monitor.name!,
@@ -164,6 +172,9 @@ RunCron(
             monitor.id!,
           )
         ).toString(),
+        monitorDestination: destinationInfo.monitorDestination,
+        requestType: destinationInfo.requestType,
+        monitorType: destinationInfo.monitorType,
       };
 
       for (const user of users) {

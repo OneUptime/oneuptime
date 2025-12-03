@@ -7,7 +7,9 @@ import NotificationSettingEventType from "Common/Types/NotificationSetting/Notif
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import MonitorService from "Common/Server/Services/MonitorService";
+import MonitorService, {
+  MonitorDestinationInfo,
+} from "Common/Server/Services/MonitorService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
@@ -40,6 +42,8 @@ RunCron(
         currentMonitorStatus: {
           name: true,
         },
+        monitorType: true,
+        monitorSteps: true,
       },
     });
 
@@ -71,6 +75,10 @@ RunCron(
         continue;
       }
 
+      // Get monitor destination info using the helper function
+      const destinationInfo: MonitorDestinationInfo =
+        MonitorService.getMonitorDestinationInfo(monitor);
+
       const vars: Dictionary<string> = {
         monitorName: monitor.name!,
         projectName: monitor.project!.name!,
@@ -85,6 +93,9 @@ RunCron(
             monitor.id!,
           )
         ).toString(),
+        monitorDestination: destinationInfo.monitorDestination,
+        requestType: destinationInfo.requestType,
+        monitorType: destinationInfo.monitorType,
       };
 
       if (doesResourceHasOwners === true) {

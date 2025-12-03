@@ -8,7 +8,9 @@ import NotificationSettingEventType from "Common/Types/NotificationSetting/Notif
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import MonitorService from "Common/Server/Services/MonitorService";
+import MonitorService, {
+  MonitorDestinationInfo,
+} from "Common/Server/Services/MonitorService";
 import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTimelineService";
 import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import ProjectService from "Common/Server/Services/ProjectService";
@@ -52,6 +54,8 @@ RunCron(
             _id: true,
             name: true,
             description: true,
+            monitorType: true,
+            monitorSteps: true,
           },
           monitorStatus: {
             name: true,
@@ -110,6 +114,10 @@ RunCron(
         }
       }
 
+      // Get monitor destination info using the helper function
+      const destinationInfo: MonitorDestinationInfo =
+        MonitorService.getMonitorDestinationInfo(monitor);
+
       // now find owners.
 
       let doesResourceHasOwners: boolean = true;
@@ -157,6 +165,9 @@ RunCron(
               monitorStatusTimeline.rootCause || "",
               MarkdownContentType.Email,
             )) || "",
+          monitorDestination: destinationInfo.monitorDestination,
+          requestType: destinationInfo.requestType,
+          monitorType: destinationInfo.monitorType,
         };
 
         if (doesResourceHasOwners === true) {
