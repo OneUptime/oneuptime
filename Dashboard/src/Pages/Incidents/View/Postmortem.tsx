@@ -86,7 +86,7 @@ const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
       notifySubscribersOnPostmortemPublished: true,
     },
     title: "Notify Subscribers",
-    fieldType: FormFieldSchemaType.Toggle,
+    fieldType: FormFieldSchemaType.Checkbox,
     required: false,
     description: "Notify subscribers when this postmortem is published.",
     defaultValue: true,
