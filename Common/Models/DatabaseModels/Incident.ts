@@ -909,7 +909,8 @@ export default class Incident extends BaseModel {
     type: ColumnType.VeryLongText,
     nullable: true,
   })
-  public subscriberNotificationStatusMessageOnPostmortemPublished?: string = undefined;
+  public subscriberNotificationStatusMessageOnPostmortemPublished?: string =
+    undefined;
 
   @ColumnAccessControl({
     create: [

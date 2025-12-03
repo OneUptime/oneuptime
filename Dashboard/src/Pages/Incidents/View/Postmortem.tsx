@@ -93,7 +93,7 @@ const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
     description: "Notify subscribers when this postmortem is published.",
     defaultValue: true,
     showIf: (model: FormValues<Incident>) => {
-      return model && model.showPostmortemOnStatusPage ? true : false;
+      return Boolean(model && model.showPostmortemOnStatusPage);
     },
   },
 ];
@@ -280,7 +280,9 @@ const IncidentPostmortem: FunctionComponent<
               getElement: (item: Incident): ReactElement => {
                 return (
                   <SubscriberNotificationStatus
-                    status={item.subscriberNotificationStatusOnPostmortemPublished}
+                    status={
+                      item.subscriberNotificationStatusOnPostmortemPublished
+                    }
                     subscriberNotificationStatusMessage={
                       item.subscriberNotificationStatusMessageOnPostmortemPublished
                     }

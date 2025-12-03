@@ -120,7 +120,8 @@ RunCron(
           continue;
         }
 
-        const incidentNumber = incident.incidentNumber?.toString() || " - ";
+        const incidentNumber: string =
+          incident.incidentNumber?.toString() || " - ";
         const incidentFeedText: string = `📧 **Subscriber Incident Postmortem Notification Sent for [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})**:
       Notification sent to status page subscribers because postmortem was published for this incident.`;
 
@@ -280,8 +281,8 @@ RunCron(
             const incidentDetailsUrl: string =
               incident.id && statusPageURL
                 ? URL.fromString(statusPageURL)
-                  .addRoute(`/incidents/${incident.id.toString()}`)
-                  .toString()
+                    .addRoute(`/incidents/${incident.id.toString()}`)
+                    .toString()
                 : statusPageURL;
 
             logger.debug(
@@ -345,7 +346,8 @@ RunCron(
                   MailService.sendMail(
                     {
                       toEmail: subscriber.subscriberEmail,
-                      templateType: EmailTemplateType.SubscriberIncidentPostmortemCreated,
+                      templateType:
+                        EmailTemplateType.SubscriberIncidentPostmortemCreated,
                       vars: {
                         statusPageName: statusPageName,
                         statusPageUrl: statusPageURL,
@@ -353,9 +355,9 @@ RunCron(
                         logoUrl:
                           statuspage.logoFileId && statusPageIdString
                             ? new URL(httpProtocol, host)
-                              .addRoute(StatusPageApiRoute)
-                              .addRoute(`/logo/${statusPageIdString}`)
-                              .toString()
+                                .addRoute(StatusPageApiRoute)
+                                .addRoute(`/logo/${statusPageIdString}`)
+                                .toString()
                             : "",
                         isPublicStatusPage: statuspage.isPublicStatusPage
                           ? "true"
@@ -406,8 +408,9 @@ RunCron(
 
                             Title: ${incident.title || ""}
 
-                            Severity: ${incident.incidentSeverity?.name || " - "
-                      } 
+                            Severity: ${
+                              incident.incidentSeverity?.name || " - "
+                            } 
 
                             Resources Affected: ${resourcesAffectedString} 
 
