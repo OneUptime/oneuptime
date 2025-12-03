@@ -344,6 +344,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -413,6 +416,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -482,6 +488,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -551,6 +560,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -623,6 +635,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -692,6 +707,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -763,6 +781,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -832,6 +853,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -901,6 +925,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -971,6 +998,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -1042,6 +1072,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -1112,6 +1145,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -1181,6 +1217,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -1250,6 +1289,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -1320,6 +1362,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -1389,6 +1434,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -1459,6 +1507,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -1528,6 +1579,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -1641,6 +1695,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -1712,6 +1769,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -1786,6 +1846,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -1860,6 +1923,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
@@ -1994,6 +2060,9 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
+          
 
 
       - name: Set up Docker Buildx
