@@ -81,6 +81,19 @@ const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
       "Enable to display the postmortem note and attachments as the closing update for this incident on your status page.",
     defaultValue: false,
   },
+  {
+    field: {
+      notifySubscribersOnPostmortemPublished: true,
+    },
+    title: "Notify Subscribers",
+    fieldType: FormFieldSchemaType.Toggle,
+    required: false,
+    description: "Notify subscribers when this postmortem is published.",
+    defaultValue: true,
+    showIf: (model: FormValues<Incident>) => {
+      return model && model.showPostmortemOnStatusPage ? true : false;
+    },
+  },
 ];
 
 const IncidentPostmortem: FunctionComponent<
@@ -217,6 +230,13 @@ const IncidentPostmortem: FunctionComponent<
                 showPostmortemOnStatusPage: true,
               },
               title: "Visible on Status Page?",
+              fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                notifySubscribersOnPostmortemPublished: true,
+              },
+              title: "Notify Subscribers",
               fieldType: FieldType.Boolean,
             },
             {
