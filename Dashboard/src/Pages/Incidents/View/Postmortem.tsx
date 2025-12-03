@@ -63,8 +63,7 @@ const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
     title: "Postmortem Published At",
     fieldType: FormFieldSchemaType.DateTime,
     required: false,
-    description:
-      "Set the posted-on timestamp subscribers will see. ",
+    description: "Set the posted-on timestamp subscribers will see. ",
     placeholder: "Select date and time",
     getDefaultValue: () => {
       return OneUptimeDate.getCurrentDate();
@@ -270,7 +269,7 @@ const IncidentPostmortem: FunctionComponent<
               fieldType: FieldType.Boolean,
               showIf: (item: Incident): boolean => {
                 return Boolean(item.showPostmortemOnStatusPage);
-              }
+              },
             },
             {
               field: {
