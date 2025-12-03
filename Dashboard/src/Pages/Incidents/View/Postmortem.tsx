@@ -78,7 +78,7 @@ const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
     description:
-      "Enable to display the postmortem note and attachments as the closing update on your status page.",
+      "Enable to display the postmortem note and attachments as the closing update for this incident on your status page.",
     defaultValue: false,
   },
 ];
@@ -242,8 +242,21 @@ const IncidentPostmortem: FunctionComponent<
               getElement: (item: Incident): ReactElement => {
                 const modelIdString: string | null = getModelIdString(item);
 
-                if (!modelIdString || !item.postmortemAttachments?.length) {
-                  return <></>;
+                if (!item.postmortemAttachments?.length) {
+                  return (
+                    <div className="text-sm text-gray-400 italic">
+                      No postmortem attachments uploaded for this incident.
+                    </div>
+                  );
+                }
+
+                if (!modelIdString) {
+                  return (
+                    <div className="text-sm text-gray-400 italic">
+                      Attachments are available but the incident identifier is
+                      missing, so they cannot be displayed.
+                    </div>
+                  );
                 }
 
                 return (
