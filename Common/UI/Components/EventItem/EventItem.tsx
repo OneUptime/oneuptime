@@ -267,19 +267,21 @@ const EventItem: FunctionComponent<ComponentProps> = (
                               : ""
                           }`}
                         >
-                          <div>
-                            <div className="relative px-1">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 ring-8 ring-white">
-                                <Icon
-                                  icon={item.icon}
-                                  className="h-5 w-5 text-gray-500"
-                                  style={{
-                                    color: item.iconColor.toString(),
-                                  }}
-                                />
+                          {!item.highlight && (
+                            <div>
+                              <div className="relative px-1">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 ring-8 ring-white">
+                                  <Icon
+                                    icon={item.icon}
+                                    className="h-5 w-5 text-gray-500"
+                                    style={{
+                                      color: item.iconColor.toString(),
+                                    }}
+                                  />
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          )}
                           <div className="min-w-0 flex-1">
                             <div>
                               <div className="text-sm">
