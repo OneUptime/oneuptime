@@ -30,6 +30,8 @@ export interface TimelineItem {
   icon: IconProp;
   iconColor: Color;
   attachments?: Array<TimelineAttachment>;
+  title?: string;
+  highlight?: boolean;
 }
 
 export interface EventItemLabel {
@@ -275,8 +277,16 @@ const EventItem: FunctionComponent<ComponentProps> = (
                           <div className="min-w-0 flex-1">
                             <div>
                               <div className="text-sm">
-                                <span className="font-medium text-gray-900">
-                                  Update to this {props.eventType}
+                                <span
+                                  className={`font-medium ${
+                                    item.highlight
+                                      ? "text-indigo-600"
+                                      : "text-gray-900"
+                                  }`}
+                                >
+                                  {item.title
+                                    ? item.title
+                                    : `Update to this ${props.eventType}`}
                                 </span>
                               </div>
                               <p className="mt-0.5 text-sm text-gray-500">

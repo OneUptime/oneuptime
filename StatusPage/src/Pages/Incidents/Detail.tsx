@@ -253,6 +253,8 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
       type: TimelineItemType.Note,
       icon: IconProp.File,
       iconColor: Gray500,
+      title: "Incident Postmortem",
+      highlight: true,
       ...(attachments.length > 0
         ? {
             attachments,
