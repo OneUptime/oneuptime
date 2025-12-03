@@ -10,6 +10,11 @@
 
 {{> DetailBoxStart this }}
 {{> StatusTransition this}}
+{{#ifNotCond previousStatus ""}}
+{{#ifNotCond previousStatusDuration ""}}
+{{> DetailBoxField title="Duration in Previous Status:" text=(concat "Was " previousStatus " for " previousStatusDuration) }}
+{{/ifNotCond}}
+{{/ifNotCond}}
 {{> DetailBoxField title="Monitor Name:" text=monitorName }}
 {{#ifNotCond monitorDestination ""}}
 {{#ifCond monitorType "API"}}

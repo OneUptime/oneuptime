@@ -81,6 +81,7 @@ RunCron(
 
       // Fetch the previous status timeline entry
       let previousStatus: MonitorStatus | null = null;
+      let previousStatusDuration: string = "";
 
       if (monitorStatusTimeline.monitorId && monitorStatusTimeline.startsAt) {
         const previousTimeline: MonitorStatusTimeline | null =
@@ -97,6 +98,7 @@ RunCron(
             },
             select: {
               monitorStatusId: true,
+              startsAt: true,
             },
           });
 
@@ -111,6 +113,15 @@ RunCron(
               color: true,
             },
           });
+
+          // Calculate how long the monitor was in the previous status
+          if (previousTimeline.startsAt && monitorStatusTimeline.startsAt) {
+            const durationInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
+              monitorStatusTimeline.startsAt,
+              previousTimeline.startsAt,
+            );
+            previousStatusDuration = OneUptimeDate.convertMinutesToDaysHoursAndMinutes(durationInMinutes);
+          }
         }
       }
 
@@ -145,6 +156,7 @@ RunCron(
           currentStatusColor: monitorStatus!.color?.toString() || "#000000",
           previousStatus: previousStatus?.name || "",
           previousStatusColor: previousStatus?.color?.toString() || "#6b7280",
+          previousStatusDuration: previousStatusDuration,
           monitorDescription: await Markdown.convertToHTML(
             monitor.description! || "",
             MarkdownContentType.Email,
