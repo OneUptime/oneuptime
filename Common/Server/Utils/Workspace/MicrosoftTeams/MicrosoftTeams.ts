@@ -2543,7 +2543,6 @@ All monitoring checks are passing normally.`;
 
     if (action === "add") {
       logger.debug("OneUptime bot was installed");
-      await this.sendWelcomeAdaptiveCard(data.turnContext);
     } else if (action === "remove") {
       logger.debug("OneUptime bot was uninstalled");
     }
