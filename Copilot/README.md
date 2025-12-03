@@ -75,7 +75,7 @@ For example:
 ```
 npm run dev -- --prompt "Write tests for this project. These tests should be in Jest and TypeScript." \
   --model http://localhost:1234/v1/chat/completions \
-  --model-name openai/gpt-oss-20b \
+  --model-name deepseek/deepseek-r1-0528-qwen3-8b \
   --workspace-path ./ \
   --log-file ./copilot-agent-debug.log
 ```

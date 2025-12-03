@@ -2,6 +2,9 @@ import { fetch, Response } from "undici";
 import { ChatMessage, ToolDefinition } from "../Types";
 import AgentLogger from "../Utils/AgentLogger";
 
+const DEFAULT_MAX_ATTEMPTS: number = 3;
+const DEFAULT_RETRY_DELAY_MS: number = 2000;
+
 /**
  * Chat message payload in the minimal form accepted by the LM Studio API.
  */
@@ -63,16 +66,23 @@ export interface LMStudioClientOptions {
   temperature: number;
   timeoutMs: number;
   apiKey?: string | undefined;
+  maxAttempts?: number;
+  retryDelayMs?: number;
 }
 
 /**
  * Thin wrapper around fetch that speaks LM Studio's OpenAI-compatible API.
  */
 export class LMStudioClient {
+  private readonly maxAttempts: number;
+  private readonly retryDelayMs: number;
   /**
    * Persists the endpoint configuration for future chat completion requests.
    */
-  public constructor(private readonly options: LMStudioClientOptions) {}
+  public constructor(private readonly options: LMStudioClientOptions) {
+    this.maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
+    this.retryDelayMs = options.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
+  }
 
   /**
    * Submits the provided chat history plus tool metadata and returns the
@@ -82,6 +92,45 @@ export class LMStudioClient {
     messages: Array<ChatMessage>;
     tools?: Array<ToolDefinition>;
   }): Promise<ChatMessage> {
+    let attempt: number = 0;
+    let lastError: unknown;
+
+    while (attempt < this.maxAttempts) {
+      attempt += 1;
+      try {
+        return await this.executeChatCompletionAttempt(data, attempt);
+      } catch (error) {
+        lastError = error;
+        if (!this.isAbortError(error)) {
+          throw error;
+        }
+
+        if (attempt >= this.maxAttempts) {
+          throw this.createTimeoutError(error as Error);
+        }
+
+        const delayMs: number = this.retryDelayMs * attempt;
+        AgentLogger.warn("LLM request timed out; retrying", {
+          attempt,
+          maxAttempts: this.maxAttempts,
+          retryDelayMs: delayMs,
+        });
+        await this.delay(delayMs);
+      }
+    }
+
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("LLM request failed without a specific error.");
+  }
+
+  private async executeChatCompletionAttempt(
+    data: {
+      messages: Array<ChatMessage>;
+      tools?: Array<ToolDefinition>;
+    },
+    attempt: number,
+  ): Promise<ChatMessage> {
     const controller: AbortController = new AbortController();
     const timeout: NodeJS.Timeout = setTimeout(() => {
       controller.abort();
@@ -94,6 +143,8 @@ export class LMStudioClient {
         messageCount: data.messages.length,
         toolCount: data.tools?.length ?? 0,
         temperature: this.options.temperature,
+        attempt,
+        maxAttempts: this.maxAttempts,
       });
       const payload: ChatCompletionRequestPayload = {
         model: this.options.model,
@@ -189,7 +240,10 @@ export class LMStudioClient {
       throw error;
     } finally {
       clearTimeout(timeout);
-      AgentLogger.debug("LLM request finalized");
+      AgentLogger.debug("LLM request finalized", {
+        attempt,
+        maxAttempts: this.maxAttempts,
+      });
     }
   }
 
@@ -230,5 +284,36 @@ export class LMStudioClient {
     }
 
     return String(content);
+  }
+
+  private isAbortError(error: unknown): boolean {
+    if (!error) {
+      return false;
+    }
+
+    if (error instanceof Error && error.name === "AbortError") {
+      return true;
+    }
+
+    if (typeof DOMException !== "undefined" && error instanceof DOMException) {
+      return error.name === "AbortError";
+    }
+
+    return false;
+  }
+
+  private async delay(durationMs: number): Promise<void> {
+    if (durationMs <= 0) {
+      return;
+    }
+
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, durationMs);
+    });
+  }
+
+  private createTimeoutError(originalError: Error): Error {
+    const message: string = `LLM request timed out after ${this.options.timeoutMs} ms while calling ${this.options.endpoint}. Increase the --timeout flag or ensure the endpoint is reachable.`;
+    return new Error(`${message} Original error: ${originalError.message}`);
   }
 }
