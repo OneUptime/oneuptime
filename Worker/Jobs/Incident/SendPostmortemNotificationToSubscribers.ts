@@ -157,6 +157,7 @@ RunCron(
             ignoreHooks: true,
           },
         });
+
         logger.debug(
           `Incident ${incident.id} status set to InProgress for subscriber postmortem notifications.`,
         );
@@ -266,7 +267,6 @@ RunCron(
                 statuspage.id!,
                 {
                   isRoot: true,
-                  ignoreHooks: true,
                 },
               );
 
