@@ -2,6 +2,7 @@ enum IconProp {
   Equals = "Equals",
   Archive = "Archive",
   File = "File",
+  DocumentCheck = "DocumentCheck",
   Automation = "Automation",
   Workflow = "Workflow",
   TableCells = "TableCells",

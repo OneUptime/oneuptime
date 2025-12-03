@@ -1130,6 +1130,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
         d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
       />,
     );
+  } else if (icon === IconProp.DocumentCheck) {
+    return getSvgWrapper(
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M10.125 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.625M10.125 2.25H10.5c4.971 0 9 4.029 9 9v.375M10.125 2.25c1.864 0 3.375 1.511 3.375 3.375V7.125c0 .621.504 1.125 1.125 1.125h1.5c1.864 0 3.375 1.511 3.375 3.375M9 15l2.25 2.25L15 12"
+      />,
+    );
   } else if (icon === IconProp.TextFile || icon === IconProp.File) {
     return getSvgWrapper(
       <path

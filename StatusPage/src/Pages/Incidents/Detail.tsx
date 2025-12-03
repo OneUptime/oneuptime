@@ -251,7 +251,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
       note: incident.postmortemNote,
       date: postmortemDate,
       type: TimelineItemType.Note,
-      icon: IconProp.File,
+      icon: IconProp.DocumentCheck,
       iconColor: Gray500,
       title: "Incident Postmortem",
       highlight: true,
