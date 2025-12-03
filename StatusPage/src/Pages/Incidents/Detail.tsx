@@ -203,6 +203,64 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     }
   }
 
+  if (
+    incident.showPostmortemOnStatusPage &&
+    incident.postmortemNote &&
+    incident.postmortemNote.trim() !== ""
+  ) {
+    const postmortemDate: Date =
+      (incident.updatedAt as Date | undefined) ||
+      incident.declaredAt ||
+      (incident.createdAt as Date);
+
+    const attachments: Array<TimelineAttachment> =
+      statusPageIdString && incidentIdString
+        ? (incident.postmortemAttachments || [])
+            .map((attachment: FileModel) => {
+              const attachmentId: string | null = attachment.id
+                ? attachment.id.toString()
+                : attachment._id
+                  ? attachment._id.toString()
+                  : null;
+
+              if (!attachmentId) {
+                return null;
+              }
+
+              const downloadRoute: Route = Route.fromString(
+                StatusPageApiRoute.toString(),
+              ).addRoute(
+                `/incident/postmortem/attachment/${statusPageIdString}/${incidentIdString}/${attachmentId}`,
+              );
+
+              return {
+                name: attachment.name || "Attachment",
+                downloadUrl: downloadRoute.toString(),
+              };
+            })
+            .filter(
+              (
+                attachment: TimelineAttachment | null,
+              ): attachment is TimelineAttachment => {
+                return Boolean(attachment);
+              },
+            )
+        : [];
+
+    timeline.push({
+      note: incident.postmortemNote,
+      date: postmortemDate,
+      type: TimelineItemType.Note,
+      icon: IconProp.File,
+      iconColor: Gray500,
+      ...(attachments.length > 0
+        ? {
+            attachments,
+          }
+        : {}),
+    });
+  }
+
   timeline.sort((a: TimelineItem, b: TimelineItem) => {
     return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
   });

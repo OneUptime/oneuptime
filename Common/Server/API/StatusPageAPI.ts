@@ -411,6 +411,20 @@ export default class StatusPageAPI extends BaseAPI<
     this.router.get(
       `${new this.entityType()
         .getCrudApiPath()
+        ?.toString()}/incident/postmortem/attachment/:statusPageId/:incidentId/:fileId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getIncidentPostmortemAttachment(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
         ?.toString()}/scheduled-maintenance-public-note/attachment/:statusPageId/:scheduledMaintenanceId/:noteId/:fileId`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
@@ -1422,9 +1436,16 @@ export default class StatusPageAPI extends BaseAPI<
             let select: Select<Incident> = {
               createdAt: true,
               declaredAt: true,
+              updatedAt: true,
               title: true,
               description: true,
               _id: true,
+              postmortemNote: true,
+              showPostmortemOnStatusPage: true,
+              postmortemAttachments: {
+                _id: true,
+                name: true,
+              },
               incidentSeverity: {
                 name: true,
                 color: true,
@@ -3306,9 +3327,16 @@ export default class StatusPageAPI extends BaseAPI<
     let selectIncidents: Select<Incident> = {
       createdAt: true,
       declaredAt: true,
+      updatedAt: true,
       title: true,
       description: true,
       _id: true,
+      postmortemNote: true,
+      showPostmortemOnStatusPage: true,
+      postmortemAttachments: {
+        _id: true,
+        name: true,
+      },
       incidentSeverity: {
         name: true,
         color: true,
@@ -3960,6 +3988,106 @@ export default class StatusPageAPI extends BaseAPI<
             : null;
         return attachmentId === fileId.toString();
       });
+
+    if (!attachment || !attachment.file) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    Response.setNoCacheHeaders(res);
+    return Response.sendFileResponse(req, res, attachment);
+  }
+
+  private async getIncidentPostmortemAttachment(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const statusPageIdParam: string | undefined = req.params["statusPageId"];
+    const incidentIdParam: string | undefined = req.params["incidentId"];
+    const fileIdParam: string | undefined = req.params["fileId"];
+
+    if (!statusPageIdParam || !incidentIdParam || !fileIdParam) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    let statusPageId: ObjectID;
+    let incidentId: ObjectID;
+    let fileId: ObjectID;
+
+    try {
+      statusPageId = new ObjectID(statusPageIdParam);
+      incidentId = new ObjectID(incidentIdParam);
+      fileId = new ObjectID(fileIdParam);
+    } catch {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    await this.checkHasReadAccess({
+      statusPageId,
+      req,
+    });
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        showIncidentsOnStatusPage: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!statusPage || !statusPage.projectId || !statusPage.showIncidentsOnStatusPage) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const { monitorsOnStatusPage } =
+      await StatusPageService.getMonitorIdsOnStatusPage({
+        statusPageId,
+      });
+
+    if (!monitorsOnStatusPage || monitorsOnStatusPage.length === 0) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const incident: Incident | null = await IncidentService.findOneBy({
+      query: {
+        _id: incidentId.toString(),
+        projectId: statusPage.projectId!,
+        isVisibleOnStatusPage: true,
+        showPostmortemOnStatusPage: true,
+        monitors: monitorsOnStatusPage as any,
+      },
+      select: {
+        postmortemAttachments: {
+          _id: true,
+          file: true,
+          fileType: true,
+          name: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      throw new NotFoundException("Attachment not found");
+    }
+
+    const attachment: File | undefined = incident.postmortemAttachments?.find(
+      (file: File) => {
+        const attachmentId: string | null = file._id
+          ? file._id.toString()
+          : file.id
+            ? file.id.toString()
+            : null;
+        return attachmentId === fileId.toString();
+      },
+    );
 
     if (!attachment || !attachment.file) {
       throw new NotFoundException("Attachment not found");

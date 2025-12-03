@@ -33,6 +33,7 @@ import IncidentInternalNoteAPI from "Common/Server/API/IncidentInternalNoteAPI";
 import IncidentPublicNoteAPI from "Common/Server/API/IncidentPublicNoteAPI";
 import ScheduledMaintenanceInternalNoteAPI from "Common/Server/API/ScheduledMaintenanceInternalNoteAPI";
 import ScheduledMaintenancePublicNoteAPI from "Common/Server/API/ScheduledMaintenancePublicNoteAPI";
+import IncidentAPI from "Common/Server/API/IncidentAPI";
 // User Notification methods.
 import UserEmailAPI from "Common/Server/API/UserEmailAPI";
 import UserNotificationLogTimelineAPI from "Common/Server/API/UserOnCallLogTimelineAPI";
@@ -111,9 +112,6 @@ import IncidentOwnerTeamService, {
 import IncidentOwnerUserService, {
   Service as IncidentOwnerUserServiceType,
 } from "Common/Server/Services/IncidentOwnerUserService";
-import IncidentService, {
-  Service as IncidentServiceType,
-} from "Common/Server/Services/IncidentService";
 import IncidentSeverityService, {
   Service as IncidentSeverityServiceType,
 } from "Common/Server/Services/IncidentSeverityService";
@@ -393,7 +391,6 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 
-import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentPostmortemTemplate from "Common/Models/DatabaseModels/IncidentPostmortemTemplate";
@@ -1270,10 +1267,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<Incident, IncidentServiceType>(
-        Incident,
-        IncidentService,
-      ).getRouter(),
+      new IncidentAPI().getRouter(),
     );
 
     app.use(
