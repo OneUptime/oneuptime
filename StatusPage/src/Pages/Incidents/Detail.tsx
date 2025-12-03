@@ -209,6 +209,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     incident.postmortemNote.trim() !== ""
   ) {
     const postmortemDate: Date =
+      incident.postmortemPostedAt ||
       (incident.updatedAt as Date | undefined) ||
       incident.declaredAt ||
       (incident.createdAt as Date);

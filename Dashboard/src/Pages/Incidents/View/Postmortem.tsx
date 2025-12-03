@@ -3,6 +3,7 @@ import PageComponentProps from "../../PageComponentProps";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import OneUptimeDate from "Common/Types/Date";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -52,6 +53,19 @@ const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
     required: false,
     description:
       "Upload supporting evidence (images, reports, timelines) that can be shared once the postmortem is public.",
+  },
+  {
+    field: {
+      postmortemPostedAt: true,
+    },
+    title: "Postmortem Published At",
+    fieldType: FormFieldSchemaType.DateTime,
+    required: false,
+    description:
+      "Set the posted-on timestamp subscribers will see. This is in " +
+      OneUptimeDate.getCurrentTimezoneString() +
+      ".",
+    placeholder: "Select date and time",
   },
   {
     field: {
@@ -186,13 +200,6 @@ const IncidentPostmortem: FunctionComponent<
           modelType: Incident,
           id: "model-detail-incident-postmortem-note",
           selectMoreFields: {
-            postmortemAttachments: {
-              _id: true,
-              name: true,
-              fileType: true,
-              createdAt: true,
-            },
-            showPostmortemOnStatusPage: true,
           },
           fields: [
             {
@@ -209,6 +216,14 @@ const IncidentPostmortem: FunctionComponent<
               },
               title: "Visible on Status Page?",
               fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                postmortemPostedAt: true,
+              },
+              title: "Postmortem Published At",
+              fieldType: FieldType.DateTime,
+              placeholder: "Not scheduled yet.",
             },
             {
               field: {

@@ -1441,6 +1441,7 @@ export default class StatusPageAPI extends BaseAPI<
               description: true,
               _id: true,
               postmortemNote: true,
+              postmortemPostedAt: true,
               showPostmortemOnStatusPage: true,
               postmortemAttachments: {
                 _id: true,
@@ -3332,6 +3333,7 @@ export default class StatusPageAPI extends BaseAPI<
       description: true,
       _id: true,
       postmortemNote: true,
+      postmortemPostedAt: true,
       showPostmortemOnStatusPage: true,
       postmortemAttachments: {
         _id: true,

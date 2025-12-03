@@ -1052,6 +1052,39 @@ export default class Incident extends BaseModel {
     ],
   })
   @TableColumn({
+    type: TableColumnType.Date,
+    title: "Postmortem Posted At",
+    description:
+      "Timestamp that will be shown alongside the published postmortem on the status page.",
+    required: false,
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public postmortemPostedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
     type: TableColumnType.EntityArray,
     modelType: File,
     title: "Postmortem Attachments",
