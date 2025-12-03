@@ -223,7 +223,7 @@ const IncidentPostmortem: FunctionComponent<
               },
               title: "Postmortem Published At",
               fieldType: FieldType.DateTime,
-              placeholder: "Not scheduled yet.",
+              placeholder: "-",
             },
             {
               field: {
