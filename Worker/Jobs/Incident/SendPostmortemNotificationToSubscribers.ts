@@ -51,6 +51,7 @@ RunCron(
       skip: 0,
       select: {
         showPostmortemOnStatusPage: true,
+        notifySubscribersOnPostmortemPublished: true,
         _id: true,
         title: true,
         description: true,
@@ -79,34 +80,47 @@ RunCron(
 
     for (const incident of incidents) {
       try {
-
-        if(!incident.showPostmortemOnStatusPage){
-            logger.debug(
-                `Incident ${incident.id} is not set to show postmortem on status page; marking as Skipped.`,
-                );
-            await IncidentService.updateOneById({
-                id: incident.id!,
-                data: {
-                  subscriberNotificationStatusOnPostmortemPublished:
-                    StatusPageSubscriberNotificationStatus.Skipped,
-                  subscriberNotificationStatusMessageOnPostmortemPublished:
-                    "Incident is not set to show postmortem on status page. Skipping notifications to subscribers.",
-                },
-                props: {
-                  isRoot: true,
-                  ignoreHooks: true,
-                },
-              });
-              continue;
+        if (!incident.showPostmortemOnStatusPage) {
+          logger.debug(
+            `Incident ${incident.id} is not set to show postmortem on status page; marking as Skipped.`,
+          );
+          await IncidentService.updateOneById({
+            id: incident.id!,
+            data: {
+              subscriberNotificationStatusOnPostmortemPublished:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessageOnPostmortemPublished:
+                "Incident is not set to show postmortem on status page. Skipping notifications to subscribers.",
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
+          continue;
         }
 
-        logger.debug(
-          `Processing incident ${incident.id} (project: ${incident.projectId}) for subscriber postmortem notifications.`,
-        );
-        const incidentId: ObjectID = incident.id!;
-        const projectId: ObjectID = incident.projectId!;
-        const incidentNumber: string =
-          incident.incidentNumber?.toString() || " - ";
+        if (!incident.notifySubscribersOnPostmortemPublished) {
+          logger.debug(
+            `Incident ${incident.id} is not set to notify subscribers on postmortem published; marking as Skipped.`,
+          );
+          await IncidentService.updateOneById({
+            id: incident.id!,
+            data: {
+              subscriberNotificationStatusOnPostmortemPublished:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessageOnPostmortemPublished:
+                "Incident is not set to notify subscribers on postmortem published. Skipping notifications to subscribers.",
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
+          continue;
+        }
+        
+        incident.incidentNumber?.toString() || " - ";
         const incidentFeedText: string = `📧 **Subscriber Incident Postmortem Notification Sent for [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()})**:
       Notification sent to status page subscribers because postmortem was published for this incident.`;
 
@@ -266,8 +280,8 @@ RunCron(
             const incidentDetailsUrl: string =
               incident.id && statusPageURL
                 ? URL.fromString(statusPageURL)
-                    .addRoute(`/incidents/${incident.id.toString()}`)
-                    .toString()
+                  .addRoute(`/incidents/${incident.id.toString()}`)
+                  .toString()
                 : statusPageURL;
 
             logger.debug(
@@ -339,9 +353,9 @@ RunCron(
                         logoUrl:
                           statuspage.logoFileId && statusPageIdString
                             ? new URL(httpProtocol, host)
-                                .addRoute(StatusPageApiRoute)
-                                .addRoute(`/logo/${statusPageIdString}`)
-                                .toString()
+                              .addRoute(StatusPageApiRoute)
+                              .addRoute(`/logo/${statusPageIdString}`)
+                              .toString()
                             : "",
                         isPublicStatusPage: statuspage.isPublicStatusPage
                           ? "true"
@@ -392,9 +406,8 @@ RunCron(
 
                             Title: ${incident.title || ""}
 
-                            Severity: ${
-                              incident.incidentSeverity?.name || " - "
-                            } 
+                            Severity: ${incident.incidentSeverity?.name || " - "
+                      } 
 
                             Resources Affected: ${resourcesAffectedString} 
 

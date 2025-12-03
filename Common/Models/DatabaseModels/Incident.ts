@@ -1122,6 +1122,40 @@ export default class Incident extends BaseModel {
     ],
   })
   @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Notify Subscribers on Postmortem Published",
+    description:
+      "Should subscribers be notified when the postmortem is published?",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+  })
+  public notifySubscribersOnPostmortemPublished?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
     type: TableColumnType.Date,
     title: "Postmortem Posted At",
     description:
