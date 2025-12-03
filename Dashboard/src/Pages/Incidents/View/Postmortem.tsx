@@ -64,9 +64,7 @@ const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
     fieldType: FormFieldSchemaType.DateTime,
     required: false,
     description:
-      "Set the posted-on timestamp subscribers will see. This is in " +
-      OneUptimeDate.getCurrentTimezoneString() +
-      ".",
+      "Set the posted-on timestamp subscribers will see. ",
     placeholder: "Select date and time",
     getDefaultValue: () => {
       return OneUptimeDate.getCurrentDate();
