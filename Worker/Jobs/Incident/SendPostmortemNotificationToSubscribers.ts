@@ -119,9 +119,9 @@ RunCron(
           });
           continue;
         }
-        
-        incident.incidentNumber?.toString() || " - ";
-        const incidentFeedText: string = `📧 **Subscriber Incident Postmortem Notification Sent for [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()})**:
+
+        const incidentNumber = incident.incidentNumber?.toString() || " - ";
+        const incidentFeedText: string = `📧 **Subscriber Incident Postmortem Notification Sent for [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})**:
       Notification sent to status page subscribers because postmortem was published for this incident.`;
 
         if (!incident.monitors || incident.monitors.length === 0) {
