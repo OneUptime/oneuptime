@@ -244,7 +244,7 @@ const IncidentPostmortem: FunctionComponent<
 
                 if (!item.postmortemAttachments?.length) {
                   return (
-                    <div className="text-sm text-gray-400 italic">
+                    <div className="text-sm text-gray-500">
                       No postmortem attachments uploaded for this incident.
                     </div>
                   );
