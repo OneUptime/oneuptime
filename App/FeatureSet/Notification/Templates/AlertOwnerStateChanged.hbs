@@ -6,16 +6,11 @@
 
 {{> InfoBlock info="Alert state has changed"}}
 
-{{> StateTransition this}}
-
 {{> InfoBlock info="Here are the details: "}}
 
 {{> DetailBoxStart this }}
+{{> StateTransition this}}
 {{> DetailBoxField title="Alert Title:" text=alertTitle }}
-{{#if previousState}}
-{{> DetailBoxField title="Previous State:" text=previousState }}
-{{/if}}
-{{> DetailBoxField title="New State:" text=currentState }}
 {{> DetailBoxField title="State changed at:" text=stateChangedAt }}
 {{> DetailBoxField title="Resources Affected:" text=resourcesAffected }}
 {{> DetailBoxField title="Severity:" text=alertSeverity }}

@@ -6,16 +6,11 @@
 
 {{> InfoBlock info="Monitor status has changed"}}
 
-{{> StatusTransition this}}
-
 {{> InfoBlock info="Here are the details: "}}
 
 {{> DetailBoxStart this }}
+{{> StatusTransition this}}
 {{> DetailBoxField title="Monitor Name:" text=monitorName }}
-{{#if previousStatus}}
-{{> DetailBoxField title="Previous Status:" text=previousStatus }}
-{{/if}}
-{{> DetailBoxField title="New Status:" text=currentStatus }}
 {{#ifNotCond rootCause ""}}
 {{> DetailBoxField title="Root Cause:" text=rootCause }}
 {{/ifNotCond}}

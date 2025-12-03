@@ -6,16 +6,11 @@
 
 {{> InfoBlock info="Scheduled Maintenance state has changed"}}
 
-{{> StateTransition this}}
-
 {{> InfoBlock info="Here are the details: "}}
 
 {{> DetailBoxStart this }}
+{{> StateTransition this}}
 {{> DetailBoxField title="Scheduled Maintenance Title:" text=scheduledMaintenanceTitle }}
-{{#if previousState}}
-{{> DetailBoxField title="Previous State:" text=previousState }}
-{{/if}}
-{{> DetailBoxField title="New State:" text=currentState }}
 {{> DetailBoxField title="State changed at:" text=stateChangedAt }}
 {{> DetailBoxField title="Description:" text=scheduledMaintenanceDescription }}
 {{> DetailBoxEnd this }}
