@@ -421,7 +421,9 @@ export default class SyntheticMonitor {
         await page.close();
       }
     } catch (error) {
-      logger.warn("Failed to close Playwright page", error as Error);
+      logger.warn(
+        `Failed to close Playwright page: ${(error as Error)?.message || error}`,
+      );
     }
   }
 
@@ -435,7 +437,9 @@ export default class SyntheticMonitor {
     try {
       await context.close();
     } catch (error) {
-      logger.warn("Failed to close Playwright browser context", error as Error);
+      logger.warn(
+        `Failed to close Playwright browser context: ${(error as Error)?.message || error}`,
+      );
     }
   }
 
@@ -451,7 +455,9 @@ export default class SyntheticMonitor {
         await browser.close();
       }
     } catch (error) {
-      logger.warn("Failed to close Playwright browser", error as Error);
+      logger.warn(
+        `Failed to close Playwright browser: ${(error as Error)?.message || error}`,
+      );
     }
   }
 
