@@ -12,6 +12,7 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateTimelineService from "Common/Server/Services/ScheduledMaintenanceStateTimelineService";
+import ScheduledMaintenanceStateService from "Common/Server/Services/ScheduledMaintenanceStateService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
@@ -24,6 +25,8 @@ import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/
 import { Blue500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import UserService from "Common/Server/Services/UserService";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
@@ -50,6 +53,7 @@ RunCron(
           project: {
             name: true,
           },
+          scheduledMaintenanceId: true,
           scheduledMaintenance: {
             _id: true,
             title: true,
@@ -57,8 +61,10 @@ RunCron(
             projectId: true,
             scheduledMaintenanceNumber: true,
           },
+          scheduledMaintenanceStateId: true,
           scheduledMaintenanceState: {
             name: true,
+            color: true,
           },
         },
       });
@@ -80,6 +86,47 @@ RunCron(
           isRoot: true,
         },
       });
+
+      // Fetch the previous state timeline entry
+      let previousState: ScheduledMaintenanceState | null = null;
+
+      if (
+        scheduledMaintenanceStateTimeline.scheduledMaintenanceId &&
+        scheduledMaintenanceStateTimeline.startsAt
+      ) {
+        const previousTimeline: ScheduledMaintenanceStateTimeline | null =
+          await ScheduledMaintenanceStateTimelineService.findOneBy({
+            query: {
+              scheduledMaintenanceId:
+                scheduledMaintenanceStateTimeline.scheduledMaintenanceId,
+              startsAt: QueryHelper.lessThan(
+                scheduledMaintenanceStateTimeline.startsAt,
+              ),
+            },
+            sort: {
+              startsAt: SortOrder.Descending,
+            },
+            props: {
+              isRoot: true,
+            },
+            select: {
+              scheduledMaintenanceStateId: true,
+            },
+          });
+
+        if (previousTimeline?.scheduledMaintenanceStateId) {
+          previousState = await ScheduledMaintenanceStateService.findOneById({
+            id: previousTimeline.scheduledMaintenanceStateId,
+            props: {
+              isRoot: true,
+            },
+            select: {
+              name: true,
+              color: true,
+            },
+          });
+        }
+      }
 
       // now find owners.
 
@@ -107,6 +154,10 @@ RunCron(
           scheduledMaintenanceTitle: scheduledMaintenance.title!,
           projectName: scheduledMaintenanceStateTimeline.project!.name!,
           currentState: scheduledMaintenanceState!.name!,
+          currentStateColor:
+            scheduledMaintenanceState!.color?.toString() || "#000000",
+          previousState: previousState?.name || "",
+          previousStateColor: previousState?.color?.toString() || "#6b7280",
           scheduledMaintenanceDescription: await Markdown.convertToHTML(
             scheduledMaintenance.description! || "",
             MarkdownContentType.Email,
@@ -139,7 +190,7 @@ RunCron(
         const sms: SMSMessage = {
           message: `This is a message from OneUptime. Scheduled maintenance event - ${
             scheduledMaintenance.title
-          }, state changed to ${scheduledMaintenanceState!
+          }, state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!
             .name!}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
@@ -148,7 +199,7 @@ RunCron(
             {
               sayMessage: `This is a message from OneUptime. Scheduled maintenance event ${
                 scheduledMaintenance.title
-              } state changed to ${scheduledMaintenanceState!
+              } state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!
                 .name!}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
@@ -157,7 +208,7 @@ RunCron(
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
             title: "Scheduled Maintenance State Changed",
-            body: `Scheduled maintenance ${scheduledMaintenance.title} state changed to ${scheduledMaintenanceState!.name!}. Click to view details.`,
+            body: `Scheduled maintenance ${scheduledMaintenance.title} state changed${previousState ? ` from ${previousState.name}` : ""} to ${scheduledMaintenanceState!.name!}. Click to view details.`,
             clickAction: (
               await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                 scheduledMaintenance.projectId!,

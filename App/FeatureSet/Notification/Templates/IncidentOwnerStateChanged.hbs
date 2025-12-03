@@ -4,17 +4,22 @@
 {{> Logo this}}
 {{> EmailTitle title=(concat "Incident: " incidentTitle) }}
 
-{{> InfoBlock info=(concat "Incident state changed to - " currentState)}}
+{{> InfoBlock info="Incident state has changed"}}
+
+{{> StateTransition this}}
 
 {{> InfoBlock info="Here are the details: "}}
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Incident Title:" text=incidentTitle }}
-{{> DetailBoxField title="New State: " text=currentState  }}
-{{> DetailBoxField title="State changed at: " text=stateChangedAt  }}
-{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " text=incidentSeverity  }}
-{{> DetailBoxField title="Description: " text=incidentDescription  }}
+{{#if previousState}}
+{{> DetailBoxField title="Previous State:" text=previousState }}
+{{/if}}
+{{> DetailBoxField title="New State:" text=currentState }}
+{{> DetailBoxField title="State changed at:" text=stateChangedAt }}
+{{> DetailBoxField title="Resources Affected:" text=resourcesAffected }}
+{{> DetailBoxField title="Severity:" text=incidentSeverity }}
+{{> DetailBoxField title="Description:" text=incidentDescription }}
 {{> DetailBoxEnd this }}
 
 

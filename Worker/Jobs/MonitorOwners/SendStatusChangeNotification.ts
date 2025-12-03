@@ -10,6 +10,7 @@ import PushNotificationMessage from "Common/Types/PushNotification/PushNotificat
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTimelineService";
+import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
@@ -20,6 +21,8 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import User from "Common/Models/DatabaseModels/User";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 RunCron(
   "MonitorOwner:SendStatusChangeEmail",
@@ -39,6 +42,9 @@ RunCron(
           _id: true,
           projectId: true,
           createdAt: true,
+          startsAt: true,
+          monitorId: true,
+          monitorStatusId: true,
           project: {
             name: true,
           },
@@ -49,6 +55,7 @@ RunCron(
           },
           monitorStatus: {
             name: true,
+            color: true,
           },
           rootCause: true,
         },
@@ -67,6 +74,41 @@ RunCron(
           isRoot: true,
         },
       });
+
+      // Fetch the previous status timeline entry
+      let previousStatus: MonitorStatus | null = null;
+
+      if (monitorStatusTimeline.monitorId && monitorStatusTimeline.startsAt) {
+        const previousTimeline: MonitorStatusTimeline | null =
+          await MonitorStatusTimelineService.findOneBy({
+            query: {
+              monitorId: monitorStatusTimeline.monitorId,
+              startsAt: QueryHelper.lessThan(monitorStatusTimeline.startsAt),
+            },
+            sort: {
+              startsAt: SortOrder.Descending,
+            },
+            props: {
+              isRoot: true,
+            },
+            select: {
+              monitorStatusId: true,
+            },
+          });
+
+        if (previousTimeline?.monitorStatusId) {
+          previousStatus = await MonitorStatusService.findOneById({
+            id: previousTimeline.monitorStatusId,
+            props: {
+              isRoot: true,
+            },
+            select: {
+              name: true,
+              color: true,
+            },
+          });
+        }
+      }
 
       // now find owners.
 
@@ -92,6 +134,9 @@ RunCron(
           monitorName: monitor.name!,
           projectName: monitorStatusTimeline.project!.name!,
           currentStatus: monitorStatus!.name!,
+          currentStatusColor: monitorStatus!.color?.toString() || "#000000",
+          previousStatus: previousStatus?.name || "",
+          previousStatusColor: previousStatus?.color?.toString() || "#6b7280",
           monitorDescription: await Markdown.convertToHTML(
             monitor.description! || "",
             MarkdownContentType.Email,
@@ -129,7 +174,7 @@ RunCron(
         const sms: SMSMessage = {
           message: `This is a message from OneUptime. ${
             monitor.name || "Monitor"
-          } status changed to ${monitorStatus!
+          } status changed${previousStatus ? ` from ${previousStatus.name}` : ""} to ${monitorStatus!
             .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
@@ -138,19 +183,33 @@ RunCron(
             {
               sayMessage: `This is a message from OneUptime. ${
                 monitor.name || "Monitor"
-              } status changed to ${monitorStatus!
+              } status changed${previousStatus ? ` from ${previousStatus.name}` : ""} to ${monitorStatus!
                 .name!}.  To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
         };
 
+        const pushNotificationParams: {
+          monitorName: string;
+          projectName: string;
+          newStatus: string;
+          previousStatus?: string;
+          monitorViewLink: string;
+        } = {
+          monitorName: monitor.name || "Monitor",
+          projectName: monitorStatusTimeline.project!.name!,
+          newStatus: monitorStatus!.name!,
+          monitorViewLink: vars["monitorViewLink"] || "",
+        };
+
+        if (previousStatus?.name) {
+          pushNotificationParams.previousStatus = previousStatus.name;
+        }
+
         const pushMessage: PushNotificationMessage =
-          PushNotificationUtil.createMonitorStatusChangedNotification({
-            monitorName: monitor.name || "Monitor",
-            projectName: monitorStatusTimeline.project!.name!,
-            newStatus: monitorStatus!.name!,
-            monitorViewLink: vars["monitorViewLink"] || "",
-          });
+          PushNotificationUtil.createMonitorStatusChangedNotification(
+            pushNotificationParams,
+          );
 
         const eventType: NotificationSettingEventType =
           NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION;

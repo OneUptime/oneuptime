@@ -41,12 +41,16 @@ export default class PushNotificationUtil {
     incidentTitle: string;
     projectName: string;
     newState: string;
+    previousState?: string;
     incidentViewLink: string;
   }): PushNotificationMessage {
-    const { incidentTitle, projectName, newState, incidentViewLink } = params;
+    const { incidentTitle, projectName, newState, previousState, incidentViewLink } = params;
+    const stateChangeText: string = previousState
+      ? `Incident state changed from ${previousState} to ${newState}`
+      : `Incident state changed to ${newState}`;
     return PushNotificationUtil.applyDefaults({
       title: `Incident Updated: ${incidentTitle}`,
-      body: `Incident state changed to ${newState} in ${projectName}. Click to view details.`,
+      body: `${stateChangeText} in ${projectName}. Click to view details.`,
       clickAction: incidentViewLink,
       url: incidentViewLink,
       tag: "incident-state-changed",
@@ -56,6 +60,7 @@ export default class PushNotificationUtil {
         incidentTitle: incidentTitle,
         projectName: projectName,
         newState: newState,
+        previousState: previousState,
         url: incidentViewLink,
       },
     });
@@ -113,12 +118,22 @@ export default class PushNotificationUtil {
     monitorName: string;
     projectName: string;
     newStatus: string;
+    previousStatus?: string;
     monitorViewLink: string;
   }): PushNotificationMessage {
-    const { monitorName, projectName, newStatus, monitorViewLink } = params;
+    const {
+      monitorName,
+      projectName,
+      newStatus,
+      previousStatus,
+      monitorViewLink,
+    } = params;
+    const statusChangeText: string = previousStatus
+      ? `Monitor status changed from ${previousStatus} to ${newStatus}`
+      : `Monitor status changed to ${newStatus}`;
     return PushNotificationUtil.applyDefaults({
       title: `Monitor ${newStatus}: ${monitorName}`,
-      body: `Monitor status changed to ${newStatus} in ${projectName}. Click to view details.`,
+      body: `${statusChangeText} in ${projectName}. Click to view details.`,
       clickAction: monitorViewLink,
       url: monitorViewLink,
       tag: "monitor-status-changed",
@@ -128,6 +143,7 @@ export default class PushNotificationUtil {
         monitorName: monitorName,
         projectName: projectName,
         newStatus: newStatus,
+        previousStatus: previousStatus,
         url: monitorViewLink,
       },
     });

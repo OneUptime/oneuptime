@@ -4,18 +4,23 @@
 {{> Logo this}}
 {{> EmailTitle title=(concat "Monitor: " monitorName) }}
 
-{{> InfoBlock info=(concat "Monitor status changed to - " currentStatus)}}
+{{> InfoBlock info="Monitor status has changed"}}
+
+{{> StatusTransition this}}
 
 {{> InfoBlock info="Here are the details: "}}
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Monitor Name:" text=monitorName }}
-{{> DetailBoxField title="New Status: " text=currentStatus  }}
+{{#if previousStatus}}
+{{> DetailBoxField title="Previous Status:" text=previousStatus }}
+{{/if}}
+{{> DetailBoxField title="New Status:" text=currentStatus }}
 {{#ifNotCond rootCause ""}}
-{{> DetailBoxField title="Root Cause: " text=rootCause  }}
+{{> DetailBoxField title="Root Cause:" text=rootCause }}
 {{/ifNotCond}}
-{{> DetailBoxField title="Status changed at: " text=statusChangedAt  }}
-{{> DetailBoxField title="Description: " text=monitorDescription  }}
+{{> DetailBoxField title="Status changed at:" text=statusChangedAt }}
+{{> DetailBoxField title="Description:" text=monitorDescription }}
 {{> DetailBoxEnd this }}
 
 

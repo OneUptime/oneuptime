@@ -12,6 +12,7 @@ import Text from "Common/Types/Text";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertService from "Common/Server/Services/AlertService";
 import AlertStateTimelineService from "Common/Server/Services/AlertStateTimelineService";
+import AlertStateService from "Common/Server/Services/AlertStateService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
@@ -24,6 +25,8 @@ import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import UserService from "Common/Server/Services/UserService";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
@@ -45,13 +48,16 @@ RunCron(
         select: {
           _id: true,
           createdAt: true,
+          startsAt: true,
           projectId: true,
           project: {
             name: true,
           },
           alertId: true,
+          alertStateId: true,
           alertState: {
             name: true,
+            color: true,
           },
         },
       });
@@ -116,6 +122,41 @@ RunCron(
         },
       });
 
+      // Fetch the previous state timeline entry
+      let previousState: AlertState | null = null;
+
+      if (alertStateTimeline.alertId && alertStateTimeline.startsAt) {
+        const previousTimeline: AlertStateTimeline | null =
+          await AlertStateTimelineService.findOneBy({
+            query: {
+              alertId: alertStateTimeline.alertId,
+              startsAt: QueryHelper.lessThan(alertStateTimeline.startsAt),
+            },
+            sort: {
+              startsAt: SortOrder.Descending,
+            },
+            props: {
+              isRoot: true,
+            },
+            select: {
+              alertStateId: true,
+            },
+          });
+
+        if (previousTimeline?.alertStateId) {
+          previousState = await AlertStateService.findOneById({
+            id: previousTimeline.alertStateId,
+            props: {
+              isRoot: true,
+            },
+            select: {
+              name: true,
+              color: true,
+            },
+          });
+        }
+      }
+
       // now find owners.
 
       let doesResourceHasOwners: boolean = true;
@@ -145,6 +186,9 @@ RunCron(
           alertTitle: alert.title!,
           projectName: alertStateTimeline.project!.name!,
           currentState: alertState!.name!,
+          currentStateColor: alertState!.color?.toString() || "#000000",
+          previousState: previousState?.name || "",
+          previousStateColor: previousState?.color?.toString() || "#6b7280",
           alertDescription: await Markdown.convertToHTML(
             alert.description! || "",
             MarkdownContentType.Email,
@@ -177,7 +221,7 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. Alert ${alertIdentifier} - state changed to ${alertState!
+          message: `This is a message from OneUptime. Alert ${alertIdentifier} - state changed${previousState ? ` from ${previousState.name}` : ""} to ${alertState!
             .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
@@ -186,7 +230,7 @@ RunCron(
             {
               sayMessage: `This is a message from OneUptime. Alert ${
                 alertIdentifier
-              } state changed to ${alertState!
+              } state changed${previousState ? ` from ${previousState.name}` : ""} to ${alertState!
                 .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
@@ -195,7 +239,7 @@ RunCron(
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createGenericNotification({
             title: `Alert State Changed: ${alert.title}`,
-            body: `Alert state changed to ${alertState!.name!} in ${alertStateTimeline.project!.name!}. Click to view details.`,
+            body: `Alert state changed${previousState ? ` from ${previousState.name}` : ""} to ${alertState!.name!} in ${alertStateTimeline.project!.name!}. Click to view details.`,
             clickAction: (
               await AlertService.getAlertLinkInDashboard(
                 alertStateTimeline.projectId!,

@@ -1,0 +1,85 @@
+<!-- Status Transition Block - Shows old status → new status with colors -->
+{{#if previousStatus}}
+<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0"
+                    width="600" style="min-width: 600px;">
+                    <tbody>
+                      <tr>
+                        <td class="st-Spacer st-Spacer--gutter"
+                          style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+                          width="64">
+                          <div class="st-Spacer st-Spacer--filler"></div>
+                        </td>
+                        <td style="border: 0; margin: 0; padding: 0;" align="center">
+                          <table cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+                            <tbody>
+                              <tr>
+                                <td align="center" style="padding: 16px 0;">
+                                  <table cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+                                    <tbody>
+                                      <tr>
+                                        <!-- Old Status Badge -->
+                                        <td align="center" valign="middle" style="padding: 0;">
+                                          <span style="display: inline-block; padding: 8px 16px; border-radius: 9999px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; background-color: #f3f4f6; color: {{previousStatusColor}}; border: 2px solid {{previousStatusColor}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
+                                            {{previousStatus}}
+                                          </span>
+                                        </td>
+                                        <!-- Arrow -->
+                                        <td align="center" valign="middle" style="padding: 0 20px;">
+                                          <span style="font-size: 28px; color: #64748b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-weight: bold;">→</span>
+                                        </td>
+                                        <!-- New Status Badge -->
+                                        <td align="center" valign="middle" style="padding: 0;">
+                                          <span style="display: inline-block; padding: 8px 16px; border-radius: 9999px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; background-color: {{currentStatusColor}}; color: #ffffff; border: 2px solid {{currentStatusColor}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
+                                            {{currentStatus}}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </td>
+                        <td class="st-Spacer st-Spacer--gutter"
+                          style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+                          width="64">
+                          <div class="st-Spacer st-Spacer--filler"></div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+{{else}}
+<!-- Only show new status if no previous status is available -->
+<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0"
+                    width="600" style="min-width: 600px;">
+                    <tbody>
+                      <tr>
+                        <td class="st-Spacer st-Spacer--gutter"
+                          style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+                          width="64">
+                          <div class="st-Spacer st-Spacer--filler"></div>
+                        </td>
+                        <td style="border: 0; margin: 0; padding: 0;" align="center">
+                          <table cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+                            <tbody>
+                              <tr>
+                                <td align="center" style="padding: 16px 0;">
+                                  <span style="display: inline-block; padding: 10px 20px; border-radius: 9999px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; background-color: {{currentStatusColor}}; color: #ffffff; border: 2px solid {{currentStatusColor}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
+                                    {{currentStatus}}
+                                  </span>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </td>
+                        <td class="st-Spacer st-Spacer--gutter"
+                          style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+                          width="64">
+                          <div class="st-Spacer st-Spacer--filler"></div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+{{/if}}
+<!-- /Status Transition Block -->

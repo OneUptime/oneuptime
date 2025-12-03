@@ -11,6 +11,7 @@ import PushNotificationMessage from "Common/Types/PushNotification/PushNotificat
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentService from "Common/Server/Services/IncidentService";
 import IncidentStateTimelineService from "Common/Server/Services/IncidentStateTimelineService";
+import IncidentStateService from "Common/Server/Services/IncidentStateService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
@@ -24,6 +25,8 @@ import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import UserService from "Common/Server/Services/UserService";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 
@@ -45,14 +48,17 @@ RunCron(
         select: {
           _id: true,
           createdAt: true,
+          startsAt: true,
           projectId: true,
           project: {
             name: true,
           },
           incidentId: true,
+          incidentStateId: true,
           incidentState: {
             name: true,
             isResolvedState: true,
+            color: true,
           },
         },
       });
@@ -120,6 +126,41 @@ RunCron(
         },
       });
 
+      // Fetch the previous state timeline entry
+      let previousState: IncidentState | null = null;
+
+      if (incidentStateTimeline.incidentId && incidentStateTimeline.startsAt) {
+        const previousTimeline: IncidentStateTimeline | null =
+          await IncidentStateTimelineService.findOneBy({
+            query: {
+              incidentId: incidentStateTimeline.incidentId,
+              startsAt: QueryHelper.lessThan(incidentStateTimeline.startsAt),
+            },
+            sort: {
+              startsAt: SortOrder.Descending,
+            },
+            props: {
+              isRoot: true,
+            },
+            select: {
+              incidentStateId: true,
+            },
+          });
+
+        if (previousTimeline?.incidentStateId) {
+          previousState = await IncidentStateService.findOneById({
+            id: previousTimeline.incidentStateId,
+            props: {
+              isRoot: true,
+            },
+            select: {
+              name: true,
+              color: true,
+            },
+          });
+        }
+      }
+
       // now find owners.
 
       let doesResourceHasOwners: boolean = true;
@@ -151,6 +192,9 @@ RunCron(
           incidentTitle: incident.title!,
           projectName: incidentStateTimeline.project!.name!,
           currentState: incidentState!.name!,
+          currentStateColor: incidentState!.color?.toString() || "#000000",
+          previousState: previousState?.name || "",
+          previousStateColor: previousState?.color?.toString() || "#6b7280",
           incidentDescription: await Markdown.convertToHTML(
             incident.description! || "",
             MarkdownContentType.Email,
@@ -196,7 +240,7 @@ RunCron(
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. Incident ${incidentIdentifier} - state changed to ${incidentState!
+          message: `This is a message from OneUptime. Incident ${incidentIdentifier} - state changed${previousState ? ` from ${previousState.name}` : ""} to ${incidentState!
             .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
@@ -205,19 +249,33 @@ RunCron(
             {
               sayMessage: `This is a message from OneUptime. Incident ${
                 incidentIdentifier
-              } state changed to ${incidentState!
+              } state changed${previousState ? ` from ${previousState.name}` : ""} to ${incidentState!
                 .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
         };
 
+        const pushNotificationParams: {
+          incidentTitle: string;
+          projectName: string;
+          newState: string;
+          previousState?: string;
+          incidentViewLink: string;
+        } = {
+          incidentTitle: incident.title!,
+          projectName: incidentStateTimeline.project!.name!,
+          newState: incidentState!.name!,
+          incidentViewLink: vars["incidentViewLink"] || "",
+        };
+
+        if (previousState?.name) {
+          pushNotificationParams.previousState = previousState.name;
+        }
+
         const pushMessage: PushNotificationMessage =
-          PushNotificationUtil.createIncidentStateChangedNotification({
-            incidentTitle: incident.title!,
-            projectName: incidentStateTimeline.project!.name!,
-            newState: incidentState!.name!,
-            incidentViewLink: vars["incidentViewLink"] || "",
-          });
+          PushNotificationUtil.createIncidentStateChangedNotification(
+            pushNotificationParams,
+          );
 
         const eventType: NotificationSettingEventType =
           NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION;
