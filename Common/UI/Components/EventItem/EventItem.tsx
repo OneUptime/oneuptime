@@ -286,8 +286,8 @@ const EventItem: FunctionComponent<ComponentProps> = (
                                 <span
                                   className={`font-medium ${
                                     item.highlight
-                                      ? "text-indigo-600"
-                                      : "text-gray-900"
+                                      ? "text-base text-gray-900"
+                                      : "text-sm text-gray-900"
                                   }`}
                                 >
                                   {item.title
