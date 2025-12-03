@@ -30,6 +30,8 @@ import React, {
 } from "react";
 import AttachmentList from "../../../Components/Attachment/AttachmentList";
 import { getModelIdString } from "../../../Utils/ModelId";
+import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 
 const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
   {
@@ -111,6 +113,34 @@ const IncidentPostmortem: FunctionComponent<
     useState<boolean>(false);
   const [templateInitialValues, setTemplateInitialValues] =
     useState<FormValues<Incident> | null>(null);
+
+  const handleResendPostmortemNotification: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        setIsLoading(true);
+
+        // Reset the notification status to Pending so the worker can pick it up again
+        await ModelAPI.updateById({
+          id: modelId,
+          modelType: Incident,
+          data: {
+            subscriberNotificationStatusOnPostmortemPublished:
+              StatusPageSubscriberNotificationStatus.Pending,
+            subscriberNotificationStatusMessageOnPostmortemPublished:
+              "Notification queued for resending",
+          },
+        });
+
+        // Refresh the data to show updated status
+        setRefreshToggle((previous: boolean) => {
+          return !previous;
+        });
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
   const fetchTemplates: () => Promise<void> = async (): Promise<void> => {
     setError("");
@@ -215,7 +245,9 @@ const IncidentPostmortem: FunctionComponent<
           showDetailsInNumberOfColumns: 1,
           modelType: Incident,
           id: "model-detail-incident-postmortem-note",
-          selectMoreFields: {},
+          selectMoreFields: {
+            subscriberNotificationStatusMessageOnPostmortemPublished: true,
+          },
           fields: [
             {
               field: {
@@ -238,6 +270,24 @@ const IncidentPostmortem: FunctionComponent<
               },
               title: "Notify Subscribers",
               fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                subscriberNotificationStatusOnPostmortemPublished: true,
+              },
+              title: "Subscriber Notification Status",
+              fieldType: FieldType.Element,
+              getElement: (item: Incident): ReactElement => {
+                return (
+                  <SubscriberNotificationStatus
+                    status={item.subscriberNotificationStatusOnPostmortemPublished}
+                    subscriberNotificationStatusMessage={
+                      item.subscriberNotificationStatusMessageOnPostmortemPublished
+                    }
+                    onResendNotification={handleResendPostmortemNotification}
+                  />
+                );
+              },
             },
             {
               field: {
