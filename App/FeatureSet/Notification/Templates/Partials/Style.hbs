@@ -52,7 +52,7 @@
 **/
 
     span.st-Delink a {
-      color: #000000 !important;
+      color: #1a1a2e !important;
       text-decoration: none !important;
     }
 
@@ -66,7 +66,7 @@
 
     /** Modifier: title */
     span.st-Delink.st-Delink--title a {
-      color: #000000 !important;
+      color: #1a1a2e !important;
       text-decoration: none !important;
     }
 
@@ -74,14 +74,111 @@
 
     /** Modifier: footer */
     span.st-Delink.st-Delink--footer a {
-      color: #8898aa !important;
+      color: #6b7280 !important;
       text-decoration: none !important;
     }
 
     /** */
 
     .ii a[href] {
-      color: #000000;
+      color: #1a1a2e;
+    }
+
+    /**
+  * # Links
+  * - Styled links with modern colors
+**/
+
+    a.st-Link {
+      color: #1a1a2e !important;
+      text-decoration: none !important;
+      transition: color 0.2s ease !important;
+    }
+
+    a.st-Link:hover {
+      color: #000000 !important;
+      text-decoration: underline !important;
+    }
+
+    /**
+  * # Status Badges
+  * - Colored badges for incident/alert states
+**/
+
+    .st-Badge {
+      display: inline-block !important;
+      padding: 4px 12px !important;
+      border-radius: 9999px !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+    }
+
+    .st-Badge--critical {
+      background-color: #fef2f2 !important;
+      color: #dc2626 !important;
+      border: 1px solid #fecaca !important;
+    }
+
+    .st-Badge--warning {
+      background-color: #fffbeb !important;
+      color: #d97706 !important;
+      border: 1px solid #fde68a !important;
+    }
+
+    .st-Badge--success {
+      background-color: #f0fdf4 !important;
+      color: #16a34a !important;
+      border: 1px solid #bbf7d0 !important;
+    }
+
+    .st-Badge--info {
+      background-color: #f3f4f6 !important;
+      color: #1a1a2e !important;
+      border: 1px solid #d1d5db !important;
+    }
+
+    .st-Badge--neutral {
+      background-color: #f3f4f6 !important;
+      color: #4b5563 !important;
+      border: 1px solid #d1d5db !important;
+    }
+
+    /**
+  * # Detail Cards
+  * - Modern card styling for detail boxes
+**/
+
+    .st-DetailCard {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 12px !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    .st-DetailCard-field {
+      padding: 12px 0 !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+
+    .st-DetailCard-field:last-child {
+      border-bottom: none !important;
+    }
+
+    .st-DetailCard-label {
+      color: #64748b !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+      margin-bottom: 4px !important;
+    }
+
+    .st-DetailCard-value {
+      color: #1e293b !important;
+      font-size: 15px !important;
+      font-weight: 500 !important;
     }
 
     /**
@@ -107,7 +204,7 @@
 
       /** Modifier: gutter */
       body[override] td.st-Spacer.st-Spacer--gutter {
-        width: 32px !important;
+        width: 24px !important;
       }
 
       /** */
@@ -134,8 +231,8 @@
       body[override] td.st-Font.st-Font--title,
       body[override] td.st-Font.st-Font--title span,
       body[override] td.st-Font.st-Font--title a {
-        font-size: 28px !important;
-        line-height: 36px !important;
+        font-size: 26px !important;
+        line-height: 34px !important;
       }
 
       /** */
@@ -144,8 +241,8 @@
       body[override] td.st-Font.st-Font--header,
       body[override] td.st-Font.st-Font--header span,
       body[override] td.st-Font.st-Font--header a {
-        font-size: 24px !important;
-        line-height: 32px !important;
+        font-size: 22px !important;
+        line-height: 30px !important;
       }
 
       /** */
@@ -154,8 +251,8 @@
       body[override] td.st-Font.st-Font--body,
       body[override] td.st-Font.st-Font--body span,
       body[override] td.st-Font.st-Font--body a {
-        font-size: 18px !important;
-        line-height: 28px !important;
+        font-size: 16px !important;
+        line-height: 26px !important;
       }
 
       /** */
@@ -164,8 +261,8 @@
       body[override] td.st-Font.st-Font--caption,
       body[override] td.st-Font.st-Font--caption span,
       body[override] td.st-Font.st-Font--caption a {
-        font-size: 14px !important;
-        line-height: 20px !important;
+        font-size: 13px !important;
+        line-height: 19px !important;
       }
 
       /** */
@@ -185,7 +282,7 @@
 
       body[override] table.st-Divider td.st-Spacer.st-Spacer--gutter,
       body[override] tr.st-Divider td.st-Spacer.st-Spacer--gutter {
-        background-color: #000000;
+        background-color: #1a1a2e;
       }
 
       /**
@@ -212,10 +309,23 @@
       body[override] table.st-Button td.st-Button-area,
       body[override] table.st-Button td.st-Button-area a.st-Button-link,
       body[override] table.st-Button td.st-Button-area span.st-Button-internal {
-        height: 44px !important;
-        line-height: 44px !important;
-        font-size: 18px !important;
+        height: 48px !important;
+        line-height: 48px !important;
+        font-size: 16px !important;
         vertical-align: middle !important;
+      }
+
+      /**
+    * # Detail Cards - Mobile
+  **/
+
+      body[override] .st-DetailCard {
+        border-radius: 8px !important;
+      }
+
+      body[override] .st-Badge {
+        font-size: 11px !important;
+        padding: 3px 10px !important;
       }
     }
   </style>

@@ -1,35 +1,34 @@
 {{> Start this}}
 
-
-
 {{> CustomLogo this}}
-{{> EmailTitle title=(concat "Postmortem Published: " incidentTitle) }}
 
-{{> InfoBlock info="A postmortem has been published for an incident. Here are the details: "}}
+{{> EmailTitle title=(concat "📋 Postmortem Published: " incidentTitle) }}
 
+{{> InfoBlock info="A postmortem report has been published for an incident that affected services you're subscribed to."}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title=incidentTitle text="" }}
-{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " text=incidentSeverity  }}
-{{> DetailBoxField title="Postmortem: " text=""  }}
-{{> DetailBoxField title="" text=postmortemNote  }}
+{{> DetailBoxField title="Incident" text=incidentTitle }}
+{{> DetailBoxField title="Severity" text=incidentSeverity  }}
+{{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
+{{#if postmortemNote}}
+{{> DetailBoxField title="Postmortem Summary" text=postmortemNote  }}
+{{/if}}
 {{> DetailBoxEnd this }}
 
-
-{{> InfoBlock info=(concat subscriberEmailNotificationFooterText "") }}
-
-
 {{#if detailsUrl}}
-{{> InfoBlock info=(concat "Find further information here: " detailsUrl)}}
+{{> ButtonBlock buttonUrl=detailsUrl buttonText="Read Full Postmortem"}}
 {{else}}
-{{> InfoBlock info=(concat "Find further information here: " statusPageUrl)}}
+{{> ButtonBlock buttonUrl=statusPageUrl buttonText="View Status Page"}}
 {{/if}}
 
+{{> VerticalSpace this}}
 
-
+{{#if subscriberEmailNotificationFooterText}}
+{{> InfoBlock info=subscriberEmailNotificationFooterText }}
+{{/if}}
 
 {{> UnsubscribeBlock this}}
-{{> VerticalSpace this}}
+
+{{> Footer this}}
 
 {{> End this}}

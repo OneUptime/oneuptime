@@ -1,26 +1,32 @@
 {{> Start this}}
 
 {{> CustomLogo this}}
+
 {{> EmailTitle title=emailTitle }}
 
-{{> InfoBlock info="Incident state has changed. Here are the details:   "}}
+{{> InfoBlock info="The status of an incident affecting services you're subscribed to has been updated."}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title=incidentTitle text="" }}
-{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " text=incidentSeverity  }}
-{{> DetailBoxField title="State: " text=incidentState  }}
+{{> DetailBoxField title="Incident" text=incidentTitle }}
+{{> DetailBoxField title="Current State" text=incidentState  }}
+{{> DetailBoxField title="Severity" text=incidentSeverity  }}
+{{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
 {{> DetailBoxEnd this }}
 
-{{> InfoBlock info=(concat subscriberEmailNotificationFooterText "") }}
-
 {{#if detailsUrl}}
-{{> InfoBlock info=(concat "Find further information here: " detailsUrl)}}
+{{> ButtonBlock buttonUrl=detailsUrl buttonText="View Incident Details"}}
 {{else}}
-{{> InfoBlock info=(concat "Find further information here: " statusPageUrl)}}
+{{> ButtonBlock buttonUrl=statusPageUrl buttonText="View Status Page"}}
+{{/if}}
+
+{{> VerticalSpace this}}
+
+{{#if subscriberEmailNotificationFooterText}}
+{{> InfoBlock info=subscriberEmailNotificationFooterText }}
 {{/if}}
 
 {{> UnsubscribeBlock this}}
-{{> VerticalSpace this}}
+
+{{> Footer this}}
 
 {{> End this}}

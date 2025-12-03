@@ -1,0 +1,58 @@
+<!-- Status Badge - Used for incident states, severity levels, etc. -->
+<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0"
+                    width="600" style="min-width: 600px;">
+                    <tbody>
+                      <tr>
+                        <td class="st-Spacer st-Spacer--gutter"
+                          style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+                          width="64">
+                          <div class="st-Spacer st-Spacer--filler"></div>
+                        </td>
+                        <td style="border: 0; margin: 0; padding: 0;">
+                          
+                          {{#ifCond badgeType "critical"}}
+                          <span class="st-Badge st-Badge--critical" style="display: inline-block; padding: 6px 14px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
+                            {{badgeText}}
+                          </span>
+                          {{/ifCond}}
+                          
+                          {{#ifCond badgeType "warning"}}
+                          <span class="st-Badge st-Badge--warning" style="display: inline-block; padding: 6px 14px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; background-color: #fffbeb; color: #d97706; border: 1px solid #fde68a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
+                            {{badgeText}}
+                          </span>
+                          {{/ifCond}}
+                          
+                          {{#ifCond badgeType "success"}}
+                          <span class="st-Badge st-Badge--success" style="display: inline-block; padding: 6px 14px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; background-color: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
+                            {{badgeText}}
+                          </span>
+                          {{/ifCond}}
+                          
+                          {{#ifCond badgeType "info"}}
+                          <span class="st-Badge st-Badge--info" style="display: inline-block; padding: 6px 14px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
+                            {{badgeText}}
+                          </span>
+                          {{/ifCond}}
+                          
+                          {{#ifCond badgeType "neutral"}}
+                          <span class="st-Badge st-Badge--neutral" style="display: inline-block; padding: 6px 14px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; background-color: #f3f4f6; color: #4b5563; border: 1px solid #d1d5db; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
+                            {{badgeText}}
+                          </span>
+                          {{/ifCond}}
+                          
+                        </td>
+                        <td class="st-Spacer st-Spacer--gutter"
+                          style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+                          width="64">
+                          <div class="st-Spacer st-Spacer--filler"></div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="st-Spacer st-Spacer--stacked" colspan="3" height="12"
+                          style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">
+                          <div class="st-Spacer st-Spacer--filler"></div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+<!-- /Status Badge -->

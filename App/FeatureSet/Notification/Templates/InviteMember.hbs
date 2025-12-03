@@ -2,28 +2,33 @@
 
 {{> Logo this}}
 
-{{> EmailTitle title=(concat "You have been invited to " projectName) }}
+{{> EmailTitle title=(concat "👋 You're Invited to " projectName) }}
 
 {{#ifCond isNewUser "true"}}
-{{> InfoBlock info="Please sign up to a new account to accept this invitation"}}
+{{> InfoBlock info="You've been invited to join a project on OneUptime. Create your account to get started."}}
 
-{{> ButtonBlock buttonUrl=registerLink buttonText="Sign up to a new account"}}
+{{> ButtonBlock buttonUrl=registerLink buttonText="Create Your Account"}}
 
-{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> VerticalSpace this}}
+
+{{> InfoBlock info="Or copy and paste this link into your browser:"}}
 {{> InfoBlock info=registerLink}}
 {{/ifCond}}
 
 {{#ifCond isNewUser "false"}}
-{{> InfoBlock info="Please sign in to your account to see all your invitations and manage them."}}
+{{> InfoBlock info="You've been invited to join a project on OneUptime. Sign in to view and manage your invitations."}}
 
-{{> ButtonBlock buttonUrl=signInLink buttonText="Sign in to OneUptime"}}
+{{> ButtonBlock buttonUrl=signInLink buttonText="Sign In to OneUptime"}}
 
-{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> VerticalSpace this}}
+
+{{> InfoBlock info="Or copy and paste this link into your browser:"}}
 {{> InfoBlock info=signInLink}}
 {{/ifCond}}
 
+{{> VerticalSpace this}}
 
-{{> InfoBlock info="If you have not signed up to OneUptime so far. You'll be redirected to the account sign up page to sign up first."}}
+{{> InfoBlock info="<em>If you don't have an account yet, you'll be redirected to create one first.</em>"}}
 
 {{> SupportBlock this }}
 
