@@ -44,7 +44,13 @@ export default class PushNotificationUtil {
     previousState?: string;
     incidentViewLink: string;
   }): PushNotificationMessage {
-    const { incidentTitle, projectName, newState, previousState, incidentViewLink } = params;
+    const {
+      incidentTitle,
+      projectName,
+      newState,
+      previousState,
+      incidentViewLink,
+    } = params;
     const stateChangeText: string = previousState
       ? `Incident state changed from ${previousState} to ${newState}`
       : `Incident state changed to ${newState}`;
