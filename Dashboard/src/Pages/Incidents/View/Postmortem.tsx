@@ -202,8 +202,7 @@ const IncidentPostmortem: FunctionComponent<
           showDetailsInNumberOfColumns: 1,
           modelType: Incident,
           id: "model-detail-incident-postmortem-note",
-          selectMoreFields: {
-          },
+          selectMoreFields: {},
           fields: [
             {
               field: {
