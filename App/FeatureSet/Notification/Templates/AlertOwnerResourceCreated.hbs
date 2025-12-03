@@ -13,16 +13,12 @@
 {{> DetailBoxField title="Current State: " text=currentState  }}
 {{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
 {{> DetailBoxField title="Alert Declared By: " text=declaredBy  }}
-{{> DetailBoxField title="Alert Declared At: " text=""  }}
-{{> DetailBoxField title="" text=declaredAt  }}
+{{> DetailBoxField title="Alert Declared At: " text=declaredAt  }}
 {{> DetailBoxField title="Severity: " text=alertSeverity  }}
-{{> DetailBoxField title="Root Cause: " text=""  }}
-{{> DetailBoxField title="" text=rootCause  }}
-{{> DetailBoxField title="Description: " text=""  }}
-{{> DetailBoxField title="" text=alertDescription  }}
+{{> DetailBoxField title="Root Cause: " text=rootCause  }}
+{{> DetailBoxField title="Description: " text=alertDescription  }}
 {{#ifNotCond remediationNotes ""}}
-{{> DetailBoxField title="Remediation Notes: " text=""  }}
-{{> DetailBoxField title="" text=remediationNotes  }}
+{{> DetailBoxField title="Remediation Notes: " text=remediationNotes  }}
 {{/ifNotCond}}
 {{> DetailBoxEnd this }}
 
