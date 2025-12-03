@@ -260,7 +260,13 @@ const EventItem: FunctionComponent<ComponentProps> = (
                             aria-hidden="true"
                           ></span>
                         )}
-                        <div className="relative flex items-start space-x-3">
+                        <div
+                          className={`relative flex items-start space-x-3 ${
+                            item.highlight
+                              ? "rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 shadow-sm"
+                              : ""
+                          }`}
+                        >
                           <div>
                             <div className="relative px-1">
                               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 ring-8 ring-white">
