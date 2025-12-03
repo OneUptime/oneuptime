@@ -405,7 +405,9 @@ export default class SyntheticMonitor {
     }
 
     await SyntheticMonitor.safeClosePage(session.page);
-    await SyntheticMonitor.safeCloseBrowserContext(session.context);
+    await SyntheticMonitor.safeCloseBrowserContexts({
+      browser: session.browser,
+    });
     await SyntheticMonitor.safeCloseBrowser(session.browser);
   }
 
@@ -450,6 +452,20 @@ export default class SyntheticMonitor {
       }
     } catch (error) {
       logger.warn("Failed to close Playwright browser", error as Error);
+    }
+  }
+
+  private static async safeCloseBrowserContexts(data: {
+    browser: Browser;
+  }): Promise<void> {
+    if (!data.browser || !data.browser.contexts) {
+      return;
+    }
+
+    const contexts: Array<BrowserContext> = data.browser.contexts();
+
+    for (const context of contexts) {
+      await SyntheticMonitor.safeCloseBrowserContext(context);
     }
   }
 }
