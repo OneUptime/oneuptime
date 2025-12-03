@@ -1265,10 +1265,7 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new IncidentAPI().getRouter(),
-    );
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new IncidentAPI().getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

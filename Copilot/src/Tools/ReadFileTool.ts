@@ -131,9 +131,17 @@ export class ReadFileTool extends StructuredTool<ReadFileArgs> {
     const original: Record<string, unknown> = input as Record<string, unknown>;
     const normalized: Record<string, unknown> = { ...original };
 
-    this.applyAlias(normalized, ["lineStart", "line_start", "start_line"], "startLine");
+    this.applyAlias(
+      normalized,
+      ["lineStart", "line_start", "start_line"],
+      "startLine",
+    );
     this.applyAlias(normalized, ["lineEnd", "line_end", "end_line"], "endLine");
-    this.applyAlias(normalized, ["charLimit", "char_limit", "maxChars"], "limit");
+    this.applyAlias(
+      normalized,
+      ["charLimit", "char_limit", "maxChars"],
+      "limit",
+    );
 
     return normalized;
   }

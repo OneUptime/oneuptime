@@ -4040,7 +4040,11 @@ export default class StatusPageAPI extends BaseAPI<
       },
     });
 
-    if (!statusPage || !statusPage.projectId || !statusPage.showIncidentsOnStatusPage) {
+    if (
+      !statusPage ||
+      !statusPage.projectId ||
+      !statusPage.showIncidentsOnStatusPage
+    ) {
       throw new NotFoundException("Attachment not found");
     }
 

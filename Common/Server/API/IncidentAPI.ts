@@ -16,13 +16,15 @@ import {
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
-export default class IncidentAPI extends BaseAPI<Incident, IncidentServiceType> {
+export default class IncidentAPI extends BaseAPI<
+  Incident,
+  IncidentServiceType
+> {
   public constructor() {
     super(Incident, IncidentService);
 
     this.router.get(
-      `${new this
-        .entityType()
+      `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/postmortem/attachment/:projectId/:incidentId/:fileId`,
       UserMiddleware.getUserMiddleware,
