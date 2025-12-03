@@ -84,7 +84,7 @@ class FetchListAndProbe {
 
       const sleepTime: number = NumberUtil.getRandomNumber(0, 45000);
       logger.debug(
-        `Sleeping for ${sleepTime} ms, just to give probe API's soem time to load balance between different workers`,
+        `Sleeping for ${sleepTime} ms, just to give probe API's some time to load balance between different workers`,
       );
       await Sleep.sleep(sleepTime);
 
