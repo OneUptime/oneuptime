@@ -4,6 +4,7 @@ import "./Jobs/Announcement/SendNotificationToSubscribers";
 import "./Jobs/HardDelete/HardDeleteItemsInDatabase";
 // Incidents
 import "./Jobs/Incident/SendNotificationToSubscribers";
+import "./Jobs/Incident/SendPostmortemNotificationToSubscribers";
 import "./Jobs/Incident/KeepCurrentStateConsistent";
 
 // Incident Owners

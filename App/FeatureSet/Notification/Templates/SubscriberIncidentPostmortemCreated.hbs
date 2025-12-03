@@ -1,0 +1,35 @@
+{{> Start this}}
+
+
+
+{{> CustomLogo this}}
+{{> EmailTitle title=(concat "Postmortem Published: " incidentTitle) }}
+
+{{> InfoBlock info="A postmortem has been published for an incident. Here are the details: "}}
+
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title=incidentTitle text="" }}
+{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
+{{> DetailBoxField title="Severity: " text=incidentSeverity  }}
+{{> DetailBoxField title="Postmortem: " text=""  }}
+{{> DetailBoxField title="" text=postmortemNote  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info=(concat subscriberEmailNotificationFooterText "") }}
+
+
+{{#if detailsUrl}}
+{{> InfoBlock info=(concat "Find further information here: " detailsUrl)}}
+{{else}}
+{{> InfoBlock info=(concat "Find further information here: " statusPageUrl)}}
+{{/if}}
+
+
+
+
+{{> UnsubscribeBlock this}}
+{{> VerticalSpace this}}
+
+{{> End this}}

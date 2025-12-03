@@ -854,6 +854,76 @@ export default class Incident extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadProjectIncident,
     ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    computed: true,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.ShortText,
+    title: "Subscriber Notification Status on Postmortem Published",
+    description:
+      "Status of notification sent to subscribers about this incident postmortem",
+    defaultValue: StatusPageSubscriberNotificationStatus.Pending,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    default: StatusPageSubscriberNotificationStatus.Pending,
+  })
+  public subscriberNotificationStatusOnPostmortemPublished?: StatusPageSubscriberNotificationStatus =
+    undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "Notification Status Message on Postmortem Published",
+    description:
+      "Status message for subscriber notifications on postmortem published - includes success messages, failure reasons, or skip reasons",
+    required: false,
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public subscriberNotificationStatusMessageOnPostmortemPublished?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectIncident,
+    ],
     update: [],
   })
   @TableColumn({
