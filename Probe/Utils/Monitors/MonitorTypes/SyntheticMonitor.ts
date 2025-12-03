@@ -8,7 +8,7 @@ import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/Syn
 import ObjectID from "Common/Types/ObjectID";
 import logger from "Common/Server/Utils/Logger";
 import VMRunner from "Common/Server/Utils/VM/VMRunner";
-import { Browser, Page, chromium, firefox } from "playwright";
+import { Browser, BrowserContext, Page, chromium, firefox } from "playwright";
 import LocalFile from "Common/Server/Utils/LocalFile";
 
 export interface SyntheticMonitorOptions {
@@ -30,6 +30,12 @@ interface BrowserLaunchOptions {
   headless?: boolean;
   devtools?: boolean;
   timeout?: number;
+}
+
+interface BrowserSession {
+  browser: Browser;
+  context: BrowserContext;
+  page: Page;
 }
 
 export default class SyntheticMonitor {
@@ -89,18 +95,21 @@ export default class SyntheticMonitor {
     try {
       let result: ReturnResult | null = null;
 
-      let pageAndBrowser: {
-        page: Page;
-        browser: Browser;
-      } | null = null;
+      let browserSession: BrowserSession | null = null;
 
       try {
         const startTime: [number, number] = process.hrtime();
 
-        pageAndBrowser = await SyntheticMonitor.getPageByBrowserType({
+        browserSession = await SyntheticMonitor.getPageByBrowserType({
           browserType: options.browserType,
           screenSizeType: options.screenSizeType,
         });
+
+        if (!browserSession) {
+          throw new BadDataException(
+            "Could not create Playwright browser session",
+          );
+        }
 
         result = await VMRunner.runCodeInSandbox({
           code: options.script,
@@ -108,8 +117,8 @@ export default class SyntheticMonitor {
             timeout: PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
             args: {},
             context: {
-              browser: pageAndBrowser.browser,
-              page: pageAndBrowser.page,
+              browser: browserSession.browser,
+              page: browserSession.page,
               screenSizeType: options.screenSizeType,
               browserType: options.browserType,
             },
@@ -160,15 +169,7 @@ export default class SyntheticMonitor {
         scriptResult.scriptError =
           (err as Error)?.message || (err as Error).toString();
       }
-
-      if (pageAndBrowser?.browser) {
-        try {
-          await pageAndBrowser.browser.close();
-        } catch (err) {
-          // if the browser is already closed, ignore the error
-          logger.error(err);
-        }
-      }
+      await SyntheticMonitor.disposeBrowserSession(browserSession);
 
       return scriptResult;
     } catch (err: unknown) {
@@ -300,10 +301,7 @@ export default class SyntheticMonitor {
   private static async getPageByBrowserType(data: {
     browserType: BrowserType;
     screenSizeType: ScreenSizeType;
-  }): Promise<{
-    page: Page;
-    browser: Browser;
-  }> {
+  }): Promise<BrowserSession> {
     const viewport: {
       height: number;
       width: number;
@@ -344,50 +342,115 @@ export default class SyntheticMonitor {
       }
     }
 
-    let page: Page | null = null;
-    let browser: Browser | null = null;
-
     if (data.browserType === BrowserType.Chromium) {
-      browser = await chromium.launch({
+      const browser: Browser = await chromium.launch({
         executablePath: await this.getChromeExecutablePath(),
         ...baseOptions,
       });
-      page = await browser.newPage();
+
+      const context: BrowserContext = await browser.newContext({
+        viewport: {
+          width: viewport.width,
+          height: viewport.height,
+        },
+      });
+
+      const page: Page = await context.newPage();
+
+      return {
+        browser,
+        context,
+        page,
+      };
     }
 
     if (data.browserType === BrowserType.Firefox) {
-      browser = await firefox.launch({
+      const browser: Browser = await firefox.launch({
         executablePath: await this.getFirefoxExecutablePath(),
         ...baseOptions,
       });
-      page = await browser.newPage();
+
+      let context: BrowserContext | null = null;
+
+      try {
+        context = await browser.newContext({
+          viewport: {
+            width: viewport.width,
+            height: viewport.height,
+          },
+        });
+
+        const page: Page = await context.newPage();
+
+        return {
+          browser,
+          context,
+          page,
+        };
+      } catch (error) {
+        await SyntheticMonitor.safeCloseBrowserContext(context);
+        await SyntheticMonitor.safeCloseBrowser(browser);
+        throw error;
+      }
     }
 
-    /*
-     * if (data.browserType === BrowserType.Webkit) {
-     *     browser = await webkit.launch();
-     *     page = await browser.newPage();
-     * }
-     */
+    throw new BadDataException("Invalid Browser Type.");
+  }
 
-    await page?.setViewportSize({
-      width: viewport.width,
-      height: viewport.height,
-    });
-
-    if (!browser) {
-      throw new BadDataException("Invalid Browser Type.");
+  private static async disposeBrowserSession(
+    session: BrowserSession | null,
+  ): Promise<void> {
+    if (!session) {
+      return;
     }
 
+    await SyntheticMonitor.safeClosePage(session.page);
+    await SyntheticMonitor.safeCloseBrowserContext(session.context);
+    await SyntheticMonitor.safeCloseBrowser(session.browser);
+  }
+
+  private static async safeClosePage(page?: Page | null): Promise<void> {
     if (!page) {
-      // close the browser if page is not created
-      await browser.close();
-      throw new BadDataException("Invalid Browser Type.");
+      return;
     }
 
-    return {
-      page: page,
-      browser: browser,
-    };
+    try {
+      if (!page.isClosed()) {
+        await page.close();
+      }
+    } catch (error) {
+      logger.warn("Failed to close Playwright page", error as Error);
+    }
+  }
+
+  private static async safeCloseBrowserContext(
+    context?: BrowserContext | null,
+  ): Promise<void> {
+    if (!context) {
+      return;
+    }
+
+    try {
+      await context.close();
+    } catch (error) {
+      logger.warn(
+        "Failed to close Playwright browser context",
+        error as Error,
+      );
+    }
+  }
+
+  private static async safeCloseBrowser(browser?: Browser | null): Promise<void> {
+    if (!browser) {
+      return;
+    }
+
+    try {
+      if (browser.isConnected()) {
+        await browser.close();
+      }
+    } catch (error) {
+      logger.warn("Failed to close Playwright browser", error as Error);
+    }
   }
 }
