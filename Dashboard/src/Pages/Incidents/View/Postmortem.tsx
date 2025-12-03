@@ -27,6 +27,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import AttachmentList from "../../../Components/Attachment/AttachmentList";
+import { getModelIdString } from "../../../Utils/ModelId";
 
 const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
   {
@@ -40,6 +42,27 @@ const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
     description: MarkdownUtil.getMarkdownCheatsheet(
       "Capture what happened, impact, resolution, and follow-up actions.",
     ),
+  },
+  {
+    field: {
+      postmortemAttachments: true,
+    },
+    title: "Postmortem Attachments",
+    fieldType: FormFieldSchemaType.MultipleFiles,
+    required: false,
+    description:
+      "Upload supporting evidence (images, reports, timelines) that can be shared once the postmortem is public.",
+  },
+  {
+    field: {
+      showPostmortemOnStatusPage: true,
+    },
+    title: "Publish on Status Page",
+    fieldType: FormFieldSchemaType.Toggle,
+    required: false,
+    description:
+      "Enable to display the postmortem note and attachments as the closing update on your status page.",
+    defaultValue: false,
   },
 ];
 
@@ -162,6 +185,15 @@ const IncidentPostmortem: FunctionComponent<
           showDetailsInNumberOfColumns: 1,
           modelType: Incident,
           id: "model-detail-incident-postmortem-note",
+          selectMoreFields: {
+            postmortemAttachments: {
+              _id: true,
+              name: true,
+              fileType: true,
+              createdAt: true,
+            },
+            showPostmortemOnStatusPage: true,
+          },
           fields: [
             {
               field: {
@@ -170,6 +202,40 @@ const IncidentPostmortem: FunctionComponent<
               title: "",
               placeholder: "No postmortem note documented for this incident.",
               fieldType: FieldType.Markdown,
+            },
+            {
+              field: {
+                showPostmortemOnStatusPage: true,
+              },
+              title: "Visible on Status Page?",
+              fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                postmortemAttachments: {
+                  _id: true,
+                  name: true,
+                  fileType: true,
+                  createdAt: true,
+                },
+              },
+              title: "Postmortem Attachments",
+              fieldType: FieldType.Element,
+              getElement: (item: Incident): ReactElement => {
+                const modelIdString: string | null = getModelIdString(item);
+
+                if (!modelIdString || !item.postmortemAttachments?.length) {
+                  return <></>;
+                }
+
+                return (
+                  <AttachmentList
+                    modelId={modelIdString}
+                    attachments={item.postmortemAttachments}
+                    attachmentApiPath="/incident/postmortem/attachment"
+                  />
+                );
+              },
             },
           ],
           modelId: modelId,
