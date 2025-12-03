@@ -2,19 +2,21 @@
 
 {{> CustomLogo this}}
 
-{{> EmailTitle title=emailTitle }}
+{{> EmailTitle title=(concat "Postmortem Published: " incidentTitle) }}
 
-{{> InfoBlock info="The status of an incident affecting services you're subscribed to has been updated."}}
+{{> InfoBlock info="A postmortem report has been published for an incident that affected services you're subscribed to."}}
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Incident" text=incidentTitle }}
-{{> DetailBoxField title="Current State" text=incidentState  }}
 {{> DetailBoxField title="Severity" text=incidentSeverity  }}
 {{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
+{{#if postmortemNote}}
+{{> DetailBoxField title="Postmortem Summary" text=postmortemNote  }}
+{{/if}}
 {{> DetailBoxEnd this }}
 
 {{#if detailsUrl}}
-{{> ButtonBlock buttonUrl=detailsUrl buttonText="View Incident Details"}}
+{{> ButtonBlock buttonUrl=detailsUrl buttonText="Read Full Postmortem"}}
 {{else}}
 {{> ButtonBlock buttonUrl=statusPageUrl buttonText="View Status Page"}}
 {{/if}}

@@ -1,36 +1,37 @@
 {{> Start this}}
 
-
-
 {{> CustomLogo this}}
-{{> EmailTitle title=(concat "Scheduled Maintenance Event: " eventTitle) }}
 
-{{> InfoBlock info="Here are more details for this scheduled event:    "}}
+{{> EmailTitle title=(concat "Scheduled Maintenance: " eventTitle) }}
 
+{{> InfoBlock info="A scheduled maintenance event has been announced for services you're subscribed to."}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title=eventTitle text="" }}
-{{> DetailBoxField title="Event Status: " text="Scheduled" }}
+{{> DetailBoxField title="Maintenance Event" text=eventTitle }}
+{{> DetailBoxField title="Status" text="Scheduled" }}
+{{> DetailBoxField title="Scheduled Time" text=scheduledAt }}
 {{#if resourcesAffected}}
-{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
+{{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
 {{/if}}
-{{> DetailBoxField title="Event Scheduled At: " text=""  }}
-{{> DetailBoxField title="" text=scheduledAt  }}
-{{> DetailBoxField title="Event Description: " text=""  }}
-{{> DetailBoxField title="" text=eventDescription  }}
+{{#if eventDescription}}
+{{> DetailBoxField title="Description" text=eventDescription  }}
+{{/if}}
 {{> DetailBoxEnd this }}
 
-
-{{> InfoBlock info=(concat subscriberEmailNotificationFooterText "") }}
-
-
 {{#if detailsUrl}}
-{{> InfoBlock info=(concat "Find further information here: " detailsUrl)}}
+{{> ButtonBlock buttonUrl=detailsUrl buttonText="View Maintenance Details"}}
 {{else}}
-{{> InfoBlock info=(concat "Find further information here: " statusPageUrl)}}
+{{> ButtonBlock buttonUrl=statusPageUrl buttonText="View Status Page"}}
+{{/if}}
+
+{{> VerticalSpace this}}
+
+{{#if subscriberEmailNotificationFooterText}}
+{{> InfoBlock info=subscriberEmailNotificationFooterText }}
 {{/if}}
 
 {{> UnsubscribeBlock this}}
-{{> VerticalSpace this}}
+
+{{> Footer this}}
 
 {{> End this}}

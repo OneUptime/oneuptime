@@ -1354,6 +1354,19 @@ ${incident.remediationNotes || "No remediation notes provided."}
               sendWorkspaceNotification: true,
             },
           });
+
+          // Set subscriber notification status to Pending so the cron job will send notifications
+          await this.updateOneById({
+            id: incidentId,
+            data: {
+              subscriberNotificationStatusOnPostmortemPublished:
+                StatusPageSubscriberNotificationStatus.Pending,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
         }
 
         let shouldAddIncidentFeed: boolean = false;

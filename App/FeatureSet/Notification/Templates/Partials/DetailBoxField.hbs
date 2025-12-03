@@ -1,7 +1,9 @@
-<p style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
+<!-- Detail Card Field -->
+<div class="st-DetailCard-field" style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
 {{#if title}} 
-<strong>{{{title}}} </strong>{{{text}}} </span>
-{{else}}
-{{{text}}}
+<p class="st-DetailCard-label" style="Margin:0 0 4px 0;font-size:11px;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;line-height:16px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">{{{title}}}</p>
 {{/if}}
-</p>
+{{#if text}}
+<p class="st-DetailCard-value" style="Margin:0;font-size:15px;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;line-height:24px;color:#1e293b;font-weight:500;">{{{text}}}</p>
+{{/if}}
+</div>

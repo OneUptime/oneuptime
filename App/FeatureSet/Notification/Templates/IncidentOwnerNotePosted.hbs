@@ -14,11 +14,10 @@
 {{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
 {{> DetailBoxField title="Severity: " text=incidentSeverity  }}
 {{#if isPrivateNote}}
-{{> DetailBoxField title="Private Note: " text=""  }}
+{{> DetailBoxField title="Private Note: " text=note  }}
 {{else}}
-{{> DetailBoxField title="Public Note: " text=""  }}
+{{> DetailBoxField title="Public Note: " text=note  }}
 {{/if}}
-{{> DetailBoxField title="" text=note  }}
 {{> DetailBoxEnd this }}
 
 

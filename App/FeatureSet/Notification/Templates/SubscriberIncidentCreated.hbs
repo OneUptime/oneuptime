@@ -1,35 +1,34 @@
 {{> Start this}}
 
-
-
 {{> CustomLogo this}}
-{{> EmailTitle title=(concat "Incident: " incidentTitle) }}
 
-{{> InfoBlock info="A new incident has been created. Here are the details: "}}
+{{> EmailTitle title=(concat "New Incident: " incidentTitle) }}
 
+{{> InfoBlock info="A new incident has been reported that may affect the services you're subscribed to."}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title=incidentTitle text="" }}
-{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " text=incidentSeverity  }}
-{{> DetailBoxField title="Description: " text=""  }}
-{{> DetailBoxField title="" text=incidentDescription  }}
+{{> DetailBoxField title="Incident" text=incidentTitle }}
+{{> DetailBoxField title="Severity" text=incidentSeverity  }}
+{{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
+{{#if incidentDescription}}
+{{> DetailBoxField title="Description" text=incidentDescription  }}
+{{/if}}
 {{> DetailBoxEnd this }}
 
-
-{{> InfoBlock info=(concat subscriberEmailNotificationFooterText "") }}
-
-
 {{#if detailsUrl}}
-{{> InfoBlock info=(concat "Find further information here: " detailsUrl)}}
+{{> ButtonBlock buttonUrl=detailsUrl buttonText="View Incident Details"}}
 {{else}}
-{{> InfoBlock info=(concat "Find further information here: " statusPageUrl)}}
+{{> ButtonBlock buttonUrl=statusPageUrl buttonText="View Status Page"}}
 {{/if}}
 
+{{> VerticalSpace this}}
 
-
+{{#if subscriberEmailNotificationFooterText}}
+{{> InfoBlock info=subscriberEmailNotificationFooterText }}
+{{/if}}
 
 {{> UnsubscribeBlock this}}
-{{> VerticalSpace this}}
+
+{{> Footer this}}
 
 {{> End this}}

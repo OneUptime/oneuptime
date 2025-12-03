@@ -12,6 +12,7 @@ enum EmailTemplateType {
   SubscribedToStatusPage = "SubscribedToStatusPage.hbs",
   SubscriberAnnouncementCreated = "SubscriberAnnouncementCreated.hbs",
   SubscriberIncidentCreated = "SubscriberIncidentCreated.hbs",
+  SubscriberIncidentPostmortemCreated = "SubscriberIncidentPostmortemCreated.hbs",
   StatusPageSubscriberReport = "StatusPageSubscriberReport.hbs",
   SubscriberIncidentNoteCreated = "SubscriberIncidentNoteCreated.hbs",
   SubscriberIncidentStateChanged = "SubscriberIncidentStateChanged.hbs",

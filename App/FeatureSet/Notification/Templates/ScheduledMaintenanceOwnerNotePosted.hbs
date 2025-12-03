@@ -12,11 +12,10 @@
 {{> DetailBoxField title="Scheduled Maintenance Title:" text=scheduledMaintenanceTitle }}
 {{> DetailBoxField title="Current State: " text=currentState  }}
 {{#if isPrivateNote}}
-{{> DetailBoxField title="Private Note: " text=""  }}
+{{> DetailBoxField title="Private Note: " text=note  }}
 {{else}}
-{{> DetailBoxField title="Public Note: " text=""  }}
+{{> DetailBoxField title="Public Note: " text=note  }}
 {{/if}}
-{{> DetailBoxField title="" text=note  }}
 {{> DetailBoxEnd this }}
 
 
