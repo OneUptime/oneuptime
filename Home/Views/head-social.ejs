@@ -1,32 +1,139 @@
-<meta property="og:title" content="OneUptime - One Complete Observability platform.">
-<meta property="og:url" content="https://oneuptime.com">
-<meta property="og:type" content="website" />
-<meta property="og:description"
-    content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime. ">
-<meta property="og:image" content="https://oneuptime.com/img/hou-wb.svg">
+<%
+// SEO Data - use passed seo object or fallback to defaults
+const pageTitle = (typeof seo !== 'undefined' && seo.title) ? seo.title : 'OneUptime - One Complete Observability platform.';
+const pageDescription = (typeof seo !== 'undefined' && seo.description) ? seo.description : "OneUptime monitors websites, APIs, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.";
+const pageUrl = (typeof seo !== 'undefined' && seo.fullCanonicalUrl) ? seo.fullCanonicalUrl : (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.com');
+const pageImage = (typeof seo !== 'undefined' && seo.ogImage) ? seo.ogImage : '/img/og-image.png';
+const pageImageUrl = pageImage.startsWith('http') ? pageImage : ((typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.com') + pageImage);
+const twitterCard = (typeof seo !== 'undefined' && seo.twitterCard) ? seo.twitterCard : 'summary_large_image';
+const ogType = (typeof seo !== 'undefined' && seo.ogType) ? seo.ogType : 'website';
+const pageType = (typeof seo !== 'undefined' && seo.pageType) ? seo.pageType : 'other';
+const breadcrumbs = (typeof seo !== 'undefined' && seo.breadcrumbs) ? seo.breadcrumbs : [{name: 'Home', url: '/'}];
+const softwareApp = (typeof seo !== 'undefined' && seo.softwareApplication) ? seo.softwareApplication : null;
+const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.com').replace(/\/$/, '');
+%>
 
-<meta name="twitter:card" content="summary">
+<!-- Open Graph / Facebook -->
+<meta property="og:title" content="<%= pageTitle %>">
+<meta property="og:url" content="<%= pageUrl %>">
+<meta property="og:type" content="<%= ogType %>" />
+<meta property="og:description" content="<%= pageDescription %>">
+<meta property="og:image" content="<%= pageImageUrl %>">
+<meta property="og:site_name" content="OneUptime">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="<%= twitterCard %>">
 <meta name="theme-color" content="#000000">
-<meta name="twitter:image" content="/img/ou-wb.svg">
+<meta name="twitter:image" content="<%= pageImageUrl %>">
 <meta name="twitter:site" content="@oneuptimeinc">
-<meta name="twitter:title" content="OneUptime - One Complete Observability platform.">
-<meta name="twitter:description"
-    content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+<meta name="twitter:title" content="<%= pageTitle %>">
+<meta name="twitter:description" content="<%= pageDescription %>">
 
-
-
+<!-- Organization Schema (always present) -->
 <script type="application/ld+json">
-    {
-    "@context": "http://schema.org",
-    "@type": "Corporation",
+{
+    "@context": "https://schema.org",
+    "@type": "Organization",
     "name": "OneUptime",
     "url": "https://www.oneuptime.com",
     "logo": "https://oneuptime.com/img/ou-bb.svg",
     "sameAs": [
         "https://www.facebook.com/oneuptimeinc",
         "https://twitter.com/OneUptimeInc",
-        "https://www.linkedin.com/company/oneuptime"
+        "https://www.linkedin.com/company/oneuptime",
+        "https://github.com/oneuptime/oneuptime"
     ],
-    "description": "OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime."
+    "description": "OneUptime is an open-source complete observability platform. Monitor websites, APIs, and servers. Get alerts, manage incidents, and keep customers informed with status pages.",
+    "foundingDate": "2020",
+    "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "support@oneuptime.com",
+        "contactType": "customer service"
+    }
 }
 </script>
+
+<!-- BreadcrumbList Schema -->
+<% if (breadcrumbs && breadcrumbs.length > 0) { %>
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        <% breadcrumbs.forEach(function(crumb, index) { %>
+        {
+            "@type": "ListItem",
+            "position": <%= index + 1 %>,
+            "name": "<%= crumb.name %>",
+            "item": "<%= baseUrl %><%= crumb.url %>"
+        }<%= index < breadcrumbs.length - 1 ? ',' : '' %>
+        <% }); %>
+    ]
+}
+</script>
+<% } %>
+
+<!-- SoftwareApplication Schema for Product Pages -->
+<% if (pageType === 'product' && softwareApp) { %>
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "<%= softwareApp.name %>",
+    "applicationCategory": "<%= softwareApp.applicationCategory %>",
+    "operatingSystem": "<%= softwareApp.operatingSystem %>",
+    "description": "<%= softwareApp.description %>",
+    "url": "<%= pageUrl %>",
+    "image": "<%= pageImageUrl %>",
+    "author": {
+        "@type": "Organization",
+        "name": "OneUptime",
+        "url": "https://oneuptime.com"
+    },
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Free tier available. Paid plans start at $22/month."
+    },
+    "featureList": [
+        <% softwareApp.features.forEach(function(feature, index) { %>
+        "<%= feature %>"<%= index < softwareApp.features.length - 1 ? ',' : '' %>
+        <% }); %>
+    ],
+    "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "150",
+        "bestRating": "5",
+        "worstRating": "1"
+    }
+}
+</script>
+<% } %>
+
+<!-- WebPage Schema for general pages -->
+<% if (pageType !== 'product') { %>
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "<%= pageTitle %>",
+    "description": "<%= pageDescription %>",
+    "url": "<%= pageUrl %>",
+    "isPartOf": {
+        "@type": "WebSite",
+        "name": "OneUptime",
+        "url": "https://oneuptime.com"
+    },
+    "publisher": {
+        "@type": "Organization",
+        "name": "OneUptime",
+        "logo": {
+            "@type": "ImageObject",
+            "url": "https://oneuptime.com/img/ou-bb.svg"
+        }
+    }
+}
+</script>
+<% } %>

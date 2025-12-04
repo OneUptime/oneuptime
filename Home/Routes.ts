@@ -4,6 +4,7 @@ import { StaticPath, ViewsPath } from "./Utils/Config";
 import NotFoundUtil from "./Utils/NotFound";
 import ProductCompare, { Product } from "./Utils/ProductCompare";
 import generateSitemapXml from "./Utils/Sitemap";
+import { getPageSEO, PageSEOData } from "./Utils/PageSEO";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -28,16 +29,29 @@ import "./Jobs/UpdateBlog";
 import { Host, IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 
+// Helper to get SEO data and merge with homeUrl for templates
+const getSEOForPath = (
+  path: string,
+  homeUrl: string,
+): PageSEOData & { fullCanonicalUrl: string } => {
+  const seo: PageSEOData = getPageSEO(path);
+  const baseUrl: string = homeUrl.replace(/\/$/, "");
+  return {
+    ...seo,
+    fullCanonicalUrl: `${baseUrl}${seo.canonicalPath}`,
+  };
+};
+
 const HomeFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
 
     /*
      * Routes
-     *  Middleware to inject baseUrl for templates (used for canonical links)
+     *  Middleware to inject baseUrl and SEO data for templates
      */
     app.use(
-      async (_req: ExpressRequest, res: ExpressResponse, next: () => void) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: () => void) => {
         if (!res.locals["homeUrl"]) {
           try {
             // Try to get cached home URL first.
@@ -59,12 +73,15 @@ const HomeFeatureSet: FeatureSet = {
             res.locals["homeUrl"] = "https://oneuptime.com";
           }
         }
+        // Inject SEO data for current path
+        res.locals["seo"] = getSEOForPath(req.path, res.locals["homeUrl"] as string);
         next();
       },
     );
 
     app.get("/", (_req: ExpressRequest, res: ExpressResponse) => {
       const { reviewsList1, reviewsList2, reviewsList3 } = Reviews;
+      const seo = getSEOForPath("/", res.locals["homeUrl"] as string);
 
       res.render(`${ViewsPath}/index`, {
         support: false,
@@ -76,6 +93,7 @@ const HomeFeatureSet: FeatureSet = {
         reviewsList1,
         reviewsList2,
         reviewsList3,
+        seo,
       });
     });
 
@@ -90,14 +108,17 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get("/support", async (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo = getSEOForPath("/support", res.locals["homeUrl"] as string);
       res.render(`${ViewsPath}/support`, {
         enableGoogleTagManager: IsBillingEnabled,
+        seo,
       });
     });
 
     app.get(
       "/oss-friends",
       async (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo = getSEOForPath("/oss-friends", res.locals["homeUrl"] as string);
         res.render(`${ViewsPath}/oss-friends`, {
           ossFriends: OSSFriends.map((friend: OSSFriend) => {
             return {
@@ -106,6 +127,7 @@ const HomeFeatureSet: FeatureSet = {
             };
           }),
           enableGoogleTagManager: IsBillingEnabled,
+          seo,
         });
       },
     );
@@ -877,15 +899,18 @@ const HomeFeatureSet: FeatureSet = {
         },
       ];
 
+      const seo = getSEOForPath("/pricing", res.locals["homeUrl"] as string);
       res.render(`${ViewsPath}/pricing`, {
         pricing,
         enableGoogleTagManager: IsBillingEnabled,
+        seo,
       });
     });
 
     app.get(
       "/enterprise/demo",
       (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo = getSEOForPath("/enterprise/demo", res.locals["homeUrl"] as string);
         res.render(`${ViewsPath}/demo`, {
           support: false,
           enableGoogleTagManager: IsBillingEnabled,
@@ -893,6 +918,7 @@ const HomeFeatureSet: FeatureSet = {
           cta: false,
           blackLogo: true,
           requestDemoCta: false,
+          seo,
         });
       },
     );
@@ -900,8 +926,10 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/status-page",
       (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo = getSEOForPath("/product/status-page", res.locals["homeUrl"] as string);
         res.render(`${ViewsPath}/status-page`, {
           enableGoogleTagManager: IsBillingEnabled,
+          seo,
         });
       },
     );
@@ -909,15 +937,19 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/logs-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo = getSEOForPath("/product/logs-management", res.locals["homeUrl"] as string);
         res.render(`${ViewsPath}/logs-management`, {
           enableGoogleTagManager: IsBillingEnabled,
+          seo,
         });
       },
     );
 
     app.get("/product/apm", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo = getSEOForPath("/product/apm", res.locals["homeUrl"] as string);
       res.render(`${ViewsPath}/apm`, {
         enableGoogleTagManager: IsBillingEnabled,
+        seo,
       });
     });
 
@@ -999,11 +1031,13 @@ const HomeFeatureSet: FeatureSet = {
         gitHubCommits = commits;
       }
 
+      const seo = getSEOForPath("/about", res.locals["homeUrl"] as string);
       res.render(`${ViewsPath}/about`, {
         contributors: gitHubContributors,
         basicInfo: gitHubBasicInfo,
         commits: gitHubCommits,
         enableGoogleTagManager: IsBillingEnabled,
+        seo,
       });
     });
 
@@ -1038,8 +1072,10 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/monitoring",
       (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo = getSEOForPath("/product/monitoring", res.locals["homeUrl"] as string);
         res.render(`${ViewsPath}/monitoring`, {
           enableGoogleTagManager: IsBillingEnabled,
+          seo,
         });
       },
     );
@@ -1047,8 +1083,10 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/on-call",
       (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo = getSEOForPath("/product/on-call", res.locals["homeUrl"] as string);
         res.render(`${ViewsPath}/on-call`, {
           enableGoogleTagManager: IsBillingEnabled,
+          seo,
         });
       },
     );
@@ -1056,8 +1094,10 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/workflows",
       (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo = getSEOForPath("/product/workflows", res.locals["homeUrl"] as string);
         res.render(`${ViewsPath}/workflows`, {
           enableGoogleTagManager: IsBillingEnabled,
+          seo,
         });
       },
     );
@@ -1065,8 +1105,10 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/incident-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo = getSEOForPath("/product/incident-management", res.locals["homeUrl"] as string);
         res.render(`${ViewsPath}/incident-management`, {
           enableGoogleTagManager: IsBillingEnabled,
+          seo,
         });
       },
     );
@@ -1081,6 +1123,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/enterprise/overview",
       (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo = getSEOForPath("/enterprise/overview", res.locals["homeUrl"] as string);
         res.render(`${ViewsPath}/enterprise-overview.ejs`, {
           support: false,
           enableGoogleTagManager: IsBillingEnabled,
@@ -1088,6 +1131,7 @@ const HomeFeatureSet: FeatureSet = {
           cta: true,
           blackLogo: false,
           requestDemoCta: true,
+          seo,
         });
       },
     );
@@ -1366,6 +1410,7 @@ const HomeFeatureSet: FeatureSet = {
         if (!productConfig) {
           return NotFoundUtil.renderNotFound(res);
         }
+        const seo = getSEOForPath(`/compare/${req.params["product"]}`, res.locals["homeUrl"] as string);
         res.render(`${ViewsPath}/product-compare.ejs`, {
           support: false,
           enableGoogleTagManager: IsBillingEnabled,
@@ -1375,6 +1420,7 @@ const HomeFeatureSet: FeatureSet = {
           requestDemoCta: false,
           productConfig,
           onlyShowCompareTable: false,
+          seo,
         });
       },
     );

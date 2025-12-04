@@ -167,5 +167,6 @@
 <link rel="icon" href="/img/ou-wb.svg">
 <link rel="image_src" type="image/png" href="/img/hou-wb.svg">
 
-<!-- Canonical -->
-<% /* Expect a homeUrl variable like https://oneuptime.com passed from server; fallback to production domain */ %>
+<!-- Canonical URL -->
+<% const canonicalUrl = (typeof seo !== 'undefined' && seo.fullCanonicalUrl) ? seo.fullCanonicalUrl : (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.com'); %>
+<link rel="canonical" href="<%= canonicalUrl %>">
