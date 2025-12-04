@@ -115,7 +115,7 @@ const products: Dictionary<Product> = {
         data: [
           {
             title: "Monitor anything",
-            description: "Server, Containers, API's, Websites, IoT and more.",
+            description: "Server, Containers, APIs, Websites, IoT and more.",
             productColumn: "",
             oneuptimeColumn: "tick",
           },
@@ -268,7 +268,7 @@ const products: Dictionary<Product> = {
         data: [
           {
             title: "Monitor anything",
-            description: "Server, Containers, API's, Websites, IoT and more.",
+            description: "Server, Containers, APIs, Websites, IoT and more.",
             productColumn: "",
             oneuptimeColumn: "tick",
           },
@@ -422,7 +422,7 @@ const products: Dictionary<Product> = {
         data: [
           {
             title: "Monitor anything",
-            description: "Server, Containers, API's, Websites, IoT and more.",
+            description: "Server, Containers, APIs, Websites, IoT and more.",
             productColumn: "Monitors only API and Websites.",
             oneuptimeColumn: "tick",
           },
@@ -572,7 +572,7 @@ const products: Dictionary<Product> = {
         data: [
           {
             title: "Monitor anything",
-            description: "Server, Containers, API's, Websites, IoT and more.",
+            description: "Server, Containers, APIs, Websites, IoT and more.",
             productColumn: "",
             oneuptimeColumn: "tick",
           },
