@@ -115,11 +115,15 @@ RunCron(
             },
           });
 
-          // Calculate how long the monitor was in the previous status
-          // Use startsAt if available, otherwise fall back to createdAt
-          const previousStartTime: Date | undefined = previousTimeline.startsAt || previousTimeline.createdAt;
-          const currentStartTime: Date | undefined = monitorStatusTimeline.startsAt || monitorStatusTimeline.createdAt;
-          
+          /*
+           * Calculate how long the monitor was in the previous status
+           * Use startsAt if available, otherwise fall back to createdAt
+           */
+          const previousStartTime: Date | undefined =
+            previousTimeline.startsAt || previousTimeline.createdAt;
+          const currentStartTime: Date | undefined =
+            monitorStatusTimeline.startsAt || monitorStatusTimeline.createdAt;
+
           if (previousStartTime && currentStartTime) {
             const durationInSeconds: number =
               OneUptimeDate.getDifferenceInSeconds(
