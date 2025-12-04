@@ -82,12 +82,40 @@ const renderShape: (
     width = Math.abs(width); // width must be a positive number
   }
 
+  // Radius for rounded corners at top
+  const radius: number = Math.min(4, width / 2, height / 2);
+
+  // Create path with rounded corners at the top only (for horizontal layout)
+  // For vertical layout, round the right side
+  let path: string;
+
+  if (layout === "horizontal") {
+    // Rounded top corners for horizontal bars
+    path = `
+      M ${x},${y + height}
+      L ${x},${y + radius}
+      Q ${x},${y} ${x + radius},${y}
+      L ${x + width - radius},${y}
+      Q ${x + width},${y} ${x + width},${y + radius}
+      L ${x + width},${y + height}
+      Z
+    `;
+  } else {
+    // Rounded right corners for vertical bars
+    path = `
+      M ${x},${y}
+      L ${x + width - radius},${y}
+      Q ${x + width},${y} ${x + width},${y + radius}
+      L ${x + width},${y + height - radius}
+      Q ${x + width},${y + height} ${x + width - radius},${y + height}
+      L ${x},${y + height}
+      Z
+    `;
+  }
+
   return (
-    <rect
-      x={x}
-      y={y}
-      width={width}
-      height={height}
+    <path
+      d={path}
       opacity={
         activeBar || (activeLegend && activeLegend !== name)
           ? deepEqual(activeBar, { ...payload, value })
