@@ -11,6 +11,71 @@ interface CachedSitemap {
   generatedAt: number; // epoch ms
 }
 
+// Priority and changefreq configuration for different page types
+type ChangeFrequency = "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
+
+interface SitemapPageConfig {
+  priority: number;
+  changefreq: ChangeFrequency;
+}
+
+const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
+  // Homepage - highest priority
+  "/": { priority: 1.0, changefreq: "daily" },
+  
+  // Core product pages - high priority
+  "/product/status-page": { priority: 0.9, changefreq: "weekly" },
+  "/product/monitoring": { priority: 0.9, changefreq: "weekly" },
+  "/product/incident-management": { priority: 0.9, changefreq: "weekly" },
+  "/product/on-call": { priority: 0.9, changefreq: "weekly" },
+  "/product/logs-management": { priority: 0.9, changefreq: "weekly" },
+  "/product/apm": { priority: 0.9, changefreq: "weekly" },
+  "/product/workflows": { priority: 0.9, changefreq: "weekly" },
+  
+  // Important pages
+  "/pricing": { priority: 0.9, changefreq: "weekly" },
+  "/enterprise/demo": { priority: 0.9, changefreq: "weekly" },
+  "/enterprise/overview": { priority: 0.8, changefreq: "weekly" },
+  "/about": { priority: 0.7, changefreq: "weekly" },
+  "/support": { priority: 0.7, changefreq: "weekly" },
+  
+  // Documentation and reference
+  "/docs": { priority: 0.7, changefreq: "weekly" },
+  "/reference": { priority: 0.7, changefreq: "weekly" },
+  
+  // Blog section
+  "/blog": { priority: 0.7, changefreq: "daily" },
+  
+  // Community and legal
+  "/oss-friends": { priority: 0.3, changefreq: "monthly" },
+};
+
+// Default config for pages not explicitly listed
+const DEFAULT_CONFIG: SitemapPageConfig = { priority: 0.5, changefreq: "monthly" };
+
+// Blog post config
+const BLOG_POST_CONFIG: SitemapPageConfig = { priority: 0.6, changefreq: "monthly" };
+
+// Blog tag config
+const BLOG_TAG_CONFIG: SitemapPageConfig = { priority: 0.4, changefreq: "weekly" };
+
+// Compare page config
+const COMPARE_PAGE_CONFIG: SitemapPageConfig = { priority: 0.7, changefreq: "monthly" };
+
+function getPageConfig(path: string): SitemapPageConfig {
+  // Check for exact match first
+  if (PAGE_CONFIG[path]) {
+    return PAGE_CONFIG[path];
+  }
+  
+  // Check for prefix matches
+  if (path.startsWith("/legal")) {
+    return { priority: 0.3, changefreq: "monthly" };
+  }
+  
+  return DEFAULT_CONFIG;
+}
+
 // 10 minutes TTL
 const TTL_MS: number = 10 * 60 * 1000;
 let cache: CachedSitemap | null = null;
@@ -102,7 +167,7 @@ export const generateSitemapXml: () => Promise<string> =
     // Blog posts
     const blogPosts: Array<BlogPostHeader> =
       await BlogPostUtil.getBlogPostList();
-    const blogPostEntries: any[] = blogPosts.map((post: BlogPostHeader) => {
+    const blogPostEntries: Entry[] = blogPosts.map((post: BlogPostHeader) => {
       // post.blogUrl already contains /blog/post/<slug>/view relative or absolute? In BlogPostUtil it's relative (starts with /blog...), so ensure absolute.
       const loc: string = post.blogUrl.startsWith("http")
         ? post.blogUrl
@@ -110,16 +175,20 @@ export const generateSitemapXml: () => Promise<string> =
       return {
         loc,
         lastmod: new Date(post.postDate).toISOString(),
+        priority: BLOG_POST_CONFIG.priority,
+        changefreq: BLOG_POST_CONFIG.changefreq,
       };
     });
 
     // Blog tags
     const tags: string[] = await BlogPostUtil.getTags();
-    const tagEntries: any[] = tags.map((tag: string) => {
+    const tagEntries: Entry[] = tags.map((tag: string) => {
       const tagSlug: string = tag.toLowerCase().replace(/\s+/g, "-").trim();
       return {
         loc: `${baseUrl.toString()}blog/tag/${tagSlug}`,
         lastmod: OneUptimeDate.getCurrentDate().toISOString(),
+        priority: BLOG_TAG_CONFIG.priority,
+        changefreq: BLOG_TAG_CONFIG.changefreq,
       };
     });
 
@@ -128,18 +197,25 @@ export const generateSitemapXml: () => Promise<string> =
     interface Entry {
       loc: string;
       lastmod: string;
+      priority: number;
+      changefreq: ChangeFrequency;
     }
     const entries: Entry[] = [
       ...staticPaths.map((p: string) => {
+        const config = getPageConfig(p);
         return {
           loc: `${baseUrl.toString()}${p.replace(/^\//, "")}`,
           lastmod: timestamp,
+          priority: config.priority,
+          changefreq: config.changefreq,
         };
       }),
       ...productComparePaths.map((p: string) => {
         return {
           loc: `${baseUrl.toString()}${p.replace(/^\//, "")}`,
           lastmod: timestamp,
+          priority: COMPARE_PAGE_CONFIG.priority,
+          changefreq: COMPARE_PAGE_CONFIG.changefreq,
         };
       }),
       ...blogPostEntries,
@@ -174,6 +250,8 @@ export const generateSitemapXml: () => Promise<string> =
       const urlEle: XMLBuilder = urlset.ele("url");
       urlEle.ele("loc").txt(entry.loc);
       urlEle.ele("lastmod").txt(entry.lastmod);
+      urlEle.ele("changefreq").txt(entry.changefreq);
+      urlEle.ele("priority").txt(entry.priority.toFixed(1));
     }
 
     const xml: string = urlset.end({ prettyPrint: true });
