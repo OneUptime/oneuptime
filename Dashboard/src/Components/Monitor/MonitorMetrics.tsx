@@ -27,6 +27,7 @@ import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData, {
   ChartSeries,
+  MetricChartType,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 
@@ -103,6 +104,13 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
       }
 
       for (const monitorMetricType of monitorMetricTypesByMonitor) {
+        // Determine chart type - use bar chart for IsOnline and ResponseStatusCode
+        const chartType: MetricChartType =
+          monitorMetricType === MonitorMetricType.IsOnline ||
+          monitorMetricType === MonitorMetricType.ResponseStatusCode
+            ? MetricChartType.BAR
+            : MetricChartType.LINE;
+
         queries.push({
           metricAliasData: {
             metricVariable: monitorMetricType,
@@ -262,6 +270,7 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
                 ),
             };
           },
+          chartType: chartType,
         });
       }
 

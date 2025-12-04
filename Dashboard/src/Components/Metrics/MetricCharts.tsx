@@ -10,7 +10,10 @@ import { XAxisAggregateType } from "Common/UI/Components/Charts/Types/XAxis/XAxi
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
-import { ChartSeries } from "Common/Types/Metrics/MetricQueryConfigData";
+import {
+  ChartSeries,
+  MetricChartType,
+} from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
@@ -156,9 +159,15 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         });
       }
 
+      // Determine chart type - use BAR for bar chart type, LINE for everything else
+      const chartType: ChartType =
+        queryConfig.chartType === MetricChartType.BAR
+          ? ChartType.BAR
+          : ChartType.LINE;
+
       const chart: Chart = {
         id: index.toString(),
-        type: ChartType.LINE,
+        type: chartType,
         title:
           queryConfig.metricAliasData?.title ||
           queryConfig.metricQueryData.filterData.metricName?.toString() ||
