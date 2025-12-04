@@ -221,7 +221,7 @@ export const generateSitemapXml: () => Promise<string> =
     }
     const entries: Entry[] = [
       ...staticPaths.map((p: string) => {
-        const config = getPageConfig(p);
+        const config: SitemapPageConfig = getPageConfig(p);
         return {
           loc: `${baseUrl.toString()}${p.replace(/^\//, "")}`,
           lastmod: timestamp,

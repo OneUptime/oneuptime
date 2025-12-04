@@ -30,7 +30,10 @@ import { Host, IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 
 // Helper to get SEO data and merge with homeUrl for templates
-const getSEOForPath = (
+const getSEOForPath: (
+  path: string,
+  homeUrl: string,
+) => PageSEOData & { fullCanonicalUrl: string } = (
   path: string,
   homeUrl: string,
 ): PageSEOData & { fullCanonicalUrl: string } => {
@@ -84,7 +87,10 @@ const HomeFeatureSet: FeatureSet = {
 
     app.get("/", (_req: ExpressRequest, res: ExpressResponse) => {
       const { reviewsList1, reviewsList2, reviewsList3 } = Reviews;
-      const seo = getSEOForPath("/", res.locals["homeUrl"] as string);
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/",
+        res.locals["homeUrl"] as string,
+      );
 
       res.render(`${ViewsPath}/index`, {
         support: false,
@@ -111,7 +117,10 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get("/support", async (_req: ExpressRequest, res: ExpressResponse) => {
-      const seo = getSEOForPath("/support", res.locals["homeUrl"] as string);
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/support",
+        res.locals["homeUrl"] as string,
+      );
       res.render(`${ViewsPath}/support`, {
         enableGoogleTagManager: IsBillingEnabled,
         seo,
@@ -121,7 +130,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/oss-friends",
       async (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath(
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
           "/oss-friends",
           res.locals["homeUrl"] as string,
         );
@@ -905,7 +914,10 @@ const HomeFeatureSet: FeatureSet = {
         },
       ];
 
-      const seo = getSEOForPath("/pricing", res.locals["homeUrl"] as string);
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/pricing",
+        res.locals["homeUrl"] as string,
+      );
       res.render(`${ViewsPath}/pricing`, {
         pricing,
         enableGoogleTagManager: IsBillingEnabled,
@@ -916,7 +928,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/enterprise/demo",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath(
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
           "/enterprise/demo",
           res.locals["homeUrl"] as string,
         );
@@ -935,7 +947,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/status-page",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath(
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
           "/product/status-page",
           res.locals["homeUrl"] as string,
         );
@@ -949,7 +961,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/logs-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath(
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
           "/product/logs-management",
           res.locals["homeUrl"] as string,
         );
@@ -961,7 +973,7 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get("/product/apm", (_req: ExpressRequest, res: ExpressResponse) => {
-      const seo = getSEOForPath(
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
         "/product/apm",
         res.locals["homeUrl"] as string,
       );
@@ -1049,7 +1061,10 @@ const HomeFeatureSet: FeatureSet = {
         gitHubCommits = commits;
       }
 
-      const seo = getSEOForPath("/about", res.locals["homeUrl"] as string);
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/about",
+        res.locals["homeUrl"] as string,
+      );
       res.render(`${ViewsPath}/about`, {
         contributors: gitHubContributors,
         basicInfo: gitHubBasicInfo,
@@ -1090,7 +1105,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/monitoring",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath(
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
           "/product/monitoring",
           res.locals["homeUrl"] as string,
         );
@@ -1104,7 +1119,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/on-call",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath(
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
           "/product/on-call",
           res.locals["homeUrl"] as string,
         );
@@ -1118,7 +1133,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/workflows",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath(
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
           "/product/workflows",
           res.locals["homeUrl"] as string,
         );
@@ -1132,7 +1147,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/incident-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath(
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
           "/product/incident-management",
           res.locals["homeUrl"] as string,
         );
@@ -1153,7 +1168,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/enterprise/overview",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath(
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
           "/enterprise/overview",
           res.locals["homeUrl"] as string,
         );
@@ -1443,7 +1458,7 @@ const HomeFeatureSet: FeatureSet = {
         if (!productConfig) {
           return NotFoundUtil.renderNotFound(res);
         }
-        const seo = getSEOForPath(
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
           `/compare/${req.params["product"]}`,
           res.locals["homeUrl"] as string,
         );

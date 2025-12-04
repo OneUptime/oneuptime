@@ -39,7 +39,12 @@ export interface PageSEOData {
 }
 
 // Default SEO data factory
-export const createDefaultSEO = (
+export const createDefaultSEO: (
+  title: string,
+  description: string,
+  canonicalPath: string,
+  pageType?: PageSEOData["pageType"],
+) => PageSEOData = (
   title: string,
   description: string,
   canonicalPath: string,
@@ -462,7 +467,9 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
 };
 
 // Helper to get SEO data for a path, with fallback
-export const getPageSEO = (path: string): PageSEOData => {
+export const getPageSEO: (path: string) => PageSEOData = (
+  path: string,
+): PageSEOData => {
   // Exact match first
   if (PageSEOConfig[path]) {
     return PageSEOConfig[path];
