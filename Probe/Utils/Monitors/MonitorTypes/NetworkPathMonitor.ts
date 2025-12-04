@@ -101,11 +101,16 @@ export default class NetworkPathMonitor {
     };
 
     try {
-      const timeoutPromise: Promise<never> = new Promise((_resolve, reject) => {
-        setTimeout(() => {
-          return reject(new Error("DNS lookup timed out"));
-        }, timeout);
-      });
+      const timeoutPromise: Promise<never> = new Promise(
+        (
+          _resolve: (value: never) => void,
+          reject: (reason?: Error) => void,
+        ) => {
+          setTimeout(() => {
+            return reject(new Error("DNS lookup timed out"));
+          }, timeout);
+        },
+      );
 
       const lookupPromise: Promise<string[]> = dnsResolve(hostname);
 
@@ -171,11 +176,16 @@ export default class NetworkPathMonitor {
         command = `traceroute -m ${maxHops} -w 3 ${destination}`;
       }
 
-      const timeoutPromise: Promise<never> = new Promise((_resolve, reject) => {
-        setTimeout(() => {
-          return reject(new Error("Traceroute timed out"));
-        }, timeout);
-      });
+      const timeoutPromise: Promise<never> = new Promise(
+        (
+          _resolve: (value: never) => void,
+          reject: (reason?: Error) => void,
+        ) => {
+          setTimeout(() => {
+            return reject(new Error("Traceroute timed out"));
+          }, timeout);
+        },
+      );
 
       const tracePromise: Promise<{ stdout: string; stderr: string }> =
         execAsync(command);
@@ -395,7 +405,7 @@ export default class NetworkPathMonitor {
 
     // Check if it's a hostname with IP in brackets
     const hostIPMatch: RegExpMatchArray | null = address.match(
-      /^([^\[]+)\s*\[([^\]]+)\]$/,
+      /^([^[]+)\s*\[([^\]]+)\]$/,
     );
     let hostName: string | undefined;
     let finalAddress: string | undefined = address;

@@ -26,6 +26,7 @@ import MonitorEvaluationSummary, {
 } from "../../../Types/Monitor/MonitorEvaluationSummary";
 import ProbeApiIngestResponse from "../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
+import RequestFailedDetails from "../../../Types/Probe/RequestFailedDetails";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import { CheckOn, CriteriaFilter } from "../../../Types/Monitor/CriteriaFilter";
@@ -529,7 +530,8 @@ ${contextBlock}
 
     // Add Request Failed Details if available
     if (probeResponse?.requestFailedDetails) {
-      const requestFailedDetails = probeResponse.requestFailedDetails;
+      const requestFailedDetails: RequestFailedDetails =
+        probeResponse.requestFailedDetails;
 
       if (requestFailedDetails.failedPhase) {
         failureDetails.push(
