@@ -22,19 +22,18 @@ jobs:
   read-version:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     outputs:
       major_minor: ${{ steps.determine.outputs.semver_base }}
       semver_base: ${{ steps.determine.outputs.semver_base }}
       major: ${{ steps.determine.outputs.major }}
       minor: ${{ steps.determine.outputs.minor }}
       patch: ${{ steps.determine.outputs.patch }}
-      updated: ${{ steps.determine.outputs.updated }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
-      - name: Determine semver base and persist patch
+      - name: Check version and verify not already released
         id: determine
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -47,6 +46,8 @@ jobs:
             echo "VERSION is empty" >&2
             exit 1
           fi
+
+          echo "Version from VERSION file: $VERSION_RAW"
 
           IFS='.' read -r major minor patch <<< "$VERSION_RAW"
           if [[ -z "$minor" ]]; then
@@ -63,50 +64,27 @@ jobs:
             fi
           done
 
-          target_patch="$patch"
-          updated="false"
-          pr_url=""
-          latest_tag="$(gh release view --repo "$REPOSITORY" --json tagName --jq '.tagName' 2>/dev/null || echo "")"
-
-          if [[ -n "$latest_tag" ]]; then
-            latest_tag="${latest_tag#v}"
-            latest_tag_core="${latest_tag%%+*}"
-            latest_tag_core="${latest_tag_core%%-*}"
-            IFS='.' read -r rel_major rel_minor rel_patch _ <<< "$latest_tag_core"
-            rel_patch="${rel_patch:-0}"
-            if [[ "$rel_major" =~ ^[0-9]+$ && "$rel_minor" =~ ^[0-9]+$ && "$rel_patch" =~ ^[0-9]+$ ]]; then
-              if [[ "$rel_major" == "$major" && "$rel_minor" == "$minor" ]]; then
-                target_patch=$((rel_patch + 1))
-              fi
-            fi
+          # Check if this version is already released on GitHub
+          echo "Checking if version $VERSION_RAW is already released on GitHub..."
+          
+          if gh release view "$VERSION_RAW" --repo "$REPOSITORY" &>/dev/null; then
+            echo "::error::Version $VERSION_RAW is already released on GitHub. Please update the VERSION file to a new version."
+            exit 1
+          fi
+          
+          # Also check with 'v' prefix just in case
+          if gh release view "v$VERSION_RAW" --repo "$REPOSITORY" &>/dev/null; then
+            echo "::error::Version v$VERSION_RAW is already released on GitHub. Please update the VERSION file to a new version."
+            exit 1
           fi
 
-          new_version="${major}.${minor}.${target_patch}"
-          if [[ "$new_version" != "$VERSION_RAW" ]]; then
-            echo "$new_version" > VERSION
-            git config --global user.name "github-actions[bot]"
-            git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            git add VERSION
-            if ! git diff --cached --quiet; then
-              branch_name="chore/bump-version-${new_version}-$(date +%s)"
-              git checkout -b "$branch_name"
-              git commit -m "chore: bump version to ${new_version} [skip ci]"
-              git push origin "$branch_name"
-              pr_title="chore: bump version to ${new_version}"
-              pr_body=$'Automated change to VERSION to align release workflow with master.\n\nCreated by GitHub Actions release workflow.'
-              gh pr create --repo "$REPOSITORY" --base master --head "$branch_name" --title "$pr_title" --body "$pr_body"
-              pr_url="$(gh pr view "$branch_name" --repo "$REPOSITORY" --json url --jq '.url' 2>/dev/null || true)"
-              updated="true"
-            fi
-          fi
+          echo "✅ Version $VERSION_RAW is not yet released. Proceeding with release."
 
-          echo "semver_base=${new_version}" >> "$GITHUB_OUTPUT"
+          echo "semver_base=${VERSION_RAW}" >> "$GITHUB_OUTPUT"
           echo "major=${major}" >> "$GITHUB_OUTPUT"
           echo "minor=${minor}" >> "$GITHUB_OUTPUT"
-          echo "patch=${target_patch}" >> "$GITHUB_OUTPUT"
-          echo "updated=${updated}" >> "$GITHUB_OUTPUT"
-          echo "pr_url=${pr_url}" >> "$GITHUB_OUTPUT"
-          echo "Using version base: ${new_version}"
+          echo "patch=${patch}" >> "$GITHUB_OUTPUT"
+          echo "Using version: ${VERSION_RAW}"
 
 
 
