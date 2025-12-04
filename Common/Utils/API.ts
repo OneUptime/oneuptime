@@ -584,7 +584,11 @@ export default class API {
         const errStr: string = error.error.toString() || "";
 
         // Check if the error message is meaningful (not just "Error" or empty)
-        if (errMsg && errMsg.trim().toLowerCase() !== "error" && errMsg.trim() !== "") {
+        if (
+          errMsg &&
+          errMsg.trim().toLowerCase() !== "error" &&
+          errMsg.trim() !== ""
+        ) {
           nestedErrorMessage = errMsg;
         } else if (
           errStr &&
