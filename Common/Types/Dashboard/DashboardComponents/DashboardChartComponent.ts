@@ -1,6 +1,7 @@
 import MetricQueryConfigData from "../../Metrics/MetricQueryConfigData";
 import ObjectID from "../../ObjectID";
 import DashboardComponentType from "../DashboardComponentType";
+import DashboardChartType from "../Chart/ChartType";
 import BaseComponent from "./DashboardBaseComponent";
 
 export default interface DashboardChartComponent extends BaseComponent {
@@ -12,5 +13,6 @@ export default interface DashboardChartComponent extends BaseComponent {
     chartDescription?: string | undefined;
     legendText?: string | undefined;
     legendUnit?: string | undefined;
+    chartType?: DashboardChartType | undefined;
   };
 }

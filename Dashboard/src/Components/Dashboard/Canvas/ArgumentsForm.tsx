@@ -160,6 +160,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                 placeholder: arg.placeholder,
                 ...ComponentInputTypeToFormFieldType.getFormFieldTypeByComponentInputType(
                   arg.type,
+                  arg.dropdownOptions,
                 ),
                 getCustomElement: getCustomElememnt(arg),
               };

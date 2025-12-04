@@ -7,6 +7,7 @@ import {
   ComponentInputType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import DashboardChartType from "../../../Types/Dashboard/Chart/ChartType";
 
 export default class DashboardChartComponentUtil extends DashboardBaseComponentUtil {
   public static override getDefaultComponent(): DashboardChartComponent {
@@ -27,6 +28,7 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
             groupBy: undefined,
           },
         },
+        chartType: DashboardChartType.Line,
       },
     };
   }
@@ -37,6 +39,24 @@ export default class DashboardChartComponentUtil extends DashboardBaseComponentU
     const componentArguments: Array<
       ComponentArgument<DashboardChartComponent>
     > = [];
+
+    componentArguments.push({
+      name: "Chart Type",
+      description: "Select the type of chart to display",
+      required: true,
+      type: ComponentInputType.Dropdown,
+      id: "chartType",
+      dropdownOptions: [
+        {
+          label: "Line Chart",
+          value: DashboardChartType.Line,
+        },
+        {
+          label: "Bar Chart",
+          value: DashboardChartType.Bar,
+        },
+      ],
+    });
 
     componentArguments.push({
       name: "Chart Configuration",

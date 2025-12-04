@@ -5,6 +5,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 export default class ComponentInputTypeToFormFieldType {
   public static getFormFieldTypeByComponentInputType(
     componentInputType: ComponentInputType,
+    dropdownOptions?: Array<DropdownOption> | undefined,
   ): {
     fieldType: FormFieldSchemaType;
     dropdownOptions?: Array<DropdownOption> | undefined;
@@ -49,6 +50,13 @@ export default class ComponentInputTypeToFormFieldType {
     if (componentInputType === ComponentInputType.MetricsQueryConfig) {
       return {
         fieldType: FormFieldSchemaType.CustomComponent,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.Dropdown) {
+      return {
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions: dropdownOptions || [],
       };
     }
 

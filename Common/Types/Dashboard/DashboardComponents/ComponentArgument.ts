@@ -1,4 +1,5 @@
 import DashboardBaseComponent from "./DashboardBaseComponent";
+import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 
 export enum ComponentInputType {
   Text = "Text",
@@ -9,6 +10,7 @@ export enum ComponentInputType {
   Decimal = "Decimal",
   MetricsQueryConfig = "MetricsQueryConfig",
   LongText = "Long Text",
+  Dropdown = "Dropdown",
 }
 
 export interface ComponentArgument<T extends DashboardBaseComponent> {
@@ -19,4 +21,5 @@ export interface ComponentArgument<T extends DashboardBaseComponent> {
   id: keyof T["arguments"];
   isAdvanced?: boolean | undefined;
   placeholder?: string | undefined;
+  dropdownOptions?: Array<DropdownOption> | undefined;
 }

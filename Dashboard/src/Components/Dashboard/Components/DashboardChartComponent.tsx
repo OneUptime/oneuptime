@@ -10,10 +10,13 @@ import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricQueryConfigData, {
+  MetricChartType,
+} from "Common/Types/Metrics/MetricQueryConfigData";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
+import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
@@ -141,6 +144,14 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
 
   // add title and description.
 
+  // Convert dashboard chart type to metric chart type
+  const getMetricChartType = (): MetricChartType => {
+    if (props.component.arguments.chartType === DashboardChartType.Bar) {
+      return MetricChartType.BAR;
+    }
+    return MetricChartType.LINE;
+  };
+
   const chartMetricViewData: MetricViewData = {
     queryConfigs: props.component.arguments.metricQueryConfig
       ? [
@@ -154,6 +165,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
               legend: props.component.arguments.legendText || undefined,
               legendUnit: props.component.arguments.legendUnit || undefined,
             },
+            chartType: getMetricChartType(),
           },
         ]
       : [],
