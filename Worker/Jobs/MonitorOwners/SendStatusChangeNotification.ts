@@ -25,6 +25,7 @@ import User from "Common/Models/DatabaseModels/User";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import logger from "Common/Server/Utils/Logger";
 
 RunCron(
   "MonitorOwner:SendStatusChangeEmail",
@@ -125,6 +126,11 @@ RunCron(
             monitorStatusTimeline.startsAt || monitorStatusTimeline.createdAt;
 
           if (previousStartTime && currentStartTime) {
+
+            logger.debug(
+              `Calculating duration between ${previousStartTime.toISOString()} and ${currentStartTime.toISOString()}`,
+            );
+
             const durationInSeconds: number =
               OneUptimeDate.getDifferenceInSeconds(
                 currentStartTime,
@@ -134,6 +140,11 @@ RunCron(
               OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(
                 durationInSeconds,
               );
+
+
+            logger.debug(
+              `Previous status duration: ${previousStatusDuration}`,
+            );
           }
         }
       }
@@ -162,14 +173,17 @@ RunCron(
       }
 
       for (const user of owners) {
+        // Build the "Was X for Y" string
+        const previousStatusDurationText: string = previousStatus?.name && previousStatusDuration
+          ? `Was ${previousStatus.name} for ${previousStatusDuration}`
+          : "";
+
         const vars: Dictionary<string> = {
           monitorName: monitor.name!,
           projectName: monitorStatusTimeline.project!.name!,
           currentStatus: monitorStatus!.name!,
           currentStatusColor: monitorStatus!.color?.toString() || "#000000",
-          previousStatus: previousStatus?.name || "",
-          previousStatusColor: previousStatus?.color?.toString() || "#6b7280",
-          previousStatusDuration: previousStatusDuration,
+          previousStatusDurationText: previousStatusDurationText,
           monitorDescription: await Markdown.convertToHTML(
             monitor.description! || "",
             MarkdownContentType.Email,
@@ -202,25 +216,22 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.MonitorOwnerStatusChanged,
           vars: vars,
-          subject: `[Monitor] ${
-            monitor.name || "Monitor"
-          } is ${monitorStatus!.name!}`,
+          subject: `[Monitor] ${monitor.name || "Monitor"
+            } is ${monitorStatus!.name!}`,
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. ${
-            monitor.name || "Monitor"
-          } status changed${previousStatus ? ` from ${previousStatus.name}` : ""} to ${monitorStatus!
-            .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: `This is a message from OneUptime. ${monitor.name || "Monitor"
+            } status changed${previousStatus ? ` from ${previousStatus.name}` : ""} to ${monitorStatus!
+              .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime. ${
-                monitor.name || "Monitor"
-              } status changed${previousStatus ? ` from ${previousStatus.name}` : ""} to ${monitorStatus!
-                .name!}.  To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+              sayMessage: `This is a message from OneUptime. ${monitor.name || "Monitor"
+                } status changed${previousStatus ? ` from ${previousStatus.name}` : ""} to ${monitorStatus!
+                  .name!}.  To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
         };
