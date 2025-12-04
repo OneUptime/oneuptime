@@ -12,7 +12,14 @@ interface CachedSitemap {
 }
 
 // Priority and changefreq configuration for different page types
-type ChangeFrequency = "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
+type ChangeFrequency =
+  | "always"
+  | "hourly"
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "yearly"
+  | "never";
 
 interface SitemapPageConfig {
   priority: number;
@@ -22,7 +29,7 @@ interface SitemapPageConfig {
 const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   // Homepage - highest priority
   "/": { priority: 1.0, changefreq: "daily" },
-  
+
   // Core product pages - high priority
   "/product/status-page": { priority: 0.9, changefreq: "weekly" },
   "/product/monitoring": { priority: 0.9, changefreq: "weekly" },
@@ -31,48 +38,60 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   "/product/logs-management": { priority: 0.9, changefreq: "weekly" },
   "/product/apm": { priority: 0.9, changefreq: "weekly" },
   "/product/workflows": { priority: 0.9, changefreq: "weekly" },
-  
+
   // Important pages
   "/pricing": { priority: 0.9, changefreq: "weekly" },
   "/enterprise/demo": { priority: 0.9, changefreq: "weekly" },
   "/enterprise/overview": { priority: 0.8, changefreq: "weekly" },
   "/about": { priority: 0.7, changefreq: "weekly" },
   "/support": { priority: 0.7, changefreq: "weekly" },
-  
+
   // Documentation and reference
   "/docs": { priority: 0.7, changefreq: "weekly" },
   "/reference": { priority: 0.7, changefreq: "weekly" },
-  
+
   // Blog section
   "/blog": { priority: 0.7, changefreq: "daily" },
-  
+
   // Community and legal
   "/oss-friends": { priority: 0.3, changefreq: "monthly" },
 };
 
 // Default config for pages not explicitly listed
-const DEFAULT_CONFIG: SitemapPageConfig = { priority: 0.5, changefreq: "monthly" };
+const DEFAULT_CONFIG: SitemapPageConfig = {
+  priority: 0.5,
+  changefreq: "monthly",
+};
 
 // Blog post config
-const BLOG_POST_CONFIG: SitemapPageConfig = { priority: 0.6, changefreq: "monthly" };
+const BLOG_POST_CONFIG: SitemapPageConfig = {
+  priority: 0.6,
+  changefreq: "monthly",
+};
 
 // Blog tag config
-const BLOG_TAG_CONFIG: SitemapPageConfig = { priority: 0.4, changefreq: "weekly" };
+const BLOG_TAG_CONFIG: SitemapPageConfig = {
+  priority: 0.4,
+  changefreq: "weekly",
+};
 
 // Compare page config
-const COMPARE_PAGE_CONFIG: SitemapPageConfig = { priority: 0.7, changefreq: "monthly" };
+const COMPARE_PAGE_CONFIG: SitemapPageConfig = {
+  priority: 0.7,
+  changefreq: "monthly",
+};
 
 function getPageConfig(path: string): SitemapPageConfig {
   // Check for exact match first
   if (PAGE_CONFIG[path]) {
     return PAGE_CONFIG[path];
   }
-  
+
   // Check for prefix matches
   if (path.startsWith("/legal")) {
     return { priority: 0.3, changefreq: "monthly" };
   }
-  
+
   return DEFAULT_CONFIG;
 }
 

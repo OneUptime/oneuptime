@@ -74,7 +74,10 @@ const HomeFeatureSet: FeatureSet = {
           }
         }
         // Inject SEO data for current path
-        res.locals["seo"] = getSEOForPath(req.path, res.locals["homeUrl"] as string);
+        res.locals["seo"] = getSEOForPath(
+          req.path,
+          res.locals["homeUrl"] as string,
+        );
         next();
       },
     );
@@ -118,7 +121,10 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/oss-friends",
       async (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath("/oss-friends", res.locals["homeUrl"] as string);
+        const seo = getSEOForPath(
+          "/oss-friends",
+          res.locals["homeUrl"] as string,
+        );
         res.render(`${ViewsPath}/oss-friends`, {
           ossFriends: OSSFriends.map((friend: OSSFriend) => {
             return {
@@ -910,7 +916,10 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/enterprise/demo",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath("/enterprise/demo", res.locals["homeUrl"] as string);
+        const seo = getSEOForPath(
+          "/enterprise/demo",
+          res.locals["homeUrl"] as string,
+        );
         res.render(`${ViewsPath}/demo`, {
           support: false,
           enableGoogleTagManager: IsBillingEnabled,
@@ -926,7 +935,10 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/status-page",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath("/product/status-page", res.locals["homeUrl"] as string);
+        const seo = getSEOForPath(
+          "/product/status-page",
+          res.locals["homeUrl"] as string,
+        );
         res.render(`${ViewsPath}/status-page`, {
           enableGoogleTagManager: IsBillingEnabled,
           seo,
@@ -937,7 +949,10 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/logs-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath("/product/logs-management", res.locals["homeUrl"] as string);
+        const seo = getSEOForPath(
+          "/product/logs-management",
+          res.locals["homeUrl"] as string,
+        );
         res.render(`${ViewsPath}/logs-management`, {
           enableGoogleTagManager: IsBillingEnabled,
           seo,
@@ -946,7 +961,10 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get("/product/apm", (_req: ExpressRequest, res: ExpressResponse) => {
-      const seo = getSEOForPath("/product/apm", res.locals["homeUrl"] as string);
+      const seo = getSEOForPath(
+        "/product/apm",
+        res.locals["homeUrl"] as string,
+      );
       res.render(`${ViewsPath}/apm`, {
         enableGoogleTagManager: IsBillingEnabled,
         seo,
@@ -1072,7 +1090,10 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/monitoring",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath("/product/monitoring", res.locals["homeUrl"] as string);
+        const seo = getSEOForPath(
+          "/product/monitoring",
+          res.locals["homeUrl"] as string,
+        );
         res.render(`${ViewsPath}/monitoring`, {
           enableGoogleTagManager: IsBillingEnabled,
           seo,
@@ -1083,7 +1104,10 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/on-call",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath("/product/on-call", res.locals["homeUrl"] as string);
+        const seo = getSEOForPath(
+          "/product/on-call",
+          res.locals["homeUrl"] as string,
+        );
         res.render(`${ViewsPath}/on-call`, {
           enableGoogleTagManager: IsBillingEnabled,
           seo,
@@ -1094,7 +1118,10 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/workflows",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath("/product/workflows", res.locals["homeUrl"] as string);
+        const seo = getSEOForPath(
+          "/product/workflows",
+          res.locals["homeUrl"] as string,
+        );
         res.render(`${ViewsPath}/workflows`, {
           enableGoogleTagManager: IsBillingEnabled,
           seo,
@@ -1105,7 +1132,10 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/product/incident-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath("/product/incident-management", res.locals["homeUrl"] as string);
+        const seo = getSEOForPath(
+          "/product/incident-management",
+          res.locals["homeUrl"] as string,
+        );
         res.render(`${ViewsPath}/incident-management`, {
           enableGoogleTagManager: IsBillingEnabled,
           seo,
@@ -1123,7 +1153,10 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/enterprise/overview",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo = getSEOForPath("/enterprise/overview", res.locals["homeUrl"] as string);
+        const seo = getSEOForPath(
+          "/enterprise/overview",
+          res.locals["homeUrl"] as string,
+        );
         res.render(`${ViewsPath}/enterprise-overview.ejs`, {
           support: false,
           enableGoogleTagManager: IsBillingEnabled,
@@ -1410,7 +1443,10 @@ const HomeFeatureSet: FeatureSet = {
         if (!productConfig) {
           return NotFoundUtil.renderNotFound(res);
         }
-        const seo = getSEOForPath(`/compare/${req.params["product"]}`, res.locals["homeUrl"] as string);
+        const seo = getSEOForPath(
+          `/compare/${req.params["product"]}`,
+          res.locals["homeUrl"] as string,
+        );
         res.render(`${ViewsPath}/product-compare.ejs`, {
           support: false,
           enableGoogleTagManager: IsBillingEnabled,

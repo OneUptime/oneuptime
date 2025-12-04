@@ -1,5 +1,7 @@
-// Page-specific SEO metadata configuration for OneUptime landing pages
-// This provides structured data for search engines and AI agents
+/*
+ * Page-specific SEO metadata configuration for OneUptime landing pages
+ * This provides structured data for search engines and AI agents
+ */
 
 export interface BreadcrumbItem {
   name: string;
@@ -132,7 +134,8 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/incident-management": {
-    title: "Incident Management Software | Resolve Incidents Faster | OneUptime",
+    title:
+      "Incident Management Software | Resolve Incidents Faster | OneUptime",
     description:
       "Streamline incident response with OneUptime. Track incidents, collaborate in real-time, conduct postmortems, and improve MTTR. Integrates with Slack, PagerDuty, and more. Open source.",
     canonicalPath: "/product/incident-management",
@@ -164,7 +167,8 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/on-call": {
-    title: "On-Call Management & Alerting | Schedules & Escalations | OneUptime",
+    title:
+      "On-Call Management & Alerting | Schedules & Escalations | OneUptime",
     description:
       "On-call scheduling, alerting, and escalation policies. Alert the right people at the right time via SMS, phone, email, Slack. Rotation schedules and override support. Open source.",
     canonicalPath: "/product/on-call",
