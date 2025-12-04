@@ -26,6 +26,7 @@ import MonitorEvaluationSummary, {
 } from "../../../Types/Monitor/MonitorEvaluationSummary";
 import ProbeApiIngestResponse from "../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
+import RequestFailedDetails from "../../../Types/Probe/RequestFailedDetails";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import { CheckOn, CriteriaFilter } from "../../../Types/Monitor/CriteriaFilter";
@@ -472,6 +473,7 @@ ${contextBlock}
   }): string | null {
     const requestDetails: Array<string> = [];
     const responseDetails: Array<string> = [];
+    const failureDetails: Array<string> = [];
 
     const probeResponse: ProbeMonitorResponse | null =
       MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
@@ -526,6 +528,34 @@ ${contextBlock}
       );
     }
 
+    // Add Request Failed Details if available
+    if (probeResponse?.requestFailedDetails) {
+      const requestFailedDetails: RequestFailedDetails =
+        probeResponse.requestFailedDetails;
+
+      if (requestFailedDetails.failedPhase) {
+        failureDetails.push(
+          `- Failed Phase: ${requestFailedDetails.failedPhase}`,
+        );
+      }
+
+      if (requestFailedDetails.errorCode) {
+        failureDetails.push(`- Error Code: ${requestFailedDetails.errorCode}`);
+      }
+
+      if (requestFailedDetails.errorDescription) {
+        failureDetails.push(
+          `- Error Description: ${requestFailedDetails.errorDescription}`,
+        );
+      }
+
+      if (requestFailedDetails.rawErrorMessage) {
+        failureDetails.push(
+          `- Raw Error Message: ${requestFailedDetails.rawErrorMessage}`,
+        );
+      }
+    }
+
     const sections: Array<string> = [];
 
     if (requestDetails.length > 0) {
@@ -534,6 +564,12 @@ ${contextBlock}
 
     if (responseDetails.length > 0) {
       sections.push(`\n\n**Response Snapshot**\n${responseDetails.join("\n")}`);
+    }
+
+    if (failureDetails.length > 0) {
+      sections.push(
+        `\n\n**Request Failed Details**\n${failureDetails.join("\n")}`,
+      );
     }
 
     if (!sections.length) {

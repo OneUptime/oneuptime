@@ -12,8 +12,12 @@ import dns from "dns";
 import { promisify } from "util";
 import { exec } from "child_process";
 
-const execAsync: (command: string) => Promise<{ stdout: string; stderr: string }> = promisify(exec);
-const dnsResolve: (hostname: string) => Promise<string[]> = promisify(dns.resolve);
+const execAsync: (
+  command: string,
+) => Promise<{ stdout: string; stderr: string }> = promisify(exec);
+const dnsResolve: (hostname: string) => Promise<string[]> = promisify(
+  dns.resolve,
+);
 
 export interface NetworkPathMonitorOptions {
   timeout?: number; // Overall timeout in milliseconds
@@ -32,7 +36,7 @@ export default class NetworkPathMonitor {
     const maxHops: number = options?.maxHops || 30;
 
     let hostAddress: string = "";
-    
+
     if (destination instanceof URL) {
       hostAddress = destination.hostname.hostname;
     } else if (destination instanceof Hostname) {
@@ -73,7 +77,8 @@ export default class NetworkPathMonitor {
     // IPv4 pattern
     const ipv4Pattern: RegExp = /^(\d{1,3}\.){3}\d{1,3}$/;
     // IPv6 pattern (simplified)
-    const ipv6Pattern: RegExp = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::$|^([0-9a-fA-F]{1,4}:)*:([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4}$/;
+    const ipv6Pattern: RegExp =
+      /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::$|^([0-9a-fA-F]{1,4}:)*:([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4}$/;
 
     return ipv4Pattern.test(address) || ipv6Pattern.test(address);
   }
@@ -96,23 +101,39 @@ export default class NetworkPathMonitor {
     };
 
     try {
-      const timeoutPromise: Promise<never> = new Promise((_resolve, reject) => {
-        setTimeout(() => reject(new Error("DNS lookup timed out")), timeout);
-      });
+      const timeoutPromise: Promise<never> = new Promise(
+        (
+          _resolve: (value: never) => void,
+          reject: (reason?: Error) => void,
+        ) => {
+          setTimeout(() => {
+            return reject(new Error("DNS lookup timed out"));
+          }, timeout);
+        },
+      );
 
       const lookupPromise: Promise<string[]> = dnsResolve(hostname);
 
-      const addresses: string[] = await Promise.race([lookupPromise, timeoutPromise]);
-      
+      const addresses: string[] = await Promise.race([
+        lookupPromise,
+        timeoutPromise,
+      ]);
+
       const endTime: [number, number] = process.hrtime(startTime);
-      result.resolvedInMS = Math.ceil((endTime[0] * 1000000000 + endTime[1]) / 1000000);
+      result.resolvedInMS = Math.ceil(
+        (endTime[0] * 1000000000 + endTime[1]) / 1000000,
+      );
       result.resolvedAddresses = addresses;
       result.isSuccess = true;
 
-      logger.debug(`DNS lookup for ${hostname} resolved to: ${addresses.join(", ")}`);
+      logger.debug(
+        `DNS lookup for ${hostname} resolved to: ${addresses.join(", ")}`,
+      );
     } catch (err) {
       const endTime: [number, number] = process.hrtime(startTime);
-      result.resolvedInMS = Math.ceil((endTime[0] * 1000000000 + endTime[1]) / 1000000);
+      result.resolvedInMS = Math.ceil(
+        (endTime[0] * 1000000000 + endTime[1]) / 1000000,
+      );
       result.isSuccess = false;
       result.errorMessage = (err as Error).message;
 
@@ -155,11 +176,19 @@ export default class NetworkPathMonitor {
         command = `traceroute -m ${maxHops} -w 3 ${destination}`;
       }
 
-      const timeoutPromise: Promise<never> = new Promise((_resolve, reject) => {
-        setTimeout(() => reject(new Error("Traceroute timed out")), timeout);
-      });
+      const timeoutPromise: Promise<never> = new Promise(
+        (
+          _resolve: (value: never) => void,
+          reject: (reason?: Error) => void,
+        ) => {
+          setTimeout(() => {
+            return reject(new Error("Traceroute timed out"));
+          }, timeout);
+        },
+      );
 
-      const tracePromise: Promise<{ stdout: string; stderr: string }> = execAsync(command);
+      const tracePromise: Promise<{ stdout: string; stderr: string }> =
+        execAsync(command);
 
       const { stdout } = await Promise.race([tracePromise, timeoutPromise]);
 
@@ -168,10 +197,14 @@ export default class NetworkPathMonitor {
 
       // Check if we reached the destination
       if (result.hops.length > 0) {
-        const lastHop: TraceRouteHop | undefined = result.hops[result.hops.length - 1];
+        const lastHop: TraceRouteHop | undefined =
+          result.hops[result.hops.length - 1];
         if (lastHop && !lastHop.isTimeout) {
           // Check if the last hop matches the destination
-          if (lastHop.address === destination || lastHop.hostName === destination) {
+          if (
+            lastHop.address === destination ||
+            lastHop.hostName === destination
+          ) {
             result.isComplete = true;
             result.destinationHostName = lastHop.hostName;
           }
@@ -187,10 +220,14 @@ export default class NetworkPathMonitor {
         }
       }
 
-      logger.debug(`Traceroute to ${destination} completed with ${result.totalHops} hops`);
+      logger.debug(
+        `Traceroute to ${destination} completed with ${result.totalHops} hops`,
+      );
     } catch (err) {
       result.failureMessage = (err as Error).message;
-      logger.debug(`Traceroute to ${destination} failed: ${result.failureMessage}`);
+      logger.debug(
+        `Traceroute to ${destination} failed: ${result.failureMessage}`,
+      );
     }
 
     return result;
@@ -224,11 +261,17 @@ export default class NetworkPathMonitor {
    * Format: " 1  router.local (192.168.1.1)  1.234 ms  1.567 ms  1.890 ms"
    * Or: " 2  * * *"
    */
-  private static parseUnixTracerouteLine(line: string): TraceRouteHop | undefined {
+  private static parseUnixTracerouteLine(
+    line: string,
+  ): TraceRouteHop | undefined {
     const trimmedLine: string = line.trim();
-    
+
     // Skip empty lines and header lines
-    if (!trimmedLine || trimmedLine.startsWith("traceroute") || trimmedLine.startsWith("Tracing")) {
+    if (
+      !trimmedLine ||
+      trimmedLine.startsWith("traceroute") ||
+      trimmedLine.startsWith("Tracing")
+    ) {
       return undefined;
     }
 
@@ -244,7 +287,10 @@ export default class NetworkPathMonitor {
     }
 
     // Check for timeout (all asterisks)
-    if (trimmedLine.includes("* * *") || trimmedLine.match(/^\s*\d+\s+\*\s*$/)) {
+    if (
+      trimmedLine.includes("* * *") ||
+      trimmedLine.match(/^\s*\d+\s+\*\s*$/)
+    ) {
       return {
         hopNumber,
         address: undefined,
@@ -254,11 +300,17 @@ export default class NetworkPathMonitor {
       };
     }
 
-    // Try to extract hostname and IP
-    // Pattern: hostname (ip) time ms
-    const hostIPMatch: RegExpMatchArray | null = trimmedLine.match(/^\s*\d+\s+([^\s(]+)\s+\(([^)]+)\)\s+/);
+    /*
+     * Try to extract hostname and IP
+     * Pattern: hostname (ip) time ms
+     */
+    const hostIPMatch: RegExpMatchArray | null = trimmedLine.match(
+      /^\s*\d+\s+([^\s(]+)\s+\(([^)]+)\)\s+/,
+    );
     // Pattern: ip time ms (no hostname)
-    const ipOnlyMatch: RegExpMatchArray | null = trimmedLine.match(/^\s*\d+\s+([0-9.]+|[0-9a-fA-F:]+)\s+/);
+    const ipOnlyMatch: RegExpMatchArray | null = trimmedLine.match(
+      /^\s*\d+\s+([0-9.]+|[0-9a-fA-F:]+)\s+/,
+    );
 
     let hostName: string | undefined;
     let address: string | undefined;
@@ -271,8 +323,11 @@ export default class NetworkPathMonitor {
     }
 
     // Extract RTT (first time value)
-    const rttMatch: RegExpMatchArray | null = trimmedLine.match(/(\d+\.?\d*)\s*ms/);
-    const roundTripTimeInMS: number | undefined = rttMatch ? parseFloat(rttMatch[1] || "0") : undefined;
+    const rttMatch: RegExpMatchArray | null =
+      trimmedLine.match(/(\d+\.?\d*)\s*ms/);
+    const roundTripTimeInMS: number | undefined = rttMatch
+      ? parseFloat(rttMatch[1] || "0")
+      : undefined;
 
     if (!address && !hostName) {
       return undefined;
@@ -292,11 +347,17 @@ export default class NetworkPathMonitor {
    * Format: "  1     1 ms     1 ms     1 ms  192.168.1.1"
    * Or: "  2     *        *        *     Request timed out."
    */
-  private static parseWindowsTracerouteLine(line: string): TraceRouteHop | undefined {
+  private static parseWindowsTracerouteLine(
+    line: string,
+  ): TraceRouteHop | undefined {
     const trimmedLine: string = line.trim();
 
     // Skip empty lines and header lines
-    if (!trimmedLine || trimmedLine.startsWith("Tracing") || trimmedLine.includes("over a maximum")) {
+    if (
+      !trimmedLine ||
+      trimmedLine.startsWith("Tracing") ||
+      trimmedLine.includes("over a maximum")
+    ) {
       return undefined;
     }
 
@@ -312,7 +373,10 @@ export default class NetworkPathMonitor {
     }
 
     // Check for timeout
-    if (trimmedLine.includes("Request timed out") || trimmedLine.match(/\*\s+\*\s+\*/)) {
+    if (
+      trimmedLine.includes("Request timed out") ||
+      trimmedLine.match(/\*\s+\*\s+\*/)
+    ) {
       return {
         hopNumber,
         address: undefined,
@@ -324,18 +388,25 @@ export default class NetworkPathMonitor {
 
     // Extract RTT (first time value)
     const rttMatch: RegExpMatchArray | null = trimmedLine.match(/(\d+)\s*ms/);
-    const roundTripTimeInMS: number | undefined = rttMatch ? parseFloat(rttMatch[1] || "0") : undefined;
+    const roundTripTimeInMS: number | undefined = rttMatch
+      ? parseFloat(rttMatch[1] || "0")
+      : undefined;
 
     // Extract IP address or hostname at the end
-    const addressMatch: RegExpMatchArray | null = trimmedLine.match(/\s+([^\s]+)\s*$/);
-    const address: string | undefined = addressMatch ? addressMatch[1] : undefined;
+    const addressMatch: RegExpMatchArray | null =
+      trimmedLine.match(/\s+([^\s]+)\s*$/);
+    const address: string | undefined = addressMatch
+      ? addressMatch[1]
+      : undefined;
 
     if (!address) {
       return undefined;
     }
 
     // Check if it's a hostname with IP in brackets
-    const hostIPMatch: RegExpMatchArray | null = address.match(/^([^\[]+)\s*\[([^\]]+)\]$/);
+    const hostIPMatch: RegExpMatchArray | null = address.match(
+      /^([^[]+)\s*\[([^\]]+)\]$/,
+    );
     let hostName: string | undefined;
     let finalAddress: string | undefined = address;
 

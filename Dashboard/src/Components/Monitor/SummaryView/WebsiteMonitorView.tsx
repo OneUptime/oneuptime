@@ -43,6 +43,11 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
     });
   }
 
+  // Check if there are error details to show
+  const hasErrorDetails: boolean = Boolean(
+    props.probeMonitorResponse.requestFailedDetails,
+  );
+
   return (
     <div className="space-y-5">
       <div className="flex space-x-3">
@@ -85,6 +90,40 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
             title="Error"
             value={props.probeMonitorResponse.failureCause?.toString() || "-"}
           />
+        </div>
+      )}
+
+      {/* Error Details Section */}
+      {hasErrorDetails && (
+        <div className="space-y-3">
+          <div className="flex space-x-3">
+            <InfoCard
+              className="w-1/2 shadow-none border-2 border-gray-100 "
+              title="Failed At"
+              value={
+                props.probeMonitorResponse.requestFailedDetails?.failedPhase ||
+                "-"
+              }
+            />
+            <InfoCard
+              className="w-1/2 shadow-none border-2 border-gray-100 "
+              title="Error Code"
+              value={
+                props.probeMonitorResponse.requestFailedDetails?.errorCode ||
+                "-"
+              }
+            />
+          </div>
+          <div className="flex space-x-3">
+            <InfoCard
+              className="w-full shadow-none border-2 border-gray-100 "
+              title="Error Details"
+              value={
+                props.probeMonitorResponse.requestFailedDetails
+                  ?.errorDescription || "-"
+              }
+            />
+          </div>
         </div>
       )}
 

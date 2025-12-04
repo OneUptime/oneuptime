@@ -6,6 +6,7 @@ import URL from "Common/Types/API/URL";
 import HTML from "Common/Types/Html";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
 import Sleep from "Common/Types/Sleep";
 import WebsiteRequest, { WebsiteResponse } from "Common/Types/WebsiteRequest";
 import API from "Common/Utils/API";
@@ -23,6 +24,7 @@ export interface ProbeWebsiteResponse {
   responseHeaders: Headers | undefined;
   isOnline: boolean;
   failureCause: string;
+  requestFailedDetails?: RequestFailedDetails | undefined;
   isTimeout?: boolean;
 }
 
@@ -144,6 +146,10 @@ export default class WebsiteMonitor {
         responsebody = JSON.stringify(responsebody);
       }
 
+      // Get detailed error information
+      const requestFailedDetails: RequestFailedDetails =
+        API.getRequestFailedDetails(err);
+
       if (err instanceof AxiosError) {
         probeWebsiteResponse = {
           url: url,
@@ -156,6 +162,7 @@ export default class WebsiteMonitor {
           isTimeout: false,
           responseHeaders: (err.response?.headers as Headers) || {},
           failureCause: API.getFriendlyErrorMessage(err),
+          requestFailedDetails: requestFailedDetails,
         };
       } else {
         probeWebsiteResponse = {
@@ -170,6 +177,7 @@ export default class WebsiteMonitor {
           responseHeaders: ((err as any)?.response?.headers as Headers) || {},
           isTimeout: false,
           failureCause: API.getFriendlyErrorMessage(err as Error),
+          requestFailedDetails: requestFailedDetails,
         };
       }
 

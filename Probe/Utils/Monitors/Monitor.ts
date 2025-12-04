@@ -396,6 +396,7 @@ export default class MonitorUtil {
       result.responseCode = response.statusCode;
       result.failureCause = response.failureCause;
       result.isTimeout = response.isTimeout;
+      result.requestFailedDetails = response.requestFailedDetails;
     }
 
     if (monitorType === MonitorType.API) {
@@ -439,6 +440,7 @@ export default class MonitorUtil {
       result.responseHeaders = response.responseHeaders;
       result.responseCode = response.statusCode;
       result.failureCause = response.failureCause;
+      result.requestFailedDetails = response.requestFailedDetails;
     }
 
     // update the monitoredAt time to the current time.

@@ -9,6 +9,7 @@ import SyntheticMonitorResponse from "../Monitor/SyntheticMonitors/SyntheticMoni
 import MonitorEvaluationSummary from "../Monitor/MonitorEvaluationSummary";
 import ObjectID from "../ObjectID";
 import Port from "../Port";
+import RequestFailedDetails from "./RequestFailedDetails";
 
 export default interface ProbeMonitorResponse {
   projectId: ObjectID;
@@ -23,6 +24,7 @@ export default interface ProbeMonitorResponse {
   monitorId: ObjectID;
   probeId: ObjectID;
   failureCause: string;
+  requestFailedDetails?: RequestFailedDetails | undefined;
   sslResponse?: SslMonitorResponse | undefined;
   syntheticMonitorResponse?: Array<SyntheticMonitorResponse> | undefined;
   customCodeMonitorResponse?: CustomCodeMonitorResponse | undefined;
