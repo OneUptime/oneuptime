@@ -845,10 +845,7 @@ export default class API {
     }
 
     // Network errors
-    if (
-      lowerMessage.includes("network error") ||
-      errorCode === "ERR_NETWORK"
-    ) {
+    if (lowerMessage.includes("network error") || errorCode === "ERR_NETWORK") {
       return {
         failedPhase: RequestFailedPhase.NetworkError,
         errorCode: errorCode || "NETWORK_ERROR",

@@ -1,5 +1,7 @@
-// This type holds detailed error context for when a request fails
-// This helps users understand exactly where and why a request failed
+/*
+ * This type holds detailed error context for when a request fails
+ * This helps users understand exactly where and why a request failed
+ */
 
 export enum RequestFailedPhase {
   // DNS resolution failed - could not resolve hostname to IP

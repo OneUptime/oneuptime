@@ -532,7 +532,9 @@ ${contextBlock}
       const requestFailedDetails = probeResponse.requestFailedDetails;
 
       if (requestFailedDetails.failedPhase) {
-        failureDetails.push(`- Failed Phase: ${requestFailedDetails.failedPhase}`);
+        failureDetails.push(
+          `- Failed Phase: ${requestFailedDetails.failedPhase}`,
+        );
       }
 
       if (requestFailedDetails.errorCode) {
@@ -540,11 +542,15 @@ ${contextBlock}
       }
 
       if (requestFailedDetails.errorDescription) {
-        failureDetails.push(`- Error Description: ${requestFailedDetails.errorDescription}`);
+        failureDetails.push(
+          `- Error Description: ${requestFailedDetails.errorDescription}`,
+        );
       }
 
       if (requestFailedDetails.rawErrorMessage) {
-        failureDetails.push(`- Raw Error Message: ${requestFailedDetails.rawErrorMessage}`);
+        failureDetails.push(
+          `- Raw Error Message: ${requestFailedDetails.rawErrorMessage}`,
+        );
       }
     }
 
@@ -559,7 +565,9 @@ ${contextBlock}
     }
 
     if (failureDetails.length > 0) {
-      sections.push(`\n\n**Request Failed Details**\n${failureDetails.join("\n")}`);
+      sections.push(
+        `\n\n**Request Failed Details**\n${failureDetails.join("\n")}`,
+      );
     }
 
     if (!sections.length) {
