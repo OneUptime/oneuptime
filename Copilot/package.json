@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc",
     "compile": "tsc",
+    "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
     "dev": "ts-node --transpile-only -r tsconfig-paths/register src/Index.ts",
     "start": "node --enable-source-maps ./build/dist/Index.js",
     "clear-modules": "rm -rf node_modules && rm -f package-lock.json && npm install"
@@ -21,7 +22,6 @@
   },
   "devDependencies": {
     "@types/node": "^17.0.45",
-    "tsconfig-paths": "^4.2.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3"
   },
