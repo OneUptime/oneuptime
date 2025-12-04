@@ -8,6 +8,7 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
@@ -24,6 +25,7 @@ export interface APIResponse {
   responseHeaders: Headers;
   isOnline: boolean;
   failureCause: string;
+  requestFailedDetails?: RequestFailedDetails | undefined;
   isTimeout?: boolean;
 }
 
@@ -181,6 +183,10 @@ export default class ApiMonitor {
         }
       }
 
+      // Get detailed error information
+      const requestFailedDetails: RequestFailedDetails =
+        API.getRequestFailedDetails(err);
+
       const apiResponse: APIResponse = {
         url: url,
         isOnline: false,
@@ -193,6 +199,7 @@ export default class ApiMonitor {
         responseBody: "",
         responseHeaders: {},
         failureCause: API.getFriendlyErrorMessage(err as Error),
+        requestFailedDetails: requestFailedDetails,
       };
 
       // check if timeout exceeded and if yes, return null

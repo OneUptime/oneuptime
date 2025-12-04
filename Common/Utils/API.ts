@@ -11,6 +11,9 @@ import URL from "../Types/API/URL";
 import Dictionary from "../Types/Dictionary";
 import APIException from "../Types/Exception/ApiException";
 import { JSONArray, JSONObject } from "../Types/JSON";
+import RequestFailedDetails, {
+  RequestFailedPhase,
+} from "../Types/Probe/RequestFailedDetails";
 import axios, {
   AxiosError,
   AxiosProgressEvent,
@@ -697,5 +700,236 @@ export default class API {
     }
 
     return errorString;
+  }
+
+  /**
+   * Extracts detailed error information from an axios error or generic error.
+   * This provides more context about where and why a request failed.
+   */
+  public static getRequestFailedDetails(
+    error: AxiosError | Error | unknown,
+  ): RequestFailedDetails {
+    const axiosError: AxiosError | null = axios.isAxiosError(error)
+      ? (error as AxiosError)
+      : null;
+    const errorCode: string | undefined = axiosError?.code;
+    const rawErrorMessage: string =
+      (error as Error)?.message || String(error) || "Unknown error";
+
+    // Helper to determine the phase and description based on error code/message
+    const lowerMessage: string = rawErrorMessage.toLowerCase();
+
+    // DNS resolution failures
+    if (errorCode === "ENOTFOUND" || lowerMessage.includes("enotfound")) {
+      return {
+        failedPhase: RequestFailedPhase.DNSResolution,
+        errorCode: errorCode || "ENOTFOUND",
+        errorDescription:
+          "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.",
+        rawErrorMessage,
+      };
+    }
+
+    // Connection refused
+    if (errorCode === "ECONNREFUSED" || lowerMessage.includes("econnrefused")) {
+      return {
+        failedPhase: RequestFailedPhase.TCPConnection,
+        errorCode: errorCode || "ECONNREFUSED",
+        errorDescription:
+          "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.",
+        rawErrorMessage,
+      };
+    }
+
+    // Connection reset
+    if (
+      errorCode === "ECONNRESET" ||
+      lowerMessage.includes("econnreset") ||
+      lowerMessage.includes("connection reset")
+    ) {
+      return {
+        failedPhase: RequestFailedPhase.TCPConnection,
+        errorCode: errorCode || "ECONNRESET",
+        errorDescription:
+          "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.",
+        rawErrorMessage,
+      };
+    }
+
+    // Connection aborted
+    if (
+      errorCode === "ECONNABORTED" ||
+      lowerMessage.includes("econnaborted") ||
+      lowerMessage.includes("connection aborted")
+    ) {
+      return {
+        failedPhase: RequestFailedPhase.RequestAborted,
+        errorCode: errorCode || "ECONNABORTED",
+        errorDescription:
+          "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.",
+        rawErrorMessage,
+      };
+    }
+
+    // Timeout errors
+    if (
+      errorCode === "ETIMEDOUT" ||
+      errorCode === "ESOCKETTIMEDOUT" ||
+      lowerMessage.includes("timeout") ||
+      lowerMessage.includes("exceeded")
+    ) {
+      return {
+        failedPhase: RequestFailedPhase.RequestTimeout,
+        errorCode: errorCode || "TIMEOUT",
+        errorDescription:
+          "Request timed out. The server did not respond within the allowed time. This could be due to network latency, server overload, or the server being unresponsive.",
+        rawErrorMessage,
+      };
+    }
+
+    // SSL/TLS Certificate errors
+    if (
+      lowerMessage.includes("certificate has expired") ||
+      lowerMessage.includes("cert_has_expired")
+    ) {
+      return {
+        failedPhase: RequestFailedPhase.CertificateError,
+        errorCode: "CERT_HAS_EXPIRED",
+        errorDescription:
+          "SSL certificate has expired. The server's SSL certificate is no longer valid. The certificate needs to be renewed.",
+        rawErrorMessage,
+      };
+    }
+
+    if (
+      lowerMessage.includes("self-signed certificate") ||
+      lowerMessage.includes("self signed certificate") ||
+      lowerMessage.includes("depth_zero_self_signed_cert")
+    ) {
+      return {
+        failedPhase: RequestFailedPhase.CertificateError,
+        errorCode: "SELF_SIGNED_CERT",
+        errorDescription:
+          "Self-signed certificate detected. The server is using a self-signed SSL certificate that is not trusted by default. Consider using a certificate from a trusted Certificate Authority.",
+        rawErrorMessage,
+      };
+    }
+
+    if (
+      lowerMessage.includes("certificate signed by unknown authority") ||
+      lowerMessage.includes("unable_to_verify_leaf_signature") ||
+      lowerMessage.includes("unable to verify")
+    ) {
+      return {
+        failedPhase: RequestFailedPhase.CertificateError,
+        errorCode: "CERT_UNKNOWN_AUTHORITY",
+        errorDescription:
+          "SSL certificate signed by unknown authority. The certificate chain could not be verified against known Certificate Authorities.",
+        rawErrorMessage,
+      };
+    }
+
+    if (
+      lowerMessage.includes("ssl") ||
+      lowerMessage.includes("tls") ||
+      lowerMessage.includes("certificate") ||
+      lowerMessage.includes("handshake")
+    ) {
+      return {
+        failedPhase: RequestFailedPhase.TLSHandshake,
+        errorCode: errorCode || "TLS_ERROR",
+        errorDescription:
+          "TLS/SSL handshake failed. There was an error establishing a secure connection to the server. This could be due to certificate issues, protocol mismatches, or the server not supporting HTTPS.",
+        rawErrorMessage,
+      };
+    }
+
+    // Network errors
+    if (
+      lowerMessage.includes("network error") ||
+      errorCode === "ERR_NETWORK"
+    ) {
+      return {
+        failedPhase: RequestFailedPhase.NetworkError,
+        errorCode: errorCode || "NETWORK_ERROR",
+        errorDescription:
+          "Network error occurred. Unable to reach the server due to network connectivity issues. Please check your network connection and ensure the server is accessible.",
+        rawErrorMessage,
+      };
+    }
+
+    // Host unreachable
+    if (
+      errorCode === "EHOSTUNREACH" ||
+      lowerMessage.includes("host unreachable")
+    ) {
+      return {
+        failedPhase: RequestFailedPhase.TCPConnection,
+        errorCode: errorCode || "EHOSTUNREACH",
+        errorDescription:
+          "Host unreachable. The network path to the server could not be found. This may be due to routing issues or the host being offline.",
+        rawErrorMessage,
+      };
+    }
+
+    // Network unreachable
+    if (
+      errorCode === "ENETUNREACH" ||
+      lowerMessage.includes("network unreachable")
+    ) {
+      return {
+        failedPhase: RequestFailedPhase.TCPConnection,
+        errorCode: errorCode || "ENETUNREACH",
+        errorDescription:
+          "Network unreachable. There is no route to the network where the server resides. This is typically a routing or connectivity issue.",
+        rawErrorMessage,
+      };
+    }
+
+    // Server responded with error status
+    if (axiosError?.response) {
+      const status: number = axiosError.response.status;
+      let description: string = `Server responded with HTTP status ${status}.`;
+
+      if (status >= 500) {
+        description += " This indicates a server-side error.";
+      } else if (status === 404) {
+        description += " The requested resource was not found.";
+      } else if (status === 403) {
+        description += " Access to the resource is forbidden.";
+      } else if (status === 401) {
+        description += " Authentication is required or has failed.";
+      } else if (status === 400) {
+        description += " The request was malformed or invalid.";
+      } else if (status >= 400) {
+        description += " This indicates a client-side error.";
+      }
+
+      return {
+        failedPhase: RequestFailedPhase.ServerResponse,
+        errorCode: `HTTP_${status}`,
+        errorDescription: description,
+        rawErrorMessage,
+      };
+    }
+
+    // Request was made but no response received
+    if (axiosError?.request && !axiosError?.response) {
+      return {
+        failedPhase: RequestFailedPhase.NetworkError,
+        errorCode: errorCode || "NO_RESPONSE",
+        errorDescription:
+          "No response received from the server. The request was sent but no response was returned. This could indicate the server is down, unreachable, or the request timed out.",
+        rawErrorMessage,
+      };
+    }
+
+    // Default/Unknown error
+    return {
+      failedPhase: RequestFailedPhase.Unknown,
+      errorCode: errorCode,
+      errorDescription: `Request failed: ${API.getFriendlyErrorMessage(error as Error)}`,
+      rawErrorMessage,
+    };
   }
 }
