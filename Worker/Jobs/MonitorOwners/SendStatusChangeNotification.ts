@@ -99,6 +99,7 @@ RunCron(
             select: {
               monitorStatusId: true,
               startsAt: true,
+              createdAt: true,
             },
           });
 
@@ -115,15 +116,19 @@ RunCron(
           });
 
           // Calculate how long the monitor was in the previous status
-          if (previousTimeline.startsAt && monitorStatusTimeline.startsAt) {
-            const durationInMinutes: number =
-              OneUptimeDate.getDifferenceInMinutes(
-                monitorStatusTimeline.startsAt,
-                previousTimeline.startsAt,
+          // Use startsAt if available, otherwise fall back to createdAt
+          const previousStartTime: Date | undefined = previousTimeline.startsAt || previousTimeline.createdAt;
+          const currentStartTime: Date | undefined = monitorStatusTimeline.startsAt || monitorStatusTimeline.createdAt;
+          
+          if (previousStartTime && currentStartTime) {
+            const durationInSeconds: number =
+              OneUptimeDate.getDifferenceInSeconds(
+                currentStartTime,
+                previousStartTime,
               );
             previousStatusDuration =
-              OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-                durationInMinutes,
+              OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(
+                durationInSeconds,
               );
           }
         }
