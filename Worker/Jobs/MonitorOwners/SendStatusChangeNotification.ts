@@ -126,7 +126,6 @@ RunCron(
             monitorStatusTimeline.startsAt || monitorStatusTimeline.createdAt;
 
           if (previousStartTime && currentStartTime) {
-
             logger.debug(
               `Calculating duration between ${previousStartTime.toISOString()} and ${currentStartTime.toISOString()}`,
             );
@@ -141,10 +140,7 @@ RunCron(
                 durationInSeconds,
               );
 
-
-            logger.debug(
-              `Previous status duration: ${previousStatusDuration}`,
-            );
+            logger.debug(`Previous status duration: ${previousStatusDuration}`);
           }
         }
       }
@@ -174,9 +170,10 @@ RunCron(
 
       for (const user of owners) {
         // Build the "Was X for Y" string
-        const previousStatusDurationText: string = previousStatus?.name && previousStatusDuration
-          ? `Was ${previousStatus.name} for ${previousStatusDuration}`
-          : "";
+        const previousStatusDurationText: string =
+          previousStatus?.name && previousStatusDuration
+            ? `Was ${previousStatus.name} for ${previousStatusDuration}`
+            : "";
 
         const vars: Dictionary<string> = {
           monitorName: monitor.name!,
@@ -216,22 +213,25 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.MonitorOwnerStatusChanged,
           vars: vars,
-          subject: `[Monitor] ${monitor.name || "Monitor"
-            } is ${monitorStatus!.name!}`,
+          subject: `[Monitor] ${
+            monitor.name || "Monitor"
+          } is ${monitorStatus!.name!}`,
         };
 
         const sms: SMSMessage = {
-          message: `This is a message from OneUptime. ${monitor.name || "Monitor"
-            } status changed${previousStatus ? ` from ${previousStatus.name}` : ""} to ${monitorStatus!
-              .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          message: `This is a message from OneUptime. ${
+            monitor.name || "Monitor"
+          } status changed${previousStatus ? ` from ${previousStatus.name}` : ""} to ${monitorStatus!
+            .name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
         const callMessage: CallRequestMessage = {
           data: [
             {
-              sayMessage: `This is a message from OneUptime. ${monitor.name || "Monitor"
-                } status changed${previousStatus ? ` from ${previousStatus.name}` : ""} to ${monitorStatus!
-                  .name!}.  To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+              sayMessage: `This is a message from OneUptime. ${
+                monitor.name || "Monitor"
+              } status changed${previousStatus ? ` from ${previousStatus.name}` : ""} to ${monitorStatus!
+                .name!}.  To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
             },
           ],
         };
