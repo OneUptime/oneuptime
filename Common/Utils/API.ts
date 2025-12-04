@@ -525,7 +525,49 @@ export default class API {
     // get url from error
     const url: string = error?.config?.url || "";
 
-    const errorMessage: string = error.message || error.toString();
+    // Get a meaningful error message, avoiding generic "Error" strings
+    let errorMessage: string = error.message || "";
+
+    // If error message is empty or just "Error", try to get more details from the error
+    if (
+      !errorMessage ||
+      errorMessage.toLowerCase() === "error" ||
+      errorMessage.trim() === ""
+    ) {
+      // Check for common axios error codes
+      if (error.code) {
+        switch (error.code) {
+          case "ECONNREFUSED":
+            errorMessage = "Connection refused";
+            break;
+          case "ECONNRESET":
+            errorMessage = "Connection reset";
+            break;
+          case "ETIMEDOUT":
+            errorMessage = "Connection timed out";
+            break;
+          case "ENOTFOUND":
+            errorMessage = "Host not found";
+            break;
+          case "ECONNABORTED":
+            errorMessage = "Connection aborted";
+            break;
+          case "ERR_NETWORK":
+            errorMessage = "Network error";
+            break;
+          case "ERR_BAD_REQUEST":
+            errorMessage = "Bad request";
+            break;
+          case "ERR_BAD_RESPONSE":
+            errorMessage = "Bad response from server";
+            break;
+          default:
+            errorMessage = error.code || "Unknown error";
+        }
+      } else {
+        errorMessage = "Request failed";
+      }
+    }
 
     throw new APIException(`Request failed to ${url}. ${errorMessage}`, error);
   }
@@ -534,7 +576,33 @@ export default class API {
     let errorString: string = error.message || error.toString();
 
     if (error instanceof APIException) {
-      errorString = `${error.message?.toString()} ${error.error?.message || error.error?.toString() || ""}`;
+      // Get the nested error message, but avoid duplicating or adding empty/generic messages
+      let nestedErrorMessage: string = "";
+      if (error.error) {
+        // Get the error message, avoiding generic "Error" or empty strings
+        const errMsg: string = error.error.message || "";
+        const errStr: string = error.error.toString() || "";
+
+        // Check if the error message is meaningful (not just "Error" or empty)
+        if (errMsg && errMsg.trim().toLowerCase() !== "error" && errMsg.trim() !== "") {
+          nestedErrorMessage = errMsg;
+        } else if (
+          errStr &&
+          errStr.trim().toLowerCase() !== "error" &&
+          errStr.trim().toLowerCase() !== "error:" &&
+          errStr.trim() !== "" &&
+          !errStr.toLowerCase().startsWith("error:")
+        ) {
+          nestedErrorMessage = errStr;
+        }
+      }
+
+      // Only append nested error if it's meaningful and not already in the main message
+      if (nestedErrorMessage && !error.message?.includes(nestedErrorMessage)) {
+        errorString = `${error.message?.toString()} ${nestedErrorMessage}`;
+      } else {
+        errorString = error.message?.toString() || "";
+      }
     }
 
     // Handle AggregateError by extracting the underlying error messages
