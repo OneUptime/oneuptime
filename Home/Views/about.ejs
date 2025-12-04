@@ -14,7 +14,7 @@
 
 <body>
   <%- include('nav') -%>
-
+  <main id="main-content">
 
   <div class="relative bg-white py-16 sm:py-24">
     <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-cols-2 lg:items-start lg:gap-24 lg:px-8">
@@ -33,7 +33,7 @@
         <div class="relative mx-auto max-w-md px-6 sm:max-w-3xl lg:max-w-none lg:px-0 lg:py-20">
           <!-- Testimonial card-->
           <div class="relative overflow-hidden rounded-2xl pt-64 pb-10 shadow-xl">
-            <img class="absolute inset-0 h-full w-full object-cover" src="/img/code.jpg" alt="">
+            <img class="absolute inset-0 h-full w-full object-cover" src="/img/code.jpg" alt="Code editor showing programming code">
             <div class="absolute inset-0 bg-indigo-500 mix-blend-multiply"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-indigo-600 via-indigo-600 opacity-90"></div>
             <div class="relative px-8">
@@ -134,7 +134,7 @@
           <li>
             <a target="_blank" href="https://github.com/<%= contributors[i].login %>" class="cursor-pointer">
             <div class="space-y-4">
-              <img class="mx-auto h-20 w-20 rounded-full lg:h-24 lg:w-24" src="<%= contributors[i].avatar_url %>" alt="">
+              <img class="mx-auto h-20 w-20 rounded-full lg:h-24 lg:w-24" src="<%= contributors[i].avatar_url %>" alt="Profile photo of <%= contributors[i].login %>">
               <div class="space-y-2">
                 <div class="text-xs font-medium lg:text-sm">
                   <h3 class="text-indigo-600 text-sm"><%= contributors[i].login %></h3>
@@ -168,7 +168,7 @@
     </div>
   </div>
 </div>
-
+  </main>
   <%- include('footer') -%>
 </body>
 </html>

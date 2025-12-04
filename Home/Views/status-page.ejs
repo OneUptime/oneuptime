@@ -14,6 +14,7 @@
 
 <body>
   <%- include('nav') -%>
+    <main id="main-content">
     <div class="">
 
 
@@ -39,7 +40,7 @@
             <div class="mt-16 flow-root sm:mt-24">
               <div
                 class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-                  <img src="/img/status-pages.png" alt="App screenshot" width="2432" height="1442"
+                  <img src="/img/status-pages.png" alt="OneUptime status page showing service health and incident updates" width="2432" height="1442"
                     class="rounded-md shadow-2xl ring-1 ring-gray-900/10">
                   <%- include('./Partials/watch-demo.ejs', {videoId: "F6BNipy5VCk" }) -%>
               </div>
@@ -414,6 +415,7 @@
 
         <%- include('features-table') -%>
           <%- include('cta') -%>
+            </main>
             <%- include('footer') -%>
             <%- include('./Partials/video-script') -%>
 
