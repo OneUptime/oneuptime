@@ -615,6 +615,7 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
   legendPosition?: "left" | "center" | "right";
   tooltipCallback?: (tooltipCallbackContent: TooltipProps) => void;
   customTooltip?: React.ComponentType<TooltipProps>;
+  syncid?: string | undefined;
 }
 
 const BarChart: React.ForwardRefExoticComponent<
@@ -753,6 +754,7 @@ const BarChart: React.ForwardRefExoticComponent<
         <ResponsiveContainer>
           <RechartsBarChart
             data={data}
+            syncId={props.syncid?.toString() || ""}
             {...(hasOnValueChange && (activeLegend || activeBar)
               ? {
                   onClick: handleChartClick,
