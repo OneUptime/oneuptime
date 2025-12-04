@@ -144,8 +144,10 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
 
   // add title and description.
 
+  type GetMetricChartType = () => MetricChartType;
+
   // Convert dashboard chart type to metric chart type
-  const getMetricChartType = (): MetricChartType => {
+  const getMetricChartType: GetMetricChartType = (): MetricChartType => {
     if (props.component.arguments.chartType === DashboardChartType.Bar) {
       return MetricChartType.BAR;
     }

@@ -85,8 +85,10 @@ const renderShape: (
   // Radius for rounded corners at top
   const radius: number = Math.min(4, width / 2, height / 2);
 
-  // Create path with rounded corners at the top only (for horizontal layout)
-  // For vertical layout, round the right side
+  /*
+   * Create path with rounded corners at the top only (for horizontal layout)
+   * For vertical layout, round the right side
+   */
   let path: string;
 
   if (layout === "horizontal") {
