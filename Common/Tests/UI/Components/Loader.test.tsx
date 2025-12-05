@@ -14,7 +14,7 @@ describe("Loader tests", () => {
         loaderType={LoaderType.Bar}
       />,
     );
-    const barLoader: HTMLElement = screen.getByRole("bar-loader");
+    const barLoader: HTMLElement = screen.getByTestId("bar-loader");
     expect(barLoader).toBeInTheDocument();
   });
   test("it should render if beats loader show up", () => {
@@ -25,7 +25,7 @@ describe("Loader tests", () => {
         loaderType={LoaderType.Beats}
       />,
     );
-    const beatLoader: HTMLElement = screen.getByRole("beat-loader");
+    const beatLoader: HTMLElement = screen.getByTestId("beat-loader");
     expect(beatLoader).toBeInTheDocument();
   });
 });

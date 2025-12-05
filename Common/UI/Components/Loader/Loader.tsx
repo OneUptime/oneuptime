@@ -25,9 +25,9 @@ const Loader: FunctionComponent<ComponentProps> = ({
   if (loaderType === LoaderType.Bar) {
     return (
       <div
-        role={`bar-loader mt-1 ${className}`}
-        className="flex justify-center"
-        data-testid="loader"
+        role="presentation"
+        className={`flex justify-center mt-1 ${className}`.trim()}
+        data-testid="bar-loader"
       >
         <BarLoader height={4} width={size} color={color.toString()} />
       </div>
@@ -37,9 +37,9 @@ const Loader: FunctionComponent<ComponentProps> = ({
   if (loaderType === LoaderType.Beats) {
     return (
       <div
-        role="beat-loader mt-1"
-        className="justify-center"
-        data-testid="loader"
+        role="presentation"
+        className={`justify-center mt-1 ${className}`.trim()}
+        data-testid="beat-loader"
       >
         <BeatLoader size={size} color={color.toString()} />
       </div>
