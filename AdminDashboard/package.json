@@ -8,7 +8,7 @@
         "ejs": "^3.1.10",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
-        "react-router-dom": "^6.30.1"
+        "react-router-dom": "^6.30.2"
     },
     "scripts": {
         "dev-build": "NODE_ENV=development node esbuild.config.js",
