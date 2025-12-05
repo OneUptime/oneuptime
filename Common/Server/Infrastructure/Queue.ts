@@ -1,7 +1,12 @@
 import { ClusterKey } from "../EnvironmentConfig";
 import Dictionary from "../../Types/Dictionary";
 import { JSONObject } from "../../Types/JSON";
-import { Queue as BullQueue, Job, JobsOptions } from "bullmq";
+import {
+  Queue as BullQueue,
+  Job,
+  JobsOptions,
+  RepeatableJob,
+} from "bullmq";
 import { ExpressAdapter } from "@bull-board/express";
 import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
@@ -196,14 +201,29 @@ export default class Queue {
       jobId: sanitizedJobId,
     };
 
+    const queue: BullQueue = this.getQueue(queueName);
+
     if (options && options.scheduleAt) {
       optionsObject.repeat = {
         pattern: options.scheduleAt,
+        // keep repeatable job keyed by jobId so multiple workers do not register duplicates
+        jobId: sanitizedJobId,
       };
+
+      const repeatableJobs: RepeatableJob[] = await queue.getRepeatableJobs();
+
+      for (const repeatableJob of repeatableJobs) {
+        const isSameJob: boolean =
+          repeatableJob.name === jobName &&
+          repeatableJob.pattern === options.scheduleAt;
+
+        if (isSameJob) {
+          await queue.removeRepeatableByKey(repeatableJob.key);
+        }
+      }
     }
 
-    const job: Job | undefined =
-      await this.getQueue(queueName).getJob(sanitizedJobId);
+    const job: Job | undefined = await queue.getJob(sanitizedJobId);
 
     if (job) {
       await job.remove();
@@ -211,9 +231,7 @@ export default class Queue {
 
     if (options?.repeatableKey) {
       // remove existing repeatable job
-      await this.getQueue(queueName).removeRepeatableByKey(
-        options?.repeatableKey,
-      );
+      await queue.removeRepeatableByKey(options?.repeatableKey);
     }
 
     // Store repeatable jobs for re-adding on reconnect
@@ -228,11 +246,7 @@ export default class Queue {
       };
     }
 
-    const jobAdded: Job = await this.getQueue(queueName).add(
-      jobName,
-      data,
-      optionsObject,
-    );
+    const jobAdded: Job = await queue.add(jobName, data, optionsObject);
 
     return jobAdded;
   }
