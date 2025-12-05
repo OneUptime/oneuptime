@@ -298,18 +298,7 @@ RunCron(
 
             if (subscriber.subscriberPhone) {
               const sms: SMS = {
-                message: `
-                                    ${statusPageName} - Scheduled maintenance event - ${
-                                      event.title || ""
-                                    } - state changed to ${
-                                      scheduledEventStateTimeline
-                                        .scheduledMaintenanceState?.name
-                                    }
-                                    
-                                    To view this note, visit ${statusPageURL}
-        
-                                    To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
-                                    `,
+                message: `Maintenance ${event.title || ""} on ${statusPageName} is ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}. Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`,
                 to: subscriber.subscriberPhone,
               };
 

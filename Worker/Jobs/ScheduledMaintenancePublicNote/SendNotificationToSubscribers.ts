@@ -318,15 +318,7 @@ RunCron(
                 `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for public note ${publicNote.id}.`,
               );
               const sms: SMS = {
-                message: `
-                                    ${statusPageName} - New note has been posted to maintenance event.
-
-                                    ${event.title || ""}
-                                    
-                                    To view this note, visit ${statusPageURL}
-        
-                                    To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
-                                    `,
+                message: `Maintenance update: ${event.title || ""} on ${statusPageName}. Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`,
                 to: subscriber.subscriberPhone,
               };
 

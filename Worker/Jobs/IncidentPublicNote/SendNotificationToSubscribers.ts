@@ -324,17 +324,7 @@ RunCron(
                 `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for public note ${incidentPublicNote.id}.`,
               );
               const sms: SMS = {
-                message: `
-                            Incident Update - ${statusPageName} 
-                            
-                            New note has been added to an incident.
-
-                            Incident Title: ${incident.title || " - "}
-
-                            To view this note, visit ${statusPageURL}
-
-                            To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
-                            `,
+                message: `Incident update: ${incident.title || "-"} on ${statusPageName}. A new note is posted. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`,
                 to: subscriber.subscriberPhone,
               };
 

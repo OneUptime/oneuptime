@@ -344,15 +344,7 @@ RunCron(
               `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for incident state timeline ${incidentStateTimeline.id}.`,
             );
             const sms: SMS = {
-              message: `
-                            Incident ${Text.uppercaseFirstLetter(
-                              incidentStateTimeline.incidentState.name,
-                            )} - ${statusPageName}
-
-                            To view this incident, visit ${statusPageURL}
-
-                            To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
-                            `,
+              message: `Incident ${incident.title || ""} on ${statusPageName} is ${Text.uppercaseFirstLetter(incidentStateTimeline.incidentState.name)}. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`,
               to: subscriber.subscriberPhone,
             };
 

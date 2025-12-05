@@ -297,15 +297,7 @@ RunCron(
                     `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for announcement ${announcement.id}.`,
                   );
                   const sms: SMS = {
-                    message: `
-                              Announcement - ${statusPageName}
-
-                              ${announcement.title || ""}
-
-                              To view this announcement, visit ${statusPageURL}
-
-                              To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
-                              `,
+                    message: `Announcement ${announcement.title || ""} on ${statusPageName}. Details: ${announcementDetailsUrl}. Unsub: ${unsubscribeUrl}`,
                     to: subscriber.subscriberPhone,
                   };
 

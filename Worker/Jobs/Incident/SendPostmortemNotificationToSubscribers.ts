@@ -403,21 +403,7 @@ RunCron(
                     `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked}.`,
                   );
                   const sms: SMS = {
-                    message: `
-                            Incident Postmortem - ${statusPageName}
-
-                            Title: ${incident.title || ""}
-
-                            Severity: ${
-                              incident.incidentSeverity?.name || " - "
-                            } 
-
-                            Resources Affected: ${resourcesAffectedString} 
-
-                            To view this incident, visit ${statusPageURL}
-
-                            To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
-                            `,
+                    message: `Postmortem: ${incident.title || ""} (${incident.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedString}. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`,
                     to: subscriber.subscriberPhone,
                   };
 
