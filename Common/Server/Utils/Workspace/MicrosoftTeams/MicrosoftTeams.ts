@@ -29,6 +29,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
+import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTokenService";
 import WorkspaceProjectAuthToken, {
   MicrosoftTeamsMiscData,
   MicrosoftTeamsTeam,
@@ -2815,6 +2816,9 @@ All monitoring checks are passing normally.`;
   @CaptureSpan()
   public static async refreshTeams(data: {
     projectId: ObjectID;
+    // optional: prefer a user-scoped token when provided
+    userId?: ObjectID;
+    userAccessToken?: string;
   }): Promise<Record<string, { id: string; name: string }>> {
     logger.debug("=== refreshTeams called ===");
 
@@ -2848,74 +2852,101 @@ All monitoring checks are passing normally.`;
         );
       }
 
-      // Get a valid app access token
-      const accessToken: string | null = await this.refreshAccessToken({
-        projectId: data.projectId,
-        miscData: projectAuth.miscData as MicrosoftTeamsMiscData,
-        tenantId,
-      });
+      // Try using user scoped token first when available
+      let allTeams: Array<JSONObject> = [];
+      let usedAccessToken: string | null = null;
 
-      if (!accessToken) {
-        throw new BadDataException(
-          "Could not obtain valid access token for Microsoft Teams",
-        );
-      }
-
-      /*
-       * Fetch all teams from Microsoft Graph API using app permissions
-       * Handle pagination to get all teams
-       */
-      const allTeams: Array<JSONObject> = [];
-      let nextLink: string | null = "https://graph.microsoft.com/v1.0/teams";
-      let pageCount: number = 0;
-      const MAX_PAGES: number = MICROSOFT_TEAMS_MAX_PAGES; // Prevent infinite loop
-
-      while (nextLink) {
-        pageCount++;
-        if (pageCount > MAX_PAGES) {
-          logger.error(
-            `Maximum page limit (${MAX_PAGES}) reached while paginating teams. Breaking out to prevent infinite loop.`,
-          );
-          break;
-        }
-        logger.debug(`Fetching teams page ${pageCount}: ${nextLink}`);
-
-        const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.get<JSONObject>({
-            url: URL.fromString(nextLink),
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
+      try {
+        // If caller provided a userAccessToken directly, use it
+        if (data.userAccessToken) {
+          logger.debug("Using provided user access token to fetch joined teams");
+          usedAccessToken = data.userAccessToken;
+          const userTeams = await this.getUserJoinedTeams(usedAccessToken);
+          allTeams = Object.values(userTeams) as any;
+        } else if (data.userId) {
+          // Try to fetch stored user auth for this project + user
+          logger.debug("Looking up stored user auth token for provided userId");
+          const userAuth = await WorkspaceUserAuthTokenService.getUserAuth({
+            projectId: data.projectId,
+            userId: data.userId,
+            workspaceType: WorkspaceType.MicrosoftTeams,
           });
 
-        if (teamsResponse instanceof HTTPErrorResponse) {
-          logger.error("Error fetching teams from Microsoft Teams:");
-          logger.error(teamsResponse);
+          if (userAuth && userAuth.authToken) {
+            usedAccessToken = userAuth.authToken;
+            logger.debug("Found user auth token; using it to fetch joined teams");
+            const userTeams = await this.getUserJoinedTeams(usedAccessToken);
+            allTeams = Object.values(userTeams) as any;
+          }
+        }
+      } catch (err) {
+        logger.warn("Failed to fetch teams using user-scoped token, falling back to app token:");
+        logger.warn(err);
+        allTeams = [];
+      }
+
+      // If we couldn't obtain teams via user token, fall back to app-scoped token + existing behavior
+      if (!allTeams || allTeams.length === 0) {
+        // Get a valid app access token
+        const accessToken: string | null = await this.refreshAccessToken({
+          projectId: data.projectId,
+          miscData: projectAuth.miscData as MicrosoftTeamsMiscData,
+          tenantId,
+        });
+
+        if (!accessToken) {
           throw new BadDataException(
-            "Failed to fetch teams from Microsoft Teams",
+            "Could not obtain valid access token for Microsoft Teams",
           );
         }
 
-        const teams: Array<JSONObject> =
-          (teamsResponse.data as any)["value"] || [];
-        allTeams.push(...teams);
+        /*
+         * Fetch all teams from Microsoft Graph API using app permissions
+         * Handle pagination to get all teams
+         */
+        allTeams = [];
+        let nextLink: string | null = "https://graph.microsoft.com/v1.0/teams";
+        let pageCount: number = 0;
+        const MAX_PAGES: number = MICROSOFT_TEAMS_MAX_PAGES; // Prevent infinite loop
 
-        // Check for next page
-        nextLink = (teamsResponse.data as any)["@odata.nextLink"] || null;
+        while (nextLink) {
+          pageCount++;
+          if (pageCount > MAX_PAGES) {
+            logger.error(
+              `Maximum page limit (${MAX_PAGES}) reached while paginating teams. Breaking out to prevent infinite loop.`,
+            );
+            break;
+          }
+          logger.debug(`Fetching teams page ${pageCount}: ${nextLink}`);
 
-        logger.debug(
-          `Page ${pageCount}: Fetched ${teams.length} teams. Total so far: ${allTeams.length}`,
-        );
+          const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            await API.get<JSONObject>({
+              url: URL.fromString(nextLink),
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+            });
+
+          if (teamsResponse instanceof HTTPErrorResponse) {
+            logger.error("Error fetching teams from Microsoft Teams:");
+            logger.error(teamsResponse);
+            throw new BadDataException(
+              "Failed to fetch teams from Microsoft Teams",
+            );
+          }
+
+          const teams: Array<JSONObject> =
+            (teamsResponse.data as any)["value"] || [];
+          allTeams.push(...teams);
+
+          // Check for next page
+          nextLink = (teamsResponse.data as any)["@odata.nextLink"] || null;
+
+          logger.debug(
+            `Page ${pageCount}: Fetched ${teams.length} teams. Total so far: ${allTeams.length}`,
+          );
+        }
       }
-
-      if (allTeams.length === 0) {
-        logger.debug("No teams found in organization");
-        return {};
-      }
-
-      logger.debug(
-        `Completed fetching all teams. Total pages: ${pageCount}, Total teams: ${allTeams.length}`,
-      );
 
       // Process teams
       const availableTeams: Record<string, { id: string; name: string }> =
