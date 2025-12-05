@@ -1,12 +1,7 @@
 import { ClusterKey } from "../EnvironmentConfig";
 import Dictionary from "../../Types/Dictionary";
 import { JSONObject } from "../../Types/JSON";
-import {
-  Queue as BullQueue,
-  Job,
-  JobsOptions,
-  RepeatableJob,
-} from "bullmq";
+import { Queue as BullQueue, Job, JobsOptions, RepeatableJob } from "bullmq";
 import { ExpressAdapter } from "@bull-board/express";
 import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
