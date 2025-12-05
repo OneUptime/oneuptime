@@ -17,19 +17,19 @@
 
 {{#ifCond hasResources "true"}}
 {{> InfoBlock info="Here is the more detailed report:"}}
-<table style="min-width: 500px;margin: 10px 50px; fotn-size: 15px; margin-top: 10px; margin-bottom: 20px">
-    <tr style="background-color: #424761; color: white; padding: 1px">
-        <th>Resource Name</th>
-        <th>Uptime %</th>
-        <th>Downtime</th>
-        <th>Incidents</th>
+<table style="width: calc(100% - 64px); margin: 18px 32px; border-collapse: collapse; font-size: 14px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #1f2733;">
+    <tr>
+        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: left; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040; border-top-left-radius: 10px;">Resource Name</th>
+        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: right; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040;">Uptime %</th>
+        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: right; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040;">Downtime</th>
+        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: right; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040; border-top-right-radius: 10px;">Incidents</th>
     </tr>
     {{#each report.resources}}
-    <tr style="padding: 1px;">
-        <td>{{this.resourceName}}</td>
-        <td style="text-align: right">{{this.uptimePercentAsString}}</td>
-        <td style="text-align: right">{{this.downtimeInHoursAndMinutes}}</td>
-        <td style="text-align: right">{{this.totalIncidentCount}}</td>
+    <tr style="background-color: {{#if @odd}}#f0f3f9{{else}}#ffffff{{/if}};">
+        <td style="padding: 12px 12px; border-bottom: 1px solid #e5e8f0;">{{this.resourceName}}</td>
+        <td style="padding: 12px 12px; text-align: right; border-bottom: 1px solid #e5e8f0; font-weight: 600;">{{this.uptimePercentAsString}}</td>
+        <td style="padding: 12px 12px; text-align: right; border-bottom: 1px solid #e5e8f0;">{{this.downtimeInHoursAndMinutes}}</td>
+        <td style="padding: 12px 12px; text-align: right; border-bottom: 1px solid #e5e8f0; font-weight: 600;">{{this.totalIncidentCount}}</td>
     </tr>
     {{/each}}
 </table>
