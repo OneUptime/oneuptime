@@ -180,6 +180,8 @@ RunCron(
           projectName: monitorStatusTimeline.project!.name!,
           currentStatus: monitorStatus!.name!,
           currentStatusColor: monitorStatus!.color?.toString() || "#000000",
+          previousStatus: previousStatus?.name || "",
+          previousStatusColor: previousStatus?.color?.toString() || "#94a3b8",
           previousStatusDurationText: previousStatusDurationText,
           monitorDescription: await Markdown.convertToHTML(
             monitor.description! || "",
