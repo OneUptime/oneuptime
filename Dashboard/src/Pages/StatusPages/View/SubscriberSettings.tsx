@@ -16,7 +16,6 @@ import React, {
   FunctionComponent,
   ReactElement,
   useState,
-  useMemo,
 } from "react";
 import TimezonesElement from "../../../Components/Timezone/TimezonesElement";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -44,9 +43,6 @@ const StatusPageSubscriberSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-  const modelIdString: string = useMemo(() => {
-    return modelId.toString();
-  }, []);
 
   const [statusPage, setStatusPage] = useState<StatusPage | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -75,7 +71,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
     } finally {
       setIsLoading(false);
     }
-  }, [modelIdString, refreshCount]);
+  }, [modelId.toString(), refreshCount]);
 
   const hasNoCustomSMTP: boolean = !statusPage?.smtpConfig;
   const hasNoCustomTwilio: boolean = !statusPage?.callSmsConfig;
