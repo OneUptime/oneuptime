@@ -317,26 +317,6 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             placeholder: "Select Notification Method",
           },
           {
-            title: "Available Template Variables",
-            stepId: "template-content",
-            description:
-              "These are the variables you can use in your template based on the selected event type.",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            getCustomElement: (
-              values: FormValues<StatusPageSubscriberNotificationTemplate>,
-            ): ReactElement => {
-              const eventType: StatusPageSubscriberNotificationEventType | undefined =
-                values.eventType as
-                  | StatusPageSubscriberNotificationEventType
-                  | undefined;
-              return (
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mb-4">
-                  <MarkdownViewer text={getVariablesDocumentation(eventType)} />
-                </div>
-              );
-            },
-          },
-          {
             field: {
               emailSubject: true,
             },
@@ -360,6 +340,19 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             required: true,
             placeholder:
               "<p>Hello {{subscriberName}},</p><p>{{incidentTitle}} has been created.</p>",
+            getFooterElement: (
+              values: FormValues<StatusPageSubscriberNotificationTemplate>,
+            ): ReactElement => {
+              const eventType: StatusPageSubscriberNotificationEventType | undefined =
+                values.eventType as
+                  | StatusPageSubscriberNotificationEventType
+                  | undefined;
+              return (
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mt-4">
+                  <MarkdownViewer text={getVariablesDocumentation(eventType)} />
+                </div>
+              );
+            },
           },
         ]}
         showRefreshButton={true}

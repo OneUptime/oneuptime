@@ -97,6 +97,7 @@ export default interface Field<TEntity> {
     | undefined;
   radioButtonOptions?: Array<RadioButton>;
   footerElement?: ReactElement | undefined;
+  getFooterElement?: (values: FormValues<TEntity>) => ReactElement | undefined;
   id?: string | undefined;
   getCustomElement?: (
     values: FormValues<TEntity>,
