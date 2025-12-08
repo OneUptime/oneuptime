@@ -175,8 +175,26 @@ export class OpenAIClient implements LLMClient {
       model: this.options.model,
       input: this.mapMessagesToInput(messages),
       temperature: this.options.temperature,
-      ...(hasTools ? { tool_choice: "auto", tools } : {}),
+      ...(hasTools
+        ? {
+            tool_choice: "auto",
+            tools: this.mapToolsToResponsesDefinitions(tools ?? []),
+          }
+        : {}),
     };
+  }
+
+  private mapToolsToResponsesDefinitions(
+    tools: Array<ToolDefinition>,
+  ): Array<ResponsesToolDefinition> {
+    return tools.map((tool: ToolDefinition) => {
+      return {
+        type: tool.type,
+        name: tool.function.name,
+        description: tool.function.description,
+        parameters: tool.function.parameters,
+      };
+    });
   }
 
   private mapRoleToResponsesRole(role: ChatMessage["role"]): ResponsesMessage["role"] {
@@ -349,7 +367,7 @@ interface ResponsesRequestPayload {
   input: Array<ResponsesMessage>;
   temperature: number;
   tool_choice?: "auto" | undefined;
-  tools?: Array<ToolDefinition> | undefined;
+  tools?: Array<ResponsesToolDefinition> | undefined;
 }
 
 interface ResponsesOutputMessage {
@@ -367,4 +385,11 @@ interface ResponsesOutputMessage {
 
 interface OpenAIResponsesAPIResponse {
   output?: Array<ResponsesOutputMessage>;
+}
+
+interface ResponsesToolDefinition {
+  type: "function";
+  name: string;
+  description: string;
+  parameters: ToolDefinition["function"]["parameters"];
 }
