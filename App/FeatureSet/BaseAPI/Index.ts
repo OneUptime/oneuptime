@@ -570,6 +570,18 @@ import StatusPageAnnouncementTemplateService, {
   Service as StatusPageAnnouncementTemplateServiceType,
 } from "Common/Server/Services/StatusPageAnnouncementTemplateService";
 
+// status page subscriber notification templates
+import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceType,
+} from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+
+// status page subscriber notification template status page (linking table)
+import StatusPageSubscriberNotificationTemplateStatusPage from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplateStatusPage";
+import StatusPageSubscriberNotificationTemplateStatusPageService, {
+  Service as StatusPageSubscriberNotificationTemplateStatusPageServiceType,
+} from "Common/Server/Services/StatusPageSubscriberNotificationTemplateStatusPageService";
+
 // ProjectSCIM
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import ProjectSCIMService, {
@@ -641,6 +653,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         StatusPageAnnouncementTemplate,
         StatusPageAnnouncementTemplateService,
+      ).getRouter(),
+    );
+
+    // status page subscriber notification templates
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        StatusPageSubscriberNotificationTemplate,
+        StatusPageSubscriberNotificationTemplateServiceType
+      >(
+        StatusPageSubscriberNotificationTemplate,
+        StatusPageSubscriberNotificationTemplateService,
+      ).getRouter(),
+    );
+
+    // status page subscriber notification template status page (linking table)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        StatusPageSubscriberNotificationTemplateStatusPage,
+        StatusPageSubscriberNotificationTemplateStatusPageServiceType
+      >(
+        StatusPageSubscriberNotificationTemplateStatusPage,
+        StatusPageSubscriberNotificationTemplateStatusPageService,
       ).getRouter(),
     );
 

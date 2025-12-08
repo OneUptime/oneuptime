@@ -31,6 +31,12 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceClass,
+} from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
+import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 
 RunCron(
   "Announcement:SendNotificationToSubscribers",
@@ -207,6 +213,51 @@ RunCron(
                     .toString()
                 : statusPageURL;
 
+            // Fetch custom templates for this status page
+            const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
+              StatusPageSubscriberNotificationTemplate | null,
+              StatusPageSubscriberNotificationTemplate | null,
+              StatusPageSubscriberNotificationTemplate | null,
+              StatusPageSubscriberNotificationTemplate | null,
+            ] = await Promise.all([
+              StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                {
+                  statusPageId: statuspage.id!,
+                  eventType:
+                    StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated,
+                  notificationMethod:
+                    StatusPageSubscriberNotificationMethod.Email,
+                },
+              ),
+              StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                {
+                  statusPageId: statuspage.id!,
+                  eventType:
+                    StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated,
+                  notificationMethod:
+                    StatusPageSubscriberNotificationMethod.SMS,
+                },
+              ),
+              StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                {
+                  statusPageId: statuspage.id!,
+                  eventType:
+                    StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated,
+                  notificationMethod:
+                    StatusPageSubscriberNotificationMethod.Slack,
+                },
+              ),
+              StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                {
+                  statusPageId: statuspage.id!,
+                  eventType:
+                    StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated,
+                  notificationMethod:
+                    StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+                },
+              ),
+            ]);
+
             logger.debug(
               `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for announcement ${announcement.id}.`,
             );
@@ -296,8 +347,29 @@ RunCron(
                   logger.debug(
                     `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for announcement ${announcement.id}.`,
                   );
+
+                  // Build SMS message - use custom template if available and custom Twilio is configured
+                  let smsMessage: string;
+                  if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
+                    const smsTemplateVariables: Record<string, string> = {
+                      statusPageName: statusPageName,
+                      statusPageUrl: statusPageURL,
+                      detailsUrl: announcementDetailsUrl,
+                      announcementTitle: announcement.title || "",
+                      announcementDescription: announcement.description || "",
+                      unsubscribeUrl: unsubscribeUrl,
+                    };
+                    smsMessage =
+                      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                        smsTemplate.templateBody,
+                        smsTemplateVariables,
+                      );
+                  } else {
+                    smsMessage = `Announcement ${announcement.title || ""} on ${statusPageName}. Details: ${announcementDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                  }
+
                   const sms: SMS = {
-                    message: `Announcement ${announcement.title || ""} on ${statusPageName}. Details: ${announcementDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                    message: smsMessage,
                     to: subscriber.subscriberPhone,
                   };
 
@@ -319,18 +391,37 @@ RunCron(
                   logger.debug(
                     `Queueing Slack notification to subscriber ${subscriber._id} for announcement ${announcement.id}.`,
                   );
-                  // Convert markdown to Slack format and send notification
-                  const markdownMessage: string = `## 📢 Announcement - ${announcement.title || ""}
+
+                  // Build Slack message - use custom template if available
+                  let slackMessage: string;
+                  if (slackTemplate?.templateBody) {
+                    const slackTemplateVariables: Record<string, string> = {
+                      statusPageName: statusPageName,
+                      statusPageUrl: statusPageURL,
+                      detailsUrl: announcementDetailsUrl,
+                      announcementTitle: announcement.title || "",
+                      announcementDescription: announcement.description || "",
+                      unsubscribeUrl: unsubscribeUrl,
+                    };
+                    slackMessage =
+                      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                        slackTemplate.templateBody,
+                        slackTemplateVariables,
+                      );
+                  } else {
+                    // Default markdown message
+                    slackMessage = `## 📢 Announcement - ${announcement.title || ""}
 
 **Description:** ${announcement.description || ""}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+                  }
 
                   // send Slack notification here.
                   SlackUtil.sendMessageToChannelViaIncomingWebhook({
                     url: subscriber.slackIncomingWebhookUrl,
                     text: SlackUtil.convertMarkdownToSlackRichText(
-                      markdownMessage,
+                      slackMessage,
                     ),
                   }).catch((err: Error) => {
                     logger.error(err);
@@ -341,17 +432,36 @@ RunCron(
                   logger.debug(
                     `Queueing Microsoft Teams notification to subscriber ${subscriber._id} for announcement ${announcement.id}.`,
                   );
-                  // Create markdown message for Teams
-                  const markdownMessage: string = `## 📢 Announcement - ${announcement.title || ""}
+
+                  // Build Teams message - use custom template if available
+                  let teamsMessage: string;
+                  if (teamsTemplate?.templateBody) {
+                    const teamsTemplateVariables: Record<string, string> = {
+                      statusPageName: statusPageName,
+                      statusPageUrl: statusPageURL,
+                      detailsUrl: announcementDetailsUrl,
+                      announcementTitle: announcement.title || "",
+                      announcementDescription: announcement.description || "",
+                      unsubscribeUrl: unsubscribeUrl,
+                    };
+                    teamsMessage =
+                      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                        teamsTemplate.templateBody,
+                        teamsTemplateVariables,
+                      );
+                  } else {
+                    // Default markdown message
+                    teamsMessage = `## 📢 Announcement - ${announcement.title || ""}
 
 **Description:** ${announcement.description || ""}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+                  }
 
                   // send Teams notification here.
                   MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
                     url: subscriber.microsoftTeamsIncomingWebhookUrl,
-                    text: markdownMessage,
+                    text: teamsMessage,
                   }).catch((err: Error) => {
                     logger.error(err);
                   });
@@ -363,49 +473,104 @@ RunCron(
                     `Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for announcement ${announcement.id}.`,
                   );
 
-                  MailService.sendMail(
-                    {
-                      toEmail: subscriber.subscriberEmail,
-                      templateType:
-                        EmailTemplateType.SubscriberAnnouncementCreated,
-                      vars: {
-                        statusPageName: statusPageName,
-                        statusPageUrl: statusPageURL,
-                        detailsUrl: announcementDetailsUrl,
-                        logoUrl:
-                          statuspage.logoFileId && statusPageIdString
-                            ? new URL(httpProtocol, host)
-                                .addRoute(StatusPageApiRoute)
-                                .addRoute(`/logo/${statusPageIdString}`)
-                                .toString()
-                            : "",
-                        isPublicStatusPage: statuspage.isPublicStatusPage
-                          ? "true"
-                          : "false",
-                        announcementTitle: announcement.title || "",
-                        announcementDescription: await Markdown.convertToHTML(
-                          announcement.description || "",
-                          MarkdownContentType.Email,
-                        ),
-                        subscriberEmailNotificationFooterText:
-                          StatusPageServiceType.getSubscriberEmailFooterText(
-                            statuspage,
-                          ),
-                        unsubscribeUrl: unsubscribeUrl,
+                  // Prepare email content - use custom template if available
+                  const announcementDescriptionHtml: string =
+                    await Markdown.convertToHTML(
+                      announcement.description || "",
+                      MarkdownContentType.Email,
+                    );
+
+                  let emailSubject: string =
+                    "[Announcement] " + announcement.title;
+
+                  if (emailTemplate?.templateBody && statuspage.smtpConfig) {
+                    // Use custom template with BlankTemplate only when custom SMTP is configured
+                    const emailTemplateVariables: Record<string, string> = {
+                      statusPageName: statusPageName,
+                      statusPageUrl: statusPageURL,
+                      detailsUrl: announcementDetailsUrl,
+                      announcementTitle: announcement.title || "",
+                      announcementDescription: announcementDescriptionHtml,
+                      unsubscribeUrl: unsubscribeUrl,
+                    };
+                    const customEmailBody: string =
+                      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                        emailTemplate.templateBody,
+                        emailTemplateVariables,
+                      );
+
+                    // Use custom subject if provided
+                    if (emailTemplate.emailSubject) {
+                      emailSubject =
+                        StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                          emailTemplate.emailSubject,
+                          emailTemplateVariables,
+                        );
+                    }
+
+                    MailService.sendMail(
+                      {
+                        toEmail: subscriber.subscriberEmail,
+                        templateType: EmailTemplateType.BlankTemplate,
+                        vars: {
+                          body: customEmailBody,
+                        },
+                        subject: emailSubject,
                       },
-                      subject: "[Announcement] " + announcement.title,
-                    },
-                    {
-                      mailServer: ProjectSMTPConfigService.toEmailServer(
-                        statuspage.smtpConfig,
-                      ),
-                      projectId: statuspage.projectId,
-                      statusPageId: statuspage.id!,
-                      statusPageAnnouncementId: announcement.id!,
-                    },
-                  ).catch((err: Error) => {
-                    logger.error(err);
-                  });
+                      {
+                        mailServer: ProjectSMTPConfigService.toEmailServer(
+                          statuspage.smtpConfig,
+                        ),
+                        projectId: statuspage.projectId,
+                        statusPageId: statuspage.id!,
+                        statusPageAnnouncementId: announcement.id!,
+                      },
+                    ).catch((err: Error) => {
+                      logger.error(err);
+                    });
+                  } else {
+                    // Use default hard-coded template
+                    MailService.sendMail(
+                      {
+                        toEmail: subscriber.subscriberEmail,
+                        templateType:
+                          EmailTemplateType.SubscriberAnnouncementCreated,
+                        vars: {
+                          statusPageName: statusPageName,
+                          statusPageUrl: statusPageURL,
+                          detailsUrl: announcementDetailsUrl,
+                          logoUrl:
+                            statuspage.logoFileId && statusPageIdString
+                              ? new URL(httpProtocol, host)
+                                  .addRoute(StatusPageApiRoute)
+                                  .addRoute(`/logo/${statusPageIdString}`)
+                                  .toString()
+                              : "",
+                          isPublicStatusPage: statuspage.isPublicStatusPage
+                            ? "true"
+                            : "false",
+                          announcementTitle: announcement.title || "",
+                          announcementDescription: announcementDescriptionHtml,
+                          subscriberEmailNotificationFooterText:
+                            StatusPageServiceType.getSubscriberEmailFooterText(
+                              statuspage,
+                            ),
+                          unsubscribeUrl: unsubscribeUrl,
+                        },
+                        subject: emailSubject,
+                      },
+                      {
+                        mailServer: ProjectSMTPConfigService.toEmailServer(
+                          statuspage.smtpConfig,
+                        ),
+                        projectId: statuspage.projectId,
+                        statusPageId: statuspage.id!,
+                        statusPageAnnouncementId: announcement.id!,
+                      },
+                    ).catch((err: Error) => {
+                      logger.error(err);
+                    });
+                  }
                   logger.debug(
                     `Email notification queued for subscriber ${subscriber._id} for announcement ${announcement.id}.`,
                   );

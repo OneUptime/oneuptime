@@ -23,6 +23,12 @@ import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceClass,
+} from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
+import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -270,6 +276,72 @@ RunCron(
                   .toString()
               : statusPageURL;
 
+          const resourcesAffectedString: string =
+            statusPageToResources[statuspage._id!]
+              ?.map((r: StatusPageResource) => {
+                return r.displayName;
+              })
+              .join(", ") || "";
+
+          const scheduledAtString: string =
+            OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!);
+
+          // Fetch custom templates for this status page (if any)
+          const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
+            StatusPageSubscriberNotificationTemplate | null,
+            StatusPageSubscriberNotificationTemplate | null,
+            StatusPageSubscriberNotificationTemplate | null,
+            StatusPageSubscriberNotificationTemplate | null,
+          ] = await Promise.all([
+            StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+              {
+                statusPageId: statuspage.id!,
+                eventType:
+                  StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceStateChanged,
+                notificationMethod:
+                  StatusPageSubscriberNotificationMethod.Email,
+              },
+            ),
+            StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+              {
+                statusPageId: statuspage.id!,
+                eventType:
+                  StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceStateChanged,
+                notificationMethod: StatusPageSubscriberNotificationMethod.SMS,
+              },
+            ),
+            StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+              {
+                statusPageId: statuspage.id!,
+                eventType:
+                  StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceStateChanged,
+                notificationMethod:
+                  StatusPageSubscriberNotificationMethod.Slack,
+              },
+            ),
+            StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+              {
+                statusPageId: statuspage.id!,
+                eventType:
+                  StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceStateChanged,
+                notificationMethod:
+                  StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+              },
+            ),
+          ]);
+
+          // Prepare template variables for custom templates
+          const templateVariables: Record<string, string> = {
+            statusPageName: statusPageName,
+            statusPageUrl: statusPageURL,
+            detailsUrl: scheduledEventDetailsUrl,
+            resourcesAffected: resourcesAffectedString,
+            scheduledMaintenanceTitle: event.title || "",
+            scheduledMaintenanceState:
+              scheduledEventStateTimeline.scheduledMaintenanceState?.name || "",
+            scheduledAt: scheduledAtString,
+          };
+
           // Send email to Email subscribers.
 
           for (const subscriber of subscribers) {
@@ -296,9 +368,28 @@ RunCron(
                 subscriber.id!,
               ).toString();
 
+            // Add unsubscribeUrl to template variables for this subscriber
+            const subscriberTemplateVariables: Record<string, string> = {
+              ...templateVariables,
+              unsubscribeUrl: unsubscribeUrl,
+            };
+
             if (subscriber.subscriberPhone) {
+              let smsMessage: string;
+              if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
+                // Use custom template only when custom Twilio is configured
+                smsMessage =
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                    smsTemplate.templateBody,
+                    subscriberTemplateVariables,
+                  );
+              } else {
+                // Use default hard-coded template
+                smsMessage = `Maintenance ${event.title || ""} on ${statusPageName} is ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}. Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+              }
+
               const sms: SMS = {
-                message: `Maintenance ${event.title || ""} on ${statusPageName} is ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}. Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                message: smsMessage,
                 to: subscriber.subscriberPhone,
               };
 
@@ -316,22 +407,26 @@ RunCron(
             }
 
             if (subscriber.slackIncomingWebhookUrl) {
-              // Create markdown message for Slack
-              const markdownMessage: string = `## Scheduled Maintenance State Update - ${statusPageName}
+              let markdownMessage: string;
+              if (slackTemplate?.templateBody) {
+                // Use custom template
+                markdownMessage =
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                    slackTemplate.templateBody,
+                    subscriberTemplateVariables,
+                  );
+              } else {
+                // Use default hard-coded template
+                markdownMessage = `## Scheduled Maintenance State Update - ${statusPageName}
 
 **Event:** ${event.title || ""}
 
 **State Changed To:** ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}
 
-**Resources Affected:** ${
-                statusPageToResources[statuspage._id!]
-                  ?.map((r: StatusPageResource) => {
-                    return r.displayName;
-                  })
-                  .join(", ") || ""
-              }
+**Resources Affected:** ${resourcesAffectedString}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+              }
 
               // send Slack notification with markdown conversion
               SlackUtil.sendMessageToChannelViaIncomingWebhook({
@@ -343,18 +438,23 @@ RunCron(
             }
 
             if (subscriber.microsoftTeamsIncomingWebhookUrl) {
-              // Create markdown message for Teams
-              const markdownMessage: string = `## Scheduled Maintenance State Update - ${statusPageName}
+              let markdownMessage: string;
+              if (teamsTemplate?.templateBody) {
+                // Use custom template
+                markdownMessage =
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                    teamsTemplate.templateBody,
+                    subscriberTemplateVariables,
+                  );
+              } else {
+                // Use default hard-coded template
+                markdownMessage = `## Scheduled Maintenance State Update - ${statusPageName}
 **Event:** ${event.title || ""}
 **State Changed To:** ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}
-**Resources Affected:** ${
-                statusPageToResources[statuspage._id!]
-                  ?.map((r: StatusPageResource) => {
-                    return r.displayName;
-                  })
-                  .join(", ") || ""
-              }
+**Resources Affected:** ${resourcesAffectedString}
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+              }
+
               // send Teams notification
               MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
                 url: subscriber.microsoftTeamsIncomingWebhookUrl,
@@ -367,62 +467,93 @@ RunCron(
             if (subscriber.subscriberEmail) {
               // send email here.
 
-              MailService.sendMail(
-                {
-                  toEmail: subscriber.subscriberEmail,
-                  templateType:
-                    EmailTemplateType.SubscriberScheduledMaintenanceEventStateChanged,
-                  vars: {
-                    statusPageName: statusPageName,
-                    statusPageUrl: statusPageURL,
-                    detailsUrl: scheduledEventDetailsUrl,
-                    logoUrl:
-                      statuspage.logoFileId && statusPageIdString
-                        ? new URL(httpProtocol, host)
-                            .addRoute(StatusPageApiRoute)
-                            .addRoute(`/logo/${statusPageIdString}`)
-                            .toString()
-                        : "",
-                    isPublicStatusPage: statuspage.isPublicStatusPage
-                      ? "true"
-                      : "false",
-                    resourcesAffected:
-                      statusPageToResources[statuspage._id!]
-                        ?.map((r: StatusPageResource) => {
-                          return r.displayName;
-                        })
-                        .join(", ") || "",
-
-                    eventState:
+              if (emailTemplate?.templateBody && statuspage.smtpConfig) {
+                // Use custom template with BlankTemplate only when custom SMTP is configured
+                const compiledBody: string =
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                    emailTemplate.templateBody,
+                    subscriberTemplateVariables,
+                  );
+                const compiledSubject: string = emailTemplate.emailSubject
+                  ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                      emailTemplate.emailSubject,
+                      subscriberTemplateVariables,
+                    )
+                  : `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
                       scheduledEventStateTimeline.scheduledMaintenanceState
-                        ?.name || "",
+                        ?.name,
+                    )}] ${event.title || ""}`;
 
-                    scheduledAt:
-                      OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                        event.startsAt!,
-                      ),
-                    eventTitle: event.title || "",
-                    unsubscribeUrl: unsubscribeUrl,
-                    subscriberEmailNotificationFooterText:
-                      StatusPageServiceType.getSubscriberEmailFooterText(
-                        statuspage,
-                      ),
+                MailService.sendMail(
+                  {
+                    toEmail: subscriber.subscriberEmail,
+                    templateType: EmailTemplateType.BlankTemplate,
+                    vars: {
+                      body: compiledBody,
+                    },
+                    subject: compiledSubject,
                   },
-                  subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
-                    scheduledEventStateTimeline.scheduledMaintenanceState?.name,
-                  )}] ${event.title || ""}`,
-                },
-                {
-                  mailServer: ProjectSmtpConfigService.toEmailServer(
-                    statuspage.smtpConfig,
-                  ),
-                  projectId: statuspage.projectId,
-                  statusPageId: statuspage.id!,
-                  scheduledMaintenanceId: event.id!,
-                },
-              ).catch((err: Error) => {
-                logger.error(err);
-              });
+                  {
+                    mailServer: ProjectSmtpConfigService.toEmailServer(
+                      statuspage.smtpConfig,
+                    ),
+                    projectId: statuspage.projectId,
+                    statusPageId: statuspage.id!,
+                    scheduledMaintenanceId: event.id!,
+                  },
+                ).catch((err: Error) => {
+                  logger.error(err);
+                });
+              } else {
+                // Use default hard-coded template
+                MailService.sendMail(
+                  {
+                    toEmail: subscriber.subscriberEmail,
+                    templateType:
+                      EmailTemplateType.SubscriberScheduledMaintenanceEventStateChanged,
+                    vars: {
+                      statusPageName: statusPageName,
+                      statusPageUrl: statusPageURL,
+                      detailsUrl: scheduledEventDetailsUrl,
+                      logoUrl:
+                        statuspage.logoFileId && statusPageIdString
+                          ? new URL(httpProtocol, host)
+                              .addRoute(StatusPageApiRoute)
+                              .addRoute(`/logo/${statusPageIdString}`)
+                              .toString()
+                          : "",
+                      isPublicStatusPage: statuspage.isPublicStatusPage
+                        ? "true"
+                        : "false",
+                      resourcesAffected: resourcesAffectedString,
+                      eventState:
+                        scheduledEventStateTimeline.scheduledMaintenanceState
+                          ?.name || "",
+                      scheduledAt: scheduledAtString,
+                      eventTitle: event.title || "",
+                      unsubscribeUrl: unsubscribeUrl,
+                      subscriberEmailNotificationFooterText:
+                        StatusPageServiceType.getSubscriberEmailFooterText(
+                          statuspage,
+                        ),
+                    },
+                    subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
+                      scheduledEventStateTimeline.scheduledMaintenanceState
+                        ?.name,
+                    )}] ${event.title || ""}`,
+                  },
+                  {
+                    mailServer: ProjectSmtpConfigService.toEmailServer(
+                      statuspage.smtpConfig,
+                    ),
+                    projectId: statuspage.projectId,
+                    statusPageId: statuspage.id!,
+                    scheduledMaintenanceId: event.id!,
+                  },
+                ).catch((err: Error) => {
+                  logger.error(err);
+                });
+              }
             }
           }
         }

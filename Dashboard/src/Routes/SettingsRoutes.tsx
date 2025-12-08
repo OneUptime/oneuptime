@@ -167,6 +167,18 @@ const StatusPageAnnouncementTemplateView: LazyExoticComponent<
   return import("../Pages/Settings/StatusPageAnnouncementTemplateView");
 });
 
+const SubscriberNotificationTemplates: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/SubscriberNotificationTemplates");
+});
+
+const SubscriberNotificationTemplateView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/SubscriberNotificationTemplateView");
+});
+
 const IncidentNoteTemplates: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -382,6 +394,45 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[
                     PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES_VIEW
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <SubscriberNotificationTemplates
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap
+                      .SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW,
+            2,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <SubscriberNotificationTemplateView
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap
+                      .SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW
                   ] as Route
                 }
               />

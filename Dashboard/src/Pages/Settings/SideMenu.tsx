@@ -104,6 +104,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         },
         {
           link: {
+            title: "Subscriber Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Bell,
+        },
+        {
+          link: {
             title: "Custom Fields",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS] as Route,

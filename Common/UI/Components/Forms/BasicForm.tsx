@@ -675,6 +675,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                 />
                               }
                               {field.footerElement}
+                              {field.getFooterElement &&
+                                field.getFooterElement(refCurrentValue.current)}
                             </div>
                           );
                         })}
