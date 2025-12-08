@@ -12,6 +12,7 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 // Function to get available variables documentation based on event type
 const getVariablesDocumentation = (
@@ -176,6 +177,7 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
         isEditable={false}
         isCreateable={true}
+        createEditModalWidth={ModalWidth.Large}
         isViewable={true}
         cardProps={{
           title: `${notificationMethod} Templates`,
