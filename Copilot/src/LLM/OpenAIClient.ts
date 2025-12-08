@@ -107,7 +107,6 @@ export class OpenAIClient implements LLMClient {
         model: this.options.model,
         messageCount: payload.input.length,
         toolCount: payload.tools?.length ?? 0,
-        temperature: payload.temperature,
         attempt,
         maxAttempts: this.maxAttempts,
       });
@@ -171,10 +170,9 @@ export class OpenAIClient implements LLMClient {
     tools?: Array<ToolDefinition>,
   ): ResponsesRequestPayload {
     const hasTools: boolean = Boolean(tools?.length);
-    return {
+    const payload: ResponsesRequestPayload = {
       model: this.options.model,
       input: this.mapMessagesToInput(messages),
-      temperature: this.options.temperature,
       ...(hasTools
         ? {
             tool_choice: "auto",
@@ -182,6 +180,8 @@ export class OpenAIClient implements LLMClient {
           }
         : {}),
     };
+
+    return payload;
   }
 
   private mapToolsToResponsesDefinitions(
@@ -365,7 +365,6 @@ type ResponsesContentBlock =
 interface ResponsesRequestPayload {
   model: string;
   input: Array<ResponsesMessage>;
-  temperature: number;
   tool_choice?: "auto" | undefined;
   tools?: Array<ResponsesToolDefinition> | undefined;
 }
