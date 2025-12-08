@@ -8,6 +8,7 @@ import {
   LLMProvider,
 } from "./Agent/CopilotAgent";
 import AgentLogger from "./Utils/AgentLogger";
+import { requiresOpenAIResponsesEndpoint } from "./Utils/OpenAIModel";
 
 /** CLI harness for configuring and launching the Copilot agent. */
 const program: Command = new Command();
@@ -111,19 +112,6 @@ function resolveModelUrl(
   }
 
   return undefined;
-}
-
-function requiresOpenAIResponsesEndpoint(modelName: string | undefined): boolean {
-  if (!modelName) {
-    return false;
-  }
-
-  const normalized: string = modelName.toLowerCase();
-  return (
-    normalized.includes("gpt-5") ||
-    normalized.includes("gpt-4.1") ||
-    normalized.includes("codex")
-  );
 }
 
 /** Entry point that parses CLI args, configures logging, and runs the agent. */
