@@ -43,7 +43,9 @@ interface AnthropicChatCompletionRequest {
 }
 
 interface AnthropicResponseBody {
-  content: Array<AnthropicContentBlock | { type: string; [key: string]: unknown }>;
+  content: Array<
+    AnthropicContentBlock | { type: string; [key: string]: unknown }
+  >;
 }
 
 export interface AnthropicClientOptions {
@@ -282,9 +284,10 @@ export class AnthropicClient implements LLMClient {
       anthropicMessages.push(this.toStandardMessage(message));
     }
 
-    const result: { systemPrompt?: string; messages: Array<AnthropicMessage> } = {
-      messages: anthropicMessages,
-    };
+    const result: { systemPrompt?: string; messages: Array<AnthropicMessage> } =
+      {
+        messages: anthropicMessages,
+      };
 
     if (systemParts.length) {
       result.systemPrompt = systemParts.join("\n\n");
@@ -294,7 +297,8 @@ export class AnthropicClient implements LLMClient {
   }
 
   private toStandardMessage(message: ChatMessage): AnthropicMessage {
-    const role: AnthropicRole = message.role === "assistant" ? "assistant" : "user";
+    const role: AnthropicRole =
+      message.role === "assistant" ? "assistant" : "user";
     const contentBlocks: Array<AnthropicContentBlock> = [];
 
     if (message.content) {
