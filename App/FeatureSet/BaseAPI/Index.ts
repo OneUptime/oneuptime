@@ -576,6 +576,12 @@ import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceType,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
 
+// status page subscriber notification template status page (linking table)
+import StatusPageSubscriberNotificationTemplateStatusPage from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplateStatusPage";
+import StatusPageSubscriberNotificationTemplateStatusPageService, {
+  Service as StatusPageSubscriberNotificationTemplateStatusPageServiceType,
+} from "Common/Server/Services/StatusPageSubscriberNotificationTemplateStatusPageService";
+
 // ProjectSCIM
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import ProjectSCIMService, {
@@ -659,6 +665,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         StatusPageSubscriberNotificationTemplate,
         StatusPageSubscriberNotificationTemplateService,
+      ).getRouter(),
+    );
+
+    // status page subscriber notification template status page (linking table)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        StatusPageSubscriberNotificationTemplateStatusPage,
+        StatusPageSubscriberNotificationTemplateStatusPageServiceType
+      >(
+        StatusPageSubscriberNotificationTemplateStatusPage,
+        StatusPageSubscriberNotificationTemplateStatusPageService,
       ).getRouter(),
     );
 
