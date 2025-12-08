@@ -18,7 +18,9 @@ import { getSubscriberNotificationTemplateVariablesDocumentation } from "../../U
 const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
-  const getTemplateTable = (
+  const getTemplateTable: (
+    notificationMethod: StatusPageSubscriberNotificationMethod,
+  ) => ReactElement = (
     notificationMethod: StatusPageSubscriberNotificationMethod,
   ): ReactElement => {
     const methodDescriptions: Record<

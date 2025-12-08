@@ -37,9 +37,9 @@ const SubscriberNotificationTemplateView: FunctionComponent<
 
   useEffect(() => {
     // Fetch the template to get its event type
-    const fetchTemplate = async (): Promise<void> => {
+    const fetchTemplate: () => Promise<void> = async (): Promise<void> => {
       try {
-        const template =
+        const template: StatusPageSubscriberNotificationTemplate | null =
           await ModelAPI.getItem<StatusPageSubscriberNotificationTemplate>({
             modelType: StatusPageSubscriberNotificationTemplate,
             id: modelId,
@@ -52,19 +52,20 @@ const SubscriberNotificationTemplateView: FunctionComponent<
           setEventType(template.eventType);
           setNotificationMethod(template.notificationMethod);
         }
-      } catch (err) {
+      } catch {
         // Handle error silently - the card will show generic variables
       }
     };
     fetchTemplate();
   }, [modelId]);
 
-  const getTemplateBodyFieldType = (): FormFieldSchemaType => {
-    if (notificationMethod === StatusPageSubscriberNotificationMethod.Email) {
-      return FormFieldSchemaType.HTML;
-    }
-    return FormFieldSchemaType.LongText;
-  };
+  const getTemplateBodyFieldType: () => FormFieldSchemaType =
+    (): FormFieldSchemaType => {
+      if (notificationMethod === StatusPageSubscriberNotificationMethod.Email) {
+        return FormFieldSchemaType.HTML;
+      }
+      return FormFieldSchemaType.LongText;
+    };
 
   return (
     <Fragment>

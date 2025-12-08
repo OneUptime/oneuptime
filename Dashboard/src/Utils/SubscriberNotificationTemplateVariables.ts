@@ -4,7 +4,9 @@ import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/S
  * Get available template variables documentation based on event type.
  * Returns markdown formatted documentation for use in forms and views.
  */
-export const getSubscriberNotificationTemplateVariablesDocumentation = (
+export const getSubscriberNotificationTemplateVariablesDocumentation: (
+  eventType: StatusPageSubscriberNotificationEventType | undefined,
+) => string = (
   eventType: StatusPageSubscriberNotificationEventType | undefined,
 ): string => {
   const commonVariablesRows: string = `| \`{{statusPageName}}\` | Name of the status page |
