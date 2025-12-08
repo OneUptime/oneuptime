@@ -348,8 +348,8 @@ interface ResponsesRequestPayload {
   model: string;
   input: Array<ResponsesMessage>;
   temperature: number;
-  tool_choice?: "auto";
-  tools?: Array<ToolDefinition>;
+  tool_choice?: "auto" | undefined;
+  tools?: Array<ToolDefinition> | undefined;
 }
 
 interface ResponsesOutputMessage {
