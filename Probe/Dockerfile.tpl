@@ -34,6 +34,9 @@ RUN apt-get update
 # Install bash. 
 RUN apt-get install bash -y && apt-get install curl -y && apt-get install iputils-ping -y
 
+# Install tini - a tiny init for containers to properly reap zombie processes
+RUN apt-get install -y tini
+
 # Install python
 RUN apt-get update && apt-get install -y .gyp python3 make g++
 
@@ -74,6 +77,9 @@ RUN npm install
 
 # Install browsers with the same Playwright version we just installed
 RUN npx playwright install --with-deps
+
+# Use tini as init to properly reap zombie processes (like Chrome/Chromium)
+ENTRYPOINT ["/usr/bin/tini", "--"]
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
