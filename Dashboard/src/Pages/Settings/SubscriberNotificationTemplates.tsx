@@ -436,10 +436,7 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      <Card
-        title="Subscriber Notification Templates"
-        description="Create custom notification templates for status page subscribers. These templates allow you to customize the messages sent via Email, SMS, Slack, Microsoft Teams, and Webhooks for different event types."
-      >
+     
         <Tabs
           tabs={[
             {
@@ -465,7 +462,6 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
           ]}
           onTabChange={() => {}}
         />
-      </Card>
     </Fragment>
   );
 };
