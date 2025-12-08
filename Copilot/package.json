@@ -15,8 +15,9 @@
     "clear-modules": "rm -rf node_modules && rm -f package-lock.json && npm install"
   },
   "dependencies": {
-    "Common": "file:../../Common",
     "commander": "^12.1.0",
+    "Common": "file:../../Common",
+    "tsconfig-paths": "^4.2.0",
     "undici": "^6.19.8",
     "zod": "^3.23.8"
   },
