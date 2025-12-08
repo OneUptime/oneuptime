@@ -496,7 +496,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
       cardProps={{
         title: "Notification Templates",
         description:
-          "Link custom notification templates to this status page. These templates will be used instead of the default templates when sending notifications to subscribers. You can create templates in Project Settings > Status Pages > Subscriber Templates.",
+          "Link custom notification templates to this status page. You can create templates in Project Settings > Status Pages > Subscriber Templates.",
       }}
       noItemsMessage={
         "No notification templates linked to this status page. Default templates will be used."
