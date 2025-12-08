@@ -78,8 +78,9 @@ export class CopilotAgent {
         });
       }
       case "openai": {
+        const endpoint: string | undefined = options.modelUrl;
         return new OpenAIClient({
-          endpoint: options.modelUrl,
+          ...(endpoint ? { endpoint } : {}),
           model: options.modelName,
           temperature: options.temperature,
           timeoutMs: options.requestTimeoutMs,
@@ -87,8 +88,9 @@ export class CopilotAgent {
         });
       }
       case "anthropic": {
+        const endpoint: string | undefined = options.modelUrl;
         return new AnthropicClient({
-          endpoint: options.modelUrl,
+          ...(endpoint ? { endpoint } : {}),
           model: options.modelName,
           temperature: options.temperature,
           timeoutMs: options.requestTimeoutMs,

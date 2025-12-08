@@ -150,13 +150,13 @@ function resolveModelUrl(
   const config: CopilotAgentOptions = {
     prompt: opts.prompt,
     provider,
-    modelUrl,
     modelName: opts.modelName || "lmstudio",
     workspacePath: path.resolve(opts.workspacePath),
     temperature: Number(opts.temperature) || 0.1,
     maxIterations: Number(opts.maxIterations) || 100,
     requestTimeoutMs: Number(opts.timeout) || 120000,
-    apiKey: opts.apiKey,
+    ...(modelUrl ? { modelUrl } : {}),
+    ...(opts.apiKey ? { apiKey: opts.apiKey } : {}),
   };
 
   try {

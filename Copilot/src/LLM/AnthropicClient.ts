@@ -95,22 +95,31 @@ export class AnthropicClient implements LLMClient {
     tools?: Array<ToolDefinition>;
   }): AnthropicChatCompletionRequest {
     const { systemPrompt, messages } = this.mapMessages(data.messages);
-    const payload: AnthropicChatCompletionRequest = {
-      model: this.options.model,
-      temperature: this.options.temperature,
-      max_tokens: this.maxTokens,
-      messages,
-      tool_choice: data.tools?.length ? "auto" : undefined,
-      ...(systemPrompt ? { system: systemPrompt } : {}),
-      ...(data.tools?.length
-        ? { tools: data.tools.map((tool: ToolDefinition) => {
+    const toolMetadata:
+      | {
+          tools: Array<AnthropicToolDefinition>;
+          tool_choice: "auto";
+        }
+      | undefined = data.tools?.length
+      ? {
+          tools: data.tools.map((tool: ToolDefinition) => {
             return {
               name: tool.function.name,
               description: tool.function.description,
               input_schema: tool.function.parameters,
             };
-          }) }
-        : {}),
+          }),
+          tool_choice: "auto",
+        }
+      : undefined;
+
+    const payload: AnthropicChatCompletionRequest = {
+      model: this.options.model,
+      temperature: this.options.temperature,
+      max_tokens: this.maxTokens,
+      messages,
+      ...(systemPrompt ? { system: systemPrompt } : {}),
+      ...(toolMetadata ?? {}),
     };
 
     return payload;
@@ -273,10 +282,15 @@ export class AnthropicClient implements LLMClient {
       anthropicMessages.push(this.toStandardMessage(message));
     }
 
-    return {
-      systemPrompt: systemParts.length ? systemParts.join("\n\n") : undefined,
+    const result: { systemPrompt?: string; messages: Array<AnthropicMessage> } = {
       messages: anthropicMessages,
     };
+
+    if (systemParts.length) {
+      result.systemPrompt = systemParts.join("\n\n");
+    }
+
+    return result;
   }
 
   private toStandardMessage(message: ChatMessage): AnthropicMessage {
