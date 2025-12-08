@@ -14,13 +14,40 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import TimezonesElement from "../../../Components/Timezone/TimezonesElement";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import StatusPageSubscriberNotificationTemplateStatusPage from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplateStatusPage";
+import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Green500, Yellow500, Blue500, Purple500, Cyan500 } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
+import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 
-const StatusPageDelete: FunctionComponent<
+const StatusPageSubscriberSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return (
+  const getMethodColor = (method: StatusPageSubscriberNotificationMethod | undefined): Color => {
+    switch (method) {
+      case StatusPageSubscriberNotificationMethod.Email:
+        return Green500;
+      case StatusPageSubscriberNotificationMethod.SMS:
+        return Yellow500;
+      case StatusPageSubscriberNotificationMethod.Slack:
+        return Purple500;
+      case StatusPageSubscriberNotificationMethod.MicrosoftTeams:
+        return Blue500;
+      case StatusPageSubscriberNotificationMethod.Webhook:
+        return Cyan500;
+      default:
+        return Green500;
+    }
+  };
+
+  const settingsContent: ReactElement = (
     <Fragment>
       <CardModelDetail<StatusPage>
         name="Status Page > Branding > Subscriber > Email"
@@ -436,6 +463,153 @@ const StatusPageDelete: FunctionComponent<
       />
     </Fragment>
   );
+
+  const notificationTemplatesContent: ReactElement = (
+    <ModelTable<StatusPageSubscriberNotificationTemplateStatusPage>
+      modelType={StatusPageSubscriberNotificationTemplateStatusPage}
+      id="status-page-subscriber-notification-templates-table"
+      userPreferencesKey="status-page-subscriber-notification-templates-table"
+      name="Status Page > Subscriber Notification Templates"
+      isDeleteable={true}
+      isCreateable={true}
+      isEditable={true}
+      isViewable={false}
+      query={{
+        statusPageId: modelId,
+      }}
+      onBeforeCreate={(
+        item: StatusPageSubscriberNotificationTemplateStatusPage,
+      ): Promise<StatusPageSubscriberNotificationTemplateStatusPage> => {
+        item.statusPageId = modelId;
+        return Promise.resolve(item);
+      }}
+      cardProps={{
+        title: "Notification Templates",
+        description:
+          "Link custom notification templates to this status page. These templates will be used instead of the default templates when sending notifications to subscribers. You can create templates in Project Settings > Status Pages > Subscriber Templates.",
+      }}
+      noItemsMessage={
+        "No notification templates linked to this status page. Default templates will be used."
+      }
+      showRefreshButton={true}
+      formFields={[
+        {
+          field: {
+            statusPageSubscriberNotificationTemplate: true,
+          },
+          title: "Notification Template",
+          description:
+            "Select a notification template to use for this status page. You can create templates in Project Settings > Status Pages > Subscriber Templates.",
+          fieldType: FormFieldSchemaType.Dropdown,
+          dropdownModal: {
+            type: StatusPageSubscriberNotificationTemplate,
+            labelField: "templateName",
+            valueField: "_id",
+          },
+          required: true,
+          placeholder: "Select Template",
+        },
+      ]}
+      filters={[
+        {
+          field: {
+            statusPageSubscriberNotificationTemplate: {
+              templateName: true,
+            },
+          },
+          title: "Template Name",
+          type: FieldType.Text,
+        },
+        {
+          field: {
+            statusPageSubscriberNotificationTemplate: {
+              eventType: true,
+            },
+          },
+          title: "Event Type",
+          type: FieldType.Dropdown,
+          filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+            StatusPageSubscriberNotificationEventType,
+          ),
+        },
+        {
+          field: {
+            statusPageSubscriberNotificationTemplate: {
+              notificationMethod: true,
+            },
+          },
+          title: "Notification Method",
+          type: FieldType.Dropdown,
+          filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+            StatusPageSubscriberNotificationMethod,
+          ),
+        },
+      ]}
+      columns={[
+        {
+          field: {
+            statusPageSubscriberNotificationTemplate: {
+              templateName: true,
+            },
+          },
+          title: "Template Name",
+          type: FieldType.Text,
+        },
+        {
+          field: {
+            statusPageSubscriberNotificationTemplate: {
+              eventType: true,
+            },
+          },
+          title: "Event Type",
+          type: FieldType.Text,
+        },
+        {
+          field: {
+            statusPageSubscriberNotificationTemplate: {
+              notificationMethod: true,
+            },
+          },
+          title: "Notification Method",
+          type: FieldType.Element,
+          getElement: (
+            item: StatusPageSubscriberNotificationTemplateStatusPage,
+          ): ReactElement => {
+            const method =
+              item.statusPageSubscriberNotificationTemplate?.notificationMethod;
+            return (
+              <Pill text={method || "Unknown"} color={getMethodColor(method)} />
+            );
+          },
+        },
+        {
+          field: {
+            createdAt: true,
+          },
+          title: "Linked At",
+          type: FieldType.DateTime,
+        },
+      ]}
+    />
+  );
+
+  return (
+    <Fragment>
+      <Tabs
+        tabs={[
+          {
+            name: "Settings",
+            children: settingsContent,
+          },
+          {
+            name: "Notification Templates",
+            children: notificationTemplatesContent,
+          },
+        ]}
+        onTabChange={() => {}}
+      />
+    </Fragment>
+  );
 };
 
-export default StatusPageDelete;
+export default StatusPageSubscriberSettings;
