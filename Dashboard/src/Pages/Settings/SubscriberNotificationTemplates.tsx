@@ -161,14 +161,6 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
       [StatusPageSubscriberNotificationMethod.Webhook]: "Create custom Webhook payload templates for status page subscribers. Use JSON format.",
     };
 
-    const templateBodyPlaceholders: Record<StatusPageSubscriberNotificationMethod, string> = {
-      [StatusPageSubscriberNotificationMethod.Email]: "<p>Hello {{subscriberName}},</p><p>{{incidentTitle}} has been created.</p>",
-      [StatusPageSubscriberNotificationMethod.SMS]: "{{statusPageName}}: {{incidentTitle}} - {{incidentState}}",
-      [StatusPageSubscriberNotificationMethod.Slack]: "**{{incidentTitle}}**\n{{incidentDescription}}\n[View Details]({{detailsUrl}})",
-      [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: "**{{incidentTitle}}**\n{{incidentDescription}}\n[View Details]({{detailsUrl}})",
-      [StatusPageSubscriberNotificationMethod.Webhook]: '{"title": "{{incidentTitle}}", "description": "{{incidentDescription}}"}',
-    };
-
     const templateBodyFieldType: FormFieldSchemaType = 
       notificationMethod === StatusPageSubscriberNotificationMethod.Email
         ? FormFieldSchemaType.HTML
@@ -262,10 +254,10 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
                   title: "Email Subject",
                   stepId: "template-content",
                   description:
-                    "Subject line for email notifications. You can use template variables like {{incidentTitle}}.",
+                    "You can use template variables like {{statusPageName}}, etc. Please refer to the documentation below for available variables.",
                   fieldType: FormFieldSchemaType.Text,
                   required: false,
-                  placeholder: "{{statusPageName}}: {{incidentTitle}}",
+                  placeholder: "Update from {{statusPageName}}",
                 },
               ]
             : []),
@@ -277,15 +269,14 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             stepId: "template-content",
             description:
               notificationMethod === StatusPageSubscriberNotificationMethod.Email
-                ? "The template content in HTML format. You can use template variables like {{incidentTitle}}, {{statusPageName}}, etc."
+                ? "The template content in HTML format. You can use template variables like {{statusPageName}}, etc. Please refer to the documentation below for available variables."
                 : notificationMethod === StatusPageSubscriberNotificationMethod.SMS
-                ? "The template content in plain text format. Keep it concise for SMS. You can use template variables like {{incidentTitle}}, {{statusPageName}}, etc."
+                ? "The template content in plain text format. Keep it concise for SMS. You can use template variables like {{statusPageName}}, etc. Please refer to the documentation below for available variables."
                 : notificationMethod === StatusPageSubscriberNotificationMethod.Webhook
-                ? "The template content in JSON format. You can use template variables like {{incidentTitle}}, {{statusPageName}}, etc."
-                : "The template content in Markdown format. You can use template variables like {{incidentTitle}}, {{statusPageName}}, etc.",
+                ? "The template content in JSON format. You can use template variables like {{statusPageName}}, etc. Please refer to the documentation below for available variables."
+                : "The template content in Markdown format. You can use template variables like {{statusPageName}}, etc. Please refer to the documentation below for available variables.",
             fieldType: templateBodyFieldType,
             required: true,
-            placeholder: templateBodyPlaceholders[notificationMethod],
             getFooterElement: (
               values: FormValues<StatusPageSubscriberNotificationTemplate>,
             ): ReactElement => {
