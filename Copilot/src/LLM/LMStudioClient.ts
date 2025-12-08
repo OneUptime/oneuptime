@@ -1,5 +1,6 @@
 import { fetch, Response } from "undici";
 import { ChatMessage, ToolDefinition } from "../Types";
+import { LLMClient } from "./LLMClient";
 import AgentLogger from "../Utils/AgentLogger";
 
 const DEFAULT_MAX_ATTEMPTS: number = 3;
@@ -73,7 +74,7 @@ export interface LMStudioClientOptions {
 /**
  * Thin wrapper around fetch that speaks LM Studio's OpenAI-compatible API.
  */
-export class LMStudioClient {
+export class LMStudioClient implements LLMClient {
   private readonly maxAttempts: number;
   private readonly retryDelayMs: number;
   /**

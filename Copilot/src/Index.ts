@@ -2,7 +2,11 @@
 
 import path from "node:path";
 import { Command } from "commander";
-import { CopilotAgent, CopilotAgentOptions } from "./Agent/CopilotAgent";
+import {
+  CopilotAgent,
+  CopilotAgentOptions,
+  LLMProvider,
+} from "./Agent/CopilotAgent";
 import AgentLogger from "./Utils/AgentLogger";
 
 /** CLI harness for configuring and launching the Copilot agent. */
@@ -10,14 +14,21 @@ const program: Command = new Command();
 
 program
   .name("oneuptime-copilot-agent")
-  .description("Autonomous OneUptime coding agent for LM Studio hosted models")
+  .description(
+    "Autonomous OneUptime coding agent for LM Studio, OpenAI, and Anthropic models",
+  )
   .requiredOption(
     "--prompt <text>",
     "Problem statement or set of tasks for the agent",
   )
-  .requiredOption(
-    "--model <url>",
-    "Full LM Studio chat-completions endpoint (for example http://localhost:1234/v1/chat/completions)",
+  .option(
+    "--model <value>",
+    "Provider-specific model endpoint override. Required for lmstudio, optional for OpenAI/Anthropic.",
+  )
+  .option(
+    "--provider <name>",
+    "llm provider: lmstudio | openai | anthropic (default lmstudio)",
+    "lmstudio",
   )
   .requiredOption(
     "--workspace-path <path>",
@@ -25,7 +36,7 @@ program
   )
   .option(
     "--model-name <name>",
-    "Model identifier expected by the LM Studio endpoint",
+    "Model identifier expected by the selected provider",
     "lmstudio",
   )
   .option(
@@ -45,7 +56,7 @@ program
   )
   .option(
     "--api-key <token>",
-    "API key if the endpoint requires authentication",
+    "API key for OpenAI/Anthropic or secured LM Studio endpoints",
   )
   .option(
     "--log-level <level>",
@@ -58,11 +69,44 @@ program
   )
   .parse(process.argv);
 
+const PROVIDERS: Array<LLMProvider> = ["lmstudio", "openai", "anthropic"];
+
+function normalizeProvider(value: string | undefined): LLMProvider {
+  const normalized: string = (value ?? "lmstudio").toLowerCase();
+  if (PROVIDERS.includes(normalized as LLMProvider)) {
+    return normalized as LLMProvider;
+  }
+
+  throw new Error(
+    `Unsupported provider ${value}. Expected one of: ${PROVIDERS.join(", ")}.`,
+  );
+}
+
+function resolveModelUrl(
+  provider: LLMProvider,
+  explicit?: string,
+): string | undefined {
+  if (explicit) {
+    return explicit;
+  }
+
+  if (provider === "openai") {
+    return "https://api.openai.com/v1/chat/completions";
+  }
+
+  if (provider === "anthropic") {
+    return "https://api.anthropic.com/v1/messages";
+  }
+
+  return undefined;
+}
+
 /** Entry point that parses CLI args, configures logging, and runs the agent. */
 (async () => {
   const opts: {
     prompt: string;
-    model: string;
+    model?: string;
+    provider?: string;
     workspacePath: string;
     modelName?: string;
     temperature: string;
@@ -73,7 +117,8 @@ program
     logFile?: string;
   } = program.opts<{
     prompt: string;
-    model: string;
+    model?: string;
+    provider?: string;
     workspacePath: string;
     modelName?: string;
     temperature: string;
@@ -84,11 +129,15 @@ program
     logFile?: string;
   }>();
 
+  const provider: LLMProvider = normalizeProvider(opts.provider);
+  const modelUrl: string | undefined = resolveModelUrl(provider, opts.model);
+
   process.env["LOG_LEVEL"] = opts.logLevel?.toUpperCase() ?? "INFO";
   await AgentLogger.configure({ logFilePath: opts.logFile });
   AgentLogger.debug("CLI options parsed", {
     workspacePath: opts.workspacePath,
-    model: opts.model,
+    provider,
+    modelUrl,
     modelName: opts.modelName,
     temperature: opts.temperature,
     maxIterations: opts.maxIterations,
@@ -100,7 +149,8 @@ program
 
   const config: CopilotAgentOptions = {
     prompt: opts.prompt,
-    modelUrl: opts.model,
+    provider,
+    modelUrl,
     modelName: opts.modelName || "lmstudio",
     workspacePath: path.resolve(opts.workspacePath),
     temperature: Number(opts.temperature) || 0.1,

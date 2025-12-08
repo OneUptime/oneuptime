@@ -1,6 +1,9 @@
 import path from "node:path";
 import LocalFile from "Common/Server/Utils/LocalFile";
+import { AnthropicClient } from "../LLM/AnthropicClient";
+import { LLMClient } from "../LLM/LLMClient";
 import { LMStudioClient } from "../LLM/LMStudioClient";
+import { OpenAIClient } from "../LLM/OpenAIClient";
 import { buildSystemPrompt } from "./SystemPrompt";
 import { WorkspaceContextBuilder } from "./WorkspaceContext";
 import { ToolRegistry } from "../Tools/ToolRegistry";
@@ -11,9 +14,12 @@ import AgentLogger from "../Utils/AgentLogger";
  * Configuration values that control how the Copilot agent connects to the
  * model, how many iterations it may run, and which workspace it operates on.
  */
+export type LLMProvider = "lmstudio" | "openai" | "anthropic";
+
 export interface CopilotAgentOptions {
   prompt: string;
-  modelUrl: string;
+  provider: LLMProvider;
+  modelUrl?: string;
   modelName: string;
   workspacePath: string;
   temperature: number;
@@ -29,27 +35,22 @@ export interface CopilotAgentOptions {
 export class CopilotAgent {
   private readonly options: CopilotAgentOptions;
   private readonly workspaceRoot: string;
-  private readonly client: LMStudioClient;
+  private readonly client: LLMClient;
   private readonly registry: ToolRegistry;
 
   /**
-   * Creates a new agent instance, wiring up the LM Studio client and tool
+   * Creates a new agent instance, wiring up the selected LLM client and tool
    * registry for the provided workspace.
    */
   public constructor(options: CopilotAgentOptions) {
     this.options = options;
     this.workspaceRoot = path.resolve(options.workspacePath);
-    this.client = new LMStudioClient({
-      endpoint: options.modelUrl,
-      model: options.modelName,
-      temperature: options.temperature,
-      timeoutMs: options.requestTimeoutMs,
-      apiKey: options.apiKey,
-    });
+    this.client = this.createClient(options);
 
     this.registry = new ToolRegistry(this.workspaceRoot);
     AgentLogger.debug("CopilotAgent initialized", {
       workspaceRoot: this.workspaceRoot,
+      provider: options.provider,
       modelUrl: options.modelUrl,
       modelName: options.modelName,
       temperature: options.temperature,
@@ -57,6 +58,58 @@ export class CopilotAgent {
       timeoutMs: options.requestTimeoutMs,
       hasApiKey: Boolean(options.apiKey),
     });
+  }
+
+  private createClient(options: CopilotAgentOptions): LLMClient {
+    switch (options.provider) {
+      case "lmstudio": {
+        if (!options.modelUrl) {
+          throw new Error(
+            "--model must be provided when using the lmstudio provider.",
+          );
+        }
+
+        return new LMStudioClient({
+          endpoint: options.modelUrl,
+          model: options.modelName,
+          temperature: options.temperature,
+          timeoutMs: options.requestTimeoutMs,
+          apiKey: options.apiKey,
+        });
+      }
+      case "openai": {
+        return new OpenAIClient({
+          endpoint: options.modelUrl,
+          model: options.modelName,
+          temperature: options.temperature,
+          timeoutMs: options.requestTimeoutMs,
+          apiKey: this.requireApiKey("OpenAI"),
+        });
+      }
+      case "anthropic": {
+        return new AnthropicClient({
+          endpoint: options.modelUrl,
+          model: options.modelName,
+          temperature: options.temperature,
+          timeoutMs: options.requestTimeoutMs,
+          apiKey: this.requireApiKey("Anthropic"),
+        });
+      }
+      default: {
+        const exhaustiveCheck: never = options.provider;
+        throw new Error(`Unsupported provider ${exhaustiveCheck}`);
+      }
+    }
+  }
+
+  private requireApiKey(providerName: string): string {
+    if (!this.options.apiKey) {
+      throw new Error(
+        `${providerName} provider requires --api-key to be specified.`,
+      );
+    }
+
+    return this.options.apiKey;
   }
 
   /**
