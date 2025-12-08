@@ -92,90 +92,82 @@ export default class SyntheticMonitor {
       screenSizeType: options.screenSizeType,
     };
 
+    let browserSession: BrowserSession | null = null;
+
     try {
       let result: ReturnResult | null = null;
 
-      let browserSession: BrowserSession | null = null;
+      const startTime: [number, number] = process.hrtime();
 
-      try {
-        const startTime: [number, number] = process.hrtime();
+      browserSession = await SyntheticMonitor.getPageByBrowserType({
+        browserType: options.browserType,
+        screenSizeType: options.screenSizeType,
+      });
 
-        browserSession = await SyntheticMonitor.getPageByBrowserType({
-          browserType: options.browserType,
-          screenSizeType: options.screenSizeType,
-        });
-
-        if (!browserSession) {
-          throw new BadDataException(
-            "Could not create Playwright browser session",
-          );
-        }
-
-        result = await VMRunner.runCodeInSandbox({
-          code: options.script,
-          options: {
-            timeout: PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
-            args: {},
-            context: {
-              browser: browserSession.browser,
-              page: browserSession.page,
-              screenSizeType: options.screenSizeType,
-              browserType: options.browserType,
-            },
-          },
-        });
-
-        const endTime: [number, number] = process.hrtime(startTime);
-
-        const executionTimeInMS: number = Math.ceil(
-          (endTime[0] * 1000000000 + endTime[1]) / 1000000,
+      if (!browserSession) {
+        throw new BadDataException(
+          "Could not create Playwright browser session",
         );
+      }
 
-        scriptResult.executionTimeInMS = executionTimeInMS;
+      result = await VMRunner.runCodeInSandbox({
+        code: options.script,
+        options: {
+          timeout: PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
+          args: {},
+          context: {
+            browser: browserSession.browser,
+            page: browserSession.page,
+            screenSizeType: options.screenSizeType,
+            browserType: options.browserType,
+          },
+        },
+      });
 
-        scriptResult.logMessages = result.logMessages;
+      const endTime: [number, number] = process.hrtime(startTime);
 
-        if (result.returnValue?.screenshots) {
-          if (!scriptResult.screenshots) {
-            scriptResult.screenshots = {};
-          }
+      const executionTimeInMS: number = Math.ceil(
+        (endTime[0] * 1000000000 + endTime[1]) / 1000000,
+      );
 
-          for (const screenshotName in result.returnValue.screenshots) {
-            if (!result.returnValue.screenshots[screenshotName]) {
-              continue;
-            }
+      scriptResult.executionTimeInMS = executionTimeInMS;
 
-            // check if this is of type Buffer. If it is not, continue.
+      scriptResult.logMessages = result.logMessages;
 
-            if (
-              !(
-                result.returnValue.screenshots[screenshotName] instanceof Buffer
-              )
-            ) {
-              continue;
-            }
-
-            const screenshotBuffer: Buffer = result.returnValue.screenshots[
-              screenshotName
-            ] as Buffer;
-            scriptResult.screenshots[screenshotName] =
-              screenshotBuffer.toString("base64"); // convert screenshots to base 64
-          }
+      if (result.returnValue?.screenshots) {
+        if (!scriptResult.screenshots) {
+          scriptResult.screenshots = {};
         }
 
-        scriptResult.result = result?.returnValue?.data;
-      } catch (err) {
-        logger.error(err);
-        scriptResult.scriptError =
-          (err as Error)?.message || (err as Error).toString();
-      }
-      await SyntheticMonitor.disposeBrowserSession(browserSession);
+        for (const screenshotName in result.returnValue.screenshots) {
+          if (!result.returnValue.screenshots[screenshotName]) {
+            continue;
+          }
 
-      return scriptResult;
+          // check if this is of type Buffer. If it is not, continue.
+
+          if (
+            !(result.returnValue.screenshots[screenshotName] instanceof Buffer)
+          ) {
+            continue;
+          }
+
+          const screenshotBuffer: Buffer = result.returnValue.screenshots[
+            screenshotName
+          ] as Buffer;
+          scriptResult.screenshots[screenshotName] =
+            screenshotBuffer.toString("base64"); // convert screenshots to base 64
+        }
+      }
+
+      scriptResult.result = result?.returnValue?.data;
     } catch (err: unknown) {
       logger.error(err);
       scriptResult.scriptError =
         (err as Error)?.message || (err as Error).toString();
+    } finally {
+      // Always dispose browser session to prevent zombie processes
+      await SyntheticMonitor.disposeBrowserSession(browserSession);
     }
 
     return scriptResult;
