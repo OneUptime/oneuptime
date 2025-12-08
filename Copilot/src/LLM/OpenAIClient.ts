@@ -55,60 +55,24 @@ export class OpenAIClient implements LLMClient {
     messages: Array<ChatMessage>;
     tools?: Array<ToolDefinition>;
   }): Promise<ChatMessage> {
-    const hasTools: boolean = Boolean(data.tools?.length);
-    const payload: {
-      model: string;
-      input: Array<ResponsesMessage>;
-      temperature: number;
-      tool_choice?: "auto";
-      tools?: Array<ToolDefinition>;
-    } = {
-      model: this.options.model,
-      input: this.mapMessagesToInput(data.messages),
-      temperature: this.options.temperature,
-      ...(hasTools ? { tool_choice: "auto", tools: data.tools } : {}),
-    };
-
+    const payload: ResponsesRequestPayload = this.buildResponsesPayload(
+      data.messages,
+      data.tools,
+    );
     return await this.executeWithRetries(payload);
   }
 
   private mapMessagesToInput(messages: Array<ChatMessage>): Array<ResponsesMessage> {
-    return messages.map((message: ChatMessage) => {
-      const content: Array<ResponsesContentBlock> = [];
-
-      if (message.role === "tool") {
-        content.push({
-          type: "tool_result",
-          tool_call_id: message.tool_call_id ?? "tool_call",
-          output: message.content ?? "",
-        });
-      } else if (message.content !== null) {
-        content.push({
-          type: message.role === "assistant" ? "output_text" : "input_text",
-          text: message.content,
-        });
-      }
-
-      if (!content.length) {
-        content.push({
-          type: message.role === "assistant" ? "output_text" : "input_text",
-          text: "",
-        });
-      }
-
-      return {
-        role: message.role === "tool" ? "user" : message.role,
-        content,
-      };
-    });
+    return messages.map((message: ChatMessage) => ({
+      role: this.mapRoleToResponsesRole(message.role),
+      content: this.createContentBlocksForMessage(message),
+    }));
   }
 
   private async executeWithRetries(payload: ResponsesRequestPayload): Promise<ChatMessage> {
-    let attempt: number = 0;
     let lastError: unknown;
 
-    while (attempt < this.maxAttempts) {
-      attempt += 1;
+    for (let attempt: number = 1; attempt <= this.maxAttempts; attempt += 1) {
       try {
         return await this.executeResponsesRequest(payload, attempt);
       } catch (error) {
@@ -117,17 +81,11 @@ export class OpenAIClient implements LLMClient {
           throw error;
         }
 
-        if (attempt >= this.maxAttempts) {
+        if (attempt === this.maxAttempts) {
           throw this.createTimeoutError(error as Error);
         }
 
-        const delayMs: number = this.retryDelayMs * attempt;
-        AgentLogger.warn("OpenAI Responses request timed out; retrying", {
-          attempt,
-          maxAttempts: this.maxAttempts,
-          retryDelayMs: delayMs,
-        });
-        await this.delay(delayMs);
+        await this.performRetryDelay(attempt);
       }
     }
 
@@ -141,9 +99,7 @@ export class OpenAIClient implements LLMClient {
     attempt: number,
   ): Promise<ChatMessage> {
     const controller: AbortController = new AbortController();
-    const timeout: NodeJS.Timeout = setTimeout(() => {
-      controller.abort();
-    }, this.options.timeoutMs);
+    const timeout: NodeJS.Timeout | null = this.createAbortTimeout(controller);
 
     try {
       AgentLogger.debug("Dispatching OpenAI Responses request", {
@@ -184,7 +140,9 @@ export class OpenAIClient implements LLMClient {
       AgentLogger.error("OpenAI Responses request error", error as Error);
       throw error;
     } finally {
-      clearTimeout(timeout);
+      if (timeout) {
+        clearTimeout(timeout);
+      }
       AgentLogger.debug("OpenAI Responses request finalized", {
         attempt,
         maxAttempts: this.maxAttempts,
@@ -193,37 +151,8 @@ export class OpenAIClient implements LLMClient {
   }
 
   private mapResponsesToChatMessage(body: OpenAIResponsesAPIResponse): ChatMessage {
-    const outputMessage: ResponsesOutputMessage | undefined = body.output?.[0];
-    if (!outputMessage) {
-      throw new Error("OpenAI Responses API returned no output message");
-    }
-
-    const textParts: Array<string> = [];
-    const toolCalls: Array<OpenAIToolCall> = [];
-
-    for (const block of outputMessage.content) {
-      if (block.type === "output_text") {
-        textParts.push(block.text ?? "");
-        continue;
-      }
-
-      if (block.type === "tool_use") {
-        toolCalls.push({
-          id: block.id,
-          type: "function",
-          function: {
-            name: block.name,
-            arguments: JSON.stringify(block.input ?? {}),
-          },
-        });
-      }
-    }
-
-    if (outputMessage.tool_calls?.length) {
-      for (const call of outputMessage.tool_calls) {
-        toolCalls.push(call);
-      }
-    }
+    const outputMessage: ResponsesOutputMessage = this.extractOutputMessage(body);
+    const { textParts, toolCalls } = this.extractOutputContent(outputMessage);
 
     const message: ChatMessage = {
       role: "assistant",
@@ -235,6 +164,120 @@ export class OpenAIClient implements LLMClient {
     }
 
     return message;
+  }
+
+  private buildResponsesPayload(
+    messages: Array<ChatMessage>,
+    tools?: Array<ToolDefinition>,
+  ): ResponsesRequestPayload {
+    const hasTools: boolean = Boolean(tools?.length);
+    return {
+      model: this.options.model,
+      input: this.mapMessagesToInput(messages),
+      temperature: this.options.temperature,
+      ...(hasTools ? { tool_choice: "auto", tools } : {}),
+    };
+  }
+
+  private mapRoleToResponsesRole(role: ChatMessage["role"]): ResponsesMessage["role"] {
+    return (role === "tool" ? "user" : role) as ResponsesMessage["role"];
+  }
+
+  private createContentBlocksForMessage(message: ChatMessage): Array<ResponsesContentBlock> {
+    if (message.role === "tool") {
+      return [
+        {
+          type: "tool_result",
+          tool_call_id: message.tool_call_id ?? "tool_call",
+          output: message.content ?? "",
+        },
+      ];
+    }
+
+    if (message.content !== null) {
+      return [
+        {
+          type: message.role === "assistant" ? "output_text" : "input_text",
+          text: message.content,
+        },
+      ];
+    }
+
+    return [
+      {
+        type: message.role === "assistant" ? "output_text" : "input_text",
+        text: "",
+      },
+    ];
+  }
+
+  private async performRetryDelay(attempt: number): Promise<void> {
+    const delayMs: number = this.retryDelayMs * attempt;
+    AgentLogger.warn("OpenAI Responses request timed out; retrying", {
+      attempt,
+      maxAttempts: this.maxAttempts,
+      retryDelayMs: delayMs,
+    });
+    await this.delay(delayMs);
+  }
+
+  private createAbortTimeout(controller: AbortController): NodeJS.Timeout | null {
+    if (!this.options.timeoutMs || this.options.timeoutMs <= 0) {
+      return null;
+    }
+
+    return setTimeout(() => {
+      controller.abort();
+    }, this.options.timeoutMs);
+  }
+
+  private extractOutputMessage(
+    body: OpenAIResponsesAPIResponse,
+  ): ResponsesOutputMessage {
+    const outputMessage: ResponsesOutputMessage | undefined = body.output?.[0];
+    if (!outputMessage) {
+      throw new Error("OpenAI Responses API returned no output message");
+    }
+
+    return outputMessage;
+  }
+
+  private extractOutputContent(
+    outputMessage: ResponsesOutputMessage,
+  ): {
+    textParts: Array<string>;
+    toolCalls: Array<OpenAIToolCall>;
+  } {
+    const textParts: Array<string> = [];
+    const toolCalls: Array<OpenAIToolCall> = [];
+
+    for (const block of outputMessage.content) {
+      if (block.type === "output_text") {
+        textParts.push(block.text ?? "");
+        continue;
+      }
+
+      if (block.type === "tool_use") {
+        toolCalls.push(this.mapToolUseBlock(block));
+      }
+    }
+
+    if (outputMessage.tool_calls?.length) {
+      toolCalls.push(...outputMessage.tool_calls);
+    }
+
+    return { textParts, toolCalls };
+  }
+
+  private mapToolUseBlock(block: ResponsesToolUseBlock): OpenAIToolCall {
+    return {
+      id: block.id,
+      type: "function",
+      function: {
+        name: block.name,
+        arguments: JSON.stringify(block.input ?? {}),
+      },
+    };
   }
 
   private isAbortError(error: unknown): boolean {
