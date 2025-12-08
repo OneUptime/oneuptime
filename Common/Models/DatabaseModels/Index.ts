@@ -123,6 +123,8 @@ import StatusPageResource from "./StatusPageResource";
 import StatusPageSCIM from "./StatusPageSCIM";
 import StatusPageSSO from "./StatusPageSso";
 import StatusPageSubscriber from "./StatusPageSubscriber";
+import StatusPageSubscriberNotificationTemplate from "./StatusPageSubscriberNotificationTemplate";
+import StatusPageSubscriberNotificationTemplateStatusPage from "./StatusPageSubscriberNotificationTemplateStatusPage";
 // Team
 import Team from "./Team";
 import TeamMember from "./TeamMember";
@@ -265,6 +267,8 @@ const AllModelTypes: Array<{
   StatusPageAnnouncement,
   StatusPageAnnouncementTemplate,
   StatusPageSubscriber,
+  StatusPageSubscriberNotificationTemplate,
+  StatusPageSubscriberNotificationTemplateStatusPage,
   StatusPageFooterLink,
   StatusPageHeaderLink,
   StatusPagePrivateUser,
