@@ -11,9 +11,14 @@ import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
-import React, { Fragment, FunctionComponent, ReactElement, useState, useEffect } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+  useEffect,
+} from "react";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Card from "Common/UI/Components/Card/Card";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -23,21 +28,26 @@ const SubscriberNotificationTemplateView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
-  const [eventType, setEventType] = useState<StatusPageSubscriberNotificationEventType | undefined>(undefined);
-  const [notificationMethod, setNotificationMethod] = useState<StatusPageSubscriberNotificationMethod | undefined>(undefined);
+  const [eventType, setEventType] = useState<
+    StatusPageSubscriberNotificationEventType | undefined
+  >(undefined);
+  const [notificationMethod, setNotificationMethod] = useState<
+    StatusPageSubscriberNotificationMethod | undefined
+  >(undefined);
 
   useEffect(() => {
     // Fetch the template to get its event type
     const fetchTemplate = async (): Promise<void> => {
       try {
-        const template = await ModelAPI.getItem<StatusPageSubscriberNotificationTemplate>({
-          modelType: StatusPageSubscriberNotificationTemplate,
-          id: modelId,
-          select: {
-            eventType: true,
-            notificationMethod: true,
-          },
-        });
+        const template =
+          await ModelAPI.getItem<StatusPageSubscriberNotificationTemplate>({
+            modelType: StatusPageSubscriberNotificationTemplate,
+            id: modelId,
+            select: {
+              eventType: true,
+              notificationMethod: true,
+            },
+          });
         if (template) {
           setEventType(template.eventType);
           setNotificationMethod(template.notificationMethod);
@@ -88,7 +98,7 @@ const SubscriberNotificationTemplateView: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description of what this template is used for",
-          }
+          },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
@@ -214,7 +224,11 @@ const SubscriberNotificationTemplateView: FunctionComponent<
         description="Available variables you can use in your template body and email subject based on the selected event type."
       >
         <div className="p-4">
-          <MarkdownViewer text={getSubscriberNotificationTemplateVariablesDocumentation(eventType)} />
+          <MarkdownViewer
+            text={getSubscriberNotificationTemplateVariablesDocumentation(
+              eventType,
+            )}
+          />
         </div>
       </Card>
 

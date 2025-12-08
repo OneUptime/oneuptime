@@ -21,15 +21,23 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
   const getTemplateTable = (
     notificationMethod: StatusPageSubscriberNotificationMethod,
   ): ReactElement => {
-    const methodDescriptions: Record<StatusPageSubscriberNotificationMethod, string> = {
-      [StatusPageSubscriberNotificationMethod.Email]: "Create custom email notification templates for status page subscribers. Use HTML for formatting.",
-      [StatusPageSubscriberNotificationMethod.SMS]: "Create custom SMS notification templates for status page subscribers. Use plain text format.",
-      [StatusPageSubscriberNotificationMethod.Slack]: "Create custom Slack notification templates for status page subscribers. Use Markdown for formatting.",
-      [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: "Create custom Microsoft Teams notification templates for status page subscribers. Use Markdown for formatting.",
-      [StatusPageSubscriberNotificationMethod.Webhook]: "Create custom Webhook payload templates for status page subscribers. Use JSON format.",
+    const methodDescriptions: Record<
+      StatusPageSubscriberNotificationMethod,
+      string
+    > = {
+      [StatusPageSubscriberNotificationMethod.Email]:
+        "Create custom email notification templates for status page subscribers. Use HTML for formatting.",
+      [StatusPageSubscriberNotificationMethod.SMS]:
+        "Create custom SMS notification templates for status page subscribers. Use plain text format.",
+      [StatusPageSubscriberNotificationMethod.Slack]:
+        "Create custom Slack notification templates for status page subscribers. Use Markdown for formatting.",
+      [StatusPageSubscriberNotificationMethod.MicrosoftTeams]:
+        "Create custom Microsoft Teams notification templates for status page subscribers. Use Markdown for formatting.",
+      [StatusPageSubscriberNotificationMethod.Webhook]:
+        "Create custom Webhook payload templates for status page subscribers. Use JSON format.",
     };
 
-    const templateBodyFieldType: FormFieldSchemaType = 
+    const templateBodyFieldType: FormFieldSchemaType =
       notificationMethod === StatusPageSubscriberNotificationMethod.Email
         ? FormFieldSchemaType.HTML
         : FormFieldSchemaType.LongText;
@@ -114,7 +122,8 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             required: true,
             placeholder: "Select Event Type",
           },
-          ...(notificationMethod === StatusPageSubscriberNotificationMethod.Email
+          ...(notificationMethod ===
+          StatusPageSubscriberNotificationMethod.Email
             ? [
                 {
                   field: {
@@ -137,25 +146,33 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             title: "Template Body",
             stepId: "template-content",
             description:
-              notificationMethod === StatusPageSubscriberNotificationMethod.Email
+              notificationMethod ===
+              StatusPageSubscriberNotificationMethod.Email
                 ? "The template content in HTML format. You can use template variables like {{statusPageName}}, etc. Please refer to the documentation below for available variables."
-                : notificationMethod === StatusPageSubscriberNotificationMethod.SMS
-                ? "The template content in plain text format. Keep it concise for SMS. You can use template variables like {{statusPageName}}, etc. Please refer to the documentation below for available variables."
-                : notificationMethod === StatusPageSubscriberNotificationMethod.Webhook
-                ? "The template content in JSON format. You can use template variables like {{statusPageName}}, etc. Please refer to the documentation below for available variables."
-                : "The template content in Markdown format. You can use template variables like {{statusPageName}}, etc. Please refer to the documentation below for available variables.",
+                : notificationMethod ===
+                    StatusPageSubscriberNotificationMethod.SMS
+                  ? "The template content in plain text format. Keep it concise for SMS. You can use template variables like {{statusPageName}}, etc. Please refer to the documentation below for available variables."
+                  : notificationMethod ===
+                      StatusPageSubscriberNotificationMethod.Webhook
+                    ? "The template content in JSON format. You can use template variables like {{statusPageName}}, etc. Please refer to the documentation below for available variables."
+                    : "The template content in Markdown format. You can use template variables like {{statusPageName}}, etc. Please refer to the documentation below for available variables.",
             fieldType: templateBodyFieldType,
             required: true,
             getFooterElement: (
               values: FormValues<StatusPageSubscriberNotificationTemplate>,
             ): ReactElement => {
-              const eventType: StatusPageSubscriberNotificationEventType | undefined =
-                values.eventType as
-                  | StatusPageSubscriberNotificationEventType
-                  | undefined;
+              const eventType:
+                | StatusPageSubscriberNotificationEventType
+                | undefined = values.eventType as
+                | StatusPageSubscriberNotificationEventType
+                | undefined;
               return (
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mt-4">
-                  <MarkdownViewer text={getSubscriberNotificationTemplateVariablesDocumentation(eventType)} />
+                  <MarkdownViewer
+                    text={getSubscriberNotificationTemplateVariablesDocumentation(
+                      eventType,
+                    )}
+                  />
                 </div>
               );
             },
@@ -217,32 +234,41 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-     
-        <Tabs
-          tabs={[
-            {
-              name: "Email",
-              children: getTemplateTable(StatusPageSubscriberNotificationMethod.Email),
-            },
-            {
-              name: "SMS",
-              children: getTemplateTable(StatusPageSubscriberNotificationMethod.SMS),
-            },
-            {
-              name: "Slack",
-              children: getTemplateTable(StatusPageSubscriberNotificationMethod.Slack),
-            },
-            {
-              name: "Microsoft Teams",
-              children: getTemplateTable(StatusPageSubscriberNotificationMethod.MicrosoftTeams),
-            },
-            {
-              name: "Webhook",
-              children: getTemplateTable(StatusPageSubscriberNotificationMethod.Webhook),
-            },
-          ]}
-          onTabChange={() => {}}
-        />
+      <Tabs
+        tabs={[
+          {
+            name: "Email",
+            children: getTemplateTable(
+              StatusPageSubscriberNotificationMethod.Email,
+            ),
+          },
+          {
+            name: "SMS",
+            children: getTemplateTable(
+              StatusPageSubscriberNotificationMethod.SMS,
+            ),
+          },
+          {
+            name: "Slack",
+            children: getTemplateTable(
+              StatusPageSubscriberNotificationMethod.Slack,
+            ),
+          },
+          {
+            name: "Microsoft Teams",
+            children: getTemplateTable(
+              StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+            ),
+          },
+          {
+            name: "Webhook",
+            children: getTemplateTable(
+              StatusPageSubscriberNotificationMethod.Webhook,
+            ),
+          },
+        ]}
+        onTabChange={() => {}}
+      />
     </Fragment>
   );
 };
