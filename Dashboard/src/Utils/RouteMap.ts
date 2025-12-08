@@ -241,6 +241,10 @@ export const SettingsRoutePath: Dictionary<string> = {
     "status-page-announcement-templates",
   [PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES_VIEW]: `status-page-announcement-templates/${RouteParams.ModelID}`,
 
+  [PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES]:
+    "status-page-subscriber-notification-templates",
+  [PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW]: `status-page-subscriber-notification-templates/${RouteParams.ModelID}`,
+
   [PageMap.SETTINGS_ALERT_CUSTOM_FIELDS]: "alert-custom-fields",
   [PageMap.SETTINGS_ALERTS_STATE]: "alerts-state",
   [PageMap.SETTINGS_ALERTS_SEVERITY]: "alerts-severity",
@@ -1705,6 +1709,20 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[
         PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES_VIEW
+      ]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[
+        PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW
       ]
     }`,
   ),
