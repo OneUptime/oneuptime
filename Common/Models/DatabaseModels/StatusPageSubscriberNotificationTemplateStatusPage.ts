@@ -68,8 +68,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 )
 @TableMetadata({
   tableName: "StatusPageSubscriberNotificationTemplateStatusPage",
-  singularName: "Status Page Notification Template Link",
-  pluralName: "Status Page Notification Template Links",
+  singularName: "Subscriber Notification Template",
+  pluralName: "Subscriber Notification Templates",
   icon: IconProp.Link,
   tableDescription:
     "Links subscriber notification templates to specific status pages. This allows you to use different notification templates for different status pages.",
