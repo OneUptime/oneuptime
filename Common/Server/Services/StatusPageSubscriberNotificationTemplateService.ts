@@ -57,7 +57,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     // Find the specific template matching the event type and notification method
-    const templates = await this.findBy({
+    const templates: Array<Model> = await this.findBy({
       query: {
         eventType: eventType,
         notificationMethod: notificationMethod,
@@ -98,7 +98,7 @@ export class Service extends DatabaseService<Model> {
   public static getAvailableVariablesForEventType(
     eventType: StatusPageSubscriberNotificationEventType,
   ): Array<{ name: string; description: string }> {
-    const commonVariables = [
+    const commonVariables: Array<{ name: string; description: string }> = [
       { name: "statusPageName", description: "Name of the status page" },
       { name: "statusPageUrl", description: "URL of the status page" },
       {
@@ -246,10 +246,10 @@ export class Service extends DatabaseService<Model> {
     template: string,
     variables: Record<string, string>,
   ): string {
-    let compiledTemplate = template;
+    let compiledTemplate: string = template;
 
     for (const [key, value] of Object.entries(variables)) {
-      const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
+      const regex: RegExp = new RegExp(`{{\\s*${key}\\s*}}`, "g");
       compiledTemplate = compiledTemplate.replace(regex, value || "");
     }
 

@@ -49,7 +49,7 @@ export async function getCustomTemplate(data: {
   notificationMethod: StatusPageSubscriberNotificationMethod;
 }): Promise<StatusPageSubscriberNotificationTemplate | null> {
   try {
-    const template =
+    const template: StatusPageSubscriberNotificationTemplate | null =
       await StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
         {
           statusPageId: data.statusPageId,
@@ -98,13 +98,13 @@ export function compileCustomTemplate(data: {
     variableRecord[key] = value || "";
   }
 
-  const compiledBody =
+  const compiledBody: string =
     StatusPageSubscriberNotificationTemplateServiceType.compileTemplate(
       template.templateBody,
       variableRecord,
     );
 
-  let compiledSubject = defaultSubject;
+  let compiledSubject: string | undefined = defaultSubject;
   if (template.emailSubject) {
     compiledSubject =
       StatusPageSubscriberNotificationTemplateServiceType.compileTemplate(
@@ -140,11 +140,12 @@ export async function getNotificationContent(data: {
     defaultBody,
   } = data;
 
-  const template = await getCustomTemplate({
-    statusPageId,
-    eventType,
-    notificationMethod,
-  });
+  const template: StatusPageSubscriberNotificationTemplate | null =
+    await getCustomTemplate({
+      statusPageId,
+      eventType,
+      notificationMethod,
+    });
 
   return compileCustomTemplate({
     template,

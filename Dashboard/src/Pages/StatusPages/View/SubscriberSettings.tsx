@@ -36,7 +36,9 @@ const StatusPageSubscriberSettings: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const getMethodColor = (
+  const getMethodColor: (
+    method: StatusPageSubscriberNotificationMethod | undefined,
+  ) => Color = (
     method: StatusPageSubscriberNotificationMethod | undefined,
   ): Color => {
     switch (method) {
@@ -583,7 +585,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
           getElement: (
             item: StatusPageSubscriberNotificationTemplateStatusPage,
           ): ReactElement => {
-            const method =
+            const method: StatusPageSubscriberNotificationMethod | undefined =
               item.statusPageSubscriberNotificationTemplate?.notificationMethod;
             return (
               <Pill text={method || "Unknown"} color={getMethodColor(method)} />
