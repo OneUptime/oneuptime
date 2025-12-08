@@ -13,7 +13,7 @@ import AgentLogger from "./Utils/AgentLogger";
 const program: Command = new Command();
 
 program
-  .name("oneuptime-copilot-agent")
+  .name("oneuptime-copilot")
   .description(
     "Autonomous OneUptime coding agent for LM Studio, Ollama, OpenAI, and Anthropic models",
   )

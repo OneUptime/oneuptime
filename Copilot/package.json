@@ -4,7 +4,7 @@
   "description": "Standalone OneUptime Copilot coding agent CLI",
   "private": false,
   "bin": {
-    "oneuptime-copilot-agent": "./build/dist/Index.js"
+    "oneuptime-copilot": "./build/dist/Index.js"
   },
   "scripts": {
     "build": "tsc",

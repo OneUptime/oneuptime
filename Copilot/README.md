@@ -15,10 +15,10 @@ A standalone CLI coding agent that mirrors the autonomous workflows we use insid
 ## Installation
 
 ```bash
-cd Copilot/oneuptime-copilot-agent
+cd Copilot
 npm install
 npm run build
-npm link   # optional, provides the global oneuptime-copilot-agent command
+npm link   # optional, provides the global oneuptime-copilot command
 ```
 
 ## Usage
@@ -26,7 +26,7 @@ npm link   # optional, provides the global oneuptime-copilot-agent command
 ### LM Studio (local HTTP endpoint)
 
 ```bash
-oneuptime-copilot-agent \
+oneuptime-copilot \
   --prompt "Refactor auth middleware and add unit tests" \
   --provider lmstudio \
   --model http://localhost:1234/v1/chat/completions \
@@ -37,7 +37,7 @@ oneuptime-copilot-agent \
 ### OpenAI (hosted)
 
 ```bash
-oneuptime-copilot-agent \
+oneuptime-copilot \
   --prompt "Refactor auth middleware and add unit tests" \
   --provider openai \
   --model-name gpt-4o-mini \
@@ -48,7 +48,7 @@ oneuptime-copilot-agent \
 ### Anthropic (hosted)
 
 ```bash
-oneuptime-copilot-agent \
+oneuptime-copilot \
   --prompt "Refactor auth middleware and add unit tests" \
   --provider anthropic \
   --model-name claude-3-5-sonnet-latest \
@@ -59,7 +59,7 @@ oneuptime-copilot-agent \
 ### Ollama (local OpenAI-compatible endpoint)
 
 ```bash
-oneuptime-copilot-agent \
+oneuptime-copilot \
   --prompt "Refactor auth middleware and add unit tests" \
   --provider ollama \
   --model-name mistral:7b-instruct \
@@ -94,7 +94,7 @@ Provider cheatsheet:
 Pass `--log-file` when running the agent to persist verbose debugging output (including `debug` level messages) for later inspection:
 
 ```bash
-oneuptime-copilot-agent \
+oneuptime-copilot \
   --prompt "Track flaky jest tests" \
   --provider lmstudio \
   --model http://localhost:1234/v1/chat/completions \
