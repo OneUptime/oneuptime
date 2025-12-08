@@ -112,6 +112,8 @@ import StatusPageResourceService from "./StatusPageResourceService";
 import StatusPageService from "./StatusPageService";
 import StatusPageSsoService from "./StatusPageSsoService";
 import StatusPageSubscriberService from "./StatusPageSubscriberService";
+import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberNotificationTemplateStatusPageService from "./StatusPageSubscriberNotificationTemplateStatusPageService";
 import TeamMemberService from "./TeamMemberService";
 import TeamPermissionService from "./TeamPermissionService";
 import TeamComplianceSettingService from "./TeamComplianceSettingService";
@@ -273,6 +275,8 @@ const services: Array<BaseService> = [
   StatusPageService,
   StatusPageSsoService,
   StatusPageSubscriberService,
+  StatusPageSubscriberNotificationTemplateService,
+  StatusPageSubscriberNotificationTemplateStatusPageService,
   StatusPageHistoryChartBarColorRuleService,
 
   TeamMemberService,

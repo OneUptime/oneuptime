@@ -476,6 +476,18 @@ enum Permission {
   ReadStatusPageAnnouncementTemplate = "ReadStatusPageAnnouncementTemplate",
   DeleteStatusPageAnnouncementTemplate = "DeleteStatusPageAnnouncementTemplate",
 
+  // Status Page Subscriber Notification Template Permissions (Owner + Admin Permission by default)
+  CreateStatusPageSubscriberNotificationTemplate = "CreateStatusPageSubscriberNotificationTemplate",
+  EditStatusPageSubscriberNotificationTemplate = "EditStatusPageSubscriberNotificationTemplate",
+  ReadStatusPageSubscriberNotificationTemplate = "ReadStatusPageSubscriberNotificationTemplate",
+  DeleteStatusPageSubscriberNotificationTemplate = "DeleteStatusPageSubscriberNotificationTemplate",
+
+  // Status Page Subscriber Notification Template Status Page Permissions (Owner + Admin Permission by default)
+  CreateStatusPageSubscriberNotificationTemplateStatusPage = "CreateStatusPageSubscriberNotificationTemplateStatusPage",
+  EditStatusPageSubscriberNotificationTemplateStatusPage = "EditStatusPageSubscriberNotificationTemplateStatusPage",
+  ReadStatusPageSubscriberNotificationTemplateStatusPage = "ReadStatusPageSubscriberNotificationTemplateStatusPage",
+  DeleteStatusPageSubscriberNotificationTemplateStatusPage = "DeleteStatusPageSubscriberNotificationTemplateStatusPage",
+
   // Resource Permissions (Team Permission)
   CreateIncidentInternalNote = "CreateIncidentInternalNote",
   EditIncidentInternalNote = "EditIncidentInternalNote",
@@ -1497,6 +1509,76 @@ export class PermissionHelper {
         title: "Read Status Page Announcement Template",
         description:
           "This permission can read Status Page Announcement Templates of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateStatusPageSubscriberNotificationTemplate,
+        title: "Create Status Page Subscriber Notification Template",
+        description:
+          "This permission can create Status Page Subscriber Notification Templates in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteStatusPageSubscriberNotificationTemplate,
+        title: "Delete Status Page Subscriber Notification Template",
+        description:
+          "This permission can delete Status Page Subscriber Notification Templates of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditStatusPageSubscriberNotificationTemplate,
+        title: "Edit Status Page Subscriber Notification Template",
+        description:
+          "This permission can edit Status Page Subscriber Notification Templates of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadStatusPageSubscriberNotificationTemplate,
+        title: "Read Status Page Subscriber Notification Template",
+        description:
+          "This permission can read Status Page Subscriber Notification Templates of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission:
+          Permission.CreateStatusPageSubscriberNotificationTemplateStatusPage,
+        title: "Create Status Page Subscriber Notification Template Link",
+        description:
+          "This permission can create Status Page Subscriber Notification Template Links in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission:
+          Permission.DeleteStatusPageSubscriberNotificationTemplateStatusPage,
+        title: "Delete Status Page Subscriber Notification Template Link",
+        description:
+          "This permission can delete Status Page Subscriber Notification Template Links of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission:
+          Permission.EditStatusPageSubscriberNotificationTemplateStatusPage,
+        title: "Edit Status Page Subscriber Notification Template Link",
+        description:
+          "This permission can edit Status Page Subscriber Notification Template Links of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission:
+          Permission.ReadStatusPageSubscriberNotificationTemplateStatusPage,
+        title: "Read Status Page Subscriber Notification Template Link",
+        description:
+          "This permission can read Status Page Subscriber Notification Template Links of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

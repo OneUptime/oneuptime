@@ -32,6 +32,12 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceClass,
+} from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
+import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
@@ -281,6 +287,68 @@ RunCron(
             `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for public note ${incidentPublicNote.id}.`,
           );
 
+          // Fetch custom templates for this status page (if any)
+          const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
+            StatusPageSubscriberNotificationTemplate | null,
+            StatusPageSubscriberNotificationTemplate | null,
+            StatusPageSubscriberNotificationTemplate | null,
+            StatusPageSubscriberNotificationTemplate | null,
+          ] = await Promise.all([
+            StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+              {
+                statusPageId: statuspage.id!,
+                eventType:
+                  StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated,
+                notificationMethod:
+                  StatusPageSubscriberNotificationMethod.Email,
+              },
+            ),
+            StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+              {
+                statusPageId: statuspage.id!,
+                eventType:
+                  StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated,
+                notificationMethod: StatusPageSubscriberNotificationMethod.SMS,
+              },
+            ),
+            StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+              {
+                statusPageId: statuspage.id!,
+                eventType:
+                  StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated,
+                notificationMethod:
+                  StatusPageSubscriberNotificationMethod.Slack,
+              },
+            ),
+            StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+              {
+                statusPageId: statuspage.id!,
+                eventType:
+                  StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated,
+                notificationMethod:
+                  StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+              },
+            ),
+          ]);
+
+          // Prepare template variables for custom templates
+          const resourcesAffectedString: string =
+            statusPageToResources[statuspage._id!]
+              ?.map((r: StatusPageResource) => {
+                return r.displayName;
+              })
+              .join(", ") || "None";
+
+          const templateVariables: Record<string, string> = {
+            statusPageName: statusPageName,
+            statusPageUrl: statusPageURL,
+            detailsUrl: incidentDetailsUrl,
+            resourcesAffected: resourcesAffectedString,
+            incidentSeverity: incident.incidentSeverity?.name || " - ",
+            incidentTitle: incident.title || "",
+            note: incidentPublicNote.note || "",
+          };
+
           // Send email to Email subscribers.
 
           for (const subscriber of subscribers) {
@@ -317,14 +385,34 @@ RunCron(
               `Prepared unsubscribe link for subscriber ${subscriber._id} for public note ${incidentPublicNote.id}.`,
             );
 
+            // Add unsubscribeUrl to template variables
+            const subscriberTemplateVariables: Record<string, string> = {
+              ...templateVariables,
+              unsubscribeUrl: unsubscribeUrl,
+            };
+
             if (subscriber.subscriberPhone) {
               const phoneStr: string = subscriber.subscriberPhone.toString();
               const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
               logger.debug(
                 `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for public note ${incidentPublicNote.id}.`,
               );
+
+              let smsMessage: string;
+              if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
+                // Use custom template only when custom Twilio is configured
+                smsMessage =
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                    smsTemplate.templateBody,
+                    subscriberTemplateVariables,
+                  );
+              } else {
+                // Use default hard-coded template
+                smsMessage = `Incident update: ${incident.title || "-"} on ${statusPageName}. A new note is posted. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+              }
+
               const sms: SMS = {
-                message: `Incident update: ${incident.title || "-"} on ${statusPageName}. A new note is posted. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                message: smsMessage,
                 to: subscriber.subscriberPhone,
               };
 
@@ -347,56 +435,90 @@ RunCron(
                 `Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for public note ${incidentPublicNote.id}.`,
               );
 
-              MailService.sendMail(
-                {
-                  toEmail: subscriber.subscriberEmail,
-                  templateType: EmailTemplateType.SubscriberIncidentNoteCreated,
-                  vars: {
-                    note: await Markdown.convertToHTML(
-                      incidentPublicNote.note!,
-                      MarkdownContentType.Email,
-                    ),
-                    statusPageName: statusPageName,
-                    statusPageUrl: statusPageURL,
-                    detailsUrl: incidentDetailsUrl,
-                    logoUrl:
-                      statuspage.logoFileId && statusPageIdString
-                        ? new URL(httpProtocol, host)
-                            .addRoute(StatusPageApiRoute)
-                            .addRoute(`/logo/${statusPageIdString}`)
-                            .toString()
-                        : "",
-                    isPublicStatusPage: statuspage.isPublicStatusPage
-                      ? "true"
-                      : "false",
-                    resourcesAffected:
-                      statusPageToResources[statuspage._id!]
-                        ?.map((r: StatusPageResource) => {
-                          return r.displayName;
-                        })
-                        .join(", ") || "None",
-                    incidentSeverity: incident.incidentSeverity?.name || " - ",
-                    incidentTitle: incident.title || "",
-                    incidentDescription: incident.description || "",
-                    unsubscribeUrl: unsubscribeUrl,
-                    subscriberEmailNotificationFooterText:
-                      StatusPageServiceType.getSubscriberEmailFooterText(
-                        statuspage,
-                      ),
+              if (emailTemplate?.templateBody && statuspage.smtpConfig) {
+                // Use custom template with BlankTemplate only when custom SMTP is configured
+                const compiledBody: string =
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                    emailTemplate.templateBody,
+                    subscriberTemplateVariables,
+                  );
+                const compiledSubject: string = emailTemplate.emailSubject
+                  ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                      emailTemplate.emailSubject,
+                      subscriberTemplateVariables,
+                    )
+                  : "[Incident Update] " + incident.title || "";
+
+                MailService.sendMail(
+                  {
+                    toEmail: subscriber.subscriberEmail,
+                    templateType: EmailTemplateType.BlankTemplate,
+                    vars: {
+                      body: compiledBody,
+                    },
+                    subject: compiledSubject,
                   },
-                  subject: "[Incident Update] " + incident.title,
-                },
-                {
-                  mailServer: ProjectSmtpConfigService.toEmailServer(
-                    statuspage.smtpConfig,
-                  ),
-                  projectId: statuspage.projectId,
-                  statusPageId: statuspage.id!,
-                  incidentId: incident.id!,
-                },
-              ).catch((err: Error) => {
-                logger.error(err);
-              });
+                  {
+                    mailServer: ProjectSmtpConfigService.toEmailServer(
+                      statuspage.smtpConfig,
+                    ),
+                    projectId: statuspage.projectId,
+                    statusPageId: statuspage.id!,
+                    incidentId: incident.id!,
+                  },
+                ).catch((err: Error) => {
+                  logger.error(err);
+                });
+              } else {
+                // Use default hard-coded template
+                MailService.sendMail(
+                  {
+                    toEmail: subscriber.subscriberEmail,
+                    templateType:
+                      EmailTemplateType.SubscriberIncidentNoteCreated,
+                    vars: {
+                      note: await Markdown.convertToHTML(
+                        incidentPublicNote.note!,
+                        MarkdownContentType.Email,
+                      ),
+                      statusPageName: statusPageName,
+                      statusPageUrl: statusPageURL,
+                      detailsUrl: incidentDetailsUrl,
+                      logoUrl:
+                        statuspage.logoFileId && statusPageIdString
+                          ? new URL(httpProtocol, host)
+                              .addRoute(StatusPageApiRoute)
+                              .addRoute(`/logo/${statusPageIdString}`)
+                              .toString()
+                          : "",
+                      isPublicStatusPage: statuspage.isPublicStatusPage
+                        ? "true"
+                        : "false",
+                      resourcesAffected: resourcesAffectedString,
+                      incidentSeverity:
+                        incident.incidentSeverity?.name || " - ",
+                      incidentTitle: incident.title || "",
+                      incidentDescription: incident.description || "",
+                      unsubscribeUrl: unsubscribeUrl,
+                      subscriberEmailNotificationFooterText:
+                        StatusPageServiceType.getSubscriberEmailFooterText(
+                          statuspage,
+                        ),
+                    },
+                    subject: "[Incident Update] " + incident.title,
+                  },
+                  {
+                    mailServer: ProjectSmtpConfigService.toEmailServer(
+                      statuspage.smtpConfig,
+                    ),
+                    projectId: statuspage.projectId,
+                    statusPageId: statuspage.id!,
+                    incidentId: incident.id!,
+                  },
+                ).catch((err: Error) => {
+                  logger.error(err);
+                });
+              }
               logger.debug(
                 `Email notification queued for subscriber ${subscriber._id} for public note ${incidentPublicNote.id}.`,
               );
@@ -404,25 +526,32 @@ RunCron(
 
             if (subscriber.slackIncomingWebhookUrl) {
               // send slack message here.
-              const resourcesAffectedText: string =
-                statusPageToResources[statuspage._id!]
-                  ?.map((r: StatusPageResource) => {
-                    return r.displayName;
-                  })
-                  .join(", ") || "None";
+              logger.debug(
+                `Queueing Slack notification to subscriber ${subscriber._id} via incoming webhook for public note ${incidentPublicNote.id}.`,
+              );
 
-              // Create markdown message for Slack
-              const markdownMessage: string = `## Incident - ${incident.title || ""}
+              let markdownMessage: string;
+              if (slackTemplate?.templateBody) {
+                // Use custom template
+                markdownMessage =
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                    slackTemplate.templateBody,
+                    subscriberTemplateVariables,
+                  );
+              } else {
+                // Use default hard-coded template
+                markdownMessage = `## Incident - ${incident.title || ""}
 
 **New note has been added to an incident**
 
-**Resources Affected:** ${resourcesAffectedText}
+**Resources Affected:** ${resourcesAffectedString}
 **Severity:** ${incident.incidentSeverity?.name || " - "}
 
 **Note:**
 ${incidentPublicNote.note || ""}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+              }
 
               SlackUtil.sendMessageToChannelViaIncomingWebhook({
                 url: subscriber.slackIncomingWebhookUrl,
@@ -437,25 +566,32 @@ ${incidentPublicNote.note || ""}
 
             if (subscriber.microsoftTeamsIncomingWebhookUrl) {
               // send Teams message here.
-              const resourcesAffectedText: string =
-                statusPageToResources[statuspage._id!]
-                  ?.map((r: StatusPageResource) => {
-                    return r.displayName;
-                  })
-                  .join(", ") || "None";
+              logger.debug(
+                `Queueing Microsoft Teams notification to subscriber ${subscriber._id} via incoming webhook for public note ${incidentPublicNote.id}.`,
+              );
 
-              // Create markdown message for Teams
-              const markdownMessage: string = `## Incident - ${incident.title || ""}
+              let markdownMessage: string;
+              if (teamsTemplate?.templateBody) {
+                // Use custom template
+                markdownMessage =
+                  StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                    teamsTemplate.templateBody,
+                    subscriberTemplateVariables,
+                  );
+              } else {
+                // Use default hard-coded template
+                markdownMessage = `## Incident - ${incident.title || ""}
 
 **New note has been added to an incident**
 
-**Resources Affected:** ${resourcesAffectedText}
+**Resources Affected:** ${resourcesAffectedString}
 **Severity:** ${incident.incidentSeverity?.name || " - "}
 
 **Note:**
 ${incidentPublicNote.note || ""}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+              }
 
               MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
                 url: subscriber.microsoftTeamsIncomingWebhookUrl,
