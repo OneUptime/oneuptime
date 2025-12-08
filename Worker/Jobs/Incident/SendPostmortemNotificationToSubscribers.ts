@@ -19,6 +19,9 @@ import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceClass,
+} from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger from "Common/Server/Utils/Logger";
@@ -27,8 +30,11 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
@@ -271,6 +277,51 @@ RunCron(
                 },
               );
 
+            // Fetch custom notification templates for this status page
+            const emailTemplate: StatusPageSubscriberNotificationTemplate | null =
+              await StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                {
+                  statusPageId: statuspage.id!,
+                  eventType:
+                    StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished,
+                  notificationMethod:
+                    StatusPageSubscriberNotificationMethod.Email,
+                },
+              );
+
+            const smsTemplate: StatusPageSubscriberNotificationTemplate | null =
+              await StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                {
+                  statusPageId: statuspage.id!,
+                  eventType:
+                    StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished,
+                  notificationMethod:
+                    StatusPageSubscriberNotificationMethod.SMS,
+                },
+              );
+
+            const slackTemplate: StatusPageSubscriberNotificationTemplate | null =
+              await StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                {
+                  statusPageId: statuspage.id!,
+                  eventType:
+                    StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished,
+                  notificationMethod:
+                    StatusPageSubscriberNotificationMethod.Slack,
+                },
+              );
+
+            const teamsTemplate: StatusPageSubscriberNotificationTemplate | null =
+              await StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+                {
+                  statusPageId: statuspage.id!,
+                  eventType:
+                    StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished,
+                  notificationMethod:
+                    StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+                },
+              );
+
             const statusPageURL: string =
               await StatusPageService.getStatusPageURL(statuspage.id);
             const statusPageName: string =
@@ -343,53 +394,115 @@ RunCron(
                     `Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail}.`,
                   );
 
-                  MailService.sendMail(
-                    {
-                      toEmail: subscriber.subscriberEmail,
-                      templateType:
-                        EmailTemplateType.SubscriberIncidentPostmortemCreated,
-                      vars: {
-                        statusPageName: statusPageName,
-                        statusPageUrl: statusPageURL,
-                        detailsUrl: incidentDetailsUrl,
-                        logoUrl:
-                          statuspage.logoFileId && statusPageIdString
-                            ? new URL(httpProtocol, host)
-                                .addRoute(StatusPageApiRoute)
-                                .addRoute(`/logo/${statusPageIdString}`)
-                                .toString()
-                            : "",
-                        isPublicStatusPage: statuspage.isPublicStatusPage
-                          ? "true"
-                          : "false",
-                        resourcesAffected: resourcesAffectedString,
-                        incidentSeverity:
-                          incident.incidentSeverity?.name || " - ",
-                        incidentTitle: incident.title || "",
-                        postmortemNote: await Markdown.convertToHTML(
-                          incident.postmortemNote || "",
-                          MarkdownContentType.Email,
-                        ),
-                        unsubscribeUrl: unsubscribeUrl,
+                  // Template variables for compilation
+                  const templateVars: Dictionary<string> = {
+                    statusPageName: statusPageName,
+                    statusPageUrl: statusPageURL,
+                    detailsUrl: incidentDetailsUrl,
+                    resourcesAffected: resourcesAffectedString,
+                    incidentSeverity: incident.incidentSeverity?.name || " - ",
+                    incidentTitle: incident.title || "",
+                    postmortemNote: incident.postmortemNote || "",
+                    unsubscribeUrl: unsubscribeUrl,
+                  };
 
-                        subscriberEmailNotificationFooterText:
-                          StatusPageServiceType.getSubscriberEmailFooterText(
-                            statuspage,
-                          ),
+                  // Use custom template if available, otherwise use default
+                  if (emailTemplate?.templateBody) {
+                    const compiledBody: string =
+                      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                        emailTemplate.templateBody,
+                        templateVars,
+                      );
+                    const compiledSubject: string = emailTemplate.emailSubject
+                      ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                          emailTemplate.emailSubject,
+                          templateVars,
+                        )
+                      : "[Postmortem] " + incident.title || "";
+
+                    MailService.sendMail(
+                      {
+                        toEmail: subscriber.subscriberEmail,
+                        templateType: EmailTemplateType.BlankTemplate,
+                        vars: {
+                          body: compiledBody,
+                          logoUrl:
+                            statuspage.logoFileId && statusPageIdString
+                              ? new URL(httpProtocol, host)
+                                  .addRoute(StatusPageApiRoute)
+                                  .addRoute(`/logo/${statusPageIdString}`)
+                                  .toString()
+                              : "",
+                          isPublicStatusPage: statuspage.isPublicStatusPage
+                            ? "true"
+                            : "false",
+                          subscriberEmailNotificationFooterText:
+                            StatusPageServiceType.getSubscriberEmailFooterText(
+                              statuspage,
+                            ),
+                        },
+                        subject: compiledSubject,
                       },
-                      subject: "[Postmortem] " + incident.title || "",
-                    },
-                    {
-                      mailServer: ProjectSMTPConfigService.toEmailServer(
-                        statuspage.smtpConfig,
-                      ),
-                      projectId: statuspage.projectId,
-                      statusPageId: statuspage.id!,
-                      incidentId: incident.id!,
-                    },
-                  ).catch((err: Error) => {
-                    logger.error(err);
-                  });
+                      {
+                        mailServer: ProjectSMTPConfigService.toEmailServer(
+                          statuspage.smtpConfig,
+                        ),
+                        projectId: statuspage.projectId,
+                        statusPageId: statuspage.id!,
+                        incidentId: incident.id!,
+                      },
+                    ).catch((err: Error) => {
+                      logger.error(err);
+                    });
+                  } else {
+                    MailService.sendMail(
+                      {
+                        toEmail: subscriber.subscriberEmail,
+                        templateType:
+                          EmailTemplateType.SubscriberIncidentPostmortemCreated,
+                        vars: {
+                          statusPageName: statusPageName,
+                          statusPageUrl: statusPageURL,
+                          detailsUrl: incidentDetailsUrl,
+                          logoUrl:
+                            statuspage.logoFileId && statusPageIdString
+                              ? new URL(httpProtocol, host)
+                                  .addRoute(StatusPageApiRoute)
+                                  .addRoute(`/logo/${statusPageIdString}`)
+                                  .toString()
+                              : "",
+                          isPublicStatusPage: statuspage.isPublicStatusPage
+                            ? "true"
+                            : "false",
+                          resourcesAffected: resourcesAffectedString,
+                          incidentSeverity:
+                            incident.incidentSeverity?.name || " - ",
+                          incidentTitle: incident.title || "",
+                          postmortemNote: await Markdown.convertToHTML(
+                            incident.postmortemNote || "",
+                            MarkdownContentType.Email,
+                          ),
+                          unsubscribeUrl: unsubscribeUrl,
+
+                          subscriberEmailNotificationFooterText:
+                            StatusPageServiceType.getSubscriberEmailFooterText(
+                              statuspage,
+                            ),
+                        },
+                        subject: "[Postmortem] " + incident.title || "",
+                      },
+                      {
+                        mailServer: ProjectSMTPConfigService.toEmailServer(
+                          statuspage.smtpConfig,
+                        ),
+                        projectId: statuspage.projectId,
+                        statusPageId: statuspage.id!,
+                        incidentId: incident.id!,
+                      },
+                    ).catch((err: Error) => {
+                      logger.error(err);
+                    });
+                  }
                   logger.debug(
                     `Email notification queued for subscriber ${subscriber._id}.`,
                   );
@@ -402,8 +515,33 @@ RunCron(
                   logger.debug(
                     `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked}.`,
                   );
+
+                  // Template variables for compilation
+                  const smsTemplateVars: Dictionary<string> = {
+                    statusPageName: statusPageName,
+                    statusPageUrl: statusPageURL,
+                    detailsUrl: incidentDetailsUrl,
+                    resourcesAffected: resourcesAffectedString,
+                    incidentSeverity: incident.incidentSeverity?.name || "-",
+                    incidentTitle: incident.title || "",
+                    postmortemNote: incident.postmortemNote || "",
+                    unsubscribeUrl: unsubscribeUrl,
+                  };
+
+                  // Use custom template if available, otherwise use default
+                  let smsMessage: string;
+                  if (smsTemplate?.templateBody) {
+                    smsMessage =
+                      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                        smsTemplate.templateBody,
+                        smsTemplateVars,
+                      );
+                  } else {
+                    smsMessage = `Postmortem: ${incident.title || ""} (${incident.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedString}. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                  }
+
                   const sms: SMS = {
-                    message: `Postmortem: ${incident.title || ""} (${incident.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedString}. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                    message: smsMessage,
                     to: subscriber.subscriberPhone,
                   };
 
@@ -428,8 +566,29 @@ RunCron(
                   logger.debug(
                     `Queueing Slack notification to subscriber ${subscriber._id} via incoming webhook.`,
                   );
-                  // Create markdown message for Slack
-                  const markdownMessage: string = `## 🚨 Incident Postmortem - ${incident.title || ""}
+
+                  // Template variables for compilation
+                  const slackTemplateVars: Dictionary<string> = {
+                    statusPageName: statusPageName,
+                    statusPageUrl: statusPageURL,
+                    detailsUrl: incidentDetailsUrl,
+                    resourcesAffected: resourcesAffectedString,
+                    incidentSeverity: incident.incidentSeverity?.name || " - ",
+                    incidentTitle: incident.title || "",
+                    postmortemNote: incident.postmortemNote || "",
+                    unsubscribeUrl: unsubscribeUrl,
+                  };
+
+                  // Use custom template if available, otherwise use default
+                  let markdownMessage: string;
+                  if (slackTemplate?.templateBody) {
+                    markdownMessage =
+                      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                        slackTemplate.templateBody,
+                        slackTemplateVars,
+                      );
+                  } else {
+                    markdownMessage = `## 🚨 Incident Postmortem - ${incident.title || ""}
 
 **Severity:** ${incident.incidentSeverity?.name || " - "}
 
@@ -438,6 +597,7 @@ RunCron(
 **Postmortem:** ${incident.postmortemNote || ""}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+                  }
 
                   // send Slack notification with markdown conversion
                   SlackUtil.sendMessageToChannelViaIncomingWebhook({
@@ -457,16 +617,39 @@ RunCron(
                   logger.debug(
                     `Queueing Microsoft Teams notification to subscriber ${subscriber._id} via incoming webhook.`,
                   );
-                  // Create markdown message for Teams
-                  const markdownMessage: string = `## 🚨 Incident Postmortem - ${incident.title || ""}
+
+                  // Template variables for compilation
+                  const teamsTemplateVars: Dictionary<string> = {
+                    statusPageName: statusPageName,
+                    statusPageUrl: statusPageURL,
+                    detailsUrl: incidentDetailsUrl,
+                    resourcesAffected: resourcesAffectedString,
+                    incidentSeverity: incident.incidentSeverity?.name || " - ",
+                    incidentTitle: incident.title || "",
+                    postmortemNote: incident.postmortemNote || "",
+                    unsubscribeUrl: unsubscribeUrl,
+                  };
+
+                  // Use custom template if available, otherwise use default
+                  let teamsMarkdownMessage: string;
+                  if (teamsTemplate?.templateBody) {
+                    teamsMarkdownMessage =
+                      StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                        teamsTemplate.templateBody,
+                        teamsTemplateVars,
+                      );
+                  } else {
+                    teamsMarkdownMessage = `## 🚨 Incident Postmortem - ${incident.title || ""}
 **Severity:** ${incident.incidentSeverity?.name || " - "}
 **Resources Affected:** ${resourcesAffectedString}
 **Postmortem:** ${incident.postmortemNote || ""}
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+                  }
+
                   // send Teams notification
                   MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
                     url: subscriber.microsoftTeamsIncomingWebhookUrl,
-                    text: markdownMessage,
+                    text: teamsMarkdownMessage,
                   }).catch((err: Error) => {
                     logger.error(err);
                   });

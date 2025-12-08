@@ -59,6 +59,12 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
 import ScheduledMaintenanceWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/ScheduledMaintenance";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import StatusPageSubscriberNotificationTemplateService, {
+  Service as StatusPageSubscriberNotificationTemplateServiceClass,
+} from "./StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
+import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
+import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -209,6 +215,42 @@ export class Service extends DatabaseService<Model> {
             })
             .join(", ") || "";
 
+        // Fetch custom templates for each notification method
+        const [
+          emailTemplate,
+          smsTemplate,
+          slackTemplate,
+        ]: Array<StatusPageSubscriberNotificationTemplate | null> =
+          await Promise.all([
+            StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+              {
+                statusPageId: statuspage.id!,
+                eventType:
+                  StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceCreated,
+                notificationMethod:
+                  StatusPageSubscriberNotificationMethod.Email,
+              },
+            ),
+            StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+              {
+                statusPageId: statuspage.id!,
+                eventType:
+                  StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceCreated,
+                notificationMethod:
+                  StatusPageSubscriberNotificationMethod.SMS,
+              },
+            ),
+            StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
+              {
+                statusPageId: statuspage.id!,
+                eventType:
+                  StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceCreated,
+                notificationMethod:
+                  StatusPageSubscriberNotificationMethod.Slack,
+              },
+            ),
+          ]);
+
         for (const subscriber of subscribers) {
           if (!subscriber._id) {
             continue;
@@ -232,9 +274,37 @@ export class Service extends DatabaseService<Model> {
               subscriber.id!,
             ).toString();
 
+          // Create template variables for custom templates
+          const templateVariables: Record<string, string> = {
+            statusPageName: statusPageName,
+            statusPageUrl: statusPageURL,
+            detailsUrl: scheduledEventDetailsUrl,
+            scheduledMaintenanceTitle: event.title || "",
+            scheduledMaintenanceDescription: event.description || "",
+            scheduledStartTime:
+              OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                event.startsAt!,
+              ),
+            scheduledEndTime: event.endsAt
+              ? OneUptimeDate.getDateAsUserFriendlyFormattedString(event.endsAt)
+              : "",
+            resourcesAffected: resourcesAffected,
+            unsubscribeUrl: unsubscribeUrl,
+          };
+
           if (subscriber.subscriberPhone) {
-            const sms: SMS = {
-              message: `
+            let smsMessage: string;
+
+            if (smsTemplate && smsTemplate.templateBody) {
+              // Use custom template
+              smsMessage =
+                StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                  smsTemplate.templateBody,
+                  templateVariables,
+                );
+            } else {
+              // Use default template
+              smsMessage = `
                             Scheduled Maintenance - ${statusPageName}
 
                             ${event.title || ""}
@@ -248,7 +318,11 @@ export class Service extends DatabaseService<Model> {
                             To view this event, visit ${statusPageURL}
 
                             To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
-                            `,
+                            `;
+            }
+
+            const sms: SMS = {
+              message: smsMessage,
               to: subscriber.subscriberPhone,
             };
 
@@ -266,7 +340,18 @@ export class Service extends DatabaseService<Model> {
           }
 
           if (subscriber.slackIncomingWebhookUrl) {
-            const slackMessage: string = `## 🔧 Scheduled Maintenance - ${event.title || ""}
+            let slackMessage: string;
+
+            if (slackTemplate && slackTemplate.templateBody) {
+              // Use custom template
+              slackMessage =
+                StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                  slackTemplate.templateBody,
+                  templateVariables,
+                );
+            } else {
+              // Use default template
+              slackMessage = `## 🔧 Scheduled Maintenance - ${event.title || ""}
 
 **Scheduled Date:** ${OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!)}
 
@@ -275,6 +360,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 **Description:** ${event.description || ""}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+            }
 
             // send Slack notification here.
             SlackUtil.sendMessageToChannelViaIncomingWebhook({
@@ -290,55 +376,100 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
             const statusPageIdString: string | null =
               statuspage.id?.toString() || statuspage._id?.toString() || null;
 
-            MailService.sendMail(
-              {
-                toEmail: subscriber.subscriberEmail,
-                templateType:
-                  EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
-                vars: {
-                  statusPageName: statusPageName,
-                  statusPageUrl: statusPageURL,
-                  detailsUrl: scheduledEventDetailsUrl,
-                  logoUrl:
-                    statuspage.logoFileId && statusPageIdString
-                      ? new URL(httpProtocol, host)
-                          .addRoute(StatusPageApiRoute)
-                          .addRoute(`/logo/${statusPageIdString}`)
-                          .toString()
-                      : "",
-                  isPublicStatusPage: statuspage.isPublicStatusPage
-                    ? "true"
-                    : "false",
-                  subscriberEmailNotificationFooterText:
-                    statuspage.subscriberEmailNotificationFooterText || "",
-                  resourcesAffected: resourcesAffected,
-                  scheduledAt:
-                    OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-                      date: event.startsAt!,
-                      timezones: statuspage.subscriberTimezones || [],
-                      use12HourFormat: true,
-                    }),
-                  eventTitle: event.title || "",
-                  eventDescription: await Markdown.convertToHTML(
-                    event.description || "",
-                    MarkdownContentType.Email,
-                  ),
-                  unsubscribeUrl: unsubscribeUrl,
+            // Prepare email variables
+            const emailVars: Record<string, string> = {
+              statusPageName: statusPageName,
+              statusPageUrl: statusPageURL,
+              detailsUrl: scheduledEventDetailsUrl,
+              logoUrl:
+                statuspage.logoFileId && statusPageIdString
+                  ? new URL(httpProtocol, host)
+                      .addRoute(StatusPageApiRoute)
+                      .addRoute(`/logo/${statusPageIdString}`)
+                      .toString()
+                  : "",
+              isPublicStatusPage: statuspage.isPublicStatusPage
+                ? "true"
+                : "false",
+              subscriberEmailNotificationFooterText:
+                statuspage.subscriberEmailNotificationFooterText || "",
+              resourcesAffected: resourcesAffected,
+              scheduledAt:
+                OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                  date: event.startsAt!,
+                  timezones: statuspage.subscriberTimezones || [],
+                  use12HourFormat: true,
+                }),
+              eventTitle: event.title || "",
+              eventDescription: await Markdown.convertToHTML(
+                event.description || "",
+                MarkdownContentType.Email,
+              ),
+              unsubscribeUrl: unsubscribeUrl,
+            };
+
+            // Check for custom email template
+            if (emailTemplate && emailTemplate.templateBody) {
+              // Use custom template with BlankTemplate
+              const customEmailBody: string =
+                StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                  emailTemplate.templateBody,
+                  { ...templateVariables, ...emailVars },
+                );
+              const customEmailSubject: string = emailTemplate.emailSubject
+                ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
+                    emailTemplate.emailSubject,
+                    { ...templateVariables, ...emailVars },
+                  )
+                : "[Scheduled Maintenance] " + (event.title || statusPageName);
+
+              MailService.sendMail(
+                {
+                  toEmail: subscriber.subscriberEmail,
+                  templateType: EmailTemplateType.BlankTemplate,
+                  vars: {
+                    body: customEmailBody,
+                    logoUrl: emailVars["logoUrl"] || "",
+                    isPublicStatusPage: emailVars["isPublicStatusPage"] || "",
+                    subscriberEmailNotificationFooterText:
+                      emailVars["subscriberEmailNotificationFooterText"] || "",
+                  },
+                  subject: customEmailSubject,
                 },
-                subject:
-                  "[Scheduled Maintenance] " + (event.title || statusPageName),
-              },
-              {
-                mailServer: ProjectSmtpConfigService.toEmailServer(
-                  statuspage.smtpConfig,
-                ),
-                projectId: statuspage.projectId!,
-                statusPageId: statuspage.id!,
-                scheduledMaintenanceId: event.id!,
-              },
-            ).catch((err: Error) => {
-              logger.error(err);
-            });
+                {
+                  mailServer: ProjectSmtpConfigService.toEmailServer(
+                    statuspage.smtpConfig,
+                  ),
+                  projectId: statuspage.projectId!,
+                  statusPageId: statuspage.id!,
+                  scheduledMaintenanceId: event.id!,
+                },
+              ).catch((err: Error) => {
+                logger.error(err);
+              });
+            } else {
+              // Use default hard-coded template
+              MailService.sendMail(
+                {
+                  toEmail: subscriber.subscriberEmail,
+                  templateType:
+                    EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
+                  vars: emailVars,
+                  subject:
+                    "[Scheduled Maintenance] " + (event.title || statusPageName),
+                },
+                {
+                  mailServer: ProjectSmtpConfigService.toEmailServer(
+                    statuspage.smtpConfig,
+                  ),
+                  projectId: statuspage.projectId!,
+                  statusPageId: statuspage.id!,
+                  scheduledMaintenanceId: event.id!,
+                },
+              ).catch((err: Error) => {
+                logger.error(err);
+              });
+            }
           }
         }
       }
