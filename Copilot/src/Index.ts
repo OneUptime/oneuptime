@@ -89,7 +89,8 @@ function normalizeProvider(value: string | undefined): LLMProvider {
 
 function resolveModelUrl(
   provider: LLMProvider,
-  explicit?: string,
+  explicit: string | undefined,
+  modelName: string | undefined,
 ): string | undefined {
   if (explicit) {
     return explicit;
@@ -100,7 +101,9 @@ function resolveModelUrl(
   }
 
   if (provider === "openai") {
-    return "https://api.openai.com/v1/chat/completions";
+    return requiresOpenAIResponsesEndpoint(modelName)
+      ? "https://api.openai.com/v1/responses"
+      : "https://api.openai.com/v1/chat/completions";
   }
 
   if (provider === "anthropic") {
@@ -108,6 +111,19 @@ function resolveModelUrl(
   }
 
   return undefined;
+}
+
+function requiresOpenAIResponsesEndpoint(modelName: string | undefined): boolean {
+  if (!modelName) {
+    return false;
+  }
+
+  const normalized: string = modelName.toLowerCase();
+  return (
+    normalized.includes("gpt-5") ||
+    normalized.includes("gpt-4.1") ||
+    normalized.includes("codex")
+  );
 }
 
 /** Entry point that parses CLI args, configures logging, and runs the agent. */
@@ -139,7 +155,12 @@ function resolveModelUrl(
   }>();
 
   const provider: LLMProvider = normalizeProvider(opts.provider);
-  const modelUrl: string | undefined = resolveModelUrl(provider, opts.model);
+  const requestedModelName: string = opts.modelName || "lmstudio";
+  const modelUrl: string | undefined = resolveModelUrl(
+    provider,
+    opts.model,
+    requestedModelName,
+  );
 
   process.env["LOG_LEVEL"] = opts.logLevel?.toUpperCase() ?? "INFO";
   await AgentLogger.configure({ logFilePath: opts.logFile });
@@ -147,7 +168,7 @@ function resolveModelUrl(
     workspacePath: opts.workspacePath,
     provider,
     modelUrl,
-    modelName: opts.modelName,
+    modelName: requestedModelName,
     temperature: opts.temperature,
     maxIterations: opts.maxIterations,
     timeout: opts.timeout,
@@ -159,7 +180,7 @@ function resolveModelUrl(
   const config: CopilotAgentOptions = {
     prompt: opts.prompt,
     provider,
-    modelName: opts.modelName || "lmstudio",
+    modelName: requestedModelName,
     workspacePath: path.resolve(opts.workspacePath),
     temperature: Number(opts.temperature) || 0.1,
     maxIterations: Number(opts.maxIterations) || 100,
