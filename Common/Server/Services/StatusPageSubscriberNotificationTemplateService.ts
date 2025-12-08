@@ -151,6 +151,18 @@ export class Service extends DatabaseService<Model> {
           { name: "detailsUrl", description: "URL to view incident details" },
         ];
 
+      case StatusPageSubscriberNotificationEventType.SubscriberIncidentPostmortemPublished:
+        return [
+          ...commonVariables,
+          { name: "incidentTitle", description: "Title of the incident" },
+          { name: "incidentSeverity", description: "Severity of the incident" },
+          {
+            name: "postmortemNote",
+            description: "Content of the postmortem note",
+          },
+          { name: "detailsUrl", description: "URL to view incident details" },
+        ];
+
       case StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated:
         return [
           ...commonVariables,
