@@ -563,7 +563,17 @@ const StatusPageSubscriberSettings: FunctionComponent<
             },
           },
           title: "Template Name",
-          type: FieldType.Text,
+          type: FieldType.Element,
+          getElement: (
+            item: StatusPageSubscriberNotificationTemplateStatusPage,
+          ): ReactElement => {
+            return (
+              <span>
+                {item.statusPageSubscriberNotificationTemplate?.templateName ||
+                  "Unknown"}
+              </span>
+            );
+          },
         },
         {
           field: {
@@ -572,7 +582,17 @@ const StatusPageSubscriberSettings: FunctionComponent<
             },
           },
           title: "Event Type",
-          type: FieldType.Text,
+          type: FieldType.Element,
+          getElement: (
+            item: StatusPageSubscriberNotificationTemplateStatusPage,
+          ): ReactElement => {
+            return (
+              <span>
+                {item.statusPageSubscriberNotificationTemplate?.eventType ||
+                  "Unknown"}
+              </span>
+            );
+          },
         },
         {
           field: {
