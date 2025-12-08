@@ -68,23 +68,12 @@ const SubscriberNotificationTemplateView: FunctionComponent<
         }}
         createEditModalWidth={ModalWidth.Large}
         isEditable={true}
-        formSteps={[
-          {
-            title: "Template Info",
-            id: "template-info",
-          },
-          {
-            title: "Template Settings",
-            id: "template-settings",
-          },
-        ]}
         formFields={[
           {
             field: {
               templateName: true,
             },
             title: "Template Name",
-            stepId: "template-info",
             description: "A friendly name for this notification template",
             fieldType: FormFieldSchemaType.Text,
             required: true,
@@ -95,42 +84,11 @@ const SubscriberNotificationTemplateView: FunctionComponent<
               templateDescription: true,
             },
             title: "Template Description",
-            stepId: "template-info",
             description: "Optional description for this template",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description of what this template is used for",
-          },
-          {
-            field: {
-              eventType: true,
-            },
-            title: "Event Type",
-            stepId: "template-settings",
-            description:
-              "Select the type of event this template will be used for",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              StatusPageSubscriberNotificationEventType,
-            ),
-            required: true,
-            placeholder: "Select Event Type",
-          },
-          {
-            field: {
-              notificationMethod: true,
-            },
-            title: "Notification Method",
-            stepId: "template-settings",
-            description:
-              "Select the notification method (Email, SMS, Slack, Microsoft Teams, or Webhook)",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              StatusPageSubscriberNotificationMethod,
-            ),
-            required: true,
-            placeholder: "Select Notification Method",
-          },
+          }
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
