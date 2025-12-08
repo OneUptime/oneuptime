@@ -15,7 +15,7 @@ const program: Command = new Command();
 program
   .name("oneuptime-copilot-agent")
   .description(
-    "Autonomous OneUptime coding agent for LM Studio, OpenAI, and Anthropic models",
+    "Autonomous OneUptime coding agent for LM Studio, Ollama, OpenAI, and Anthropic models",
   )
   .requiredOption(
     "--prompt <text>",
@@ -23,11 +23,11 @@ program
   )
   .option(
     "--model <value>",
-    "Provider-specific model endpoint override. Required for lmstudio, optional for OpenAI/Anthropic.",
+    "Provider-specific model endpoint override. Required for lmstudio, optional for other providers.",
   )
   .option(
     "--provider <name>",
-    "llm provider: lmstudio | openai | anthropic (default lmstudio)",
+    "llm provider: lmstudio | ollama | openai | anthropic (default lmstudio)",
     "lmstudio",
   )
   .requiredOption(
@@ -56,7 +56,7 @@ program
   )
   .option(
     "--api-key <token>",
-    "API key for OpenAI/Anthropic or secured LM Studio endpoints",
+    "API key for OpenAI/Anthropic or secured LM Studio/Ollama endpoints",
   )
   .option(
     "--log-level <level>",
@@ -69,7 +69,12 @@ program
   )
   .parse(process.argv);
 
-const PROVIDERS: Array<LLMProvider> = ["lmstudio", "openai", "anthropic"];
+const PROVIDERS: Array<LLMProvider> = [
+  "lmstudio",
+  "ollama",
+  "openai",
+  "anthropic",
+];
 
 function normalizeProvider(value: string | undefined): LLMProvider {
   const normalized: string = (value ?? "lmstudio").toLowerCase();
@@ -88,6 +93,10 @@ function resolveModelUrl(
 ): string | undefined {
   if (explicit) {
     return explicit;
+  }
+
+  if (provider === "ollama") {
+    return "http://localhost:11434/v1/chat/completions";
   }
 
   if (provider === "openai") {

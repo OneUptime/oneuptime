@@ -3,6 +3,7 @@ import LocalFile from "Common/Server/Utils/LocalFile";
 import { AnthropicClient } from "../LLM/AnthropicClient";
 import { LLMClient } from "../LLM/LLMClient";
 import { LMStudioClient } from "../LLM/LMStudioClient";
+import { OllamaClient } from "../LLM/OllamaClient";
 import { OpenAIClient } from "../LLM/OpenAIClient";
 import { buildSystemPrompt } from "./SystemPrompt";
 import { WorkspaceContextBuilder } from "./WorkspaceContext";
@@ -14,7 +15,7 @@ import AgentLogger from "../Utils/AgentLogger";
  * Configuration values that control how the Copilot agent connects to the
  * model, how many iterations it may run, and which workspace it operates on.
  */
-export type LLMProvider = "lmstudio" | "openai" | "anthropic";
+export type LLMProvider = "lmstudio" | "ollama" | "openai" | "anthropic";
 
 export interface CopilotAgentOptions {
   prompt: string;
@@ -71,6 +72,16 @@ export class CopilotAgent {
 
         return new LMStudioClient({
           endpoint: options.modelUrl,
+          model: options.modelName,
+          temperature: options.temperature,
+          timeoutMs: options.requestTimeoutMs,
+          apiKey: options.apiKey,
+        });
+      }
+      case "ollama": {
+        const endpoint: string | undefined = options.modelUrl;
+        return new OllamaClient({
+          ...(endpoint ? { endpoint } : {}),
           model: options.modelName,
           temperature: options.temperature,
           timeoutMs: options.requestTimeoutMs,
