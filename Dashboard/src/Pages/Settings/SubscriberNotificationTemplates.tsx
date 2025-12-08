@@ -11,6 +11,8 @@ import { RouteUtil } from "../../Utils/RouteMap";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import Card from "Common/UI/Components/Card/Card";
 
 // Function to get available variables documentation based on event type
 const getVariablesDocumentation = (
@@ -227,26 +229,55 @@ ${eventSpecificVariables}`;
 const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
-  return (
-    <Fragment>
+  const getTemplateTable = (
+    notificationMethod: StatusPageSubscriberNotificationMethod,
+  ): ReactElement => {
+    const methodDescriptions: Record<StatusPageSubscriberNotificationMethod, string> = {
+      [StatusPageSubscriberNotificationMethod.Email]: "Create custom email notification templates for status page subscribers. Use HTML for formatting.",
+      [StatusPageSubscriberNotificationMethod.SMS]: "Create custom SMS notification templates for status page subscribers. Use plain text format.",
+      [StatusPageSubscriberNotificationMethod.Slack]: "Create custom Slack notification templates for status page subscribers. Use Markdown for formatting.",
+      [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: "Create custom Microsoft Teams notification templates for status page subscribers. Use Markdown for formatting.",
+      [StatusPageSubscriberNotificationMethod.Webhook]: "Create custom Webhook payload templates for status page subscribers. Use JSON format.",
+    };
+
+    const templateBodyPlaceholders: Record<StatusPageSubscriberNotificationMethod, string> = {
+      [StatusPageSubscriberNotificationMethod.Email]: "<p>Hello {{subscriberName}},</p><p>{{incidentTitle}} has been created.</p>",
+      [StatusPageSubscriberNotificationMethod.SMS]: "{{statusPageName}}: {{incidentTitle}} - {{incidentState}}",
+      [StatusPageSubscriberNotificationMethod.Slack]: "**{{incidentTitle}}**\n{{incidentDescription}}\n[View Details]({{detailsUrl}})",
+      [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: "**{{incidentTitle}}**\n{{incidentDescription}}\n[View Details]({{detailsUrl}})",
+      [StatusPageSubscriberNotificationMethod.Webhook]: '{"title": "{{incidentTitle}}", "description": "{{incidentDescription}}"}',
+    };
+
+    const templateBodyFieldType: FormFieldSchemaType = 
+      notificationMethod === StatusPageSubscriberNotificationMethod.Email
+        ? FormFieldSchemaType.HTML
+        : FormFieldSchemaType.LongText;
+
+    return (
       <ModelTable<StatusPageSubscriberNotificationTemplate>
         modelType={StatusPageSubscriberNotificationTemplate}
-        id="subscriber-notification-templates-table"
-        userPreferencesKey="subscriber-notification-templates-table"
-        name="Settings > Subscriber Notification Templates"
+        id={`subscriber-notification-templates-table-${notificationMethod.toLowerCase().replace(/\s+/g, "-")}`}
+        userPreferencesKey={`subscriber-notification-templates-table-${notificationMethod.toLowerCase().replace(/\s+/g, "-")}`}
+        name={`Settings > Subscriber Notification Templates > ${notificationMethod}`}
         isDeleteable={false}
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
         cardProps={{
-          title: "Subscriber Notification Templates",
-          description:
-            "Create custom notification templates for status page subscribers. These templates allow you to customize the messages sent via Email, SMS, Slack, Microsoft Teams, and Webhooks for different event types.",
+          title: `${notificationMethod} Templates`,
+          description: methodDescriptions[notificationMethod],
         }}
-        noItemsMessage={"No subscriber notification templates found."}
+        noItemsMessage={`No ${notificationMethod} notification templates found.`}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
+          notificationMethod: notificationMethod,
+        }}
+        onBeforeCreate={(
+          item: StatusPageSubscriberNotificationTemplate,
+        ): Promise<StatusPageSubscriberNotificationTemplate> => {
+          item.notificationMethod = notificationMethod;
+          return Promise.resolve(item);
         }}
         showViewIdButton={true}
         formSteps={[
@@ -301,33 +332,22 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             required: true,
             placeholder: "Select Event Type",
           },
-          {
-            field: {
-              notificationMethod: true,
-            },
-            title: "Notification Method",
-            stepId: "template-settings",
-            description:
-              "Select the notification method (Email, SMS, Slack, Microsoft Teams, or Webhook)",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              StatusPageSubscriberNotificationMethod,
-            ),
-            required: true,
-            placeholder: "Select Notification Method",
-          },
-          {
-            field: {
-              emailSubject: true,
-            },
-            title: "Email Subject",
-            stepId: "template-content",
-            description:
-              "Subject line for email notifications. Only used when notification method is Email. You can use template variables like {{incidentTitle}}.",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "{{statusPageName}}: {{incidentTitle}}",
-          },
+          ...(notificationMethod === StatusPageSubscriberNotificationMethod.Email
+            ? [
+                {
+                  field: {
+                    emailSubject: true,
+                  },
+                  title: "Email Subject",
+                  stepId: "template-content",
+                  description:
+                    "Subject line for email notifications. You can use template variables like {{incidentTitle}}.",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  placeholder: "{{statusPageName}}: {{incidentTitle}}",
+                },
+              ]
+            : []),
           {
             field: {
               templateBody: true,
@@ -335,11 +355,16 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             title: "Template Body",
             stepId: "template-content",
             description:
-              "The template content. For Email: Use HTML. For SMS: Use plain text. For Slack/Teams: Use Markdown. You can use template variables like {{incidentTitle}}, {{statusPageName}}, etc.",
-            fieldType: FormFieldSchemaType.HTML,
+              notificationMethod === StatusPageSubscriberNotificationMethod.Email
+                ? "The template content in HTML format. You can use template variables like {{incidentTitle}}, {{statusPageName}}, etc."
+                : notificationMethod === StatusPageSubscriberNotificationMethod.SMS
+                ? "The template content in plain text format. Keep it concise for SMS. You can use template variables like {{incidentTitle}}, {{statusPageName}}, etc."
+                : notificationMethod === StatusPageSubscriberNotificationMethod.Webhook
+                ? "The template content in JSON format. You can use template variables like {{incidentTitle}}, {{statusPageName}}, etc."
+                : "The template content in Markdown format. You can use template variables like {{incidentTitle}}, {{statusPageName}}, etc.",
+            fieldType: templateBodyFieldType,
             required: true,
-            placeholder:
-              "<p>Hello {{subscriberName}},</p><p>{{incidentTitle}} has been created.</p>",
+            placeholder: templateBodyPlaceholders[notificationMethod],
             getFooterElement: (
               values: FormValues<StatusPageSubscriberNotificationTemplate>,
             ): ReactElement => {
@@ -376,16 +401,6 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              notificationMethod: true,
-            },
-            title: "Notification Method",
-            type: FieldType.Dropdown,
-            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              StatusPageSubscriberNotificationMethod,
-            ),
-          },
-          {
-            field: {
               createdAt: true,
             },
             title: "Created",
@@ -409,13 +424,6 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              notificationMethod: true,
-            },
-            title: "Notification Method",
-            type: FieldType.Text,
-          },
-          {
-            field: {
               createdAt: true,
             },
             title: "Created",
@@ -423,6 +431,41 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
           },
         ]}
       />
+    );
+  };
+
+  return (
+    <Fragment>
+      <Card
+        title="Subscriber Notification Templates"
+        description="Create custom notification templates for status page subscribers. These templates allow you to customize the messages sent via Email, SMS, Slack, Microsoft Teams, and Webhooks for different event types."
+      >
+        <Tabs
+          tabs={[
+            {
+              name: "Email",
+              children: getTemplateTable(StatusPageSubscriberNotificationMethod.Email),
+            },
+            {
+              name: "SMS",
+              children: getTemplateTable(StatusPageSubscriberNotificationMethod.SMS),
+            },
+            {
+              name: "Slack",
+              children: getTemplateTable(StatusPageSubscriberNotificationMethod.Slack),
+            },
+            {
+              name: "Microsoft Teams",
+              children: getTemplateTable(StatusPageSubscriberNotificationMethod.MicrosoftTeams),
+            },
+            {
+              name: "Webhook",
+              children: getTemplateTable(StatusPageSubscriberNotificationMethod.Webhook),
+            },
+          ]}
+          onTabChange={() => {}}
+        />
+      </Card>
     </Fragment>
   );
 };
