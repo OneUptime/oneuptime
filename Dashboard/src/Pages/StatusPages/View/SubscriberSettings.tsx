@@ -19,7 +19,13 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import StatusPageSubscriberNotificationTemplateStatusPage from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplateStatusPage";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green500, Yellow500, Blue500, Purple500, Cyan500 } from "Common/Types/BrandColors";
+import {
+  Green500,
+  Yellow500,
+  Blue500,
+  Purple500,
+  Cyan500,
+} from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -30,7 +36,9 @@ const StatusPageSubscriberSettings: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const getMethodColor = (method: StatusPageSubscriberNotificationMethod | undefined): Color => {
+  const getMethodColor = (
+    method: StatusPageSubscriberNotificationMethod | undefined,
+  ): Color => {
     switch (method) {
       case StatusPageSubscriberNotificationMethod.Email:
         return Green500;

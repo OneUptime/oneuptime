@@ -411,7 +411,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES
+                    PageMap
+                      .SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES
                   ] as Route
                 }
               />
@@ -430,7 +431,8 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW
+                    PageMap
+                      .SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW
                   ] as Route
                 }
               />

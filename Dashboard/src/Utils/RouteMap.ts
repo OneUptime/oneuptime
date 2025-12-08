@@ -1715,17 +1715,20 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[
-        PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW
+        PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES
       ]
     }`,
   ),
+
+  [PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW]:
+    new Route(
+      `/dashboard/${RouteParams.ProjectID}/settings/${
+        SettingsRoutePath[
+          PageMap.SETTINGS_STATUS_PAGE_SUBSCRIBER_NOTIFICATION_TEMPLATES_VIEW
+        ]
+      }`,
+    ),
 
   [PageMap.SETTINGS_INCIDENTS_STATE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${

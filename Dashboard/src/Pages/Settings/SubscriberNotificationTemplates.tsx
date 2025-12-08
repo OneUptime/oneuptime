@@ -81,10 +81,9 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             description:
               "Select the type of event this template will be used for",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(
-                StatusPageSubscriberNotificationEventType,
-              ),
+            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+              StatusPageSubscriberNotificationEventType,
+            ),
             required: true,
             placeholder: "Select Event Type",
           },
@@ -97,10 +96,9 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             description:
               "Select the notification method (Email, SMS, Slack, Microsoft Teams, or Webhook)",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(
-                StatusPageSubscriberNotificationMethod,
-              ),
+            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+              StatusPageSubscriberNotificationMethod,
+            ),
             required: true,
             placeholder: "Select Notification Method",
           },
@@ -126,7 +124,8 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
               "The template content. For Email: Use HTML. For SMS: Use plain text. For Slack/Teams: Use Markdown. You can use template variables like {{incidentTitle}}, {{statusPageName}}, etc.",
             fieldType: FormFieldSchemaType.HTML,
             required: true,
-            placeholder: "<p>Hello {{subscriberName}},</p><p>{{incidentTitle}} has been created.</p>",
+            placeholder:
+              "<p>Hello {{subscriberName}},</p><p>{{incidentTitle}} has been created.</p>",
           },
         ]}
         showRefreshButton={true}
@@ -144,10 +143,9 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Event Type",
             type: FieldType.Dropdown,
-            filterDropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(
-                StatusPageSubscriberNotificationEventType,
-              ),
+            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+              StatusPageSubscriberNotificationEventType,
+            ),
           },
           {
             field: {
@@ -155,10 +153,9 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Notification Method",
             type: FieldType.Dropdown,
-            filterDropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(
-                StatusPageSubscriberNotificationMethod,
-              ),
+            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+              StatusPageSubscriberNotificationMethod,
+            ),
           },
           {
             field: {

@@ -115,10 +115,9 @@ You can use the following variables in your templates depending on the event typ
             description:
               "Select the type of event this template will be used for",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(
-                StatusPageSubscriberNotificationEventType,
-              ),
+            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+              StatusPageSubscriberNotificationEventType,
+            ),
             required: true,
             placeholder: "Select Event Type",
           },
@@ -131,10 +130,9 @@ You can use the following variables in your templates depending on the event typ
             description:
               "Select the notification method (Email, SMS, Slack, Microsoft Teams, or Webhook)",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(
-                StatusPageSubscriberNotificationMethod,
-              ),
+            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+              StatusPageSubscriberNotificationMethod,
+            ),
             required: true,
             placeholder: "Select Notification Method",
           },
@@ -160,7 +158,8 @@ You can use the following variables in your templates depending on the event typ
               "The template content. For Email: Use HTML. For SMS: Use plain text. For Slack/Teams: Use Markdown. You can use template variables.",
             fieldType: FormFieldSchemaType.HTML,
             required: true,
-            placeholder: "<p>Hello,</p><p>{{incidentTitle}} has been created.</p>",
+            placeholder:
+              "<p>Hello,</p><p>{{incidentTitle}} has been created.</p>",
           },
         ]}
         modelDetailProps={{

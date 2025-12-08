@@ -1,5 +1,7 @@
-// Different types of notification events for Status Page Subscribers
-// Each event type has different variables available for templates
+/*
+ * Different types of notification events for Status Page Subscribers
+ * Each event type has different variables available for templates
+ */
 
 enum StatusPageSubscriberNotificationEventType {
   // Incident related events

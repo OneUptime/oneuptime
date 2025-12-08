@@ -278,7 +278,8 @@ export default class StatusPageSubscriberNotificationTemplate extends BaseModel 
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
-  public notificationMethod?: StatusPageSubscriberNotificationMethod = undefined;
+  public notificationMethod?: StatusPageSubscriberNotificationMethod =
+    undefined;
 
   @ColumnAccessControl({
     create: [
@@ -304,7 +305,8 @@ export default class StatusPageSubscriberNotificationTemplate extends BaseModel 
     required: false,
     type: TableColumnType.ShortText,
     title: "Subject (Email only)",
-    description: "The subject line for email notifications. Only used for Email notification method.",
+    description:
+      "The subject line for email notifications. Only used for Email notification method.",
   })
   @Column({
     nullable: true,

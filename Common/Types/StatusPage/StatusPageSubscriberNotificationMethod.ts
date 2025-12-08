@@ -1,5 +1,7 @@
-// Notification methods for Status Page Subscribers
-// Different methods require different template formats
+/*
+ * Notification methods for Status Page Subscribers
+ * Different methods require different template formats
+ */
 
 enum StatusPageSubscriberNotificationMethod {
   Email = "Email",

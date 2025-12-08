@@ -79,7 +79,11 @@ export class Service extends DatabaseService<Model> {
 
     // Find a template that matches one of the linked template IDs
     for (const template of templates) {
-      if (templateIds.some((id: ObjectID) => { return id.toString() === template._id?.toString(); })) {
+      if (
+        templateIds.some((id: ObjectID) => {
+          return id.toString() === template._id?.toString();
+        })
+      ) {
         return template;
       }
     }
@@ -97,7 +101,10 @@ export class Service extends DatabaseService<Model> {
     const commonVariables = [
       { name: "statusPageName", description: "Name of the status page" },
       { name: "statusPageUrl", description: "URL of the status page" },
-      { name: "unsubscribeUrl", description: "URL to unsubscribe from notifications" },
+      {
+        name: "unsubscribeUrl",
+        description: "URL to unsubscribe from notifications",
+      },
       { name: "resourcesAffected", description: "List of affected resources" },
     ];
 
@@ -106,7 +113,10 @@ export class Service extends DatabaseService<Model> {
         return [
           ...commonVariables,
           { name: "incidentTitle", description: "Title of the incident" },
-          { name: "incidentDescription", description: "Description of the incident" },
+          {
+            name: "incidentDescription",
+            description: "Description of the incident",
+          },
           { name: "incidentSeverity", description: "Severity of the incident" },
           { name: "detailsUrl", description: "URL to view incident details" },
         ];
@@ -115,9 +125,15 @@ export class Service extends DatabaseService<Model> {
         return [
           ...commonVariables,
           { name: "incidentTitle", description: "Title of the incident" },
-          { name: "incidentDescription", description: "Description of the incident" },
+          {
+            name: "incidentDescription",
+            description: "Description of the incident",
+          },
           { name: "incidentSeverity", description: "Severity of the incident" },
-          { name: "incidentState", description: "Current state of the incident" },
+          {
+            name: "incidentState",
+            description: "Current state of the incident",
+          },
           { name: "detailsUrl", description: "URL to view incident details" },
         ];
 
@@ -126,7 +142,10 @@ export class Service extends DatabaseService<Model> {
           ...commonVariables,
           { name: "incidentTitle", description: "Title of the incident" },
           { name: "incidentSeverity", description: "Severity of the incident" },
-          { name: "incidentState", description: "Current state of the incident" },
+          {
+            name: "incidentState",
+            description: "Current state of the incident",
+          },
           { name: "postedAt", description: "When the note was posted" },
           { name: "note", description: "Content of the note" },
           { name: "detailsUrl", description: "URL to view incident details" },
@@ -135,38 +154,83 @@ export class Service extends DatabaseService<Model> {
       case StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated:
         return [
           ...commonVariables,
-          { name: "announcementTitle", description: "Title of the announcement" },
-          { name: "announcementDescription", description: "Description of the announcement" },
-          { name: "detailsUrl", description: "URL to view announcement details" },
+          {
+            name: "announcementTitle",
+            description: "Title of the announcement",
+          },
+          {
+            name: "announcementDescription",
+            description: "Description of the announcement",
+          },
+          {
+            name: "detailsUrl",
+            description: "URL to view announcement details",
+          },
         ];
 
       case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceCreated:
         return [
           ...commonVariables,
-          { name: "scheduledMaintenanceTitle", description: "Title of the scheduled maintenance" },
-          { name: "scheduledMaintenanceDescription", description: "Description of the scheduled maintenance" },
-          { name: "scheduledStartTime", description: "When the maintenance is scheduled to start" },
-          { name: "scheduledEndTime", description: "When the maintenance is scheduled to end" },
-          { name: "detailsUrl", description: "URL to view scheduled maintenance details" },
+          {
+            name: "scheduledMaintenanceTitle",
+            description: "Title of the scheduled maintenance",
+          },
+          {
+            name: "scheduledMaintenanceDescription",
+            description: "Description of the scheduled maintenance",
+          },
+          {
+            name: "scheduledStartTime",
+            description: "When the maintenance is scheduled to start",
+          },
+          {
+            name: "scheduledEndTime",
+            description: "When the maintenance is scheduled to end",
+          },
+          {
+            name: "detailsUrl",
+            description: "URL to view scheduled maintenance details",
+          },
         ];
 
       case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceStateChanged:
         return [
           ...commonVariables,
-          { name: "scheduledMaintenanceTitle", description: "Title of the scheduled maintenance" },
-          { name: "scheduledMaintenanceDescription", description: "Description of the scheduled maintenance" },
-          { name: "scheduledMaintenanceState", description: "Current state of the scheduled maintenance" },
-          { name: "detailsUrl", description: "URL to view scheduled maintenance details" },
+          {
+            name: "scheduledMaintenanceTitle",
+            description: "Title of the scheduled maintenance",
+          },
+          {
+            name: "scheduledMaintenanceDescription",
+            description: "Description of the scheduled maintenance",
+          },
+          {
+            name: "scheduledMaintenanceState",
+            description: "Current state of the scheduled maintenance",
+          },
+          {
+            name: "detailsUrl",
+            description: "URL to view scheduled maintenance details",
+          },
         ];
 
       case StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated:
         return [
           ...commonVariables,
-          { name: "scheduledMaintenanceTitle", description: "Title of the scheduled maintenance" },
-          { name: "scheduledMaintenanceState", description: "Current state of the scheduled maintenance" },
+          {
+            name: "scheduledMaintenanceTitle",
+            description: "Title of the scheduled maintenance",
+          },
+          {
+            name: "scheduledMaintenanceState",
+            description: "Current state of the scheduled maintenance",
+          },
           { name: "postedAt", description: "When the note was posted" },
           { name: "note", description: "Content of the note" },
-          { name: "detailsUrl", description: "URL to view scheduled maintenance details" },
+          {
+            name: "detailsUrl",
+            description: "URL to view scheduled maintenance details",
+          },
         ];
 
       default:

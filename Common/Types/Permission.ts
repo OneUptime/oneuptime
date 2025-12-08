@@ -1547,7 +1547,8 @@ export class PermissionHelper {
       },
 
       {
-        permission: Permission.CreateStatusPageSubscriberNotificationTemplateStatusPage,
+        permission:
+          Permission.CreateStatusPageSubscriberNotificationTemplateStatusPage,
         title: "Create Status Page Subscriber Notification Template Link",
         description:
           "This permission can create Status Page Subscriber Notification Template Links in this project.",
@@ -1555,7 +1556,8 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.DeleteStatusPageSubscriberNotificationTemplateStatusPage,
+        permission:
+          Permission.DeleteStatusPageSubscriberNotificationTemplateStatusPage,
         title: "Delete Status Page Subscriber Notification Template Link",
         description:
           "This permission can delete Status Page Subscriber Notification Template Links of this project.",
@@ -1563,7 +1565,8 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.EditStatusPageSubscriberNotificationTemplateStatusPage,
+        permission:
+          Permission.EditStatusPageSubscriberNotificationTemplateStatusPage,
         title: "Edit Status Page Subscriber Notification Template Link",
         description:
           "This permission can edit Status Page Subscriber Notification Template Links of this project.",
@@ -1571,7 +1574,8 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.ReadStatusPageSubscriberNotificationTemplateStatusPage,
+        permission:
+          Permission.ReadStatusPageSubscriberNotificationTemplateStatusPage,
         title: "Read Status Page Subscriber Notification Template Link",
         description:
           "This permission can read Status Page Subscriber Notification Template Links of this project.",

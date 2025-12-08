@@ -63,7 +63,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   update: true,
   read: true,
 })
-@CrudApiEndpoint(new Route("/status-page-subscriber-notification-template-status-page"))
+@CrudApiEndpoint(
+  new Route("/status-page-subscriber-notification-template-status-page"),
+)
 @TableMetadata({
   tableName: "StatusPageSubscriberNotificationTemplateStatusPage",
   singularName: "Status Page Notification Template Link",
@@ -247,7 +249,8 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
     },
   )
   @JoinColumn({ name: "statusPageSubscriberNotificationTemplateId" })
-  public statusPageSubscriberNotificationTemplate?: StatusPageSubscriberNotificationTemplate = undefined;
+  public statusPageSubscriberNotificationTemplate?: StatusPageSubscriberNotificationTemplate =
+    undefined;
 
   @ColumnAccessControl({
     create: [
