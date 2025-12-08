@@ -481,8 +481,9 @@ const StatusPageSubscriberSettings: FunctionComponent<
       userPreferencesKey="status-page-subscriber-notification-templates-table"
       name="Status Page > Subscriber Notification Templates"
       isDeleteable={true}
+      createVerb="Link"
       isCreateable={true}
-      isEditable={true}
+      isEditable={false}
       isViewable={false}
       query={{
         statusPageId: modelId,
