@@ -46,7 +46,6 @@ const StatusPageSubscriberSettings: FunctionComponent<
 
   const [statusPage, setStatusPage] = useState<StatusPage | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [refreshCount, setRefreshCount] = useState<number>(0);
 
   // Fetch status page to check SMTP and Twilio config
   useAsyncEffect(async () => {
@@ -71,7 +70,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
     } finally {
       setIsLoading(false);
     }
-  }, [modelId.toString(), refreshCount]);
+  }, [modelId.toString()]);
 
   const hasNoCustomSMTP: boolean = !statusPage?.smtpConfig;
   const hasNoCustomTwilio: boolean = !statusPage?.callSmsConfig;
@@ -699,10 +698,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
           },
         ]}
         onTabChange={() => {
-          // Refresh status page data when switching tabs to update warning state
-          setRefreshCount((prev: number) => {
-            return prev + 1;
-          });
+
         }}
       />
     </Fragment>
