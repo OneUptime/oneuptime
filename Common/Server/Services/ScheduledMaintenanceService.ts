@@ -236,8 +236,7 @@ export class Service extends DatabaseService<Model> {
                 statusPageId: statuspage.id!,
                 eventType:
                   StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceCreated,
-                notificationMethod:
-                  StatusPageSubscriberNotificationMethod.SMS,
+                notificationMethod: StatusPageSubscriberNotificationMethod.SMS,
               },
             ),
             StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
@@ -429,10 +428,6 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                   templateType: EmailTemplateType.BlankTemplate,
                   vars: {
                     body: customEmailBody,
-                    logoUrl: emailVars["logoUrl"] || "",
-                    isPublicStatusPage: emailVars["isPublicStatusPage"] || "",
-                    subscriberEmailNotificationFooterText:
-                      emailVars["subscriberEmailNotificationFooterText"] || "",
                   },
                   subject: customEmailSubject,
                 },
@@ -456,7 +451,8 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                     EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
                   vars: emailVars,
                   subject:
-                    "[Scheduled Maintenance] " + (event.title || statusPageName),
+                    "[Scheduled Maintenance] " +
+                    (event.title || statusPageName),
                 },
                 {
                   mailServer: ProjectSmtpConfigService.toEmailServer(

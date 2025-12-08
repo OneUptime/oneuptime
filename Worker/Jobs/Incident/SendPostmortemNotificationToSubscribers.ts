@@ -426,20 +426,6 @@ RunCron(
                         templateType: EmailTemplateType.BlankTemplate,
                         vars: {
                           body: compiledBody,
-                          logoUrl:
-                            statuspage.logoFileId && statusPageIdString
-                              ? new URL(httpProtocol, host)
-                                  .addRoute(StatusPageApiRoute)
-                                  .addRoute(`/logo/${statusPageIdString}`)
-                                  .toString()
-                              : "",
-                          isPublicStatusPage: statuspage.isPublicStatusPage
-                            ? "true"
-                            : "false",
-                          subscriberEmailNotificationFooterText:
-                            StatusPageServiceType.getSubscriberEmailFooterText(
-                              statuspage,
-                            ),
                         },
                         subject: compiledSubject,
                       },

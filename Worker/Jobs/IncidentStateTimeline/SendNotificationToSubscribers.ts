@@ -315,12 +315,7 @@ RunCron(
         );
 
         // Fetch custom templates for this status page (if any)
-        const [
-          emailTemplate,
-          smsTemplate,
-          slackTemplate,
-          teamsTemplate,
-        ]: [
+        const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
           StatusPageSubscriberNotificationTemplate | null,
           StatusPageSubscriberNotificationTemplate | null,
           StatusPageSubscriberNotificationTemplate | null,
@@ -331,8 +326,7 @@ RunCron(
               statusPageId: statuspage.id!,
               eventType:
                 StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged,
-              notificationMethod:
-                StatusPageSubscriberNotificationMethod.Email,
+              notificationMethod: StatusPageSubscriberNotificationMethod.Email,
             },
           ),
           StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
@@ -340,8 +334,7 @@ RunCron(
               statusPageId: statuspage.id!,
               eventType:
                 StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged,
-              notificationMethod:
-                StatusPageSubscriberNotificationMethod.SMS,
+              notificationMethod: StatusPageSubscriberNotificationMethod.SMS,
             },
           ),
           StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
@@ -349,8 +342,7 @@ RunCron(
               statusPageId: statuspage.id!,
               eventType:
                 StatusPageSubscriberNotificationEventType.SubscriberIncidentStateChanged,
-              notificationMethod:
-                StatusPageSubscriberNotificationMethod.Slack,
+              notificationMethod: StatusPageSubscriberNotificationMethod.Slack,
             },
           ),
           StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
@@ -484,20 +476,6 @@ RunCron(
                   templateType: EmailTemplateType.BlankTemplate,
                   vars: {
                     body: compiledBody,
-                    logoUrl:
-                      statuspage.logoFileId && statusPageIdString
-                        ? new URL(httpProtocol, host)
-                            .addRoute(StatusPageApiRoute)
-                            .addRoute(`/logo/${statusPageIdString}`)
-                            .toString()
-                        : "",
-                    isPublicStatusPage: statuspage.isPublicStatusPage
-                      ? "true"
-                      : "false",
-                    subscriberEmailNotificationFooterText:
-                      StatusPageServiceType.getSubscriberEmailFooterText(
-                        statuspage,
-                      ),
                   },
                   subject: compiledSubject,
                 },
@@ -517,7 +495,8 @@ RunCron(
               MailService.sendMail(
                 {
                   toEmail: subscriber.subscriberEmail,
-                  templateType: EmailTemplateType.SubscriberIncidentStateChanged,
+                  templateType:
+                    EmailTemplateType.SubscriberIncidentStateChanged,
                   vars: {
                     emailTitle: emailTitle,
                     statusPageName: statusPageName,

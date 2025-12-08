@@ -288,12 +288,7 @@ RunCron(
           );
 
           // Fetch custom templates for this status page (if any)
-          const [
-            emailTemplate,
-            smsTemplate,
-            slackTemplate,
-            teamsTemplate,
-          ]: [
+          const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
             StatusPageSubscriberNotificationTemplate | null,
             StatusPageSubscriberNotificationTemplate | null,
             StatusPageSubscriberNotificationTemplate | null,
@@ -313,8 +308,7 @@ RunCron(
                 statusPageId: statuspage.id!,
                 eventType:
                   StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated,
-                notificationMethod:
-                  StatusPageSubscriberNotificationMethod.SMS,
+                notificationMethod: StatusPageSubscriberNotificationMethod.SMS,
               },
             ),
             StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
@@ -461,20 +455,6 @@ RunCron(
                     templateType: EmailTemplateType.BlankTemplate,
                     vars: {
                       body: compiledBody,
-                      logoUrl:
-                        statuspage.logoFileId && statusPageIdString
-                          ? new URL(httpProtocol, host)
-                              .addRoute(StatusPageApiRoute)
-                              .addRoute(`/logo/${statusPageIdString}`)
-                              .toString()
-                          : "",
-                      isPublicStatusPage: statuspage.isPublicStatusPage
-                        ? "true"
-                        : "false",
-                      subscriberEmailNotificationFooterText:
-                        StatusPageServiceType.getSubscriberEmailFooterText(
-                          statuspage,
-                        ),
                     },
                     subject: compiledSubject,
                   },
@@ -494,7 +474,8 @@ RunCron(
                 MailService.sendMail(
                   {
                     toEmail: subscriber.subscriberEmail,
-                    templateType: EmailTemplateType.SubscriberIncidentNoteCreated,
+                    templateType:
+                      EmailTemplateType.SubscriberIncidentNoteCreated,
                     vars: {
                       note: await Markdown.convertToHTML(
                         incidentPublicNote.note!,
@@ -514,7 +495,8 @@ RunCron(
                         ? "true"
                         : "false",
                       resourcesAffected: resourcesAffectedString,
-                      incidentSeverity: incident.incidentSeverity?.name || " - ",
+                      incidentSeverity:
+                        incident.incidentSeverity?.name || " - ",
                       incidentTitle: incident.title || "",
                       incidentDescription: incident.description || "",
                       unsubscribeUrl: unsubscribeUrl,

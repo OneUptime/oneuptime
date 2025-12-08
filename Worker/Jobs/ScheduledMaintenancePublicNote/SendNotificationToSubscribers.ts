@@ -282,12 +282,7 @@ RunCron(
           );
 
           // Fetch custom templates for this status page (if any)
-          const [
-            emailTemplate,
-            smsTemplate,
-            slackTemplate,
-            teamsTemplate,
-          ]: [
+          const [emailTemplate, smsTemplate, slackTemplate, teamsTemplate]: [
             StatusPageSubscriberNotificationTemplate | null,
             StatusPageSubscriberNotificationTemplate | null,
             StatusPageSubscriberNotificationTemplate | null,
@@ -307,8 +302,7 @@ RunCron(
                 statusPageId: statuspage.id!,
                 eventType:
                   StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated,
-                notificationMethod:
-                  StatusPageSubscriberNotificationMethod.SMS,
+                notificationMethod: StatusPageSubscriberNotificationMethod.SMS,
               },
             ),
             StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage(
@@ -338,7 +332,9 @@ RunCron(
             detailsUrl: scheduledEventDetailsUrl,
             scheduledMaintenanceTitle: event.title || "",
             scheduledMaintenanceState:
-              OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!),
+              OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                event.startsAt!,
+              ),
             note: publicNote.note || "",
             postedAt: OneUptimeDate.getDateAsUserFriendlyFormattedString(
               OneUptimeDate.getCurrentDate(),
@@ -521,20 +517,6 @@ RunCron(
                     templateType: EmailTemplateType.BlankTemplate,
                     vars: {
                       body: compiledBody,
-                      logoUrl:
-                        statuspage.logoFileId && statusPageIdString
-                          ? new URL(httpProtocol, host)
-                              .addRoute(StatusPageApiRoute)
-                              .addRoute(`/logo/${statusPageIdString}`)
-                              .toString()
-                          : "",
-                      isPublicStatusPage: statuspage.isPublicStatusPage
-                        ? "true"
-                        : "false",
-                      subscriberEmailNotificationFooterText:
-                        StatusPageServiceType.getSubscriberEmailFooterText(
-                          statuspage,
-                        ),
                     },
                     subject: compiledSubject,
                   },
