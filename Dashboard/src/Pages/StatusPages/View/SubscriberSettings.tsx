@@ -697,9 +697,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
             children: notificationTemplatesContent,
           },
         ]}
-        onTabChange={() => {
-
-        }}
+        onTabChange={() => {}}
       />
     </Fragment>
   );
