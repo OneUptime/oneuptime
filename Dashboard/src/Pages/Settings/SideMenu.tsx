@@ -111,7 +111,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
               ] as Route,
             ),
           },
-          icon: IconProp.Email,
+          icon: IconProp.Bell,
         },
         {
           link: {
