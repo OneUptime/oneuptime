@@ -1,8 +1,8 @@
 {
-  "name": "@oneuptime/copilot-agent",
+  "name": "@oneuptime/copilot",
   "version": "0.1.0",
   "description": "Standalone OneUptime Copilot coding agent CLI",
-  "private": true,
+  "private": false,
   "bin": {
     "oneuptime-copilot-agent": "./build/dist/Index.js"
   },

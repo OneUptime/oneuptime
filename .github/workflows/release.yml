@@ -297,6 +297,77 @@ jobs:
           path: ./MCP/
           retention-days: 90
 
+  publish-copilot-agent:
+    runs-on: ubuntu-latest
+    needs: [generate-build-number, read-version, publish-npm-packages]
+    env:
+      NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+      CI_PIPELINE_ID: ${{ github.run_number }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+          cache: npm
+          cache-dependency-path: |
+            Copilot/package-lock.json
+            Common/package-lock.json
+
+      - name: Configure npm authentication
+        run: |
+          rm -f ~/.npmrc
+          {
+            echo "//registry.npmjs.org/:_authToken=${NPM_AUTH_TOKEN}"
+            echo "always-auth=true"
+          } >> ~/.npmrc
+
+      - name: Install Common dependencies
+        run: |
+          cd Common
+          npm install
+
+      - name: Install Copilot dependencies
+        run: |
+          cd Copilot
+          npm install
+
+      - name: Build Copilot agent
+        run: |
+          cd Copilot
+          npm run compile
+
+      - name: Update Copilot agent version
+        run: |
+          cd Copilot
+          npm version ${{ needs.read-version.outputs.major_minor }} --no-git-tag-version
+
+      - name: Publish Copilot agent to npm
+        run: |
+          cd Copilot
+          set +e
+          PUBLISH_OUTPUT=$(npm publish --access public 2>&1)
+          PUBLISH_EXIT=$?
+          set -e
+          echo "$PUBLISH_OUTPUT"
+          if [ $PUBLISH_EXIT -ne 0 ]; then
+            if echo "$PUBLISH_OUTPUT" | grep -q "You cannot publish over the previously published versions"; then
+              echo "⚠️ Copilot agent version already published, skipping."
+            else
+              echo "❌ npm publish failed"
+              exit $PUBLISH_EXIT
+            fi
+          else
+            echo "✅ Published @oneuptime/copilot-agent@${{ needs.read-version.outputs.major_minor }}"
+          fi
+
   nginx-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
