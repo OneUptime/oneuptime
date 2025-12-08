@@ -406,8 +406,8 @@ RunCron(
                     unsubscribeUrl: unsubscribeUrl,
                   };
 
-                  // Use custom template if available, otherwise use default
-                  if (emailTemplate?.templateBody) {
+                  // Use custom template if available and custom SMTP is configured, otherwise use default
+                  if (emailTemplate?.templateBody && statuspage.smtpConfig) {
                     const compiledBody: string =
                       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                         emailTemplate.templateBody,
@@ -514,9 +514,9 @@ RunCron(
                     unsubscribeUrl: unsubscribeUrl,
                   };
 
-                  // Use custom template if available, otherwise use default
+                  // Use custom template if available and custom Twilio is configured, otherwise use default
                   let smsMessage: string;
-                  if (smsTemplate?.templateBody) {
+                  if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
                     smsMessage =
                       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                         smsTemplate.templateBody,

@@ -348,9 +348,9 @@ RunCron(
                     `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for announcement ${announcement.id}.`,
                   );
 
-                  // Build SMS message - use custom template if available
+                  // Build SMS message - use custom template if available and custom Twilio is configured
                   let smsMessage: string;
-                  if (smsTemplate?.templateBody) {
+                  if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
                     const smsTemplateVariables: Record<string, string> = {
                       statusPageName: statusPageName,
                       statusPageUrl: statusPageURL,
@@ -483,8 +483,8 @@ RunCron(
                   let emailSubject: string =
                     "[Announcement] " + announcement.title;
 
-                  if (emailTemplate?.templateBody) {
-                    // Use custom template with BlankTemplate
+                  if (emailTemplate?.templateBody && statuspage.smtpConfig) {
+                    // Use custom template with BlankTemplate only when custom SMTP is configured
                     const emailTemplateVariables: Record<string, string> = {
                       statusPageName: statusPageName,
                       statusPageUrl: statusPageURL,

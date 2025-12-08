@@ -294,8 +294,12 @@ export class Service extends DatabaseService<Model> {
           if (subscriber.subscriberPhone) {
             let smsMessage: string;
 
-            if (smsTemplate && smsTemplate.templateBody) {
-              // Use custom template
+            if (
+              smsTemplate &&
+              smsTemplate.templateBody &&
+              statuspage.callSmsConfig
+            ) {
+              // Use custom template only when custom Twilio is configured
               smsMessage =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   smsTemplate.templateBody,
@@ -407,9 +411,13 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
               unsubscribeUrl: unsubscribeUrl,
             };
 
-            // Check for custom email template
-            if (emailTemplate && emailTemplate.templateBody) {
-              // Use custom template with BlankTemplate
+            // Check for custom email template - only use when custom SMTP is configured
+            if (
+              emailTemplate &&
+              emailTemplate.templateBody &&
+              statuspage.smtpConfig
+            ) {
+              // Use custom template with BlankTemplate only when custom SMTP is configured
               const customEmailBody: string =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   emailTemplate.templateBody,

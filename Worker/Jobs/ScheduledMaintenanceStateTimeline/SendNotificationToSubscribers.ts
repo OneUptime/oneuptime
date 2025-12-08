@@ -376,8 +376,8 @@ RunCron(
 
             if (subscriber.subscriberPhone) {
               let smsMessage: string;
-              if (smsTemplate?.templateBody) {
-                // Use custom template
+              if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
+                // Use custom template only when custom Twilio is configured
                 smsMessage =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     smsTemplate.templateBody,
@@ -467,8 +467,8 @@ RunCron(
             if (subscriber.subscriberEmail) {
               // send email here.
 
-              if (emailTemplate?.templateBody) {
-                // Use custom template with BlankTemplate
+              if (emailTemplate?.templateBody && statuspage.smtpConfig) {
+                // Use custom template with BlankTemplate only when custom SMTP is configured
                 const compiledBody: string =
                   StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                     emailTemplate.templateBody,
