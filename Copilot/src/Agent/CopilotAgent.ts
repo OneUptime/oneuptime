@@ -5,13 +5,11 @@ import { LLMClient } from "../LLM/LLMClient";
 import { LMStudioClient } from "../LLM/LMStudioClient";
 import { OllamaClient } from "../LLM/OllamaClient";
 import { OpenAIClient } from "../LLM/OpenAIClient";
-import { OpenAIResponsesClient } from "../LLM/OpenAIResponsesClient";
 import { buildSystemPrompt } from "./SystemPrompt";
 import { WorkspaceContextBuilder } from "./WorkspaceContext";
 import { ToolRegistry } from "../Tools/ToolRegistry";
 import { ChatMessage, OpenAIToolCall, ToolExecutionResult } from "../Types";
 import AgentLogger from "../Utils/AgentLogger";
-import { requiresOpenAIResponsesEndpoint } from "../Utils/OpenAIModel";
 
 /**
  * Configuration values that control how the Copilot agent connects to the
@@ -92,23 +90,12 @@ export class CopilotAgent {
       }
       case "openai": {
         const endpoint: string | undefined = options.modelUrl;
-        const apiKey: string = this.requireApiKey("OpenAI");
-        if (requiresOpenAIResponsesEndpoint(options.modelName)) {
-          return new OpenAIResponsesClient({
-            ...(endpoint ? { endpoint } : {}),
-            model: options.modelName,
-            temperature: options.temperature,
-            timeoutMs: options.requestTimeoutMs,
-            apiKey,
-          });
-        }
-
         return new OpenAIClient({
           ...(endpoint ? { endpoint } : {}),
           model: options.modelName,
           temperature: options.temperature,
           timeoutMs: options.requestTimeoutMs,
-          apiKey,
+          apiKey: this.requireApiKey("OpenAI"),
         });
       }
       case "anthropic": {
