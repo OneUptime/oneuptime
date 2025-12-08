@@ -307,21 +307,7 @@ export class Service extends DatabaseService<Model> {
                 );
             } else {
               // Use default template
-              smsMessage = `
-                            Scheduled Maintenance - ${statusPageName}
-
-                            ${event.title || ""}
-
-                            ${
-                              resourcesAffected
-                                ? "Resources Affected: " + resourcesAffected
-                                : ""
-                            }
-
-                            To view this event, visit ${statusPageURL}
-
-                            To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
-                            `;
+              smsMessage = `Scheduled Maintenance: ${event.title || ""} on ${statusPageName}.${resourcesAffected ? ` Impact: ${resourcesAffected}.` : ""} Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`;
             }
 
             const sms: SMS = {
