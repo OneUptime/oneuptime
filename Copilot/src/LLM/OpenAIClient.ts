@@ -150,8 +150,46 @@ export class OpenAIClient implements LLMClient {
   }
 
   private mapResponsesToChatMessage(body: OpenAIResponsesAPIResponse): ChatMessage {
-    const outputMessage: ResponsesOutputMessage = this.extractOutputMessage(body);
-    const { textParts, toolCalls } = this.extractOutputContent(outputMessage);
+    const outputItems: Array<ResponsesOutputItem> = Array.isArray(body.output)
+      ? (body.output as Array<ResponsesOutputItem>)
+      : [];
+    const textParts: Array<string> = [];
+    const toolCalls: Array<OpenAIToolCall> = [];
+
+    for (const item of outputItems) {
+      if (!item || typeof item !== "object") {
+        continue;
+      }
+
+      if (item.type === "message" || this.isMessageOutput(item)) {
+        const messageItem: ResponsesOutputMessage = item as ResponsesOutputMessage;
+        const { textParts: messageTextParts, toolCalls: messageToolCalls } =
+          this.extractOutputContent(messageItem);
+        if (messageTextParts.length) {
+          textParts.push(...messageTextParts);
+        }
+        if (messageToolCalls.length) {
+          toolCalls.push(...messageToolCalls);
+        }
+        continue;
+      }
+
+      if (this.isFunctionCallOutput(item)) {
+        const mappedCall: OpenAIToolCall | null = this.mapFunctionCallOutput(
+          item,
+        );
+        if (mappedCall) {
+          toolCalls.push(mappedCall);
+        }
+      }
+    }
+
+    if (!textParts.length) {
+      const fallbackText: Array<string> = this.extractFallbackOutputText(body);
+      if (fallbackText.length) {
+        textParts.push(...fallbackText);
+      }
+    }
 
     const message: ChatMessage = {
       role: "assistant",
@@ -205,9 +243,8 @@ export class OpenAIClient implements LLMClient {
     if (message.role === "tool") {
       return [
         {
-          type: "tool_result",
-          tool_call_id: message.tool_call_id ?? "tool_call",
-          output: message.content ?? "",
+          type: "input_text",
+          text: this.formatToolResult(message),
         },
       ];
     }
@@ -227,6 +264,13 @@ export class OpenAIClient implements LLMClient {
         text: "",
       },
     ];
+  }
+
+  private formatToolResult(message: ChatMessage): string {
+    const prefix: string = message.tool_call_id
+      ? `Tool ${message.tool_call_id} result:`
+      : "Tool result:";
+    return `${prefix}\n${message.content ?? ""}`.trimEnd();
   }
 
   private async performRetryDelay(attempt: number): Promise<void> {
@@ -249,15 +293,62 @@ export class OpenAIClient implements LLMClient {
     }, this.options.timeoutMs);
   }
 
-  private extractOutputMessage(
+  private extractFallbackOutputText(
     body: OpenAIResponsesAPIResponse,
-  ): ResponsesOutputMessage {
-    const outputMessage: ResponsesOutputMessage | undefined = body.output?.[0];
-    if (!outputMessage) {
-      throw new Error("OpenAI Responses API returned no output message");
+  ): Array<string> {
+    if (!Array.isArray(body.output_text)) {
+      return [];
     }
 
-    return outputMessage;
+    return body.output_text.filter((chunk: unknown) => {
+      return typeof chunk === "string" && chunk.length > 0;
+    });
+  }
+
+  private mapFunctionCallOutput(
+    item: ResponsesFunctionCallOutput,
+  ): OpenAIToolCall | null {
+    if (!item.name) {
+      return null;
+    }
+
+    const args: string =
+      typeof item.arguments === "string"
+        ? item.arguments
+        : JSON.stringify(item.arguments ?? {});
+    const identifier: string =
+      item.call_id ??
+      item.id ??
+      `function_call_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+    return {
+      id: identifier,
+      type: "function",
+      function: {
+        name: item.name,
+        arguments: args,
+      },
+    };
+  }
+
+  private isMessageOutput(
+    item: ResponsesOutputItem,
+  ): item is ResponsesOutputMessage {
+    if (!item || typeof item !== "object") {
+      return false;
+    }
+
+    return Array.isArray((item as ResponsesOutputMessage).content);
+  }
+
+  private isFunctionCallOutput(
+    item: ResponsesOutputItem,
+  ): item is ResponsesFunctionCallOutput {
+    if (!item || typeof item !== "object") {
+      return false;
+    }
+
+    return (item as ResponsesFunctionCallOutput).type === "function_call";
   }
 
   private extractOutputContent(
@@ -268,8 +359,13 @@ export class OpenAIClient implements LLMClient {
   } {
     const textParts: Array<string> = [];
     const toolCalls: Array<OpenAIToolCall> = [];
+    const contentBlocks: Array<ResponsesContentBlock> = Array.isArray(
+      outputMessage.content,
+    )
+      ? outputMessage.content
+      : [];
 
-    for (const block of outputMessage.content) {
+    for (const block of contentBlocks) {
       if (block.type === "output_text") {
         textParts.push(block.text ?? "");
         continue;
@@ -339,12 +435,6 @@ interface ResponsesTextBlock extends ResponsesContentBlockBase {
   text: string;
 }
 
-interface ResponsesToolResultBlock extends ResponsesContentBlockBase {
-  type: "tool_result";
-  tool_call_id: string;
-  output: string;
-}
-
 interface ResponsesToolUseBlock extends ResponsesContentBlockBase {
   type: "tool_use";
   id: string;
@@ -357,10 +447,7 @@ interface ResponsesMessage {
   content: Array<ResponsesContentBlock>;
 }
 
-type ResponsesContentBlock =
-  | ResponsesTextBlock
-  | ResponsesToolResultBlock
-  | ResponsesToolUseBlock;
+type ResponsesContentBlock = ResponsesTextBlock | ResponsesToolUseBlock;
 
 interface ResponsesRequestPayload {
   model: string;
@@ -370,7 +457,8 @@ interface ResponsesRequestPayload {
 }
 
 interface ResponsesOutputMessage {
-  role: "assistant";
+  type?: "message";
+  role: "system" | "user" | "assistant";
   content: Array<ResponsesContentBlock>;
   tool_calls?: Array<{
     id: string;
@@ -382,8 +470,23 @@ interface ResponsesOutputMessage {
   }>;
 }
 
+interface ResponsesFunctionCallOutput {
+  type: "function_call";
+  id?: string;
+  call_id?: string;
+  name: string;
+  arguments?: unknown;
+  status?: string;
+}
+
+type ResponsesOutputItem =
+  | ResponsesOutputMessage
+  | ResponsesFunctionCallOutput
+  | { type?: string; [key: string]: unknown };
+
 interface OpenAIResponsesAPIResponse {
-  output?: Array<ResponsesOutputMessage>;
+  output?: Array<ResponsesOutputItem>;
+  output_text?: Array<string>;
 }
 
 interface ResponsesToolDefinition {

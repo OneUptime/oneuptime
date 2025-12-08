@@ -8,6 +8,7 @@ import { SearchWorkspaceTool } from "./SearchWorkspaceTool";
 import { AgentTool, ToolResponse, ToolRuntime } from "./Tool";
 import { WriteFileTool } from "./WriteFileTool";
 import AgentLogger from "../Utils/AgentLogger";
+import { redactSecrets } from "../Utils/SecretSanitizer";
 
 /**
  * Holds every tool available to the agent and brokers invocation/argument
@@ -77,7 +78,7 @@ export class ToolRegistry {
       AgentLogger.error(message);
       return {
         toolCallId: call.id,
-        output: message,
+        output: this.sanitizeOutput(message),
       };
     }
 
@@ -98,7 +99,7 @@ export class ToolRegistry {
       AgentLogger.error(message);
       return {
         toolCallId: call.id,
-        output: message,
+        output: this.sanitizeOutput(message),
       };
     }
 
@@ -119,17 +120,22 @@ export class ToolRegistry {
         toolName: call.function.name,
         isError: response.isError ?? false,
       });
+      const content: string = `${prefix}${response.content}`;
       return {
         toolCallId: call.id,
-        output: `${prefix}${response.content}`,
+        output: this.sanitizeOutput(content),
       };
     } catch (error) {
       const message: string = `Tool ${call.function.name} failed: ${(error as Error).message}`;
       AgentLogger.error(message, error as Error);
       return {
         toolCallId: call.id,
-        output: message,
+        output: this.sanitizeOutput(message),
       };
     }
+  }
+
+  private sanitizeOutput(text: string): string {
+    return redactSecrets(text);
   }
 }
