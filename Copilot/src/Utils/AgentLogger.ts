@@ -36,7 +36,15 @@ export class AgentLogger {
 
     await this.closeStream();
     await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
-    this.logStream = fs.createWriteStream(targetPath, { flags: "a" });
+
+    // Remove existing debug file to start fresh for each command run
+    try {
+      await fs.promises.unlink(targetPath);
+    } catch {
+      // File doesn't exist, ignore
+    }
+
+    this.logStream = fs.createWriteStream(targetPath, { flags: "w" });
     this.logFilePath = targetPath;
     this.fileWriteFailed = false;
     this.registerExitHandlers();
