@@ -2,6 +2,7 @@ import IconProp from "../Icon/IconProp";
 import ComponentMetadata, { ComponentCategory } from "./Component";
 import APIComponents from "./Components/API";
 import ConditionComponents from "./Components/Condition";
+import DiscordComponents from "./Components/Discord";
 import EmailComponents from "./Components/Email";
 import JsonComponents from "./Components/JSON";
 import JavaScriptComponents from "./Components/JavaScript";
@@ -18,6 +19,7 @@ const components: Array<ComponentMetadata> = [
   ...APIComponents,
   ...ScheduleComponents,
   ...SlackComponents,
+  ...DiscordComponents,
   ...ConditionComponents,
   ...JsonComponents,
   ...JavaScriptComponents,
@@ -44,6 +46,11 @@ export const Categories: Array<ComponentCategory> = [
   {
     name: "Slack",
     description: "Integrate OneUptime with your Slack team.",
+    icon: IconProp.SendMessage,
+  },
+  {
+    name: "Discord",
+    description: "Integrate OneUptime with your Discord server.",
     icon: IconProp.SendMessage,
   },
   {
