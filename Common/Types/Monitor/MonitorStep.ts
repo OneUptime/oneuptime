@@ -52,6 +52,9 @@ export interface MonitorStepType {
   screenSizeTypes?: Array<ScreenSizeType> | undefined;
   browserTypes?: Array<BrowserType> | undefined;
 
+  // retry count for synthetic monitors - number of times to retry on error
+  retryCountOnError?: number | undefined;
+
   // Log monitor type.
   logMonitor?: MonitorStepLogMonitor | undefined;
 
@@ -83,6 +86,7 @@ export default class MonitorStep extends DatabaseProperty {
       customCode: undefined,
       screenSizeTypes: undefined,
       browserTypes: undefined,
+      retryCountOnError: undefined,
       logMonitor: undefined,
       traceMonitor: undefined,
       metricMonitor: undefined,
@@ -112,6 +116,7 @@ export default class MonitorStep extends DatabaseProperty {
       customCode: undefined,
       screenSizeTypes: undefined,
       browserTypes: undefined,
+      retryCountOnError: undefined,
       logMonitor: undefined,
       traceMonitor: undefined,
       metricMonitor: undefined,
@@ -177,6 +182,11 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setRetryCountOnError(retryCountOnError: number): MonitorStep {
+    this.data!.retryCountOnError = retryCountOnError;
+    return this;
+  }
+
   public setLogMonitor(logMonitor: MonitorStepLogMonitor): MonitorStep {
     this.data!.logMonitor = logMonitor;
     return this;
@@ -226,6 +236,7 @@ export default class MonitorStep extends DatabaseProperty {
         customCode: undefined,
         screenSizeTypes: undefined,
         browserTypes: undefined,
+        retryCountOnError: undefined,
         lgoMonitor: undefined,
         exceptionMonitor: undefined,
       },
@@ -312,6 +323,7 @@ export default class MonitorStep extends DatabaseProperty {
           customCode: this.data.customCode || undefined,
           screenSizeTypes: this.data.screenSizeTypes || undefined,
           browserTypes: this.data.browserTypes || undefined,
+          retryCountOnError: this.data.retryCountOnError || undefined,
           logMonitor: this.data.logMonitor
             ? MonitorStepLogMonitorUtil.toJSON(
                 this.data.logMonitor || MonitorStepLogMonitorUtil.getDefault(),
@@ -421,6 +433,7 @@ export default class MonitorStep extends DatabaseProperty {
       screenSizeTypes:
         (json["screenSizeTypes"] as Array<ScreenSizeType>) || undefined,
       browserTypes: (json["browserTypes"] as Array<BrowserType>) || undefined,
+      retryCountOnError: (json["retryCountOnError"] as number) || undefined,
       logMonitor: json["logMonitor"]
         ? (json["logMonitor"] as JSONObject)
         : undefined,
@@ -471,6 +484,7 @@ export default class MonitorStep extends DatabaseProperty {
         customCode: Zod.string().optional(),
         screenSizeTypes: Zod.any().optional(),
         browserTypes: Zod.any().optional(),
+        retryCountOnError: Zod.number().optional(),
         logMonitor: Zod.any().optional(),
         traceMonitor: Zod.any().optional(),
         metricMonitor: Zod.any().optional(),
