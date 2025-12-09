@@ -791,9 +791,9 @@ return {
         showSyntheticMonitorAdvancedOptions && (
           <div className="mt-5">
             <FieldLabelElement
-              title={"Retry Count on Error (Optional)"}
+              title={"Retry Count on Error"}
               description={
-                "How many times should we retry the synthetic monitor if it fails? Set to 0 for no retries."
+                "How many times should we retry the synthetic monitor if it fails? Set to 0 for no retries. Max is 5."
               }
               required={false}
             />

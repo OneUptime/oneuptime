@@ -119,13 +119,11 @@ const MonitorCreate: FunctionComponent<
                     item.monitorType === MonitorType.CustomJavaScriptCode ||
                     item.monitorType === MonitorType.SSLCertificate)
                 ) {
-                  // remove the every minute option, every 5 minsm every 10 minutes
+                  // remove the every minute option, every 2 mins, every 10 minutes
                   interval = interval.filter((option: DropdownOption) => {
                     return (
                       option.value !== "* * * * *" &&
-                      option.value !== "*/2 * * * *" &&
-                      option.value !== "*/5 * * * *" &&
-                      option.value !== "*/10 * * * *"
+                      option.value !== "*/2 * * * *"
                     );
                   });
 
