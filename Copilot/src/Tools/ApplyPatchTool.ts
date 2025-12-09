@@ -229,7 +229,9 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
     );
 
     await fs.mkdir(path.dirname(block.absolutePath), { recursive: true });
-    await fs.writeFile(block.absolutePath, patchedContent, { encoding: "utf8" });
+    await fs.writeFile(block.absolutePath, patchedContent, {
+      encoding: "utf8",
+    });
   }
 
   private async readFileWithMeta(filePath: string): Promise<{
@@ -253,7 +255,8 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
     relativePath: string,
   ): string {
     const normalizedOriginal: string = originalContent.replace(/\r\n/g, "\n");
-    const originalHadTrailingNewline: boolean = normalizedOriginal.endsWith("\n");
+    const originalHadTrailingNewline: boolean =
+      normalizedOriginal.endsWith("\n");
     const originalLines: Array<string> = normalizedOriginal.length
       ? normalizedOriginal
           .slice(0, originalHadTrailingNewline ? -1 : undefined)
@@ -267,8 +270,12 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
 
     for (const hunk of hunks) {
       const matchSequence: Array<string> = hunk
-        .filter((line: string) => line.startsWith(" ") || line.startsWith("-"))
-        .map((line: string) => line.slice(1));
+        .filter((line: string) => {
+          return line.startsWith(" ") || line.startsWith("-");
+        })
+        .map((line: string) => {
+          return line.slice(1);
+        });
       const startIndex: number = this.findMatchSequence(
         originalLines,
         cursor,
@@ -296,11 +303,21 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
         const value: string = line.length > 1 ? line.slice(1) : "";
 
         if (op === " ") {
-          this.assertLineMatches(originalLines, localIndex, value, relativePath);
+          this.assertLineMatches(
+            originalLines,
+            localIndex,
+            value,
+            relativePath,
+          );
           outputLines.push(value);
           localIndex += 1;
         } else if (op === "-") {
-          this.assertLineMatches(originalLines, localIndex, value, relativePath);
+          this.assertLineMatches(
+            originalLines,
+            localIndex,
+            value,
+            relativePath,
+          );
           localIndex += 1;
         } else if (op === "+") {
           outputLines.push(value);
@@ -369,7 +386,11 @@ export class ApplyPatchTool extends StructuredTool<ApplyPatchArgs> {
       return startIndex;
     }
 
-    for (let index: number = startIndex; index <= originalLines.length - sequence.length; index += 1) {
+    for (
+      let index: number = startIndex;
+      index <= originalLines.length - sequence.length;
+      index += 1
+    ) {
       let matched: boolean = true;
       for (let offset: number = 0; offset < sequence.length; offset += 1) {
         if (originalLines[index + offset] !== sequence[offset]) {

@@ -62,14 +62,20 @@ export class OpenAIClient implements LLMClient {
     return await this.executeWithRetries(payload);
   }
 
-  private mapMessagesToInput(messages: Array<ChatMessage>): Array<ResponsesMessage> {
-    return messages.map((message: ChatMessage) => ({
-      role: this.mapRoleToResponsesRole(message.role),
-      content: this.createContentBlocksForMessage(message),
-    }));
+  private mapMessagesToInput(
+    messages: Array<ChatMessage>,
+  ): Array<ResponsesMessage> {
+    return messages.map((message: ChatMessage) => {
+      return {
+        role: this.mapRoleToResponsesRole(message.role),
+        content: this.createContentBlocksForMessage(message),
+      };
+    });
   }
 
-  private async executeWithRetries(payload: ResponsesRequestPayload): Promise<ChatMessage> {
+  private async executeWithRetries(
+    payload: ResponsesRequestPayload,
+  ): Promise<ChatMessage> {
     let lastError: unknown;
 
     for (let attempt: number = 1; attempt <= this.maxAttempts; attempt += 1) {
@@ -149,7 +155,9 @@ export class OpenAIClient implements LLMClient {
     }
   }
 
-  private mapResponsesToChatMessage(body: OpenAIResponsesAPIResponse): ChatMessage {
+  private mapResponsesToChatMessage(
+    body: OpenAIResponsesAPIResponse,
+  ): ChatMessage {
     const outputItems: Array<ResponsesOutputItem> = Array.isArray(body.output)
       ? (body.output as Array<ResponsesOutputItem>)
       : [];
@@ -162,7 +170,8 @@ export class OpenAIClient implements LLMClient {
       }
 
       if (item.type === "message" || this.isMessageOutput(item)) {
-        const messageItem: ResponsesOutputMessage = item as ResponsesOutputMessage;
+        const messageItem: ResponsesOutputMessage =
+          item as ResponsesOutputMessage;
         const { textParts: messageTextParts, toolCalls: messageToolCalls } =
           this.extractOutputContent(messageItem);
         if (messageTextParts.length) {
@@ -175,9 +184,8 @@ export class OpenAIClient implements LLMClient {
       }
 
       if (this.isFunctionCallOutput(item)) {
-        const mappedCall: OpenAIToolCall | null = this.mapFunctionCallOutput(
-          item,
-        );
+        const mappedCall: OpenAIToolCall | null =
+          this.mapFunctionCallOutput(item);
         if (mappedCall) {
           toolCalls.push(mappedCall);
         }
@@ -235,11 +243,15 @@ export class OpenAIClient implements LLMClient {
     });
   }
 
-  private mapRoleToResponsesRole(role: ChatMessage["role"]): ResponsesMessage["role"] {
+  private mapRoleToResponsesRole(
+    role: ChatMessage["role"],
+  ): ResponsesMessage["role"] {
     return (role === "tool" ? "user" : role) as ResponsesMessage["role"];
   }
 
-  private createContentBlocksForMessage(message: ChatMessage): Array<ResponsesContentBlock> {
+  private createContentBlocksForMessage(
+    message: ChatMessage,
+  ): Array<ResponsesContentBlock> {
     if (message.role === "tool") {
       return [
         {
@@ -283,7 +295,9 @@ export class OpenAIClient implements LLMClient {
     await this.delay(delayMs);
   }
 
-  private createAbortTimeout(controller: AbortController): NodeJS.Timeout | null {
+  private createAbortTimeout(
+    controller: AbortController,
+  ): NodeJS.Timeout | null {
     if (!this.options.timeoutMs || this.options.timeoutMs <= 0) {
       return null;
     }
@@ -351,9 +365,7 @@ export class OpenAIClient implements LLMClient {
     return (item as ResponsesFunctionCallOutput).type === "function_call";
   }
 
-  private extractOutputContent(
-    outputMessage: ResponsesOutputMessage,
-  ): {
+  private extractOutputContent(outputMessage: ResponsesOutputMessage): {
     textParts: Array<string>;
     toolCalls: Array<OpenAIToolCall>;
   } {
