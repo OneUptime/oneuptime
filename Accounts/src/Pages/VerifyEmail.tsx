@@ -58,60 +58,53 @@ const VerifyEmail: () => JSX.Element = () => {
   }
 
   return (
-    <div className="auth-page">
-      <div className="container-fluid p-0">
-        <div className="row g-0">
-          <div className="col-xxl-4 col-lg-4 col-md-3"></div>
+    <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md mx-auto">
+        <div className="text-center mb-8 sm:mb-10">
+          <img
+            className="mx-auto h-10 w-auto sm:h-12"
+            src={OneUptimeLogo}
+            alt="OneUptime"
+          />
+        </div>
 
-          <div className="col-xxl-4 col-lg-4 col-md-6">
-            <div className="auth-full-page-content d-flex p-sm-5 p-4">
-              <div className="w-100">
-                <div className="d-flex flex-column h-100">
-                  <div className="auth-content my-auto">
-                    <div
-                      className="mt-4 text-center flex justify-center"
-                      style={{ marginBottom: "40px" }}
-                    >
-                      <img
-                        style={{ height: "50px" }}
-                        src={`${OneUptimeLogo}`}
-                      />
-                    </div>
-                    {!error && (
-                      <div className="text-center">
-                        <h5 className="mb-0">Your email is verified.</h5>
-                        <p className="text-muted mt-2 mb-0">
-                          Thank you for verifying your email. You can now log in
-                          to OneUptime.{" "}
-                        </p>
-                      </div>
-                    )}
-
-                    {error && (
-                      <div className="text-center">
-                        <h5 className="mb-0">Sorry, something went wrong!</h5>
-                        <p className="text-muted mt-2 mb-0">{error}</p>
-                      </div>
-                    )}
-
-                    <div className="mt-5 text-center">
-                      <p className="text-muted mb-0">
-                        Return to sign in?{" "}
-                        <Link
-                          to={new Route("/accounts/login")}
-                          className="hover:underline text-primary fw-semibold"
-                        >
-                          Login.
-                        </Link>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+        <div className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10">
+          {!error && (
+            <div className="text-center">
+              <div className="text-5xl sm:text-6xl mb-4">✅</div>
+              <h2 className="text-xl sm:text-2xl tracking-tight text-gray-900">
+                Your email is verified.
+              </h2>
+              <p className="text-gray-600 mt-3 text-sm sm:text-base px-2 sm:px-0">
+                Thank you for verifying your email. You can now log in to
+                OneUptime.
+              </p>
             </div>
-          </div>
+          )}
 
-          <div className="col-xxl-4 col-lg-4 col-md-3"></div>
+          {error && (
+            <div className="text-center">
+              <div className="text-5xl sm:text-6xl mb-4">❌</div>
+              <h2 className="text-xl sm:text-2xl tracking-tight text-gray-900">
+                Sorry, something went wrong!
+              </h2>
+              <p className="text-gray-600 mt-3 text-sm sm:text-base px-2 sm:px-0">
+                {error}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-6 sm:mt-8 text-center">
+          <p className="text-gray-500 text-sm sm:text-base">
+            Return to sign in?{" "}
+            <Link
+              to={new Route("/accounts/login")}
+              className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
+            >
+              Login.
+            </Link>
+          </p>
         </div>
       </div>
     </div>

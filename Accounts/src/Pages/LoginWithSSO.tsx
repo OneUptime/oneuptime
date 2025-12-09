@@ -126,18 +126,18 @@ const LoginPage: () => JSX.Element = () => {
     );
 
     return (
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-          <div className="">
+      <div className="w-full max-w-md mx-auto px-4 sm:px-0">
+        <div className="flex min-h-full flex-col justify-center py-8 sm:py-12">
+          <div className="w-full">
             <img
-              className="mx-auto h-12 w-auto"
+              className="mx-auto h-10 w-auto sm:h-12"
               src={OneUptimeLogo}
               alt="OneUptime"
             />
-            <h2 className="mt-10 text-center text-xl tracking-tight text-gray-900">
+            <h2 className="mt-6 sm:mt-10 text-center text-lg sm:text-xl tracking-tight text-gray-900">
               Select Project
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
+            <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
               Select the project you want to login to.
             </p>
           </div>
@@ -164,23 +164,23 @@ const LoginPage: () => JSX.Element = () => {
   }
 
   return (
-    <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="">
+    <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md mx-auto">
         <img
-          className="mx-auto h-12 w-auto"
+          className="mx-auto h-10 w-auto sm:h-12"
           src={OneUptimeLogo}
           alt="OneUptime"
         />
-        <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
+        <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
           Login with SSO
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
           Login with your SSO provider to access your account.
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+      <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto">
+        <div className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10">
           <BasicForm
             modelType={User}
             id="login-form"
@@ -217,8 +217,8 @@ const LoginPage: () => JSX.Element = () => {
             }
           />
         </div>
-        <div className="mt-10 text-center">
-          <div className="text-muted mb-0 text-gray-500">
+        <div className="mt-6 sm:mt-10 text-center">
+          <div className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
             Don&apos;t have an account?{" "}
             <Link
               to={new Route("/accounts/register")}

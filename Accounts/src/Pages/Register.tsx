@@ -248,17 +248,17 @@ const RegisterPage: () => JSX.Element = () => {
   }
 
   return (
-    <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <div className="flex min-h-full flex-col justify-center py-6 px-4 sm:py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md mx-auto lg:max-w-2xl">
         <img
-          className="mx-auto h-12 w-auto"
+          className="mx-auto h-10 w-auto sm:h-12"
           src={OneUptimeLogo}
           alt="OneUptime"
         />
-        <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
+        <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
           Create your OneUptime account
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
           Join thousands of business that use OneUptime to help them stay online
           all the time.
         </p>
@@ -267,8 +267,8 @@ const RegisterPage: () => JSX.Element = () => {
         </p>
       </div>
 
-      <div className="mt-8 lg:mx-auto lg:w-full lg:max-w-2xl">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+      <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto lg:max-w-2xl">
+        <div className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10">
           <ModelForm<User>
             modelType={User}
             id="register-form"
@@ -339,8 +339,8 @@ const RegisterPage: () => JSX.Element = () => {
             }}
           />
         </div>
-        <div className="mt-5 text-center text-gray-500">
-          <p className="text-muted mb-0">
+        <div className="mt-4 sm:mt-5 text-center text-gray-500">
+          <p className="text-muted mb-0 text-sm sm:text-base">
             Already have an account?{" "}
             <Link
               to={new Route("/accounts/login")}

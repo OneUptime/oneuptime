@@ -14,33 +14,33 @@ const RegisterPage: () => JSX.Element = () => {
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
   return (
-    <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md mx-auto">
         <img
-          className="mx-auto h-12 w-auto"
+          className="mx-auto h-10 w-auto sm:h-12"
           src={OneUptimeLogo}
           alt="Your Company"
         />
-        <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
+        <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
           Reset your password
         </h2>
 
         {!isSuccess && (
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
             Please enter your new password and we will have it updated.{" "}
           </p>
         )}
 
         {isSuccess && (
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
             Your password has been updated. Please log in.
           </p>
         )}
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto">
         {!isSuccess && (
-          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          <div className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10">
             <ModelForm<User>
               modelType={User}
               id="register-form"
@@ -97,8 +97,8 @@ const RegisterPage: () => JSX.Element = () => {
           </div>
         )}
 
-        <div className="mt-5 text-center">
-          <p className="text-muted mb-0 text-gray-500">
+        <div className="mt-4 sm:mt-5 text-center">
+          <p className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
             Know your password?{" "}
             <Link
               to={new Route("/accounts/login")}

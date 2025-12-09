@@ -274,10 +274,10 @@ const LoginPage: () => JSX.Element = () => {
   };
 
   return (
-    <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="">
+    <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md mx-auto">
         <img
-          className="mx-auto h-12 w-auto"
+          className="mx-auto h-10 w-auto sm:h-12"
           src={OneUptimeLogo}
           alt="OneUptime"
         />
@@ -286,10 +286,10 @@ const LoginPage: () => JSX.Element = () => {
         </div>
         {!showTwoFactorAuth && (
           <>
-            <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
+            <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
               Sign in to your account
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
+            <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
               Join thousands of business that use OneUptime to help them stay
               online all the time.
             </p>
@@ -298,10 +298,10 @@ const LoginPage: () => JSX.Element = () => {
 
         {showTwoFactorAuth && (
           <>
-            <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
+            <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
               Two Factor Authentication
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
+            <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
               Select two factor authentication method. You will be asked to
               enter a code from the selected method.
             </p>
@@ -309,8 +309,8 @@ const LoginPage: () => JSX.Element = () => {
         )}
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+      <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto">
+        <div className="bg-white py-6 px-4 shadow-sm sm:shadow sm:rounded-lg sm:py-8 sm:px-10 rounded-lg">
           {!showTwoFactorAuth && (
             <ModelForm<User>
               modelType={User}
@@ -505,9 +505,9 @@ const LoginPage: () => JSX.Element = () => {
             />
           )}
         </div>
-        <div className="mt-10 text-center">
+        <div className="mt-6 sm:mt-10 text-center">
           {!selectedTotpAuth && !selectedWebAuthn && (
-            <div className="text-muted mb-0 text-gray-500">
+            <div className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
               Don&apos;t have an account?{" "}
               <Link
                 to={new Route("/accounts/register")}
