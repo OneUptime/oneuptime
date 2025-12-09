@@ -11,7 +11,10 @@ export function redactSecrets(text: string): string {
     return text;
   }
 
-  return SECRET_PATTERNS.reduce((sanitized: string, pattern) => {
-    return sanitized.replace(pattern.regex, pattern.replacement);
-  }, text);
+  return SECRET_PATTERNS.reduce(
+    (sanitized: string, pattern: { regex: RegExp; replacement: string }) => {
+      return sanitized.replace(pattern.regex, pattern.replacement);
+    },
+    text,
+  );
 }
