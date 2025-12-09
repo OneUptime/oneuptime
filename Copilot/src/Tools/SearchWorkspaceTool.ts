@@ -155,11 +155,23 @@ export class SearchWorkspaceTool extends StructuredTool<SearchArgs> {
       ".",
     ];
 
-    return Execute.executeCommandFile({
-      command: "grep",
-      args: finalArgs,
-      cwd,
-    });
+    try {
+      return await Execute.executeCommandFile({
+        command: "grep",
+        args: finalArgs,
+        cwd,
+      });
+    } catch (error) {
+      // grep exits with code 1 when no matches are found - treat this as empty result
+      const errorMessage: string = (error as Error).message || "";
+      if (
+        errorMessage.includes("exit code 1") ||
+        errorMessage.includes("Command failed")
+      ) {
+        return "No matches found";
+      }
+      throw error;
+    }
   }
 
   /** Formats CLI output with context about scope and engine. */
