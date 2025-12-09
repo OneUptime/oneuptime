@@ -16,6 +16,7 @@ export interface SyntheticMonitorOptions {
   screenSizeTypes?: Array<ScreenSizeType> | undefined;
   browserTypes?: Array<BrowserType> | undefined;
   script: string;
+  retryCountOnError?: number | undefined;
 }
 
 interface BrowserLaunchOptions {
@@ -51,10 +52,11 @@ export default class SyntheticMonitor {
         );
 
         const result: SyntheticMonitorResponse | null =
-          await this.executeByBrowserAndScreenSize({
+          await this.executeWithRetry({
             script: options.script,
             browserType: browserType,
             screenSizeType: screenSizeType,
+            retryCountOnError: options.retryCountOnError || 0,
           });
 
         if (result) {
@@ -66,6 +68,46 @@ export default class SyntheticMonitor {
     }
 
     return results;
+  }
+
+  private static async executeWithRetry(options: {
+    script: string;
+    browserType: BrowserType;
+    screenSizeType: ScreenSizeType;
+    retryCountOnError: number;
+    currentRetry?: number;
+  }): Promise<SyntheticMonitorResponse | null> {
+    const currentRetry: number = options.currentRetry || 0;
+    const maxRetries: number = options.retryCountOnError;
+
+    const result: SyntheticMonitorResponse | null =
+      await this.executeByBrowserAndScreenSize({
+        script: options.script,
+        browserType: options.browserType,
+        screenSizeType: options.screenSizeType,
+      });
+
+    // If there's an error and we haven't exceeded retry count, retry
+    if (result?.scriptError && currentRetry < maxRetries) {
+      logger.debug(
+        `Synthetic Monitor script error, retrying (${currentRetry + 1}/${maxRetries}): ${result.scriptError}`,
+      );
+
+      // Wait a bit before retrying
+      await new Promise((resolve: (value: void) => void) => {
+        setTimeout(resolve, 1000);
+      });
+
+      return this.executeWithRetry({
+        script: options.script,
+        browserType: options.browserType,
+        screenSizeType: options.screenSizeType,
+        retryCountOnError: maxRetries,
+        currentRetry: currentRetry + 1,
+      });
+    }
+
+    return result;
   }
 
   private static async executeByBrowserAndScreenSize(options: {

@@ -32,7 +32,7 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
-import Input from "Common/UI/Components/Input/Input";
+import Input, { InputType } from "Common/UI/Components/Input/Input";
 import { APP_API_URL, DOCS_URL } from "Common/UI/Config";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import React, {
@@ -94,6 +94,11 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   const [showDoNotFollowRedirects, setShowDoNotFollowRedirects] =
     useState<boolean>(false);
+
+  const [
+    showSyntheticMonitorAdvancedOptions,
+    setShowSyntheticMonitorAdvancedOptions,
+  ] = useState<boolean>(false);
 
   const [telemetryServices, setTelemetryServices] = useState<
     Array<TelemetryService>
@@ -770,6 +775,54 @@ return {
           </div>
         </div>
       )}
+
+      {props.monitorType === MonitorType.SyntheticMonitor &&
+        !showSyntheticMonitorAdvancedOptions && (
+          <div className="mt-1 -ml-3">
+            <Button
+              title="Advanced: More Options"
+              buttonStyle={ButtonStyleType.SECONDARY_LINK}
+              onClick={() => {
+                setShowSyntheticMonitorAdvancedOptions(true);
+              }}
+            />
+          </div>
+        )}
+
+      {props.monitorType === MonitorType.SyntheticMonitor &&
+        showSyntheticMonitorAdvancedOptions && (
+          <div className="mt-5">
+            <FieldLabelElement
+              title={"Retry Count on Error"}
+              description={
+                "How many times should we retry the synthetic monitor if it fails? Set to 0 for no retries. Max is 5."
+              }
+              required={false}
+            />
+            <div className="mt-1">
+              <Input
+                initialValue={
+                  props.value?.data?.retryCountOnError?.toString() || "0"
+                }
+                onChange={(value: string) => {
+                  const retryCountOnError: number = parseInt(value) || 0;
+                  monitorStep.setRetryCountOnError(
+                    retryCountOnError < 0
+                      ? 0
+                      : retryCountOnError > 5
+                        ? 5
+                        : retryCountOnError,
+                  );
+                  if (props.onChange) {
+                    props.onChange(MonitorStep.clone(monitorStep));
+                  }
+                }}
+                placeholder="0"
+                type={InputType.NUMBER}
+              />
+            </div>
+          </div>
+        )}
 
       {/** Monitor Test Form */}
       <div className="mt-5 mb-2">

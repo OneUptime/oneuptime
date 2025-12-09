@@ -302,6 +302,7 @@ export default class MonitorUtil {
           screenSizeTypes: monitorStep.data
             .screenSizeTypes as Array<ScreenSizeType>,
           browserTypes: monitorStep.data.browserTypes as Array<BrowserType>,
+          retryCountOnError: monitorStep.data.retryCountOnError || 0,
         });
 
       if (!response) {
