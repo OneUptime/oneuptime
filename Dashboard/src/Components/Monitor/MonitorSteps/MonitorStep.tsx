@@ -297,7 +297,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
       {
         key: "retryCountOnError",
         title: "Retry Count on Error",
-        description: "Number of times to retry the synthetic monitor if it fails.",
+        description:
+          "Number of times to retry the synthetic monitor if it fails.",
         fieldType: FieldType.Number,
         placeholder: "0",
       },

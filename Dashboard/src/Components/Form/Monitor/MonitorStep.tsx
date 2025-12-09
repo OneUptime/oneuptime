@@ -95,8 +95,10 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   const [showDoNotFollowRedirects, setShowDoNotFollowRedirects] =
     useState<boolean>(false);
 
-  const [showSyntheticMonitorAdvancedOptions, setShowSyntheticMonitorAdvancedOptions] =
-    useState<boolean>(false);
+  const [
+    showSyntheticMonitorAdvancedOptions,
+    setShowSyntheticMonitorAdvancedOptions,
+  ] = useState<boolean>(false);
 
   const [telemetryServices, setTelemetryServices] = useState<
     Array<TelemetryService>
