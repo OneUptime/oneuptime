@@ -56,6 +56,7 @@ const Link: FunctionComponent<ComponentProps> = (
       onAuxClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
         // middle click
         if (event.button === 1) {
+          event.preventDefault();
           if (props.to) {
             Navigation.navigate(props.to, {
               openInNewTab: true,
@@ -67,7 +68,9 @@ const Link: FunctionComponent<ComponentProps> = (
           }
         }
       }}
-      onClick={() => {
+      onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
+        event.preventDefault();
+
         if (props.onClick) {
           props.onClick();
         }
