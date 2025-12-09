@@ -95,7 +95,7 @@ export default class SyntheticMonitor {
 
       // Wait a bit before retrying
       await new Promise((resolve: (value: void) => void) => {
-        return setTimeout(resolve, 1000);
+        setTimeout(resolve, 1000);
       });
 
       return this.executeWithRetry({
