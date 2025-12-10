@@ -162,23 +162,6 @@ jobs:
           max_attempts: 3
           command: cd Docs && npm install && npm run compile && npm run dep-check
 
-  compile-copilot:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: latest
-      - run: cd Common && npm install
-      - name: Compile Copilot
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd Copilot && npm install && npm run compile && npm run dep-check
-
   compile-nginx:
     runs-on: ubuntu-latest
     env:

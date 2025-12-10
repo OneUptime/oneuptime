@@ -297,77 +297,6 @@ jobs:
           path: ./MCP/
           retention-days: 90
 
-  publish-copilot-agent:
-    runs-on: ubuntu-latest
-    needs: [generate-build-number, read-version, publish-npm-packages]
-    env:
-      NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-      CI_PIPELINE_ID: ${{ github.run_number }}
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: latest
-          cache: npm
-          cache-dependency-path: |
-            Copilot/package-lock.json
-            Common/package-lock.json
-
-      - name: Configure npm authentication
-        run: |
-          rm -f ~/.npmrc
-          {
-            echo "//registry.npmjs.org/:_authToken=${NPM_AUTH_TOKEN}"
-            echo "always-auth=true"
-          } >> ~/.npmrc
-
-      - name: Install Common dependencies
-        run: |
-          cd Common
-          npm install
-
-      - name: Install Copilot dependencies
-        run: |
-          cd Copilot
-          npm install
-
-      - name: Build Copilot agent
-        run: |
-          cd Copilot
-          npm run compile
-
-      - name: Update Copilot agent version
-        run: |
-          cd Copilot
-          npm version ${{ needs.read-version.outputs.major_minor }} --no-git-tag-version
-
-      - name: Publish Copilot agent to npm
-        run: |
-          cd Copilot
-          set +e
-          PUBLISH_OUTPUT=$(npm publish --access public 2>&1)
-          PUBLISH_EXIT=$?
-          set -e
-          echo "$PUBLISH_OUTPUT"
-          if [ $PUBLISH_EXIT -ne 0 ]; then
-            if echo "$PUBLISH_OUTPUT" | grep -q "You cannot publish over the previously published versions"; then
-              echo "⚠️ Copilot agent version already published, skipping."
-            else
-              echo "❌ npm publish failed"
-              exit $PUBLISH_EXIT
-            fi
-          else
-            echo "✅ Published @oneuptime/copilot-agent@${{ needs.read-version.outputs.major_minor }}"
-          fi
-
   nginx-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
@@ -1531,78 +1460,6 @@ jobs:
               --git-sha "${{ github.sha }}"
 
 
-  copilot-docker-image-deploy:
-    needs: [generate-build-number, read-version]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Docker Meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            oneuptime/copilot
-            ghcr.io/oneuptime/copilot
-          tags: |
-            type=raw,value=release,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
-
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: latest
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v10.0.4
-          
-
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
-
-      # Build and deploy app.
-
-      - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-      - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
-
-      - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 45
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image copilot \
-              --version "${{needs.read-version.outputs.major_minor}}" \
-              --dockerfile ./Copilot/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}"
-
   accounts-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
@@ -2083,7 +1940,6 @@ jobs:
       - admin-dashboard-docker-image-deploy
       - dashboard-docker-image-deploy
       - app-docker-image-deploy
-      - copilot-docker-image-deploy
       - accounts-docker-image-deploy
       - docs-docker-image-deploy
       - worker-docker-image-deploy
@@ -2113,7 +1969,6 @@ jobs:
           "admin-dashboard",
           "dashboard",
           "app",
-          "copilot",
           "accounts",
           "docs",
           "worker",
@@ -2173,7 +2028,7 @@ jobs:
 
   test-e2e-release-saas: 
     runs-on: ubuntu-latest
-    needs: [telemetry-docker-image-deploy, publish-mcp-server, copilot-docker-image-deploy, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
+    needs: [telemetry-docker-image-deploy, publish-mcp-server, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -2261,7 +2116,7 @@ jobs:
   test-e2e-release-self-hosted: 
     runs-on: ubuntu-latest
     # After all the jobs runs
-    needs: [telemetry-docker-image-deploy, publish-mcp-server, copilot-docker-image-deploy, incoming-request-ingest-docker-image-deploy, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy]
+    needs: [telemetry-docker-image-deploy, publish-mcp-server, incoming-request-ingest-docker-image-deploy, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:

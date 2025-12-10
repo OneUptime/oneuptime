@@ -453,24 +453,6 @@ services:
             context: .
             dockerfile: ./E2E/Dockerfile
 
-    copilot:
-        volumes:
-            - ./Copilot:/usr/src/app:cached
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-            - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common:cached
-            - /usr/src/Common/node_modules/
-        ports:
-            - '9985:9229' # Debugging port.
-        extends:
-            file: ./docker-compose.base.yml
-            service: copilot
-        build:
-            network: host
-            context: .
-            dockerfile: ./Copilot/Dockerfile
-
 volumes:
     postgres:
     clickhouse:

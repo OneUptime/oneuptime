@@ -500,25 +500,6 @@ services:
             driver: "local"
             options:
                 max-size: "1000m"
-
-    copilot:
-        networks:
-          - oneuptime
-        restart: always
-        environment:
-            ONEUPTIME_URL: ${COPILOT_ONEUPTIME_URL}
-            ONEUPTIME_REPOSITORY_SECRET_KEY: ${COPILOT_ONEUPTIME_REPOSITORY_SECRET_KEY}
-            CODE_REPOSITORY_PASSWORD: ${COPILOT_CODE_REPOSITORY_PASSWORD}
-            CODE_REPOSITORY_USERNAME: ${COPILOT_CODE_REPOSITORY_USERNAME}
-            ONEUPTIME_LLM_SERVER_URL: ${COPILOT_ONEUPTIME_LLM_SERVER_URL}
-            DISABLE_COPILOT: ${DISABLE_COPILOT}
-            OPENAI_API_KEY: ${COPILOT_OPENAI_API_KEY}
-            LOG_LEVEL: ${LOG_LEVEL}
-            IS_ENTERPRISE_EDITION: ${IS_ENTERPRISE_EDITION}
-        logging:
-            driver: "local"
-            options:
-                max-size: "1000m"       
     
     e2e:
         restart: "no"
