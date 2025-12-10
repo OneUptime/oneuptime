@@ -285,7 +285,9 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
     eventTimeline: timeline,
     eventType: "Scheduled Maintenance",
     eventResourcesAffected: namesOfResources.map((i: StatusPageResource) => {
-      return i.displayName || "";
+      const groupName: string = i.statusPageGroup?.name || "";
+      const displayName: string = i.displayName || "";
+      return groupName ? `${groupName}: ${displayName}` : displayName;
     }),
     eventViewRoute: !isSummary
       ? undefined

@@ -312,7 +312,9 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     eventTitle: incident.title || "",
     eventDescription: incident.description,
     eventResourcesAffected: namesOfResources.map((i: StatusPageResource) => {
-      return i.displayName || "";
+      const groupName: string = i.statusPageGroup?.name || "";
+      const displayName: string = i.displayName || "";
+      return groupName ? `${groupName}: ${displayName}` : displayName;
     }),
     eventTimeline: timeline,
     eventType: "Incident",

@@ -1193,6 +1193,9 @@ export class Service extends DatabaseService<StatusPage> {
         },
         select: {
           statusPageGroupId: true,
+          statusPageGroup: {
+            name: true,
+          },
           monitorId: true,
           displayTooltip: true,
           displayDescription: true,
