@@ -69,15 +69,16 @@ const Link: FunctionComponent<ComponentProps> = (
         }
       }}
       onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
-        event.preventDefault();
-
         if (props.onClick) {
           props.onClick();
         }
 
         if (props.openInNewTab) {
+          // Let the browser handle the default behavior (open in new tab via href and target="_blank")
           return;
         }
+
+        event.preventDefault();
 
         if (props.to) {
           Navigation.navigate(props.to);
