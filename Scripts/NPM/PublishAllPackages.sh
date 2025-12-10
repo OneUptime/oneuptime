@@ -9,15 +9,24 @@ if [ -z "$package_version" ]; then
   exit 1
 fi
 
-# touch npmrc file
-touch ~/.npmrc
+# Note: Authentication is handled via npm OIDC trusted publishing
+# The GitHub Actions workflow provides id-token: write permission
+# and setup-node action configures the registry-url
 
-# Add Auth Token to npmrc file
-echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" >> ~/.npmrc
-echo "//registry.npmjs.org/:email=npm@oneuptime.com" >> ~/.npmrc
+###
+# Required Manual Configuration on npmjs.com
+# You need to configure Trusted Publishers for each npm package:
 
-# Show content of npmrc file
-cat ~/.npmrc
+# Go to npmjs.com and log into your account
+# For each package (@oneuptime/common, @oneuptime/mcp-server, etc.):
+# Navigate to the package settings
+# Find the "Trusted Publisher" section
+# Click "GitHub Actions"
+# Configure:
+# Organization or user: OneUptime
+# Repository: oneuptime
+# Workflow filename: release.yml
+# Save the configuration
 
 publish_to_npm() {
     directory_name=$1

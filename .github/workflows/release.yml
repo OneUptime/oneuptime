@@ -141,10 +141,10 @@ jobs:
     needs: [generate-build-number, read-version, publish-npm-packages]
     env:
       CI_PIPELINE_ID: ${{ github.run_number }}
-      NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
     permissions:
       contents: write  # For creating releases
       packages: write  # For publishing packages
+      id-token: write  # Required for npm OIDC trusted publishing
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -156,6 +156,10 @@ jobs:
         with:
           node-version: latest
           cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Update npm for OIDC support
+        run: npm install -g npm@latest
 
       - name: Install Common dependencies
         run: cd Common && npm install
@@ -184,16 +188,6 @@ jobs:
           find "$MCP_DIR" -type f -name "*.ts" -o -name "*.js" -o -name "*.json" | wc -l
           echo "📁 Directory structure:"
           ls -la "$MCP_DIR"
-
-      - name: Setup npm authentication
-        run: |
-          # Clean up any existing npm configuration that might cause warnings
-          rm -f ~/.npmrc
-          # Create npmrc file with authentication
-          touch ~/.npmrc
-          echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" >> ~/.npmrc
-          echo "//registry.npmjs.org/:email=npm@oneuptime.com" >> ~/.npmrc
-          echo "✅ npm authentication configured"
 
       - name: Update package version
         run: |
@@ -1536,13 +1530,22 @@ jobs:
   publish-npm-packages:
     runs-on: ubuntu-latest
     needs: [generate-build-number, read-version]
+    permissions:
+      contents: read
+      id-token: write  # Required for npm OIDC trusted publishing
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
-      NPM_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
       PACKAGE_VERSION: ${{needs.read-version.outputs.major_minor}}
     steps:
       - name: Checkout 
         uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+          registry-url: 'https://registry.npmjs.org'
+      - name: Update npm for OIDC support
+        run: npm install -g npm@latest
       - name: Preinstall 
         uses: nick-fields/retry@v3
         with:
