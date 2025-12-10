@@ -40,6 +40,7 @@ import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed
 import { Blue500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
 RunCron(
   "Incident:SendNotificationToSubscribers",
@@ -204,6 +205,10 @@ RunCron(
               _id: true,
               displayName: true,
               statusPageId: true,
+              statusPageGroupId: true,
+              statusPageGroup: {
+                name: true,
+              },
             },
           });
 
@@ -288,11 +293,9 @@ RunCron(
             // Send email to Email subscribers.
 
             const resourcesAffectedString: string =
-              statusPageToResources[statuspage._id!]
-                ?.map((r: StatusPageResource) => {
-                  return r.displayName;
-                })
-                .join(", ") || "None";
+              StatusPageResourceUtil.getResourcesGroupedByGroupName(
+                statusPageToResources[statuspage._id!] || [],
+              );
 
             logger.debug(
               `Resources affected for incident ${incident.id} on status page ${statuspage.id}: ${resourcesAffectedString}`,

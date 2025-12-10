@@ -43,6 +43,7 @@ import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed
 import { Blue500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
 RunCron(
   "IncidentPublicNote:SendNotificationToSubscribers",
@@ -213,6 +214,10 @@ RunCron(
               _id: true,
               displayName: true,
               statusPageId: true,
+              statusPageGroupId: true,
+              statusPageGroup: {
+                name: true,
+              },
             },
           });
 
@@ -333,11 +338,9 @@ RunCron(
 
           // Prepare template variables for custom templates
           const resourcesAffectedString: string =
-            statusPageToResources[statuspage._id!]
-              ?.map((r: StatusPageResource) => {
-                return r.displayName;
-              })
-              .join(", ") || "None";
+            StatusPageResourceUtil.getResourcesGroupedByGroupName(
+              statusPageToResources[statuspage._id!] || [],
+            );
 
           const templateVariables: Record<string, string> = {
             statusPageName: statusPageName,

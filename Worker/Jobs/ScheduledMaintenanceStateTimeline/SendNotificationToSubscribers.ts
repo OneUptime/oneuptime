@@ -44,6 +44,7 @@ import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/
 import { Blue500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 
 RunCron(
   "ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers",
@@ -216,6 +217,10 @@ RunCron(
               _id: true,
               displayName: true,
               statusPageId: true,
+              statusPageGroupId: true,
+              statusPageGroup: {
+                name: true,
+              },
             },
           });
         }
@@ -277,11 +282,10 @@ RunCron(
               : statusPageURL;
 
           const resourcesAffectedString: string =
-            statusPageToResources[statuspage._id!]
-              ?.map((r: StatusPageResource) => {
-                return r.displayName;
-              })
-              .join(", ") || "";
+            StatusPageResourceUtil.getResourcesGroupedByGroupName(
+              statusPageToResources[statuspage._id!] || [],
+              "", // Use empty string as default for backward compatibility
+            );
 
           const scheduledAtString: string =
             OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!);
