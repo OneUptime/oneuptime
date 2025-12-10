@@ -2510,6 +2510,9 @@ export default class StatusPageAPI extends BaseAPI<
         },
         select: {
           statusPageGroupId: true,
+          statusPageGroup: {
+            name: true,
+          },
           monitorId: true,
           displayTooltip: true,
           displayDescription: true,
@@ -3631,6 +3634,9 @@ export default class StatusPageAPI extends BaseAPI<
         },
         select: {
           statusPageGroupId: true,
+          statusPageGroup: {
+            name: true,
+          },
           monitorId: true,
           displayTooltip: true,
           displayDescription: true,
