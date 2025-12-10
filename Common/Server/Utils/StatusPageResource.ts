@@ -84,6 +84,6 @@ export default class StatusPageResourceUtil {
       }
     }
 
-    return formattedGroups.join("\n") || defaultValue;
+    return formattedGroups.join("<br/>") || defaultValue;
   }
 }

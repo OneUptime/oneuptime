@@ -43,11 +43,11 @@ describe("StatusPageResourceUtil", () => {
         StatusPageResourceUtil.getResourcesGroupedByGroupName(resources);
       /*
        * Groups should be formatted as "GroupName: Resource1, Resource2"
-       * Multiple groups separated by newlines
+       * Multiple groups separated by <br/> for HTML rendering
        */
       expect(result).toContain("EU: Infrastructure, Website");
       expect(result).toContain("UK: Infrastructure, API");
-      expect(result).toContain("\n");
+      expect(result).toContain("<br/>");
     });
 
     it("should handle mixed grouped and ungrouped resources", () => {
