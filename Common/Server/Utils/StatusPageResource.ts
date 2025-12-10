@@ -77,17 +77,13 @@ export default class StatusPageResourceUtil {
       formattedGroups.push(`${groupName}: ${groupResources.join(", ")}`);
     }
 
-    // Add ungrouped resources if any
+    // Add ungrouped resources on separate lines (without "Other" label)
     if (ungroupedResources.length > 0) {
-      // If there are both grouped and ungrouped resources, label the ungrouped ones
-      if (formattedGroups.length > 0) {
-        formattedGroups.push(`Other: ${ungroupedResources.join(", ")}`);
-      } else {
-        // If only ungrouped resources exist, return simple list
-        return ungroupedResources.join(", ") || defaultValue;
+      for (const resourceName of ungroupedResources) {
+        formattedGroups.push(resourceName);
       }
     }
 
-    return formattedGroups.join("; ") || defaultValue;
+    return formattedGroups.join("\n") || defaultValue;
   }
 }

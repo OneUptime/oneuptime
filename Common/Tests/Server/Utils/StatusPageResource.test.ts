@@ -4,10 +4,10 @@ import ObjectID from "../../../Types/ObjectID";
 
 describe("StatusPageResourceUtil", () => {
   describe("getResourcesGroupedByGroupName", () => {
-    it("should return 'None' for empty resources array", () => {
+    it("should return empty string for empty resources array", () => {
       const result: string =
         StatusPageResourceUtil.getResourcesGroupedByGroupName([]);
-      expect(result).toBe("None");
+      expect(result).toBe("");
     });
 
     it("should return custom default value for empty resources array", () => {
@@ -43,11 +43,11 @@ describe("StatusPageResourceUtil", () => {
         StatusPageResourceUtil.getResourcesGroupedByGroupName(resources);
       /*
        * Groups should be formatted as "GroupName: Resource1, Resource2"
-       * Multiple groups separated by "; "
+       * Multiple groups separated by newlines
        */
       expect(result).toContain("EU: Infrastructure, Website");
       expect(result).toContain("UK: Infrastructure, API");
-      expect(result).toContain("; ");
+      expect(result).toContain("\n");
     });
 
     it("should handle mixed grouped and ungrouped resources", () => {
@@ -61,7 +61,9 @@ describe("StatusPageResourceUtil", () => {
         StatusPageResourceUtil.getResourcesGroupedByGroupName(resources);
       expect(result).toContain("EU: Infrastructure");
       expect(result).toContain("UK: Website");
-      expect(result).toContain("Other: Global API");
+      // Ungrouped resources should appear on their own line without "Other" label
+      expect(result).toContain("Global API");
+      expect(result).not.toContain("Other:");
     });
 
     it("should handle single grouped resource", () => {
@@ -99,7 +101,7 @@ describe("StatusPageResourceUtil", () => {
         StatusPageResourceUtil.getResourcesGroupedByGroupName(
           null as unknown as Array<StatusPageResource>,
         );
-      expect(result).toBe("None");
+      expect(result).toBe("");
     });
 
     it("should return empty string as default when specified", () => {
