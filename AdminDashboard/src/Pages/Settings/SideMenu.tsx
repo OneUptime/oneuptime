@@ -72,6 +72,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Signal}
         />
       </SideMenuSection>
+      <SideMenuSection title="AI">
+        <SideMenuItem
+          link={{
+            title: "Global LLMs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_LLMS] as Route,
+            ),
+          }}
+          icon={IconProp.Robot}
+        />
+      </SideMenuSection>
       <SideMenuSection title="API and Integrations">
         <SideMenuItem
           link={{

@@ -79,6 +79,16 @@ const SettingProbes: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Settings/Probes");
   });
 
+const SettingLlms: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Settings/Llms");
+  });
+
+const SettingsLlmView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Settings/LlmView");
+  });
+
 const SettingFeatureFlags: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -1029,6 +1039,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LLMS)}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingLlms
+                {...props}
+                pageRoute={RouteMap[PageMap.SETTINGS_LLMS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_TEAMS)}
           element={
             <Suspense fallback={Loader}>
@@ -1083,6 +1105,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               <SettingsProbeView
                 {...props}
                 pageRoute={RouteMap[PageMap.SETTINGS_PROBE_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LLM_VIEW, 2)}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingsLlmView
+                {...props}
+                pageRoute={RouteMap[PageMap.SETTINGS_LLM_VIEW] as Route}
               />
             </Suspense>
           }

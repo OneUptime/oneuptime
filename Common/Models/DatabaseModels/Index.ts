@@ -74,6 +74,7 @@ import OnCallDutyPolicyTimeLog from "./OnCallDutyPolicyTimeLog";
 import Probe from "./Probe";
 import ProbeOwnerTeam from "./ProbeOwnerTeam";
 import ProbeOwnerUser from "./ProbeOwnerUser";
+import Llm from "./Llm";
 import Project from "./Project";
 import ProjectCallSMSConfig from "./ProjectCallSMSConfig";
 // Project SMTP Config.
@@ -381,6 +382,8 @@ const AllModelTypes: Array<{
 
   ProbeOwnerTeam,
   ProbeOwnerUser,
+  
+  Llm,
 
   UserSession,
   UserTotpAuth,

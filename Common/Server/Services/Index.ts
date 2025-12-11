@@ -33,6 +33,7 @@ import IncidentStateService from "./IncidentStateService";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
 //Labels.
 import LabelService from "./LabelService";
+import LlmService from "./LlmService";
 import LogService from "./LogService";
 import MailService from "./MailService";
 import MetricService from "./MetricService";
@@ -217,6 +218,7 @@ const services: Array<BaseService> = [
   IncidentFeedService,
 
   LabelService,
+  LlmService,
 
   MailService,
   MonitorCustomFieldService,

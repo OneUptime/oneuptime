@@ -12,6 +12,7 @@ import MonitorGroupAPI from "Common/Server/API/MonitorGroupAPI";
 import NotificationAPI from "Common/Server/API/NotificationAPI";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
+import LlmAPI from "Common/Server/API/LlmAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
 import WhatsAppLogAPI from "./WhatsAppLogAPI";
@@ -1702,6 +1703,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserPushAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProbeAPI().getRouter());
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new LlmAPI().getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

@@ -280,6 +280,8 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_PROBE_VIEW]: `probes/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_LABELS]: "labels",
   [PageMap.SETTINGS_PROBES]: "probes",
+  [PageMap.SETTINGS_LLMS]: "llm",
+  [PageMap.SETTINGS_LLM_VIEW]: `llm/${RouteParams.ModelID}`,
 };
 
 export const OnCallDutyRoutePath: Dictionary<string> = {
@@ -1934,6 +1936,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_PROBES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_PROBES]
+    }`,
+  ),
+
+  // LLMs.
+  [PageMap.SETTINGS_LLMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_LLMS]
+    }`,
+  ),
+  [PageMap.SETTINGS_LLM_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_LLM_VIEW]
     }`,
   ),
 
