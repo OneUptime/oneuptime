@@ -24,12 +24,17 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     note: string;
     attachmentFileIds?: Array<ObjectID>;
+    postedFromSlackMessageId?: string;
   }): Promise<Model> {
     const internalNote: Model = new Model();
     internalNote.createdByUserId = data.userId;
     internalNote.scheduledMaintenanceId = data.scheduledMaintenanceId;
     internalNote.projectId = data.projectId;
     internalNote.note = data.note;
+
+    if (data.postedFromSlackMessageId) {
+      internalNote.postedFromSlackMessageId = data.postedFromSlackMessageId;
+    }
 
     if (data.attachmentFileIds && data.attachmentFileIds.length > 0) {
       internalNote.attachments = data.attachmentFileIds.map(
@@ -47,6 +52,27 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+  }
+
+  @CaptureSpan()
+  public async hasNoteFromSlackMessage(data: {
+    scheduledMaintenanceId: ObjectID;
+    postedFromSlackMessageId: string;
+  }): Promise<boolean> {
+    const existingNote: Model | null = await this.findOneBy({
+      query: {
+        scheduledMaintenanceId: data.scheduledMaintenanceId,
+        postedFromSlackMessageId: data.postedFromSlackMessageId,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return existingNote !== null;
   }
 
   @CaptureSpan()

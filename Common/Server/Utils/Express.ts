@@ -40,6 +40,7 @@ export interface OneUptimeRequest extends express.Request {
   userGlobalAccessPermission?: UserGlobalAccessPermission;
   userTenantAccessPermission?: Dictionary<UserTenantAccessPermission>; // tenantId <-> UserTenantAccessPermission;
   rawFormUrlEncodedBody?: string;
+  rawBody?: string; // Raw body for signature verification (JSON or URL-encoded)
 }
 
 export interface OneUptimeResponse extends express.Response {

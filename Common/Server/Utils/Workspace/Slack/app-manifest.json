@@ -5,6 +5,7 @@
         "background_color": "#000000",
         "long_description": "OneUptime is a comprehensive solution for monitoring and managing your online services. Whether you need to check the availability of your website, dashboard, API, or any other online resource, OneUptime can alert your team when downtime happens and keep your customers informed with a status page. OneUptime also helps you handle incidents, set up on-call rotations, run tests, secure your services, analyze logs, track performance, and debug errors."
     },
+
     "features": {
         "app_home": {
             "home_tab_enabled": false,
@@ -66,10 +67,14 @@
                 "users:read",
                 "groups:read",
                 "groups:write",
+                "groups:history",
                 "im:read",
                 "im:write",
+                "im:history",
                 "mpim:read",
-                "mpim:write"
+                "mpim:write",
+                "mpim:history",
+                "reactions:read"
             ]
         }
     },
@@ -81,6 +86,12 @@
         },
         "org_deploy_enabled": true,
         "socket_mode_enabled": false,
-        "token_rotation_enabled": false
+        "token_rotation_enabled": false,
+        "event_subscriptions": {
+            "request_url": "{{SERVER_URL}}/api/slack/events",
+            "bot_events": [
+                "reaction_added"
+            ]
+        }
     }
 }

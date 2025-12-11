@@ -556,4 +556,33 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     unique: false,
   })
   public postedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenancePublicNote,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadScheduledMaintenancePublicNote,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Posted from Slack Message ID",
+    description:
+      "Unique identifier for the Slack message this note was created from (channel_id:message_ts). Used to prevent duplicate notes when multiple users react to the same message.",
+    required: false,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public postedFromSlackMessageId?: string = undefined;
 }

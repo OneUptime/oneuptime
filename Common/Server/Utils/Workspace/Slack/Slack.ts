@@ -1157,6 +1157,119 @@ export default class SlackUtil extends WorkspaceBase {
   }
 
   @CaptureSpan()
+  public static async sendMessageToThread(data: {
+    authToken: string;
+    channelId: string;
+    threadTs: string;
+    text: string;
+  }): Promise<void> {
+    logger.debug("Sending message to thread with data:");
+    logger.debug(data);
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post({
+        url: URL.fromString("https://slack.com/api/chat.postMessage"),
+        data: {
+          channel: data.channelId,
+          thread_ts: data.threadTs,
+          text: data.text,
+        },
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/json",
+        },
+        options: {
+          retries: 3,
+          exponentialBackoff: true,
+        },
+      });
+
+    logger.debug("Response from Slack API for sending thread message:");
+    logger.debug(response);
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.error("Error response from Slack API:");
+      logger.error(response);
+      throw response;
+    }
+
+    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+      logger.error("Invalid response from Slack API:");
+      logger.error(response.jsonData);
+      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+      throw new BadRequestException("Error from Slack " + messageFromSlack);
+    }
+
+    logger.debug("Thread message sent successfully.");
+  }
+
+  @CaptureSpan()
+  public static async getMessageByTimestamp(data: {
+    authToken: string;
+    channelId: string;
+    messageTs: string;
+  }): Promise<string | null> {
+    logger.debug("Getting message by timestamp with data:");
+    logger.debug(data);
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post({
+        url: URL.fromString("https://slack.com/api/conversations.history"),
+        data: {
+          channel: data.channelId,
+          latest: data.messageTs,
+          oldest: data.messageTs,
+          inclusive: true,
+          limit: 1,
+        },
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/x-www-form-urlencoded",
+        },
+        options: {
+          retries: 3,
+          exponentialBackoff: true,
+        },
+      });
+
+    logger.debug("Response from Slack API for getting message:");
+    logger.debug(response);
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.error("Error response from Slack API:");
+      logger.error(response);
+      throw response;
+    }
+
+    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+      logger.error("Invalid response from Slack API:");
+      logger.error(response.jsonData);
+      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+      throw new BadRequestException("Error from Slack " + messageFromSlack);
+    }
+
+    const messages: Array<JSONObject> = (response.jsonData as JSONObject)?.[
+      "messages"
+    ] as Array<JSONObject>;
+
+    if (!messages || messages.length === 0) {
+      logger.debug("No messages found for timestamp.");
+      return null;
+    }
+
+    const messageText: string | undefined = messages[0]?.["text"] as string;
+
+    logger.debug("Message text retrieved:");
+    logger.debug(messageText);
+
+    return messageText || null;
+  }
+
+  @CaptureSpan()
   public static override getButtonsBlock(data: {
     payloadButtonsBlock: WorkspacePayloadButtons;
   }): JSONObject {

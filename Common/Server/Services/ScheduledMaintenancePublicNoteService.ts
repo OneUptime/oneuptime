@@ -162,6 +162,7 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
     projectId: ObjectID;
     note: string;
     attachmentFileIds?: Array<ObjectID>;
+    postedFromSlackMessageId?: string;
   }): Promise<Model> {
     const publicNote: Model = new Model();
     publicNote.createdByUserId = data.userId;
@@ -169,6 +170,10 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
     publicNote.projectId = data.projectId;
     publicNote.note = data.note;
     publicNote.postedAt = OneUptimeDate.getCurrentDate();
+
+    if (data.postedFromSlackMessageId) {
+      publicNote.postedFromSlackMessageId = data.postedFromSlackMessageId;
+    }
 
     if (data.attachmentFileIds && data.attachmentFileIds.length > 0) {
       publicNote.attachments = data.attachmentFileIds.map(
@@ -186,6 +191,27 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
         isRoot: true,
       },
     });
+  }
+
+  @CaptureSpan()
+  public async hasNoteFromSlackMessage(data: {
+    scheduledMaintenanceId: ObjectID;
+    postedFromSlackMessageId: string;
+  }): Promise<boolean> {
+    const existingNote: Model | null = await this.findOneBy({
+      query: {
+        scheduledMaintenanceId: data.scheduledMaintenanceId,
+        postedFromSlackMessageId: data.postedFromSlackMessageId,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return existingNote !== null;
   }
 
   private async getAttachmentsMarkdown(
