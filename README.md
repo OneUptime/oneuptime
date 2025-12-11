@@ -50,9 +50,9 @@ Measure and optimize the performance of your online apps and services. Track key
 
 ![APM](/Home/Static/img/readme/apm.png?raw=true)
 
-#### Coming Soon
+#### Error Tracking
 
--   **Error Tracking**: Detect and diagnose errors in your online services. Get detailed error reports with stack traces, context, and user feedback. Replace tools like Sentry.
+Detect and diagnose errors in your online services. Get detailed error reports with stack traces, context, and user feedback. Replace tools like Sentry.
 
 All under one platform.
 
