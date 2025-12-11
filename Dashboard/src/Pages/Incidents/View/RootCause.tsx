@@ -28,7 +28,7 @@ const IncidentDelete: FunctionComponent<
       formFields={[
         {
           field: {
-            description: true,
+            rootCause: true,
           },
           title: "Root Cause",
 
