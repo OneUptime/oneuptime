@@ -84,14 +84,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   // Build the "More" menu items
   const moreMenuItems: MoreMenuItem[] = [
     {
-      title: "Reliability Copilot",
-      description: "Fix and improve your code automatically.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.RELIABILITY_COPILOT] as Route,
-      ),
-      icon: IconProp.Bolt,
-    },
-    {
       title: "Service Catalog",
       description: "Manage your services and their dependencies.",
       route: RouteUtil.populateRouteParams(
@@ -146,7 +138,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   const moreMenuFooter: any = {
     title: "Report a bug or request a feature.",
     description:
-      "We embrace open source! Please report any issue you find and make feature requests on GitHub.",
+      "We embrace open-source! Please report any issue you find and make feature requests on GitHub.",
     link: URL.fromString(
       "https://github.com/OneUptime/oneuptime/issues/new/choose",
     ),

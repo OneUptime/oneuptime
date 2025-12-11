@@ -2,6 +2,10 @@
   "name": "@oneuptime/probe",
   "version": "1.0.0",
   "description": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OneUptime/oneuptime"
+  },
   "main": "index.js",
   "scripts": {
     "start": "export NODE_OPTIONS='--max-old-space-size=8096' && node --require ts-node/register Index.ts",

@@ -1,5 +1,5 @@
 import DatabaseService from "./DatabaseService";
-import Model from "../../Models/DatabaseModels/CopilotPullRequest";
+import Model from "../../Models/DatabaseModels/Llm";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

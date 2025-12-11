@@ -2,6 +2,10 @@
   "name": "@oneuptime/common",
   "version": "1.0.0",
   "description": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OneUptime/oneuptime"
+  },
   "main": "index.js",
   "scripts": {
     "test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd Common && node node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles",

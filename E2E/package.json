@@ -2,6 +2,10 @@
   "name": "@oneuptime/e2e",
   "version": "1.0.0",
   "description": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OneUptime/oneuptime"
+  },
   "main": "index.js",
   "scripts": {
     "preinstall": "npx playwright install-deps && npx playwright install",

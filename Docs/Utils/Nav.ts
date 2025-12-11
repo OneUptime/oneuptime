@@ -193,13 +193,6 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
-    title: "Copilot",
-    links: [
-      { title: "Installation", url: "/docs/copilot/introduction" },
-      { title: "Deploy LLM Server", url: "/docs/copilot/deploy-llm-server" },
-    ],
-  },
-  {
     title: "MCP Server",
     links: [
       { title: "Overview", url: "/docs/mcp/index" },

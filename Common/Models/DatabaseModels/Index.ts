@@ -6,8 +6,6 @@ import ApiKeyPermission from "./ApiKeyPermission";
 import BillingInvoice from "./BillingInvoice";
 import BillingPaymentMethods from "./BillingPaymentMethod";
 import CallLog from "./CallLog";
-import CopilotCodeRepository from "./CopilotCodeRepository";
-import CopilotAction from "./CopilotAction";
 // Date migration
 import DataMigration from "./DataMigration";
 import Domain from "./Domain";
@@ -74,6 +72,7 @@ import OnCallDutyPolicyTimeLog from "./OnCallDutyPolicyTimeLog";
 import Probe from "./Probe";
 import ProbeOwnerTeam from "./ProbeOwnerTeam";
 import ProbeOwnerUser from "./ProbeOwnerUser";
+import Llm from "./Llm";
 import Project from "./Project";
 import ProjectCallSMSConfig from "./ProjectCallSMSConfig";
 // Project SMTP Config.
@@ -97,7 +96,6 @@ import ScheduledMaintenanceStateTimeline from "./ScheduledMaintenanceStateTimeli
 import ServiceCatalog from "./ServiceCatalog";
 import ServiceCatalogOwnerTeam from "./ServiceCatalogOwnerTeam";
 import ServiceCatalogOwnerUser from "./ServiceCatalogOwnerUser";
-import ServiceCopilotCodeRepository from "./ServiceCopilotCodeRepository";
 // Short link.
 import ShortLink from "./ShortLink";
 // SMS
@@ -149,7 +147,6 @@ import UserSms from "./UserSMS";
 import Workflow from "./Workflow";
 import WorkflowLog from "./WorkflowLog";
 import WorkflowVariables from "./WorkflowVariable";
-import CopilotPullRequest from "./CopilotPullRequest";
 import ServiceCatalogDependency from "./ServiceCatalogDependency";
 import ServiceCatalogMonitor from "./ServiceCatalogMonitor";
 import ServiceCatalogTelemetryService from "./ServiceCatalogTelemetryService";
@@ -160,7 +157,6 @@ import UserWebAuthn from "./UserWebAuthn";
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
 import TelemetryException from "./TelemetryException";
-import CopilotActionTypePriority from "./CopilotActionTypePriority";
 import ScheduledMaintenanceTemplate from "./ScheduledMaintenanceTemplate";
 import ScheduledMaintenanceTemplateOwnerTeam from "./ScheduledMaintenanceTemplateOwnerTeam";
 import ScheduledMaintenanceTemplateOwnerUser from "./ScheduledMaintenanceTemplateOwnerUser";
@@ -373,14 +369,10 @@ const AllModelTypes: Array<{
   ServiceCatalogMonitor,
   ServiceCatalogTelemetryService,
 
-  CopilotCodeRepository,
-  CopilotAction,
-  ServiceCopilotCodeRepository,
-  CopilotPullRequest,
-  CopilotActionTypePriority,
-
   ProbeOwnerTeam,
   ProbeOwnerUser,
+  
+  Llm,
 
   UserSession,
   UserTotpAuth,

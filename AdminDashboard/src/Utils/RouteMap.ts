@@ -30,6 +30,7 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_CALL_AND_SMS]: new Route(`/admin/settings/call-and-sms`),
   [PageMap.SETTINGS_WHATSAPP]: new Route(`/admin/settings/whatsapp`),
   [PageMap.SETTINGS_PROBES]: new Route(`/admin/settings/probes`),
+  [PageMap.SETTINGS_LLMS]: new Route(`/admin/settings/llms`),
   [PageMap.SETTINGS_AUTHENTICATION]: new Route(
     `/admin/settings/authentication`,
   ),

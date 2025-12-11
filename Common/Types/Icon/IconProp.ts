@@ -140,6 +140,7 @@ enum IconProp {
   SquareStack3D = "SquareStack3D",
   ExclaimationCircle = "ExclaimationCircle",
   WhatsApp = "WhatsApp",
+  Brain = "Brain",
 }
 
 export default IconProp;

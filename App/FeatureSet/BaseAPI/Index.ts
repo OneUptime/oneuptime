@@ -3,15 +3,13 @@ import BaseAnalyticsAPI from "Common/Server/API/BaseAnalyticsAPI";
 import BillingAPI from "Common/Server/API/BillingAPI";
 import BillingInvoiceAPI from "Common/Server/API/BillingInvoiceAPI";
 import BillingPaymentMethodAPI from "Common/Server/API/BillingPaymentMethodAPI";
-import CopilotCodeRepositoryAPI from "Common/Server/API/CopilotCodeRepositoryAPI";
-import CopilotActionAPI from "Common/Server/API/CopilotActionAPI";
-import CopilotPullRequestAPI from "Common/Server/API/CopilotPullRequestAPI";
 import FileAPI from "Common/Server/API/FileAPI";
 import GlobalConfigAPI from "Common/Server/API/GlobalConfigAPI";
 import MonitorGroupAPI from "Common/Server/API/MonitorGroupAPI";
 import NotificationAPI from "Common/Server/API/NotificationAPI";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
+import LlmAPI from "Common/Server/API/LlmAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
 import WhatsAppLogAPI from "./WhatsAppLogAPI";
@@ -140,10 +138,6 @@ import LogService, {
   LogService as LogServiceType,
 } from "Common/Server/Services/LogService";
 
-import CopilotActionTypePriorityService, {
-  Service as CopilotActionTypePriorityServiceType,
-} from "Common/Server/Services/CopilotActionTypePriorityService";
-
 import MetricService, {
   MetricService as MetricServiceType,
 } from "Common/Server/Services/MetricService";
@@ -254,9 +248,6 @@ import ServiceCatalogOwnerUserService, {
 import ServiceCatalogService, {
   Service as ServiceCatalogServiceType,
 } from "Common/Server/Services/ServiceCatalogService";
-import ServiceCopilotCodeRepositoryService, {
-  Service as ServiceCopilotCodeRepositoryType,
-} from "Common/Server/Services/ServiceCopilotCodeRepositoryService";
 import ServiceCatalogDependencyService, {
   Service as ServiceCatalogDependencyServiceType,
 } from "Common/Server/Services/ServiceCatalogDependencyService";
@@ -438,7 +429,6 @@ import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/Sche
 import ServiceCatalog from "Common/Models/DatabaseModels/ServiceCatalog";
 import ServiceCatalogOwnerTeam from "Common/Models/DatabaseModels/ServiceCatalogOwnerTeam";
 import ServiceCatalogOwnerUser from "Common/Models/DatabaseModels/ServiceCatalogOwnerUser";
-import ServiceCopilotCodeRepository from "Common/Models/DatabaseModels/ServiceCopilotCodeRepository";
 import ShortLink from "Common/Models/DatabaseModels/ShortLink";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 // Custom Fields API
@@ -470,7 +460,6 @@ import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import ServiceCatalogDependency from "Common/Models/DatabaseModels/ServiceCatalogDependency";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import TelemetyException from "Common/Models/DatabaseModels/TelemetryException";
-import CopilotActionTypePriority from "Common/Models/DatabaseModels/CopilotActionTypePriority";
 import WorkspaceNotificationLogService, {
   Service as WorkspaceNotificationLogServiceType,
 } from "Common/Server/Services/WorkspaceNotificationLogService";
@@ -928,17 +917,6 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        CopilotActionTypePriority,
-        CopilotActionTypePriorityServiceType
-      >(
-        CopilotActionTypePriority,
-        CopilotActionTypePriorityService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<Dashboard, DashboardServiceType>(
         Dashboard,
         DashboardService,
@@ -1063,17 +1041,6 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<Team, TeamServiceType>(Team, TeamService).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        ServiceCopilotCodeRepository,
-        ServiceCopilotCodeRepositoryType
-      >(
-        ServiceCopilotCodeRepository,
-        ServiceCopilotCodeRepositoryService,
-      ).getRouter(),
     );
 
     app.use(
@@ -1668,21 +1635,6 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new CopilotCodeRepositoryAPI().getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new CopilotActionAPI().getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new CopilotPullRequestAPI().getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
       new UserNotificationLogTimelineAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserCallAPI().getRouter());
@@ -1702,6 +1654,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserPushAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProbeAPI().getRouter());
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new LlmAPI().getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

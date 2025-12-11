@@ -2,6 +2,10 @@
     "name": "@oneuptime/dashboard",
     "version": "0.1.0",
     "private": false,
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/OneUptime/oneuptime"
+    },
     "scripts": {
         "generate-sw": "node scripts/generate-sw.js",
         "dev-build": "npm run generate-sw && NODE_ENV=development node esbuild.config.js",
