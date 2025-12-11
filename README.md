@@ -128,7 +128,7 @@ By using OneUptime Cloud, you also support the continued development of the open
 # Quick start with Docker Compose
 git clone https://github.com/OneUptime/oneuptime.git
 cd oneuptime
-docker compose up -d
+npm run start
 ```
 
 For detailed installation guides, see:
