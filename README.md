@@ -149,7 +149,7 @@ OneUptime is 100% open-source, free, and available for everyone to use.
 
 ## 🤝 Contributing
 
-We ❤️ contributions big and small! Here's how you can help:
+We love contributions big and small! Here's how you can help:
 
 | Priority | How to Contribute |
 |----------|-------------------|
@@ -161,7 +161,7 @@ We ❤️ contributions big and small! Here's how you can help:
 
 ---
 
-## 💖 Support OneUptime
+## ❤️ Support OneUptime
 
 If you find OneUptime useful, consider supporting its development:
 
