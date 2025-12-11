@@ -801,22 +801,23 @@ export default class SlackAlertActions {
     }
 
     // Get the project auth token using the team ID
-    const projectAuth =
-      await WorkspaceProjectAuthTokenService.findOneBy({
-        query: {
-          workspaceProjectId: teamId,
-        },
-        select: {
-          projectId: true,
-          authToken: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    const projectAuth = await WorkspaceProjectAuthTokenService.findOneBy({
+      query: {
+        workspaceProjectId: teamId,
+      },
+      select: {
+        projectId: true,
+        authToken: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
     if (!projectAuth || !projectAuth.projectId || !projectAuth.authToken) {
-      logger.debug("No project auth found for team ID. Ignoring emoji reaction.");
+      logger.debug(
+        "No project auth found for team ID. Ignoring emoji reaction.",
+      );
       return;
     }
 
@@ -849,10 +850,9 @@ export default class SlackAlertActions {
     const alertId: ObjectID = workspaceLog.alertId;
 
     // Get the alert number for the confirmation message
-    const alertNumber: number | null =
-      await AlertService.getAlertNumber({
-        alertId: alertId,
-      });
+    const alertNumber: number | null = await AlertService.getAlertNumber({
+      alertId: alertId,
+    });
 
     // Get the user ID in OneUptime based on Slack user ID
     const userAuth = await WorkspaceUserAuthTokenService.findOneBy({
@@ -918,8 +918,7 @@ export default class SlackAlertActions {
         await AlertService.getAlertLinkInDashboard(projectId, alertId)
       ).toString();
 
-      const confirmationMessage: string =
-        `✅ Message saved as *private note* to <${alertLink}|Alert #${alertNumber}>.`;
+      const confirmationMessage: string = `✅ Message saved as *private note* to <${alertLink}|Alert #${alertNumber}>.`;
 
       await SlackUtil.sendMessageToThread({
         authToken: authToken,

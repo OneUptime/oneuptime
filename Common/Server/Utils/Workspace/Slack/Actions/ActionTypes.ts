@@ -45,11 +45,7 @@ enum SlackActionType {
 }
 
 // Emoji names that trigger saving a message as a Private Note (Internal Note)
-export const PrivateNoteEmojis: string[] = [
-  "pushpin",
-  "round_pushpin",
-  "pin",
-];
+export const PrivateNoteEmojis: string[] = ["pushpin", "round_pushpin", "pin"];
 
 // Emoji names that trigger saving a message as a Public Note
 export const PublicNoteEmojis: string[] = [

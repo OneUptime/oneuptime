@@ -762,8 +762,10 @@ export default class SlackAPI {
           if (event["type"] === "reaction_added") {
             logger.debug("Reaction added event received");
 
-            // Respond immediately to Slack to prevent retry
-            // Process the event asynchronously
+            /*
+             * Respond immediately to Slack to prevent retry
+             * Process the event asynchronously
+             */
             Response.sendTextResponse(req, res, "ok");
 
             const reactionData = {
@@ -774,8 +776,10 @@ export default class SlackAPI {
               messageTs: (event["item"] as JSONObject)?.["ts"] as string,
             };
 
-            // Process emoji reactions for Incidents, Alerts, and Scheduled Maintenance
-            // Each handler will silently ignore if the channel is not linked to their resource type
+            /*
+             * Process emoji reactions for Incidents, Alerts, and Scheduled Maintenance
+             * Each handler will silently ignore if the channel is not linked to their resource type
+             */
             try {
               await SlackIncidentActions.handleEmojiReaction(reactionData);
             } catch (err) {
@@ -791,9 +795,13 @@ export default class SlackAPI {
             }
 
             try {
-              await SlackScheduledMaintenanceActions.handleEmojiReaction(reactionData);
+              await SlackScheduledMaintenanceActions.handleEmojiReaction(
+                reactionData,
+              );
             } catch (err) {
-              logger.error("Error handling scheduled maintenance emoji reaction:");
+              logger.error(
+                "Error handling scheduled maintenance emoji reaction:",
+              );
               logger.error(err);
             }
 

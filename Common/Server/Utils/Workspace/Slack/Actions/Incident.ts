@@ -1317,22 +1317,23 @@ export default class SlackIncidentActions {
     }
 
     // Get the project auth token using the team ID
-    const projectAuth =
-      await WorkspaceProjectAuthTokenService.findOneBy({
-        query: {
-          workspaceProjectId: teamId,
-        },
-        select: {
-          projectId: true,
-          authToken: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    const projectAuth = await WorkspaceProjectAuthTokenService.findOneBy({
+      query: {
+        workspaceProjectId: teamId,
+      },
+      select: {
+        projectId: true,
+        authToken: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
     if (!projectAuth || !projectAuth.projectId || !projectAuth.authToken) {
-      logger.debug("No project auth found for team ID. Ignoring emoji reaction.");
+      logger.debug(
+        "No project auth found for team ID. Ignoring emoji reaction.",
+      );
       return;
     }
 

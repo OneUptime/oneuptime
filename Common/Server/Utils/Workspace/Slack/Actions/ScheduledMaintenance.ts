@@ -1125,7 +1125,9 @@ export default class SlackScheduledMaintenanceActions {
     channelId: string;
     messageTs: string;
   }): Promise<void> {
-    logger.debug("Handling emoji reaction for Scheduled Maintenance with data:");
+    logger.debug(
+      "Handling emoji reaction for Scheduled Maintenance with data:",
+    );
     logger.debug(data);
 
     const { teamId, reaction, userId, channelId, messageTs } = data;
@@ -1142,22 +1144,23 @@ export default class SlackScheduledMaintenanceActions {
     }
 
     // Get the project auth token using the team ID
-    const projectAuth =
-      await WorkspaceProjectAuthTokenService.findOneBy({
-        query: {
-          workspaceProjectId: teamId,
-        },
-        select: {
-          projectId: true,
-          authToken: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    const projectAuth = await WorkspaceProjectAuthTokenService.findOneBy({
+      query: {
+        workspaceProjectId: teamId,
+      },
+      select: {
+        projectId: true,
+        authToken: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
     if (!projectAuth || !projectAuth.projectId || !projectAuth.authToken) {
-      logger.debug("No project auth found for team ID. Ignoring emoji reaction.");
+      logger.debug(
+        "No project auth found for team ID. Ignoring emoji reaction.",
+      );
       return;
     }
 
@@ -1187,7 +1190,8 @@ export default class SlackScheduledMaintenanceActions {
       return;
     }
 
-    const scheduledMaintenanceId: ObjectID = workspaceLog.scheduledMaintenanceId;
+    const scheduledMaintenanceId: ObjectID =
+      workspaceLog.scheduledMaintenanceId;
 
     // Get the scheduled maintenance number for the confirmation message
     const scheduledMaintenanceNumber: number | null =
@@ -1271,7 +1275,10 @@ export default class SlackScheduledMaintenanceActions {
     // Send confirmation message as a reply to the original message thread
     try {
       const scheduledMaintenanceLink: string = (
-        await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)
+        await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+          projectId,
+          scheduledMaintenanceId,
+        )
       ).toString();
 
       const confirmationMessage: string =

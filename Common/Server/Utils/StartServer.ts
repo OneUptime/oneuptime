@@ -52,9 +52,7 @@ const jsonBodyParserMiddleware: RequestHandler = ExpressJson({
   extended: true,
   verify: (req: ExpressRequest, _res: ExpressResponse, buf: Buffer) => {
     (req as OneUptimeRequest).rawBody = buf.toString();
-    logger.debug(
-      `Raw JSON Body for signature verification captured`,
-    );
+    logger.debug(`Raw JSON Body for signature verification captured`);
   },
 }); // 50 MB limit.
 
