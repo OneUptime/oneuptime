@@ -11,6 +11,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import IconProp from "Common/Types/Icon/IconProp";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import Card from "Common/UI/Components/Card/Card";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 
 const IncidentsPage: FunctionComponent<
   PageComponentProps
@@ -52,10 +54,24 @@ const IncidentsPage: FunctionComponent<
   return (
     <div>
       {isSlackConnected && (
-        <WorkspaceNotificationRuleTable
-          workspaceType={WorkspaceType.Slack}
-          eventType={NotificationRuleEventType.Alert}
-        />
+        <>
+          <Card
+            title="Tips: Using Emoji Reactions"
+            description="You can use emoji reactions in Slack to quickly save messages as notes to alerts."
+          >
+            <MarkdownViewer
+              text={`
+- 📌 **Pin emoji** (pushpin, round_pushpin) - React with a pin emoji to save the message as a **private note** (visible only to your team).
+
+When you react with a pin emoji, OneUptime will automatically save the message content as a private note to the alert linked to that channel and confirm with a reply in the thread.
+              `}
+            />
+          </Card>
+          <WorkspaceNotificationRuleTable
+            workspaceType={WorkspaceType.Slack}
+            eventType={NotificationRuleEventType.Alert}
+          />
+        </>
       )}
       {!isSlackConnected && (
         <div>
