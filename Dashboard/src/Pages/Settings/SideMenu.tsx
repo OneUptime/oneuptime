@@ -349,6 +349,20 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       ],
     },
     {
+      title: "AI",
+      items: [
+        {
+          link: {
+            title: "LLMs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_LLMS] as Route,
+            ),
+          },
+          icon: IconProp.Brain,
+        },
+      ],
+    },
+    {
       title: "Advanced",
       items: [
         {
@@ -359,15 +373,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             ),
           },
           icon: IconProp.Signal,
-        },
-        {
-          link: {
-            title: "LLMs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_LLMS] as Route,
-            ),
-          },
-          icon: IconProp.Brain,
         },
         {
           link: {
