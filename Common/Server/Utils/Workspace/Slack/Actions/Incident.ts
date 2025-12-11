@@ -1418,25 +1418,60 @@ export default class SlackIncidentActions {
       return;
     }
 
+    // Create a unique identifier for this Slack message to prevent duplicate notes
+    const postedFromSlackMessageId: string = `${channelId}:${messageTs}`;
+
     // Save the note based on the emoji type
     let noteType: string;
     try {
       if (isPrivateNoteEmoji) {
         noteType = "private";
+
+        // Check if a note from this Slack message already exists
+        const hasExistingNote: boolean =
+          await IncidentInternalNoteService.hasNoteFromSlackMessage({
+            incidentId: incidentId,
+            postedFromSlackMessageId: postedFromSlackMessageId,
+          });
+
+        if (hasExistingNote) {
+          logger.debug(
+            "Private note from this Slack message already exists. Skipping duplicate.",
+          );
+          return;
+        }
+
         await IncidentInternalNoteService.addNote({
           incidentId: incidentId,
           note: messageText,
           projectId: projectId,
           userId: oneUptimeUserId,
+          postedFromSlackMessageId: postedFromSlackMessageId,
         });
         logger.debug("Private note added successfully.");
       } else if (isPublicNoteEmoji) {
         noteType = "public";
+
+        // Check if a note from this Slack message already exists
+        const hasExistingNote: boolean =
+          await IncidentPublicNoteService.hasNoteFromSlackMessage({
+            incidentId: incidentId,
+            postedFromSlackMessageId: postedFromSlackMessageId,
+          });
+
+        if (hasExistingNote) {
+          logger.debug(
+            "Public note from this Slack message already exists. Skipping duplicate.",
+          );
+          return;
+        }
+
         await IncidentPublicNoteService.addNote({
           incidentId: incidentId,
           note: messageText,
           projectId: projectId,
           userId: oneUptimeUserId,
+          postedFromSlackMessageId: postedFromSlackMessageId,
         });
         logger.debug("Public note added successfully.");
       } else {

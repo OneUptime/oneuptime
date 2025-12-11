@@ -1246,25 +1246,60 @@ export default class SlackScheduledMaintenanceActions {
       return;
     }
 
+    // Create a unique identifier for this Slack message to prevent duplicate notes
+    const postedFromSlackMessageId: string = `${channelId}:${messageTs}`;
+
     // Save the note based on the emoji type
     let noteType: string;
     try {
       if (isPrivateNoteEmoji) {
         noteType = "private";
+
+        // Check if a note from this Slack message already exists
+        const hasExistingNote: boolean =
+          await ScheduledMaintenanceInternalNoteService.hasNoteFromSlackMessage({
+            scheduledMaintenanceId: scheduledMaintenanceId,
+            postedFromSlackMessageId: postedFromSlackMessageId,
+          });
+
+        if (hasExistingNote) {
+          logger.debug(
+            "Private note from this Slack message already exists. Skipping duplicate.",
+          );
+          return;
+        }
+
         await ScheduledMaintenanceInternalNoteService.addNote({
           scheduledMaintenanceId: scheduledMaintenanceId,
           note: messageText,
           projectId: projectId,
           userId: oneUptimeUserId,
+          postedFromSlackMessageId: postedFromSlackMessageId,
         });
         logger.debug("Private note added successfully.");
       } else if (isPublicNoteEmoji) {
         noteType = "public";
+
+        // Check if a note from this Slack message already exists
+        const hasExistingNote: boolean =
+          await ScheduledMaintenancePublicNoteService.hasNoteFromSlackMessage({
+            scheduledMaintenanceId: scheduledMaintenanceId,
+            postedFromSlackMessageId: postedFromSlackMessageId,
+          });
+
+        if (hasExistingNote) {
+          logger.debug(
+            "Public note from this Slack message already exists. Skipping duplicate.",
+          );
+          return;
+        }
+
         await ScheduledMaintenancePublicNoteService.addNote({
           scheduledMaintenanceId: scheduledMaintenanceId,
           note: messageText,
           projectId: projectId,
           userId: oneUptimeUserId,
+          postedFromSlackMessageId: postedFromSlackMessageId,
         });
         logger.debug("Public note added successfully.");
       } else {

@@ -901,6 +901,23 @@ export default class SlackAlertActions {
       return;
     }
 
+    // Create a unique identifier for this Slack message to prevent duplicate notes
+    const postedFromSlackMessageId: string = `${channelId}:${messageTs}`;
+
+    // Check if a note from this Slack message already exists
+    const hasExistingNote: boolean =
+      await AlertInternalNoteService.hasNoteFromSlackMessage({
+        alertId: alertId,
+        postedFromSlackMessageId: postedFromSlackMessageId,
+      });
+
+    if (hasExistingNote) {
+      logger.debug(
+        "Private note from this Slack message already exists. Skipping duplicate.",
+      );
+      return;
+    }
+
     // Save as private note (Alerts only support private notes)
     try {
       await AlertInternalNoteService.addNote({
@@ -908,6 +925,7 @@ export default class SlackAlertActions {
         note: messageText,
         projectId: projectId,
         userId: oneUptimeUserId,
+        postedFromSlackMessageId: postedFromSlackMessageId,
       });
       logger.debug("Private note added to alert successfully.");
     } catch (err) {
