@@ -1276,8 +1276,8 @@ export default class SlackScheduledMaintenanceActions {
 
       const confirmationMessage: string =
         noteType === "private"
-          ? `✅ Message saved as **private note** to [Scheduled Maintenance #${scheduledMaintenanceNumber}](${scheduledMaintenanceLink}).`
-          : `✅ Message saved as **public note** to [Scheduled Maintenance #${scheduledMaintenanceNumber}](${scheduledMaintenanceLink}). This note will be visible on the status page.`;
+          ? `✅ Message saved as *private note* to <${scheduledMaintenanceLink}|Scheduled Maintenance #${scheduledMaintenanceNumber}>.`
+          : `✅ Message saved as *public note* to <${scheduledMaintenanceLink}|Scheduled Maintenance #${scheduledMaintenanceNumber}>. This note will be visible on the status page.`;
 
       await SlackUtil.sendMessageToThread({
         authToken: authToken,

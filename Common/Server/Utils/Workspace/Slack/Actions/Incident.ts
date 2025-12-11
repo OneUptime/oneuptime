@@ -1451,8 +1451,8 @@ export default class SlackIncidentActions {
 
       const confirmationMessage: string =
         noteType === "private"
-          ? `✅ Message saved as **private note** to [Incident #${incidentNumber}](${incidentLink}).`
-          : `✅ Message saved as **public note** to [Incident #${incidentNumber}](${incidentLink}). This note will be visible on the status page.`;
+          ? `✅ Message saved as *private note* to <${incidentLink}|Incident #${incidentNumber}>.`
+          : `✅ Message saved as *public note* to <${incidentLink}|Incident #${incidentNumber}>. This note will be visible on the status page.`;
 
       await SlackUtil.sendMessageToThread({
         authToken: authToken,

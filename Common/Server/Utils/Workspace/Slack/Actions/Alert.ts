@@ -919,7 +919,7 @@ export default class SlackAlertActions {
       ).toString();
 
       const confirmationMessage: string =
-        `✅ Message saved as **private note** to [Alert #${alertNumber}](${alertLink}).`;
+        `✅ Message saved as *private note* to <${alertLink}|Alert #${alertNumber}>.`;
 
       await SlackUtil.sendMessageToThread({
         authToken: authToken,
