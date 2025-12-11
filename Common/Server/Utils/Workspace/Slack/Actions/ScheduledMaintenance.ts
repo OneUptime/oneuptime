@@ -37,6 +37,7 @@ import OneUptimeDate from "../../../../../Types/Date";
 import AccessTokenService from "../../../../Services/AccessTokenService";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAuthTokenService";
 import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
 import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
@@ -1195,19 +1196,28 @@ export default class SlackScheduledMaintenanceActions {
       });
 
     // Get the user ID in OneUptime based on Slack user ID
-    const oneUptimeUserId: ObjectID | null =
-      await AccessTokenService.getUserIdByWorkspaceUserId({
+    const userAuth = await WorkspaceUserAuthTokenService.findOneBy({
+      query: {
         workspaceUserId: userId,
         workspaceType: WorkspaceType.Slack,
         projectId: projectId,
-      });
+      },
+      select: {
+        userId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
-    if (!oneUptimeUserId) {
+    if (!userAuth || !userAuth.userId) {
       logger.debug(
         "No OneUptime user found for Slack user. Ignoring emoji reaction.",
       );
       return;
     }
+
+    const oneUptimeUserId: ObjectID = userAuth.userId;
 
     // Fetch the message text using the timestamp
     let messageText: string | null = null;
