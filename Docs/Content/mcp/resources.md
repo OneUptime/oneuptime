@@ -162,14 +162,8 @@ The OneUptime MCP Server provides access to 126 different resource types across 
 - **Exception**: Track application exceptions
 - **ExceptionInstance**: Individual exception occurrences
 
-## Development and Code Analysis
-
 ### Code Repository Integration
 - **CodeRepository**: Connect code repositories
-- **ServiceCodeRepositoryForCopilot**: Repository configuration for Copilot
-- **CopilotEvent**: Copilot-generated events
-- **CopilotPullRequest**: Track pull requests analyzed by Copilot
-- **CopilotActionPriority**: Prioritize Copilot actions
 
 ## Communication and Notifications
 

@@ -84,14 +84,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   // Build the "More" menu items
   const moreMenuItems: MoreMenuItem[] = [
     {
-      title: "Reliability Copilot",
-      description: "Fix and improve your code automatically.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.RELIABILITY_COPILOT] as Route,
-      ),
-      icon: IconProp.Bolt,
-    },
-    {
       title: "Service Catalog",
       description: "Manage your services and their dependencies.",
       route: RouteUtil.populateRouteParams(

@@ -53,7 +53,6 @@ Measure and optimize the performance of your online apps and services. Track key
 #### Coming Soon
 
 -   **Error Tracking**: Detect and diagnose errors in your online services. Get detailed error reports with stack traces, context, and user feedback. Replace tools like Sentry.
--   **Reliability Copilot**: Scan your code and fix performance issues and errors automatically. Get recommendations for improving the reliability of your online services.
 
 All under one platform.
 

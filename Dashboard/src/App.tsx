@@ -93,11 +93,6 @@ const ServiceCatalogRoutes: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Routes/ServiceCatalogRoutes");
 });
-const AICopilotRoutes: React.LazyExoticComponent<
-  React.FunctionComponent<PageComponentProps>
-> = lazy(() => {
-  return import("./Routes/AICopilotRoutes");
-});
 const IncidentsRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
@@ -451,12 +446,6 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.SERVICE_CATALOG_ROOT]?.toString() || ""}
             element={<ServiceCatalogRoutes {...commonPageProps} />}
-          />
-
-          {/** Reliability Copilot */}
-          <PageRoute
-            path={RouteMap[PageMap.AI_COPILOT_ROOT]?.toString() || ""}
-            element={<AICopilotRoutes {...commonPageProps} />}
           />
 
           {/* Incidents */}

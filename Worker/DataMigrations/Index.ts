@@ -34,7 +34,6 @@ import UpdateGlobalConfigFromEnv from "./UpdateGlobalCongfigFromEnv";
 import MigrateServiceLanguageToTechStack from "./MigrateServiceLanguageToTechStack";
 import DeleteOldTelemetryTable from "./DeleteOldTelelmetryTable";
 import MoveTelemetryServiceTokenToTelemetryIngestionKey from "./MoveTelemetryServiceTokenToTelemetryIngestionKey";
-import AddDefaultCopilotActionTypes from "./AddDefaultCopilotActionTypes";
 import AddDefaultAlertSeverityAndStateToExistingProjects from "./AddDefaultAlertSeverityAndStateToExistingProjects";
 import RefreshDefaultUserNotificationSetting from "./RefreshUserNotificationSetting";
 import AddServiceTypeColumnToMetricsTable from "./AddServiceTypeColumnToMetricTable";
@@ -93,7 +92,6 @@ const DataMigrations: Array<DataMigrationBase> = [
   new MigrateServiceLanguageToTechStack(),
   new DeleteOldTelemetryTable(),
   new MoveTelemetryServiceTokenToTelemetryIngestionKey(),
-  new AddDefaultCopilotActionTypes(),
   new AddDefaultAlertSeverityAndStateToExistingProjects(),
   new RefreshDefaultUserNotificationSetting(),
   new AddServiceTypeColumnToMetricsTable(),

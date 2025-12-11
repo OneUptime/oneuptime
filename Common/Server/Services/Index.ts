@@ -11,8 +11,6 @@ import BillingPaymentMethodsService from "./BillingPaymentMethodService";
 import BillingService from "./BillingService";
 import CallLogService from "./CallLogService";
 import CallService from "./CallService";
-import CodeRepositoryService from "./CopilotCodeRepositoryService";
-import CopilotActionService from "./CopilotActionService";
 import DataMigrationService from "./DataMigrationService";
 import DomainService from "./DomainService";
 import EmailLogService from "./EmailLogService";
@@ -89,7 +87,6 @@ import ServiceCatalogOwnerUserService from "./ServiceCatalogOwnerUserService";
 import ServiceCatalogService from "./ServiceCatalogService";
 import ServiceCatalogMonitorService from "./ServiceCatalogMonitorService";
 import ServiceCatalogTelemetryServiceService from "./ServiceCatalogTelemetryServiceService";
-import ServiceCopilotCodeRepositoryService from "./ServiceCopilotCodeRepositoryService";
 import ShortLinkService from "./ShortLinkService";
 // SMS Log Service
 import SmsLogService from "./SmsLogService";
@@ -139,11 +136,9 @@ import WorkflowLogService from "./WorkflowLogService";
 import WorkflowService from "./WorkflowService";
 import WorkflowVariablesService from "./WorkflowVariableService";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import CopilotPullRequestService from "./CopilotPullRequestService";
 import ServiceCatalogDependencyService from "./ServiceCatalogDependencyService";
 import TelemetryExceptionService from "./TelemetryExceptionService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
-import CopilotActionTypePriorityService from "./CopilotActionTypePriorityService";
 import ScheduledMaintenanceTemplateService from "./ScheduledMaintenanceTemplateService";
 import ScheduledMaintenanceTemplateOwnerTeamService from "./ScheduledMaintenanceTemplateOwnerTeamService";
 import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenanceTemplateOwnerUserService";
@@ -326,12 +321,6 @@ const services: Array<BaseService> = [
   ServiceCatalogDependencyService,
   ServiceCatalogMonitorService,
   ServiceCatalogTelemetryServiceService,
-
-  CodeRepositoryService,
-  CopilotActionService,
-  ServiceCopilotCodeRepositoryService,
-  CopilotPullRequestService,
-  CopilotActionTypePriorityService,
 
   TelemetryExceptionService,
 

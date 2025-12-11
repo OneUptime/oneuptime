@@ -624,18 +624,6 @@ enum Permission {
   EditServiceCatalogTelemetryService = "EditServiceCatalogTelemetryService",
   ReadServiceCatalogTelemetryService = "ReadServiceCatalogTelemetryService",
 
-  CreateCopilotCodeRepository = "CreateCopilotCodeRepository",
-  DeleteCopilotCodeRepository = "DeleteCopilotCodeRepository",
-  EditCopilotCodeRepository = "EditCopilotCodeRepository",
-  ReadCopilotCodeRepository = "ReadCopilotCodeRepository",
-
-  ReadCopilotAction = "ReadCopilotAction",
-  CreateCopilotAction = "CreateCopilotAction",
-  DeleteCopilotAction = "DeleteCopilotAction",
-  EditCopilotAction = "EditCopilotAction",
-
-  ReadCopilotPullRequest = "ReadCopilotPullRequest",
-
   CreateProbeOwnerTeam = "CreateProbeOwnerTeam",
   DeleteProbeOwnerTeam = "DeleteProbeOwnerTeam",
   EditProbeOwnerTeam = "EditProbeOwnerTeam",
@@ -645,11 +633,6 @@ enum Permission {
   DeleteProbeOwnerUser = "DeleteProbeOwnerUser",
   EditProbeOwnerUser = "EditProbeOwnerUser",
   ReadProbeOwnerUser = "ReadProbeOwnerUser",
-
-  CreateServiceCopilotCodeRepository = "CreateServiceCopilotCodeRepository",
-  DeleteServiceCopilotCodeRepository = "DeleteServiceCopilotCodeRepository",
-  EditServiceCopilotCodeRepository = "EditServiceCopilotCodeRepository",
-  ReadServiceCopilotCodeRepository = "ReadServiceCopilotCodeRepository",
 
   CreateTableView = "CreateTableView",
   DeleteTableView = "DeleteTableView",
@@ -3237,102 +3220,6 @@ export class PermissionHelper {
         title: "Read Telemetry Service Exception",
         description:
           "This permission can read Telemetry Service Exception of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-      },
-
-      {
-        permission: Permission.CreateCopilotCodeRepository,
-        title: "Create Code Repository",
-        description: "This permission can create Code Repository this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: true,
-      },
-      {
-        permission: Permission.DeleteCopilotCodeRepository,
-        title: "Delete Code Repository",
-        description:
-          "This permission can delete Code Repository of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: true,
-      },
-      {
-        permission: Permission.EditCopilotCodeRepository,
-        title: "Edit Code Repository",
-        description:
-          "This permission can edit Code Repository of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: true,
-      },
-      {
-        permission: Permission.ReadCopilotCodeRepository,
-        title: "Read Code Repository",
-        description:
-          "This permission can read Code Repository of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: true,
-      },
-
-      {
-        permission: Permission.CreateServiceCopilotCodeRepository,
-        title: "Create Service Repository",
-        description:
-          "This permission can create Service Repository this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: true,
-      },
-      {
-        permission: Permission.DeleteServiceCopilotCodeRepository,
-        title: "Delete Service Repository",
-        description:
-          "This permission can delete Service Repository of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: true,
-      },
-      {
-        permission: Permission.EditServiceCopilotCodeRepository,
-        title: "Edit Service Repository",
-        description:
-          "This permission can edit Service Repository of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: true,
-      },
-      {
-        permission: Permission.ReadServiceCopilotCodeRepository,
-        title: "Read Service Repository",
-        description:
-          "This permission can read Service Repository of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: true,
-      },
-
-      {
-        permission: Permission.ReadCopilotAction,
-        title: "Read Copilot Event",
-        description: "This permission can read Copilot Event of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-      },
-      {
-        permission: Permission.EditCopilotAction,
-        title: "Edit Copilot Event",
-        description: "This permission can edit Copilot Event of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-      },
-      {
-        permission: Permission.DeleteCopilotAction,
-        title: "Delete Copilot Event",
-        description:
-          "This permission can delete Copilot Event of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-      },
-      {
-        permission: Permission.CreateCopilotAction,
-        title: "Create Copilot Event",
-        description:
-          "This permission can create Copilot Event of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

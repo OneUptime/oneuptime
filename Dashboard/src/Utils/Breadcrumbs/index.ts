@@ -8,5 +8,4 @@ export * from "./TelemetryBreadcrumbs";
 export * from "./SettingsBreadcrumbs";
 export * from "./MonitorGroupBreadcrumbs";
 export * from "./ServiceCatalogBreadcrumbs";
-export * from "./AICopilotBreadcrumbs";
 export * from "./DashboardBreadCrumbs";
