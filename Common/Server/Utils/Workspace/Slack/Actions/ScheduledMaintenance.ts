@@ -1257,10 +1257,12 @@ export default class SlackScheduledMaintenanceActions {
 
         // Check if a note from this Slack message already exists
         const hasExistingNote: boolean =
-          await ScheduledMaintenanceInternalNoteService.hasNoteFromSlackMessage({
-            scheduledMaintenanceId: scheduledMaintenanceId,
-            postedFromSlackMessageId: postedFromSlackMessageId,
-          });
+          await ScheduledMaintenanceInternalNoteService.hasNoteFromSlackMessage(
+            {
+              scheduledMaintenanceId: scheduledMaintenanceId,
+              postedFromSlackMessageId: postedFromSlackMessageId,
+            },
+          );
 
         if (hasExistingNote) {
           logger.debug(

@@ -555,7 +555,7 @@ export default class IncidentPublicNote extends BaseModel {
     unique: false,
   })
   public postedAt?: Date = undefined;
-  
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
