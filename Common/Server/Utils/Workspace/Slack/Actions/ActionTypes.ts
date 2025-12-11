@@ -12,6 +12,9 @@ enum SlackActionType {
   NewIncident = "/incident", // new incident slash command
   SubmitNewIncident = "SubmitNewIncident",
 
+  // Emoji Reaction Actions
+  EmojiReactionAdded = "EmojiReactionAdded",
+
   // Alert Actions just like Incident Actions
   AcknowledgeAlert = "AcknowledgeAlert",
   ResolveAlert = "ResolveAlert",
@@ -40,5 +43,22 @@ enum SlackActionType {
   // View on call policy.
   ViewOnCallPolicy = "ViewOnCallPolicy",
 }
+
+// Emoji names that trigger saving a message as a Private Note (Internal Note)
+export const PrivateNoteEmojis: string[] = [
+  "pushpin",
+  "round_pushpin",
+  "pin",
+];
+
+// Emoji names that trigger saving a message as a Public Note
+export const PublicNoteEmojis: string[] = [
+  "mega",
+  "loudspeaker",
+  "megaphone",
+  "announcement",
+  "speaking_head_in_silhouette",
+  "speaking_head",
+];
 
 export default SlackActionType;

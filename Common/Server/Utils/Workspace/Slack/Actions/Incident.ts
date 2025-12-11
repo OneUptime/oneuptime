@@ -3,7 +3,10 @@ import ObjectID from "../../../../../Types/ObjectID";
 import IncidentService from "../../../../Services/IncidentService";
 import { ExpressRequest, ExpressResponse } from "../../../Express";
 import SlackUtil from "../Slack";
-import SlackActionType from "./ActionTypes";
+import SlackActionType, {
+  PrivateNoteEmojis,
+  PublicNoteEmojis,
+} from "./ActionTypes";
 import { SlackAction, SlackRequest } from "./Auth";
 import Response from "../../../Response";
 import {
@@ -38,6 +41,8 @@ import LabelService from "../../../../Services/LabelService";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import AccessTokenService from "../../../../Services/AccessTokenService";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
+import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
+import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 
 export default class SlackIncidentActions {
   @CaptureSpan()
@@ -1284,5 +1289,173 @@ export default class SlackIncidentActions {
       data.res,
       new BadDataException("Invalid Action Type"),
     );
+  }
+
+  @CaptureSpan()
+  public static async handleEmojiReaction(data: {
+    teamId: string;
+    reaction: string;
+    userId: string;
+    channelId: string;
+    messageTs: string;
+  }): Promise<void> {
+    logger.debug("Handling emoji reaction with data:");
+    logger.debug(data);
+
+    const { teamId, reaction, userId, channelId, messageTs } = data;
+
+    // Check if the emoji is a supported private or public note emoji
+    const isPrivateNoteEmoji: boolean = PrivateNoteEmojis.includes(reaction);
+    const isPublicNoteEmoji: boolean = PublicNoteEmojis.includes(reaction);
+
+    if (!isPrivateNoteEmoji && !isPublicNoteEmoji) {
+      logger.debug(
+        `Emoji "${reaction}" is not a supported note emoji. Ignoring.`,
+      );
+      return;
+    }
+
+    // Get the project auth token using the team ID
+    const projectAuth =
+      await WorkspaceProjectAuthTokenService.findOneBy({
+        query: {
+          workspaceProjectId: teamId,
+        },
+        select: {
+          projectId: true,
+          authToken: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!projectAuth || !projectAuth.projectId || !projectAuth.authToken) {
+      logger.debug("No project auth found for team ID. Ignoring emoji reaction.");
+      return;
+    }
+
+    const projectId: ObjectID = projectAuth.projectId;
+    const authToken: string = projectAuth.authToken;
+
+    // Find the incident linked to this channel
+    const workspaceLog: WorkspaceNotificationLog | null =
+      await WorkspaceNotificationLogService.findOneBy({
+        query: {
+          channelId: channelId,
+          workspaceType: WorkspaceType.Slack,
+          projectId: projectId,
+        },
+        select: {
+          incidentId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!workspaceLog || !workspaceLog.incidentId) {
+      logger.debug(
+        "No incident found linked to this channel. Ignoring emoji reaction.",
+      );
+      return;
+    }
+
+    const incidentId: ObjectID = workspaceLog.incidentId;
+
+    // Get the incident number for the confirmation message
+    const incidentNumber: number | null =
+      await IncidentService.getIncidentNumber({
+        incidentId: incidentId,
+      });
+
+    // Get the user ID in OneUptime based on Slack user ID
+    const oneUptimeUserId: ObjectID | null =
+      await AccessTokenService.getUserIdByWorkspaceUserId({
+        workspaceUserId: userId,
+        workspaceType: WorkspaceType.Slack,
+        projectId: projectId,
+      });
+
+    if (!oneUptimeUserId) {
+      logger.debug(
+        "No OneUptime user found for Slack user. Ignoring emoji reaction.",
+      );
+      return;
+    }
+
+    // Fetch the message text using the timestamp
+    let messageText: string | null = null;
+    try {
+      messageText = await SlackUtil.getMessageByTimestamp({
+        authToken: authToken,
+        channelId: channelId,
+        messageTs: messageTs,
+      });
+    } catch (err) {
+      logger.error("Error fetching message text:");
+      logger.error(err);
+      return;
+    }
+
+    if (!messageText) {
+      logger.debug("No message text found. Ignoring emoji reaction.");
+      return;
+    }
+
+    // Save the note based on the emoji type
+    let noteType: string;
+    try {
+      if (isPrivateNoteEmoji) {
+        noteType = "private";
+        await IncidentInternalNoteService.addNote({
+          incidentId: incidentId,
+          note: messageText,
+          projectId: projectId,
+          userId: oneUptimeUserId,
+        });
+        logger.debug("Private note added successfully.");
+      } else if (isPublicNoteEmoji) {
+        noteType = "public";
+        await IncidentPublicNoteService.addNote({
+          incidentId: incidentId,
+          note: messageText,
+          projectId: projectId,
+          userId: oneUptimeUserId,
+        });
+        logger.debug("Public note added successfully.");
+      } else {
+        return;
+      }
+    } catch (err) {
+      logger.error("Error saving note:");
+      logger.error(err);
+      return;
+    }
+
+    // Send confirmation message as a reply to the original message thread
+    try {
+      const incidentLink: string = (
+        await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)
+      ).toString();
+
+      const confirmationMessage: string =
+        noteType === "private"
+          ? `✅ Message saved as **private note** to [Incident #${incidentNumber}](${incidentLink}).`
+          : `✅ Message saved as **public note** to [Incident #${incidentNumber}](${incidentLink}). This note will be visible on the status page.`;
+
+      await SlackUtil.sendMessageToThread({
+        authToken: authToken,
+        channelId: channelId,
+        threadTs: messageTs,
+        text: confirmationMessage,
+      });
+
+      logger.debug("Confirmation message sent successfully.");
+    } catch (err) {
+      logger.error("Error sending confirmation message:");
+      logger.error(err);
+      // Don't throw - note was saved successfully, confirmation is best effort
+    }
   }
 }

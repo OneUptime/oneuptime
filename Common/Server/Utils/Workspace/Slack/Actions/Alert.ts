@@ -3,7 +3,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import AlertService from "../../../../Services/AlertService";
 import { ExpressRequest, ExpressResponse } from "../../../Express";
 import SlackUtil from "../Slack";
-import SlackActionType from "./ActionTypes";
+import SlackActionType, { PrivateNoteEmojis } from "./ActionTypes";
 import { SlackAction, SlackRequest } from "./Auth";
 import Response from "../../../Response";
 import {
@@ -25,6 +25,8 @@ import AccessTokenService from "../../../../Services/AccessTokenService";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
+import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 
 export default class SlackAlertActions {
   @CaptureSpan()
@@ -772,5 +774,155 @@ export default class SlackAlertActions {
       data.res,
       new BadDataException("Invalid Action Type"),
     );
+  }
+
+  @CaptureSpan()
+  public static async handleEmojiReaction(data: {
+    teamId: string;
+    reaction: string;
+    userId: string;
+    channelId: string;
+    messageTs: string;
+  }): Promise<void> {
+    logger.debug("Handling emoji reaction for Alert with data:");
+    logger.debug(data);
+
+    const { teamId, reaction, userId, channelId, messageTs } = data;
+
+    // Alerts only support private notes, so only pushpin emojis work
+    const isPrivateNoteEmoji: boolean = PrivateNoteEmojis.includes(reaction);
+
+    if (!isPrivateNoteEmoji) {
+      logger.debug(
+        `Emoji "${reaction}" is not a supported private note emoji for alerts. Ignoring.`,
+      );
+      return;
+    }
+
+    // Get the project auth token using the team ID
+    const projectAuth =
+      await WorkspaceProjectAuthTokenService.findOneBy({
+        query: {
+          workspaceProjectId: teamId,
+        },
+        select: {
+          projectId: true,
+          authToken: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!projectAuth || !projectAuth.projectId || !projectAuth.authToken) {
+      logger.debug("No project auth found for team ID. Ignoring emoji reaction.");
+      return;
+    }
+
+    const projectId: ObjectID = projectAuth.projectId;
+    const authToken: string = projectAuth.authToken;
+
+    // Find the alert linked to this channel
+    const workspaceLog: WorkspaceNotificationLog | null =
+      await WorkspaceNotificationLogService.findOneBy({
+        query: {
+          channelId: channelId,
+          workspaceType: WorkspaceType.Slack,
+          projectId: projectId,
+        },
+        select: {
+          alertId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!workspaceLog || !workspaceLog.alertId) {
+      logger.debug(
+        "No alert found linked to this channel. Ignoring emoji reaction.",
+      );
+      return;
+    }
+
+    const alertId: ObjectID = workspaceLog.alertId;
+
+    // Get the alert number for the confirmation message
+    const alertNumber: number | null =
+      await AlertService.getAlertNumber({
+        alertId: alertId,
+      });
+
+    // Get the user ID in OneUptime based on Slack user ID
+    const oneUptimeUserId: ObjectID | null =
+      await AccessTokenService.getUserIdByWorkspaceUserId({
+        workspaceUserId: userId,
+        workspaceType: WorkspaceType.Slack,
+        projectId: projectId,
+      });
+
+    if (!oneUptimeUserId) {
+      logger.debug(
+        "No OneUptime user found for Slack user. Ignoring emoji reaction.",
+      );
+      return;
+    }
+
+    // Fetch the message text using the timestamp
+    let messageText: string | null = null;
+    try {
+      messageText = await SlackUtil.getMessageByTimestamp({
+        authToken: authToken,
+        channelId: channelId,
+        messageTs: messageTs,
+      });
+    } catch (err) {
+      logger.error("Error fetching message text:");
+      logger.error(err);
+      return;
+    }
+
+    if (!messageText) {
+      logger.debug("No message text found. Ignoring emoji reaction.");
+      return;
+    }
+
+    // Save as private note (Alerts only support private notes)
+    try {
+      await AlertInternalNoteService.addNote({
+        alertId: alertId,
+        note: messageText,
+        projectId: projectId,
+        userId: oneUptimeUserId,
+      });
+      logger.debug("Private note added to alert successfully.");
+    } catch (err) {
+      logger.error("Error saving note:");
+      logger.error(err);
+      return;
+    }
+
+    // Send confirmation message as a reply to the original message thread
+    try {
+      const alertLink: string = (
+        await AlertService.getAlertLinkInDashboard(projectId, alertId)
+      ).toString();
+
+      const confirmationMessage: string =
+        `✅ Message saved as **private note** to [Alert #${alertNumber}](${alertLink}).`;
+
+      await SlackUtil.sendMessageToThread({
+        authToken: authToken,
+        channelId: channelId,
+        threadTs: messageTs,
+        text: confirmationMessage,
+      });
+
+      logger.debug("Confirmation message sent successfully.");
+    } catch (err) {
+      logger.error("Error sending confirmation message:");
+      logger.error(err);
+      // Don't throw - note was saved successfully, confirmation is best effort
+    }
   }
 }

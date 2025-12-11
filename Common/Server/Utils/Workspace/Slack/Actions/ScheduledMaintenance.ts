@@ -3,7 +3,10 @@ import ObjectID from "../../../../../Types/ObjectID";
 import ScheduledMaintenanceService from "../../../../Services/ScheduledMaintenanceService";
 import { ExpressRequest, ExpressResponse } from "../../../Express";
 import SlackUtil from "../Slack";
-import SlackActionType from "./ActionTypes";
+import SlackActionType, {
+  PrivateNoteEmojis,
+  PublicNoteEmojis,
+} from "./ActionTypes";
 import { SlackAction, SlackRequest } from "./Auth";
 import Response from "../../../Response";
 import {
@@ -35,6 +38,8 @@ import AccessTokenService from "../../../../Services/AccessTokenService";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
+import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
+import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 
 export default class SlackScheduledMaintenanceActions {
   @CaptureSpan()
@@ -1109,5 +1114,173 @@ export default class SlackScheduledMaintenanceActions {
       data.res,
       new BadDataException("Invalid Action Type"),
     );
+  }
+
+  @CaptureSpan()
+  public static async handleEmojiReaction(data: {
+    teamId: string;
+    reaction: string;
+    userId: string;
+    channelId: string;
+    messageTs: string;
+  }): Promise<void> {
+    logger.debug("Handling emoji reaction for Scheduled Maintenance with data:");
+    logger.debug(data);
+
+    const { teamId, reaction, userId, channelId, messageTs } = data;
+
+    // Check if the emoji is a supported private or public note emoji
+    const isPrivateNoteEmoji: boolean = PrivateNoteEmojis.includes(reaction);
+    const isPublicNoteEmoji: boolean = PublicNoteEmojis.includes(reaction);
+
+    if (!isPrivateNoteEmoji && !isPublicNoteEmoji) {
+      logger.debug(
+        `Emoji "${reaction}" is not a supported note emoji. Ignoring.`,
+      );
+      return;
+    }
+
+    // Get the project auth token using the team ID
+    const projectAuth =
+      await WorkspaceProjectAuthTokenService.findOneBy({
+        query: {
+          workspaceProjectId: teamId,
+        },
+        select: {
+          projectId: true,
+          authToken: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!projectAuth || !projectAuth.projectId || !projectAuth.authToken) {
+      logger.debug("No project auth found for team ID. Ignoring emoji reaction.");
+      return;
+    }
+
+    const projectId: ObjectID = projectAuth.projectId;
+    const authToken: string = projectAuth.authToken;
+
+    // Find the scheduled maintenance linked to this channel
+    const workspaceLog: WorkspaceNotificationLog | null =
+      await WorkspaceNotificationLogService.findOneBy({
+        query: {
+          channelId: channelId,
+          workspaceType: WorkspaceType.Slack,
+          projectId: projectId,
+        },
+        select: {
+          scheduledMaintenanceId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!workspaceLog || !workspaceLog.scheduledMaintenanceId) {
+      logger.debug(
+        "No scheduled maintenance found linked to this channel. Ignoring emoji reaction.",
+      );
+      return;
+    }
+
+    const scheduledMaintenanceId: ObjectID = workspaceLog.scheduledMaintenanceId;
+
+    // Get the scheduled maintenance number for the confirmation message
+    const scheduledMaintenanceNumber: number | null =
+      await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
+        scheduledMaintenanceId: scheduledMaintenanceId,
+      });
+
+    // Get the user ID in OneUptime based on Slack user ID
+    const oneUptimeUserId: ObjectID | null =
+      await AccessTokenService.getUserIdByWorkspaceUserId({
+        workspaceUserId: userId,
+        workspaceType: WorkspaceType.Slack,
+        projectId: projectId,
+      });
+
+    if (!oneUptimeUserId) {
+      logger.debug(
+        "No OneUptime user found for Slack user. Ignoring emoji reaction.",
+      );
+      return;
+    }
+
+    // Fetch the message text using the timestamp
+    let messageText: string | null = null;
+    try {
+      messageText = await SlackUtil.getMessageByTimestamp({
+        authToken: authToken,
+        channelId: channelId,
+        messageTs: messageTs,
+      });
+    } catch (err) {
+      logger.error("Error fetching message text:");
+      logger.error(err);
+      return;
+    }
+
+    if (!messageText) {
+      logger.debug("No message text found. Ignoring emoji reaction.");
+      return;
+    }
+
+    // Save the note based on the emoji type
+    let noteType: string;
+    try {
+      if (isPrivateNoteEmoji) {
+        noteType = "private";
+        await ScheduledMaintenanceInternalNoteService.addNote({
+          scheduledMaintenanceId: scheduledMaintenanceId,
+          note: messageText,
+          projectId: projectId,
+          userId: oneUptimeUserId,
+        });
+        logger.debug("Private note added successfully.");
+      } else if (isPublicNoteEmoji) {
+        noteType = "public";
+        await ScheduledMaintenancePublicNoteService.addNote({
+          scheduledMaintenanceId: scheduledMaintenanceId,
+          note: messageText,
+          projectId: projectId,
+          userId: oneUptimeUserId,
+        });
+        logger.debug("Public note added successfully.");
+      } else {
+        return;
+      }
+    } catch (err) {
+      logger.error("Error saving note:");
+      logger.error(err);
+      return;
+    }
+
+    // Send confirmation message as a reply to the original message thread
+    try {
+      const scheduledMaintenanceLink: string = (
+        await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)
+      ).toString();
+
+      const confirmationMessage: string =
+        noteType === "private"
+          ? `✅ Message saved as **private note** to [Scheduled Maintenance #${scheduledMaintenanceNumber}](${scheduledMaintenanceLink}).`
+          : `✅ Message saved as **public note** to [Scheduled Maintenance #${scheduledMaintenanceNumber}](${scheduledMaintenanceLink}). This note will be visible on the status page.`;
+
+      await SlackUtil.sendMessageToThread({
+        authToken: authToken,
+        channelId: channelId,
+        threadTs: messageTs,
+        text: confirmationMessage,
+      });
+
+      logger.debug("Confirmation message sent successfully.");
+    } catch (err) {
+      logger.error("Error sending confirmation message:");
+      logger.error(err);
+      // Don't throw - note was saved successfully, confirmation is best effort
+    }
   }
 }

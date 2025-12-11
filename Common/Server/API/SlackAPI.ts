@@ -731,6 +731,81 @@ export default class SlackAPI {
       },
     );
 
+    // Slack Events API endpoint for handling events like emoji reactions
+    router.post(
+      "/slack/events",
+      SlackAuthorization.isAuthorizedSlackRequest,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        logger.debug("Slack Events API Request received");
+        logger.debug(req.body);
+
+        const payload: JSONObject = req.body;
+
+        // Handle URL verification challenge from Slack
+        if (payload["type"] === "url_verification") {
+          logger.debug("Slack URL verification challenge received");
+          return Response.sendJsonObjectResponse(req, res, {
+            challenge: payload["challenge"],
+          });
+        }
+
+        // Handle event callbacks
+        if (payload["type"] === "event_callback") {
+          const event: JSONObject = payload["event"] as JSONObject;
+
+          if (!event) {
+            logger.debug("No event found in payload");
+            return Response.sendTextResponse(req, res, "ok");
+          }
+
+          // Handle reaction_added events
+          if (event["type"] === "reaction_added") {
+            logger.debug("Reaction added event received");
+
+            // Respond immediately to Slack to prevent retry
+            // Process the event asynchronously
+            Response.sendTextResponse(req, res, "ok");
+
+            const reactionData = {
+              teamId: payload["team_id"] as string,
+              reaction: event["reaction"] as string,
+              userId: event["user"] as string,
+              channelId: (event["item"] as JSONObject)?.["channel"] as string,
+              messageTs: (event["item"] as JSONObject)?.["ts"] as string,
+            };
+
+            // Process emoji reactions for Incidents, Alerts, and Scheduled Maintenance
+            // Each handler will silently ignore if the channel is not linked to their resource type
+            try {
+              await SlackIncidentActions.handleEmojiReaction(reactionData);
+            } catch (err) {
+              logger.error("Error handling incident emoji reaction:");
+              logger.error(err);
+            }
+
+            try {
+              await SlackAlertActions.handleEmojiReaction(reactionData);
+            } catch (err) {
+              logger.error("Error handling alert emoji reaction:");
+              logger.error(err);
+            }
+
+            try {
+              await SlackScheduledMaintenanceActions.handleEmojiReaction(reactionData);
+            } catch (err) {
+              logger.error("Error handling scheduled maintenance emoji reaction:");
+              logger.error(err);
+            }
+
+            return;
+          }
+        }
+
+        // For any other event types, just acknowledge
+        return Response.sendTextResponse(req, res, "ok");
+      },
+    );
+
     // options load endpoint.
 
     router.post(
