@@ -37,8 +37,11 @@ export default class SlackAuthorization {
     const timestamp: string = req.headers[
       "x-slack-request-timestamp"
     ] as string;
+    // Use rawBody for both JSON and URL-encoded requests, fallback to rawFormUrlEncodedBody for backward compatibility
     const requestBody: string =
-      (req as OneUptimeRequest).rawFormUrlEncodedBody || "";
+      (req as OneUptimeRequest).rawBody ||
+      (req as OneUptimeRequest).rawFormUrlEncodedBody ||
+      "";
 
     logger.debug(`slackSignature: ${slackSignature}`);
     logger.debug(`timestamp: ${timestamp}`);
