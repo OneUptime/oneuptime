@@ -367,7 +367,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
               RouteMap[PageMap.SETTINGS_LLMS] as Route,
             ),
           },
-          icon: IconProp.Robot,
+          icon: IconProp.Brain,
         },
         {
           link: {
