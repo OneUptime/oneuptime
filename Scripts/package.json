@@ -2,6 +2,10 @@
   "name": "@oneuptime/scripts",
   "version": "1.0.0",
   "description": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OneUptime/oneuptime"
+  },
   "scripts": {
     "compile": "tsc"
   },

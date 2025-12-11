@@ -372,7 +372,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   "/oss-friends": {
     title: "OSS Friends | Open Source Partners | OneUptime",
     description:
-      "Meet our open source friends and partners. OneUptime is proud to be part of the open source community.",
+      "Meet our open-source friends and partners. OneUptime is proud to be part of the open-source community.",
     canonicalPath: "/oss-friends",
     twitterCard: "summary",
     pageType: "other",

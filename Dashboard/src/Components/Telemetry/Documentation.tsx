@@ -102,7 +102,7 @@ const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
 
       <ImageTiles
         title="Integrate with Fluentd"
-        description="OneUptime supports a native integration with Fluentd. Fluentd is an open source data collector for unified logging layer. Fluentd allows you to unify data collection and consumption for a better use and understanding of data."
+        description="OneUptime supports a native integration with Fluentd. Fluentd is an open-source data collector for unified logging layer. Fluentd allows you to unify data collection and consumption for a better use and understanding of data."
         tiles={[
           {
             image: DockerImage,
@@ -139,7 +139,7 @@ const TelemetryDocumentation: FunctionComponent = (): ReactElement => {
 
       <ImageTiles
         title="Integrate with FluentBit"
-        description="OneUptime supports a native integration with FluentBit. FluentBit is an open source data collector for unified logging and telemetry layer. FluentBit allows you to unify data collection and consumption for a better use and understanding of data."
+        description="OneUptime supports a native integration with FluentBit. FluentBit is an open-source data collector for unified logging and telemetry layer. FluentBit allows you to unify data collection and consumption for a better use and understanding of data."
         tiles={[
           {
             image: DockerImage,
