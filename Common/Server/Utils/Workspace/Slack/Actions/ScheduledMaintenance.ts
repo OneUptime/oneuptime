@@ -41,6 +41,8 @@ import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAut
 import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
 import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
+import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 
 export default class SlackScheduledMaintenanceActions {
   @CaptureSpan()
@@ -1144,18 +1146,19 @@ export default class SlackScheduledMaintenanceActions {
     }
 
     // Get the project auth token using the team ID
-    const projectAuth = await WorkspaceProjectAuthTokenService.findOneBy({
-      query: {
-        workspaceProjectId: teamId,
-      },
-      select: {
-        projectId: true,
-        authToken: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.findOneBy({
+        query: {
+          workspaceProjectId: teamId,
+        },
+        select: {
+          projectId: true,
+          authToken: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
     if (!projectAuth || !projectAuth.projectId || !projectAuth.authToken) {
       logger.debug(
@@ -1200,19 +1203,20 @@ export default class SlackScheduledMaintenanceActions {
       });
 
     // Get the user ID in OneUptime based on Slack user ID
-    const userAuth = await WorkspaceUserAuthTokenService.findOneBy({
-      query: {
-        workspaceUserId: userId,
-        workspaceType: WorkspaceType.Slack,
-        projectId: projectId,
-      },
-      select: {
-        userId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const userAuth: WorkspaceUserAuthToken | null =
+      await WorkspaceUserAuthTokenService.findOneBy({
+        query: {
+          workspaceUserId: userId,
+          workspaceType: WorkspaceType.Slack,
+          projectId: projectId,
+        },
+        select: {
+          userId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
     if (!userAuth || !userAuth.userId) {
       logger.debug(

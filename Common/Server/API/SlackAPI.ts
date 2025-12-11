@@ -768,7 +768,13 @@ export default class SlackAPI {
              */
             Response.sendTextResponse(req, res, "ok");
 
-            const reactionData = {
+            const reactionData: {
+              teamId: string;
+              reaction: string;
+              userId: string;
+              channelId: string;
+              messageTs: string;
+            } = {
               teamId: payload["team_id"] as string,
               reaction: event["reaction"] as string,
               userId: event["user"] as string,
