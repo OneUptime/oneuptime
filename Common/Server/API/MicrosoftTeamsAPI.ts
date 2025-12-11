@@ -472,7 +472,7 @@ export default class MicrosoftTeamsAPI {
         }
       },
     );
-    
+
     /*
      * Admin consent - start flow (tenant-wide admin consent)
      * Uses state in the same format as OAuth: <projectId>:<userId>

@@ -30,6 +30,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTokenService";
+import WorkspaceUserAuthToken from "../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceProjectAuthToken, {
   MicrosoftTeamsMiscData,
   MicrosoftTeamsTeam,
@@ -2859,28 +2860,37 @@ All monitoring checks are passing normally.`;
       try {
         // If caller provided a userAccessToken directly, use it
         if (data.userAccessToken) {
-          logger.debug("Using provided user access token to fetch joined teams");
+          logger.debug(
+            "Using provided user access token to fetch joined teams",
+          );
           usedAccessToken = data.userAccessToken;
-          const userTeams = await this.getUserJoinedTeams(usedAccessToken);
+          const userTeams: Record<string, { id: string; name: string }> =
+            await this.getUserJoinedTeams(usedAccessToken);
           allTeams = Object.values(userTeams) as any;
         } else if (data.userId) {
           // Try to fetch stored user auth for this project + user
           logger.debug("Looking up stored user auth token for provided userId");
-          const userAuth = await WorkspaceUserAuthTokenService.getUserAuth({
-            projectId: data.projectId,
-            userId: data.userId,
-            workspaceType: WorkspaceType.MicrosoftTeams,
-          });
+          const userAuth: WorkspaceUserAuthToken | null =
+            await WorkspaceUserAuthTokenService.getUserAuth({
+              projectId: data.projectId,
+              userId: data.userId,
+              workspaceType: WorkspaceType.MicrosoftTeams,
+            });
 
           if (userAuth && userAuth.authToken) {
             usedAccessToken = userAuth.authToken;
-            logger.debug("Found user auth token; using it to fetch joined teams");
-            const userTeams = await this.getUserJoinedTeams(usedAccessToken);
+            logger.debug(
+              "Found user auth token; using it to fetch joined teams",
+            );
+            const userTeams: Record<string, { id: string; name: string }> =
+              await this.getUserJoinedTeams(usedAccessToken);
             allTeams = Object.values(userTeams) as any;
           }
         }
       } catch (err) {
-        logger.warn("Failed to fetch teams using user-scoped token, falling back to app token:");
+        logger.warn(
+          "Failed to fetch teams using user-scoped token, falling back to app token:",
+        );
         logger.warn(err);
         allTeams = [];
       }
