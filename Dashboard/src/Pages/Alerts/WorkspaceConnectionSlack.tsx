@@ -55,6 +55,10 @@ const IncidentsPage: FunctionComponent<
     <div>
       {isSlackConnected && (
         <>
+          <WorkspaceNotificationRuleTable
+            workspaceType={WorkspaceType.Slack}
+            eventType={NotificationRuleEventType.Alert}
+          />
           <Card
             title="Tips: Using Emoji Reactions"
             description="You can use emoji reactions in Slack to quickly save messages as notes to alerts."
@@ -67,10 +71,6 @@ When you react with a pin emoji, OneUptime will automatically save the message c
               `}
             />
           </Card>
-          <WorkspaceNotificationRuleTable
-            workspaceType={WorkspaceType.Slack}
-            eventType={NotificationRuleEventType.Alert}
-          />
         </>
       )}
       {!isSlackConnected && (
