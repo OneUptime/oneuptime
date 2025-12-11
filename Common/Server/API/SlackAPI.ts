@@ -42,6 +42,10 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import {
+  PrivateNoteEmojis,
+  PublicNoteEmojis,
+} from "../Utils/Workspace/Slack/Actions/ActionTypes";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -781,6 +785,18 @@ export default class SlackAPI {
               channelId: (event["item"] as JSONObject)?.["channel"] as string,
               messageTs: (event["item"] as JSONObject)?.["ts"] as string,
             };
+
+            // OPTIMIZATION: Quick check if this is a supported emoji before any DB queries
+            const isSupportedEmoji: boolean =
+              PrivateNoteEmojis.includes(reactionData.reaction) ||
+              PublicNoteEmojis.includes(reactionData.reaction);
+
+            if (!isSupportedEmoji) {
+              logger.debug(
+                `Emoji "${reactionData.reaction}" is not supported. Skipping.`,
+              );
+              return;
+            }
 
             /*
              * Process emoji reactions for Incidents, Alerts, and Scheduled Maintenance
