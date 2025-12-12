@@ -8,6 +8,7 @@ import NotificationSettingEventType from "Common/Types/NotificationSetting/Notif
 import ObjectID from "Common/Types/ObjectID";
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
+import Text from "Common/Types/Text";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentService from "Common/Server/Services/IncidentService";
 import IncidentStateTimelineService from "Common/Server/Services/IncidentStateTimelineService";
@@ -249,15 +250,7 @@ RunCron(
           vars["isOwner"] = "true";
         }
 
-        let subjectLine: string = `[Incident] ${incident.title!}`;
-
-        if (incidentState.isResolvedState) {
-          if (resourcesAffected) {
-            subjectLine = `[Incident] Incident on ${resourcesAffected} is resolved`;
-          } else {
-            subjectLine = `[Incident] Incident is resolved`;
-          }
-        }
+        const subjectLine: string = `[Incident ${Text.uppercaseFirstLetter(incidentState!.name!)}] ${incident.title!}`;
 
         const incidentIdentifier: string =
           incident.incidentNumber !== undefined
