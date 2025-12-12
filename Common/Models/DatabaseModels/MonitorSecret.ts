@@ -236,7 +236,7 @@ export default class MonitorSecret extends BaseModel {
     title: "Secret Value",
     description:
       "Secret value that you want to store in this object. This value will be encrypted and only accessible by the probe.",
-    example: "sk_live_1234567890abcdefghijklmnop",
+    example: "sk_test_1234567890abcdefghijklmnop",
   })
   @Column({
     nullable: true,
