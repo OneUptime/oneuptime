@@ -29,12 +29,10 @@ export default class LlmProviderAPI extends BaseAPI<
             await LlmProviderService.findBy({
               query: {
                 isGlobalLlm: true,
-                isEnabled: true,
               },
               select: {
                 name: true,
                 description: true,
-                isEnabled: true,
               },
               props: {
                 isRoot: true,

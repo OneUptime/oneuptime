@@ -12,7 +12,7 @@ import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmType from "Common/Types/LLM/LlmType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red, Yellow } from "Common/Types/BrandColors";
+import { Yellow } from "Common/Types/BrandColors";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 
 const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -189,16 +189,6 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             {
               field: {
-                isEnabled: true,
-              },
-              title: "Enabled",
-              stepId: "provider-settings",
-              fieldType: FormFieldSchemaType.Toggle,
-              required: false,
-              description: "Enable or disable this LLM configuration.",
-            },
-            {
-              field: {
                 isDefault: true,
               },
               title: "Set as Default",
@@ -224,13 +214,6 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Description",
               type: FieldType.Text,
-            },
-            {
-              field: {
-                isEnabled: true,
-              },
-              title: "Enabled",
-              type: FieldType.Boolean,
             },
             {
               field: {
@@ -266,20 +249,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 if (item.isDefault) {
                   return <Pill text="Default" color={Yellow} />;
                 }
-                return <Pill text="-" color={Red} />;
-              },
-            },
-            {
-              field: {
-                isEnabled: true,
-              },
-              title: "Status",
-              type: FieldType.Boolean,
-              getElement: (item: LlmProvider): ReactElement => {
-                if (item.isEnabled) {
-                  return <Pill text="Enabled" color={Green} />;
-                }
-                return <Pill text="Disabled" color={Red} />;
+                return <Pill text="-" color={Yellow} />;
               },
             },
           ]}

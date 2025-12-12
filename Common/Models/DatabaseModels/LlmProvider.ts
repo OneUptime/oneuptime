@@ -450,37 +450,6 @@ export default class LlmProvider extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Boolean,
-    title: "Is Enabled",
-    description: "Is this LLM configuration enabled and available for use?",
-    defaultValue: true,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    nullable: false,
-    unique: false,
-    default: true,
-  })
-  public isEnabled?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectLlm,
-    ],
-    read: [Permission.Public],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditProjectLlm,
-    ],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    required: true,
-    type: TableColumnType.Boolean,
     title: "Is Default",
     description:
       "Is this the default LLM provider for the project? When set, the global LLM provider will not be used.",
