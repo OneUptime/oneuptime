@@ -34,9 +34,6 @@ export default class LlmProviderAPI extends BaseAPI<
               select: {
                 name: true,
                 description: true,
-                llmType: true,
-                modelName: true,
-                baseUrl: true,
                 isEnabled: true,
               },
               props: {
