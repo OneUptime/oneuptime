@@ -14,6 +14,8 @@ import LlmType from "Common/Types/LLM/LlmType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Green } from "Common/Types/BrandColors";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 
 const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -135,11 +137,11 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           userPreferencesKey={"settings-project-llms-table"}
           name="Settings > LLM Providers"
           isDeleteable={true}
-          isEditable={true}
+          isEditable={false}
           isViewable={true}
           isCreateable={true}
           cardProps={{
-            title: "Project LLM Providers",
+            title: "Bring Your Own Large Language Model",
             description:
               "Configure LLM Providers for AI features. Connect to OpenAI, Anthropic, Ollama, or other providers.",
           }}
@@ -291,11 +293,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               type: FieldType.Boolean,
               getElement: (item: LlmProvider): ReactElement => {
                 if (item.isDefault) {
-                  return (
-                    <div className="flex justify-center">
-                      <Icon icon={IconProp.Check} className="h-5 w-5 text-green-500" />
-                    </div>
-                  );
+                  return <Pill text="Default" color={Green} />;
                 }
                 return <span className="text-gray-400">-</span>;
               },
