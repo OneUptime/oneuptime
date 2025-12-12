@@ -437,6 +437,16 @@
                      <h3 class="text-sm font-semibold text-slate-800">Read Permissions</h3>
                      <p class="text-xs text-slate-500 mt-0.5">Required to read <%= pageData.title -%></p>
                   </div>
+                  <% if(pageData.tablePermissions.read.length === 0) { %>
+                     <div class="px-4 py-4">
+                        <div class="flex items-center gap-2 text-slate-500">
+                           <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                           </svg>
+                           <span class="text-sm">This resource cannot be read via the API</span>
+                        </div>
+                     </div>
+                  <% } else { %>
                   <ul role="list" class="m-0 divide-y divide-slate-100 p-0">
                      <% for(var i=0; i<pageData.tablePermissions.read.length; i++) {%>
                         <li class="m-0 px-4 py-3">
@@ -448,6 +458,7 @@
                         </li>
                      <% } %>
                   </ul>
+                  <% } %>
                </div>
 
                <!-- Create Permissions -->
@@ -456,6 +467,16 @@
                      <h3 class="text-sm font-semibold text-slate-800">Create Permissions</h3>
                      <p class="text-xs text-slate-500 mt-0.5">Required to create <%= pageData.title -%></p>
                   </div>
+                  <% if(pageData.tablePermissions.create.length === 0) { %>
+                     <div class="px-4 py-4">
+                        <div class="flex items-center gap-2 text-slate-500">
+                           <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                           </svg>
+                           <span class="text-sm">This resource cannot be created via the API</span>
+                        </div>
+                     </div>
+                  <% } else { %>
                   <ul role="list" class="m-0 divide-y divide-slate-100 p-0">
                      <% for(var i=0; i<pageData.tablePermissions.create.length; i++) {%>
                         <li class="m-0 px-4 py-3">
@@ -467,6 +488,7 @@
                         </li>
                      <% } %>
                   </ul>
+                  <% } %>
                </div>
 
                <!-- Update Permissions -->
@@ -475,6 +497,16 @@
                      <h3 class="text-sm font-semibold text-slate-800">Update Permissions</h3>
                      <p class="text-xs text-slate-500 mt-0.5">Required to update <%= pageData.title -%></p>
                   </div>
+                  <% if(pageData.tablePermissions.update.length === 0) { %>
+                     <div class="px-4 py-4">
+                        <div class="flex items-center gap-2 text-slate-500">
+                           <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                           </svg>
+                           <span class="text-sm">This resource cannot be updated via the API</span>
+                        </div>
+                     </div>
+                  <% } else { %>
                   <ul role="list" class="m-0 divide-y divide-slate-100 p-0">
                      <% for(var i=0; i<pageData.tablePermissions.update.length; i++) {%>
                         <li class="m-0 px-4 py-3">
@@ -486,6 +518,7 @@
                         </li>
                      <% } %>
                   </ul>
+                  <% } %>
                </div>
 
                <!-- Delete Permissions -->
@@ -494,6 +527,16 @@
                      <h3 class="text-sm font-semibold text-slate-800">Delete Permissions</h3>
                      <p class="text-xs text-slate-500 mt-0.5">Required to delete <%= pageData.title -%></p>
                   </div>
+                  <% if(pageData.tablePermissions.delete.length === 0) { %>
+                     <div class="px-4 py-4">
+                        <div class="flex items-center gap-2 text-slate-500">
+                           <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                           </svg>
+                           <span class="text-sm">This resource cannot be deleted via the API</span>
+                        </div>
+                     </div>
+                  <% } else { %>
                   <ul role="list" class="m-0 divide-y divide-slate-100 p-0">
                      <% for(var i=0; i<pageData.tablePermissions.delete.length; i++) {%>
                         <li class="m-0 px-4 py-3">
@@ -505,6 +548,7 @@
                         </li>
                      <% } %>
                   </ul>
+                  <% } %>
                </div>
             </div>
          <% } %>
