@@ -2,12 +2,8 @@
     <div
         class="contents lg:pointer-events-auto lg:block lg:w-72 lg:overflow-y-auto lg:border-r lg:border-slate-200/80 lg:px-6 lg:pt-6 lg:pb-8 xl:w-80 lg:bg-gradient-to-b lg:from-slate-50 lg:to-white">
         <div class="hidden lg:flex lg:items-center lg:gap-3 lg:mb-8">
-            <a aria-label="Home" href="/" class="flex items-center gap-3">
-                <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-600">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                    </svg>
-                </div>
+            <a aria-label="Home" href="/" class="flex items-center gap-2.5">
+                <img src="/img/ou-wb.svg" alt="OneUptime" class="h-8 w-8" />
                 <span class="text-lg font-bold text-slate-900">OneUptime</span>
             </a>
         </div>
@@ -218,27 +214,27 @@
                         <div class="absolute inset-y-0 left-2 w-px bg-slate-200"></div>
                         <ul role="list" class="border-l border-transparent space-y-1">
                             <li class="relative">
-                                <a class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-900 font-medium -ml-px border-l-2 border-indigo-500"
-                                    href="/reference/introduction" aria-current="page"><span
+                                <a class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
+                                    href="/reference/introduction"><span
                                         class="truncate">Introduction</span></a>
                             </li>
                             <li class="relative"><a
-                                    class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
+                                    class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
                                     href="/reference/authentication"><span class="truncate">Authentication</span></a></li>
                             <li class="relative"><a
-                                    class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
+                                    class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
                                     href="/reference/pagination"><span class="truncate">Pagination</span></a></li>
                             <li class="relative"><a
-                                    class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
+                                    class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
                                     href="/reference/permissions"><span class="truncate">Permissions</span></a></li>
                             <li class="relative"><a
-                                    class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
+                                    class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
                                     href="/reference/data-types"><span class="truncate">Data Types</span></a></li>
                             <li class="relative"><a
-                                    class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
+                                    class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
                                     href="/reference/errors"><span class="truncate">Errors</span></a></li>
                             <li class="relative"><a
-                                    class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
+                                    class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
                                     href="/reference/openapi"><span class="truncate">OpenAPI Spec</span></a></li>
                         </ul>
                     </div>
@@ -250,7 +246,7 @@
                         <ul role="list" class="border-l border-transparent space-y-1">
                             <% for(var i=0; i<resources.length; i++) {%>
                                 <li class="relative"><a
-                                        class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
+                                        class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
                                         href="/reference/<%= resources[i].path -%>"><span class="truncate">
                                             <%= resources[i].name -%>
                                         </span></a></li>
@@ -265,3 +261,21 @@
         </nav>
     </div>
 </header>
+
+<script>
+   // Highlight active navigation link
+   document.addEventListener('DOMContentLoaded', function() {
+      const currentPath = window.location.pathname;
+      const navLinks = document.querySelectorAll('.nav-link');
+
+      navLinks.forEach(function(link) {
+         const href = link.getAttribute('href');
+         if (href === currentPath) {
+            // Remove default classes and add active classes
+            link.classList.remove('text-slate-600', 'border-transparent', 'hover:border-slate-300');
+            link.classList.add('text-slate-900', 'font-medium', 'border-indigo-500');
+            link.setAttribute('aria-current', 'page');
+         }
+      });
+   });
+</script>
