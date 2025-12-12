@@ -12,7 +12,7 @@ import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmType from "Common/Types/LLM/LlmType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 
 const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -197,6 +197,17 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               required: false,
               description: "Enable or disable this LLM configuration.",
             },
+            {
+              field: {
+                isDefault: true,
+              },
+              title: "Set as Default",
+              stepId: "provider-settings",
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+              description:
+                "Set this as the default LLM provider for the project. When a default is set, the global LLM provider will not be used.",
+            },
           ]}
           showRefreshButton={true}
           filters={[
@@ -221,6 +232,13 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Enabled",
               type: FieldType.Boolean,
             },
+            {
+              field: {
+                isDefault: true,
+              },
+              title: "Default",
+              type: FieldType.Boolean,
+            },
           ]}
           columns={[
             {
@@ -237,6 +255,19 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Description",
               type: FieldType.Text,
               noValueMessage: "-",
+            },
+            {
+              field: {
+                isDefault: true,
+              },
+              title: "Default",
+              type: FieldType.Boolean,
+              getElement: (item: LlmProvider): ReactElement => {
+                if (item.isDefault) {
+                  return <Pill text="Default" color={Yellow} />;
+                }
+                return <Pill text="-" color={Red} />;
+              },
             },
             {
               field: {

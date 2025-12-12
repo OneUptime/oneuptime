@@ -17,7 +17,7 @@ import React, {
   useState,
 } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 
 const LlmProviderView: FunctionComponent<PageComponentProps> = (
@@ -127,6 +127,17 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             required: false,
             description: "Enable or disable this LLM configuration.",
           },
+          {
+            field: {
+              isDefault: true,
+            },
+            title: "Set as Default",
+            stepId: "provider-settings",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Set this as the default LLM provider for the project. When a default is set, the global LLM provider will not be used.",
+          },
         ]}
         modelDetailProps={{
           modelType: LlmProvider,
@@ -182,6 +193,19 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
                   return <Pill text="Enabled" color={Green} />;
                 }
                 return <Pill text="Disabled" color={Red} />;
+              },
+            },
+            {
+              field: {
+                isDefault: true,
+              },
+              title: "Default",
+              fieldType: FieldType.Boolean,
+              getElement: (item: LlmProvider): ReactElement => {
+                if (item.isDefault) {
+                  return <Pill text="Default" color={Yellow} />;
+                }
+                return <Pill text="Not Default" color={Red} />;
               },
             },
           ],
