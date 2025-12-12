@@ -32,7 +32,7 @@ const Settings: FunctionComponent = (): ReactElement => {
           ),
         },
         {
-          title: \"Global LLM Providers\",
+          title: "Global LLM Providers",
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
           ),
@@ -44,9 +44,9 @@ const Settings: FunctionComponent = (): ReactElement => {
 
       <Banner
         openInNewTab={true}
-        title=\"Need help with setting up LLM Providers?\"
-        description=\"LLM Providers enable AI features. You can configure global LLM Providers that are available to all projects.\"
-        link={Route.fromString(\"/docs/ai/llm-provider\")}
+        title="Need help with setting up LLM Providers?"
+        description="LLM Providers enable AI features. You can configure global LLM Providers that are available to all projects."
+        link={Route.fromString("/docs/ai/llm-provider")}
         hideOnMobile={true}
       />
 
@@ -68,7 +68,9 @@ const Settings: FunctionComponent = (): ReactElement => {
           isGlobalLlm: true,
         }}
         modelAPI={AdminModelAPI}
-        noItemsMessage={"No LLM Providers configured. Add an LLM Provider to enable AI features."}
+        noItemsMessage={
+          "No LLM Providers configured. Add an LLM Provider to enable AI features."
+        }
         showRefreshButton={true}
         onBeforeCreate={(item: LlmProvider) => {
           item.isGlobalLlm = true;

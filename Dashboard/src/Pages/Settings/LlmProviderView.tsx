@@ -20,7 +20,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 
-const LlmView: FunctionComponent<PageComponentProps> = (
+const LlmProviderView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
   const [modelId] = useState<ObjectID>(Navigation.getLastParamAsObjectID());
