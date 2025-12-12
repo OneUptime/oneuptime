@@ -80,7 +80,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
               RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
             ),
           }}
-          icon={IconProp.Robot}
+          icon={IconProp.Brain}
         />
       </SideMenuSection>
       <SideMenuSection title="API and Integrations">
