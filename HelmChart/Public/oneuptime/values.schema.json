@@ -2011,6 +2011,27 @@
       },
       "additionalProperties": false
     },
+    "gitHubApp": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": ["string", "null"]
+        },
+        "clientId": {
+          "type": ["string", "null"]
+        },
+        "clientSecret": {
+          "type": ["string", "null"]
+        },
+        "privateKey": {
+          "type": ["string", "null"]
+        },
+        "webhookSecret": {
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": false
+    },
     "keda": {
       "type": "object",
       "properties": {

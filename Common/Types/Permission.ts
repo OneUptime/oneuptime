@@ -624,6 +624,12 @@ enum Permission {
   EditServiceCatalogTelemetryService = "EditServiceCatalogTelemetryService",
   ReadServiceCatalogTelemetryService = "ReadServiceCatalogTelemetryService",
 
+  // Code Repository
+  CreateCodeRepository = "CreateCodeRepository",
+  DeleteCodeRepository = "DeleteCodeRepository",
+  EditCodeRepository = "EditCodeRepository",
+  ReadCodeRepository = "ReadCodeRepository",
+
   CreateProbeOwnerTeam = "CreateProbeOwnerTeam",
   DeleteProbeOwnerTeam = "DeleteProbeOwnerTeam",
   EditProbeOwnerTeam = "EditProbeOwnerTeam",
@@ -3415,6 +3421,40 @@ export class PermissionHelper {
           "This permission can read Service Catalog Telemetry Service of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
+      },
+
+      // Code Repository Permissions
+      {
+        permission: Permission.CreateCodeRepository,
+        title: "Create Code Repository",
+        description:
+          "This permission can create Code Repositories in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.DeleteCodeRepository,
+        title: "Delete Code Repository",
+        description:
+          "This permission can delete Code Repositories of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.EditCodeRepository,
+        title: "Edit Code Repository",
+        description:
+          "This permission can edit Code Repositories of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.ReadCodeRepository,
+        title: "Read Code Repository",
+        description:
+          "This permission can read Code Repositories of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
       },
 
       {

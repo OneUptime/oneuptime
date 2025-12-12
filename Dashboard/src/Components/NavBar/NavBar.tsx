@@ -92,6 +92,14 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       icon: IconProp.SquareStack,
     },
     {
+      title: "Code Repositories",
+      description: "Connect and manage your GitHub and GitLab repositories.",
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.CODE_REPOSITORY] as Route,
+      ),
+      icon: IconProp.Code,
+    },
+    {
       title: "Scheduled Maintenance",
       description: "Manage your scheduled maintenance events.",
       route: RouteUtil.populateRouteParams(

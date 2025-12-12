@@ -53,6 +53,10 @@ Usage:
 {{- end }}
 - name: SLACK_APP_CLIENT_ID
   value: {{ $.Values.slackApp.clientId | quote }}
+- name: GITHUB_APP_ID
+  value: {{ $.Values.gitHubApp.id | quote }}
+- name: GITHUB_APP_CLIENT_ID
+  value: {{ $.Values.gitHubApp.clientId | quote }}
 - name: HOST
   value: {{ $.Values.host }}
 - name: PROVISION_SSL
@@ -195,6 +199,15 @@ Usage:
 
 - name: MICROSOFT_TEAMS_APP_CLIENT_SECRET
   value: {{ $.Values.microsoftTeamsApp.clientSecret }}
+
+- name: GITHUB_APP_CLIENT_SECRET
+  value: {{ $.Values.gitHubApp.clientSecret }}
+
+- name: GITHUB_APP_PRIVATE_KEY
+  value: {{ $.Values.gitHubApp.privateKey | quote }}
+
+- name: GITHUB_APP_WEBHOOK_SECRET
+  value: {{ $.Values.gitHubApp.webhookSecret }}
 
 - name: CAPTCHA_SECRET_KEY
   value: {{ default "" $.Values.captcha.secretKey | quote }}

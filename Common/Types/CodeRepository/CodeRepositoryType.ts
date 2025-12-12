@@ -1,6 +1,6 @@
 enum CodeRepositoryType {
   GitHub = "GitHub",
-  // GitLab = 'GitLab',
+  GitLab = "GitLab",
 }
 
 export default CodeRepositoryType;

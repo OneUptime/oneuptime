@@ -44,6 +44,7 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "DISABLE_TELEMETRY",
   "SLACK_APP_CLIENT_ID",
   "MICROSOFT_TEAMS_APP_CLIENT_ID",
+  "GITHUB_APP_CLIENT_ID",
   "CAPTCHA_ENABLED",
   "CAPTCHA_SITE_KEY",
 ];
@@ -457,6 +458,18 @@ export const MicrosoftTeamsAppClientSecret: string | null =
   process.env["MICROSOFT_TEAMS_APP_CLIENT_SECRET"] || null;
 export const MicrosoftTeamsAppTenantId: string | null =
   process.env["MICROSOFT_TEAMS_APP_TENANT_ID"] || null;
+
+// GitHub App Configuration
+export const GitHubAppId: string | null =
+  process.env["GITHUB_APP_ID"] || null;
+export const GitHubAppClientId: string | null =
+  process.env["GITHUB_APP_CLIENT_ID"] || null;
+export const GitHubAppClientSecret: string | null =
+  process.env["GITHUB_APP_CLIENT_SECRET"] || null;
+export const GitHubAppPrivateKey: string | null =
+  process.env["GITHUB_APP_PRIVATE_KEY"] || null;
+export const GitHubAppWebhookSecret: string | null =
+  process.env["GITHUB_APP_WEBHOOK_SECRET"] || null;
 
 // VAPID Configuration for Web Push Notifications
 export const VapidPublicKey: string | undefined =

@@ -797,5 +797,23 @@ microsoftTeamsApp:
   clientSecret:
   tenantId:
 
+# GitHub Example Configuration
+# gitHubApp:
+#   id: "123456"
+#   clientId: "Iv1.abc123"
+#   clientSecret: "your-client-secret"
+#   privateKey: |
+#     -----BEGIN RSA PRIVATE KEY-----
+#     ...
+#     -----END RSA PRIVATE KEY-----
+#   webhookSecret: "your-webhook-secret"    
+
+gitHubApp:
+  id:
+  clientId:
+  clientSecret:
+  privateKey:
+  webhookSecret:
+
 keda:
   enabled: true

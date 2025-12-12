@@ -46,6 +46,12 @@ export const ServiceCatalogRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES]: `${RouteParams.ModelID}/telemetry-service`,
 };
 
+export const CodeRepositoryRoutePath: Dictionary<string> = {
+  [PageMap.CODE_REPOSITORY_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.CODE_REPOSITORY_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+};
+
 export const WorkflowRoutePath: Dictionary<string> = {
   [PageMap.WORKFLOWS_LOGS]: "logs",
   [PageMap.WORKFLOWS_VARIABLES]: "variables",
@@ -905,6 +911,34 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service-catalog/${
       ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES]
+    }`,
+  ),
+
+  // Code Repository
+
+  [PageMap.CODE_REPOSITORY_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/code-repository/*`,
+  ),
+
+  [PageMap.CODE_REPOSITORY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/code-repository`,
+  ),
+
+  [PageMap.CODE_REPOSITORY_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/code-repository/${
+      CodeRepositoryRoutePath[PageMap.CODE_REPOSITORY_VIEW]
+    }`,
+  ),
+
+  [PageMap.CODE_REPOSITORY_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/code-repository/${
+      CodeRepositoryRoutePath[PageMap.CODE_REPOSITORY_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/code-repository/${
+      CodeRepositoryRoutePath[PageMap.CODE_REPOSITORY_VIEW_SETTINGS]
     }`,
   ),
 
