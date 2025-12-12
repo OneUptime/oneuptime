@@ -141,6 +141,7 @@ export default class StatusPageSubscriber extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -207,6 +208,7 @@ export default class StatusPageSubscriber extends BaseModel {
     required: true,
     title: "Status Page ID",
     description: "ID of your Status Page resource where this object belongs",
+    example: "b2c3d4e5-f6a7-8901-bcde-f1234567890a",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -241,6 +243,7 @@ export default class StatusPageSubscriber extends BaseModel {
     type: TableColumnType.Email,
     title: "Email",
     description: "Email address of the subscriber.",
+    example: "subscriber@example.com",
   })
   @Column({
     nullable: true,
@@ -311,6 +314,7 @@ export default class StatusPageSubscriber extends BaseModel {
     type: TableColumnType.ShortURL,
     title: "Webhook",
     description: "Webhook to ping when events happen on Status Page",
+    example: "https://example.com/webhook",
   })
   @Column({
     nullable: true,
@@ -495,6 +499,7 @@ export default class StatusPageSubscriber extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "c3d4e5f6-a7b8-9012-cdef-234567890abc",
   })
   @Column({
     type: ColumnType.ObjectID,

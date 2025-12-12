@@ -54,7 +54,11 @@ class User extends UserModel {
     read: [Permission.CurrentUser],
     update: [Permission.CurrentUser],
   })
-  @TableColumn({ type: TableColumnType.Name, canReadOnRelationQuery: true })
+  @TableColumn({
+    type: TableColumnType.Name,
+    canReadOnRelationQuery: true,
+    example: "John Smith",
+  })
   @Column({
     type: ColumnType.Name,
     length: ColumnLength.Name,
@@ -76,6 +80,7 @@ class User extends UserModel {
     unique: true,
     type: TableColumnType.Email,
     canReadOnRelationQuery: true,
+    example: "john.smith@company.com",
   })
   @Column({
     type: ColumnType.Email,
@@ -115,6 +120,7 @@ class User extends UserModel {
     computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
+    example: "john-smith",
   })
   @Column({
     nullable: false,
@@ -271,6 +277,7 @@ class User extends UserModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     canReadOnRelationQuery: true,
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -666,6 +673,7 @@ class User extends UserModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,

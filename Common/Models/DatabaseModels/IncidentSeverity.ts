@@ -137,6 +137,7 @@ export default class IncidentSeverity extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -171,6 +172,7 @@ export default class IncidentSeverity extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Any friendly name of this object",
+    example: "Critical",
   })
   @Column({
     nullable: false,
@@ -230,6 +232,7 @@ export default class IncidentSeverity extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
+    example: "Critical severity incidents require immediate attention and response from on-call engineers",
   })
   @Column({
     nullable: true,

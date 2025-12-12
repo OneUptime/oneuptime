@@ -138,6 +138,7 @@ export default class Probe extends BaseModel {
     required: true,
     type: TableColumnType.Name,
     canReadOnRelationQuery: true,
+    example: "US East Coast Probe",
   })
   @Column({
     nullable: false,
@@ -161,7 +162,11 @@ export default class Probe extends BaseModel {
       Permission.EditProjectProbe,
     ],
   })
-  @TableColumn({ required: false, type: TableColumnType.Name })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Name,
+    example: "Monitors services from the US East Coast region",
+  })
   @Column({
     nullable: true,
     type: ColumnType.Name,
@@ -181,6 +186,7 @@ export default class Probe extends BaseModel {
     computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
+    example: "us-east-coast-probe",
   })
   @Column({
     nullable: false,
@@ -306,6 +312,7 @@ export default class Probe extends BaseModel {
     title: "Icon",
     description: "Probe Page Icon File ID",
     canReadOnRelationQuery: true,
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -358,6 +365,7 @@ export default class Probe extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -397,6 +405,7 @@ export default class Probe extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "d4e5f6a7-b8c9-0123-def1-234567890123",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -445,6 +454,7 @@ export default class Probe extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "e5f6a7b8-c9d0-1234-ef12-345678901234",
   })
   @Column({
     type: ColumnType.ObjectID,

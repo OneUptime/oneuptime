@@ -131,6 +131,7 @@ export default class StatusPageResource extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -197,6 +198,7 @@ export default class StatusPageResource extends BaseModel {
     required: true,
     title: "Status Page ID",
     description: "ID of your Status Page resource where this object belongs",
+    example: "f6a7b8c9-d0e1-2345-6789-abcdef012345",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -272,6 +274,7 @@ export default class StatusPageResource extends BaseModel {
     required: false,
     title: "Monitor ID",
     description: "Relation to Monitor ID Resource in which this object belongs",
+    example: "a7b8c9d0-e1f2-3456-789a-bcdef0123456",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -349,6 +352,7 @@ export default class StatusPageResource extends BaseModel {
     title: "Monitor Group ID",
     description:
       "Relation to Monitor Group ID Resource in which this object belongs",
+    example: "b8c9d0e1-f2a3-4567-89ab-cdef01234567",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -425,6 +429,7 @@ export default class StatusPageResource extends BaseModel {
     required: false,
     title: "Group ID",
     description: "Does this monitor belong to a status page group?",
+    example: "c9d0e1f2-a3b4-5678-9abc-def012345678",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -458,6 +463,7 @@ export default class StatusPageResource extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Display Name",
     description: "Display name of the monitor on the Status Page",
+    example: "API Server",
   })
   @Column({
     nullable: false,
@@ -492,6 +498,7 @@ export default class StatusPageResource extends BaseModel {
     title: "Display Description",
     description:
       "Display description of the monitor on the Status Page. This is in markdown format.",
+    example: "Main API server handling all REST requests",
   })
   @Column({
     nullable: true,
@@ -721,6 +728,7 @@ export default class StatusPageResource extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "d0e1f2a3-b4c5-6789-abcd-ef0123456789",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -798,6 +806,7 @@ export default class StatusPageResource extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "e1f2a3b4-c5d6-789a-bcde-f01234567890",
   })
   @Column({
     type: ColumnType.ObjectID,

@@ -145,6 +145,7 @@ export default class ScheduledMaintenance extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -180,6 +181,7 @@ export default class ScheduledMaintenance extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Title",
     description: "Title of this scheduled event.",
+    example: "Database Migration and Server Upgrade",
   })
   @Column({
     nullable: false,
@@ -214,6 +216,7 @@ export default class ScheduledMaintenance extends BaseModel {
     title: "Description",
     description:
       "Description of this scheduled event that will show up on Status Page. This is in markdown.",
+    example: "We will be performing routine database maintenance and upgrading our servers to improve performance. Services may experience brief interruptions during this window.",
   })
   @Column({
     nullable: true,
@@ -309,6 +312,7 @@ export default class ScheduledMaintenance extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -355,6 +359,7 @@ export default class ScheduledMaintenance extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f2345678901a",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -572,6 +577,7 @@ export default class ScheduledMaintenance extends BaseModel {
     title: "Current Scheduled Maintenance State ID",
     description:
       "Scheduled Maintenance State ID. The state the event currently is in.",
+    example: "c3d4e5f6-a7b8-9012-cdef-3456789012ab",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -643,6 +649,7 @@ export default class ScheduledMaintenance extends BaseModel {
     title: "Change Monitor Status To ID",
     description:
       "Relation to Monitor Status Object ID. All monitors connected to this incident will be changed to this status when the event is ongoing.",
+    example: "d4e5f6a7-b8c9-0123-def4-56789012abcd",
   })
   @Column({
     type: ColumnType.ObjectID,

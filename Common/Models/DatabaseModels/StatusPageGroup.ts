@@ -138,6 +138,7 @@ export default class StatusPageGroup extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -204,6 +205,7 @@ export default class StatusPageGroup extends BaseModel {
     required: true,
     title: "Status Page ID",
     description: "ID of your Status Page resource where this object belongs",
+    example: "f6a7b8c9-d0e1-2345-6789-abcdef012345",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -238,6 +240,7 @@ export default class StatusPageGroup extends BaseModel {
     title: "Group Name",
     description: "Name of the Group",
     canReadOnRelationQuery: true,
+    example: "Core Services",
   })
   @Column({
     nullable: false,
@@ -264,6 +267,7 @@ export default class StatusPageGroup extends BaseModel {
     title: "Slug",
     description: "Friendly globally unique name for your object",
     computed: true,
+    example: "core-services",
   })
   @Column({
     nullable: false,
@@ -298,6 +302,7 @@ export default class StatusPageGroup extends BaseModel {
     title: "Description",
     description:
       "Description for this group. This is visible on Status Page. This can be in markdown format.",
+    example: "Critical infrastructure services including API, database, and authentication",
   })
   @Column({
     nullable: true,
@@ -362,6 +367,7 @@ export default class StatusPageGroup extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "f2a3b4c5-d6e7-89ab-cdef-012345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -473,6 +479,7 @@ export default class StatusPageGroup extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "a3b4c5d6-e7f8-9abc-def0-123456789012",
   })
   @Column({
     type: ColumnType.ObjectID,

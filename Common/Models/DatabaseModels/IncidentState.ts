@@ -139,6 +139,7 @@ export default class IncidentState extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -173,6 +174,7 @@ export default class IncidentState extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Any friendly name of this object",
+    example: "Acknowledged",
   })
   @Column({
     nullable: false,
@@ -232,6 +234,7 @@ export default class IncidentState extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
+    example: "The incident has been acknowledged by the on-call engineer and is being investigated",
   })
   @Column({
     nullable: true,

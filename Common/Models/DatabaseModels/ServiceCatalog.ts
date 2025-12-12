@@ -151,6 +151,7 @@ export default class ServiceCatalog extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -186,6 +187,7 @@ export default class ServiceCatalog extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Any friendly name of this object",
+    example: "User Authentication API",
   })
   @Column({
     nullable: false,
@@ -247,6 +249,7 @@ export default class ServiceCatalog extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
+    example: "RESTful API service that handles user authentication, authorization, and session management for the platform",
   })
   @Column({
     nullable: true,
@@ -314,6 +317,7 @@ export default class ServiceCatalog extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -372,6 +376,7 @@ export default class ServiceCatalog extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,

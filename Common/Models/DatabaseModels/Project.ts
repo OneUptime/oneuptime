@@ -87,6 +87,7 @@ export default class Project extends TenantModel {
     title: "Name",
     description: "Any friendly name of this object",
     canReadOnRelationQuery: true,
+    example: "My Awesome Project",
   })
   @Column({
     nullable: false,
@@ -265,6 +266,7 @@ export default class Project extends TenantModel {
     title: "Business Details / Billing Address",
     description:
       "Business legal name, address and any tax information to appear on invoices.",
+    example: "Acme Corporation\n123 Main Street\nSan Francisco, CA 94102\nTax ID: 12-3456789",
   })
   @Column({
     type: ColumnType.LongText,
@@ -291,6 +293,7 @@ export default class Project extends TenantModel {
     title: "Business Country (ISO Alpha-2)",
     description:
       "Two-letter ISO country code for billing address (e.g., US, GB, DE).",
+    example: "US",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -317,6 +320,7 @@ export default class Project extends TenantModel {
     title: "Finance / Accounting Email",
     description:
       "Invoices, receipts and billing related notifications will be sent to this email in addition to project owner.",
+    example: "accounting@example.com",
   })
   @Column({
     type: ColumnType.Email,
@@ -441,6 +445,7 @@ export default class Project extends TenantModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -494,6 +499,7 @@ export default class Project extends TenantModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -707,6 +713,7 @@ export default class Project extends TenantModel {
     title: "SMS, Call, and WhatsApp Current Balance",
     description: "Balance in USD for SMS, Call, and WhatsApp",
     defaultValue: 0,
+    example: 2500,
   })
   @Column({
     type: ColumnType.Number,
@@ -734,6 +741,7 @@ export default class Project extends TenantModel {
     title: "Auto Recharge Amount",
     description: "Auto recharge amount in USD for SMS, Call, and WhatsApp",
     defaultValue: 20,
+    example: 20,
   })
   @Column({
     type: ColumnType.Number,
@@ -762,6 +770,7 @@ export default class Project extends TenantModel {
     description:
       "Auto recharge is triggered when current balance falls to this amount in USD for SMS, Call, and WhatsApp",
     defaultValue: 10,
+    example: 10,
   })
   @Column({
     type: ColumnType.Number,
@@ -790,6 +799,7 @@ export default class Project extends TenantModel {
     title: "Enable SMS Notifications",
     description: "Enable SMS notifications for this project.",
     defaultValue: false,
+    example: true,
   })
   @Column({
     nullable: false,
@@ -817,6 +827,7 @@ export default class Project extends TenantModel {
     title: "Enable WhatsApp Notifications",
     description: "Enable WhatsApp notifications for this project.",
     defaultValue: false,
+    example: false,
   })
   @Column({
     nullable: false,
@@ -844,6 +855,7 @@ export default class Project extends TenantModel {
     title: "Enable Call Notifications",
     description: "Enable call notifications for this project.",
     defaultValue: false,
+    example: false,
   })
   @Column({
     nullable: false,
@@ -872,6 +884,7 @@ export default class Project extends TenantModel {
     description:
       "Enable auto recharge for SMS, Call, and WhatsApp balance for this project.",
     defaultValue: false,
+    example: true,
   })
   @Column({
     nullable: false,
@@ -1199,6 +1212,7 @@ export default class Project extends TenantModel {
     hideColumnInDocumentation: true,
     title: "Reseller ID",
     description: "ID of your OneUptime Reseller in which this object belongs",
+    example: "d4e5f6a7-b8c9-0123-def0-123456789abc",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -1373,6 +1387,7 @@ export default class Project extends TenantModel {
     description:
       "If enabled, global probes will NOT be automatically added to new monitors. Enable this only if you are using ONLY custom probes to monitor your resources.",
     defaultValue: false,
+    example: false,
   })
   @Column({
     type: ColumnType.Boolean,

@@ -133,6 +133,7 @@ export default class AlertInternalNote extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -198,6 +199,7 @@ export default class AlertInternalNote extends BaseModel {
     required: true,
     title: "Alert ID",
     description: "Relation to Alert ID in which this resource belongs",
+    example: "b2c3d4e5-f6a7-8901-bcde-f23456789012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -263,6 +265,7 @@ export default class AlertInternalNote extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "7c8d9e0f-a1b2-3c4d-9e5f-8a9b0c1d2e3f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -309,6 +312,7 @@ export default class AlertInternalNote extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "9d0e1f2a-b3c4-5d6e-af7b-8c9d0e1f2a3b",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -341,6 +345,7 @@ export default class AlertInternalNote extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Note",
     description: "Notes in markdown",
+    example: "## Alert Investigation\n\nChecked the server logs and found high CPU usage on web-server-03. The process `node-worker-12` was consuming 95% CPU.\n\n**Resolution:**\n- Restarted the worker process\n- Alert cleared automatically after 2 minutes\n- Will monitor for recurrence and investigate if this happens again",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -447,6 +452,7 @@ export default class AlertInternalNote extends BaseModel {
     description:
       "Unique identifier for the Slack message this note was created from (channel_id:message_ts). Used to prevent duplicate notes when multiple users react to the same message.",
     required: false,
+    example: "C1234567890:1234567890.123456",
   })
   @Column({
     type: ColumnType.LongText,

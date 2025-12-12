@@ -24,6 +24,7 @@ export interface TableColumnMetadata {
   modelType?: { new (): BaseModel };
   defaultValue?: string | number | boolean | JSONObject; // default value for the column, can be a string, number, or boolean
   forceGetDefaultValueOnCreate?: () => string | number | boolean; // overwrites any value that is being passed and generates a new one. Useful for generating OTPs, etc.
+  example?: string | number | boolean | JSONObject | Array<JSONObject>; // example value for API documentation
 }
 
 export default (props: TableColumnMetadata): ReflectionMetadataType => {

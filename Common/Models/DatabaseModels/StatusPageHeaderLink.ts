@@ -132,6 +132,7 @@ export default class StatusPageHeaderLink extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -198,6 +199,7 @@ export default class StatusPageHeaderLink extends BaseModel {
     required: true,
     title: "Status Page ID",
     description: "ID of your Status Page resource where this object belongs",
+    example: "b2c3d4e5-f6a7-8901-bcde-f1234567890a",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -231,6 +233,7 @@ export default class StatusPageHeaderLink extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Title",
     description: "Title of this resource",
+    example: "Documentation",
   })
   @Column({
     nullable: false,
@@ -264,6 +267,7 @@ export default class StatusPageHeaderLink extends BaseModel {
     type: TableColumnType.ShortURL,
     title: "Link",
     description: "URL to a website or any other resource on the internet",
+    example: "https://docs.example.com",
   })
   @Column({
     nullable: false,
@@ -330,6 +334,7 @@ export default class StatusPageHeaderLink extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "c3d4e5f6-a7b8-9012-cdef-234567890abc",
   })
   @Column({
     type: ColumnType.ObjectID,

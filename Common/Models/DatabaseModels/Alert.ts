@@ -149,6 +149,7 @@ export default class Alert extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -184,6 +185,7 @@ export default class Alert extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Title",
     description: "Title of this alert",
+    example: "High CPU usage detected on production server",
   })
   @Column({
     nullable: false,
@@ -218,6 +220,8 @@ export default class Alert extends BaseModel {
     title: "Description",
     description:
       "Short description of this alert. This will be visible on the status page. This is in markdown.",
+    example:
+      "CPU usage has exceeded 90% threshold for the past 5 minutes. Immediate investigation required.",
   })
   @Column({
     nullable: true,
@@ -574,6 +578,7 @@ export default class Alert extends BaseModel {
     isDefaultValueColumn: true,
     title: "Current Alert State ID",
     description: "Current Alert State ID",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -650,6 +655,7 @@ export default class Alert extends BaseModel {
     required: true,
     title: "Alert Severity ID",
     description: "Alert Severity ID",
+    example: "b2c3d4e5-f6a7-8901-bcde-f23456789012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -809,6 +815,8 @@ export default class Alert extends BaseModel {
     isDefaultValueColumn: false,
     title: "Root Cause",
     description: "What is the root cause of this alert?",
+    example:
+      "Memory leak in the application caused by improper resource cleanup in the connection pool.",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -970,6 +978,8 @@ export default class Alert extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Remediation Notes",
     description: "Notes on how to remediate this alert. This is in markdown.",
+    example:
+      "1. Restart the affected service\\n2. Clear the connection pool\\n3. Monitor memory usage for the next 30 minutes",
   })
   @Column({
     nullable: true,
@@ -1033,6 +1043,7 @@ export default class Alert extends BaseModel {
     computed: true,
     title: "Alert Number",
     description: "Alert Number",
+    example: 42,
   })
   @Column({
     type: ColumnType.Number,

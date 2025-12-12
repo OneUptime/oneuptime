@@ -118,6 +118,7 @@ export default class ApiKey extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -150,6 +151,7 @@ export default class ApiKey extends BaseModel {
     title: "Name",
     description: "Any friendly name of this object",
     canReadOnRelationQuery: true,
+    example: "Production API Key",
   })
   @Column({
     nullable: false,
@@ -180,6 +182,7 @@ export default class ApiKey extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
+    example: "API key used for production environment monitoring and alerting integrations",
   })
   @Column({
     nullable: true,
@@ -265,6 +268,7 @@ export default class ApiKey extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -311,6 +315,7 @@ export default class ApiKey extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -341,6 +346,7 @@ export default class ApiKey extends BaseModel {
     type: TableColumnType.Date,
     required: true,
     description: "Date and Time when this API Key expires.",
+    example: "2025-12-31T23:59:59Z",
   })
   @Column({
     type: ColumnType.Date,
@@ -368,6 +374,7 @@ export default class ApiKey extends BaseModel {
     title: "API Key",
     computed: true,
     description: "Secret API Key",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @Column({
     type: ColumnType.ObjectID,

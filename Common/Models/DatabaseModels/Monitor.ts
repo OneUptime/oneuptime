@@ -143,6 +143,7 @@ export default class Monitor extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -178,6 +179,7 @@ export default class Monitor extends BaseModel {
     title: "Name",
     description: "Any friendly name for this monitor",
     canReadOnRelationQuery: true,
+    example: "Production API Server",
   })
   @Column({
     nullable: false,
@@ -211,6 +213,8 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
+    example:
+      "Monitors the health and availability of our main production API server",
   })
   @Column({
     nullable: true,
@@ -237,6 +241,7 @@ export default class Monitor extends BaseModel {
     computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
+    example: "production-api-server",
   })
   @Column({
     nullable: false,
@@ -424,6 +429,7 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.MonitorType,
     title: "Monitor Type",
     description: "What is the type of this monitor? Website? API? etc.",
+    example: "API",
   })
   @Column({
     nullable: false,
@@ -500,6 +506,7 @@ export default class Monitor extends BaseModel {
     title: "Current Monitor Status ID",
     description: "Whats the current status ID of this monitor?",
     canReadOnRelationQuery: true,
+    example: "c3d4e5f6-a7b8-9012-cdef-345678901234",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -567,6 +574,7 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Monitoring Interval",
     description: "How often would you like OneUptime to monitor this resource?",
+    example: "Every 5 minutes",
   })
   @Column({
     nullable: true,
@@ -664,6 +672,7 @@ export default class Monitor extends BaseModel {
     title: "Disable Monitoring",
     description: "Disable active monitoring for this resource?",
     defaultValue: false,
+    example: false,
   })
   @Column({
     type: ColumnType.Boolean,

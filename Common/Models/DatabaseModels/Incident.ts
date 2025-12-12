@@ -153,6 +153,7 @@ export default class Incident extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -188,6 +189,7 @@ export default class Incident extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Title",
     description: "Title of this incident",
+    example: "Database connection failure in production",
   })
   @Column({
     nullable: false,
@@ -222,6 +224,8 @@ export default class Incident extends BaseModel {
     title: "Description",
     description:
       "Short description of this incident. This is in markdown and will be visible on the status page.",
+    example:
+      "Our engineering team is investigating database connectivity issues affecting the main production cluster.",
   })
   @Column({
     nullable: true,
@@ -256,6 +260,7 @@ export default class Incident extends BaseModel {
     title: "Declared At",
     description: "Date and time when this incident was declared.",
     isDefaultValueColumn: true,
+    example: "2024-01-15T09:30:00.000Z",
   })
   @Column({
     type: ColumnType.Date,
@@ -284,6 +289,7 @@ export default class Incident extends BaseModel {
     computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
+    example: "database-connection-failure-in-production",
   })
   @Column({
     nullable: false,
@@ -612,6 +618,7 @@ export default class Incident extends BaseModel {
     required: true,
     title: "Current Incident State ID",
     description: "Current Incident State ID",
+    example: "d4e5f6a7-b8c9-0123-defg-456789012345",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -687,6 +694,7 @@ export default class Incident extends BaseModel {
     required: true,
     title: "Incident Severity ID",
     description: "Incident Severity ID",
+    example: "e5f6a7b8-c9d0-1234-efgh-567890123456",
   })
   @Column({
     type: ColumnType.ObjectID,

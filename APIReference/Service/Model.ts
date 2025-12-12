@@ -8,6 +8,7 @@ import {
   TableColumnMetadata,
 } from "Common/Types/Database/TableColumn";
 import Dictionary from "Common/Types/Dictionary";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, {
   PermissionHelper,
@@ -17,6 +18,135 @@ import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+
+interface ExampleObjects {
+  simpleSelectExample: JSONObject;
+  simpleQueryExample: JSONObject;
+  simpleSortExample: JSONObject;
+  simpleCreateExample: JSONObject;
+  simpleUpdateExample: JSONObject;
+  simpleResponseExample: JSONObject;
+  simpleListResponseExample: Array<JSONObject>;
+}
+
+// Helper function to generate example objects from column metadata
+function generateExampleObjects(
+  tableColumns: Dictionary<TableColumnMetadata>,
+  exampleObjectID: string,
+): ExampleObjects {
+  const simpleSelectExample: JSONObject = {};
+  const simpleQueryExample: JSONObject = {};
+  const simpleSortExample: JSONObject = {};
+  const simpleCreateExample: JSONObject = {};
+  const simpleUpdateExample: JSONObject = {};
+  const simpleResponseExample: JSONObject = {
+    _id: exampleObjectID,
+  };
+
+  // Sort columns to show required first, then alphabetically
+  const sortedColumnKeys: Array<string> = Object.keys(tableColumns).sort(
+    (a: string, b: string) => {
+      const aRequired: boolean = tableColumns[a]?.required || false;
+      const bRequired: boolean = tableColumns[b]?.required || false;
+      if (aRequired && !bRequired) {
+        return -1;
+      }
+      if (!aRequired && bRequired) {
+        return 1;
+      }
+      return a.localeCompare(b);
+    },
+  );
+
+  let selectCount: number = 0;
+  let createCount: number = 0;
+  let updateCount: number = 0;
+
+  for (const key of sortedColumnKeys) {
+    const column: TableColumnMetadata | undefined = tableColumns[key];
+    if (!column) {
+      continue;
+    }
+
+    const accessControl: ColumnAccessControl | undefined = (
+      column as unknown as JSONObject
+    )["permissions"] as ColumnAccessControl | undefined;
+
+    // Add to select example (limit to 5 fields for readability)
+    if (selectCount < 5 && accessControl?.read && accessControl.read.length > 0) {
+      simpleSelectExample[key] = true;
+      selectCount++;
+    }
+
+    // Add to response example with actual example values
+    if (column.example !== undefined && accessControl?.read && accessControl.read.length > 0) {
+      simpleResponseExample[key] = column.example as JSONValue;
+    }
+
+    // Add to create example (only fields with create permission and examples)
+    if (
+      createCount < 5 &&
+      column.example !== undefined &&
+      accessControl?.create &&
+      accessControl.create.length > 0 &&
+      !column.computed
+    ) {
+      simpleCreateExample[key] = column.example as JSONValue;
+      createCount++;
+    }
+
+    // Add to update example (only fields with update permission and examples)
+    if (
+      updateCount < 3 &&
+      column.example !== undefined &&
+      accessControl?.update &&
+      accessControl.update.length > 0 &&
+      !column.computed
+    ) {
+      simpleUpdateExample[key] = column.example as JSONValue;
+      updateCount++;
+    }
+  }
+
+  // Add a query example using the first string/text field with an example
+  for (const key of sortedColumnKeys) {
+    const column: TableColumnMetadata | undefined = tableColumns[key];
+    if (
+      column?.example !== undefined &&
+      typeof column.example === "string" &&
+      column.type?.toString().toLowerCase().includes("text")
+    ) {
+      simpleQueryExample[key] = column.example;
+      break;
+    }
+  }
+
+  // Add sort example - sort by createdAt descending if available
+  simpleSortExample["createdAt"] = -1;
+
+  // Generate list response with 3 sample items
+  const simpleListResponseExample: Array<JSONObject> = [
+    { ...simpleResponseExample, _id: exampleObjectID },
+    {
+      ...simpleResponseExample,
+      _id: ObjectID.generate().toString(),
+    },
+    {
+      ...simpleResponseExample,
+      _id: ObjectID.generate().toString(),
+    },
+  ];
+
+  return {
+    simpleSelectExample,
+    simpleQueryExample,
+    simpleSortExample,
+    simpleCreateExample,
+    simpleUpdateExample,
+    simpleResponseExample,
+    simpleListResponseExample,
+  };
+}
 
 // Get all resources and resource dictionary
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
@@ -261,7 +391,15 @@ export default class ServiceHandler {
     );
 
     // Generate a unique ID for the example object
-    pageData["exampleObjectID"] = ObjectID.generate();
+    const exampleObjectID: string = ObjectID.generate().toString();
+    pageData["exampleObjectID"] = exampleObjectID;
+
+    // Generate dynamic example objects from column metadata
+    const exampleObjects: ExampleObjects = generateExampleObjects(
+      tableColumns,
+      exampleObjectID,
+    );
+    pageData["exampleObjects"] = exampleObjects;
 
     // Construct the API path for the current resource
     pageData["apiPath"] =

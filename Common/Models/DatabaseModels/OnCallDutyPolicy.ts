@@ -138,6 +138,7 @@ export default class OnCallDutyPolicy extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -173,6 +174,7 @@ export default class OnCallDutyPolicy extends BaseModel {
     title: "Name",
     description: "Any friendly name of this object",
     canReadOnRelationQuery: true,
+    example: "24/7 Production Support",
   })
   @Column({
     nullable: false,
@@ -253,6 +255,7 @@ export default class OnCallDutyPolicy extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
+    example: "Primary on-call rotation for production incidents and critical alerts",
   })
   @Column({
     nullable: true,
@@ -350,6 +353,7 @@ export default class OnCallDutyPolicy extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -396,6 +400,7 @@ export default class OnCallDutyPolicy extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f2345678901a",
   })
   @Column({
     type: ColumnType.ObjectID,

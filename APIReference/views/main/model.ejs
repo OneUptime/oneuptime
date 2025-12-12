@@ -195,8 +195,29 @@
                </div>
 
                <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-                  <%- include('../partials/code', {title: "Example List Request" , requestUrl: pageData.apiPath+"/get-list?skip=0&limit=10", code: pageData.listRequest, requestType: "POST" }) -%>
-                  <%- include('../partials/code', {title: "Example List Response" , code: pageData.listResponse, requestType: "" }) -%>
+                  <%
+                  const listRequestCode = `Request Headers:
+
+ApiKey: {secret-api-key}
+ProjectID: {project-id}
+
+Request Body:
+
+${JSON.stringify({
+    select: pageData.exampleObjects.simpleSelectExample,
+    query: pageData.exampleObjects.simpleQueryExample,
+    sort: pageData.exampleObjects.simpleSortExample
+}, null, 4)}`;
+
+                  const listResponseCode = JSON.stringify({
+                      count: 10,
+                      limit: 10,
+                      skip: 0,
+                      data: pageData.exampleObjects.simpleListResponseExample
+                  }, null, 4);
+                  %>
+                  <%- include('../partials/code', {title: "Example List Request" , requestUrl: pageData.apiPath+"/get-list?skip=0&limit=10", code: listRequestCode, requestType: "POST" }) -%>
+                  <%- include('../partials/code', {title: "Example List Response" , code: listResponseCode, requestType: "" }) -%>
                </div>
             </div>
          </div>
@@ -249,8 +270,22 @@
                </div>
 
                <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-                  <%- include('../partials/code', {title: "Example Item Request" , requestUrl: pageData.apiPath+"/:id/get-item", code: pageData.itemRequest, requestType: "POST" }) -%>
-                  <%- include('../partials/code', {title: "Example Item Response" , code: pageData.itemResponse, requestType: "" }) -%>
+                  <%
+                  const itemRequestCode = `Request Headers:
+
+ApiKey: {secret-api-key}
+ProjectID: {project-id}
+
+Request Body:
+
+${JSON.stringify({
+    select: pageData.exampleObjects.simpleSelectExample
+}, null, 4)}`;
+
+                  const itemResponseCode = JSON.stringify(pageData.exampleObjects.simpleResponseExample, null, 4);
+                  %>
+                  <%- include('../partials/code', {title: "Example Item Request" , requestUrl: pageData.apiPath+"/:id/get-item", code: itemRequestCode, requestType: "POST" }) -%>
+                  <%- include('../partials/code', {title: "Example Item Response" , code: itemResponseCode, requestType: "" }) -%>
                </div>
             </div>
          </div>
@@ -289,8 +324,22 @@
                </div>
 
                <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-                  <%- include('../partials/code', {title: "Example Count Request" , requestUrl: pageData.apiPath+"/count", code: pageData.countRequest, requestType: "POST" }) -%>
-                  <%- include('../partials/code', {title: "Example Count Response" , code: pageData.countResponse, requestType: "" }) -%>
+                  <%
+                  const countRequestCode = `Request Headers:
+
+ApiKey: {secret-api-key}
+ProjectID: {project-id}
+
+Request Body:
+
+${JSON.stringify({
+    query: pageData.exampleObjects.simpleQueryExample
+}, null, 4)}`;
+
+                  const countResponseCode = JSON.stringify({ count: 107 }, null, 4);
+                  %>
+                  <%- include('../partials/code', {title: "Example Count Request" , requestUrl: pageData.apiPath+"/count", code: countRequestCode, requestType: "POST" }) -%>
+                  <%- include('../partials/code', {title: "Example Count Response" , code: countResponseCode, requestType: "" }) -%>
                </div>
             </div>
          </div>
@@ -327,8 +376,22 @@
                </div>
 
                <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-                  <%- include('../partials/code', {title: "Example Create Request" , requestUrl: pageData.apiPath, code: pageData.createRequest, requestType: "POST" }) -%>
-                  <%- include('../partials/code', {title: "Example Create Response" , code: pageData.createResponse, requestType: "" }) -%>
+                  <%
+                  const createRequestCode = `Request Headers:
+
+ApiKey: {secret-api-key}
+ProjectID: {project-id}
+
+Request Body:
+
+${JSON.stringify({
+    data: pageData.exampleObjects.simpleCreateExample
+}, null, 4)}`;
+
+                  const createResponseCode = JSON.stringify(pageData.exampleObjects.simpleResponseExample, null, 4);
+                  %>
+                  <%- include('../partials/code', {title: "Example Create Request" , requestUrl: pageData.apiPath, code: createRequestCode, requestType: "POST" }) -%>
+                  <%- include('../partials/code', {title: "Example Create Response" , code: createResponseCode, requestType: "" }) -%>
                </div>
             </div>
          </div>
@@ -380,8 +443,22 @@
                </div>
 
                <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-                  <%- include('../partials/code', {title: "Example Update Request" , requestUrl: pageData.apiPath+"/:id", code: pageData.updateRequest, requestType: "PUT" }) -%>
-                  <%- include('../partials/code', {title: "Example Update Response" , code: pageData.updateResponse, requestType: "" }) -%>
+                  <%
+                  const updateRequestCode = `Request Headers:
+
+ApiKey: {secret-api-key}
+ProjectID: {project-id}
+
+Request Body:
+
+${JSON.stringify({
+    data: pageData.exampleObjects.simpleUpdateExample
+}, null, 4)}`;
+
+                  const updateResponseCode = JSON.stringify({}, null, 4);
+                  %>
+                  <%- include('../partials/code', {title: "Example Update Request" , requestUrl: pageData.apiPath+"/:id", code: updateRequestCode, requestType: "PUT" }) -%>
+                  <%- include('../partials/code', {title: "Example Update Response" , code: updateResponseCode, requestType: "" }) -%>
                </div>
             </div>
          </div>
@@ -417,8 +494,16 @@
                </div>
 
                <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-                  <%- include('../partials/code', {title: "Example Delete Request" , requestUrl: pageData.apiPath+"/:id", code: pageData.deleteRequest, requestType: "DELETE" }) -%>
-                  <%- include('../partials/code', {title: "Example Delete Response" , code: pageData.deleteResponse, requestType: "" }) -%>
+                  <%
+                  const deleteRequestCode = `Request Headers:
+
+ApiKey: {secret-api-key}
+ProjectID: {project-id}`;
+
+                  const deleteResponseCode = JSON.stringify({}, null, 4);
+                  %>
+                  <%- include('../partials/code', {title: "Example Delete Request" , requestUrl: pageData.apiPath+"/:id", code: deleteRequestCode, requestType: "DELETE" }) -%>
+                  <%- include('../partials/code', {title: "Example Delete Response" , code: deleteResponseCode, requestType: "" }) -%>
                </div>
             </div>
          </div>

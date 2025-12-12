@@ -132,6 +132,7 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -198,6 +199,7 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     required: true,
     title: "Scheduled Maintenance ID",
     description: "ID of Scheduled Maintenance this resource belongs to",
+    example: "c3d4e5f6-a7b8-9012-cdef-345678901234",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -263,6 +265,7 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "7c8d9e0f-a1b2-3c4d-9e5f-8a9b0c1d2e3f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -309,6 +312,7 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "9d0e1f2a-b3c4-5d6e-af7b-8c9d0e1f2a3b",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -341,6 +345,7 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Note",
     description: "Notes in markdown",
+    example: "## Scheduled Maintenance Completed\n\nSuccessfully completed the database upgrade from PostgreSQL 14 to 15. All services were migrated smoothly with zero data loss.\n\n**Summary:**\n- Downtime: 45 minutes (scheduled for 60 minutes)\n- Database upgrade completed\n- All automated tests passed\n- Services restored and monitored for 30 minutes post-maintenance",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -447,6 +452,7 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     description:
       "Unique identifier for the Slack message this note was created from (channel_id:message_ts). Used to prevent duplicate notes when multiple users react to the same message.",
     required: false,
+    example: "C1234567890:1234567890.123456",
   })
   @Column({
     type: ColumnType.LongText,

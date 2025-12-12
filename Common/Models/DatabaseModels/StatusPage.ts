@@ -148,6 +148,7 @@ export default class StatusPage extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -184,6 +185,7 @@ export default class StatusPage extends BaseModel {
     title: "Name",
     description: "Any friendly name of this object",
     canReadOnRelationQuery: true,
+    example: "Acme Corp Status Page",
   })
   @Column({
     nullable: false,
@@ -217,6 +219,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Page Title",
     description: "Title of your Status Page. This is used for SEO.",
+    example: "Acme Corp System Status",
   })
   @Column({
     nullable: true,
@@ -250,6 +253,8 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.LongText,
     title: "Page Description",
     description: "Description of your Status Page. This is used for SEO.",
+    example:
+      "Current status and uptime information for all Acme Corp services and infrastructure.",
   })
   @Column({
     nullable: true,
@@ -283,6 +288,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
+    example: "Public status page for Acme Corp customer-facing services",
   })
   @Column({
     nullable: true,
