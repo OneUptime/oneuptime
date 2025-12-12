@@ -1654,7 +1654,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserPushAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProbeAPI().getRouter());
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new LlmProviderAPI().getRouter());
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new LlmProviderAPI().getRouter(),
+    );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

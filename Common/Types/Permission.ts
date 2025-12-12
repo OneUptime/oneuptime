@@ -2735,28 +2735,32 @@ export class PermissionHelper {
       {
         permission: Permission.CreateProjectLlm,
         title: "Create LLM",
-        description: "This permission can create LLM configurations for this project.",
+        description:
+          "This permission can create LLM configurations for this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
         permission: Permission.DeleteProjectLlm,
         title: "Delete LLM",
-        description: "This permission can delete LLM configurations of this project.",
+        description:
+          "This permission can delete LLM configurations of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
         permission: Permission.EditProjectLlm,
         title: "Edit LLM",
-        description: "This permission can edit LLM configurations of this project.",
+        description:
+          "This permission can edit LLM configurations of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
         permission: Permission.ReadProjectLlm,
         title: "Read LLM",
-        description: "This permission can read LLM configurations of this project.",
+        description:
+          "This permission can read LLM configurations of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

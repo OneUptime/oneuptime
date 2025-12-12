@@ -10,7 +10,12 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmType from "Common/Types/LLM/LlmType";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -27,7 +32,8 @@ const LlmView: FunctionComponent<PageComponentProps> = (
         name="LLM Provider Details"
         cardProps={{
           title: "LLM Provider Details",
-          description: "Here are more details for this LLM Provider configuration.",
+          description:
+            "Here are more details for this LLM Provider configuration.",
         }}
         isEditable={true}
         formSteps={[
@@ -187,7 +193,9 @@ const LlmView: FunctionComponent<PageComponentProps> = (
         modelType={LlmProvider}
         modelId={modelId}
         onDeleteSuccess={() => {
-          Navigation.navigate(RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route);
+          Navigation.navigate(
+            RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
+          );
         }}
       />
     </Fragment>
