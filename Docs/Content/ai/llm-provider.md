@@ -2,6 +2,22 @@
 
 OneUptime supports integrating with various Large Language Model (LLM) providers to enable AI-powered features throughout the platform. This guide will help you configure your own LLM provider.
 
+## What Can LLM Providers Do?
+
+LLM Providers in OneUptime help you automate and enhance your incident management workflow:
+
+- **Incident Notes**: Automatically generate detailed incident notes and updates
+- **Alert Notes**: Create meaningful alert descriptions and context
+- **Scheduled Maintenance Notes**: Generate maintenance event notes automatically
+- **Incident Postmortems**: Automatically draft comprehensive incident postmortem reports
+- **Code Improvements**: If you connect your code repository to OneUptime, we will use your LLM Provider to analyze telemetry data (logs, traces, metrics, exceptions) and suggest code improvements
+
+## OneUptime SaaS Users
+
+If you are using **OneUptime SaaS** (cloud-hosted version), you can use the **Global LLM Provider** by default without any additional configuration. The Global LLM Provider is pre-configured and ready to use for all AI features.
+
+If you prefer to use your own API keys or a specific provider, you can still configure a custom LLM Provider following the instructions below.
+
 ## Supported Providers
 
 OneUptime currently supports the following LLM providers:
