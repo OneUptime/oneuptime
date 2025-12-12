@@ -1,7 +1,7 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
-import LlmService, {
-  Service as LlmServiceType,
-} from "../Services/LlmService";
+import LlmProviderService, {
+  Service as LlmProviderServiceType,
+} from "../Services/LlmProviderService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -11,18 +11,18 @@ import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import PositiveNumber from "../../Types/PositiveNumber";
-import Llm from "../../Models/DatabaseModels/Llm";
+import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 
-export default class LlmAPI extends BaseAPI<Llm, LlmServiceType> {
+export default class LlmProviderAPI extends BaseAPI<LlmProvider, LlmProviderServiceType> {
   public constructor() {
-    super(Llm, LlmService);
+    super(LlmProvider, LlmProviderService);
 
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/global-llms`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const llms: Array<Llm> = await LlmService.findBy({
+          const llmProviders: Array<LlmProvider> = await LlmProviderService.findBy({
             query: {
               isGlobalLlm: true,
               isEnabled: true,
@@ -45,9 +45,9 @@ export default class LlmAPI extends BaseAPI<Llm, LlmServiceType> {
           return Response.sendEntityArrayResponse(
             req,
             res,
-            llms,
-            new PositiveNumber(llms.length),
-            Llm,
+            llmProviders,
+            new PositiveNumber(llmProviders.length),
+            LlmProvider,
           );
         } catch (err) {
           next(err);

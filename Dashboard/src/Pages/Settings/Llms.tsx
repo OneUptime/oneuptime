@@ -8,7 +8,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
-import Llm from "Common/Models/DatabaseModels/Llm";
+import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmType from "Common/Types/LLM/LlmType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -19,25 +19,25 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       <>
-        <ModelTable<Llm>
-          modelType={Llm}
+        <ModelTable<LlmProvider>
+          modelType={LlmProvider}
           id="global-llms-table"
-          name="Settings > Global LLMs"
+          name="Settings > Global LLM Providers"
           userPreferencesKey={"settings-global-llms-table"}
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}
           cardProps={{
-            title: "Global LLMs",
+            title: "Global LLM Providers",
             description:
-              "Global LLMs are configured by your administrator and are available to all projects for AI features.",
+              "Global LLM Providers are configured by your administrator and are available to all projects for AI features.",
           }}
           fetchRequestOptions={{
             overrideRequestUrl: URL.fromString(APP_API_URL.toString()).addRoute(
-              "/llm/global-llms",
+              "/llm-provider/global-llms",
             ),
           }}
-          noItemsMessage={"No global LLMs configured."}
+          noItemsMessage={"No global LLM Providers configured."}
           showRefreshButton={true}
           filters={[
             {
@@ -89,28 +89,28 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           hideOnMobile={true}
         />
 
-        <ModelTable<Llm>
-          modelType={Llm}
+        <ModelTable<LlmProvider>
+          modelType={LlmProvider}
           query={{
             projectId: ProjectUtil.getCurrentProjectId()!,
           }}
           id="project-llms-table"
           userPreferencesKey={"settings-project-llms-table"}
-          name="Settings > LLMs"
+          name="Settings > LLM Providers"
           isDeleteable={true}
           isEditable={true}
           isViewable={true}
           isCreateable={true}
           cardProps={{
-            title: "Project LLMs",
+            title: "Project LLM Providers",
             description:
-              "Configure LLMs (Large Language Models) for AI features. Connect to OpenAI, Anthropic, Ollama, or other providers.",
+              "Configure LLM Providers for AI features. Connect to OpenAI, Anthropic, Ollama, or other providers.",
           }}
           selectMoreFields={{
             apiKey: true,
           }}
           noItemsMessage={
-            "No LLMs configured. Add an LLM to enable AI features for your project."
+            "No LLM Providers configured. Add an LLM Provider to enable AI features for your project."
           }
           viewPageRoute={Navigation.getCurrentRoute()}
           formSteps={[
@@ -258,7 +258,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Status",
               type: FieldType.Boolean,
-              getElement: (item: Llm): ReactElement => {
+              getElement: (item: LlmProvider): ReactElement => {
                 if (item.isEnabled) {
                   return <Pill text="Enabled" color={Green} />;
                 }

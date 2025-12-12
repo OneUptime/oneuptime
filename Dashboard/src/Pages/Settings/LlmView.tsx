@@ -8,7 +8,7 @@ import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Llm from "Common/Models/DatabaseModels/Llm";
+import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmType from "Common/Types/LLM/LlmType";
 import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -22,12 +22,12 @@ const LlmView: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      {/* LLM View  */}
-      <CardModelDetail<Llm>
-        name="LLM Details"
+      {/* LLM Provider View  */}
+      <CardModelDetail<LlmProvider>
+        name="LLM Provider Details"
         cardProps={{
-          title: "LLM Details",
-          description: "Here are more details for this LLM configuration.",
+          title: "LLM Provider Details",
+          description: "Here are more details for this LLM Provider configuration.",
         }}
         isEditable={true}
         formSteps={[
@@ -123,14 +123,14 @@ const LlmView: FunctionComponent<PageComponentProps> = (
           },
         ]}
         modelDetailProps={{
-          modelType: Llm,
+          modelType: LlmProvider,
           id: "model-detail-llm",
           fields: [
             {
               field: {
                 _id: true,
               },
-              title: "LLM ID",
+              title: "LLM Provider ID",
             },
             {
               field: {
@@ -171,7 +171,7 @@ const LlmView: FunctionComponent<PageComponentProps> = (
               },
               title: "Status",
               fieldType: FieldType.Boolean,
-              getElement: (item: Llm): ReactElement => {
+              getElement: (item: LlmProvider): ReactElement => {
                 if (item.isEnabled) {
                   return <Pill text="Enabled" color={Green} />;
                 }
@@ -184,7 +184,7 @@ const LlmView: FunctionComponent<PageComponentProps> = (
       />
 
       <ModelDelete
-        modelType={Llm}
+        modelType={LlmProvider}
         modelId={modelId}
         onDeleteSuccess={() => {
           Navigation.navigate(RouteMap[PageMap.SETTINGS_LLMS] as Route);

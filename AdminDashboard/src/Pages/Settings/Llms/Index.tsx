@@ -9,7 +9,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Llm from "Common/Models/DatabaseModels/Llm";
+import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmType from "Common/Types/LLM/LlmType";
 import React, { FunctionComponent, ReactElement } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -50,27 +50,27 @@ const Settings: FunctionComponent = (): ReactElement => {
         hideOnMobile={true}
       />
 
-      <ModelTable<Llm>
+      <ModelTable<LlmProvider>
         userPreferencesKey={"admin-llms-table"}
-        modelType={Llm}
+        modelType={LlmProvider}
         id="llms-table"
-        name="Settings > Global LLMs"
+        name="Settings > Global LLM Providers"
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
         cardProps={{
-          title: "Global LLMs",
+          title: "Global LLM Providers",
           description:
-            "Global LLMs are available to all projects for AI features. Configure OpenAI, Anthropic, Ollama, or other LLM providers.",
+            "Global LLM Providers are available to all projects for AI features. Configure OpenAI, Anthropic, Ollama, or other LLM providers.",
         }}
         query={{
           projectId: new IsNull(),
           isGlobalLlm: true,
         }}
         modelAPI={AdminModelAPI}
-        noItemsMessage={"No LLMs configured. Add an LLM to enable AI features."}
+        noItemsMessage={"No LLM Providers configured. Add an LLM Provider to enable AI features."}
         showRefreshButton={true}
-        onBeforeCreate={(item: Llm) => {
+        onBeforeCreate={(item: LlmProvider) => {
           item.isGlobalLlm = true;
           return Promise.resolve(item);
         }}
@@ -222,7 +222,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             },
             title: "Status",
             type: FieldType.Boolean,
-            getElement: (item: Llm): ReactElement => {
+            getElement: (item: LlmProvider): ReactElement => {
               if (item.isEnabled) {
                 return <Pill text="Enabled" color={Green} />;
               }

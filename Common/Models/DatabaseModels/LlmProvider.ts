@@ -31,18 +31,18 @@ import LlmType from "../../Types/LLM/LlmType";
 })
 @IsPermissionsIf(Permission.Public, "projectId", null)
 @TenantColumn("projectId")
-@CrudApiEndpoint(new Route("/llm"))
+@CrudApiEndpoint(new Route("/llm-provider"))
 @SlugifyColumn("name", "slug")
 @Entity({
-  name: "LLM",
+  name: "LlmProvider",
 })
 @TableMetadata({
-  tableName: "LLM",
-  singularName: "LLM",
-  pluralName: "LLMs",
+  tableName: "LlmProvider",
+  singularName: "LLM Provider",
+  pluralName: "LLM Providers",
   icon: IconProp.Bolt,
   tableDescription:
-    "Manage LLM (Large Language Model) configurations. Connect to OpenAI, Anthropic, Ollama, or other LLM providers to enable AI features.",
+    "Manage LLM Provider configurations. Connect to OpenAI, Anthropic, Ollama, or other LLM providers to enable AI features.",
 })
 @TableAccessControl({
   create: [
@@ -71,7 +71,7 @@ import LlmType from "../../Types/LLM/LlmType";
     Permission.EditProjectLlm,
   ],
 })
-export default class LLM extends BaseModel {
+export default class LlmProvider extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
