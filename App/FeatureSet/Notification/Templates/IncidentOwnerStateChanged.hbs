@@ -10,6 +10,9 @@
 
 {{> DetailBoxStart this }}
 {{> StateTransition this}}
+{{#ifNotCond previousStateDurationText ""}}
+{{> DetailBoxField title="Duration in Previous State:" text=previousStateDurationText }}
+{{/ifNotCond}}
 {{> DetailBoxField title="Incident Title:" text=incidentTitle }}
 {{> DetailBoxField title="State changed at:" text=stateChangedAt }}
 {{> DetailBoxField title="Resources Affected:" text=resourcesAffected }}

@@ -128,6 +128,7 @@ RunCron(
 
       // Fetch the previous state timeline entry
       let previousState: IncidentState | null = null;
+      let previousStateDuration: string = "";
 
       if (incidentStateTimeline.incidentId && incidentStateTimeline.startsAt) {
         const previousTimeline: IncidentStateTimeline | null =
@@ -144,6 +145,8 @@ RunCron(
             },
             select: {
               incidentStateId: true,
+              startsAt: true,
+              createdAt: true,
             },
           });
 
@@ -158,6 +161,27 @@ RunCron(
               color: true,
             },
           });
+
+          /*
+           * Calculate how long the incident was in the previous state
+           * Use startsAt if available, otherwise fall back to createdAt
+           */
+          const previousStartTime: Date | undefined =
+            previousTimeline.startsAt || previousTimeline.createdAt;
+          const currentStartTime: Date | undefined =
+            incidentStateTimeline.startsAt || incidentStateTimeline.createdAt;
+
+          if (previousStartTime && currentStartTime) {
+            const durationInSeconds: number =
+              OneUptimeDate.getDifferenceInSeconds(
+                currentStartTime,
+                previousStartTime,
+              );
+            previousStateDuration =
+              OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(
+                durationInSeconds,
+              );
+          }
         }
       }
 
@@ -188,6 +212,12 @@ RunCron(
           .join(", ") || "";
 
       for (const user of owners) {
+        // Build the "Was X for Y" string
+        const previousStateDurationText: string =
+          previousState?.name && previousStateDuration
+            ? `Was ${previousState.name} for ${previousStateDuration}`
+            : "";
+
         const vars: Dictionary<string> = {
           incidentTitle: incident.title!,
           projectName: incidentStateTimeline.project!.name!,
@@ -195,6 +225,7 @@ RunCron(
           currentStateColor: incidentState!.color?.toString() || "#000000",
           previousState: previousState?.name || "",
           previousStateColor: previousState?.color?.toString() || "#6b7280",
+          previousStateDurationText: previousStateDurationText,
           incidentDescription: await Markdown.convertToHTML(
             incident.description! || "",
             MarkdownContentType.Email,

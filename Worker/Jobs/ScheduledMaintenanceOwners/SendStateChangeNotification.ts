@@ -89,6 +89,7 @@ RunCron(
 
       // Fetch the previous state timeline entry
       let previousState: ScheduledMaintenanceState | null = null;
+      let previousStateDuration: string = "";
 
       if (
         scheduledMaintenanceStateTimeline.scheduledMaintenanceId &&
@@ -111,6 +112,8 @@ RunCron(
             },
             select: {
               scheduledMaintenanceStateId: true,
+              startsAt: true,
+              createdAt: true,
             },
           });
 
@@ -125,6 +128,28 @@ RunCron(
               color: true,
             },
           });
+
+          /*
+           * Calculate how long the scheduled maintenance was in the previous state
+           * Use startsAt if available, otherwise fall back to createdAt
+           */
+          const previousStartTime: Date | undefined =
+            previousTimeline.startsAt || previousTimeline.createdAt;
+          const currentStartTime: Date | undefined =
+            scheduledMaintenanceStateTimeline.startsAt ||
+            scheduledMaintenanceStateTimeline.createdAt;
+
+          if (previousStartTime && currentStartTime) {
+            const durationInSeconds: number =
+              OneUptimeDate.getDifferenceInSeconds(
+                currentStartTime,
+                previousStartTime,
+              );
+            previousStateDuration =
+              OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(
+                durationInSeconds,
+              );
+          }
         }
       }
 
@@ -150,6 +175,12 @@ RunCron(
       }
 
       for (const user of owners) {
+        // Build the "Was X for Y" string
+        const previousStateDurationText: string =
+          previousState?.name && previousStateDuration
+            ? `Was ${previousState.name} for ${previousStateDuration}`
+            : "";
+
         const vars: Dictionary<string> = {
           scheduledMaintenanceTitle: scheduledMaintenance.title!,
           projectName: scheduledMaintenanceStateTimeline.project!.name!,
@@ -158,6 +189,7 @@ RunCron(
             scheduledMaintenanceState!.color?.toString() || "#000000",
           previousState: previousState?.name || "",
           previousStateColor: previousState?.color?.toString() || "#6b7280",
+          previousStateDurationText: previousStateDurationText,
           scheduledMaintenanceDescription: await Markdown.convertToHTML(
             scheduledMaintenance.description! || "",
             MarkdownContentType.Email,

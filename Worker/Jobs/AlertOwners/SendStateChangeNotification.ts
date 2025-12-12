@@ -124,6 +124,7 @@ RunCron(
 
       // Fetch the previous state timeline entry
       let previousState: AlertState | null = null;
+      let previousStateDuration: string = "";
 
       if (alertStateTimeline.alertId && alertStateTimeline.startsAt) {
         const previousTimeline: AlertStateTimeline | null =
@@ -140,6 +141,8 @@ RunCron(
             },
             select: {
               alertStateId: true,
+              startsAt: true,
+              createdAt: true,
             },
           });
 
@@ -154,6 +157,27 @@ RunCron(
               color: true,
             },
           });
+
+          /*
+           * Calculate how long the alert was in the previous state
+           * Use startsAt if available, otherwise fall back to createdAt
+           */
+          const previousStartTime: Date | undefined =
+            previousTimeline.startsAt || previousTimeline.createdAt;
+          const currentStartTime: Date | undefined =
+            alertStateTimeline.startsAt || alertStateTimeline.createdAt;
+
+          if (previousStartTime && currentStartTime) {
+            const durationInSeconds: number =
+              OneUptimeDate.getDifferenceInSeconds(
+                currentStartTime,
+                previousStartTime,
+              );
+            previousStateDuration =
+              OneUptimeDate.convertSecondsToDaysHoursMinutesAndSeconds(
+                durationInSeconds,
+              );
+          }
         }
       }
 
@@ -182,6 +206,12 @@ RunCron(
             ? `#${alert.alertNumber} (${alert.title})`
             : alert.title!;
 
+        // Build the "Was X for Y" string
+        const previousStateDurationText: string =
+          previousState?.name && previousStateDuration
+            ? `Was ${previousState.name} for ${previousStateDuration}`
+            : "";
+
         const vars: Dictionary<string> = {
           alertTitle: alert.title!,
           projectName: alertStateTimeline.project!.name!,
@@ -189,6 +219,7 @@ RunCron(
           currentStateColor: alertState!.color?.toString() || "#000000",
           previousState: previousState?.name || "",
           previousStateColor: previousState?.color?.toString() || "#6b7280",
+          previousStateDurationText: previousStateDurationText,
           alertDescription: await Markdown.convertToHTML(
             alert.description! || "",
             MarkdownContentType.Email,
