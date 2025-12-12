@@ -7,10 +7,7 @@ import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
 import logger from "../Utils/Logger";
 import { JSONObject } from "../../Types/JSON";
-import {
-  DashboardClientUrl,
-  GitHubAppClientId,
-} from "../EnvironmentConfig";
+import { DashboardClientUrl, GitHubAppClientId } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import GitHubUtil, {
   GitHubRepository,
@@ -26,8 +23,10 @@ export default class GitHubAPI {
   public getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
 
-    // GitHub App installation callback
-    // This is called after a user installs the GitHub App
+    /*
+     * GitHub App installation callback
+     * This is called after a user installs the GitHub App
+     */
     router.get(
       "/github/auth/:projectId/:userId/callback",
       async (req: ExpressRequest, res: ExpressResponse) => {
@@ -66,8 +65,10 @@ export default class GitHubAPI {
             );
           }
 
-          // Store the installation ID - we'll create repositories when user selects them
-          // For now, redirect back to dashboard with installation ID
+          /*
+           * Store the installation ID - we'll create repositories when user selects them
+           * For now, redirect back to dashboard with installation ID
+           */
           const redirectUrl: string = `${DashboardClientUrl.toString()}/dashboard/${projectId}/code-repository?installation_id=${installationId}`;
 
           return Response.redirect(req, res, URL.fromString(redirectUrl));
@@ -112,8 +113,10 @@ export default class GitHubAPI {
             );
           }
 
-          // Redirect to GitHub App installation page
-          // The state parameter helps us track the installation
+          /*
+           * Redirect to GitHub App installation page
+           * The state parameter helps us track the installation
+           */
           const state: string = Buffer.from(
             JSON.stringify({ projectId, userId }),
           ).toString("base64");
@@ -303,9 +306,11 @@ export default class GitHubAPI {
 
           logger.debug(`Received GitHub webhook event: ${event}`);
 
-          // Handle different webhook events here
-          // For now, just acknowledge receipt
-          // Future: Handle push, pull_request, check_run events
+          /*
+           * Handle different webhook events here
+           * For now, just acknowledge receipt
+           * Future: Handle push, pull_request, check_run events
+           */
 
           return Response.sendJsonObjectResponse(req, res, {
             success: true,

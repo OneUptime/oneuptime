@@ -291,7 +291,9 @@ export default class GitHubUtil extends HostedCodeRepository {
   @CaptureSpan()
   public static generateAppJWT(): string {
     if (!GitHubAppId) {
-      throw new BadDataException("GITHUB_APP_ID environment variable is not set");
+      throw new BadDataException(
+        "GITHUB_APP_ID environment variable is not set",
+      );
     }
 
     if (!GitHubAppPrivateKey) {
@@ -316,9 +318,9 @@ export default class GitHubUtil extends HostedCodeRepository {
     const encodedHeader: string = Buffer.from(JSON.stringify(header)).toString(
       "base64url",
     );
-    const encodedPayload: string = Buffer.from(JSON.stringify(payload)).toString(
-      "base64url",
-    );
+    const encodedPayload: string = Buffer.from(
+      JSON.stringify(payload),
+    ).toString("base64url");
 
     const signatureInput: string = `${encodedHeader}.${encodedPayload}`;
 
@@ -345,15 +347,17 @@ export default class GitHubUtil extends HostedCodeRepository {
       `https://api.github.com/app/installations/${installationId}/access_tokens`,
     );
 
-    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post({
-      url: url,
-      data: {},
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
+      {
+        url: url,
+        data: {},
+        headers: {
+          Authorization: `Bearer ${jwt}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
       },
-    });
+    );
 
     if (result instanceof HTTPErrorResponse) {
       throw result;
@@ -386,8 +390,8 @@ export default class GitHubUtil extends HostedCodeRepository {
         `https://api.github.com/installation/repositories?per_page=100&page=${page}`,
       );
 
-      const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get(
-        {
+      const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get({
           url: url,
           data: {},
           headers: {
@@ -395,8 +399,7 @@ export default class GitHubUtil extends HostedCodeRepository {
             Accept: "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
           },
-        },
-      );
+        });
 
       if (result instanceof HTTPErrorResponse) {
         throw result;
@@ -443,7 +446,9 @@ export default class GitHubUtil extends HostedCodeRepository {
     signature: string,
   ): boolean {
     if (!GitHubAppWebhookSecret) {
-      logger.warn("GITHUB_APP_WEBHOOK_SECRET is not set, skipping verification");
+      logger.warn(
+        "GITHUB_APP_WEBHOOK_SECRET is not set, skipping verification",
+      );
       return true;
     }
 
@@ -468,11 +473,15 @@ export default class GitHubUtil extends HostedCodeRepository {
    */
   public static getAppInstallationUrl(): string {
     if (!GitHubAppId) {
-      throw new BadDataException("GITHUB_APP_ID environment variable is not set");
+      throw new BadDataException(
+        "GITHUB_APP_ID environment variable is not set",
+      );
     }
 
-    // This is the standard GitHub App installation URL format
-    // The app slug would typically come from another env var, but we can use the client ID approach
+    /*
+     * This is the standard GitHub App installation URL format
+     * The app slug would typically come from another env var, but we can use the client ID approach
+     */
     return `https://github.com/apps`;
   }
 }

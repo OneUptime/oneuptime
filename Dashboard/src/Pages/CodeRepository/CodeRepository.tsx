@@ -70,7 +70,8 @@ const CodeRepositoryPage: FunctionComponent<
             organizationName: true,
           },
           title: "Organization / Username",
-          description: "The GitHub organization or username that owns the repository.",
+          description:
+            "The GitHub organization or username that owns the repository.",
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "Organization Name",
@@ -90,7 +91,8 @@ const CodeRepositoryPage: FunctionComponent<
             mainBranchName: true,
           },
           title: "Main Branch",
-          description: "The main branch of the repository (e.g., main, master).",
+          description:
+            "The main branch of the repository (e.g., main, master).",
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "main",

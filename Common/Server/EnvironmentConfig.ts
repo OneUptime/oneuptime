@@ -460,8 +460,7 @@ export const MicrosoftTeamsAppTenantId: string | null =
   process.env["MICROSOFT_TEAMS_APP_TENANT_ID"] || null;
 
 // GitHub App Configuration
-export const GitHubAppId: string | null =
-  process.env["GITHUB_APP_ID"] || null;
+export const GitHubAppId: string | null = process.env["GITHUB_APP_ID"] || null;
 export const GitHubAppClientId: string | null =
   process.env["GITHUB_APP_CLIENT_ID"] || null;
 export const GitHubAppClientSecret: string | null =
