@@ -12,8 +12,6 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmType from "Common/Types/LLM/LlmType";
 import React, { FunctionComponent, ReactElement } from "react";
-import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 
 const Settings: FunctionComponent = (): ReactElement => {
@@ -158,16 +156,6 @@ const Settings: FunctionComponent = (): ReactElement => {
             description:
               "Required for Ollama. Optional for others to use custom endpoints.",
           },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            stepId: "provider-settings",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Enable or disable this LLM configuration.",
-          },
         ]}
         selectMoreFields={{
           apiKey: true,
@@ -217,19 +205,6 @@ const Settings: FunctionComponent = (): ReactElement => {
             title: "Model",
             type: FieldType.Text,
             noValueMessage: "-",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Status",
-            type: FieldType.Boolean,
-            getElement: (item: LlmProvider): ReactElement => {
-              if (item.isEnabled) {
-                return <Pill text="Enabled" color={Green} />;
-              }
-              return <Pill text="Disabled" color={Red} />;
-            },
           },
         ]}
       />
