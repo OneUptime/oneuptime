@@ -16,8 +16,8 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-import Pill from "Common/UI/Components/Pill/Pill";
-import { Yellow } from "Common/Types/BrandColors";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 
 const LlmProviderView: FunctionComponent<PageComponentProps> = (
@@ -180,9 +180,13 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
               fieldType: FieldType.Boolean,
               getElement: (item: LlmProvider): ReactElement => {
                 if (item.isDefault) {
-                  return <Pill text="Default" color={Yellow} />;
+                  return (
+                    <div className="flex">
+                      <Icon icon={IconProp.Check} className="h-5 w-5 text-green-500" />
+                    </div>
+                  );
                 }
-                return <Pill text="Not Default" color={Yellow} />;
+                return <span className="text-gray-400">-</span>;
               },
             },
           ],
