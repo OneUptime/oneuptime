@@ -26,6 +26,7 @@ import Reviews from "./Utils/Reviews";
 
 // import jobs.
 import "./Jobs/UpdateBlog";
+import { getGitHubStarsCount, formatStarCount } from "./Jobs/FetchGitHubStars";
 import { Host, IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 
@@ -92,6 +93,8 @@ const HomeFeatureSet: FeatureSet = {
         res.locals["homeUrl"] as string,
       );
 
+      const githubStars: string = formatStarCount(getGitHubStarsCount());
+
       res.render(`${ViewsPath}/index`, {
         support: false,
         enableGoogleTagManager: IsBillingEnabled,
@@ -103,6 +106,7 @@ const HomeFeatureSet: FeatureSet = {
         reviewsList2,
         reviewsList3,
         seo,
+        githubStars,
       });
     });
 
