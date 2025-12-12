@@ -20,8 +20,7 @@ To integrate GitHub with your self-hosted OneUptime instance, you need to create
 3. Fill out the registration form:
    - **GitHub App name:** OneUptime (or any unique name)
    - **Homepage URL:** `https://your-oneuptime-domain.com`
-   - **Callback URL:** `https://your-oneuptime-domain.com/api/github/auth/:projectId/:userId/callback`
-     - Note: The `:projectId` and `:userId` are placeholders that will be dynamically replaced
+   - **Callback URL:** `https://your-oneuptime-domain.com/api/github/auth/callback`
    - **Setup URL (optional):** Leave empty
    - **Webhook URL:** `https://your-oneuptime-domain.com/api/github/webhook`
    - **Webhook secret:** Generate a secure random string (save this for later)

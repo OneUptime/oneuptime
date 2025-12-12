@@ -26,20 +26,45 @@ export default class GitHubAPI {
     /*
      * GitHub App installation callback
      * This is called after a user installs the GitHub App
+     * The state parameter contains base64 encoded JSON with projectId and userId
      */
     router.get(
-      "/github/auth/:projectId/:userId/callback",
+      "/github/auth/callback",
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const projectId: string | undefined =
-            req.params["projectId"]?.toString();
-          const userId: string | undefined = req.params["userId"]?.toString();
+          // GitHub sends state parameter back which contains projectId and userId
+          const state: string | undefined = req.query["state"]?.toString();
+
+          if (!state) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("State parameter is required"),
+            );
+          }
+
+          // Decode the state parameter to get projectId and userId
+          let projectId: string | undefined;
+          let userId: string | undefined;
+
+          try {
+            const decodedState: { projectId?: string; userId?: string } =
+              JSON.parse(Buffer.from(state, "base64").toString("utf-8"));
+            projectId = decodedState.projectId;
+            userId = decodedState.userId;
+          } catch {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid state parameter"),
+            );
+          }
 
           if (!projectId) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Project ID is required"),
+              new BadDataException("Project ID is required in state"),
             );
           }
 
@@ -47,7 +72,7 @@ export default class GitHubAPI {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("User ID is required"),
+              new BadDataException("User ID is required in state"),
             );
           }
 
@@ -88,7 +113,7 @@ export default class GitHubAPI {
 
     // Initiate GitHub App installation
     router.get(
-      "/github/auth/:projectId/:userId/install",
+      "/github/auth/install",
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
           if (!GitHubAppClientId) {
@@ -102,8 +127,8 @@ export default class GitHubAPI {
           }
 
           const projectId: string | undefined =
-            req.params["projectId"]?.toString();
-          const userId: string | undefined = req.params["userId"]?.toString();
+            req.query["projectId"]?.toString();
+          const userId: string | undefined = req.query["userId"]?.toString();
 
           if (!projectId || !userId) {
             return Response.sendErrorResponse(
