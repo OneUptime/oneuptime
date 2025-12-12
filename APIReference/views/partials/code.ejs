@@ -1,24 +1,24 @@
 <div class="not-prose my-6 overflow-hidden rounded-xl bg-slate-900 shadow-lg ring-1 ring-slate-800/50 code-block-wrapper">
-    <div class="flex min-h-[calc(theme(spacing.11)+1px)] flex-wrap items-center gap-x-4 border-b border-slate-700/50 bg-slate-800/50 px-4">
+    <div class="flex min-h-[calc(theme(spacing.11)+1px)] flex-wrap items-center gap-x-4 border-b border-slate-700/50 bg-slate-800/50 px-3 sm:px-4">
        <h4 class="mr-auto text-xs font-semibold text-slate-300 tracking-wide"><%= title -%></h4>
        <button class="copy-btn" onclick="copyCode(this)" aria-label="Copy code">Copy</button>
     </div>
     <div class="group">
       <% if(requestType && requestUrl){ %>
-      <div class="flex h-10 items-center gap-3 border-b border-slate-700/30 bg-slate-800/30 px-4">
+      <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 py-2 sm:py-0 sm:h-10 border-b border-slate-700/30 bg-slate-800/30 px-3 sm:px-4">
          <% if( requestType === "GET"){ %>
-            <span class="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-400 ring-1 ring-inset ring-emerald-500/20">GET</span>
+            <span class="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-400 ring-1 ring-inset ring-emerald-500/20 flex-shrink-0">GET</span>
           <% } %>
           <% if( requestType === "POST"){ %>
-            <span class="inline-flex items-center rounded-md bg-indigo-500/10 px-2 py-1 text-xs font-semibold text-indigo-400 ring-1 ring-inset ring-indigo-500/20">POST</span>
+            <span class="inline-flex items-center rounded-md bg-indigo-500/10 px-2 py-1 text-xs font-semibold text-indigo-400 ring-1 ring-inset ring-indigo-500/20 flex-shrink-0">POST</span>
           <% } %>
           <% if( requestType === "DELETE"){ %>
-            <span class="inline-flex items-center rounded-md bg-red-500/10 px-2 py-1 text-xs font-semibold text-red-400 ring-1 ring-inset ring-red-500/20">DELETE</span>
+            <span class="inline-flex items-center rounded-md bg-red-500/10 px-2 py-1 text-xs font-semibold text-red-400 ring-1 ring-inset ring-red-500/20 flex-shrink-0">DELETE</span>
           <% } %>
           <% if( requestType === "PUT"){ %>
-            <span class="inline-flex items-center rounded-md bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-400 ring-1 ring-inset ring-amber-500/20">PUT</span>
+            <span class="inline-flex items-center rounded-md bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-400 ring-1 ring-inset ring-amber-500/20 flex-shrink-0">PUT</span>
           <% } %>
-         <span class="font-mono text-sm text-slate-400"><%= requestUrl -%></span>
+         <span class="font-mono text-xs sm:text-sm text-slate-400 break-all"><%= requestUrl -%></span>
       </div>
        <% } %>
        <% if(code){ %>

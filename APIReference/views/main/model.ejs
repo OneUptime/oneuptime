@@ -5,7 +5,7 @@
          <div class="flex items-center gap-3 mb-4">
             <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 shadow-lg shadow-indigo-500/30">
                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                </svg>
             </div>
             <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Resource</span>
@@ -120,12 +120,12 @@
 
       <div class="mt-12">
          <div class="border-t border-slate-200 pt-10">
-            <div class="flex items-center gap-x-3 mb-6">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
                <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-emerald-300 bg-emerald-400/10 text-emerald-600">GET</span>
                <span class="font-mono text-xs text-slate-400">or</span>
                <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600">POST</span>
-               <span class="h-1 w-1 rounded-full bg-slate-300"></span>
-               <code class="font-mono text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded"><%= pageData.apiPath -%>/get-list</code>
+               <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
+               <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/get-list</code>
             </div>
             <h2 id="list-all-contacts" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">List</h2>
 
@@ -204,12 +204,12 @@
 
       <div class="mt-12">
          <div class="border-t border-slate-200 pt-10">
-            <div class="flex items-center gap-x-3 mb-6">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
                <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-emerald-300 bg-emerald-400/10 text-emerald-600">GET</span>
                <span class="font-mono text-xs text-slate-400">or</span>
                <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600">POST</span>
-               <span class="h-1 w-1 rounded-full bg-slate-300"></span>
-               <code class="font-mono text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded"><%= pageData.apiPath -%>/:id/get-item</code>
+               <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
+               <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/:id/get-item</code>
             </div>
             <h2 id="get-item-by-id" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Get item by ID</h2>
 
@@ -261,10 +261,10 @@
 
       <div class="mt-12">
          <div class="border-t border-slate-200 pt-10">
-            <div class="flex items-center gap-x-3 mb-6">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
                <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600">POST</span>
-               <span class="h-1 w-1 rounded-full bg-slate-300"></span>
-               <code class="font-mono text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded"><%= pageData.apiPath -%>/count</code>
+               <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
+               <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/count</code>
             </div>
             <h2 id="count" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Count</h2>
 
@@ -299,10 +299,10 @@
 
       <div class="mt-12">
          <div class="border-t border-slate-200 pt-10">
-            <div class="flex items-center gap-x-3 mb-6">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
                <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600">POST</span>
-               <span class="h-1 w-1 rounded-full bg-slate-300"></span>
-               <code class="font-mono text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded"><%= pageData.apiPath -%></code>
+               <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
+               <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%></code>
             </div>
             <h2 id="create" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Create <%= pageData.title -%></h2>
 
@@ -338,10 +338,10 @@
 
       <div class="mt-12">
          <div class="border-t border-slate-200 pt-10">
-            <div class="flex items-center gap-x-3 mb-6">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
                <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-amber-300 bg-amber-400/10 text-amber-600">PUT</span>
-               <span class="h-1 w-1 rounded-full bg-slate-300"></span>
-               <code class="font-mono text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded"><%= pageData.apiPath -%>/:id</code>
+               <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
+               <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/:id</code>
             </div>
             <h2 id="update" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Update by ID</h2>
 
@@ -363,17 +363,17 @@
                         </li>
                      </ul>
                   </div>
-                  <div class="rounded-xl border border-slate-200 bg-slate-50 p-5 mt-6">
+                  <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5 mt-6">
                      <h4 class="font-semibold text-slate-800 text-sm mb-2">Alternative Methods</h4>
                      <p class="text-slate-600 text-sm mb-4">For clients that do not support PUT requests, you can use POST or GET with the same request headers and body:</p>
                      <div class="space-y-2">
-                        <div class="flex items-center gap-x-3">
-                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600">POST</span>
-                           <code class="font-mono text-xs text-slate-600"><%= pageData.apiPath -%>/:id/update-item</code>
+                        <div class="flex flex-wrap items-center gap-2 sm:gap-x-3">
+                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600 flex-shrink-0">POST</span>
+                           <code class="font-mono text-xs text-slate-600 break-all"><%= pageData.apiPath -%>/:id/update-item</code>
                         </div>
-                        <div class="flex items-center gap-x-3">
-                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-emerald-300 bg-emerald-400/10 text-emerald-600">GET</span>
-                           <code class="font-mono text-xs text-slate-600"><%= pageData.apiPath -%>/:id/update-item</code>
+                        <div class="flex flex-wrap items-center gap-2 sm:gap-x-3">
+                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-emerald-300 bg-emerald-400/10 text-emerald-600 flex-shrink-0">GET</span>
+                           <code class="font-mono text-xs text-slate-600 break-all"><%= pageData.apiPath -%>/:id/update-item</code>
                         </div>
                      </div>
                   </div>
@@ -390,27 +390,27 @@
 
       <div class="mt-12">
          <div class="border-t border-slate-200 pt-10">
-            <div class="flex items-center gap-x-3 mb-6">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
                <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-red-300 bg-red-400/10 text-red-600">DELETE</span>
-               <span class="h-1 w-1 rounded-full bg-slate-300"></span>
-               <code class="font-mono text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded"><%= pageData.apiPath -%>/:id</code>
+               <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
+               <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/:id</code>
             </div>
             <h2 id="delete" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Delete by ID</h2>
 
             <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
                <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                   <p class="text-slate-600 leading-relaxed">This endpoint allows you to delete object by its ID.</p>
-                  <div class="rounded-xl border border-slate-200 bg-slate-50 p-5 mt-6">
+                  <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5 mt-6">
                      <h4 class="font-semibold text-slate-800 text-sm mb-2">Alternative Methods</h4>
                      <p class="text-slate-600 text-sm mb-4">For clients that do not support DELETE requests, you can use POST or GET with the same request headers and body:</p>
                      <div class="space-y-2">
-                        <div class="flex items-center gap-x-3">
-                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600">POST</span>
-                           <code class="font-mono text-xs text-slate-600"><%= pageData.apiPath -%>/:id/delete-item</code>
+                        <div class="flex flex-wrap items-center gap-2 sm:gap-x-3">
+                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600 flex-shrink-0">POST</span>
+                           <code class="font-mono text-xs text-slate-600 break-all"><%= pageData.apiPath -%>/:id/delete-item</code>
                         </div>
-                        <div class="flex items-center gap-x-3">
-                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-emerald-300 bg-emerald-400/10 text-emerald-600">GET</span>
-                           <code class="font-mono text-xs text-slate-600"><%= pageData.apiPath -%>/:id/delete-item</code>
+                        <div class="flex flex-wrap items-center gap-2 sm:gap-x-3">
+                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-emerald-300 bg-emerald-400/10 text-emerald-600 flex-shrink-0">GET</span>
+                           <code class="font-mono text-xs text-slate-600 break-all"><%= pageData.apiPath -%>/:id/delete-item</code>
                         </div>
                      </div>
                   </div>

@@ -122,23 +122,21 @@
                 </button> -->
             </div>
             <div class="flex items-center gap-5 lg:hidden">
-                <button type="button"
-                    class="flex h-6 w-6 items-center justify-center rounded-md transition hover:bg-zinc-900/5 "
+                <button type="button" id="mobile-menu-toggle"
+                    class="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-slate-100"
                     aria-label="Toggle navigation">
-                    <svg viewBox="0 0 10 9" fill="none" stroke-linecap="round" aria-hidden="true"
-                        class="w-2.5 stroke-zinc-900 ">
-                        <path d="M.5 1h9M.5 8h9M.5 4.5h9"></path>
+                    <svg id="menu-open-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"
+                        class="w-5 h-5 stroke-slate-700">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                    <svg id="menu-close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"
+                        class="w-5 h-5 stroke-slate-700 hidden">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
-                <a aria-label="Home" href="/">
-                    <svg viewBox="0 0 99 24" aria-hidden="true" class="h-6">
-                        <path class="fill-indigo-500"
-                            d="M16 8a5 5 0 0 0-5-5H5a5 5 0 0 0-5 5v13.927a1 1 0 0 0 1.623.782l3.684-2.93a4 4 0 0 1 2.49-.87H11a5 5 0 0 0 5-5V8Z">
-                        </path>
-                        <path class="fill-zinc-900 "
-                            d="M26.538 18h2.654v-3.999h2.576c2.672 0 4.456-1.723 4.456-4.333V9.65c0-2.61-1.784-4.333-4.456-4.333h-5.23V18Zm4.58-10.582c1.52 0 2.416.8 2.416 2.241v.018c0 1.441-.896 2.25-2.417 2.25h-1.925V7.418h1.925ZM38.051 18h2.566v-5.414c0-1.371.923-2.206 2.382-2.206.396 0 .791.061 1.178.15V8.287a3.843 3.843 0 0 0-.958-.123c-1.257 0-2.136.615-2.443 1.661h-.159V8.323h-2.566V18Zm11.55.202c2.979 0 4.772-1.88 4.772-5.036v-.018c0-3.128-1.82-5.036-4.773-5.036-2.953 0-4.772 1.916-4.772 5.036v.018c0 3.146 1.793 5.036 4.772 5.036Zm0-2.013c-1.372 0-2.145-1.116-2.145-3.023v-.018c0-1.89.782-3.023 2.144-3.023 1.354 0 2.145 1.134 2.145 3.023v.018c0 1.907-.782 3.023-2.145 3.023Zm10.52 1.846c.492 0 .967-.053 1.283-.114v-1.907a6.057 6.057 0 0 1-.755.044c-.87 0-1.24-.387-1.24-1.257v-4.544h1.995V8.323H59.41V6.012h-2.592v2.311h-1.495v1.934h1.495v5.133c0 1.88.949 2.645 3.304 2.645Zm7.287.167c2.98 0 4.772-1.88 4.772-5.036v-.018c0-3.128-1.82-5.036-4.772-5.036-2.954 0-4.773 1.916-4.773 5.036v.018c0 3.146 1.793 5.036 4.773 5.036Zm0-2.013c-1.372 0-2.145-1.116-2.145-3.023v-.018c0-1.89.782-3.023 2.145-3.023 1.353 0 2.144 1.134 2.144 3.023v.018c0 1.907-.782 3.023-2.144 3.023Zm10.767 2.013c2.522 0 4.034-1.353 4.297-3.463l.01-.053h-2.374l-.017.036c-.229.966-.853 1.467-1.908 1.467-1.37 0-2.135-1.08-2.135-3.04v-.018c0-1.934.755-3.006 2.135-3.006 1.099 0 1.74.615 1.908 1.556l.008.017h2.391v-.026c-.228-2.162-1.749-3.56-4.315-3.56-3.033 0-4.738 1.837-4.738 5.019v.017c0 3.217 1.714 5.054 4.738 5.054Zm10.257 0c2.98 0 4.772-1.88 4.772-5.036v-.018c0-3.128-1.82-5.036-4.772-5.036-2.953 0-4.773 1.916-4.773 5.036v.018c0 3.146 1.793 5.036 4.773 5.036Zm0-2.013c-1.371 0-2.145-1.116-2.145-3.023v-.018c0-1.89.782-3.023 2.145-3.023 1.353 0 2.144 1.134 2.144 3.023v.018c0 1.907-.782 3.023-2.144 3.023ZM95.025 18h2.566V4.623h-2.566V18Z">
-                        </path>
-                    </svg>
+                <a aria-label="Home" href="/" class="flex items-center gap-2">
+                    <img src="/img/ou-wb.svg" alt="OneUptime" class="h-6 w-6" />
+                    <span class="text-base font-bold text-slate-900">OneUptime</span>
                 </a>
             </div>
             <div class="flex items-center gap-5">
@@ -262,19 +260,135 @@
     </div>
 </header>
 
+<!-- Mobile Navigation Overlay -->
+<div id="mobile-menu-overlay" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden lg:hidden" aria-hidden="true"></div>
+
+<!-- Mobile Navigation Panel -->
+<div id="mobile-menu-panel" class="fixed inset-y-0 left-0 z-50 w-80 max-w-[calc(100%-3rem)] bg-white shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out lg:hidden overflow-y-auto">
+   <div class="p-6">
+      <div class="flex items-center justify-between mb-8">
+         <a aria-label="Home" href="/" class="flex items-center gap-2.5">
+            <img src="/img/ou-wb.svg" alt="OneUptime" class="h-8 w-8" />
+            <span class="text-lg font-bold text-slate-900">OneUptime</span>
+         </a>
+         <button type="button" id="mobile-menu-close" class="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-slate-100 transition">
+            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+         </button>
+      </div>
+
+      <div class="mb-6">
+         <span class="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-600/20">
+            API Reference
+         </span>
+      </div>
+
+      <nav>
+         <ul role="list" class="space-y-6">
+            <li class="relative">
+               <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-3">Guides</h6>
+               <ul role="list" class="space-y-1 border-l border-slate-200 ml-2">
+                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/introduction">Introduction</a></li>
+                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/authentication">Authentication</a></li>
+                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/pagination">Pagination</a></li>
+                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/permissions">Permissions</a></li>
+                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/data-types">Data Types</a></li>
+                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/errors">Errors</a></li>
+                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/openapi">OpenAPI Spec</a></li>
+               </ul>
+            </li>
+            <li class="relative">
+               <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-3">Resources</h6>
+               <ul role="list" class="space-y-1 border-l border-slate-200 ml-2">
+                  <% for(var i=0; i<resources.length; i++) {%>
+                     <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition truncate" href="/reference/<%= resources[i].path -%>"><%= resources[i].name -%></a></li>
+                  <% } %>
+               </ul>
+            </li>
+         </ul>
+      </nav>
+
+      <div class="mt-8 pt-6 border-t border-slate-200">
+         <a href="/dashboard" class="flex items-center justify-center w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition shadow-sm">
+            Sign in
+         </a>
+      </div>
+   </div>
+</div>
+
 <script>
    // Highlight active navigation link
    document.addEventListener('DOMContentLoaded', function() {
       const currentPath = window.location.pathname;
       const navLinks = document.querySelectorAll('.nav-link');
+      const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
 
       navLinks.forEach(function(link) {
          const href = link.getAttribute('href');
          if (href === currentPath) {
-            // Remove default classes and add active classes
             link.classList.remove('text-slate-600', 'border-transparent', 'hover:border-slate-300');
             link.classList.add('text-slate-900', 'font-medium', 'border-indigo-500');
             link.setAttribute('aria-current', 'page');
+         }
+      });
+
+      mobileNavLinks.forEach(function(link) {
+         const href = link.getAttribute('href');
+         if (href === currentPath) {
+            link.classList.remove('text-slate-600', 'border-transparent', 'hover:border-slate-300');
+            link.classList.add('text-slate-900', 'font-medium', 'border-indigo-500');
+            link.setAttribute('aria-current', 'page');
+         }
+      });
+
+      // Mobile menu toggle functionality
+      const menuToggle = document.getElementById('mobile-menu-toggle');
+      const menuClose = document.getElementById('mobile-menu-close');
+      const menuOverlay = document.getElementById('mobile-menu-overlay');
+      const menuPanel = document.getElementById('mobile-menu-panel');
+      const menuOpenIcon = document.getElementById('menu-open-icon');
+      const menuCloseIcon = document.getElementById('menu-close-icon');
+
+      function openMenu() {
+         menuOverlay.classList.remove('hidden');
+         menuPanel.classList.remove('-translate-x-full');
+         menuOpenIcon.classList.add('hidden');
+         menuCloseIcon.classList.remove('hidden');
+         document.body.style.overflow = 'hidden';
+      }
+
+      function closeMenu() {
+         menuOverlay.classList.add('hidden');
+         menuPanel.classList.add('-translate-x-full');
+         menuOpenIcon.classList.remove('hidden');
+         menuCloseIcon.classList.add('hidden');
+         document.body.style.overflow = '';
+      }
+
+      if (menuToggle) {
+         menuToggle.addEventListener('click', function() {
+            const isOpen = !menuPanel.classList.contains('-translate-x-full');
+            if (isOpen) {
+               closeMenu();
+            } else {
+               openMenu();
+            }
+         });
+      }
+
+      if (menuClose) {
+         menuClose.addEventListener('click', closeMenu);
+      }
+
+      if (menuOverlay) {
+         menuOverlay.addEventListener('click', closeMenu);
+      }
+
+      // Close menu on escape key
+      document.addEventListener('keydown', function(e) {
+         if (e.key === 'Escape' && !menuPanel.classList.contains('-translate-x-full')) {
+            closeMenu();
          }
       });
    });
