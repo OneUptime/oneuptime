@@ -393,7 +393,8 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Status Message",
     description: "Status message of this execution",
     canReadOnRelationQuery: false,
-    example: "On-call policy execution started. Notifying primary on-call team members.",
+    example:
+      "On-call policy execution started. Notifying primary on-call team members.",
   })
   @Column({
     nullable: false,

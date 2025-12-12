@@ -255,7 +255,8 @@ export default class IncidentTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Template Description",
     description: "Description of the Incident Template",
-    example: "Use this template when experiencing server outages due to database connectivity issues. Includes automated notifications to on-call engineers and status page updates.",
+    example:
+      "Use this template when experiencing server outages due to database connectivity issues. Includes automated notifications to on-call engineers and status page updates.",
   })
   @Column({
     nullable: false,
@@ -290,7 +291,8 @@ export default class IncidentTemplate extends BaseModel {
     title: "Description",
     description:
       "Short description of this incident. This is in markdown and will be visible on the status page.",
-    example: "## Issue Description\n\nWe are currently experiencing connectivity issues with our primary database server. Our engineering team is actively investigating and working to resolve the issue.\n\n**Impact:** Users may experience slow response times or intermittent errors.",
+    example:
+      "## Issue Description\n\nWe are currently experiencing connectivity issues with our primary database server. Our engineering team is actively investigating and working to resolve the issue.\n\n**Impact:** Users may experience slow response times or intermittent errors.",
   })
   @Column({
     nullable: true,
@@ -824,7 +826,11 @@ export default class IncidentTemplate extends BaseModel {
     type: TableColumnType.JSON,
     title: "Custom Fields",
     description: "Custom Fields on this resource.",
-    example: { "priority": "high", "category": "infrastructure", "escalationLevel": 2 },
+    example: {
+      priority: "high",
+      category: "infrastructure",
+      escalationLevel: 2,
+    },
   })
   @Column({
     type: ColumnType.JSON,

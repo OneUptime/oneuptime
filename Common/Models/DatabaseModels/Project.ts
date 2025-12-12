@@ -266,7 +266,8 @@ export default class Project extends TenantModel {
     title: "Business Details / Billing Address",
     description:
       "Business legal name, address and any tax information to appear on invoices.",
-    example: "Acme Corporation\n123 Main Street\nSan Francisco, CA 94102\nTax ID: 12-3456789",
+    example:
+      "Acme Corporation\n123 Main Street\nSan Francisco, CA 94102\nTax ID: 12-3456789",
   })
   @Column({
     type: ColumnType.LongText,

@@ -347,7 +347,8 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Note",
     description: "Notes in markdown",
-    example: "## Maintenance Update\n\nThe scheduled maintenance is proceeding as planned. We expect to complete the database migration within the next hour.\n\n- Database migration: **In Progress**\n- Estimated completion: 2:00 PM UTC",
+    example:
+      "## Maintenance Update\n\nThe scheduled maintenance is proceeding as planned. We expect to complete the database migration within the next hour.\n\n- Database migration: **In Progress**\n- Estimated completion: 2:00 PM UTC",
   })
   @Column({
     type: ColumnType.Markdown,

@@ -486,10 +486,10 @@ export default class MonitorProbe extends BaseModel {
     type: TableColumnType.JSON,
     example: {
       "step-1": {
-        "isSuccess": true,
-        "responseTimeInMs": 245,
-        "statusCode": 200
-      }
+        isSuccess: true,
+        responseTimeInMs: 245,
+        statusCode: 200,
+      },
     },
   })
   @Column({

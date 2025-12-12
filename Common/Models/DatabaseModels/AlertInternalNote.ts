@@ -345,7 +345,8 @@ export default class AlertInternalNote extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Note",
     description: "Notes in markdown",
-    example: "## Alert Investigation\n\nChecked the server logs and found high CPU usage on web-server-03. The process `node-worker-12` was consuming 95% CPU.\n\n**Resolution:**\n- Restarted the worker process\n- Alert cleared automatically after 2 minutes\n- Will monitor for recurrence and investigate if this happens again",
+    example:
+      "## Alert Investigation\n\nChecked the server logs and found high CPU usage on web-server-03. The process `node-worker-12` was consuming 95% CPU.\n\n**Resolution:**\n- Restarted the worker process\n- Alert cleared automatically after 2 minutes\n- Will monitor for recurrence and investigate if this happens again",
   })
   @Column({
     type: ColumnType.Markdown,

@@ -187,7 +187,8 @@ export default class IncidentCustomField extends BaseModel {
     title: "Description",
     description:
       "Friendly description of this custom field that will help you remember",
-    example: "This field tracks the severity level of the incident (Minor, Major, Critical)",
+    example:
+      "This field tracks the severity level of the incident (Minor, Major, Critical)",
   })
   @Column({
     nullable: true,

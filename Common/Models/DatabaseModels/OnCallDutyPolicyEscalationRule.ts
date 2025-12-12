@@ -258,7 +258,8 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
-    example: "If no response after 15 minutes, escalate to the team lead for immediate attention",
+    example:
+      "If no response after 15 minutes, escalate to the team lead for immediate attention",
   })
   @Column({
     nullable: true,

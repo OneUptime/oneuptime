@@ -255,7 +255,8 @@ export default class OnCallDutyPolicy extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
-    example: "Primary on-call rotation for production incidents and critical alerts",
+    example:
+      "Primary on-call rotation for production incidents and critical alerts",
   })
   @Column({
     nullable: true,

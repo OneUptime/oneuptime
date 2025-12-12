@@ -429,7 +429,7 @@ export default class Dashboard extends BaseModel {
     type: TableColumnType.JSON,
     title: "Dashboard View Config",
     description: "Configuration of Dashboard View",
-    example: { "components": [], "layout": "grid" },
+    example: { components: [], layout: "grid" },
   })
   @Column({
     nullable: false,

@@ -232,7 +232,8 @@ export default class IncidentSeverity extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
-    example: "Critical severity incidents require immediate attention and response from on-call engineers",
+    example:
+      "Critical severity incidents require immediate attention and response from on-call engineers",
   })
   @Column({
     nullable: true,

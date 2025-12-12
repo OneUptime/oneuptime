@@ -255,7 +255,8 @@ export default class TelemetryException extends DatabaseBaseModel {
     title: "Stack Trace",
     description:
       "Stack trace of the exception that was thrown by the telemetry service",
-    example: "at getUserData (/app/src/services/user.js:42:15)\nat processRequest (/app/src/controllers/user.js:89:20)",
+    example:
+      "at getUserData (/app/src/services/user.js:42:15)\nat processRequest (/app/src/controllers/user.js:89:20)",
   })
   @Column({
     nullable: true,

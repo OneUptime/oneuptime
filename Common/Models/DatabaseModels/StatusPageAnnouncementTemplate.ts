@@ -213,7 +213,8 @@ export default class StatusPageAnnouncementTemplate extends BaseModel {
     type: TableColumnType.LongText,
     title: "Template Description",
     description: "Description of the announcement template",
-    example: "This template is used for announcing planned system upgrades and improvements. It provides subscribers with advance notice of upcoming changes and expected impact on service availability.",
+    example:
+      "This template is used for announcing planned system upgrades and improvements. It provides subscribers with advance notice of upcoming changes and expected impact on service availability.",
   })
   @Column({
     nullable: true,
@@ -281,7 +282,8 @@ export default class StatusPageAnnouncementTemplate extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Announcement Description",
     description: "Text of the announcement. This is in Markdown.",
-    example: "We will be performing a scheduled system upgrade on **January 15, 2025** from **2:00 AM to 4:00 AM EST**.\n\n## What to Expect\n\n- Brief service interruptions may occur during the maintenance window\n- All data will remain secure and intact\n- System performance improvements will be available after completion\n\n## Affected Services\n\n- API endpoints\n- Web dashboard\n- Mobile applications\n\nWe apologize for any inconvenience and appreciate your patience as we work to improve our services.",
+    example:
+      "We will be performing a scheduled system upgrade on **January 15, 2025** from **2:00 AM to 4:00 AM EST**.\n\n## What to Expect\n\n- Brief service interruptions may occur during the maintenance window\n- All data will remain secure and intact\n- System performance improvements will be available after completion\n\n## Affected Services\n\n- API endpoints\n- Web dashboard\n- Mobile applications\n\nWe apologize for any inconvenience and appreciate your patience as we work to improve our services.",
   })
   @Column({
     nullable: false,
@@ -315,7 +317,10 @@ export default class StatusPageAnnouncementTemplate extends BaseModel {
     modelType: StatusPage,
     title: "Status Pages",
     description: "Status Pages to show this announcement on.",
-    example: [{ id: "c3d4e5f6-a7b8-9012-cdef-123456789012" }, { id: "d4e5f6a7-b8c9-0123-def1-234567890123" }],
+    example: [
+      { id: "c3d4e5f6-a7b8-9012-cdef-123456789012" },
+      { id: "d4e5f6a7-b8c9-0123-def1-234567890123" },
+    ],
   })
   @ManyToMany(
     () => {
@@ -363,7 +368,10 @@ export default class StatusPageAnnouncementTemplate extends BaseModel {
     title: "Monitors",
     description:
       "List of monitors affected by this announcement template. If none are selected, all subscribers will be notified.",
-    example: [{ id: "e5f6a7b8-c9d0-1234-ef12-345678901234" }, { id: "f6a7b8c9-d0e1-2345-f123-456789012345" }],
+    example: [
+      { id: "e5f6a7b8-c9d0-1234-ef12-345678901234" },
+      { id: "f6a7b8c9-d0e1-2345-f123-456789012345" },
+    ],
   })
   @ManyToMany(
     () => {

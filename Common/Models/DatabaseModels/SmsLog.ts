@@ -188,7 +188,8 @@ export default class SmsLog extends BaseModel {
     title: "SMS Text",
     description: "Text content of the message",
     canReadOnRelationQuery: false,
-    example: "Alert: High CPU usage detected on your server. Please investigate immediately.",
+    example:
+      "Alert: High CPU usage detected on your server. Please investigate immediately.",
   })
   @Column({
     nullable: true,

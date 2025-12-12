@@ -188,7 +188,7 @@ export default class CallLog extends BaseModel {
     title: "Call Data",
     description: "Content of the data that was sent in the call",
     canReadOnRelationQuery: false,
-    example: { "message": "Alert notification", "incidentId": "123" },
+    example: { message: "Alert notification", incidentId: "123" },
   })
   @Column({
     nullable: false,

@@ -416,7 +416,8 @@ export default class StatusPageSSO extends BaseModel {
     required: true,
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
-    example: "-----BEGIN CERTIFICATE-----\nMIIDXTCCAkWgAwIBAgIJAKL0UG+mRKU...\n-----END CERTIFICATE-----",
+    example:
+      "-----BEGIN CERTIFICATE-----\nMIIDXTCCAkWgAwIBAgIJAKL0UG+mRKU...\n-----END CERTIFICATE-----",
   })
   @Column({
     nullable: false,

@@ -182,7 +182,8 @@ export default class ApiKey extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
-    example: "API key used for production environment monitoring and alerting integrations",
+    example:
+      "API key used for production environment monitoring and alerting integrations",
   })
   @Column({
     nullable: true,

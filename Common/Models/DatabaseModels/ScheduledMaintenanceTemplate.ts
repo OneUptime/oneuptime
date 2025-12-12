@@ -221,7 +221,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Template Description",
     description: "Description of the Scheduled Maintenance Template",
-    example: "Use this template for scheduled database upgrades and migrations. Includes pre-maintenance notifications, maintenance window updates, and post-maintenance completion notifications.",
+    example:
+      "Use this template for scheduled database upgrades and migrations. Includes pre-maintenance notifications, maintenance window updates, and post-maintenance completion notifications.",
   })
   @Column({
     nullable: false,
@@ -292,7 +293,8 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     title: "Description",
     description:
       "Description of this scheduled event that will show up on Status Page. This is a markdown field.",
-    example: "## Scheduled Maintenance\n\nWe will be performing a scheduled upgrade of our PostgreSQL database servers.\n\n**Start Time:** 2:00 AM UTC\n**Expected Duration:** 2 hours\n\n**Impact:** Brief service interruptions may occur during the maintenance window.\n\nThank you for your patience.",
+    example:
+      "## Scheduled Maintenance\n\nWe will be performing a scheduled upgrade of our PostgreSQL database servers.\n\n**Start Time:** 2:00 AM UTC\n**Expected Duration:** 2 hours\n\n**Impact:** Brief service interruptions may occur during the maintenance window.\n\nThank you for your patience.",
   })
   @Column({
     nullable: true,
@@ -777,7 +779,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     type: TableColumnType.JSON,
     title: "Recurring Interval",
     description: "How often should this event recur?",
-    example: { "intervalType": "weeks", "intervalCount": 2 },
+    example: { intervalType: "weeks", intervalCount: 2 },
   })
   @Column({
     type: ColumnType.JSON,
@@ -987,7 +989,11 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     type: TableColumnType.JSON,
     title: "Custom Fields",
     description: "Custom Fields on this resource.",
-    example: { "department": "DevOps", "maintenanceType": "upgrade", "approvalRequired": true },
+    example: {
+      department: "DevOps",
+      maintenanceType: "upgrade",
+      approvalRequired: true,
+    },
   })
   @Column({
     type: ColumnType.JSON,
@@ -1021,7 +1027,10 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     isDefaultValueColumn: false,
     title: "Subscriber notifications before the event",
     description: "Should subscribers be notified before the event?",
-    example: [{ "intervalType": "hours", "intervalCount": 24 }, { "intervalType": "hours", "intervalCount": 1 }],
+    example: [
+      { intervalType: "hours", intervalCount: 24 },
+      { intervalType: "hours", intervalCount: 1 },
+    ],
   })
   @Column({
     type: ColumnType.JSON,

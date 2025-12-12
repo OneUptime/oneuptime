@@ -172,7 +172,8 @@ export default class TelemetryIngestionKey extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
-    example: "This key is used for ingesting telemetry data from production services",
+    example:
+      "This key is used for ingesting telemetry data from production services",
   })
   @Column({
     nullable: true,

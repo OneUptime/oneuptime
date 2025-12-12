@@ -465,7 +465,8 @@ export default class IncidentStateTimeline extends BaseModel {
     description:
       "Status message for subscriber notifications - includes success messages, failure reasons, or skip reasons",
     required: false,
-    example: "Successfully sent notifications to 47 subscribers via email and SMS",
+    example:
+      "Successfully sent notifications to 47 subscribers via email and SMS",
   })
   @Column({
     type: ColumnType.VeryLongText,
@@ -545,7 +546,12 @@ export default class IncidentStateTimeline extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.JSON,
-    example: { "previousState": "investigating", "newState": "resolved", "triggeredBy": "automated-resolution", "duration": 3600 },
+    example: {
+      previousState: "investigating",
+      newState: "resolved",
+      triggeredBy: "automated-resolution",
+      duration: 3600,
+    },
   })
   @Column({
     type: ColumnType.JSON,
@@ -575,7 +581,8 @@ export default class IncidentStateTimeline extends BaseModel {
     isDefaultValueColumn: false,
     title: "Root Cause",
     description: "What is the root cause of this status change?",
-    example: "Database connection pool exhaustion caused by sudden spike in traffic from marketing campaign launch.",
+    example:
+      "Database connection pool exhaustion caused by sudden spike in traffic from marketing campaign launch.",
   })
   @Column({
     type: ColumnType.Markdown,

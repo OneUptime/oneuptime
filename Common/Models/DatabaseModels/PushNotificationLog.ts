@@ -158,7 +158,8 @@ export default class PushNotificationLog extends BaseModel {
     title: "Body",
     description: "Body of the push notification",
     canReadOnRelationQuery: false,
-    example: "Your server 'web-server-01' has exceeded 90% CPU usage for the past 5 minutes.",
+    example:
+      "Your server 'web-server-01' has exceeded 90% CPU usage for the past 5 minutes.",
   })
   @Column({
     nullable: true,

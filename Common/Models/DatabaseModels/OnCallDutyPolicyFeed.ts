@@ -347,7 +347,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     required: true,
     title: "Log (in Markdown)",
     description: "Log of the entire onCallDutyPolicy state change in Markdown",
-    example: "## User Added to On-Call Duty Policy\n\nJohn Doe has been added to the on-call rotation for the weekend shift.",
+    example:
+      "## User Added to On-Call Duty Policy\n\nJohn Doe has been added to the on-call rotation for the weekend shift.",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -376,7 +377,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     required: false,
     title: "More Information (in Markdown)",
     description: "More information in Markdown",
-    example: "### Roster Details\n\n- Shift: Weekend (Sat-Sun)\n- Coverage: 24/7\n- Escalation policy applied",
+    example:
+      "### Roster Details\n\n- Shift: Weekend (Sat-Sun)\n- Coverage: 24/7\n- Escalation policy applied",
   })
   @Column({
     type: ColumnType.Markdown,

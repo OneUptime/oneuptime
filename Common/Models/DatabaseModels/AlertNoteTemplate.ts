@@ -166,7 +166,8 @@ export default class AlertNoteTemplate extends BaseModel {
     title: "Note",
     description:
       "Note template for public or private notes. This is in markdown.",
-    example: "## Alert Investigation\n\n**Issue**: {{alert.title}}\n\n**Time**: {{alert.createdAt}}\n\n**Analysis**: Initial investigation shows that the alert was triggered due to high CPU usage on the production server. The team is currently investigating the root cause.\n\n**Next Steps**:\n- Monitor system metrics\n- Review application logs\n- Check for memory leaks",
+    example:
+      "## Alert Investigation\n\n**Issue**: {{alert.title}}\n\n**Time**: {{alert.createdAt}}\n\n**Analysis**: Initial investigation shows that the alert was triggered due to high CPU usage on the production server. The team is currently investigating the root cause.\n\n**Next Steps**:\n- Monitor system metrics\n- Review application logs\n- Check for memory leaks",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -236,7 +237,8 @@ export default class AlertNoteTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Template Description",
     description: "Description of the Alert Template",
-    example: "This template is used for documenting the initial investigation phase of an alert. It includes sections for analyzing the issue, documenting findings, and outlining next steps for resolution.",
+    example:
+      "This template is used for documenting the initial investigation phase of an alert. It includes sections for analyzing the issue, documenting findings, and outlining next steps for resolution.",
   })
   @Column({
     nullable: false,

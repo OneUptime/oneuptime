@@ -232,7 +232,8 @@ export default class AlertSeverity extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
-    example: "High severity alerts indicate significant issues that need prompt attention within 1 hour",
+    example:
+      "High severity alerts indicate significant issues that need prompt attention within 1 hour",
   })
   @Column({
     nullable: true,

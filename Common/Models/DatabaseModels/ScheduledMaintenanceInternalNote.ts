@@ -345,7 +345,8 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Note",
     description: "Notes in markdown",
-    example: "## Scheduled Maintenance Completed\n\nSuccessfully completed the database upgrade from PostgreSQL 14 to 15. All services were migrated smoothly with zero data loss.\n\n**Summary:**\n- Downtime: 45 minutes (scheduled for 60 minutes)\n- Database upgrade completed\n- All automated tests passed\n- Services restored and monitored for 30 minutes post-maintenance",
+    example:
+      "## Scheduled Maintenance Completed\n\nSuccessfully completed the database upgrade from PostgreSQL 14 to 15. All services were migrated smoothly with zero data loss.\n\n**Summary:**\n- Downtime: 45 minutes (scheduled for 60 minutes)\n- Database upgrade completed\n- All automated tests passed\n- Services restored and monitored for 30 minutes post-maintenance",
   })
   @Column({
     type: ColumnType.Markdown,

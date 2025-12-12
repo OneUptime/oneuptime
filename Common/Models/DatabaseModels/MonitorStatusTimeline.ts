@@ -445,7 +445,12 @@ export default class MonitorStatusTimeline extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.JSON,
-    example: { "previousStatus": "operational", "newStatus": "degraded", "responseTime": 2500, "probeLocation": "us-east-1" },
+    example: {
+      previousStatus: "operational",
+      newStatus: "degraded",
+      responseTime: 2500,
+      probeLocation: "us-east-1",
+    },
   })
   @Column({
     type: ColumnType.JSON,
@@ -475,7 +480,8 @@ export default class MonitorStatusTimeline extends BaseModel {
     isDefaultValueColumn: false,
     title: "Root Cause",
     description: "What is the root cause of this status change?",
-    example: "API response time exceeded threshold of 2000ms due to database query optimization needed on user table.",
+    example:
+      "API response time exceeded threshold of 2000ms due to database query optimization needed on user table.",
   })
   @Column({
     type: ColumnType.Markdown,

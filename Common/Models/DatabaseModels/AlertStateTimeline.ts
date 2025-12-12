@@ -441,7 +441,11 @@ export default class AlertStateTimeline extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.JSON,
-    example: { "previousState": "created", "newState": "acknowledged", "reason": "Alert reviewed by on-call engineer" },
+    example: {
+      previousState: "created",
+      newState: "acknowledged",
+      reason: "Alert reviewed by on-call engineer",
+    },
   })
   @Column({
     type: ColumnType.JSON,
@@ -472,7 +476,8 @@ export default class AlertStateTimeline extends BaseModel {
     isDefaultValueColumn: false,
     title: "Root Cause",
     description: "What is the root cause of this status change?",
-    example: "High memory usage detected on production server due to memory leak in application code.",
+    example:
+      "High memory usage detected on production server due to memory leak in application code.",
   })
   @Column({
     type: ColumnType.Markdown,

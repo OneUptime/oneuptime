@@ -343,7 +343,8 @@ export default class AlertFeed extends BaseModel {
     required: true,
     title: "Log (in Markdown)",
     description: "Log of the entire alert state change in Markdown",
-    example: "**Alert State Changed**\n\nAlert state changed from *Created* to *Acknowledged* by John Smith.",
+    example:
+      "**Alert State Changed**\n\nAlert state changed from *Created* to *Acknowledged* by John Smith.",
   })
   @Column({
     type: ColumnType.Markdown,

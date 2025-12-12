@@ -351,7 +351,8 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     title: "Log (in Markdown)",
     description:
       "Log of the entire scheduled maintenance state change in Markdown",
-    example: "## Scheduled Maintenance Created\n\nA new scheduled maintenance window has been created for database upgrade. Expected downtime: 2 hours.",
+    example:
+      "## Scheduled Maintenance Created\n\nA new scheduled maintenance window has been created for database upgrade. Expected downtime: 2 hours.",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -380,7 +381,8 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     required: false,
     title: "More Information (in Markdown)",
     description: "More information in Markdown",
-    example: "### Additional Details\n\n- All services will be temporarily unavailable\n- Email notifications sent to all subscribers\n- Backup completed successfully",
+    example:
+      "### Additional Details\n\n- All services will be temporarily unavailable\n- Email notifications sent to all subscribers\n- Backup completed successfully",
   })
   @Column({
     type: ColumnType.Markdown,

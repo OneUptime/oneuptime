@@ -197,7 +197,8 @@ export default class Team extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
-    example: "Team responsible for backend services and infrastructure management",
+    example:
+      "Team responsible for backend services and infrastructure management",
   })
   @Column({
     nullable: true,

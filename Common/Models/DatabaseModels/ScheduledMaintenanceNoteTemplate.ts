@@ -159,7 +159,8 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
     title: "Note",
     description:
       "Note template for public or private notes. This is in markdown.",
-    example: "## Scheduled Maintenance Update\n\n**Maintenance Window**: {{maintenance.scheduledAt}} - {{maintenance.endTime}}\n\n**Affected Services**: {{maintenance.services}}\n\n**Status**: The scheduled maintenance has been completed successfully. All systems are now operational.\n\n**Summary of Work Performed**:\n- Database schema upgrades applied\n- Security patches installed\n- Performance optimizations implemented\n\n**Verification**: All post-maintenance tests have passed. Services are running normally.\n\n**Next Scheduled Maintenance**: TBD",
+    example:
+      "## Scheduled Maintenance Update\n\n**Maintenance Window**: {{maintenance.scheduledAt}} - {{maintenance.endTime}}\n\n**Affected Services**: {{maintenance.services}}\n\n**Status**: The scheduled maintenance has been completed successfully. All systems are now operational.\n\n**Summary of Work Performed**:\n- Database schema upgrades applied\n- Security patches installed\n- Performance optimizations implemented\n\n**Verification**: All post-maintenance tests have passed. Services are running normally.\n\n**Next Scheduled Maintenance**: TBD",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -229,7 +230,8 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Template Description",
     description: "Description of the Incident Template",
-    example: "This template is used to document the completion of scheduled maintenance activities. It provides a structured format for summarizing the work performed, verifying system health, and communicating the maintenance outcome to stakeholders.",
+    example:
+      "This template is used to document the completion of scheduled maintenance activities. It provides a structured format for summarizing the work performed, verifying system health, and communicating the maintenance outcome to stakeholders.",
   })
   @Column({
     nullable: false,

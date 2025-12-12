@@ -462,7 +462,8 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     description:
       "Status message for subscriber notifications - includes success messages, failure reasons, or skip reasons",
     required: false,
-    example: "Maintenance notification sent to 152 subscribers. Scheduled maintenance window: 2024-01-16 02:00-04:00 UTC",
+    example:
+      "Maintenance notification sent to 152 subscribers. Scheduled maintenance window: 2024-01-16 02:00-04:00 UTC",
   })
   @Column({
     type: ColumnType.VeryLongText,

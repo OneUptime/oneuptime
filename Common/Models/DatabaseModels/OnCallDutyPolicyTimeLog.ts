@@ -279,7 +279,8 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
     canReadOnRelationQuery: true,
     title: "More Info",
     description: "More information about this log record.",
-    example: "User was on-call during incident INC-1234. Successfully handled 3 alerts during this shift.",
+    example:
+      "User was on-call during incident INC-1234. Successfully handled 3 alerts during this shift.",
   })
   @Column({
     type: ColumnType.VeryLongText,

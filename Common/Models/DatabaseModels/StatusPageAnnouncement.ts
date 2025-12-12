@@ -371,7 +371,8 @@ export default class StatusPageAnnouncement extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Announcement Description",
     description: "Text of the announcement. This can be in Markdown format.",
-    example: "We will be performing scheduled maintenance on our database servers. Expected downtime is 2 hours.",
+    example:
+      "We will be performing scheduled maintenance on our database servers. Expected downtime is 2 hours.",
   })
   @Column({
     nullable: false,

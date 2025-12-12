@@ -348,7 +348,8 @@ export default class IncidentFeed extends BaseModel {
     required: true,
     title: "Log (in Markdown)",
     description: "Log of the entire incident state change in Markdown",
-    example: "**Incident State Changed**: Status changed from `Acknowledged` to `Resolved` by John Doe",
+    example:
+      "**Incident State Changed**: Status changed from `Acknowledged` to `Resolved` by John Doe",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -377,7 +378,8 @@ export default class IncidentFeed extends BaseModel {
     required: false,
     title: "More Information (in Markdown)",
     description: "More information in Markdown",
-    example: "### Resolution Details\n\nThe issue was resolved by restarting the database service. All systems are now operational.",
+    example:
+      "### Resolution Details\n\nThe issue was resolved by restarting the database service. All systems are now operational.",
   })
   @Column({
     type: ColumnType.Markdown,

@@ -345,7 +345,8 @@ export default class IncidentInternalNote extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Note",
     description: "Notes in markdown",
-    example: "## Root Cause Analysis\n\nInvestigated the database connection timeout. Found that the connection pool was exhausted due to a memory leak in the authentication service.\n\n**Action Items:**\n- Applied hotfix to authentication service\n- Increased connection pool size from 10 to 20\n- Added monitoring alerts for connection pool usage",
+    example:
+      "## Root Cause Analysis\n\nInvestigated the database connection timeout. Found that the connection pool was exhausted due to a memory leak in the authentication service.\n\n**Action Items:**\n- Applied hotfix to authentication service\n- Increased connection pool size from 10 to 20\n- Added monitoring alerts for connection pool usage",
   })
   @Column({
     type: ColumnType.Markdown,

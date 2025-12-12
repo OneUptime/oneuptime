@@ -166,7 +166,8 @@ export default class IncidentNoteTemplate extends BaseModel {
     title: "Note",
     description:
       "Note template for public or private notes. This is in markdown.",
-    example: "## Root Cause Analysis\n\n**Incident**: {{incident.title}}\n\n**Start Time**: {{incident.startedAt}}\n\n**Root Cause**: The incident was caused by a memory leak in the payment processing service that resulted in service degradation over time.\n\n**Impact**: Approximately 15% of payment transactions were affected during the incident window.\n\n**Resolution**: Restarted the affected service and deployed a hotfix to address the memory leak.\n\n**Preventive Measures**:\n- Added memory monitoring alerts\n- Implemented automated service restarts\n- Scheduled code review for memory management",
+    example:
+      "## Root Cause Analysis\n\n**Incident**: {{incident.title}}\n\n**Start Time**: {{incident.startedAt}}\n\n**Root Cause**: The incident was caused by a memory leak in the payment processing service that resulted in service degradation over time.\n\n**Impact**: Approximately 15% of payment transactions were affected during the incident window.\n\n**Resolution**: Restarted the affected service and deployed a hotfix to address the memory leak.\n\n**Preventive Measures**:\n- Added memory monitoring alerts\n- Implemented automated service restarts\n- Scheduled code review for memory management",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -236,7 +237,8 @@ export default class IncidentNoteTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Template Description",
     description: "Description of the Incident Template",
-    example: "This template is designed for documenting the root cause analysis of an incident. It helps teams identify the underlying cause, assess impact, document resolution steps, and establish preventive measures to avoid future occurrences.",
+    example:
+      "This template is designed for documenting the root cause analysis of an incident. It helps teams identify the underlying cause, assess impact, document resolution steps, and establish preventive measures to avoid future occurrences.",
   })
   @Column({
     nullable: false,

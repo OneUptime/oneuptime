@@ -187,7 +187,8 @@ export default class MonitorCustomField extends BaseModel {
     title: "Description",
     description:
       "Friendly description of this custom field that will help you remember",
-    example: "This field specifies how often the monitor should perform health checks (in minutes)",
+    example:
+      "This field specifies how often the monitor should perform health checks (in minutes)",
   })
   @Column({
     nullable: true,

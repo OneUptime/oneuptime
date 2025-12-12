@@ -346,7 +346,8 @@ export default class IncidentPublicNote extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Note",
     description: "Notes in markdown",
-    example: "## Update - Incident Resolved\n\nWe have identified and resolved the issue causing intermittent API failures. Our team has deployed a fix and all services are now operating normally.\n\nWe sincerely apologize for any inconvenience this may have caused. If you continue to experience any issues, please don't hesitate to contact our support team.",
+    example:
+      "## Update - Incident Resolved\n\nWe have identified and resolved the issue causing intermittent API failures. Our team has deployed a fix and all services are now operating normally.\n\nWe sincerely apologize for any inconvenience this may have caused. If you continue to experience any issues, please don't hesitate to contact our support team.",
   })
   @Column({
     type: ColumnType.Markdown,

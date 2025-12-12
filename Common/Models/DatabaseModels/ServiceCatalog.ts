@@ -249,7 +249,8 @@ export default class ServiceCatalog extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
-    example: "RESTful API service that handles user authentication, authorization, and session management for the platform",
+    example:
+      "RESTful API service that handles user authentication, authorization, and session management for the platform",
   })
   @Column({
     nullable: true,

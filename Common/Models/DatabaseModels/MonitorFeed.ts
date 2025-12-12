@@ -341,7 +341,8 @@ export default class MonitorFeed extends BaseModel {
     required: true,
     title: "Log (in Markdown)",
     description: "Log of the entire monitor state change in Markdown",
-    example: "**Monitor Status Changed**: Status changed from `Operational` to `Degraded` - Response time exceeded threshold",
+    example:
+      "**Monitor Status Changed**: Status changed from `Operational` to `Degraded` - Response time exceeded threshold",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -370,7 +371,8 @@ export default class MonitorFeed extends BaseModel {
     required: false,
     title: "More Information (in Markdown)",
     description: "More information in Markdown",
-    example: "### Additional Context\n\nAverage response time: 2500ms (threshold: 2000ms)\nAffected endpoints: `/api/users`, `/api/products`",
+    example:
+      "### Additional Context\n\nAverage response time: 2500ms (threshold: 2000ms)\nAffected endpoints: `/api/users`, `/api/products`",
   })
   @Column({
     type: ColumnType.Markdown,

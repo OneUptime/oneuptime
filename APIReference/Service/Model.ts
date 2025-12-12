@@ -43,7 +43,11 @@ function getDefaultExampleForType(
   if (typeStr.includes("boolean") || typeStr.includes("bool")) {
     return true;
   }
-  if (typeStr.includes("number") || typeStr.includes("int") || typeStr.includes("decimal")) {
+  if (
+    typeStr.includes("number") ||
+    typeStr.includes("int") ||
+    typeStr.includes("decimal")
+  ) {
     return 100;
   }
   if (typeStr.includes("date") || typeStr.includes("time")) {
@@ -61,7 +65,11 @@ function getDefaultExampleForType(
   if (typeStr.includes("color")) {
     return "#3498db";
   }
-  if (typeStr.includes("markdown") || typeStr.includes("longtext") || typeStr.includes("description")) {
+  if (
+    typeStr.includes("markdown") ||
+    typeStr.includes("longtext") ||
+    typeStr.includes("description")
+  ) {
     return `Example ${title || "text"} content`;
   }
   if (typeStr.includes("json") || typeStr.includes("object")) {
@@ -134,9 +142,15 @@ function generateExampleObjects(
         ? (column.example as JSONValue)
         : getDefaultExampleForType(column.type?.toString(), column.title);
 
-    // Add to select example (limit to 5 fields for readability)
-    // Also add the field to response example so response matches select
-    if (selectCount < 5 && accessControl?.read && accessControl.read.length > 0) {
+    /*
+     * Add to select example (limit to 5 fields for readability)
+     * Also add the field to response example so response matches select
+     */
+    if (
+      selectCount < 5 &&
+      accessControl?.read &&
+      accessControl.read.length > 0
+    ) {
       simpleSelectExample[key] = true;
       simpleResponseExample[key] = exampleValue;
       selectCount++;

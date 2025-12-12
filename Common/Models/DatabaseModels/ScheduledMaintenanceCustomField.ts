@@ -187,7 +187,8 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
     title: "Description",
     description:
       "Friendly description of this custom field that will help you remember",
-    example: "This field indicates the maintenance window type (Planned, Emergency, Routine)",
+    example:
+      "This field indicates the maintenance window type (Planned, Emergency, Routine)",
   })
   @Column({
     nullable: true,

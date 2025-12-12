@@ -234,7 +234,8 @@ export default class IncidentState extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
-    example: "The incident has been acknowledged by the on-call engineer and is being investigated",
+    example:
+      "The incident has been acknowledged by the on-call engineer and is being investigated",
   })
   @Column({
     nullable: true,

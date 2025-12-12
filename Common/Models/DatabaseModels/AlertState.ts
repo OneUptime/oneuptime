@@ -210,7 +210,8 @@ export default class AlertState extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
-    example: "The alert has been acknowledged by a team member and is being investigated",
+    example:
+      "The alert has been acknowledged by a team member and is being investigated",
   })
   @Column({
     nullable: true,

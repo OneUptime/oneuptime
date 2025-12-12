@@ -213,7 +213,8 @@ export default class ProjectSmtpConfig extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
-    example: "SMTP configuration for production environment email notifications",
+    example:
+      "SMTP configuration for production environment email notifications",
   })
   @Column({
     nullable: true,

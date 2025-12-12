@@ -187,7 +187,8 @@ export default class AlertCustomField extends BaseModel {
     title: "Description",
     description:
       "Friendly description of this custom field that will help you remember",
-    example: "This field indicates the priority level of the alert (Low, Medium, High, Critical)",
+    example:
+      "This field indicates the priority level of the alert (Low, Medium, High, Critical)",
   })
   @Column({
     nullable: true,

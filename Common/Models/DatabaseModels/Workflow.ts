@@ -234,7 +234,8 @@ export default class Workflow extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
-    example: "Automatically creates incidents, notifies team members, and escalates critical issues based on alert severity",
+    example:
+      "Automatically creates incidents, notifies team members, and escalates critical issues based on alert severity",
   })
   @Column({
     nullable: true,

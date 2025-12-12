@@ -713,7 +713,10 @@ export default class UserOnCallLog extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.JSON,
-    example: { "rule-1": "2024-01-15T10:30:00Z", "rule-2": "2024-01-15T10:35:00Z" },
+    example: {
+      "rule-1": "2024-01-15T10:30:00Z",
+      "rule-2": "2024-01-15T10:35:00Z",
+    },
   })
   @Column({
     type: ColumnType.JSON,

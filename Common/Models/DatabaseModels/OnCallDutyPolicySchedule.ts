@@ -263,7 +263,8 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
-    example: "This schedule handles on-call duties during weekend hours for production incidents",
+    example:
+      "This schedule handles on-call duties during weekend hours for production incidents",
   })
   @Column({
     nullable: true,

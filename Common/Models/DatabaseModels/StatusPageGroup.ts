@@ -302,7 +302,8 @@ export default class StatusPageGroup extends BaseModel {
     title: "Description",
     description:
       "Description for this group. This is visible on Status Page. This can be in markdown format.",
-    example: "Critical infrastructure services including API, database, and authentication",
+    example:
+      "Critical infrastructure services including API, database, and authentication",
   })
   @Column({
     nullable: true,

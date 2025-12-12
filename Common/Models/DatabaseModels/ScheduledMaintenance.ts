@@ -216,7 +216,8 @@ export default class ScheduledMaintenance extends BaseModel {
     title: "Description",
     description:
       "Description of this scheduled event that will show up on Status Page. This is in markdown.",
-    example: "We will be performing routine database maintenance and upgrading our servers to improve performance. Services may experience brief interruptions during this window.",
+    example:
+      "We will be performing routine database maintenance and upgrading our servers to improve performance. Services may experience brief interruptions during this window.",
   })
   @Column({
     nullable: true,
