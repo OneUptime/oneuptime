@@ -28,38 +28,71 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         >
           <div className="mt-4 space-y-3">
             <div className="flex items-start">
-              <Icon icon={IconProp.CheckCircle} className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+              <Icon
+                icon={IconProp.CheckCircle}
+                className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
+              />
               <div>
                 <span className="font-medium">Incident Notes</span>
-                <span className="text-gray-500"> - Automatically generate detailed incident notes and updates</span>
+                <span className="text-gray-500">
+                  {" "}
+                  - Automatically generate detailed incident notes and updates
+                </span>
               </div>
             </div>
             <div className="flex items-start">
-              <Icon icon={IconProp.CheckCircle} className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+              <Icon
+                icon={IconProp.CheckCircle}
+                className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
+              />
               <div>
                 <span className="font-medium">Alert Notes</span>
-                <span className="text-gray-500"> - Create meaningful alert descriptions and context</span>
+                <span className="text-gray-500">
+                  {" "}
+                  - Create meaningful alert descriptions and context
+                </span>
               </div>
             </div>
             <div className="flex items-start">
-              <Icon icon={IconProp.CheckCircle} className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+              <Icon
+                icon={IconProp.CheckCircle}
+                className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
+              />
               <div>
                 <span className="font-medium">Scheduled Maintenance Notes</span>
-                <span className="text-gray-500"> - Generate maintenance event notes automatically</span>
+                <span className="text-gray-500">
+                  {" "}
+                  - Generate maintenance event notes automatically
+                </span>
               </div>
             </div>
             <div className="flex items-start">
-              <Icon icon={IconProp.CheckCircle} className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+              <Icon
+                icon={IconProp.CheckCircle}
+                className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
+              />
               <div>
                 <span className="font-medium">Incident Postmortems</span>
-                <span className="text-gray-500"> - Automatically draft comprehensive incident postmortem reports</span>
+                <span className="text-gray-500">
+                  {" "}
+                  - Automatically draft comprehensive incident postmortem
+                  reports
+                </span>
               </div>
             </div>
             <div className="flex items-start">
-              <Icon icon={IconProp.CheckCircle} className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+              <Icon
+                icon={IconProp.CheckCircle}
+                className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
+              />
               <div>
                 <span className="font-medium">Code Improvements</span>
-                <span className="text-gray-500"> - Analyze telemetry data (logs, traces, metrics, exceptions) and suggest code improvements when connected to your code repository</span>
+                <span className="text-gray-500">
+                  {" "}
+                  - Analyze telemetry data (logs, traces, metrics, exceptions)
+                  and suggest code improvements when connected to your code
+                  repository
+                </span>
               </div>
             </div>
           </div>
