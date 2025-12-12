@@ -93,7 +93,7 @@ const HomeFeatureSet: FeatureSet = {
         res.locals["homeUrl"] as string,
       );
 
-      const githubStars: string = formatStarCount(getGitHubStarsCount());
+      const githubStars: string | null = formatStarCount(getGitHubStarsCount());
 
       res.render(`${ViewsPath}/index`, {
         support: false,

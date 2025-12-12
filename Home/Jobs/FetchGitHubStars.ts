@@ -11,22 +11,22 @@ import { JSONObject } from "Common/Types/JSON";
 
 const GITHUB_STARS_CACHE_KEY: string = "githubStars";
 const GITHUB_STARS_NAMESPACE: string = "home";
-const DEFAULT_STAR_COUNT: number = 6300;
 
-export const getGitHubStarsCount: () => number = (): number => {
-  const cachedStars: number | undefined = LocalCache.hasValue(
-    GITHUB_STARS_NAMESPACE,
-    GITHUB_STARS_CACHE_KEY,
-  )
-    ? LocalCache.getNumber(GITHUB_STARS_NAMESPACE, GITHUB_STARS_CACHE_KEY)
-    : undefined;
+export const getGitHubStarsCount: () => number | null = (): number | null => {
+  if (!LocalCache.hasValue(GITHUB_STARS_NAMESPACE, GITHUB_STARS_CACHE_KEY)) {
+    return null;
+  }
 
-  return cachedStars ?? DEFAULT_STAR_COUNT;
+  return LocalCache.getNumber(GITHUB_STARS_NAMESPACE, GITHUB_STARS_CACHE_KEY);
 };
 
-export const formatStarCount: (count: number) => string = (
-  count: number,
-): string => {
+export const formatStarCount: (count: number | null) => string | null = (
+  count: number | null,
+): string | null => {
+  if (count === null) {
+    return null;
+  }
+
   if (count >= 1000) {
     const thousands: number = Math.floor(count / 100) / 10;
     return `${thousands.toLocaleString("en-US", { minimumFractionDigits: thousands % 1 === 0 ? 0 : 1, maximumFractionDigits: 1 })}k+`;
