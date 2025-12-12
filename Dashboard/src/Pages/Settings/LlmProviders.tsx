@@ -76,7 +76,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           cardProps={{
             title: "Global LLM Providers",
             description:
-              "Global LLM Providers are configured by your administrator and are available to all projects for AI features.",
+              "Global LLM Providers are pre-configured. These will be used automatically for AI features when you haven't set up your own custom LLM provider below.",
           }}
           fetchRequestOptions={{
             overrideRequestUrl: URL.fromString(APP_API_URL.toString()).addRoute(
