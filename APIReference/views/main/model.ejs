@@ -346,6 +346,7 @@ ${JSON.stringify({
       </div>
 
 
+      <% if(pageData.tablePermissions.create && pageData.tablePermissions.create.length > 0) { %>
       <div class="mt-12">
          <div class="border-t border-slate-200 pt-10">
             <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
@@ -396,9 +397,11 @@ ${JSON.stringify({
             </div>
          </div>
       </div>
+      <% } %>
 
 
 
+      <% if(pageData.tablePermissions.update && pageData.tablePermissions.update.length > 0) { %>
       <div class="mt-12">
          <div class="border-t border-slate-200 pt-10">
             <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
@@ -463,8 +466,9 @@ ${JSON.stringify({
             </div>
          </div>
       </div>
+      <% } %>
 
-
+      <% if(pageData.tablePermissions.delete && pageData.tablePermissions.delete.length > 0) { %>
       <div class="mt-12">
          <div class="border-t border-slate-200 pt-10">
             <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
@@ -508,6 +512,7 @@ ProjectID: {project-id}`;
             </div>
          </div>
       </div>
+      <% } %>
 
       <div class="mt-12 border-t border-slate-200 pt-10">
          <h2 class="text-xl font-semibold text-slate-900 mb-4">Permissions</h2>
