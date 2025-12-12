@@ -49,9 +49,9 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             {
               field: {
-                llmType: true,
+                description: true,
               },
-              title: "Provider",
+              title: "Description",
               type: FieldType.Text,
             },
           ]}
@@ -65,16 +65,9 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             {
               field: {
-                llmType: true,
+                description: true,
               },
-              title: "Provider",
-              type: FieldType.Text,
-            },
-            {
-              field: {
-                modelName: true,
-              },
-              title: "Model",
+              title: "Description",
               type: FieldType.Text,
               noValueMessage: "-",
             },
@@ -216,9 +209,9 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             {
               field: {
-                llmType: true,
+                description: true,
               },
-              title: "Provider",
+              title: "Description",
               type: FieldType.Text,
             },
             {
@@ -239,16 +232,9 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             {
               field: {
-                llmType: true,
+                description: true,
               },
-              title: "Provider",
-              type: FieldType.Text,
-            },
-            {
-              field: {
-                modelName: true,
-              },
-              title: "Model",
+              title: "Description",
               type: FieldType.Text,
               noValueMessage: "-",
             },
