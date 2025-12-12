@@ -205,9 +205,7 @@ const DocsNav: NavGroup[] = [
   },
   {
     title: "AI",
-    links: [
-      { title: "LLM Providers", url: "/docs/ai/llm-provider" },
-    ],
+    links: [{ title: "LLM Providers", url: "/docs/ai/llm-provider" }],
   },
   {
     title: "API Reference",
