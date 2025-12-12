@@ -353,9 +353,9 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       items: [
         {
           link: {
-            title: "LLMs",
+            title: "LLM Providers",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_LLMS] as Route,
+              RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
             ),
           },
           icon: IconProp.Brain,

@@ -187,11 +187,11 @@ const LlmView: FunctionComponent<PageComponentProps> = (
         modelType={LlmProvider}
         modelId={modelId}
         onDeleteSuccess={() => {
-          Navigation.navigate(RouteMap[PageMap.SETTINGS_LLMS] as Route);
+          Navigation.navigate(RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route);
         }}
       />
     </Fragment>
   );
 };
 
-export default LlmView;
+export default LlmProviderView;

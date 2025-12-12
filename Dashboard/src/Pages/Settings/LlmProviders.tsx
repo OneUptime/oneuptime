@@ -83,9 +83,9 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
         <Banner
           openInNewTab={true}
-          title="Need help with setting up Custom LLMs?"
-          description="Here is a guide which will help you get set up with your own LLM configurations."
-          link={Route.fromString("/docs/ai/llm")}
+          title="Need help with setting up Custom LLM Providers?"
+          description="Here is a guide which will help you get set up with your own LLM Provider configurations."
+          link={Route.fromString("/docs/ai/llm-provider")}
           hideOnMobile={true}
         />
 

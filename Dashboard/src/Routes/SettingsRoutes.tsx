@@ -79,14 +79,14 @@ const SettingProbes: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Settings/Probes");
   });
 
-const SettingLlms: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+const SettingLlmProviders: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
-    return import("../Pages/Settings/Llms");
+    return import("../Pages/Settings/LlmProviders");
   });
 
-const SettingsLlmView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+const SettingsLlmProviderView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
-    return import("../Pages/Settings/LlmView");
+    return import("../Pages/Settings/LlmProviderView");
   });
 
 const SettingFeatureFlags: LazyExoticComponent<
@@ -1039,12 +1039,12 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LLMS)}
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LLM_PROVIDERS)}
           element={
             <Suspense fallback={Loader}>
-              <SettingLlms
+              <SettingLlmProviders
                 {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_LLMS] as Route}
+                pageRoute={RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route}
               />
             </Suspense>
           }
@@ -1111,12 +1111,12 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LLM_VIEW, 2)}
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_LLM_PROVIDER_VIEW, 2)}
           element={
             <Suspense fallback={Loader}>
-              <SettingsLlmView
+              <SettingsLlmProviderView
                 {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_LLM_VIEW] as Route}
+                pageRoute={RouteMap[PageMap.SETTINGS_LLM_PROVIDER_VIEW] as Route}
               />
             </Suspense>
           }
