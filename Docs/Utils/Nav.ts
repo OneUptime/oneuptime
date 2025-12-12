@@ -231,6 +231,10 @@ if (!IsBillingEnabled) {
         title: "Microsoft Teams Integration",
         url: "/docs/self-hosted/microsoft-teams-integration",
       },
+      {
+        title: "GitHub Integration",
+        url: "/docs/self-hosted/github-integration",
+      },
     ],
   });
 }
