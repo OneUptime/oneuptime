@@ -80,6 +80,7 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -117,6 +118,7 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -147,6 +149,7 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     title: "On-Call Policy",
     description:
       "Relation to On-Call Policy where this escalation rule belongs.",
+    example: "e5f6a7b8-c9d0-1234-ef01-345678901234",
   })
   @ManyToOne(
     () => {
@@ -185,6 +188,7 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     title: "On-Call Policy ID",
     description:
       "ID of your On-Call Policy where this escalation rule belongs.",
+    example: "e5f6a7b8-c9d0-1234-ef01-345678901234",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -220,6 +224,7 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     title: "Name",
     description: "Any friendly name of this object",
     canReadOnRelationQuery: true,
+    example: "Escalate to Team Lead",
   })
   @Column({
     nullable: false,
@@ -253,6 +258,7 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
+    example: "If no response after 15 minutes, escalate to the team lead for immediate attention",
   })
   @Column({
     nullable: true,
@@ -283,6 +289,7 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @ManyToOne(
     () => {
@@ -318,6 +325,7 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -338,6 +346,7 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -364,6 +373,7 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -400,6 +410,7 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     description:
       "How long should we wait before we execute the next escalation rule?",
     canReadOnRelationQuery: true,
+    example: 15,
   })
   @Column({
     nullable: true,
@@ -432,6 +443,7 @@ export default class OnCallDutyPolicyEscalationRule extends BaseModel {
     type: TableColumnType.Number,
     title: "Order",
     description: "Order of this rule",
+    example: 1,
   })
   @Column({
     type: ColumnType.Number,

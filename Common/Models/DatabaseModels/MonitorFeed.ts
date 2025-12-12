@@ -92,6 +92,7 @@ export default class MonitorFeed extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -129,6 +130,7 @@ export default class MonitorFeed extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -158,6 +160,7 @@ export default class MonitorFeed extends BaseModel {
     modelType: Monitor,
     title: "Monitor",
     description: "Relation to Monitor in which this resource belongs",
+    example: "e5f6a7b8-d9c0-1234-5678-901234efab56",
   })
   @ManyToOne(
     () => {
@@ -194,6 +197,7 @@ export default class MonitorFeed extends BaseModel {
     required: true,
     title: "Monitor ID",
     description: "Relation to Monitor ID in which this resource belongs",
+    example: "e5f6a7b8-d9c0-1234-5678-901234efab56",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -224,6 +228,7 @@ export default class MonitorFeed extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "b2c3d4e5-a6b7-8901-2345-678901bcdef0",
   })
   @ManyToOne(
     () => {
@@ -259,6 +264,7 @@ export default class MonitorFeed extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "b2c3d4e5-a6b7-8901-2345-678901bcdef0",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -279,6 +285,7 @@ export default class MonitorFeed extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "c3d4e5f6-b7c8-9012-3456-789012cdef01",
   })
   @ManyToOne(
     () => {
@@ -305,6 +312,7 @@ export default class MonitorFeed extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "c3d4e5f6-b7c8-9012-3456-789012cdef01",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -333,6 +341,7 @@ export default class MonitorFeed extends BaseModel {
     required: true,
     title: "Log (in Markdown)",
     description: "Log of the entire monitor state change in Markdown",
+    example: "**Monitor Status Changed**: Status changed from `Operational` to `Degraded` - Response time exceeded threshold",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -361,6 +370,7 @@ export default class MonitorFeed extends BaseModel {
     required: false,
     title: "More Information (in Markdown)",
     description: "More information in Markdown",
+    example: "### Additional Context\n\nAverage response time: 2500ms (threshold: 2000ms)\nAffected endpoints: `/api/users`, `/api/products`",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -389,6 +399,7 @@ export default class MonitorFeed extends BaseModel {
     required: true,
     title: "Monitor Feed Event",
     description: "Monitor Feed Event",
+    example: "MonitorStatusChanged",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -417,6 +428,7 @@ export default class MonitorFeed extends BaseModel {
     required: true,
     title: "Color",
     description: "Display color for the monitor log",
+    example: "#3498db",
   })
   @Column({
     type: ColumnType.Color,
@@ -449,6 +461,7 @@ export default class MonitorFeed extends BaseModel {
     title: "User",
     description:
       "Relation to User who this feed belongs to (if this feed belongs to a User)",
+    example: "d4e5f6a7-c8d9-0123-4567-890123def012",
   })
   @ManyToOne(
     () => {
@@ -484,6 +497,7 @@ export default class MonitorFeed extends BaseModel {
     title: "User ID",
     description:
       "User who this feed belongs to (if this feed belongs to a User)",
+    example: "d4e5f6a7-c8d9-0123-4567-890123def012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -511,6 +525,7 @@ export default class MonitorFeed extends BaseModel {
     title: "Feed Posted At",
     description: "Date and time when the feed was posted",
     type: TableColumnType.Date,
+    example: "2024-01-15T10:30:00.000Z",
   })
   @Column({
     type: ColumnType.Date,

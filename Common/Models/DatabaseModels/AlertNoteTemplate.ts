@@ -93,6 +93,7 @@ export default class AlertNoteTemplate extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -130,6 +131,7 @@ export default class AlertNoteTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -164,6 +166,7 @@ export default class AlertNoteTemplate extends BaseModel {
     title: "Note",
     description:
       "Note template for public or private notes. This is in markdown.",
+    example: "## Alert Investigation\n\n**Issue**: {{alert.title}}\n\n**Time**: {{alert.createdAt}}\n\n**Analysis**: Initial investigation shows that the alert was triggered due to high CPU usage on the production server. The team is currently investigating the root cause.\n\n**Next Steps**:\n- Monitor system metrics\n- Review application logs\n- Check for memory leaks",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -198,6 +201,7 @@ export default class AlertNoteTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Name of the Alert Template",
+    example: "Initial Investigation Template",
   })
   @Column({
     nullable: false,
@@ -232,6 +236,7 @@ export default class AlertNoteTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Template Description",
     description: "Description of the Alert Template",
+    example: "This template is used for documenting the initial investigation phase of an alert. It includes sections for analyzing the issue, documenting findings, and outlining next steps for resolution.",
   })
   @Column({
     nullable: false,
@@ -262,6 +267,7 @@ export default class AlertNoteTemplate extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @ManyToOne(
     () => {
@@ -297,6 +303,7 @@ export default class AlertNoteTemplate extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -317,6 +324,7 @@ export default class AlertNoteTemplate extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -343,6 +351,7 @@ export default class AlertNoteTemplate extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,

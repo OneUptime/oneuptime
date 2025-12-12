@@ -60,6 +60,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -91,6 +92,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -114,6 +116,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Day",
     description: "Day of the month this usage billing was generated for",
+    example: "12-12-2025",
   })
   @Column({
     nullable: false,
@@ -137,6 +140,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Product Type",
     description: "Product Type this usage billing was generated for",
+    example: "Logs",
   })
   @Column({
     nullable: false,
@@ -163,6 +167,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     title: "Retain Telemetry Data For Days",
     description: "Number of days to retain telemetry data for this service.",
     defaultValue: DEFAULT_RETENTION_IN_DAYS,
+    example: 30,
   })
   @Column({
     type: ColumnType.Number,
@@ -187,6 +192,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Data Ingested (in GB)",
     description: "Data Ingested in GB this usage billing was generated for",
+    example: 125.5,
   })
   @Column({
     nullable: false,
@@ -210,6 +216,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Total Cost in USD",
     description: "Total Cost in USD this usage billing was generated for",
+    example: 45.99,
   })
   @Column({
     nullable: false,
@@ -230,6 +237,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     title: "Reported to Billing Provider",
     description:
       "Whether this usage billing was reported to billing provider or not (eg Stripe)",
+    example: true,
   })
   @Column({
     nullable: false,
@@ -254,6 +262,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     title: "Telemetry Service",
     description:
       "Relation to Telemetry Service Resource in which this object belongs",
+    example: "d4e5f6a7-b8c9-0123-def1-234567890123",
   })
   @ManyToOne(
     () => {
@@ -285,6 +294,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     title: "Telemetry Service ID",
     description:
       "ID of your Telemetry Service resource where this object belongs",
+    example: "d4e5f6a7-b8c9-0123-def1-234567890123",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -305,6 +315,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     title: "Reported to Billing Provider At",
     description:
       "When this usage billing was reported to billing provider or not (eg Stripe)",
+    example: "2025-12-12T10:00:00.000Z",
   })
   @Column({
     nullable: true,
@@ -328,6 +339,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @ManyToOne(
     () => {
@@ -357,6 +369,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -381,6 +394,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -411,6 +425,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,

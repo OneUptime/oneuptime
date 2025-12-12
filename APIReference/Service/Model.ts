@@ -29,6 +29,51 @@ interface ExampleObjects {
   simpleListResponseExample: Array<JSONObject>;
 }
 
+// Helper function to get a default example value based on column type
+function getDefaultExampleForType(
+  columnType: string | undefined,
+  columnTitle: string | undefined,
+): JSONValue {
+  const typeStr: string = (columnType || "").toLowerCase();
+  const title: string = (columnTitle || "").toLowerCase();
+
+  if (typeStr.includes("objectid") || typeStr.includes("id")) {
+    return "550e8400-e29b-41d4-a716-446655440000";
+  }
+  if (typeStr.includes("boolean") || typeStr.includes("bool")) {
+    return true;
+  }
+  if (typeStr.includes("number") || typeStr.includes("int") || typeStr.includes("decimal")) {
+    return 100;
+  }
+  if (typeStr.includes("date") || typeStr.includes("time")) {
+    return "2024-01-15T10:30:00.000Z";
+  }
+  if (typeStr.includes("email")) {
+    return "user@example.com";
+  }
+  if (typeStr.includes("phone")) {
+    return "+1-555-123-4567";
+  }
+  if (typeStr.includes("url") || typeStr.includes("link")) {
+    return "https://example.com";
+  }
+  if (typeStr.includes("color")) {
+    return "#3498db";
+  }
+  if (typeStr.includes("markdown") || typeStr.includes("longtext") || typeStr.includes("description")) {
+    return `Example ${title || "text"} content`;
+  }
+  if (typeStr.includes("json") || typeStr.includes("object")) {
+    return { key: "value" };
+  }
+  if (typeStr.includes("array")) {
+    return [];
+  }
+  // Default for text fields
+  return `Example ${title || "value"}`;
+}
+
 // Helper function to generate example objects from column metadata
 function generateExampleObjects(
   tableColumns: Dictionary<TableColumnMetadata>,
@@ -43,11 +88,22 @@ function generateExampleObjects(
     _id: exampleObjectID,
   };
 
-  // Sort columns to show required first, then alphabetically
+  // Sort columns: prioritize fields with examples, then required, then alphabetically
   const sortedColumnKeys: Array<string> = Object.keys(tableColumns).sort(
     (a: string, b: string) => {
+      const aHasExample: boolean = tableColumns[a]?.example !== undefined;
+      const bHasExample: boolean = tableColumns[b]?.example !== undefined;
       const aRequired: boolean = tableColumns[a]?.required || false;
       const bRequired: boolean = tableColumns[b]?.required || false;
+
+      // Prioritize fields with examples
+      if (aHasExample && !bHasExample) {
+        return -1;
+      }
+      if (!aHasExample && bHasExample) {
+        return 1;
+      }
+      // Then prioritize required fields
       if (aRequired && !bRequired) {
         return -1;
       }
@@ -72,38 +128,39 @@ function generateExampleObjects(
       column as unknown as JSONObject
     )["permissions"] as ColumnAccessControl | undefined;
 
+    // Get the example value - use defined example or generate a default
+    const exampleValue: JSONValue =
+      column.example !== undefined
+        ? (column.example as JSONValue)
+        : getDefaultExampleForType(column.type?.toString(), column.title);
+
     // Add to select example (limit to 5 fields for readability)
+    // Also add the field to response example so response matches select
     if (selectCount < 5 && accessControl?.read && accessControl.read.length > 0) {
       simpleSelectExample[key] = true;
+      simpleResponseExample[key] = exampleValue;
       selectCount++;
     }
 
-    // Add to response example with actual example values
-    if (column.example !== undefined && accessControl?.read && accessControl.read.length > 0) {
-      simpleResponseExample[key] = column.example as JSONValue;
-    }
-
-    // Add to create example (only fields with create permission and examples)
+    // Add to create example (only fields with create permission)
     if (
       createCount < 5 &&
-      column.example !== undefined &&
       accessControl?.create &&
       accessControl.create.length > 0 &&
       !column.computed
     ) {
-      simpleCreateExample[key] = column.example as JSONValue;
+      simpleCreateExample[key] = exampleValue;
       createCount++;
     }
 
-    // Add to update example (only fields with update permission and examples)
+    // Add to update example (only fields with update permission)
     if (
       updateCount < 3 &&
-      column.example !== undefined &&
       accessControl?.update &&
       accessControl.update.length > 0 &&
       !column.computed
     ) {
-      simpleUpdateExample[key] = column.example as JSONValue;
+      simpleUpdateExample[key] = exampleValue;
       updateCount++;
     }
   }
@@ -111,13 +168,19 @@ function generateExampleObjects(
   // Add a query example using the first string/text field with an example
   for (const key of sortedColumnKeys) {
     const column: TableColumnMetadata | undefined = tableColumns[key];
-    if (
-      column?.example !== undefined &&
-      typeof column.example === "string" &&
-      column.type?.toString().toLowerCase().includes("text")
-    ) {
-      simpleQueryExample[key] = column.example;
-      break;
+    if (column) {
+      const exampleValue: JSONValue =
+        column.example !== undefined
+          ? (column.example as JSONValue)
+          : getDefaultExampleForType(column.type?.toString(), column.title);
+
+      if (
+        typeof exampleValue === "string" &&
+        column.type?.toString().toLowerCase().includes("text")
+      ) {
+        simpleQueryExample[key] = exampleValue;
+        break;
+      }
     }
   }
 

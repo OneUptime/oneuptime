@@ -134,6 +134,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -200,6 +201,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     required: true,
     title: "Scheduled Maintenance ID",
     description: "ID of Scheduled Maintenance this resource belongs to",
+    example: "f6a7b8c9-d0e1-2345-f6a7-b8c9d0e12345",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -265,6 +267,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "b2c3d4e5-f6a7-8901-b2c3-d4e5f6a78901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -311,6 +314,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "c3d4e5f6-a7b8-9012-c3d4-e5f6a7b89012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -343,6 +347,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Note",
     description: "Notes in markdown",
+    example: "## Maintenance Update\n\nThe scheduled maintenance is proceeding as planned. We expect to complete the database migration within the next hour.\n\n- Database migration: **In Progress**\n- Estimated completion: 2:00 PM UTC",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -427,6 +432,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     title: "Subscriber Notification Status",
     description: "Status of notification sent to subscribers about this note",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
+    example: "Sent",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -461,6 +467,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     description:
       "Status message for subscriber notifications - includes success messages, failure reasons, or skip reasons",
     required: false,
+    example: "Successfully sent notification to 150 subscribers",
   })
   @Column({
     type: ColumnType.VeryLongText,
@@ -489,6 +496,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     title: "Should subscribers be notified?",
     description: "Should subscribers be notified about this note?",
     defaultValue: true,
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -517,6 +525,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     title: "Are Owners Notified",
     description: "Are owners notified of this resource ownership?",
     defaultValue: false,
+    example: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -549,6 +558,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     title: "Note Posted At",
     description: "Date and time when the note was posted",
     type: TableColumnType.Date,
+    example: "2024-01-15T14:30:00.000Z",
   })
   @Column({
     type: ColumnType.Date,
@@ -579,6 +589,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     description:
       "Unique identifier for the Slack message this note was created from (channel_id:message_ts). Used to prevent duplicate notes when multiple users react to the same message.",
     required: false,
+    example: "C1234567890:1234567890.123456",
   })
   @Column({
     type: ColumnType.LongText,

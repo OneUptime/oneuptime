@@ -99,6 +99,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -136,6 +137,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -166,6 +168,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     title: "ScheduledMaintenance",
     description:
       "Relation to ScheduledMaintenance in which this resource belongs",
+    example: "7a2b8c9d-f3e4-5c6d-9e7f-8a9b0c1d2e3f",
   })
   @ManyToOne(
     () => {
@@ -203,6 +206,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     title: "ScheduledMaintenance ID",
     description:
       "Relation to ScheduledMaintenance ID in which this resource belongs",
+    example: "7a2b8c9d-f3e4-5c6d-9e7f-8a9b0c1d2e3f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -233,6 +237,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
   })
   @ManyToOne(
     () => {
@@ -268,6 +273,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -288,6 +294,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
   })
   @ManyToOne(
     () => {
@@ -314,6 +321,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -343,6 +351,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     title: "Log (in Markdown)",
     description:
       "Log of the entire scheduled maintenance state change in Markdown",
+    example: "## Scheduled Maintenance Created\n\nA new scheduled maintenance window has been created for database upgrade. Expected downtime: 2 hours.",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -371,6 +380,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     required: false,
     title: "More Information (in Markdown)",
     description: "More information in Markdown",
+    example: "### Additional Details\n\n- All services will be temporarily unavailable\n- Email notifications sent to all subscribers\n- Backup completed successfully",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -399,6 +409,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     required: true,
     title: "ScheduledMaintenance Log Event",
     description: "ScheduledMaintenance Log Event",
+    example: "ScheduledMaintenanceCreated",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -429,6 +440,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     required: true,
     title: "Color",
     description: "Display color for this log",
+    example: "#3498db",
   })
   @Column({
     type: ColumnType.Color,
@@ -461,6 +473,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     title: "User",
     description:
       "Relation to User who this feed belongs to (if this feed belongs to a User)",
+    example: "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
   })
   @ManyToOne(
     () => {
@@ -496,6 +509,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     title: "User ID",
     description:
       "User who this feed belongs to (if this feed belongs to a User)",
+    example: "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -523,6 +537,7 @@ export default class ScheduledMaintenanceFeed extends BaseModel {
     title: "Feed Posted At",
     description: "Date and time when the feed was posted",
     type: TableColumnType.Date,
+    example: "2024-01-15T10:30:00.000Z",
   })
   @Column({
     type: ColumnType.Date,

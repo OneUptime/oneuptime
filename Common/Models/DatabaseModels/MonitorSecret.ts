@@ -100,6 +100,7 @@ export default class MonitorSecret extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -136,6 +137,7 @@ export default class MonitorSecret extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -170,6 +172,7 @@ export default class MonitorSecret extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Any friendly name of this object",
+    example: "API_AUTH_TOKEN",
   })
   @Column({
     nullable: false,
@@ -204,6 +207,7 @@ export default class MonitorSecret extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
+    example: "API authentication token for third-party service integration",
   })
   @Column({
     nullable: true,
@@ -232,6 +236,7 @@ export default class MonitorSecret extends BaseModel {
     title: "Secret Value",
     description:
       "Secret value that you want to store in this object. This value will be encrypted and only accessible by the probe.",
+    example: "sk_live_1234567890abcdefghijklmnop",
   })
   @Column({
     nullable: true,
@@ -262,6 +267,7 @@ export default class MonitorSecret extends BaseModel {
     modelType: Monitor,
     title: "Monitors",
     description: "List of monitors that can access this secret",
+    example: '["5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e"]',
   })
   @ManyToMany(
     () => {
@@ -303,6 +309,7 @@ export default class MonitorSecret extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -337,6 +344,7 @@ export default class MonitorSecret extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -362,6 +370,7 @@ export default class MonitorSecret extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -393,6 +402,7 @@ export default class MonitorSecret extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,

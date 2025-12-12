@@ -149,6 +149,7 @@ export default class IncidentTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -184,6 +185,7 @@ export default class IncidentTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Title",
     description: "Title of this incident",
+    example: "Production Server Outage - Database Connection Issue",
   })
   @Column({
     nullable: false,
@@ -218,6 +220,7 @@ export default class IncidentTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Name of the Incident Template",
+    example: "Server Outage Template",
   })
   @Column({
     nullable: false,
@@ -252,6 +255,7 @@ export default class IncidentTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Template Description",
     description: "Description of the Incident Template",
+    example: "Use this template when experiencing server outages due to database connectivity issues. Includes automated notifications to on-call engineers and status page updates.",
   })
   @Column({
     nullable: false,
@@ -286,6 +290,7 @@ export default class IncidentTemplate extends BaseModel {
     title: "Description",
     description:
       "Short description of this incident. This is in markdown and will be visible on the status page.",
+    example: "## Issue Description\n\nWe are currently experiencing connectivity issues with our primary database server. Our engineering team is actively investigating and working to resolve the issue.\n\n**Impact:** Users may experience slow response times or intermittent errors.",
   })
   @Column({
     nullable: true,
@@ -311,6 +316,7 @@ export default class IncidentTemplate extends BaseModel {
     computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
+    example: "server-outage-template",
   })
   @Column({
     nullable: false,
@@ -377,6 +383,7 @@ export default class IncidentTemplate extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -423,6 +430,7 @@ export default class IncidentTemplate extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -637,6 +645,7 @@ export default class IncidentTemplate extends BaseModel {
     required: false,
     title: "Incident Severity ID",
     description: "Incident Severity ID",
+    example: "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -708,6 +717,7 @@ export default class IncidentTemplate extends BaseModel {
     title: "Change Monitor Status To ID",
     description:
       "Relation to Monitor Status Object ID. All monitors connected to this incident will be changed to this status when the incident is created.",
+    example: "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -779,6 +789,7 @@ export default class IncidentTemplate extends BaseModel {
     title: "Initial Incident State ID",
     description:
       "Relation to Incident State Object ID. Incidents created from this template will start in this state.",
+    example: "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -813,6 +824,7 @@ export default class IncidentTemplate extends BaseModel {
     type: TableColumnType.JSON,
     title: "Custom Fields",
     description: "Custom Fields on this resource.",
+    example: { "priority": "high", "category": "infrastructure", "escalationLevel": 2 },
   })
   @Column({
     type: ColumnType.JSON,

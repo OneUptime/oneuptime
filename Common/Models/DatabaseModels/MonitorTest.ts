@@ -91,6 +91,7 @@ export default class MonitorTest extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -128,6 +129,7 @@ export default class MonitorTest extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -158,6 +160,7 @@ export default class MonitorTest extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -193,6 +196,7 @@ export default class MonitorTest extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -213,6 +217,7 @@ export default class MonitorTest extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -239,6 +244,7 @@ export default class MonitorTest extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -267,6 +273,7 @@ export default class MonitorTest extends BaseModel {
     type: TableColumnType.MonitorType,
     title: "Monitor Type",
     description: "What is the type of this monitor? Website? API? etc.",
+    example: "website",
   })
   @Column({
     nullable: false,
@@ -300,6 +307,7 @@ export default class MonitorTest extends BaseModel {
     required: false,
     title: "Monitor Steps",
     description: "What would you like to monitor and what is the criteria?",
+    example: '{"steps": [{"url": "https://example.com", "method": "GET"}]}',
   })
   @Column({
     type: ColumnType.JSON,
@@ -334,6 +342,7 @@ export default class MonitorTest extends BaseModel {
     modelType: Probe,
     title: "Probe",
     description: "Relation to Probe Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -376,6 +385,7 @@ export default class MonitorTest extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Probe ID",
     description: "ID of your OneUptime Probe in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -404,7 +414,10 @@ export default class MonitorTest extends BaseModel {
       Permission.EditProjectMonitor,
     ],
   })
-  @TableColumn({ type: TableColumnType.Date })
+  @TableColumn({
+    type: TableColumnType.Date,
+    example: "2023-01-15T10:30:00Z",
+  })
   @Column({
     type: ColumnType.Date,
     nullable: true,
@@ -436,6 +449,7 @@ export default class MonitorTest extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.JSON,
+    example: '{"responseTime": 250, "statusCode": 200}',
   })
   @Column({
     type: ColumnType.JSON,
@@ -470,6 +484,7 @@ export default class MonitorTest extends BaseModel {
     required: true,
     type: TableColumnType.Boolean,
     defaultValue: true,
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -501,6 +516,7 @@ export default class MonitorTest extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Monitor ID",
     description: "ID of the Monitor this test is related to.",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -530,6 +546,7 @@ export default class MonitorTest extends BaseModel {
     modelType: Monitor,
     title: "Monitor",
     description: "Relation to Monitor Resource in which this test belongs.",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {

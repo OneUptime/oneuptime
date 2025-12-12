@@ -106,6 +106,7 @@ export default class APIKeyPermission extends BaseModel {
     modelType: ApiKey,
     title: "Api Key",
     description: "Relation to API Key resource in which this object belongs",
+    example: "Production API Key",
   })
   @ManyToOne(
     () => {
@@ -141,6 +142,7 @@ export default class APIKeyPermission extends BaseModel {
     required: true,
     title: "API Key ID",
     description: "ID of API Key resource in which this object belongs",
+    example: "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -169,6 +171,7 @@ export default class APIKeyPermission extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "My Production Project",
   })
   @ManyToOne(
     () => {
@@ -205,6 +208,7 @@ export default class APIKeyPermission extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "a3f9c8e2-d4b6-4a7c-9e5f-1a2b3c4d5e6f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -233,6 +237,7 @@ export default class APIKeyPermission extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "admin@company.com",
   })
   @ManyToOne(
     () => {
@@ -266,6 +271,7 @@ export default class APIKeyPermission extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "c8f5e0a2-d4b7-4a8d-9e3f-2a3b4c5d6e7f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -294,6 +300,7 @@ export default class APIKeyPermission extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "admin@company.com",
   })
   @ManyToOne(
     () => {
@@ -320,6 +327,7 @@ export default class APIKeyPermission extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "d9a6f1b3-e5c8-4b9e-af4d-3b4c5d6e7f8a",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -353,6 +361,7 @@ export default class APIKeyPermission extends BaseModel {
     title: "Permission",
     description:
       "Permission. You can find list of permissions on the Permissions page.",
+    example: "ProjectOwner",
   })
   @UniqueColumnBy("apiKeyId")
   @Column({
@@ -387,6 +396,7 @@ export default class APIKeyPermission extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Relation to Labels Array where this permission is scoped at.",
+    example: [{ name: "Production" }, { name: "Critical" }],
   })
   @ManyToMany(
     () => {
@@ -430,6 +440,7 @@ export default class APIKeyPermission extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
+    example: false,
   })
   @Column({
     type: ColumnType.Boolean,

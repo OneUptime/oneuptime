@@ -125,6 +125,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -194,6 +195,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
     canReadOnRelationQuery: true,
     title: "User ID",
     description: "ID of your OneUptime User in which this object belongs",
+    example: "b8c9d0e1-f2a3-4b4c-5d6e-7f8a9b0c1d2e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -264,6 +266,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
     title: "IncidentTemplate ID",
     description:
       "ID of your OneUptime IncidentTemplate in which this object belongs",
+    example: "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -331,6 +334,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -389,6 +393,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -418,6 +423,7 @@ export default class IncidentTemplateOwnerUser extends BaseModel {
     title: "Are Owners Notified",
     description: "Are owners notified of this resource ownership?",
     defaultValue: false,
+    example: false,
   })
   @Column({
     type: ColumnType.Boolean,

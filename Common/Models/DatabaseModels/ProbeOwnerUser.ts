@@ -93,6 +93,7 @@ export default class ProbeOwnerUser extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -130,6 +131,7 @@ export default class ProbeOwnerUser extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -160,6 +162,7 @@ export default class ProbeOwnerUser extends BaseModel {
     title: "User",
     description:
       "User that is the owner. This user will receive notifications. ",
+    example: "e5f6a7b8-c9d0-1234-ef56-ab78cd901234",
   })
   @ManyToOne(
     () => {
@@ -197,6 +200,7 @@ export default class ProbeOwnerUser extends BaseModel {
     canReadOnRelationQuery: true,
     title: "User ID",
     description: "ID of your OneUptime User in which this object belongs",
+    example: "e5f6a7b8-c9d0-1234-ef56-ab78cd901234",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -226,6 +230,7 @@ export default class ProbeOwnerUser extends BaseModel {
     modelType: Probe,
     title: "Probe",
     description: "Relation to Probe Resource in which this object belongs",
+    example: "b2c3d4e5-f6a7-8901-bc23-de45fa678901",
   })
   @ManyToOne(
     () => {
@@ -263,6 +268,7 @@ export default class ProbeOwnerUser extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Probe ID",
     description: "ID of your OneUptime Probe in which this object belongs",
+    example: "b2c3d4e5-f6a7-8901-bc23-de45fa678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -293,6 +299,7 @@ export default class ProbeOwnerUser extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "c3d4e5f6-a7b8-9012-cd34-ef56ab789012",
   })
   @ManyToOne(
     () => {
@@ -328,6 +335,7 @@ export default class ProbeOwnerUser extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "c3d4e5f6-a7b8-9012-cd34-ef56ab789012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -353,6 +361,7 @@ export default class ProbeOwnerUser extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "d4e5f6a7-b8c9-0123-de45-fa67bc890123",
   })
   @ManyToOne(
     () => {
@@ -384,6 +393,7 @@ export default class ProbeOwnerUser extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "d4e5f6a7-b8c9-0123-de45-fa67bc890123",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -412,6 +422,7 @@ export default class ProbeOwnerUser extends BaseModel {
     title: "Are Owners Notified",
     description: "Are owners notified of this resource ownership?",
     defaultValue: false,
+    example: false,
   })
   @Column({
     type: ColumnType.Boolean,

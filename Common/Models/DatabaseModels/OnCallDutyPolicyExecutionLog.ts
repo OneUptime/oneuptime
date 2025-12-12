@@ -90,6 +90,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -127,6 +128,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -157,6 +159,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "On-Call Policy",
     description:
       "Relation to On-Call Policy which belongs to this execution log event.",
+    example: "e5f6a7b8-c9d0-1234-ef01-345678901234",
   })
   @ManyToOne(
     () => {
@@ -195,6 +198,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "On-Call Policy ID",
     description:
       "ID of your On-Call Policy which belongs to this execution log event.",
+    example: "e5f6a7b8-c9d0-1234-ef01-345678901234",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -225,6 +229,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Triggered By Incident",
     description:
       "Relation to Incident which triggered this on-call duty policy.",
+    example: "f6a7b8c9-d0e1-2345-f012-456789012345",
   })
   @ManyToOne(
     () => {
@@ -261,6 +266,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     required: false,
     description:
       "ID of the incident which triggered this on-call escalation policy.",
+    example: "f6a7b8c9-d0e1-2345-f012-456789012345",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -290,6 +296,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     modelType: Alert,
     title: "Triggered By Alert",
     description: "Relation to Alert which triggered this on-call duty policy.",
+    example: "a7b8c9d0-e1f2-3456-0123-567890123456",
   })
   @ManyToOne(
     () => {
@@ -326,6 +333,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     required: false,
     description:
       "ID of the incident which triggered this on-call escalation policy.",
+    example: "a7b8c9d0-e1f2-3456-0123-567890123456",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -355,6 +363,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Status",
     description: "Status of this execution",
     canReadOnRelationQuery: false,
+    example: "Executing",
   })
   @Column({
     nullable: false,
@@ -384,6 +393,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Status Message",
     description: "Status message of this execution",
     canReadOnRelationQuery: false,
+    example: "On-call policy execution started. Notifying primary on-call team members.",
   })
   @Column({
     nullable: false,
@@ -413,6 +423,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Notification Event Type",
     description: "Type of event that triggered this on-call duty policy.",
     canReadOnRelationQuery: false,
+    example: "IncidentCreated",
   })
   @Column({
     nullable: false,
@@ -443,6 +454,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @ManyToOne(
     () => {
@@ -478,6 +490,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -503,6 +516,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -539,6 +553,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -569,6 +584,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Acknowledged by User",
     description:
       "Relation to User who acknowledged this policy execution (if this policy was acknowledged by a User)",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @ManyToOne(
     () => {
@@ -605,6 +621,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who acknowledged this object (if this object was acknowledged by a User)",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -629,7 +646,12 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
 
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Date })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Acknowledged At",
+    description: "When was this policy execution acknowledged?",
+    example: "2024-01-15T10:45:00.000Z",
+  })
   @Column({
     type: ColumnType.Date,
     nullable: true,
@@ -653,6 +675,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Acknowledged by Team",
     description:
       "Relation to Team who acknowledged this policy execution (if this policy was acknowledged by a Team)",
+    example: "d4e5f6a7-b8c9-0123-def0-234567890123",
   })
   @ManyToOne(
     () => {
@@ -689,6 +712,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Acknowledged by Team ID",
     description:
       "Team ID who acknowledged this object (if this object was acknowledged by a Team)",
+    example: "d4e5f6a7-b8c9-0123-def0-234567890123",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -714,6 +738,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Executed Escalation Rule Order",
     description: "Which escalation rule was executed?",
     canReadOnRelationQuery: true,
+    example: 2,
   })
   @Column({
     nullable: true,
@@ -738,6 +763,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Last Escalation Rule Executed At",
     description: "When was the escalation rule executed?",
     canReadOnRelationQuery: true,
+    example: "2024-01-15T10:30:00.000Z",
   })
   @Column({
     nullable: true,
@@ -766,6 +792,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     modelType: OnCallDutyPolicyEscalationRule,
     title: "Last Executed Escalation Rule",
     description: "Relation to On-Call Policy Last Executed Escalation Rule.",
+    example: "e5f6a7b8-c9d0-1234-ef01-345678901234",
   })
   @ManyToOne(
     () => {
@@ -804,6 +831,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Last Executed Escalation Rule ID",
     description: "ID of your On-Call Policy Last Executed Escalation Rule.",
+    example: "e5f6a7b8-c9d0-1234-ef01-345678901234",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -830,6 +858,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Execute next escalation rule in minutes",
     description:
       "How many minutes should we wait before executing the next escalation rule?",
+    example: 15,
   })
   @Column({
     type: ColumnType.Number,
@@ -856,6 +885,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "On-Call Policy Execution Repeat Count",
     description: "How many times did we execute this on-call policy?",
     defaultValue: 1,
+    example: 3,
   })
   @Column({
     type: ColumnType.Number,
@@ -885,6 +915,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     modelType: User,
     title: "Triggered by User",
     description: "Relation to User who triggered on-clal policy",
+    example: "f6a7b8c9-d0e1-2345-f012-456789012345",
   })
   @ManyToOne(
     () => {
@@ -919,6 +950,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     type: TableColumnType.ObjectID,
     title: "Triggered by User ID",
     description: "User ID who triggered this on-call policy",
+    example: "f6a7b8c9-d0e1-2345-f012-456789012345",
   })
   @Column({
     type: ColumnType.ObjectID,

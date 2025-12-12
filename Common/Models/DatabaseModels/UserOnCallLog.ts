@@ -91,6 +91,7 @@ export default class UserOnCallLog extends BaseModel {
     type: TableColumnType.ObjectID,
     title: "User ID",
     description: "User ID who this log belongs to",
+    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -134,6 +135,7 @@ export default class UserOnCallLog extends BaseModel {
     type: TableColumnType.ObjectID,
     title: "Which team did the user belong to when the alert was sent?",
     description: "Which team did the user belong to when the alert was sent?",
+    example: "8d0e1f2a-3b4c-5d6e-7f8a-9b0c1d2e3f4a",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -180,6 +182,7 @@ export default class UserOnCallLog extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -228,6 +231,7 @@ export default class UserOnCallLog extends BaseModel {
     title: "On-Call Policy ID",
     description:
       "ID of your On-Call Policy which belongs to this execution log event.",
+    example: "9e1f2a3b-4c5d-6e7f-8a9b-0c1d2e3f4a5b",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -277,6 +281,7 @@ export default class UserOnCallLog extends BaseModel {
     title: "On-Call Policy Execution Log ID",
     description:
       "ID of your On-Call Policy execution log which belongs to this log event.",
+    example: "0f1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -326,6 +331,7 @@ export default class UserOnCallLog extends BaseModel {
     title: "On-Call Policy Escalation Rule ID",
     description:
       "ID of your On-Call Policy Escalation Rule which belongs to this log event.",
+    example: "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -372,6 +378,7 @@ export default class UserOnCallLog extends BaseModel {
     required: false,
     description:
       "ID of the incident which triggered this on-call escalation policy.",
+    example: "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -417,6 +424,7 @@ export default class UserOnCallLog extends BaseModel {
     required: false,
     description:
       "ID of the Alert which triggered this on-call escalation policy.",
+    example: "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -436,6 +444,7 @@ export default class UserOnCallLog extends BaseModel {
     title: "Status",
     description: "Status of this execution",
     canReadOnRelationQuery: false,
+    example: "Success",
   })
   @Column({
     nullable: false,
@@ -455,6 +464,7 @@ export default class UserOnCallLog extends BaseModel {
     title: "Notification Event Type",
     description: "Notification Event Type of this execution",
     canReadOnRelationQuery: false,
+    example: "Incident Created",
   })
   @Column({
     nullable: false,
@@ -504,6 +514,7 @@ export default class UserOnCallLog extends BaseModel {
     title: "On-Call Policy Execution Log ID",
     description:
       "ID of your On-Call Policy Execution Log where this timeline event belongs.",
+    example: "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -523,6 +534,7 @@ export default class UserOnCallLog extends BaseModel {
     title: "Status Message",
     description: "Status message of this execution",
     canReadOnRelationQuery: false,
+    example: "Notification sent successfully via email to user",
   })
   @Column({
     nullable: false,
@@ -568,6 +580,7 @@ export default class UserOnCallLog extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -614,6 +627,7 @@ export default class UserOnCallLog extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -659,6 +673,7 @@ export default class UserOnCallLog extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who acknowledged this object (if this object was acknowledged by a User)",
+    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -673,7 +688,10 @@ export default class UserOnCallLog extends BaseModel {
 
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Date })
+  @TableColumn({
+    type: TableColumnType.Date,
+    example: "2024-01-15T10:30:00Z",
+  })
   @Column({
     type: ColumnType.Date,
     nullable: true,
@@ -693,7 +711,10 @@ export default class UserOnCallLog extends BaseModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.JSON })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    example: { "rule-1": "2024-01-15T10:30:00Z", "rule-2": "2024-01-15T10:35:00Z" },
+  })
   @Column({
     type: ColumnType.JSON,
     nullable: true,
@@ -738,6 +759,7 @@ export default class UserOnCallLog extends BaseModel {
     title: "On Call Schedule ID",
     description:
       "Which schedule ID did the user belong to when the alert was sent?",
+    example: "5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -781,6 +803,7 @@ export default class UserOnCallLog extends BaseModel {
     type: TableColumnType.ObjectID,
     title: "Overridden by User ID",
     description: "User ID who overrode this alert",
+    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,

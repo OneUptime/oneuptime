@@ -44,6 +44,7 @@ export default class Reseller extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Resller ID",
     description: "ID that is shared between resller and OneUptime.",
+    example: "reseller_1234567890",
   })
   @Column({
     nullable: false,
@@ -63,6 +64,7 @@ export default class Reseller extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Name of the reseller",
+    example: "Enterprise Solutions Inc.",
   })
   @Column({
     nullable: false,
@@ -82,6 +84,7 @@ export default class Reseller extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Description",
     description: "Description of the reseller",
+    example: "Leading provider of monitoring solutions for enterprises",
   })
   @Column({
     nullable: false,
@@ -101,6 +104,7 @@ export default class Reseller extends BaseModel {
     canReadOnRelationQuery: false,
     title: "Username",
     description: "Username of the reseller",
+    example: "enterprise_admin",
   })
   @Column({
     nullable: false,
@@ -120,6 +124,7 @@ export default class Reseller extends BaseModel {
     canReadOnRelationQuery: false,
     title: "Password",
     description: "Password for reseller to login",
+    example: "$2b$10$abcdefghijklmnopqrstuvwxyz1234567890",
   })
   @Column({
     nullable: false,
@@ -140,6 +145,7 @@ export default class Reseller extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @ManyToOne(
     () => {
@@ -165,6 +171,7 @@ export default class Reseller extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -185,6 +192,7 @@ export default class Reseller extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -211,6 +219,7 @@ export default class Reseller extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -230,6 +239,7 @@ export default class Reseller extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Change Plan Link",
     description: "Reseller Change plan Link",
+    example: "https://reseller.oneuptime.com/change-plan",
   })
   @Column({
     nullable: true,
@@ -251,6 +261,7 @@ export default class Reseller extends BaseModel {
     title: "Hide Phone Number on Signup",
     description:
       "Should we hide the phone number on sign up form based on reseller request?",
+    example: true,
   })
   @Column({
     nullable: true,
@@ -270,6 +281,7 @@ export default class Reseller extends BaseModel {
     title: "Enable Telemetry Features",
     description: "Should we enable telemetry features for this reseller?",
     defaultValue: false,
+    example: false,
   })
   @Column({
     nullable: true,

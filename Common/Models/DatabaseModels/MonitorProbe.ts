@@ -82,6 +82,7 @@ export default class MonitorProbe extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -118,6 +119,7 @@ export default class MonitorProbe extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -146,6 +148,7 @@ export default class MonitorProbe extends BaseModel {
     modelType: Probe,
     title: "Probe",
     description: "Relation to Probe Resource in which this object belongs",
+    example: "a1b2c3d4-e5f6-7890-ab12-cd3456ef7890",
   })
   @ManyToOne(
     () => {
@@ -182,6 +185,7 @@ export default class MonitorProbe extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Probe ID",
     description: "ID of your OneUptime Probe in which this object belongs",
+    example: "a1b2c3d4-e5f6-7890-ab12-cd3456ef7890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -210,6 +214,7 @@ export default class MonitorProbe extends BaseModel {
     modelType: Monitor,
     title: "Monitor",
     description: "Relation to Monitor Resource in which this object belongs",
+    example: "2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f",
   })
   @ManyToOne(
     () => {
@@ -246,6 +251,7 @@ export default class MonitorProbe extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Monitor ID",
     description: "ID of your OneUptime Monitor in which this object belongs",
+    example: "2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -270,7 +276,10 @@ export default class MonitorProbe extends BaseModel {
 
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Date })
+  @TableColumn({
+    type: TableColumnType.Date,
+    example: "2024-01-15T10:30:00.000Z",
+  })
   @Column({
     type: ColumnType.Date,
     nullable: true,
@@ -293,7 +302,10 @@ export default class MonitorProbe extends BaseModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Date })
+  @TableColumn({
+    type: TableColumnType.Date,
+    example: "2024-01-15T10:35:00.000Z",
+  })
   @Column({
     type: ColumnType.Date,
     nullable: true,
@@ -322,6 +334,7 @@ export default class MonitorProbe extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
   })
   @ManyToOne(
     () => {
@@ -356,6 +369,7 @@ export default class MonitorProbe extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -381,6 +395,7 @@ export default class MonitorProbe extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b",
   })
   @ManyToOne(
     () => {
@@ -412,6 +427,7 @@ export default class MonitorProbe extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -444,6 +460,7 @@ export default class MonitorProbe extends BaseModel {
     required: true,
     type: TableColumnType.Boolean,
     defaultValue: true,
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -467,6 +484,13 @@ export default class MonitorProbe extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.JSON,
+    example: {
+      "step-1": {
+        "isSuccess": true,
+        "responseTimeInMs": 245,
+        "statusCode": 200
+      }
+    },
   })
   @Column({
     type: ColumnType.JSON,

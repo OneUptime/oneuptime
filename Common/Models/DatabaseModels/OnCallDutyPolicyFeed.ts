@@ -97,6 +97,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -134,6 +135,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -163,6 +165,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     modelType: OnCallDutyPolicy,
     title: "OnCallDutyPolicy",
     description: "Relation to OnCallDutyPolicy in which this resource belongs",
+    example: "8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e",
   })
   @ManyToOne(
     () => {
@@ -200,6 +203,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     title: "OnCallDutyPolicy ID",
     description:
       "Relation to OnCallDutyPolicy ID in which this resource belongs",
+    example: "8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -230,6 +234,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
   })
   @ManyToOne(
     () => {
@@ -265,6 +270,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -285,6 +291,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
   })
   @ManyToOne(
     () => {
@@ -311,6 +318,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -339,6 +347,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     required: true,
     title: "Log (in Markdown)",
     description: "Log of the entire onCallDutyPolicy state change in Markdown",
+    example: "## User Added to On-Call Duty Policy\n\nJohn Doe has been added to the on-call rotation for the weekend shift.",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -367,6 +376,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     required: false,
     title: "More Information (in Markdown)",
     description: "More information in Markdown",
+    example: "### Roster Details\n\n- Shift: Weekend (Sat-Sun)\n- Coverage: 24/7\n- Escalation policy applied",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -395,6 +405,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     required: true,
     title: "On Call Duty Policy Feed Event",
     description: "On Call Duty Policy Feed Event",
+    example: "UserAdded",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -424,6 +435,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     required: true,
     title: "Color",
     description: "Display color for the onCallDutyPolicy log",
+    example: "#2ecc71",
   })
   @Column({
     type: ColumnType.Color,
@@ -456,6 +468,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     title: "User",
     description:
       "Relation to User who this feed belongs to (if this feed belongs to a User)",
+    example: "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a",
   })
   @ManyToOne(
     () => {
@@ -491,6 +504,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     title: "User ID",
     description:
       "User who this feed belongs to (if this feed belongs to a User)",
+    example: "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -518,6 +532,7 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     title: "Feed Posted At",
     description: "Date and time when the feed was posted",
     type: TableColumnType.Date,
+    example: "2024-01-15T14:45:30.000Z",
   })
   @Column({
     type: ColumnType.Date,

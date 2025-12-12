@@ -94,6 +94,7 @@ export default class MonitorGroupOwnerTeam extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -131,6 +132,7 @@ export default class MonitorGroupOwnerTeam extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -161,6 +163,7 @@ export default class MonitorGroupOwnerTeam extends BaseModel {
     title: "Team",
     description:
       "Team that is the owner. All users in this team will receive notifications. ",
+    example: "c2d3e4f5-a6b7-8c9d-0e1f-2a3b4c5d6e7f",
   })
   @ManyToOne(
     () => {
@@ -198,6 +201,7 @@ export default class MonitorGroupOwnerTeam extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Team ID",
     description: "ID of your OneUptime Team in which this object belongs",
+    example: "c2d3e4f5-a6b7-8c9d-0e1f-2a3b4c5d6e7f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -228,6 +232,7 @@ export default class MonitorGroupOwnerTeam extends BaseModel {
     title: "MonitorGroup",
     description:
       "Relation to MonitorGroup Resource in which this object belongs",
+    example: "b1c2d3e4-f5a6-7b8c-9d0e-1f2a3b4c5d6e",
   })
   @ManyToOne(
     () => {
@@ -266,6 +271,7 @@ export default class MonitorGroupOwnerTeam extends BaseModel {
     title: "MonitorGroup ID",
     description:
       "ID of your OneUptime MonitorGroup in which this object belongs",
+    example: "b1c2d3e4-f5a6-7b8c-9d0e-1f2a3b4c5d6e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -296,6 +302,7 @@ export default class MonitorGroupOwnerTeam extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
   })
   @ManyToOne(
     () => {
@@ -331,6 +338,7 @@ export default class MonitorGroupOwnerTeam extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -356,6 +364,7 @@ export default class MonitorGroupOwnerTeam extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b",
   })
   @ManyToOne(
     () => {
@@ -387,6 +396,7 @@ export default class MonitorGroupOwnerTeam extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -415,6 +425,7 @@ export default class MonitorGroupOwnerTeam extends BaseModel {
     title: "Are Owners Notified",
     description: "Are owners notified of this resource ownership?",
     defaultValue: false,
+    example: false,
   })
   @Column({
     type: ColumnType.Boolean,

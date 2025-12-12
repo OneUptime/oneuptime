@@ -97,6 +97,7 @@ export default class ProjectSSO extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -138,6 +139,7 @@ export default class ProjectSSO extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -175,6 +177,7 @@ export default class ProjectSSO extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Any friendly name of this object",
+    example: "Okta SSO Integration",
   })
   @Column({
     nullable: false,
@@ -209,6 +212,7 @@ export default class ProjectSSO extends BaseModel {
     required: true,
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
+    example: "Single Sign-On integration with company Okta identity provider",
   })
   @Column({
     nullable: false,
@@ -237,6 +241,7 @@ export default class ProjectSSO extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
+    example: "sha256",
   })
   @Column({
     nullable: false,
@@ -266,6 +271,7 @@ export default class ProjectSSO extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
+    example: "sha256",
   })
   @Column({
     nullable: false,
@@ -299,6 +305,7 @@ export default class ProjectSSO extends BaseModel {
     required: true,
     type: TableColumnType.LongURL,
     canReadOnRelationQuery: true,
+    example: "https://sso.example.com/saml/login",
   })
   @Column({
     nullable: false,
@@ -330,6 +337,7 @@ export default class ProjectSSO extends BaseModel {
     required: false,
     type: TableColumnType.EntityArray,
     modelType: Team,
+    example: [{ id: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e" }],
   })
   @ManyToMany(
     () => {
@@ -372,6 +380,7 @@ export default class ProjectSSO extends BaseModel {
     required: true,
     type: TableColumnType.LongURL,
     canReadOnRelationQuery: true,
+    example: "https://sso.example.com",
   })
   @Column({
     nullable: false,
@@ -401,6 +410,7 @@ export default class ProjectSSO extends BaseModel {
     required: true,
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
+    example: "-----BEGIN CERTIFICATE-----\nMIIDXTCCAkWgAwIBAgIJAKL0UG...\n-----END CERTIFICATE-----",
   })
   @Column({
     nullable: false,
@@ -430,6 +440,7 @@ export default class ProjectSSO extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -465,6 +476,7 @@ export default class ProjectSSO extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -491,6 +503,7 @@ export default class ProjectSSO extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -523,6 +536,7 @@ export default class ProjectSSO extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -555,6 +569,7 @@ export default class ProjectSSO extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -582,6 +597,7 @@ export default class ProjectSSO extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,

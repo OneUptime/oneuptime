@@ -100,6 +100,7 @@ export default class ServiceCatalogTelemetryService extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -138,6 +139,7 @@ export default class ServiceCatalogTelemetryService extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -169,6 +171,7 @@ export default class ServiceCatalogTelemetryService extends BaseModel {
     title: "Service Catalog",
     description:
       "Relation to Service Catalog Resource in which this object belongs",
+    example: "f6a7b8c9-d0e1-2345-fa67-bc89de012345",
   })
   @ManyToOne(
     () => {
@@ -208,6 +211,7 @@ export default class ServiceCatalogTelemetryService extends BaseModel {
     title: "Service Catalog ID",
     description:
       "ID of your OneUptime Service Catalog in which this object belongs",
+    example: "f6a7b8c9-d0e1-2345-fa67-bc89de012345",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -238,6 +242,7 @@ export default class ServiceCatalogTelemetryService extends BaseModel {
     modelType: TelemetryService,
     title: "TelemetryService",
     description: "Relation to TelemetryService in which this object belongs",
+    example: "c9d0e1f2-a3b4-5678-cd90-ef12ab345678",
   })
   @ManyToOne(
     () => {
@@ -276,6 +281,7 @@ export default class ServiceCatalogTelemetryService extends BaseModel {
     canReadOnRelationQuery: true,
     title: "TelemetryService ID",
     description: "ID of your TelemetryServicein which this object belongs",
+    example: "c9d0e1f2-a3b4-5678-cd90-ef12ab345678",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -307,6 +313,7 @@ export default class ServiceCatalogTelemetryService extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "c3d4e5f6-a7b8-9012-cd34-ef56ab789012",
   })
   @ManyToOne(
     () => {
@@ -343,6 +350,7 @@ export default class ServiceCatalogTelemetryService extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "c3d4e5f6-a7b8-9012-cd34-ef56ab789012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -369,6 +377,7 @@ export default class ServiceCatalogTelemetryService extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "d4e5f6a7-b8c9-0123-de45-fa67bc890123",
   })
   @ManyToOne(
     () => {
@@ -401,6 +410,7 @@ export default class ServiceCatalogTelemetryService extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "d4e5f6a7-b8c9-0123-de45-fa67bc890123",
   })
   @Column({
     type: ColumnType.ObjectID,

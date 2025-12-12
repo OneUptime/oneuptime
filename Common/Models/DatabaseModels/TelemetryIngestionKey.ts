@@ -72,6 +72,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -107,6 +108,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -139,6 +141,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     title: "Name",
     description: "Any friendly name of this object",
     canReadOnRelationQuery: true,
+    example: "Production Telemetry Key",
   })
   @Column({
     nullable: false,
@@ -169,6 +172,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
+    example: "This key is used for ingesting telemetry data from production services",
   })
   @Column({
     nullable: true,
@@ -197,6 +201,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @ManyToOne(
     () => {
@@ -230,6 +235,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -250,6 +256,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -276,6 +283,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -304,6 +312,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     computed: true,
     title: "Telemetry Ingestion Key",
     description: "Secret Telemetry Ingestion Key",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @Column({
     type: ColumnType.ObjectID,

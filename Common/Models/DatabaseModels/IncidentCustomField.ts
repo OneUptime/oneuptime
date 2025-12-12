@@ -120,6 +120,7 @@ export default class IncidentCustomField extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -152,6 +153,7 @@ export default class IncidentCustomField extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Any friendly name of this object",
+    example: "Severity Level",
   })
   @Column({
     nullable: false,
@@ -185,6 +187,7 @@ export default class IncidentCustomField extends BaseModel {
     title: "Description",
     description:
       "Friendly description of this custom field that will help you remember",
+    example: "This field tracks the severity level of the incident (Minor, Major, Critical)",
   })
   @Column({
     nullable: true,
@@ -212,6 +215,7 @@ export default class IncidentCustomField extends BaseModel {
     type: TableColumnType.CustomFieldType,
     title: "Custom Field Type",
     description: "Is this field Text, Number or Boolean?",
+    example: "Text",
   })
   @Column({
     nullable: true,
@@ -275,6 +279,7 @@ export default class IncidentCustomField extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a3f2b1c0-d9e8-4f5a-8b7c-6d5e4f3a2b1c",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -331,6 +336,7 @@ export default class IncidentCustomField extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b5c4d3e2-f1a0-4b5c-9d8e-7f6a5b4c3d2e",
   })
   @Column({
     type: ColumnType.ObjectID,

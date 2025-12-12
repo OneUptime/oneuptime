@@ -126,6 +126,7 @@ export default class StatusPageSSO extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -192,6 +193,7 @@ export default class StatusPageSSO extends BaseModel {
     required: true,
     title: "Status Page ID",
     description: "ID of your Status Page resource where this object belongs",
+    example: "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -225,6 +227,7 @@ export default class StatusPageSSO extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Any friendly name of this object",
+    example: "Corporate SSO",
   })
   @Column({
     nullable: false,
@@ -257,6 +260,7 @@ export default class StatusPageSSO extends BaseModel {
     required: true,
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
+    example: "SSO configuration for status page authentication using SAML 2.0",
   })
   @Column({
     nullable: false,
@@ -286,6 +290,7 @@ export default class StatusPageSSO extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
+    example: "RSA-SHA256",
   })
   @Column({
     nullable: false,
@@ -316,6 +321,7 @@ export default class StatusPageSSO extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
+    example: "SHA256",
   })
   @Column({
     nullable: false,
@@ -347,6 +353,7 @@ export default class StatusPageSSO extends BaseModel {
     required: true,
     type: TableColumnType.LongURL,
     canReadOnRelationQuery: true,
+    example: "https://idp.example.com/saml/sso",
   })
   @Column({
     nullable: false,
@@ -378,6 +385,7 @@ export default class StatusPageSSO extends BaseModel {
     required: true,
     type: TableColumnType.LongURL,
     canReadOnRelationQuery: true,
+    example: "https://idp.example.com/saml/metadata",
   })
   @Column({
     nullable: false,
@@ -408,6 +416,7 @@ export default class StatusPageSSO extends BaseModel {
     required: true,
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
+    example: "-----BEGIN CERTIFICATE-----\nMIIDXTCCAkWgAwIBAgIJAKL0UG+mRKU...\n-----END CERTIFICATE-----",
   })
   @Column({
     nullable: false,
@@ -470,6 +479,7 @@ export default class StatusPageSSO extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "b2c3d4e5-f6a7-8901-b2c3-d4e5f6a78901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -526,6 +536,7 @@ export default class StatusPageSSO extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "c3d4e5f6-a7b8-9012-c3d4-e5f6a7b89012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -557,6 +568,7 @@ export default class StatusPageSSO extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -583,6 +595,7 @@ export default class StatusPageSSO extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
+    example: false,
   })
   @Column({
     type: ColumnType.Boolean,

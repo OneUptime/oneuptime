@@ -94,6 +94,7 @@ export default class IncidentStateTimeline extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -131,6 +132,7 @@ export default class IncidentStateTimeline extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -160,6 +162,7 @@ export default class IncidentStateTimeline extends BaseModel {
     modelType: Incident,
     title: "Incident",
     description: "Relation to Incident in which this resource belongs",
+    example: "e5f6a7b8-c9d0-1234-5678-90abcdef0123",
   })
   @ManyToOne(
     () => {
@@ -196,6 +199,7 @@ export default class IncidentStateTimeline extends BaseModel {
     required: true,
     title: "Incident ID",
     description: "Relation to Incident ID in which this resource belongs",
+    example: "e5f6a7b8-c9d0-1234-5678-90abcdef0123",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -226,6 +230,7 @@ export default class IncidentStateTimeline extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -261,6 +266,7 @@ export default class IncidentStateTimeline extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -281,6 +287,7 @@ export default class IncidentStateTimeline extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @ManyToOne(
     () => {
@@ -307,6 +314,7 @@ export default class IncidentStateTimeline extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -342,6 +350,7 @@ export default class IncidentStateTimeline extends BaseModel {
     title: "Incident State",
     description:
       "Incident State Relation. Which incident state does this incident change to?",
+    example: "f6a7b8c9-d0e1-2345-6789-0abcdef12345",
   })
   @ManyToOne(
     () => {
@@ -383,6 +392,7 @@ export default class IncidentStateTimeline extends BaseModel {
     title: "Incident State ID",
     description:
       "Incident State ID Relation. Which incident state does this incident change to?",
+    example: "f6a7b8c9-d0e1-2345-6789-0abcdef12345",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -420,6 +430,7 @@ export default class IncidentStateTimeline extends BaseModel {
     description:
       "Status of notification sent to subscribers about this incident state change",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
+    example: "Sent",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -454,6 +465,7 @@ export default class IncidentStateTimeline extends BaseModel {
     description:
       "Status message for subscriber notifications - includes success messages, failure reasons, or skip reasons",
     required: false,
+    example: "Successfully sent notifications to 47 subscribers via email and SMS",
   })
   @Column({
     type: ColumnType.VeryLongText,
@@ -482,6 +494,7 @@ export default class IncidentStateTimeline extends BaseModel {
     title: "Should subscribers be notified?",
     description: "Should subscribers be notified about this state change?",
     defaultValue: true,
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -509,6 +522,7 @@ export default class IncidentStateTimeline extends BaseModel {
     title: "Are Owners Notified",
     description: "Are owners notified of state change?",
     defaultValue: false,
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -531,6 +545,7 @@ export default class IncidentStateTimeline extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.JSON,
+    example: { "previousState": "investigating", "newState": "resolved", "triggeredBy": "automated-resolution", "duration": 3600 },
   })
   @Column({
     type: ColumnType.JSON,
@@ -560,6 +575,7 @@ export default class IncidentStateTimeline extends BaseModel {
     isDefaultValueColumn: false,
     title: "Root Cause",
     description: "What is the root cause of this status change?",
+    example: "Database connection pool exhaustion caused by sudden spike in traffic from marketing campaign launch.",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -587,6 +603,7 @@ export default class IncidentStateTimeline extends BaseModel {
     type: TableColumnType.Date,
     title: "Ends At",
     description: "When did this status change end?",
+    example: "2024-01-15T14:45:00.000Z",
   })
   @Column({
     type: ColumnType.Date,
@@ -615,6 +632,7 @@ export default class IncidentStateTimeline extends BaseModel {
     type: TableColumnType.Date,
     title: "Starts At",
     description: "When did this status change?",
+    example: "2024-01-15T13:15:00.000Z",
   })
   @Column({
     type: ColumnType.Date,

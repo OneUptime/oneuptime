@@ -86,6 +86,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "project-id-5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -123,6 +124,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -153,6 +155,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     title: "User",
     description:
       "User that is the owner. This user will receive notifications. ",
+    example: "user-id-8c1d3e5f-a7b9-4c2e-9d6f-1a2b3c4d5e6f",
   })
   @ManyToOne(
     () => {
@@ -190,6 +193,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     canReadOnRelationQuery: true,
     title: "User ID",
     description: "ID of your OneUptime User in which this object belongs",
+    example: "8c1d3e5f-a7b9-4c2e-9d6f-1a2b3c4d5e6f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -220,6 +224,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     title: "ScheduledMaintenance",
     description:
       "Relation to ScheduledMaintenance Resource in which this object belongs",
+    example: "scheduled-maintenance-id-4b6d8f0a-c2e4-6f8a-9c0d-1e2f3a4b5c6d",
   })
   @ManyToOne(
     () => {
@@ -258,6 +263,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     title: "ScheduledMaintenance ID",
     description:
       "ID of your OneUptime ScheduledMaintenance in which this object belongs",
+    example: "4b6d8f0a-c2e4-6f8a-9c0d-1e2f3a4b5c6d",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -288,6 +294,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "user-id-9b1c3d5e-f7a9-4c2e-8d6f-0a1b2c3d4e5f",
   })
   @ManyToOne(
     () => {
@@ -323,6 +330,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "9b1c3d5e-f7a9-4c2e-8d6f-0a1b2c3d4e5f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -348,6 +356,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "user-id-2d4f6a8c-e1b3-5d7e-9f0a-1c2d3e4f5a6b",
   })
   @ManyToOne(
     () => {
@@ -379,6 +388,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "2d4f6a8c-e1b3-5d7e-9f0a-1c2d3e4f5a6b",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -407,6 +417,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     title: "Are Owners Notified",
     description: "Are owners notified of this resource ownership?",
     defaultValue: false,
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,

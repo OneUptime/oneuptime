@@ -136,6 +136,7 @@ export default class AlertFeed extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -201,6 +202,7 @@ export default class AlertFeed extends BaseModel {
     required: true,
     title: "Alert ID",
     description: "Relation to Alert ID in which this resource belongs",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -266,6 +268,7 @@ export default class AlertFeed extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "c3d4e5f6-a7b8-9012-cdef-345678901234",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -340,6 +343,7 @@ export default class AlertFeed extends BaseModel {
     required: true,
     title: "Log (in Markdown)",
     description: "Log of the entire alert state change in Markdown",
+    example: "**Alert State Changed**\n\nAlert state changed from *Created* to *Acknowledged* by John Smith.",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -396,6 +400,7 @@ export default class AlertFeed extends BaseModel {
     required: true,
     title: "Alert Feed Event",
     description: "Alert Feed Event",
+    example: "AlertStateChanged",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -425,6 +430,7 @@ export default class AlertFeed extends BaseModel {
     required: true,
     title: "Color",
     description: "Display color for the alert log",
+    example: "#e74c3c",
   })
   @Column({
     type: ColumnType.Color,
@@ -492,6 +498,7 @@ export default class AlertFeed extends BaseModel {
     title: "User ID",
     description:
       "User who this feed belongs to (if this feed belongs to a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f23456789012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -519,6 +526,7 @@ export default class AlertFeed extends BaseModel {
     title: "Feed Posted At",
     description: "Date and time when the feed was posted",
     type: TableColumnType.Date,
+    example: "2024-01-15T10:30:00.000Z",
   })
   @Column({
     type: ColumnType.Date,

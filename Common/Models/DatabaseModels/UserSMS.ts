@@ -79,6 +79,7 @@ class UserSMS extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -98,6 +99,7 @@ class UserSMS extends BaseModel {
     unique: false,
     type: TableColumnType.Phone,
     canReadOnRelationQuery: true,
+    example: "+1-555-123-4567",
   })
   @Column({
     type: ColumnType.Phone,
@@ -143,6 +145,7 @@ class UserSMS extends BaseModel {
     type: TableColumnType.ObjectID,
     title: "User ID",
     description: "User ID who this email belongs to",
+    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -189,6 +192,7 @@ class UserSMS extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -235,6 +239,7 @@ class UserSMS extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -254,6 +259,7 @@ class UserSMS extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -276,6 +282,7 @@ class UserSMS extends BaseModel {
     forceGetDefaultValueOnCreate: () => {
       return Text.generateRandomNumber(6);
     },
+    example: "123456",
   })
   @Column({
     type: ColumnType.ShortText,

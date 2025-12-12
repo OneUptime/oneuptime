@@ -132,6 +132,7 @@ export default class StatusPageFooterLink extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -198,6 +199,7 @@ export default class StatusPageFooterLink extends BaseModel {
     required: true,
     title: "Status Page ID",
     description: "ID of your Status Page resource where this object belongs",
+    example: "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -231,6 +233,7 @@ export default class StatusPageFooterLink extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Title",
     description: "Title of this resource",
+    example: "Privacy Policy",
   })
   @Column({
     nullable: false,
@@ -264,6 +267,7 @@ export default class StatusPageFooterLink extends BaseModel {
     type: TableColumnType.ShortURL,
     title: "Link",
     description: "URL to a website or any other resource on the internet",
+    example: "https://example.com/privacy",
   })
   @Column({
     nullable: false,
@@ -330,6 +334,7 @@ export default class StatusPageFooterLink extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "b2c3d4e5-f6a7-8901-b2c3-d4e5f6a78901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -396,6 +401,7 @@ export default class StatusPageFooterLink extends BaseModel {
     type: TableColumnType.Number,
     title: "Order",
     description: "Order / Priority of this resource",
+    example: 1,
   })
   @Column({
     type: ColumnType.Number,
@@ -412,6 +418,7 @@ export default class StatusPageFooterLink extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "c3d4e5f6-a7b8-9012-c3d4-e5f6a7b89012",
   })
   @Column({
     type: ColumnType.ObjectID,

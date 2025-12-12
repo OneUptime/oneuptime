@@ -93,6 +93,7 @@ export default class TableView extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -129,6 +130,7 @@ export default class TableView extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -161,6 +163,7 @@ export default class TableView extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Any friendly name of this object",
+    example: "Production Monitors View",
   })
   @Column({
     nullable: false,
@@ -193,6 +196,7 @@ export default class TableView extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Table ID",
     description: "ID of the table this view is for",
+    example: "Monitor",
   })
   @Column({
     nullable: false,
@@ -224,6 +228,7 @@ export default class TableView extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
+    example: "A table view for all production monitors with active alerts",
   })
   @Column({
     nullable: true,
@@ -253,6 +258,7 @@ export default class TableView extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -287,6 +293,7 @@ export default class TableView extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -312,6 +319,7 @@ export default class TableView extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -343,6 +351,7 @@ export default class TableView extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -376,6 +385,7 @@ export default class TableView extends BaseModel {
     type: TableColumnType.JSON,
     canReadOnRelationQuery: true,
     description: "Filters for this table view",
+    example: '{"status": "active", "priority": "high"}',
   })
   @Column({
     type: ColumnType.JSON,
@@ -409,6 +419,7 @@ export default class TableView extends BaseModel {
     type: TableColumnType.JSON,
     canReadOnRelationQuery: true,
     description: "Sort for this table view",
+    example: '{"createdAt": -1}',
   })
   @Column({
     type: ColumnType.JSON,
@@ -443,6 +454,7 @@ export default class TableView extends BaseModel {
     canReadOnRelationQuery: true,
     description: "Items on page",
     defaultValue: 10,
+    example: 10,
   })
   @Column({
     type: ColumnType.Number,

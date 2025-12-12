@@ -107,6 +107,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -144,6 +145,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -179,6 +181,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     title: "Name",
     description: "Any friendly name of this object",
     canReadOnRelationQuery: true,
+    example: "Weekend On-Call Rotation",
   })
   @Column({
     nullable: false,
@@ -214,6 +217,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     title: "Labels",
     description:
       "Relation to Labels Array where this object is categorized in.",
+    example: [{ name: "production" }, { name: "critical" }],
   })
   @ManyToMany(
     () => {
@@ -259,6 +263,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
+    example: "This schedule handles on-call duties during weekend hours for production incidents",
   })
   @Column({
     nullable: true,
@@ -290,6 +295,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     title: "Slug",
     description: "Friendly globally unique name for your object",
     computed: true,
+    example: "weekend-on-call-rotation",
   })
   @Column({
     nullable: false,
@@ -321,6 +327,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @ManyToOne(
     () => {
@@ -356,6 +363,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -376,6 +384,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -402,6 +411,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -431,6 +441,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     modelType: User,
     title: "Current User On Roster",
     description: "Relation to User who is currently on roster",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @ManyToOne(
     () => {
@@ -460,6 +471,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     type: TableColumnType.ObjectID,
     title: "Current User ID On Roster",
     description: "User ID who is currently on roster",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -489,6 +501,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     modelType: User,
     title: "Next User On Roster",
     description: "Relation to User who is next on roster",
+    example: "d4e5f6a7-b8c9-0123-def0-234567890123",
   })
   @ManyToOne(
     () => {
@@ -518,6 +531,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     type: TableColumnType.ObjectID,
     title: "Next User ID On Roster",
     description: "Next ID who is currently on roster",
+    example: "d4e5f6a7-b8c9-0123-def0-234567890123",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -541,6 +555,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     title: "Roster Handoff At",
     description:
       "When does the roster handoff occur for this schedule for the current user?",
+    example: "2024-01-15T18:00:00.000Z",
   })
   @Column({
     type: ColumnType.Date,
@@ -563,6 +578,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     title: "Roster Next Handoff At",
     description:
       "When does the next roster handoff occur for this schedule for the next user?",
+    example: "2024-01-22T18:00:00.000Z",
   })
   @Column({
     type: ColumnType.Date,
@@ -585,6 +601,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     title: "Roster Next Event Start At",
     description:
       "When does the next event start for this schedule for the next user?",
+    example: "2024-01-22T09:00:00.000Z",
   })
   @Column({
     type: ColumnType.Date,
@@ -607,6 +624,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     title: "Roster Event Start At",
     description:
       "When does the current event start for this schedule for the current user?",
+    example: "2024-01-15T09:00:00.000Z",
   })
   @Column({
     type: ColumnType.Date,

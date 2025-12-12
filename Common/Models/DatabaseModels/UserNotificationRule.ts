@@ -83,6 +83,7 @@ class UserNotificationRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -102,6 +103,7 @@ class UserNotificationRule extends BaseModel {
     unique: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
+    example: "Send Notification When Incident Created",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -146,6 +148,7 @@ class UserNotificationRule extends BaseModel {
     type: TableColumnType.ObjectID,
     title: "User ID",
     description: "User ID who this email belongs to",
+    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -192,6 +195,7 @@ class UserNotificationRule extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -238,6 +242,7 @@ class UserNotificationRule extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -284,6 +289,7 @@ class UserNotificationRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "User Call ID",
     description: "ID of User Call in which this object belongs",
+    example: "9e8d7c6b-5a4f-3e2d-1c0b-9a8f7e6d5c4b",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -330,6 +336,7 @@ class UserNotificationRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "User Push ID",
     description: "ID of User Push in which this object belongs",
+    example: "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -376,6 +383,7 @@ class UserNotificationRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "User SMS ID",
     description: "ID of User SMS in which this object belongs",
+    example: "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -423,6 +431,7 @@ class UserNotificationRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "User WhatsApp ID",
     description: "ID of User WhatsApp in which this object belongs",
+    example: "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -469,6 +478,7 @@ class UserNotificationRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "User Email ID",
     description: "ID of User Email in which this object belongs",
+    example: "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -491,6 +501,7 @@ class UserNotificationRule extends BaseModel {
     title: "Notify After Minutes",
     description:
       "How long should we wait before sending a notification to the user after the event has occurred?",
+    example: 5,
   })
   @Column({
     type: ColumnType.Number,
@@ -538,6 +549,7 @@ class UserNotificationRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Incident Severity ID",
     description: "ID of Incident Severity in which this object belongs",
+    example: "5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -587,6 +599,7 @@ class UserNotificationRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Alert Severity ID",
     description: "ID of Alert Severity in which this object belongs",
+    example: "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c",
   })
   @Column({
     type: ColumnType.ObjectID,

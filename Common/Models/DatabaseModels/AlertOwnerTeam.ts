@@ -87,6 +87,7 @@ export default class AlertOwnerTeam extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -124,6 +125,7 @@ export default class AlertOwnerTeam extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -154,6 +156,7 @@ export default class AlertOwnerTeam extends BaseModel {
     title: "Team",
     description:
       "Team that is the owner. All users in this team will receive notifications. ",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @ManyToOne(
     () => {
@@ -191,6 +194,7 @@ export default class AlertOwnerTeam extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Team ID",
     description: "ID of your OneUptime Team in which this object belongs",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -220,6 +224,7 @@ export default class AlertOwnerTeam extends BaseModel {
     modelType: Alert,
     title: "Alert",
     description: "Relation to Alert Resource in which this object belongs",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -257,6 +262,7 @@ export default class AlertOwnerTeam extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Alert ID",
     description: "ID of your OneUptime Alert in which this object belongs",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -287,6 +293,7 @@ export default class AlertOwnerTeam extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @ManyToOne(
     () => {
@@ -322,6 +329,7 @@ export default class AlertOwnerTeam extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -347,6 +355,7 @@ export default class AlertOwnerTeam extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "d4e5f6a7-b8c9-0123-def0-234567890123",
   })
   @ManyToOne(
     () => {
@@ -378,6 +387,7 @@ export default class AlertOwnerTeam extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "d4e5f6a7-b8c9-0123-def0-234567890123",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -409,6 +419,7 @@ export default class AlertOwnerTeam extends BaseModel {
     title: "Are Owners Notified",
     description: "Are owners notified of this resource ownership?",
     defaultValue: false,
+    example: false,
   })
   @Column({
     type: ColumnType.Boolean,

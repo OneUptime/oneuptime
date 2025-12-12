@@ -97,6 +97,7 @@ export default class Dashboard extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -133,6 +134,7 @@ export default class Dashboard extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -165,6 +167,7 @@ export default class Dashboard extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Any friendly name of this object",
+    example: "Production Monitoring Dashboard",
   })
   @Column({
     nullable: false,
@@ -191,6 +194,7 @@ export default class Dashboard extends BaseModel {
     computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
+    example: "production-monitoring-dashboard",
   })
   @Column({
     nullable: false,
@@ -222,6 +226,7 @@ export default class Dashboard extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
+    example: "Dashboard for monitoring production infrastructure and services",
   })
   @Column({
     nullable: true,
@@ -251,6 +256,7 @@ export default class Dashboard extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -285,6 +291,7 @@ export default class Dashboard extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -310,6 +317,7 @@ export default class Dashboard extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -341,6 +349,7 @@ export default class Dashboard extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -376,6 +385,7 @@ export default class Dashboard extends BaseModel {
     title: "Labels",
     description:
       "Relation to Labels Array where this object is categorized in.",
+    example: [{ id: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e" }],
   })
   @ManyToMany(
     () => {
@@ -419,6 +429,7 @@ export default class Dashboard extends BaseModel {
     type: TableColumnType.JSON,
     title: "Dashboard View Config",
     description: "Configuration of Dashboard View",
+    example: { "components": [], "layout": "grid" },
   })
   @Column({
     nullable: false,

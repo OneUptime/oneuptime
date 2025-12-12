@@ -86,6 +86,7 @@ export default class IncidentOwnerUser extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -123,6 +124,7 @@ export default class IncidentOwnerUser extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -153,6 +155,7 @@ export default class IncidentOwnerUser extends BaseModel {
     title: "User",
     description:
       "User that is the owner. This user will receive notifications. ",
+    example: "e5f6a7b8-c9d0-1234-efab-345678901234",
   })
   @ManyToOne(
     () => {
@@ -190,6 +193,7 @@ export default class IncidentOwnerUser extends BaseModel {
     canReadOnRelationQuery: true,
     title: "User ID",
     description: "ID of your OneUptime User in which this object belongs",
+    example: "e5f6a7b8-c9d0-1234-efab-345678901234",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -219,6 +223,7 @@ export default class IncidentOwnerUser extends BaseModel {
     modelType: Incident,
     title: "Incident",
     description: "Relation to Incident Resource in which this object belongs",
+    example: "f6a7b8c9-d0e1-2345-fabc-456789012345",
   })
   @ManyToOne(
     () => {
@@ -256,6 +261,7 @@ export default class IncidentOwnerUser extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Incident ID",
     description: "ID of your OneUptime Incident in which this object belongs",
+    example: "f6a7b8c9-d0e1-2345-fabc-456789012345",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -286,6 +292,7 @@ export default class IncidentOwnerUser extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @ManyToOne(
     () => {
@@ -321,6 +328,7 @@ export default class IncidentOwnerUser extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -346,6 +354,7 @@ export default class IncidentOwnerUser extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "d4e5f6a7-b8c9-0123-def0-234567890123",
   })
   @ManyToOne(
     () => {
@@ -377,6 +386,7 @@ export default class IncidentOwnerUser extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "d4e5f6a7-b8c9-0123-def0-234567890123",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -408,6 +418,7 @@ export default class IncidentOwnerUser extends BaseModel {
     title: "Are Owners Notified",
     description: "Are owners notified of this resource ownership?",
     defaultValue: false,
+    example: false,
   })
   @Column({
     type: ColumnType.Boolean,

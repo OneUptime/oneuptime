@@ -46,6 +46,7 @@ export default class ResellerPlan extends BaseModel {
     modelType: Reseller,
     title: "Reseller",
     description: "Relation to Reseller Resource in which this object belongs",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @ManyToOne(
     () => {
@@ -73,6 +74,7 @@ export default class ResellerPlan extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Reseller ID",
     description: "ID of your OneUptime Reseller in which this object belongs",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -93,6 +95,7 @@ export default class ResellerPlan extends BaseModel {
     title: "Plan ID",
     description:
       "ID of the plan. This is shared by the Reseller and OneUptime.",
+    example: "plan_enterprise_2024",
   })
   @Column({
     nullable: false,
@@ -112,6 +115,7 @@ export default class ResellerPlan extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Name of the Reseller Plan",
+    example: "Enterprise Plan",
   })
   @Column({
     nullable: false,
@@ -131,6 +135,7 @@ export default class ResellerPlan extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Plan Type",
     description: "Name of the Base Plan that the project should created with.",
+    example: "Growth",
   })
   @Column({
     nullable: false,
@@ -150,6 +155,7 @@ export default class ResellerPlan extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Description",
     description: "Description of the Reseller Plan",
+    example: "Comprehensive monitoring solution for large organizations",
   })
   @Column({
     nullable: false,
@@ -169,6 +175,7 @@ export default class ResellerPlan extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Monitor Limit",
     description: "Monitor Limit of the OneUptime Project.",
+    example: 100,
   })
   @Column({
     nullable: true,
@@ -187,6 +194,7 @@ export default class ResellerPlan extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Team Member Limit",
     description: "Team Member Limit of the OneUptime Project.",
+    example: 25,
   })
   @Column({
     nullable: true,
@@ -206,6 +214,7 @@ export default class ResellerPlan extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @ManyToOne(
     () => {
@@ -231,6 +240,7 @@ export default class ResellerPlan extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -251,6 +261,7 @@ export default class ResellerPlan extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -277,6 +288,7 @@ export default class ResellerPlan extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -297,6 +309,7 @@ export default class ResellerPlan extends BaseModel {
     title: "Other Features",
     description:
       "Other Features of this Reseller Plan. This is shown on the dashboard. Its a comma separated list of features",
+    example: "Advanced Analytics, Custom Integrations, Priority Support",
   })
   @Column({
     nullable: true,

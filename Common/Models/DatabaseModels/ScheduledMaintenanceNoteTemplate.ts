@@ -86,6 +86,7 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -123,6 +124,7 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -157,6 +159,7 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
     title: "Note",
     description:
       "Note template for public or private notes. This is in markdown.",
+    example: "## Scheduled Maintenance Update\n\n**Maintenance Window**: {{maintenance.scheduledAt}} - {{maintenance.endTime}}\n\n**Affected Services**: {{maintenance.services}}\n\n**Status**: The scheduled maintenance has been completed successfully. All systems are now operational.\n\n**Summary of Work Performed**:\n- Database schema upgrades applied\n- Security patches installed\n- Performance optimizations implemented\n\n**Verification**: All post-maintenance tests have passed. Services are running normally.\n\n**Next Scheduled Maintenance**: TBD",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -191,6 +194,7 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Name of the Incident Template",
+    example: "Maintenance Completion Summary",
   })
   @Column({
     nullable: false,
@@ -225,6 +229,7 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Template Description",
     description: "Description of the Incident Template",
+    example: "This template is used to document the completion of scheduled maintenance activities. It provides a structured format for summarizing the work performed, verifying system health, and communicating the maintenance outcome to stakeholders.",
   })
   @Column({
     nullable: false,
@@ -255,6 +260,7 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @ManyToOne(
     () => {
@@ -290,6 +296,7 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -310,6 +317,7 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -336,6 +344,7 @@ export default class ScheduledMaintenanceNoteTemplate extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,

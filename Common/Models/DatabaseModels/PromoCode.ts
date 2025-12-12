@@ -48,6 +48,7 @@ export default class PromoCode extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Resller ID",
     description: "ID that is shared between resller and OneUptime.",
+    example: "SUMMER2024",
   })
   @Column({
     nullable: false,
@@ -68,6 +69,7 @@ export default class PromoCode extends BaseModel {
     title: "Plan Type",
     description:
       "If this promocode can be used for specific plan, please specify here. If null, it can be used for all the plans",
+    example: "Growth",
   })
   @Column({
     nullable: true,
@@ -88,6 +90,7 @@ export default class PromoCode extends BaseModel {
     title: "User Email",
     description:
       "Which user can redeem this promocode? If no one is specified, anyone can redeem this promocode.",
+    example: "user@example.com",
   })
   @Column({
     nullable: true,
@@ -118,6 +121,7 @@ export default class PromoCode extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @ManyToOne(
     () => {
@@ -152,6 +156,7 @@ export default class PromoCode extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -177,6 +182,7 @@ export default class PromoCode extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -208,6 +214,7 @@ export default class PromoCode extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -227,6 +234,7 @@ export default class PromoCode extends BaseModel {
     modelType: Reseller,
     title: "Reseller",
     description: "Relation to Reseller Resource in which this object belongs",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @ManyToOne(
     () => {
@@ -254,6 +262,7 @@ export default class PromoCode extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Reseller ID",
     description: "ID of your OneUptime Reseller in which this object belongs",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -274,6 +283,7 @@ export default class PromoCode extends BaseModel {
     title: "ResellerPlan",
     description:
       "Relation to ResellerPlan Resource in which this object belongs",
+    example: "d4e5f6a7-b8c9-0123-def1-234567890123",
   })
   @ManyToOne(
     () => {
@@ -302,6 +312,7 @@ export default class PromoCode extends BaseModel {
     title: "Reseller Plan ID",
     description:
       "ID of your OneUptime Reseller Plan in which this object belongs",
+    example: "d4e5f6a7-b8c9-0123-def1-234567890123",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -332,6 +343,7 @@ export default class PromoCode extends BaseModel {
     title: "License ID",
     description: "License ID from a OneUptime Reseller",
     canReadOnRelationQuery: true,
+    example: "LIC-2024-ABCD1234",
   })
   @Column({
     nullable: true,
@@ -349,6 +361,7 @@ export default class PromoCode extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
+    example: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -361,7 +374,11 @@ export default class PromoCode extends BaseModel {
     read: [],
     update: [],
   })
-  @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Date })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    type: TableColumnType.Date,
+    example: "2024-06-15T10:30:00.000Z",
+  })
   @Column({
     type: ColumnType.Date,
     nullable: true,
@@ -380,6 +397,7 @@ export default class PromoCode extends BaseModel {
     title: "Project",
     description:
       "If promo code is used for a specific project, please specify here.",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -408,6 +426,7 @@ export default class PromoCode extends BaseModel {
     title: "Project ID",
     description:
       "If promo code is used for a specific project, please specify here.",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,

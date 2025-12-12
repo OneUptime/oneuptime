@@ -95,6 +95,7 @@ export default class TeamMember extends BaseModel {
     modelType: Team,
     title: "Team",
     description: "Team this permission belongs in.",
+    example: "Engineering Team",
   })
   @ManyToOne(
     () => {
@@ -131,6 +132,7 @@ export default class TeamMember extends BaseModel {
     type: TableColumnType.ObjectID,
     title: "Team ID",
     description: "ID of Team this user belongs to.",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -161,6 +163,7 @@ export default class TeamMember extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "My Production Project",
   })
   @ManyToOne(
     () => {
@@ -199,6 +202,7 @@ export default class TeamMember extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "a3f9c8e2-d4b6-4a7c-9e5f-1a2b3c4d5e6f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -228,6 +232,7 @@ export default class TeamMember extends BaseModel {
     modelType: User,
     title: "User",
     description: "User who belongs to this team.",
+    example: "john.doe@company.com",
   })
   @ManyToOne(
     () => {
@@ -264,6 +269,7 @@ export default class TeamMember extends BaseModel {
     required: true,
     title: "User ID",
     description: "ID of User who belongs to this team",
+    example: "b7e4d9f1-c3a5-4e8b-9d2f-3c4e5f6a7b8c",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -284,6 +290,7 @@ export default class TeamMember extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "admin@company.com",
   })
   @ManyToOne(
     () => {
@@ -309,6 +316,7 @@ export default class TeamMember extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "c8f5e0a2-d4b7-4a8d-9e3f-2a3b4c5d6e7f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -329,6 +337,7 @@ export default class TeamMember extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "admin@company.com",
   })
   @ManyToOne(
     () => {
@@ -355,6 +364,7 @@ export default class TeamMember extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "d9a6f1b3-e5c8-4b9e-af4d-3b4c5d6e7f8a",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -386,6 +396,7 @@ export default class TeamMember extends BaseModel {
     title: "Has Accepted Invitation",
     description: "Has this team member accepted invitation",
     defaultValue: false,
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -414,6 +425,7 @@ export default class TeamMember extends BaseModel {
     type: TableColumnType.Date,
     title: "Accepted Invitation At",
     description: "When did this team member accept invitation",
+    example: "2024-01-15T10:30:00Z",
   })
   @Column({
     type: ColumnType.Date,

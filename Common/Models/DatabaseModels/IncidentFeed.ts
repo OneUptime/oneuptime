@@ -99,6 +99,7 @@ export default class IncidentFeed extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -136,6 +137,7 @@ export default class IncidentFeed extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -165,6 +167,7 @@ export default class IncidentFeed extends BaseModel {
     modelType: Incident,
     title: "Incident",
     description: "Relation to Incident in which this resource belongs",
+    example: "a1b2c3d4-f5e6-7890-1234-567890abcdef",
   })
   @ManyToOne(
     () => {
@@ -201,6 +204,7 @@ export default class IncidentFeed extends BaseModel {
     required: true,
     title: "Incident ID",
     description: "Relation to Incident ID in which this resource belongs",
+    example: "a1b2c3d4-f5e6-7890-1234-567890abcdef",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -231,6 +235,7 @@ export default class IncidentFeed extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "b2c3d4e5-a6b7-8901-2345-678901bcdef0",
   })
   @ManyToOne(
     () => {
@@ -266,6 +271,7 @@ export default class IncidentFeed extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "b2c3d4e5-a6b7-8901-2345-678901bcdef0",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -286,6 +292,7 @@ export default class IncidentFeed extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "c3d4e5f6-b7c8-9012-3456-789012cdef01",
   })
   @ManyToOne(
     () => {
@@ -312,6 +319,7 @@ export default class IncidentFeed extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "c3d4e5f6-b7c8-9012-3456-789012cdef01",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -340,6 +348,7 @@ export default class IncidentFeed extends BaseModel {
     required: true,
     title: "Log (in Markdown)",
     description: "Log of the entire incident state change in Markdown",
+    example: "**Incident State Changed**: Status changed from `Acknowledged` to `Resolved` by John Doe",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -368,6 +377,7 @@ export default class IncidentFeed extends BaseModel {
     required: false,
     title: "More Information (in Markdown)",
     description: "More information in Markdown",
+    example: "### Resolution Details\n\nThe issue was resolved by restarting the database service. All systems are now operational.",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -396,6 +406,7 @@ export default class IncidentFeed extends BaseModel {
     required: true,
     title: "Incident Feed Event",
     description: "Incident Feed Event",
+    example: "IncidentStateChanged",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -424,6 +435,7 @@ export default class IncidentFeed extends BaseModel {
     required: true,
     title: "Color",
     description: "Display color for the incident log",
+    example: "#e74c3c",
   })
   @Column({
     type: ColumnType.Color,
@@ -456,6 +468,7 @@ export default class IncidentFeed extends BaseModel {
     title: "User",
     description:
       "Relation to User who this feed belongs to (if this feed belongs to a User)",
+    example: "d4e5f6a7-c8d9-0123-4567-890123def012",
   })
   @ManyToOne(
     () => {
@@ -491,6 +504,7 @@ export default class IncidentFeed extends BaseModel {
     title: "User ID",
     description:
       "User who this feed belongs to (if this feed belongs to a User)",
+    example: "d4e5f6a7-c8d9-0123-4567-890123def012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -518,6 +532,7 @@ export default class IncidentFeed extends BaseModel {
     title: "Feed Posted At",
     description: "Date and time when the feed was posted",
     type: TableColumnType.Date,
+    example: "2024-01-15T10:30:00.000Z",
   })
   @Column({
     type: ColumnType.Date,

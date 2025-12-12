@@ -84,6 +84,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -120,6 +121,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -150,6 +152,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
+    example: "Production Twilio Config",
   })
   @Column({
     nullable: false,
@@ -175,6 +178,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     type: TableColumnType.Slug,
     title: "Slug",
     description: "Friendly globally unique name for your object",
+    example: "production-twilio-config",
   })
   @Column({
     nullable: false,
@@ -206,6 +210,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
+    example: "Twilio configuration for production SMS and call notifications",
   })
   @Column({
     nullable: true,
@@ -235,6 +240,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -269,6 +275,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -294,6 +301,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -325,6 +333,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -357,6 +366,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Twilio Account SID",
     description: "Account SID for your Twilio Account",
+    example: "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -388,6 +398,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Twilio Auth Token",
     description: "Auth Token for your Twilio Account",
+    example: "your-twilio-auth-token",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -419,6 +430,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     type: TableColumnType.Phone,
     title: "Twilio Primary Phone Number",
     description: "Primary Phone Number for your Twilio account",
+    example: "+15551234567",
   })
   @Column({
     type: ColumnType.Phone,
@@ -451,6 +463,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     type: TableColumnType.LongText,
     title: "Twilio Secondary Phone Numbers",
     description: "Secondary Phone Number for your Twilio account",
+    example: "+15551234568,+15551234569",
   })
   @Column({
     type: ColumnType.LongText,

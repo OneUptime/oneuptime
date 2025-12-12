@@ -67,6 +67,7 @@ export default class BillingInvoice extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -98,6 +99,7 @@ export default class BillingInvoice extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -122,6 +124,7 @@ export default class BillingInvoice extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @ManyToOne(
     () => {
@@ -151,6 +154,7 @@ export default class BillingInvoice extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -175,6 +179,7 @@ export default class BillingInvoice extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -205,6 +210,7 @@ export default class BillingInvoice extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -222,7 +228,10 @@ export default class BillingInvoice extends BaseModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Number })
+  @TableColumn({
+    type: TableColumnType.Number,
+    example: 9999,
+  })
   @Column({
     type: ColumnType.Decimal,
     nullable: false,
@@ -239,7 +248,10 @@ export default class BillingInvoice extends BaseModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    example: "USD",
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -257,7 +269,10 @@ export default class BillingInvoice extends BaseModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongURL })
+  @TableColumn({
+    type: TableColumnType.LongURL,
+    example: "https://invoices.oneuptime.com/download/inv_1234567890",
+  })
   @Column({
     type: ColumnType.LongURL,
     nullable: false,
@@ -275,7 +290,10 @@ export default class BillingInvoice extends BaseModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    example: "paid",
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -293,7 +311,10 @@ export default class BillingInvoice extends BaseModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    example: "cus_1234567890abcdef",
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -311,7 +332,10 @@ export default class BillingInvoice extends BaseModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    example: "sub_1234567890abcdef",
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -329,7 +353,10 @@ export default class BillingInvoice extends BaseModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    example: "in_1234567890abcdef",
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -347,7 +374,10 @@ export default class BillingInvoice extends BaseModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Date })
+  @TableColumn({
+    type: TableColumnType.Date,
+    example: "2024-01-15T00:00:00.000Z",
+  })
   @Column({
     type: ColumnType.Date,
     nullable: true,
@@ -363,7 +393,10 @@ export default class BillingInvoice extends BaseModel {
     ],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    example: "INV-2024-0001",
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,

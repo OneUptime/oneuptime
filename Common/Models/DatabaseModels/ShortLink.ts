@@ -45,6 +45,7 @@ export default class ShortLink extends BaseModel {
     title: "Short Link ID",
     description: "Random ID for the short link",
     canReadOnRelationQuery: false,
+    example: "abc123xyz",
   })
   @Column({
     nullable: false,
@@ -64,6 +65,7 @@ export default class ShortLink extends BaseModel {
     title: "Long URL",
     description: "Long URL to redirect to",
     canReadOnRelationQuery: false,
+    example: "https://example.com/redirect/to/this/long/url",
   })
   @Column({
     nullable: false,
@@ -84,6 +86,7 @@ export default class ShortLink extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -110,6 +113,7 @@ export default class ShortLink extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,

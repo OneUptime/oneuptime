@@ -76,6 +76,7 @@ export default class CallLog extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -108,6 +109,7 @@ export default class CallLog extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -133,6 +135,7 @@ export default class CallLog extends BaseModel {
     title: "To Number",
     description: "Phone Number Call was sent to",
     canReadOnRelationQuery: false,
+    example: "+1-555-123-4567",
   })
   @Column({
     nullable: false,
@@ -159,6 +162,7 @@ export default class CallLog extends BaseModel {
     title: "From Number",
     description: "Phone Number Call was sent from",
     canReadOnRelationQuery: false,
+    example: "+1-555-999-8888",
   })
   @Column({
     nullable: false,
@@ -184,6 +188,7 @@ export default class CallLog extends BaseModel {
     title: "Call Data",
     description: "Content of the data that was sent in the call",
     canReadOnRelationQuery: false,
+    example: { "message": "Alert notification", "incidentId": "123" },
   })
   @Column({
     nullable: false,
@@ -207,6 +212,7 @@ export default class CallLog extends BaseModel {
     title: "Status Message",
     description: "Status Message (if any)",
     canReadOnRelationQuery: false,
+    example: "Call completed successfully",
   })
   @Column({
     nullable: true,
@@ -231,6 +237,7 @@ export default class CallLog extends BaseModel {
     title: "Status of the Call",
     description: "Status of the Call sent",
     canReadOnRelationQuery: false,
+    example: "Completed",
   })
   @Column({
     nullable: false,
@@ -257,6 +264,7 @@ export default class CallLog extends BaseModel {
     canReadOnRelationQuery: false,
     isDefaultValueColumn: true,
     defaultValue: 0,
+    example: 150,
   })
   @Column({
     nullable: false,
@@ -283,6 +291,7 @@ export default class CallLog extends BaseModel {
     modelType: Incident,
     title: "Incident",
     description: "Incident associated with this Call (if any)",
+    example: "b2c3d4e5-6789-01bc-def2-234567890abc",
   })
   @ManyToOne(
     () => {
@@ -315,6 +324,7 @@ export default class CallLog extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Incident ID",
     description: "ID of Incident associated with this Call (if any)",
+    example: "b2c3d4e5-6789-01bc-def2-234567890abc",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -339,6 +349,7 @@ export default class CallLog extends BaseModel {
     modelType: User,
     title: "User",
     description: "User who initiated this Call (if any)",
+    example: "c3d4e5f6-789a-12cd-ef34-3456789abcde",
   })
   @ManyToOne(
     () => {
@@ -371,6 +382,7 @@ export default class CallLog extends BaseModel {
     canReadOnRelationQuery: true,
     title: "User ID",
     description: "ID of User who initiated this Call (if any)",
+    example: "c3d4e5f6-789a-12cd-ef34-3456789abcde",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -395,6 +407,7 @@ export default class CallLog extends BaseModel {
     modelType: Alert,
     title: "Alert",
     description: "Alert associated with this Call (if any)",
+    example: "d4e5f6a7-89ab-23de-f456-456789abcdef",
   })
   @ManyToOne(
     () => {
@@ -427,6 +440,7 @@ export default class CallLog extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Alert ID",
     description: "ID of Alert associated with this Call (if any)",
+    example: "d4e5f6a7-89ab-23de-f456-456789abcdef",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -451,6 +465,7 @@ export default class CallLog extends BaseModel {
     modelType: ScheduledMaintenance,
     title: "Scheduled Maintenance",
     description: "Scheduled Maintenance associated with this Call (if any)",
+    example: "e5f6a7b8-9abc-34ef-5678-56789abcdef0",
   })
   @ManyToOne(
     () => {
@@ -484,6 +499,7 @@ export default class CallLog extends BaseModel {
     title: "Scheduled Maintenance ID",
     description:
       "ID of Scheduled Maintenance associated with this Call (if any)",
+    example: "e5f6a7b8-9abc-34ef-5678-56789abcdef0",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -508,6 +524,7 @@ export default class CallLog extends BaseModel {
     modelType: StatusPage,
     title: "Status Page",
     description: "Status Page associated with this Call (if any)",
+    example: "f6a7b8c9-abcd-45ef-6789-6789abcdef01",
   })
   @ManyToOne(
     () => {
@@ -540,6 +557,7 @@ export default class CallLog extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Status Page ID",
     description: "ID of Status Page associated with this Call (if any)",
+    example: "f6a7b8c9-abcd-45ef-6789-6789abcdef01",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -564,6 +582,7 @@ export default class CallLog extends BaseModel {
     modelType: StatusPageAnnouncement,
     title: "Status Page Announcement",
     description: "Status Page Announcement associated with this Call (if any)",
+    example: "a7b8c9d0-bcde-56f0-789a-789abcdef012",
   })
   @ManyToOne(
     () => {
@@ -597,6 +616,7 @@ export default class CallLog extends BaseModel {
     title: "Status Page Announcement ID",
     description:
       "ID of Status Page Announcement associated with this Call (if any)",
+    example: "a7b8c9d0-bcde-56f0-789a-789abcdef012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -621,6 +641,7 @@ export default class CallLog extends BaseModel {
     modelType: OnCallDutyPolicy,
     title: "On-Call Duty Policy",
     description: "On-Call Duty Policy associated with this Call (if any)",
+    example: "b8c9d0e1-cdef-67f1-89ab-89abcdef0123",
   })
   @ManyToOne(
     () => {
@@ -653,6 +674,7 @@ export default class CallLog extends BaseModel {
     canReadOnRelationQuery: true,
     title: "On-Call Duty Policy ID",
     description: "ID of On-Call Duty Policy associated with this Call (if any)",
+    example: "b8c9d0e1-cdef-67f1-89ab-89abcdef0123",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -678,6 +700,7 @@ export default class CallLog extends BaseModel {
     title: "On-Call Duty Policy Escalation Rule",
     description:
       "On-Call Duty Policy Escalation Rule associated with this Call (if any)",
+    example: "c9d0e1f2-def0-78f2-9abc-9abcdef01234",
   })
   @ManyToOne(
     () => {
@@ -712,6 +735,7 @@ export default class CallLog extends BaseModel {
     title: "On-Call Duty Policy Escalation Rule ID",
     description:
       "ID of On-Call Duty Policy Escalation Rule associated with this Call (if any)",
+    example: "c9d0e1f2-def0-78f2-9abc-9abcdef01234",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -737,6 +761,7 @@ export default class CallLog extends BaseModel {
     title: "On-Call Duty Policy Schedule",
     description:
       "On-Call Duty Policy Schedule associated with this Call (if any)",
+    example: "d0e1f2a3-ef01-89f3-abcd-abcdef012345",
   })
   @ManyToOne(
     () => {
@@ -770,6 +795,7 @@ export default class CallLog extends BaseModel {
     title: "On-Call Duty Policy Schedule ID",
     description:
       "ID of On-Call Duty Policy Schedule associated with this Call (if any)",
+    example: "d0e1f2a3-ef01-89f3-abcd-abcdef012345",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -794,6 +820,7 @@ export default class CallLog extends BaseModel {
     modelType: Team,
     title: "Team",
     description: "Team associated with this Call (if any)",
+    example: "e1f2a3b4-f012-9af4-bcde-bcdef0123456",
   })
   @ManyToOne(
     () => {
@@ -826,6 +853,7 @@ export default class CallLog extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Team ID",
     description: "ID of Team associated with this Call (if any)",
+    example: "e1f2a3b4-f012-9af4-bcde-bcdef0123456",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -846,6 +874,7 @@ export default class CallLog extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "f2a3b4c5-0123-abf5-cdef-cdef01234567",
   })
   @ManyToOne(
     () => {
@@ -872,6 +901,7 @@ export default class CallLog extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "f2a3b4c5-0123-abf5-cdef-cdef01234567",
   })
   @Column({
     type: ColumnType.ObjectID,

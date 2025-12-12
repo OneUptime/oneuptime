@@ -86,6 +86,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -122,6 +123,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -152,6 +154,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
+    example: "Production SMTP Config",
   })
   @Column({
     nullable: false,
@@ -178,6 +181,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     title: "Slug",
     description: "Friendly globally unique name for your object",
     computed: true,
+    example: "production-smtp-config",
   })
   @Column({
     nullable: false,
@@ -209,6 +213,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     type: TableColumnType.LongText,
     title: "Description",
     description: "Friendly description that will help you remember",
+    example: "SMTP configuration for production environment email notifications",
   })
   @Column({
     nullable: true,
@@ -238,6 +243,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -272,6 +278,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -297,6 +304,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -328,6 +336,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -358,7 +367,11 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.EditProjectSMTPConfig,
     ],
   })
-  @TableColumn({ required: false, type: TableColumnType.ShortText })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    example: "smtp-user@example.com",
+  })
   @Column({
     nullable: true,
     type: ColumnType.ShortText,
@@ -383,7 +396,11 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.EditProjectSMTPConfig,
     ],
   })
-  @TableColumn({ required: false, type: TableColumnType.Password })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Password,
+    example: "your-secure-password",
+  })
   @Column({
     nullable: true,
     type: ColumnType.Password,
@@ -409,7 +426,11 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.EditProjectSMTPConfig,
     ],
   })
-  @TableColumn({ required: true, type: TableColumnType.ShortText })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    example: "smtp.gmail.com",
+  })
   @Column({
     nullable: false,
     type: ColumnType.ShortText,
@@ -436,7 +457,11 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.EditProjectSMTPConfig,
     ],
   })
-  @TableColumn({ required: true, type: TableColumnType.Number })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Number,
+    example: 587,
+  })
   @Column({
     nullable: false,
     type: ColumnType.Number,
@@ -462,7 +487,11 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.EditProjectSMTPConfig,
     ],
   })
-  @TableColumn({ required: true, type: TableColumnType.Email })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Email,
+    example: "noreply@example.com",
+  })
   @Column({
     nullable: false,
     type: ColumnType.Email,
@@ -489,7 +518,11 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.EditProjectSMTPConfig,
     ],
   })
-  @TableColumn({ required: true, type: TableColumnType.ShortText })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    example: "OneUptime Notifications",
+  })
   @Column({
     nullable: false,
     type: ColumnType.ShortText,
@@ -519,6 +552,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     required: true,
     type: TableColumnType.Boolean,
     defaultValue: true,
+    example: true,
   })
   @Column({
     nullable: false,

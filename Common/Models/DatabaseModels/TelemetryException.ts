@@ -77,6 +77,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -113,6 +114,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -146,6 +148,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     title: "Telemetry Service",
     description:
       "Relation to Telemetry Service Resource in which this object belongs",
+    example: "d4e5f6a7-b8c9-0123-def1-234567890123",
   })
   @ManyToOne(
     () => {
@@ -186,6 +189,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     title: "Telemetry Service ID",
     description:
       "ID of your Telemetry Service resource where this object belongs",
+    example: "d4e5f6a7-b8c9-0123-def1-234567890123",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -218,6 +222,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     canReadOnRelationQuery: false,
     title: "Exception Message",
     description: "Exception message that was thrown by the telemetry service",
+    example: "NullPointerException: Cannot read property 'id' of null",
   })
   @Column({
     nullable: true,
@@ -250,6 +255,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     title: "Stack Trace",
     description:
       "Stack trace of the exception that was thrown by the telemetry service",
+    example: "at getUserData (/app/src/services/user.js:42:15)\nat processRequest (/app/src/controllers/user.js:89:20)",
   })
   @Column({
     nullable: true,
@@ -282,6 +288,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     title: "Exception Type",
     description:
       "Type of the exception that was thrown by the telemetry service",
+    example: "NullPointerException",
   })
   @Column({
     nullable: true,
@@ -315,6 +322,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     title: "Finger Print",
     description:
       "Finger print of the exception that was thrown by the telemetry service",
+    example: "a8b7c6d5e4f3g2h1",
   })
   @Column({
     nullable: true,
@@ -344,6 +352,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @ManyToOne(
     () => {
@@ -378,6 +387,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -411,6 +421,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -450,6 +461,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -481,6 +493,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.Date,
     title: "Accepted Invitation At",
     description: "When did this team member accept invitation",
+    example: "2025-12-12T14:30:00.000Z",
   })
   @Column({
     type: ColumnType.Date,
@@ -512,6 +525,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.Date,
     title: "Accepted Invitation At",
     description: "When did this team member accept invitation",
+    example: "2025-12-12T15:45:00.000Z",
   })
   @Column({
     type: ColumnType.Date,
@@ -543,6 +557,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.Date,
     title: "Accepted Invitation At",
     description: "When did this team member accept invitation",
+    example: "2025-12-10T08:15:00.000Z",
   })
   @Column({
     type: ColumnType.Date,
@@ -574,6 +589,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.Date,
     title: "Accepted Invitation At",
     description: "When did this team member accept invitation",
+    example: "2025-12-12T16:20:00.000Z",
   })
   @Column({
     type: ColumnType.Date,
@@ -607,6 +623,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     modelType: User,
     title: "Assign to User",
     description: "Relation to User who this exception is assigned to.",
+    example: "e5f6a7b8-c9d0-1234-efgh-234567890124",
   })
   @ManyToOne(
     () => {
@@ -645,6 +662,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.ObjectID,
     title: "Assign to User ID",
     description: "User ID who this exception is assigned to.",
+    example: "e5f6a7b8-c9d0-1234-efgh-234567890124",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -680,6 +698,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     modelType: Team,
     title: "Assign to Team",
     description: "Relation to Team who this exception is assigned to.",
+    example: "f6a7b8c9-d0e1-2345-fghi-345678901235",
   })
   @ManyToOne(
     () => {
@@ -718,6 +737,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.ObjectID,
     title: "Assign to Team ID",
     description: "Team ID who this exception is assigned to.",
+    example: "f6a7b8c9-d0e1-2345-fghi-345678901235",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -753,6 +773,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     title: "Marked as Resolved By User",
     description:
       "Mark as resolved by User who marked this exception as resolved.",
+    example: "a7b8c9d0-e1f2-3456-ghij-456789012346",
   })
   @ManyToOne(
     () => {
@@ -791,6 +812,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.ObjectID,
     title: "Marked as Resolved By User ID",
     description: "User ID who marked this exception as resolved.",
+    example: "a7b8c9d0-e1f2-3456-ghij-456789012346",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -825,6 +847,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     modelType: User,
     title: "Mark as Archived By User",
     description: "Mark as archived by User",
+    example: "b8c9d0e1-f2a3-4567-hijk-567890123457",
   })
   @ManyToOne(
     () => {
@@ -863,6 +886,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     type: TableColumnType.ObjectID,
     title: "Mark as Archived By User ID",
     description: "User ID who marked this exception as archived.",
+    example: "b8c9d0e1-f2a3-4567-hijk-567890123457",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -896,6 +920,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     required: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
+    example: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -930,6 +955,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     required: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
+    example: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -964,6 +990,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     required: true,
     type: TableColumnType.Number,
     defaultValue: 1,
+    example: 42,
   })
   @Column({
     type: ColumnType.Number,

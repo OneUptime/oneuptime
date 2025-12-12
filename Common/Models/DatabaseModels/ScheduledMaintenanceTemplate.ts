@@ -151,6 +151,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -185,6 +186,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Name of the Scheduled Maintenance Template",
+    example: "Database Upgrade Template",
   })
   @Column({
     nullable: false,
@@ -219,6 +221,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Template Description",
     description: "Description of the Scheduled Maintenance Template",
+    example: "Use this template for scheduled database upgrades and migrations. Includes pre-maintenance notifications, maintenance window updates, and post-maintenance completion notifications.",
   })
   @Column({
     nullable: false,
@@ -254,6 +257,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Title",
     description: "Title of this scheduled event.",
+    example: "Scheduled Database Maintenance - PostgreSQL Upgrade",
   })
   @Column({
     nullable: false,
@@ -288,6 +292,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     title: "Description",
     description:
       "Description of this scheduled event that will show up on Status Page. This is a markdown field.",
+    example: "## Scheduled Maintenance\n\nWe will be performing a scheduled upgrade of our PostgreSQL database servers.\n\n**Start Time:** 2:00 AM UTC\n**Expected Duration:** 2 hours\n\n**Impact:** Brief service interruptions may occur during the maintenance window.\n\nThank you for your patience.",
   })
   @Column({
     nullable: true,
@@ -313,6 +318,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
+    example: "database-upgrade-template",
   })
   @Column({
     nullable: false,
@@ -379,6 +385,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -425,6 +432,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -635,6 +643,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     title: "Change Monitor Status To ID",
     description:
       "Relation to Monitor Status Object ID. All monitors connected to this incident will be changed to this status when the event is ongoing.",
+    example: "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -650,6 +659,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     type: TableColumnType.Date,
     required: false,
     description: "When would you like to schedule the first event?",
+    example: "2024-03-15T02:00:00.000Z",
   })
   @ColumnAccessControl({
     create: [
@@ -682,6 +692,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     type: TableColumnType.Date,
     required: false,
     description: "When does the first event start?",
+    example: "2024-03-15T02:00:00.000Z",
   })
   @ColumnAccessControl({
     create: [
@@ -714,6 +725,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     type: TableColumnType.Date,
     required: false,
     description: "When does the first event end?",
+    example: "2024-03-15T04:00:00.000Z",
   })
   @ColumnAccessControl({
     create: [
@@ -765,6 +777,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     type: TableColumnType.JSON,
     title: "Recurring Interval",
     description: "How often should this event recur?",
+    example: { "intervalType": "weeks", "intervalCount": 2 },
   })
   @Column({
     type: ColumnType.JSON,
@@ -798,6 +811,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Is Recurring Event",
     description: "Is this a recurring event?",
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -830,6 +844,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     type: TableColumnType.Date,
     title: "Schedule Next Event At",
     description: "When is the next event scheduled?",
+    example: "2024-03-29T02:00:00.000Z",
   })
   @Column({
     type: ColumnType.Date,
@@ -865,6 +880,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     title: "Should subscribers be notified when event is created?",
     description: "Should subscribers be notified about this event creation?",
     defaultValue: true,
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -900,6 +916,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     description:
       "Should subscribers be notified about this event event is changed to ongoing?",
     defaultValue: true,
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -935,6 +952,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     description:
       "Should subscribers be notified about this event event is changed to ended?",
     defaultValue: true,
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -969,6 +987,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     type: TableColumnType.JSON,
     title: "Custom Fields",
     description: "Custom Fields on this resource.",
+    example: { "department": "DevOps", "maintenanceType": "upgrade", "approvalRequired": true },
   })
   @Column({
     type: ColumnType.JSON,
@@ -1002,6 +1021,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     isDefaultValueColumn: false,
     title: "Subscriber notifications before the event",
     description: "Should subscribers be notified before the event?",
+    example: [{ "intervalType": "hours", "intervalCount": 24 }, { "intervalType": "hours", "intervalCount": 1 }],
   })
   @Column({
     type: ColumnType.JSON,

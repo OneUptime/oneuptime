@@ -90,6 +90,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -127,6 +128,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -157,6 +159,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     title: "Scheduled Maintenance",
     description:
       "Relation to Scheduled Maintenance Event this resource belongs to",
+    example: "c9d0e1f2-a3b4-5678-90ab-cdef01234567",
   })
   @ManyToOne(
     () => {
@@ -193,6 +196,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     required: true,
     title: "Scheduled Maintenance ID",
     description: "ID of Scheduled Maintenance this resource belongs to",
+    example: "c9d0e1f2-a3b4-5678-90ab-cdef01234567",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -223,6 +227,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -258,6 +263,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -278,6 +284,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @ManyToOne(
     () => {
@@ -304,6 +311,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -339,6 +347,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     title: "Scheduled Maintenance State",
     description:
       "Which state does this event belongs to?. Relation to Scheduled Maintenance State",
+    example: "d0e1f2a3-b4c5-6789-01ab-cdef12345678",
   })
   @ManyToOne(
     () => {
@@ -380,6 +389,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     title: "Scheduled Maintenance State ID",
     description:
       " Scheduled Maintenance State ID. Which state does this event belongs to?",
+    example: "d0e1f2a3-b4c5-6789-01ab-cdef12345678",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -417,6 +427,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     description:
       "Status of notification sent to subscribers about this scheduled maintenance state change",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
+    example: "Sent",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -451,6 +462,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     description:
       "Status message for subscriber notifications - includes success messages, failure reasons, or skip reasons",
     required: false,
+    example: "Maintenance notification sent to 152 subscribers. Scheduled maintenance window: 2024-01-16 02:00-04:00 UTC",
   })
   @Column({
     type: ColumnType.VeryLongText,
@@ -478,6 +490,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Should subscribers be notified?",
     description: "Should subscribers be notified about this state change?",
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -504,6 +517,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     isDefaultValueColumn: true,
     title: "Are Owners Notified",
     description: "Are owners notified of state change?",
+    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -532,6 +546,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     type: TableColumnType.Date,
     title: "Ends At",
     description: "When did this status change end?",
+    example: "2024-01-16T04:00:00.000Z",
   })
   @Column({
     type: ColumnType.Date,
@@ -560,6 +575,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     type: TableColumnType.Date,
     title: "Starts At",
     description: "When did this status change?",
+    example: "2024-01-16T02:00:00.000Z",
   })
   @Column({
     type: ColumnType.Date,

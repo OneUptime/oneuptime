@@ -93,6 +93,7 @@ export default class IncidentNoteTemplate extends BaseModel {
     modelType: Project,
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @ManyToOne(
     () => {
@@ -130,6 +131,7 @@ export default class IncidentNoteTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -164,6 +166,7 @@ export default class IncidentNoteTemplate extends BaseModel {
     title: "Note",
     description:
       "Note template for public or private notes. This is in markdown.",
+    example: "## Root Cause Analysis\n\n**Incident**: {{incident.title}}\n\n**Start Time**: {{incident.startedAt}}\n\n**Root Cause**: The incident was caused by a memory leak in the payment processing service that resulted in service degradation over time.\n\n**Impact**: Approximately 15% of payment transactions were affected during the incident window.\n\n**Resolution**: Restarted the affected service and deployed a hotfix to address the memory leak.\n\n**Preventive Measures**:\n- Added memory monitoring alerts\n- Implemented automated service restarts\n- Scheduled code review for memory management",
   })
   @Column({
     type: ColumnType.Markdown,
@@ -198,6 +201,7 @@ export default class IncidentNoteTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Name of the Incident Template",
+    example: "Root Cause Analysis Template",
   })
   @Column({
     nullable: false,
@@ -232,6 +236,7 @@ export default class IncidentNoteTemplate extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Template Description",
     description: "Description of the Incident Template",
+    example: "This template is designed for documenting the root cause analysis of an incident. It helps teams identify the underlying cause, assess impact, document resolution steps, and establish preventive measures to avoid future occurrences.",
   })
   @Column({
     nullable: false,
@@ -262,6 +267,7 @@ export default class IncidentNoteTemplate extends BaseModel {
     title: "Created by User",
     description:
       "Relation to User who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @ManyToOne(
     () => {
@@ -297,6 +303,7 @@ export default class IncidentNoteTemplate extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -317,6 +324,7 @@ export default class IncidentNoteTemplate extends BaseModel {
     modelType: User,
     description:
       "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @ManyToOne(
     () => {
@@ -343,6 +351,7 @@ export default class IncidentNoteTemplate extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   })
   @Column({
     type: ColumnType.ObjectID,
