@@ -47,7 +47,7 @@ export class Service extends DatabaseService<Model> {
     // If setting isDefault to true, we need to unset other defaults in the same project
     if (updateBy.data.isDefault === true) {
       // Get the items being updated to find their project IDs
-      const itemsToUpdate = await this.findBy({
+      const itemsToUpdate: Array<Model> = await this.findBy({
         query: updateBy.query,
         select: {
           _id: true,
