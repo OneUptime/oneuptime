@@ -1,17 +1,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0ea5e9">
 <link rel="preload" href="/docs/static/fonts/f1.woff2" as="font" crossorigin="" type="font/woff2">
 <link rel="preload" href="/docs/static/fonts/f2.woff2" as="font" crossorigin="" type="font/woff2">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
 <link rel="stylesheet" href="/docs/static/css/style.css" crossorigin data-precedence="next">
 <title>OneUptime Documentation</title>
-<meta name="description"
-    content="Cache every single thing your app could ever do ahead of time, so your code never even has to run at all.">
+<meta name="description" content="Complete documentation for OneUptime - the open-source observability platform. Learn how to monitor your applications, set up alerts, and manage incidents.">
+<meta name="keywords" content="OneUptime, documentation, monitoring, observability, alerts, incidents, status page, open source">
 <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16">
 <meta name="next-size-adjust">
 <script src="https://cdn.tailwindcss.com" defer></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/a11y-dark.min.css" crossorigin>
+<script defer>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+                    display: ['var(--font-lexend)', 'system-ui', 'sans-serif'],
+                },
+            }
+        }
+    }
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" crossorigin>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" onload="hljs.highlightAll();"></script>
 
 <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 

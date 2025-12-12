@@ -1,33 +1,32 @@
-<nav class="text-base lg:text-sm" style="width:16rem;flex:0 0 16rem;" aria-label="Documentation navigation">
-        <ul role="list" class="space-y-9">
-                <% for(var i=0; i<nav.length; i++) {%>
-                        <li>
-                                <h2 class="font-display font-medium text-slate-900 "><%- nav[i].title -%>
-                                </h2>
-
-                                <ul role="list"
-                                        class="mt-2 space-y-2 border-l-2 border-slate-100 lg:mt-4 lg:space-y-4 lg:border-slate-200 ">
-                                        <% if(nav[i].links.length> 0) { %>
-                                                <% for(var j=0; j<nav[i].links.length; j++) {%>
-                                                        <% if(link && link.url===nav[i].links[j].url) { %>
-                                                                <li class="relative"><a
-                                                                                class="block w-full pl-3.5 before:pointer-events-none before:absolute before:-left-1 before:top-1/2 before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full font-semibold text-sky-500 before:bg-sky-500"
-                                                                                href="<%- nav[i].links[j].url -%>"><%-
-                                                                                        nav[i].links[j].title -%></a>
-                                                                </li>
-                                                                <% } else { %>
-                                                                        <li class="relative"><a
-                                                                                        class="block w-full pl-3.5 before:pointer-events-none before:absolute before:-left-1 before:top-1/2 before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full text-slate-500 before:hidden before:bg-slate-300 hover:text-slate-600 hover:before:block   "
-                                                                                        href="<%- nav[i].links[j].url -%>"><%-
-                                                                                        nav[i].links[j].title -%></a></li>
-
-                                                                        <% } %>
-                                                                                <% } %>
-                                                                                        <% } %>
-
-                                </ul>
+<nav class="text-sm" style="width:16rem;flex:0 0 16rem;" aria-label="Documentation navigation">
+    <ul role="list" class="space-y-6">
+        <% for(var i=0; i<nav.length; i++) {%>
+        <li>
+            <h2 class="font-semibold text-slate-900 text-xs uppercase tracking-wide mb-3">
+                <%- nav[i].title -%>
+            </h2>
+            <ul role="list" class="space-y-1 border-l border-slate-200">
+                <% if(nav[i].links.length> 0) { %>
+                    <% for(var j=0; j<nav[i].links.length; j++) {%>
+                        <% if(link && link.url===nav[i].links[j].url) { %>
+                        <li class="relative">
+                            <a class="flex items-center py-1.5 pl-4 -ml-px border-l-2 border-sky-500 text-sky-600 font-medium bg-sky-50/50 -mr-3 pr-3 rounded-r-md transition-colors"
+                               href="<%- nav[i].links[j].url -%>">
+                                <%- nav[i].links[j].title -%>
+                            </a>
+                        </li>
+                        <% } else { %>
+                        <li class="relative">
+                            <a class="flex items-center py-1.5 pl-4 -ml-px border-l-2 border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50/50 -mr-3 pr-3 rounded-r-md transition-colors"
+                               href="<%- nav[i].links[j].url -%>">
+                                <%- nav[i].links[j].title -%>
+                            </a>
                         </li>
                         <% } %>
-
-        </ul>
+                    <% } %>
+                <% } %>
+            </ul>
+        </li>
+        <% } %>
+    </ul>
 </nav>

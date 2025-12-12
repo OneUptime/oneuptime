@@ -1,11 +1,75 @@
-<article>
-    <header class="mb-9 space-y-1">
-        <p class="text-base font-bold text-sky-500"><%- category.title %></p>
-        <h1 class="font-bold text-3xl tracking-tight text-slate-900 "><%- link.title %>
+<article class="docs-article">
+    <header class="mb-10 pb-8 border-b border-slate-200">
+        <div class="flex items-center gap-2 mb-3">
+            <span class="inline-flex items-center rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 ring-1 ring-inset ring-sky-600/20">
+                <%- category.title %>
+            </span>
+        </div>
+        <h1 class="font-bold text-3xl sm:text-4xl tracking-tight text-slate-900 leading-tight">
+            <%- link.title %>
         </h1>
     </header>
-    <div
-        class="prose prose-slate max-w-none   prose-headings:scroll-mt-28 prose-headings:font-display prose-headings:font-normal lg:prose-headings:scroll-mt-[8.5rem] prose-lead:text-slate-500  prose-a:font-semibold  prose-a:no-underline prose-a:shadow-[inset_0_-2px_0_0_var(--tw-prose-background,#fff),inset_0_calc(-1*(var(--tw-prose-underline-size,4px)+2px))_0_0_var(--tw-prose-underline,theme(colors.sky.300))] hover:prose-a:[--tw-prose-underline-size:6px] prose-pre:rounded-xl prose-pre:bg-slate-900 prose-pre:shadow-lg     ">
+    <div class="prose prose-slate max-w-none
+        prose-headings:scroll-mt-28
+        prose-headings:font-semibold
+        prose-headings:tracking-tight
+        lg:prose-headings:scroll-mt-[8.5rem]
+        prose-h2:text-2xl
+        prose-h2:mt-12
+        prose-h2:mb-6
+        prose-h2:pb-3
+        prose-h2:border-b
+        prose-h2:border-slate-200
+        prose-h3:text-lg
+        prose-h3:mt-8
+        prose-h3:mb-4
+        prose-p:leading-7
+        prose-p:text-slate-600
+        prose-lead:text-slate-500
+        prose-a:font-medium
+        prose-a:text-sky-600
+        prose-a:no-underline
+        prose-a:border-b
+        prose-a:border-sky-300
+        hover:prose-a:border-sky-500
+        hover:prose-a:text-sky-700
+        prose-strong:text-slate-900
+        prose-strong:font-semibold
+        prose-code:text-sm
+        prose-code:font-medium
+        prose-code:text-slate-800
+        prose-code:bg-slate-100
+        prose-code:px-1.5
+        prose-code:py-0.5
+        prose-code:rounded-md
+        prose-code:before:content-none
+        prose-code:after:content-none
+        prose-pre:rounded-xl
+        prose-pre:bg-slate-900
+        prose-pre:shadow-lg
+        prose-pre:ring-1
+        prose-pre:ring-slate-700/10
+        prose-ul:my-6
+        prose-ol:my-6
+        prose-li:my-2
+        prose-li:text-slate-600
+        prose-img:rounded-xl
+        prose-img:shadow-lg
+        prose-img:ring-1
+        prose-img:ring-slate-200
+        prose-blockquote:border-l-sky-500
+        prose-blockquote:bg-sky-50/50
+        prose-blockquote:py-1
+        prose-blockquote:px-6
+        prose-blockquote:rounded-r-lg
+        prose-blockquote:not-italic
+        prose-blockquote:text-slate-700
+        prose-hr:border-slate-200
+        prose-table:text-sm
+        prose-th:bg-slate-50
+        prose-th:font-semibold
+        prose-th:text-slate-900
+        prose-td:border-slate-200">
         <%- content %>
     </div>
 </article>

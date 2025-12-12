@@ -1,4 +1,4 @@
-<html lang="en" class="h-full antialiased __variable_e66fe9 __variable_b436a8 light nbuofyfqi idc0_350"
+<html lang="en" class="h-full antialiased __variable_e66fe9 __variable_b436a8 light scroll-smooth"
     style="color-scheme: light;">
 
 <head>
@@ -7,34 +7,54 @@
     }) %>
 </head>
 
-<body class="flex min-h-full bg-white ">
-    
+<body class="flex min-h-full bg-white">
     <div class="flex w-full flex-col">
         <%- include('./Partials/Header.ejs') %>
-       
+
         <div class="relative mx-auto flex w-full max-w-8xl flex-auto justify-center sm:px-2 lg:px-8 xl:px-12">
+            <!-- Desktop sidebar -->
             <div class="hidden lg:relative lg:block lg:flex-none">
-                <div class="absolute inset-y-0 right-0 w-[50vw] bg-slate-50 "></div>
-                <div
-                    class="absolute bottom-0 right-0 top-16 hidden h-12 w-px bg-gradient-to-t from-slate-800 ">
-                </div>
-                <div class="absolute bottom-0 right-0 top-28 hidden w-px bg-slate-800 "></div>
-                <div
-                    class="sticky top-[4.75rem] -ml-0.5 h-[calc(100vh-4.75rem)] w-64 overflow-y-auto overflow-x-hidden py-16 pl-0.5 pr-8 xl:w-72 xl:pr-16">
-                  <%- include('./Partials/Nav.ejs') %>
+                <div class="absolute inset-y-0 right-0 w-[50vw] bg-gradient-to-r from-slate-50 to-slate-50/0"></div>
+                <div class="sticky top-[3.5rem] -ml-0.5 h-[calc(100vh-3.5rem)] w-64 overflow-y-auto overflow-x-hidden py-12 pl-0.5 pr-8 xl:w-72 xl:pr-12">
+                    <%- include('./Partials/Nav.ejs') %>
                 </div>
             </div>
+
+            <!-- Error content -->
             <div class="min-w-0 max-w-2xl flex-auto px-4 py-16 lg:max-w-none lg:pl-8 lg:pr-0 xl:px-16">
-                <article>
-                    <header class="mb-9 space-y-1">
-                        <p class="text-base font-bold text-sky-500">Something is not quite right.</p>
-                        <h1 class="font-bold text-3xl tracking-tight text-slate-900 ">Something went wrong on our end.
-                            Please try again later.
-                        </h1>
-                    </header>
-                </article>
+                <div class="flex flex-col items-center justify-center text-center py-16">
+                    <div class="rounded-full bg-red-100 p-4 mb-6">
+                        <svg class="h-12 w-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                    </div>
+                    <span class="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-600/20 mb-4">
+                        500 Error
+                    </span>
+                    <h1 class="font-bold text-3xl sm:text-4xl tracking-tight text-slate-900 mb-4">
+                        Something went wrong
+                    </h1>
+                    <p class="text-lg text-slate-600 max-w-md mb-8">
+                        We're experiencing some technical difficulties. Please try again in a moment.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button onclick="location.reload()"
+                                class="inline-flex items-center justify-center gap-2 rounded-lg bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 transition-colors">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Try Again
+                        </button>
+                        <a href="/docs/introduction/getting-started"
+                           class="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-300 hover:bg-slate-50 transition-colors">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                            </svg>
+                            Back to Documentation
+                        </a>
+                    </div>
+                </div>
             </div>
-         
         </div>
     </div>
 </body>
