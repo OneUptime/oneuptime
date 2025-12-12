@@ -1,9 +1,19 @@
 <header class="contents lg:pointer-events-none lg:fixed lg:inset-0 lg:z-40 lg:flex">
     <div
-        class="contents lg:pointer-events-auto lg:block lg:w-72 lg:overflow-y-auto lg:border-r lg:border-zinc-900/10 lg:px-6 lg:pt-4 lg:pb-8  xl:w-80">
-        <div class="hidden lg:flex">
+        class="contents lg:pointer-events-auto lg:block lg:w-72 lg:overflow-y-auto lg:border-r lg:border-slate-200/80 lg:px-6 lg:pt-6 lg:pb-8 xl:w-80 lg:bg-gradient-to-b lg:from-slate-50 lg:to-white">
+        <div class="hidden lg:flex lg:items-center lg:gap-3 lg:mb-8">
+            <a aria-label="Home" href="/" class="flex items-center gap-3">
+                <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-600">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <span class="text-lg font-bold text-slate-900">OneUptime</span>
+            </a>
+        </div>
+        <div class="hidden">
             <a aria-label="Home" href="/">
-                <svg class="h-6 -ml-48" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                <svg class="h-6" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
                     width="500" zoomAndPan="magnify" viewBox="0 0 375 74.999997" height="100"
                     preserveAspectRatio="xMidYMid meet" version="1.0">
                     <defs>
@@ -101,9 +111,9 @@
                 </svg>
             </a>
         </div>
-        <div class="fixed inset-x-0 top-0 z-50 flex h-14 border-b-2 items-center justify-between gap-12 px-4 transition sm:px-6 lg:left-72 lg:z-30 lg:px-8 xl:left-80 backdrop-blur-sm  lg:left-72 xl:left-80 bg-white/[var(--bg-opacity-light)] /[var(--bg-opacity-dark)]"
+        <div class="fixed inset-x-0 top-0 z-50 flex h-14 border-b border-slate-200 items-center justify-between gap-12 px-4 transition sm:px-6 lg:left-72 lg:z-30 lg:px-8 xl:left-80 backdrop-blur-sm lg:left-72 xl:left-80 bg-white/95 supports-[backdrop-filter]:bg-white/80"
             style="--bg-opacity-light:0.5; ">
-            <div class="absolute inset-x-0 top-full h-px transition bg-zinc-900/7.5 "></div>
+            <div class="absolute inset-x-0 top-full h-px transition bg-slate-900/5"></div>
             <div class="hidden lg:block lg:max-w-md lg:flex-auto">
                 <!-- <button type="button"
                     class="hidden h-8 w-full items-center gap-2 rounded-full bg-white pl-2 pr-3 text-sm text-zinc-500 ring-1 ring-zinc-900/10 transition hover:ring-zinc-900/20     lg:flex focus:[&amp;:not(:focus-visible)]:outline-none">
@@ -126,7 +136,7 @@
                 </button>
                 <a aria-label="Home" href="/">
                     <svg viewBox="0 0 99 24" aria-hidden="true" class="h-6">
-                        <path class="fill-emerald-400"
+                        <path class="fill-indigo-500"
                             d="M16 8a5 5 0 0 0-5-5H5a5 5 0 0 0-5 5v13.927a1 1 0 0 0 1.623.782l3.684-2.93a4 4 0 0 1 2.49-.87H11a5 5 0 0 0 5-5V8Z">
                         </path>
                         <path class="fill-zinc-900 "
@@ -137,23 +147,21 @@
             </div>
             <div class="flex items-center gap-5">
                 <nav class="hidden md:block">
-                    <ul role="list" class="flex items-center gap-8">
-                        <li><a class="text-sm leading-5 text-zinc-600 transition hover:text-zinc-900  "
+                    <ul role="list" class="flex items-center gap-6">
+                        <li><a class="text-sm font-medium text-slate-600 transition hover:text-slate-900"
                                 href="/">Home</a></li>
-                        <li><a class="text-sm leading-5 text-zinc-600 transition hover:text-zinc-900  "
+                        <li><a class="text-sm font-medium text-slate-600 transition hover:text-slate-900"
                                 target="_blank"
-                                href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA">Chat
-                                with us on Slack</a></li>
-                        <li><a class="text-sm leading-5 text-zinc-600 transition hover:text-zinc-900  "
+                                href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA">Slack</a></li>
+                        <li><a class="text-sm font-medium text-slate-600 transition hover:text-slate-900"
                                 href="/support">Support</a></li>
-
-                                <li><a class="text-sm leading-5 text-zinc-600 transition hover:text-zinc-900  "
-                                href="/reference/openapi" type="_blank">OpenAPI Spec</a></li>
-                        <li><a class="text-sm leading-5 text-zinc-600 transition hover:text-zinc-900  "
+                        <li><a class="text-sm font-medium text-slate-600 transition hover:text-slate-900"
+                                href="/reference/openapi" type="_blank">OpenAPI</a></li>
+                        <li><a class="text-sm font-medium text-slate-600 transition hover:text-slate-900"
                                 href="https://github.com/oneuptime/oneuptime">GitHub</a></li>
                     </ul>
                 </nav>
-                <div class="hidden md:block md:h-5 md:w-px md:bg-zinc-900/10 md:"></div>
+                <div class="hidden md:block md:h-5 md:w-px md:bg-slate-200"></div>
                 <div class="flex gap-4">
                     <div class="contents lg:hidden">
                         <button type="button"
@@ -184,85 +192,74 @@
                     </button> -->
                 </div>
                 <div class="hidden min-[416px]:contents"><a
-                        class="inline-flex gap-0.5 justify-center overflow-hidden text-sm font-medium transition rounded-full bg-zinc-900 py-1 px-3 text-white hover:bg-zinc-700        "
+                        class="inline-flex gap-0.5 justify-center overflow-hidden text-sm font-medium transition rounded-full bg-indigo-600 py-1.5 px-4 text-white hover:bg-indigo-700 shadow-sm"
                         href="/dashboard">Sign in</a></div>
             </div>
         </div>
-        <nav class="hidden lg:mt-10 lg:block">
-            <ul role="list">
+        <nav class="hidden lg:block">
+            <div class="mb-6">
+                <span class="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-600/20">
+                    API Reference
+                </span>
+            </div>
+            <ul role="list" class="space-y-6">
                 <li class="md:hidden"><a
-                        class="block py-1 text-sm text-zinc-600 transition hover:text-zinc-900  "
+                        class="block py-1 text-sm text-slate-600 transition hover:text-slate-900"
                         href="/">API</a></li>
                 <li class="md:hidden"><a
-                        class="block py-1 text-sm text-zinc-600 transition hover:text-zinc-900  "
+                        class="block py-1 text-sm text-slate-600 transition hover:text-slate-900"
                         href="/#">Documentation</a></li>
                 <li class="md:hidden"><a
-                        class="block py-1 text-sm text-zinc-600 transition hover:text-zinc-900  "
+                        class="block py-1 text-sm text-slate-600 transition hover:text-slate-900"
                         href="/#">Support</a></li>
-                <li class="relative mt-6 md:mt-0">
-                    <h6 class="text-sm font-semibold text-zinc-900 ">Guides</h6>
+                <li class="relative md:mt-0">
+                    <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide">Guides</h6>
                     <div class="relative mt-3 pl-2">
-                        <div class="absolute inset-x-0 top-0 bg-zinc-800/2.5 will-change-transform "
-                            data-projection-id="32"
-                            style="height: 64px; top: 0px; border-radius: 8px; opacity: 1; transform: none; transform-origin: 50% 50% 0px;">
-                        </div>
-                        <div class="absolute inset-y-0 left-2 w-px bg-zinc-900/10 "
-                            style="transform: none; transform-origin: 50% 50% 0px;"></div>
-                        <div class="absolute left-2 h-6 w-px bg-emerald-500" data-projection-id="33"
-                            style="top: 4px; opacity: 1;"></div>
-                        <ul role="list" class="border-l border-transparent">
+                        <div class="absolute inset-y-0 left-2 w-px bg-slate-200"></div>
+                        <ul role="list" class="border-l border-transparent space-y-1">
                             <li class="relative">
-                                <a class="flex justify-between gap-2 py-1 pr-3 text-sm transition pl-4 text-zinc-900 "
+                                <a class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-900 font-medium -ml-px border-l-2 border-indigo-500"
                                     href="/reference/introduction" aria-current="page"><span
                                         class="truncate">Introduction</span></a>
-
                             </li>
-
-
-                            <li class="relative" style="transform: none; transform-origin: 50% 50% 0px;"><a
-                                    class="flex justify-between gap-2 py-1 pr-3 text-sm transition pl-4 text-zinc-600 hover:text-zinc-900  "
+                            <li class="relative"><a
+                                    class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
                                     href="/reference/authentication"><span class="truncate">Authentication</span></a></li>
-                            <li class="relative" style="transform: none; transform-origin: 50% 50% 0px;"><a
-                                    class="flex justify-between gap-2 py-1 pr-3 text-sm transition pl-4 text-zinc-600 hover:text-zinc-900  "
+                            <li class="relative"><a
+                                    class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
                                     href="/reference/pagination"><span class="truncate">Pagination</span></a></li>
-                            <li class="relative" style="transform: none; transform-origin: 50% 50% 0px;"><a
-                                    class="flex justify-between gap-2 py-1 pr-3 text-sm transition pl-4 text-zinc-600 hover:text-zinc-900  "
+                            <li class="relative"><a
+                                    class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
                                     href="/reference/permissions"><span class="truncate">Permissions</span></a></li>
-                            <li class="relative" style="transform: none; transform-origin: 50% 50% 0px;"><a
-                                    class="flex justify-between gap-2 py-1 pr-3 text-sm transition pl-4 text-zinc-600 hover:text-zinc-900  "
+                            <li class="relative"><a
+                                    class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
                                     href="/reference/data-types"><span class="truncate">Data Types</span></a></li>
-                            <li class="relative" style="transform: none; transform-origin: 50% 50% 0px;"><a
-                                    class="flex justify-between gap-2 py-1 pr-3 text-sm transition pl-4 text-zinc-600 hover:text-zinc-900  "
+                            <li class="relative"><a
+                                    class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
                                     href="/reference/errors"><span class="truncate">Errors</span></a></li>
-
-                                    <li class="relative" style="transform: none; transform-origin: 50% 50% 0px;"><a
-                                    class="flex justify-between gap-2 py-1 pr-3 text-sm transition pl-4 text-zinc-600 hover:text-zinc-900  "
+                            <li class="relative"><a
+                                    class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
                                     href="/reference/openapi"><span class="truncate">OpenAPI Spec</span></a></li>
-
-
                         </ul>
                     </div>
                 </li>
                 <li class="relative mt-6">
-                    <h6 class="text-sm font-semibold text-zinc-900 "
-                        style="transform: none; transform-origin: 50% 50% 0px;">Resources</h6>
+                    <h6 class="text-xs font-semibold text-slate-900 uppercase tracking-wide">Resources</h6>
                     <div class="relative mt-3 pl-2">
-                        <div class="absolute inset-y-0 left-2 w-px bg-zinc-900/10 "
-                            style="transform: none; transform-origin: 50% 50% 0px;"></div>
-                        <ul role="list" class="border-l border-transparent">
+                        <div class="absolute inset-y-0 left-2 w-px bg-slate-200"></div>
+                        <ul role="list" class="border-l border-transparent space-y-1">
                             <% for(var i=0; i<resources.length; i++) {%>
-                                <li class="relative" style="transform: none; transform-origin: 50% 50% 0px;"><a
-                                        class="flex justify-between gap-2 py-1 pr-3 text-sm transition pl-4 text-zinc-600 hover:text-zinc-900  "
+                                <li class="relative"><a
+                                        class="flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
                                         href="/reference/<%= resources[i].path -%>"><span class="truncate">
                                             <%= resources[i].name -%>
                                         </span></a></li>
-                                <% } %>
-
+                            <% } %>
                         </ul>
                     </div>
                 </li>
                 <li class="sticky bottom-0 z-10 mt-6 min-[416px]:hidden"><a
-                        class="inline-flex gap-0.5 justify-center overflow-hidden text-sm font-medium transition rounded-full bg-zinc-900 py-1 px-3 text-white hover:bg-zinc-700   :bg-emerald-400 w-full"
+                        class="inline-flex gap-0.5 justify-center overflow-hidden text-sm font-medium transition rounded-full bg-indigo-600 py-1.5 px-4 text-white hover:bg-indigo-700 shadow-sm w-full"
                         href="/#">Sign in</a></li>
             </ul>
         </nav>

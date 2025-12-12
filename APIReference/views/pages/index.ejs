@@ -1,23 +1,20 @@
-<html lang="en" class="js-focus-visible ctshmsrlsm idc0_345">
+<html lang="en" class="h-full antialiased scroll-smooth" style="color-scheme: light;">
 <%- include('../partials/head', {
    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false,
 }) -%>
 
-   <body onload="applyStyles()" class="bg-white antialiased " data-new-gr-c-s-check-loaded="14.1095.0"
-      data-gr-ext-installed="">
-      <div id="__next">
+   <body onload="applyStyles()" class="flex min-h-full bg-white">
+      <div id="__next" class="w-full">
          <div class="lg:ml-72 xl:ml-80">
             <%- include('../partials/nav') -%>
             <div class="flex justify-center">
-               <div class="relative px-4 pt-14 sm:px-6 lg:px-8 max-w-5xl ">
-                  <div>
+               <div class="relative px-4 pt-14 sm:px-6 lg:px-8 max-w-5xl w-full">
                   <div class="flex justify-center">
                      <%- include('../main/'+page) -%>
                   </div>
                   <div class="flex justify-center">
                      <%- include('../partials/footer') -%>
                   </div>
-               </div>
                </div>
             </div>
          </div>

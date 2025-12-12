@@ -1,38 +1,36 @@
-<main class="py-16">
-    <article class="prose ">
-       <h1>Permissions</h1>
-       <p class="lead"> Your API Token needs permissions to create, update, read or delete any resource. If you do not have permissions to make a request a <code class="inline-code">4xx</code> status will be sent as response. You can manage permissions for your API Key in Project Settings > API Keys. </p>
-      
-   
-       <h2 id="consuming-webhooks" >
-         Permissions List
-       </h2>
-       <p>Here is a list of all the permissions:</p>
-       <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-             <div class="my-6">
-                <ul role="list" class="m-0 w-full">
-                  <% for(var i=0; i<pageData.permissions.length; i++) {%>
-                   <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
-                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                         <dt class="sr-only">Name</dt>
-                         <dd><code class="inline-code"> <%= pageData.permissions[i].permission -%></code></dd>
-                         <dt class="sr-only">Type</dt>
-                         <dd class="font-mono text-xs text-zinc-400 "><%= pageData.permissions[i].title -%></dd>
-                         <dt class="sr-only">Description</dt>
-                         <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                            <p><%= pageData.permissions[i].description -%></p>
-                         </dd>
-                      </dl>
-                   </li>
-                   <% } %>
+<main class="py-12">
+   <article class="prose">
+      <!-- Hero Section -->
+      <div class="mb-10">
+         <div class="flex items-center gap-3 mb-4">
+            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 shadow-lg shadow-indigo-500/30">
+               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+               </svg>
+            </div>
+            <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Guide</span>
+         </div>
+         <h1 class="font-bold text-3xl text-slate-900 tracking-tight mb-3">Permissions</h1>
+         <p class="text-lg text-slate-600 leading-relaxed max-w-2xl">Your API Token needs permissions to create, update, read or delete any resource. If you do not have permissions to make a request a <code class="inline-code">4xx</code> status will be sent as response. You can manage permissions for your API Key in Project Settings > API Keys.</p>
+      </div>
 
-                   
-                </ul>
-             </div>
-          </div>
-      
-       </div>
-       
-    </article>
- </main>
+      <h2 id="consuming-webhooks" class="scroll-mt-24 text-xl font-semibold text-slate-900 mb-6 mt-12">
+         Permissions List
+      </h2>
+      <p class="text-slate-600 leading-relaxed mb-6">Here is a list of all the permissions:</p>
+
+      <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+         <ul role="list" class="m-0 divide-y divide-slate-100 p-0">
+            <% for(var i=0; i<pageData.permissions.length; i++) {%>
+               <li class="m-0 px-5 py-4 hover:bg-slate-50/50 transition-colors">
+                  <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                     <dd><code class="inline-code"><%= pageData.permissions[i].permission -%></code></dd>
+                     <dd class="font-mono text-xs text-slate-500"><%= pageData.permissions[i].title -%></dd>
+                     <dd class="w-full flex-none text-sm text-slate-600 mt-1"><%= pageData.permissions[i].description -%></dd>
+                  </dl>
+               </li>
+            <% } %>
+         </ul>
+      </div>
+   </article>
+</main>

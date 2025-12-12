@@ -4,90 +4,182 @@
    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
       rel="stylesheet">
 
-   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
-   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
    <script>hljs.highlightAll();</script>
 
+   <script src="https://cdn.tailwindcss.com"></script>
 
    <script>
       function applyStyles() {
-         applyStylesTo("h1", "font-bold text-2xl mb-5")
-         applyStylesTo("h2", "mb-5 scroll-mt-24 mt-24 font-bold text-xl")
-         applyStylesTo("h3", "mb-5 scroll-mt-24 mt-10 font-bold text-base")
-         applyStylesTo("p", "mb-5")
-         applyStylesTo("link", "text-emerald-500 hover:text-emerald-600")
-         applyStylesTo("model-inline-code", "rounded p-0.5 px-1 text-sm text-gray-50 bg-gray-600 border-2 border-gray-600 shadow")
-         applyStylesTo("inline-code", "rounded p-0.5 px-1 text-sm text-gray-500 bg-gray-100 border-2 border-gray-200")
+         applyStylesTo("h1", "font-bold text-2xl mb-6 text-slate-900 tracking-tight")
+         applyStylesTo("h2", "mb-5 scroll-mt-24 mt-16 font-semibold text-xl text-slate-900 tracking-tight")
+         applyStylesTo("h3", "mb-4 scroll-mt-24 mt-10 font-semibold text-base text-slate-800")
+         applyStylesTo("p", "mb-5 text-slate-600 leading-7")
+         applyStylesTo("link", "text-indigo-600 hover:text-indigo-700 font-medium transition-colors")
+         applyStylesTo("model-inline-code", "rounded-md py-0.5 px-1.5 text-sm font-medium text-indigo-100 bg-indigo-600 border border-indigo-600")
+         applyStylesTo("inline-code", "rounded-md py-0.5 px-1.5 text-sm font-medium text-slate-700 bg-slate-100 border border-slate-200")
       }
 
       function applyStylesTo(tagOrClassName, classList) {
-         
-         
          let elements = document.getElementsByClassName(tagOrClassName);
-
          if(elements.length === 0){
             elements = document.getElementsByTagName(tagOrClassName);
          }
-
          for (var i = 0, all = elements.length; i < all; i++) {
             classList.split(" ").map((classItem)=> {
                elements[i].classList.add(classItem);
             })
          }
       }
-
-
    </script>
 
    <style>
+      * {
+         font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      }
+
+      html {
+         scroll-behavior: smooth;
+         -webkit-font-smoothing: antialiased;
+         -moz-osx-font-smoothing: grayscale;
+      }
+
+      /* Better prose styling */
+      .prose p {
+         color: #475569;
+         line-height: 1.75;
+      }
+
+      .prose .lead {
+         font-size: 1.125rem;
+         color: #64748b;
+         line-height: 1.75;
+      }
+
+      .prose hr {
+         border-color: #e2e8f0;
+         margin-top: 2.5rem;
+         margin-bottom: 2.5rem;
+      }
+
+      .prose ul {
+         list-style: none;
+         padding: 0;
+      }
+
+      /* Syntax highlighting overrides */
       .hljs {
          color: unset;
          background-color: unset;
       }
 
       .hljs-string {
-         color: #6ee7b7
+         color: #a5b4fc;
       }
 
       .hljs-number {
-         color: #7dd3fc
+         color: #c4b5fd;
       }
 
       .hljs-punctuation {
-         color: #e5e7eb
+         color: #e2e8f0;
       }
 
       .hljs-comment {
-         color: #9ca3af
+         color: #94a3b8;
       }
 
-      .hljs-keyword{
-         color: #7dd3fc;
+      .hljs-keyword {
+         color: #a5b4fc;
          font-weight: unset;
       }
 
-      .hljs-attr{
+      .hljs-attr {
          color: #fda4af;
       }
 
-      * {
-         font-family: Inter;
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+         width: 6px;
+         height: 6px;
       }
-
-
-      input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      ::-webkit-scrollbar-track {
          background: transparent;
-         bottom: 0;
-         color: transparent;
-         cursor: pointer;
-         height: auto;
-         left: 0;
-         position: absolute;
-         right: 0;
-         top: 0;
-         width: auto;
+      }
+      ::-webkit-scrollbar-thumb {
+         background: #e2e8f0;
+         border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+         background: #cbd5e1;
       }
 
+      /* Code block copy button */
+      .code-block-wrapper {
+         position: relative;
+      }
+      .copy-btn {
+         position: absolute;
+         top: 12px;
+         right: 12px;
+         padding: 6px 12px;
+         font-size: 12px;
+         font-weight: 500;
+         color: #94a3b8;
+         background: rgba(30, 41, 59, 0.8);
+         border: 1px solid #334155;
+         border-radius: 6px;
+         cursor: pointer;
+         opacity: 0;
+         transition: all 0.15s ease;
+         z-index: 10;
+      }
+      .code-block-wrapper:hover .copy-btn {
+         opacity: 1;
+      }
+      .copy-btn:hover {
+         color: #f1f5f9;
+         background: #334155;
+         border-color: #475569;
+      }
+      .copy-btn.copied {
+         color: #a5b4fc;
+         border-color: #a5b4fc;
+      }
+
+      /* Better focus states */
+      a:focus-visible, button:focus-visible {
+         outline: 2px solid #6366f1;
+         outline-offset: 2px;
+         border-radius: 4px;
+      }
+
+      /* Smooth transitions */
+      a, button {
+         transition: all 0.15s ease;
+      }
+
+      /* Property list styling */
+      .property-item {
+         padding: 1rem 0;
+         border-bottom: 1px solid #f1f5f9;
+      }
+      .property-item:last-child {
+         border-bottom: none;
+      }
+
+      /* Endpoint card styling */
+      .endpoint-card {
+         background: linear-gradient(to right, #fafafa, white);
+         border-radius: 0.75rem;
+         padding: 1.5rem;
+         border: 1px solid #e2e8f0;
+         margin-bottom: 1.5rem;
+      }
+
+      /* Calendar picker */
+      input[type="datetime-local"]::-webkit-calendar-picker-indicator,
       input[type="date"]::-webkit-calendar-picker-indicator {
          background: transparent;
          bottom: 0;
@@ -101,7 +193,6 @@
          width: auto;
       }
    </style>
-   <script src="https://cdn.tailwindcss.com"></script>
 
    <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
 
@@ -144,7 +235,7 @@
    <meta property="og:image" content="https://oneuptime.com/img/hou-wb.svg">
 
    <meta name="twitter:card" content="summary">
-   <meta name="theme-color" content="#000000">
+   <meta name="theme-color" content="#6366f1">
    <meta name="twitter:image" content="/img/ou-wb.svg">
    <meta name="twitter:site" content="@oneuptimeinc">
    <meta name="twitter:title" content="OneUptime - One Complete Observability platform.">

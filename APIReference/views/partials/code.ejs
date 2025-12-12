@@ -1,33 +1,46 @@
-<div class="not-prose my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md  ">
-    <div class="flex min-h-[calc(theme(spacing.12)+1px)] flex-wrap items-start gap-x-4 border-b border-zinc-700 bg-zinc-800 px-4  ">
-       <h4 class="mr-auto text-xs font-semibold text-white mt-5"><%= title -%></h4>
+<div class="not-prose my-6 overflow-hidden rounded-xl bg-slate-900 shadow-lg ring-1 ring-slate-800/50 code-block-wrapper">
+    <div class="flex min-h-[calc(theme(spacing.11)+1px)] flex-wrap items-center gap-x-4 border-b border-slate-700/50 bg-slate-800/50 px-4">
+       <h4 class="mr-auto text-xs font-semibold text-slate-300 tracking-wide"><%= title -%></h4>
+       <button class="copy-btn" onclick="copyCode(this)" aria-label="Copy code">Copy</button>
     </div>
-    <div class="group ">
-      
-      
+    <div class="group">
       <% if(requestType && requestUrl){ %>
-         
-      <div class="flex h-9 items-center gap-2 border-b-white/7.5 bg-zinc-900 bg-white/2.5 px-4  ">
+      <div class="flex h-10 items-center gap-3 border-b border-slate-700/30 bg-slate-800/30 px-4">
          <% if( requestType === "GET"){ %>
-            <div class="dark flex"><span class="font-mono text-sm font-semibold leading-6 text-emerald-500 ">GET</span></div>
-          <% } %>  
+            <span class="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-400 ring-1 ring-inset ring-emerald-500/20">GET</span>
+          <% } %>
           <% if( requestType === "POST"){ %>
-            <div class="dark flex"><span class="font-mono text-sm font-semibold leading-6 text-sky-500 ">POST</span></div>
-          <% } %>  
+            <span class="inline-flex items-center rounded-md bg-indigo-500/10 px-2 py-1 text-xs font-semibold text-indigo-400 ring-1 ring-inset ring-indigo-500/20">POST</span>
+          <% } %>
           <% if( requestType === "DELETE"){ %>
-            <div class="dark flex"><span class="font-mono text-sm font-semibold leading-6 text-red-500 ">DELETE</span></div>
-          <% } %> 
+            <span class="inline-flex items-center rounded-md bg-red-500/10 px-2 py-1 text-xs font-semibold text-red-400 ring-1 ring-inset ring-red-500/20">DELETE</span>
+          <% } %>
           <% if( requestType === "PUT"){ %>
-            <div class="dark flex"><span class="font-mono text-sm font-semibold leading-6 text-amber-500 ">PUT</span></div>
-          <% } %> 
-         <span class="h-0.5 w-0.5 rounded-full bg-zinc-500"></span><span class="font-mono text-sm text-zinc-300"><%= requestUrl -%></span>
+            <span class="inline-flex items-center rounded-md bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-400 ring-1 ring-inset ring-amber-500/20">PUT</span>
+          <% } %>
+         <span class="font-mono text-sm text-slate-400"><%= requestUrl -%></span>
       </div>
-      
-       <% } %>  
+       <% } %>
        <% if(code){ %>
        <div class="relative">
-          <pre class="overflow-x-auto p-4 text-xs text-white"><code class="text-sm"><%= code -%></code></pre>
+          <pre class="overflow-x-auto p-4 text-sm text-slate-300 leading-relaxed"><code class="text-sm"><%= code -%></code></pre>
        </div>
-       <% } %>  
+       <% } %>
     </div>
- </div>
+</div>
+<script>
+function copyCode(btn) {
+   const codeBlock = btn.closest('.code-block-wrapper');
+   const code = codeBlock.querySelector('code');
+   if (code) {
+      navigator.clipboard.writeText(code.textContent).then(() => {
+         btn.textContent = 'Copied!';
+         btn.classList.add('copied');
+         setTimeout(() => {
+            btn.textContent = 'Copy';
+            btn.classList.remove('copied');
+         }, 2000);
+      });
+   }
+}
+</script>
