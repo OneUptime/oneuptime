@@ -52,14 +52,13 @@ In the "Permissions & events" section, configure the following permissions:
 |------------|--------------|---------|
 | Email addresses | Read | Read user email for notifications |
 
-### Step 3: Subscribe to Webhook Events (Optional)
+### Step 3: Subscribe to Webhook Events
 
-If you want OneUptime to receive real-time updates, subscribe to these events:
+Events for OneUptime to receive real-time updates, subscribe to these webhook events:
 
 - **Pull request** - Receive notifications when PRs are opened, closed, or merged
 - **Push** - Receive notifications when code is pushed
-- **Check run** - Receive CI/CD status updates
-- **Check suite** - Receive test suite completion notifications
+- **Workflow run** - Receive CI/CD status updates
 
 ### Step 4: Set Installation Access
 
