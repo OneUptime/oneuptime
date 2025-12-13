@@ -98,15 +98,11 @@ If you are using Docker Compose, add these environment variables to your `config
 GITHUB_APP_ID=YOUR_APP_ID
 GITHUB_APP_CLIENT_ID=YOUR_CLIENT_ID
 GITHUB_APP_CLIENT_SECRET=YOUR_CLIENT_SECRET
-GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----
-YOUR_PRIVATE_KEY_CONTENT_HERE
------END RSA PRIVATE KEY-----"
+GITHUB_APP_PRIVATE_KEY="<BASE64_ENCODED_PRIVATE_KEY_CONTENT>"
 GITHUB_APP_WEBHOOK_SECRET=YOUR_WEBHOOK_SECRET
 ```
 
-**Note:** For the private key, you can either:
-- Paste the entire key content including the BEGIN/END markers
-- Or encode it as base64 and decode it in your configuration
+**Note:** For the private key encode it as base64 and paste it without new lines if your environment does not support multi-line strings.
 
 #### Kubernetes with Helm
 
@@ -117,10 +113,7 @@ gitHubApp:
   id: "YOUR_APP_ID"
   clientId: "YOUR_CLIENT_ID"
   clientSecret: "YOUR_CLIENT_SECRET"
-  privateKey: |
-    -----BEGIN RSA PRIVATE KEY-----
-    YOUR_PRIVATE_KEY_CONTENT_HERE
-    -----END RSA PRIVATE KEY-----
+  privateKey: "<BASE64_ENCODED_PRIVATE_KEY_CONTENT>"
   webhookSecret: "YOUR_WEBHOOK_SECRET"
 ```
 
