@@ -166,37 +166,25 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push Docker images (test)
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image mcp-server \
-              --version "${{ steps.version.outputs.version }}" \
-              --dockerfile ./MCP/Dockerfile.tpl \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
-            echo "✅ Pushed test Docker images to Docker Hub and GitHub Container Registry"
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image mcp-server \
+            --version "${{ steps.version.outputs.version }}" \
+            --dockerfile ./MCP/Dockerfile.tpl \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
+          echo "✅ Pushed test Docker images to Docker Hub and GitHub Container Registry"
 
       - name: Upload MCP server artifact
         uses: actions/upload-artifact@v4
@@ -241,45 +229,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy nginx.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image nginx \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./Nginx/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image nginx \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./Nginx/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
 
   e2e-docker-image-deploy:
@@ -316,45 +288,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy e2e.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image e2e \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./E2E/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image e2e \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./E2E/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
   test-server-docker-image-deploy:
     needs: [read-version, generate-build-number]
@@ -390,45 +346,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy test-server.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image test-server \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./TestServer/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image test-server \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./TestServer/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
   otel-collector-docker-image-deploy:
     needs: [read-version, generate-build-number]
@@ -464,45 +404,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy otel-collector.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image otel-collector \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./OTelCollector/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image otel-collector \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./OTelCollector/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
   isolated-vm-docker-image-deploy:
     needs: [read-version, generate-build-number]
@@ -538,45 +462,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy isolated-vm.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image isolated-vm \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./IsolatedVM/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image isolated-vm \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./IsolatedVM/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
   home-docker-image-deploy:
     needs: [read-version, generate-build-number]
@@ -612,48 +520,32 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy isolated-vm.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image home \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./Home/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image home \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./Home/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
-  
-  
+
+
   status-page-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
@@ -688,45 +580,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy status-page.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image status-page \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./StatusPage/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image status-page \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./StatusPage/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
 
 
@@ -764,45 +640,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy test.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image test \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./Tests/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image test \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./Tests/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
   probe-ingest-docker-image-deploy:
     needs: [read-version, generate-build-number]
@@ -838,45 +698,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy probe-ingest.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image probe-ingest \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./ProbeIngest/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image probe-ingest \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./ProbeIngest/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
 
 
@@ -914,47 +758,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy ServerMonitorIngest.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image server-monitor-ingest \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./ServerMonitorIngest/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
-          
-            
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image server-monitor-ingest \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./ServerMonitorIngest/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
 
   incoming-request-ingest-docker-image-deploy:
@@ -991,45 +817,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy incoming-request-ingest.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image incoming-request-ingest \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./IncomingRequestIngest/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image incoming-request-ingest \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./IncomingRequestIngest/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
   telemetry-docker-image-deploy:
     needs: [read-version, generate-build-number]
@@ -1065,45 +875,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy incoming-request-ingest.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image telemetry \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./Telemetry/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image telemetry \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./Telemetry/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
   probe-docker-image-deploy:
     needs: [read-version, generate-build-number]
@@ -1139,45 +933,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy probe.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image probe \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./Probe/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image probe \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./Probe/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
   dashboard-docker-image-deploy:
     needs: [read-version, generate-build-number]
@@ -1213,45 +991,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy dashboard.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image dashboard \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./Dashboard/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image dashboard \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./Dashboard/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
   admin-dashboard-docker-image-deploy:
     needs: [read-version, generate-build-number]
@@ -1287,45 +1049,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy admin-dashboard.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image admin-dashboard \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./AdminDashboard/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image admin-dashboard \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./AdminDashboard/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
   app-docker-image-deploy:
     needs: [read-version, generate-build-number]
@@ -1361,49 +1107,33 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy app.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image app \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./App/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image app \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./App/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
-  
-  
-  
+
+
+
   api-reference-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
@@ -1438,47 +1168,30 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy app.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image api-reference \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./APIReference/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image api-reference \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./APIReference/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
-  
 
   accounts-docker-image-deploy:
     needs: [read-version, generate-build-number]
@@ -1514,45 +1227,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy accounts.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image accounts \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./Accounts/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image accounts \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./Accounts/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
   worker-docker-image-deploy:
     needs: [read-version, generate-build-number]
@@ -1588,47 +1285,31 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy accounts.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image worker \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./Worker/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image worker \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./Worker/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
-  
+
   workflow-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
@@ -1663,47 +1344,31 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy accounts.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image workflow \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./Workflow/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image workflow \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./Workflow/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
 
-    
+
   docs-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
@@ -1738,46 +1403,30 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate Dockerfile from Dockerfile.tpl
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
+        run: npm run prerun
 
       # Build and deploy accounts.
 
       - name: Login to Docker Hub
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Login to GitHub Container Registry
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
       - name: Build and push
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            bash ./Scripts/GHA/build_docker_images.sh \
-              --image docs \
-              --version "${{needs.read-version.outputs.major_minor}}-test" \
-              --dockerfile ./Docs/Dockerfile \
-              --context . \
-              --platforms linux/amd64,linux/arm64 \
-              --git-sha "${{ github.sha }}" \
-              --extra-tags test \
-              --extra-enterprise-tags enterprise-test
-  
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image docs \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./Docs/Dockerfile \
+            --context . \
+            --platforms linux/amd64,linux/arm64 \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags test \
+            --extra-enterprise-tags enterprise-test
+
   publish-terraform-provider:
     runs-on: ubuntu-latest
     needs: [read-version, generate-build-number]
@@ -1867,15 +1516,10 @@ jobs:
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
       - name: Run E2E Tests. Run docker container e2e in docker compose file
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 90
-          max_attempts: 3
-          on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
-          command: |
-            export $(grep -v '^#' config.env | xargs)
-            export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
-            docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
+        run: |
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
+          docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
         # Run this on failure
@@ -1884,20 +1528,20 @@ jobs:
           # Name of the artifact to upload.
           # Optional. Default is 'artifact'
           name: test-results-${{ github.job }}-${{ github.run_attempt }}
-      
+
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
           path: |
             ./E2E
-      
-        
+
+
           # Duration after which artifact will expire in days. 0 means using default retention.
           # Minimum 1 day.
           # Maximum 90 days unless changed from the repository settings page.
           # Optional. Defaults to repository settings.
           retention-days: 7
-    
-    
+
+
   test-e2e-test-self-hosted: 
     runs-on: ubuntu-latest
     # After all the jobs runs
@@ -1949,15 +1593,10 @@ jobs:
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
       - name: Run E2E Tests. Run docker container e2e in docker compose file
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 90
-          max_attempts: 3
-          on_retry_command: docker compose -f docker-compose.dev.yml down -v || true
-          command: |
-            export $(grep -v '^#' config.env | xargs)
-            export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
-            docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
+        run: |
+          export $(grep -v '^#' config.env | xargs)
+          export APP_TAG=${{needs.read-version.outputs.major_minor}}-test
+          docker compose -f docker-compose.dev.yml up --exit-code-from e2e --abort-on-container-exit e2e || (docker compose -f docker-compose.dev.yml logs e2e && exit 1)
       - name: Upload test results
         uses: actions/upload-artifact@v4
         # Run this on failure
@@ -1966,13 +1605,13 @@ jobs:
           # Name of the artifact to upload.
           # Optional. Default is 'artifact'
           name: test-results-${{ github.job }}-${{ github.run_attempt }}
-      
+
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
           path: |
             ./E2E
-      
-        
+
+
           # Duration after which artifact will expire in days. 0 means using default retention.
           # Minimum 1 day.
           # Maximum 90 days unless changed from the repository settings page.
