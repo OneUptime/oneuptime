@@ -10,6 +10,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import React, { FunctionComponent, ReactElement } from "react";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 
 const CodeRepositoryPage: FunctionComponent<
   PageComponentProps
@@ -31,12 +32,27 @@ const CodeRepositoryPage: FunctionComponent<
       }}
       showViewIdButton={true}
       noItemsMessage={"No repositories connected."}
+      formSteps={[
+        {
+          title: "Basic Info",
+          id: "basic-info",
+        } as FormStep<CodeRepository>,
+        {
+          title: "Repository Details",
+          id: "repository-details",
+        } as FormStep<CodeRepository>,
+        {
+          title: "Labels",
+          id: "labels",
+        } as FormStep<CodeRepository>,
+      ]}
       formFields={[
         {
           field: {
             name: true,
           },
           title: "Name",
+          stepId: "basic-info",
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "Repository Name",
@@ -49,6 +65,7 @@ const CodeRepositoryPage: FunctionComponent<
             description: true,
           },
           title: "Description",
+          stepId: "basic-info",
           fieldType: FormFieldSchemaType.LongText,
           required: false,
           placeholder: "Description",
@@ -58,6 +75,7 @@ const CodeRepositoryPage: FunctionComponent<
             repositoryHostedAt: true,
           },
           title: "Repository Host",
+          stepId: "repository-details",
           description: "Where is this repository hosted?",
           fieldType: FormFieldSchemaType.Dropdown,
           required: true,
@@ -70,6 +88,7 @@ const CodeRepositoryPage: FunctionComponent<
             organizationName: true,
           },
           title: "Organization / Username",
+          stepId: "repository-details",
           description:
             "The GitHub organization or username that owns the repository.",
           fieldType: FormFieldSchemaType.Text,
@@ -81,6 +100,7 @@ const CodeRepositoryPage: FunctionComponent<
             repositoryName: true,
           },
           title: "Repository Name",
+          stepId: "repository-details",
           description: "The name of the repository.",
           fieldType: FormFieldSchemaType.Text,
           required: true,
@@ -91,11 +111,29 @@ const CodeRepositoryPage: FunctionComponent<
             mainBranchName: true,
           },
           title: "Main Branch",
+          stepId: "repository-details",
           description:
             "The main branch of the repository (e.g., main, master).",
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "main",
+        },
+        {
+          field: {
+            labels: true,
+          },
+          title: "Labels",
+          stepId: "labels",
+          description:
+            "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: Label,
+            labelField: "name",
+            valueField: "_id",
+          },
+          required: false,
+          placeholder: "Labels",
         },
       ]}
       showRefreshButton={true}
