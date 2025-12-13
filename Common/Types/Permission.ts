@@ -624,6 +624,11 @@ enum Permission {
   EditServiceCatalogTelemetryService = "EditServiceCatalogTelemetryService",
   ReadServiceCatalogTelemetryService = "ReadServiceCatalogTelemetryService",
 
+  CreateServiceCatalogCodeRepository = "CreateServiceCatalogCodeRepository",
+  DeleteServiceCatalogCodeRepository = "DeleteServiceCatalogCodeRepository",
+  EditServiceCatalogCodeRepository = "EditServiceCatalogCodeRepository",
+  ReadServiceCatalogCodeRepository = "ReadServiceCatalogCodeRepository",
+
   // Code Repository
   CreateCodeRepository = "CreateCodeRepository",
   DeleteCodeRepository = "DeleteCodeRepository",
@@ -3419,6 +3424,39 @@ export class PermissionHelper {
         title: "Read Service Catalog Telemetry Service",
         description:
           "This permission can read Service Catalog Telemetry Service of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateServiceCatalogCodeRepository,
+        title: "Create Service Catalog Code Repository",
+        description:
+          "This permission can create Service Catalog Code Repository in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteServiceCatalogCodeRepository,
+        title: "Delete Service Catalog Code Repository",
+        description:
+          "This permission can delete Service Catalog Code Repository of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditServiceCatalogCodeRepository,
+        title: "Edit Service Catalog Code Repository",
+        description:
+          "This permission can edit Service Catalog Code Repository of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadServiceCatalogCodeRepository,
+        title: "Read Service Catalog Code Repository",
+        description:
+          "This permission can read Service Catalog Code Repository of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

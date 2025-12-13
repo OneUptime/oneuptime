@@ -96,6 +96,7 @@ import ScheduledMaintenanceStateTimeline from "./ScheduledMaintenanceStateTimeli
 import ServiceCatalog from "./ServiceCatalog";
 import ServiceCatalogOwnerTeam from "./ServiceCatalogOwnerTeam";
 import ServiceCatalogOwnerUser from "./ServiceCatalogOwnerUser";
+import ServiceCatalogCodeRepository from "./ServiceCatalogCodeRepository";
 import CodeRepository from "./CodeRepository";
 // Short link.
 import ShortLink from "./ShortLink";
@@ -369,6 +370,7 @@ const AllModelTypes: Array<{
   ServiceCatalogDependency,
   ServiceCatalogMonitor,
   ServiceCatalogTelemetryService,
+  ServiceCatalogCodeRepository,
 
   // Code Repository
   CodeRepository,

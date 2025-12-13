@@ -28,6 +28,12 @@ export function getCodeRepositoryBreadcrumbs(
       "View Repository",
       "Settings",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CODE_REPOSITORY_VIEW_SERVICES, [
+      "Project",
+      "Code Repositories",
+      "View Repository",
+      "Service Catalog",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

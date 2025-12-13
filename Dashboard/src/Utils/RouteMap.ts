@@ -44,12 +44,14 @@ export const ServiceCatalogRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_CATALOG_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.SERVICE_CATALOG_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.SERVICE_CATALOG_VIEW_TELEMETRY_SERVICES]: `${RouteParams.ModelID}/telemetry-service`,
+  [PageMap.SERVICE_CATALOG_VIEW_CODE_REPOSITORIES]: `${RouteParams.ModelID}/code-repositories`,
 };
 
 export const CodeRepositoryRoutePath: Dictionary<string> = {
   [PageMap.CODE_REPOSITORY_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.CODE_REPOSITORY_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.CODE_REPOSITORY_VIEW_SERVICES]: `${RouteParams.ModelID}/services`,
 };
 
 export const WorkflowRoutePath: Dictionary<string> = {
@@ -914,6 +916,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SERVICE_CATALOG_VIEW_CODE_REPOSITORIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service-catalog/${
+      ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW_CODE_REPOSITORIES]
+    }`,
+  ),
+
   // Code Repository
 
   [PageMap.CODE_REPOSITORY_ROOT]: new Route(
@@ -939,6 +947,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/code-repository/${
       CodeRepositoryRoutePath[PageMap.CODE_REPOSITORY_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.CODE_REPOSITORY_VIEW_SERVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/code-repository/${
+      CodeRepositoryRoutePath[PageMap.CODE_REPOSITORY_VIEW_SERVICES]
     }`,
   ),
 

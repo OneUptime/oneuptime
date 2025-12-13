@@ -28,6 +28,17 @@ const CodeRepositorySideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
+
+        <SideMenuItem
+          link={{
+            title: "Service Catalog",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CODE_REPOSITORY_VIEW_SERVICES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.SquareStack}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">

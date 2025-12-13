@@ -76,6 +76,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Cube}
         />
+
+        <SideMenuItem
+          link={{
+            title: "Code Repositories",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SERVICE_CATALOG_VIEW_CODE_REPOSITORIES
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Code}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Operations">

@@ -41,6 +41,12 @@ const CodeRepositoryViewSettings: LazyExoticComponent<
   return import("../Pages/CodeRepository/View/Settings");
 });
 
+const CodeRepositoryViewServiceCatalogs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/CodeRepository/View/ServiceCatalogs");
+});
+
 const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -102,6 +108,22 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.CODE_REPOSITORY_VIEW_SETTINGS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CODE_REPOSITORY_VIEW_SERVICES,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <CodeRepositoryViewServiceCatalogs
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.CODE_REPOSITORY_VIEW_SERVICES] as Route
                 }
               />
             </Suspense>
