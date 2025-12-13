@@ -215,6 +215,9 @@ import ProjectSmtpConfigService, {
 import PromoCodeService, {
   Service as PromoCodeServiceType,
 } from "Common/Server/Services/PromoCodeService";
+import CodeRepositoryService, {
+  Service as CodeRepositoryServiceType,
+} from "Common/Server/Services/CodeRepositoryService";
 import ResellerService, {
   Service as ResellerServiceType,
 } from "Common/Server/Services/ResellerService";
@@ -418,6 +421,7 @@ import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCa
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import PromoCode from "Common/Models/DatabaseModels/PromoCode";
+import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
@@ -1760,6 +1764,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<PromoCode, PromoCodeServiceType>(
         PromoCode,
         PromoCodeService,
+      ).getRouter(),
+    );
+
+    // Code Repository
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CodeRepository, CodeRepositoryServiceType>(
+        CodeRepository,
+        CodeRepositoryService,
       ).getRouter(),
     );
 
