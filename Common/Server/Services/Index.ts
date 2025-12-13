@@ -87,6 +87,7 @@ import ServiceCatalogOwnerUserService from "./ServiceCatalogOwnerUserService";
 import ServiceCatalogService from "./ServiceCatalogService";
 import ServiceCatalogMonitorService from "./ServiceCatalogMonitorService";
 import ServiceCatalogTelemetryServiceService from "./ServiceCatalogTelemetryServiceService";
+import ServiceCatalogCodeRepositoryService from "./ServiceCatalogCodeRepositoryService";
 import ShortLinkService from "./ShortLinkService";
 // SMS Log Service
 import SmsLogService from "./SmsLogService";
@@ -321,6 +322,7 @@ const services: Array<BaseService> = [
   ServiceCatalogDependencyService,
   ServiceCatalogMonitorService,
   ServiceCatalogTelemetryServiceService,
+  ServiceCatalogCodeRepositoryService,
 
   TelemetryExceptionService,
 

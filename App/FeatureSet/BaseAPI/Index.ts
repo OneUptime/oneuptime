@@ -264,6 +264,11 @@ import ServiceCatalogTelemetryServiceService, {
   Service as ServiceCatalogTelemetryServiceServiceType,
 } from "Common/Server/Services/ServiceCatalogTelemetryServiceService";
 
+import ServiceCatalogCodeRepository from "Common/Models/DatabaseModels/ServiceCatalogCodeRepository";
+import ServiceCatalogCodeRepositoryService, {
+  Service as ServiceCatalogCodeRepositoryServiceType,
+} from "Common/Server/Services/ServiceCatalogCodeRepositoryService";
+
 import ShortLinkService, {
   Service as ShortLinkServiceType,
 } from "Common/Server/Services/ShortLinkService";
@@ -1003,6 +1008,17 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         ServiceCatalogTelemetryService,
         ServiceCatalogTelemetryServiceService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceCatalogCodeRepository,
+        ServiceCatalogCodeRepositoryServiceType
+      >(
+        ServiceCatalogCodeRepository,
+        ServiceCatalogCodeRepositoryService,
       ).getRouter(),
     );
 
