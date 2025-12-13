@@ -465,8 +465,36 @@ export const GitHubAppClientId: string | null =
   process.env["GITHUB_APP_CLIENT_ID"] || null;
 export const GitHubAppClientSecret: string | null =
   process.env["GITHUB_APP_CLIENT_SECRET"] || null;
-export const GitHubAppPrivateKey: string | null =
-  process.env["GITHUB_APP_PRIVATE_KEY"] || null;
+
+// Helper function to decode base64 private key if needed
+const decodePrivateKey = (key: string | undefined): string | null => {
+  if (!key) {
+    return null;
+  }
+
+  // If it starts with "-----BEGIN", it's already in PEM format
+  if (key.trim().startsWith("-----BEGIN")) {
+    return key;
+  }
+
+  // Otherwise, assume it's base64 encoded and decode it
+  try {
+    const decoded: string = Buffer.from(key, "base64").toString("utf-8");
+    // Verify it's a valid PEM key after decoding
+    if (decoded.trim().startsWith("-----BEGIN")) {
+      return decoded;
+    }
+    // If decoding doesn't produce a valid PEM, return original value
+    return key;
+  } catch {
+    // If decoding fails, return the original value
+    return key;
+  }
+};
+
+export const GitHubAppPrivateKey: string | null = decodePrivateKey(
+  process.env["GITHUB_APP_PRIVATE_KEY"],
+);
 export const GitHubAppWebhookSecret: string | null =
   process.env["GITHUB_APP_WEBHOOK_SECRET"] || null;
 
