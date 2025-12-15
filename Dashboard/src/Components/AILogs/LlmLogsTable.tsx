@@ -15,6 +15,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Query from "Common/Types/BaseDatabase/Query";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
+import { BILLING_ENABLED } from "Common/UI/Config";
 
 export interface LlmLogsTableProps {
   query?: Query<LlmLog>;
@@ -87,19 +88,24 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
       title: "Output Tokens",
       type: FieldType.Number,
     },
-    {
-      field: { costInUSDCents: true },
-      title: "Cost (USD)",
-      type: FieldType.Text,
-      getElement: (item: LlmLog): ReactElement => {
-        const cents = item["costInUSDCents"] as number;
-        if (cents === undefined || cents === null) {
-          return <p>-</p>;
-        }
-        const usd = cents / 100;
-        return <p>${usd.toFixed(4)}</p>;
-      },
-    },
+    // Only show cost column if billing is enabled
+    ...(BILLING_ENABLED
+      ? [
+          {
+            field: { costInUSDCents: true },
+            title: "Cost (USD)",
+            type: FieldType.Text,
+            getElement: (item: LlmLog): ReactElement => {
+              const cents = item["costInUSDCents"] as number;
+              if (cents === undefined || cents === null) {
+                return <p>-</p>;
+              }
+              const usd = cents / 100;
+              return <p>${usd.toFixed(4)}</p>;
+            },
+          },
+        ]
+      : []),
     {
       field: { createdAt: true },
       title: "Time",
