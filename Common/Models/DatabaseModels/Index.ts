@@ -73,6 +73,7 @@ import Probe from "./Probe";
 import ProbeOwnerTeam from "./ProbeOwnerTeam";
 import ProbeOwnerUser from "./ProbeOwnerUser";
 import LlmProvider from "./LlmProvider";
+import LlmLog from "./LlmLog";
 import Project from "./Project";
 import ProjectCallSMSConfig from "./ProjectCallSMSConfig";
 // Project SMTP Config.
@@ -379,6 +380,7 @@ const AllModelTypes: Array<{
   ProbeOwnerUser,
 
   LlmProvider,
+  LlmLog,
 
   UserSession,
   UserTotpAuth,

@@ -83,6 +83,10 @@ const Settings: FunctionComponent = (): ReactElement => {
             title: "Provider Settings",
             id: "provider-settings",
           },
+          {
+            title: "Cost Settings",
+            id: "cost-settings",
+          },
         ]}
         formFields={[
           {
@@ -156,6 +160,18 @@ const Settings: FunctionComponent = (): ReactElement => {
             description:
               "Required for Ollama. Optional for others to use custom endpoints.",
           },
+          {
+            field: {
+              costPerMillionTokensInUSDCents: true,
+            },
+            title: "Cost Per Million Tokens (USD Cents)",
+            stepId: "cost-settings",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "0",
+            description:
+              "Cost per million tokens in USD cents. For example, if the cost is $0.01 per 1M tokens, enter 1.",
+          },
         ]}
         selectMoreFields={{
           apiKey: true,
@@ -205,6 +221,14 @@ const Settings: FunctionComponent = (): ReactElement => {
             title: "Model",
             type: FieldType.Text,
             noValueMessage: "-",
+          },
+          {
+            field: {
+              costPerMillionTokensInUSDCents: true,
+            },
+            title: "Cost (cents/1M)",
+            type: FieldType.Number,
+            noValueMessage: "0",
           },
         ]}
       />

@@ -108,10 +108,14 @@ export class Service extends DatabaseService<Model> {
         isDefault: true,
       },
       select: {
+        _id: true,
+        name: true,
         llmType: true,
         apiKey: true,
         baseUrl: true,
         modelName: true,
+        isGlobalLlm: true,
+        costPerMillionTokensInUSDCents: true,
       },
       props: {
         isRoot: true,
@@ -129,10 +133,14 @@ export class Service extends DatabaseService<Model> {
         isGlobalLlm: true,
       },
       select: {
+        _id: true,
+        name: true,
         llmType: true,
         apiKey: true,
         baseUrl: true,
         modelName: true,
+        isGlobalLlm: true,
+        costPerMillionTokensInUSDCents: true,
       },
       props: {
         isRoot: true,

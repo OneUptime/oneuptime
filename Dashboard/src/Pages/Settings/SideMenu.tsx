@@ -373,6 +373,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
               },
             ]
           : []),
+        {
+          link: {
+            title: "AI Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AI_LOGS] as Route,
+            ),
+          },
+          icon: IconProp.Bolt,
+        },
       ],
     },
     {

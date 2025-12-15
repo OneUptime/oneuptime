@@ -16,13 +16,11 @@ import {
 } from "../Utils/Express";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import LLMService, { LLMProviderConfig } from "../Utils/LLM/LLMService";
+import AILogService from "../Services/AILogService";
 import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
 } from "../Utils/AI/IncidentAIContextBuilder";
-import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
-import LlmProviderService from "../Services/LlmProviderService";
 import JSONFunctions from "../../Types/JSONFunctions";
 import Permission from "../../Types/Permission";
 
@@ -195,22 +193,6 @@ export default class IncidentAPI extends BaseAPI<
       throw new NotFoundException("Incident not found");
     }
 
-    // Get LLM provider for the project
-    const llmProvider: LlmProvider | null =
-      await LlmProviderService.getLLMProviderForProject(incident.projectId);
-
-    if (!llmProvider) {
-      throw new BadDataException(
-        "No LLM provider configured for this project. Please configure an LLM provider in Settings > AI > LLM Providers.",
-      );
-    }
-
-    if (!llmProvider.llmType) {
-      throw new BadDataException(
-        "LLM provider type is not configured properly.",
-      );
-    }
-
     // Build incident context
     const contextData: IncidentContextData =
       await IncidentAIContextBuilder.buildIncidentContext({
@@ -226,25 +208,12 @@ export default class IncidentAPI extends BaseAPI<
         template,
       );
 
-    // Generate postmortem using LLM
-    const llmConfig: LLMProviderConfig = {
-      llmType: llmProvider.llmType,
-    };
-
-    if (llmProvider.apiKey) {
-      llmConfig.apiKey = llmProvider.apiKey;
-    }
-
-    if (llmProvider.baseUrl) {
-      llmConfig.baseUrl = llmProvider.baseUrl.toString();
-    }
-
-    if (llmProvider.modelName) {
-      llmConfig.modelName = llmProvider.modelName;
-    }
-
-    const response = await LLMService.getCompletion({
-      llmProviderConfig: llmConfig,
+    // Generate postmortem using AILogService (handles billing and logging)
+    const response = await AILogService.executeWithLogging({
+      projectId: incident.projectId,
+      userId: props.userId,
+      feature: "Incident Postmortem",
+      incidentId: incidentId,
       messages: aiContext.messages,
       maxTokens: 8192,
       temperature: 0.7,

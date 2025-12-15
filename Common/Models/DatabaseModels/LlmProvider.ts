@@ -462,4 +462,25 @@ export default class LlmProvider extends BaseModel {
     default: false,
   })
   public isDefault?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.Public],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Number,
+    title: "Cost Per Million Tokens (USD Cents)",
+    description:
+      "Cost per million tokens in USD cents. Used for billing when using global LLM providers.",
+    defaultValue: 0,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 0,
+  })
+  public costPerMillionTokensInUSDCents?: number = undefined;
 }
