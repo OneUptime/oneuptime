@@ -36,7 +36,6 @@ export interface LLMProviderConfig {
   apiKey?: string;
   baseUrl?: string;
   modelName?: string;
-  
 }
 
 export default class LLMService {

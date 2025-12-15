@@ -3098,9 +3098,7 @@ All monitoring checks are passing normally.`;
         });
 
       if (!projectAuth || !projectAuth.miscData) {
-        logger.error(
-          "Microsoft Teams integration not found for this project",
-        );
+        logger.error("Microsoft Teams integration not found for this project");
         return messages;
       }
 
@@ -3207,7 +3205,11 @@ All monitoring checks are passing normally.`;
 
         nextLink = jsonData["@odata.nextLink"] as string;
         pageCount++;
-      } while (nextLink && messages.length < maxMessages && pageCount < maxPages);
+      } while (
+        nextLink &&
+        messages.length < maxMessages &&
+        pageCount < maxPages
+      );
 
       logger.debug(
         `Retrieved ${messages.length} messages from Microsoft Teams channel ${params.channelId}`,

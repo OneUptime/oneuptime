@@ -7,9 +7,7 @@ import IncidentService from "../../Services/IncidentService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentInternalNoteService from "../../Services/IncidentInternalNoteService";
 import IncidentPublicNoteService from "../../Services/IncidentPublicNoteService";
-import WorkspaceUtil, {
-  WorkspaceChannelMessage,
-} from "../Workspace/Workspace";
+import WorkspaceUtil, { WorkspaceChannelMessage } from "../Workspace/Workspace";
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import logger from "../Logger";
@@ -166,10 +164,9 @@ export default class IncidentAIContextBuilder {
 
     const workspaceChannels:
       | Array<NotificationRuleWorkspaceChannel>
-      | undefined =
-      incident.postUpdatesToWorkspaceChannels as
-        | Array<NotificationRuleWorkspaceChannel>
-        | undefined;
+      | undefined = incident.postUpdatesToWorkspaceChannels as
+      | Array<NotificationRuleWorkspaceChannel>
+      | undefined;
 
     if (
       data.includeWorkspaceMessages &&
@@ -215,8 +212,13 @@ export default class IncidentAIContextBuilder {
     contextData: IncidentContextData,
     template?: string,
   ): AIGenerationContext {
-    const { incident, stateTimeline, internalNotes, publicNotes, workspaceMessages } =
-      contextData;
+    const {
+      incident,
+      stateTimeline,
+      internalNotes,
+      publicNotes,
+      workspaceMessages,
+    } = contextData;
 
     let contextText: string = "";
 
@@ -321,14 +323,11 @@ export default class IncidentAIContextBuilder {
     // Workspace messages (Slack/Teams)
     if (workspaceMessages.length > 0) {
       contextText += "# Discussion from Incident Channel\n\n";
-      contextText += WorkspaceUtil.formatMessagesAsContext(
-        workspaceMessages,
-        {
-          includeTimestamp: true,
-          includeUsername: true,
-          maxLength: 30000,
-        },
-      );
+      contextText += WorkspaceUtil.formatMessagesAsContext(workspaceMessages, {
+        includeTimestamp: true,
+        includeUsername: true,
+        maxLength: 30000,
+      });
       contextText += "\n\n";
     }
 

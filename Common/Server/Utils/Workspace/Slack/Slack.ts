@@ -1982,9 +1982,9 @@ export default class SlackUtil extends WorkspaceBase {
         let text: string = (msg["text"] as string) || "";
 
         // If there are attachments, append their text
-        const attachments: Array<JSONObject> | undefined = msg["attachments"] as
-          | Array<JSONObject>
-          | undefined;
+        const attachments: Array<JSONObject> | undefined = msg[
+          "attachments"
+        ] as Array<JSONObject> | undefined;
         if (attachments && Array.isArray(attachments)) {
           for (const attachment of attachments) {
             if (attachment && attachment["text"]) {

@@ -117,7 +117,8 @@ const IncidentPostmortem: FunctionComponent<
     useState<boolean>(false);
   const [templateInitialValues, setTemplateInitialValues] =
     useState<FormValues<Incident> | null>(null);
-  const [showAIGenerateModal, setShowAIGenerateModal] = useState<boolean>(false);
+  const [showAIGenerateModal, setShowAIGenerateModal] =
+    useState<boolean>(false);
   const [aiTemplates, setAiTemplates] = useState<
     Array<{ id: string; name: string; content?: string }>
   >([]);
@@ -244,10 +245,11 @@ const IncidentPostmortem: FunctionComponent<
 
         const templates: Array<{ id: string; name: string; content?: string }> =
           listResult.data.map((template: IncidentPostmortemTemplate) => {
-            const templateItem: { id: string; name: string; content?: string } = {
-              id: template._id?.toString() || "",
-              name: template.templateName || "Unnamed Template",
-            };
+            const templateItem: { id: string; name: string; content?: string } =
+              {
+                id: template._id?.toString() || "",
+                name: template.templateName || "Unnamed Template",
+              };
             if (template.postmortemNote) {
               templateItem.content = template.postmortemNote;
             }
@@ -268,7 +270,9 @@ const IncidentPostmortem: FunctionComponent<
 
   const handleGeneratePostmortemFromAI: (
     data: GenerateAIRequestData,
-  ) => Promise<string> = async (data: GenerateAIRequestData): Promise<string> => {
+  ) => Promise<string> = async (
+    data: GenerateAIRequestData,
+  ): Promise<string> => {
     const apiUrl: URL = URL.fromString(
       APP_API_URL.toString() +
         `/incident/generate-postmortem-from-ai/${modelId.toString()}`,
@@ -286,8 +290,9 @@ const IncidentPostmortem: FunctionComponent<
       throw new Error(API.getFriendlyMessage(response));
     }
 
-    const postmortemNote: string =
-      (response.data as JSONObject)["postmortemNote"] as string;
+    const postmortemNote: string = (response.data as JSONObject)[
+      "postmortemNote"
+    ] as string;
 
     if (!postmortemNote) {
       throw new Error("Failed to generate postmortem note from AI.");

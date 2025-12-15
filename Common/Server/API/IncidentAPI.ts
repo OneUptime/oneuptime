@@ -151,10 +151,10 @@ export default class IncidentAPI extends BaseAPI<
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
     // Verify user has permission to edit the incident
-    const permissions: Array<Permission> | undefined =
-      props.userTenantAccessPermission?.["permissions"] as
-        | Array<Permission>
-        | undefined;
+    const permissions: Array<Permission> | undefined = props
+      .userTenantAccessPermission?.["permissions"] as
+      | Array<Permission>
+      | undefined;
 
     const hasPermission: boolean = permissions
       ? permissions.some((p: Permission) => {
@@ -221,7 +221,10 @@ export default class IncidentAPI extends BaseAPI<
 
     // Format context for postmortem generation
     const aiContext: AIGenerationContext =
-      IncidentAIContextBuilder.formatIncidentContextForPostmortem(contextData, template);
+      IncidentAIContextBuilder.formatIncidentContextForPostmortem(
+        contextData,
+        template,
+      );
 
     // Generate postmortem using LLM
     const llmConfig: LLMProviderConfig = {
@@ -249,7 +252,6 @@ export default class IncidentAPI extends BaseAPI<
 
     return Response.sendJsonObjectResponse(req, res, {
       postmortemNote: response.content,
-
     });
   }
 }
