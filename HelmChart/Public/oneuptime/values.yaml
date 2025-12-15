@@ -75,6 +75,8 @@ nginx:
     https: 443
   service:
     loadBalancerIP:
+    loadBalancerClass:
+    annotations:
     type: LoadBalancer
     externalIPs:
       # - 51.158.55.153 # Please make sure this is the same as the one in metalLb.ipAdddressPool.addresses
