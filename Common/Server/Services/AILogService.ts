@@ -160,8 +160,6 @@ export class Service extends BaseService {
 
       // Update log with success info
       logEntry.status = LlmLogStatus.Success;
-      logEntry.inputTokens = response.usage?.promptTokens || 0;
-      logEntry.outputTokens = response.usage?.completionTokens || 0;
       logEntry.totalTokens = response.usage?.totalTokens || 0;
       logEntry.responsePreview = response.content.substring(0, 2000); // Store first 2000 chars
       logEntry.requestCompletedAt = endTime;

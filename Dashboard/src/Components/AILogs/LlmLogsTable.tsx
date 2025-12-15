@@ -79,13 +79,8 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
       },
     },
     {
-      field: { inputTokens: true },
-      title: "Input Tokens",
-      type: FieldType.Number,
-    },
-    {
-      field: { outputTokens: true },
-      title: "Output Tokens",
+      field: { totalTokens: true },
+      title: "Tokens Used",
       type: FieldType.Number,
     },
     // Only show cost column if billing is enabled

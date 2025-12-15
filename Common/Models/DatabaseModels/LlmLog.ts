@@ -278,59 +278,7 @@ export default class LlmLog extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.Number,
-    title: "Input Tokens",
-    description: "Number of input (prompt) tokens used",
-    canReadOnRelationQuery: false,
-    isDefaultValueColumn: true,
-    defaultValue: 0,
-  })
-  @Column({
-    nullable: false,
-    default: 0,
-    type: ColumnType.Number,
-  })
-  public inputTokens?: number = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadLlmLog,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    required: true,
-    type: TableColumnType.Number,
-    title: "Output Tokens",
-    description: "Number of output (completion) tokens used",
-    canReadOnRelationQuery: false,
-    isDefaultValueColumn: true,
-    defaultValue: 0,
-  })
-  @Column({
-    nullable: false,
-    default: 0,
-    type: ColumnType.Number,
-  })
-  public outputTokens?: number = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadLlmLog,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    required: true,
-    type: TableColumnType.Number,
-    title: "Total Tokens",
+    title: "Tokens Used",
     description: "Total tokens used (input + output)",
     canReadOnRelationQuery: false,
     isDefaultValueColumn: true,
