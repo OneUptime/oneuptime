@@ -3,6 +3,7 @@ import BaseService from "./BaseService";
 import LlmProviderService from "./LlmProviderService";
 import LlmLogService from "./LlmLogService";
 import ProjectService from "./ProjectService";
+import Project from "../../Models/DatabaseModels/Project";
 import AIBillingService from "./AIBillingService";
 import LLMService, {
   LLMProviderConfig,
@@ -106,7 +107,7 @@ export class Service extends BaseService {
 
     // Check balance if billing enabled and using global provider
     if (shouldBill) {
-      const project = await ProjectService.findOneById({
+      const project: Project | null = await ProjectService.findOneById({
         id: request.projectId,
         select: { aiCurrentBalanceInUSDCents: true },
         props: { isRoot: true },
@@ -178,7 +179,7 @@ export class Service extends BaseService {
 
         // Deduct from project balance
         if (totalCost > 0) {
-          const project = await ProjectService.findOneById({
+          const project: Project | null = await ProjectService.findOneById({
             id: request.projectId,
             select: { aiCurrentBalanceInUSDCents: true },
             props: { isRoot: true },
@@ -210,7 +211,7 @@ export class Service extends BaseService {
       }
 
       // Save log entry
-      const savedLog = await LlmLogService.create({
+      const savedLog: LlmLog = await LlmLogService.create({
         data: logEntry,
         props: { isRoot: true },
       });

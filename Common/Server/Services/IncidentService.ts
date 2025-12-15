@@ -65,7 +65,10 @@ import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import Dictionary from "../../Types/Dictionary";
 import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
-import LLMService, { LLMProviderConfig } from "../Utils/LLM/LLMService";
+import LLMService, {
+  LLMProviderConfig,
+  LLMCompletionResponse,
+} from "../Utils/LLM/LLMService";
 import LlmProviderService from "./LlmProviderService";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import IncidentAIContextBuilder, {
@@ -2465,7 +2468,7 @@ ${incidentSeverity.name}
       llmConfig.modelName = llmProvider.modelName;
     }
 
-    const response = await LLMService.getCompletion({
+    const response: LLMCompletionResponse = await LLMService.getCompletion({
       llmProviderConfig: llmConfig,
       messages: aiContext.messages,
       maxTokens: 8192,

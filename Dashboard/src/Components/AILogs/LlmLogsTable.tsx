@@ -4,6 +4,7 @@ import LlmLog from "Common/Models/DatabaseModels/LlmLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import Pill from "Common/UI/Components/Pill/Pill";
+import Color from "Common/Types/Color";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import LlmLogStatus from "Common/Types/LlmLogStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -102,7 +103,7 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
       type: FieldType.Text,
       getElement: (item: LlmLog): ReactElement => {
         if (item["status"]) {
-          let color = Green;
+          let color: Color = Green;
           if (item["status"] === LlmLogStatus.Error) {
             color = Red;
           }

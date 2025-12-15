@@ -16,7 +16,10 @@ import {
 } from "../Utils/Express";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import AILogService, { AILogRequest } from "../Services/AILogService";
+import AILogService, {
+  AILogRequest,
+  AILogResponse,
+} from "../Services/AILogService";
 import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
@@ -222,7 +225,8 @@ export default class IncidentAPI extends BaseAPI<
       aiLogRequest.userId = props.userId;
     }
 
-    const response = await AILogService.executeWithLogging(aiLogRequest);
+    const response: AILogResponse =
+      await AILogService.executeWithLogging(aiLogRequest);
 
     return Response.sendJsonObjectResponse(req, res, {
       postmortemNote: response.content,

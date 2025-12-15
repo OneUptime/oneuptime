@@ -1,3 +1,4 @@
+import { WorkspaceChannelMessage } from "../Workspace";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
@@ -3216,9 +3217,11 @@ All monitoring checks are passing normally.`;
       );
 
       // Sort by timestamp (oldest first)
-      messages.sort((a, b) => {
-        return a.timestamp.getTime() - b.timestamp.getTime();
-      });
+      messages.sort(
+        (a: WorkspaceChannelMessage, b: WorkspaceChannelMessage) => {
+          return a.timestamp.getTime() - b.timestamp.getTime();
+        },
+      );
     } catch (error) {
       logger.error(`Error fetching Microsoft Teams channel messages: ${error}`);
     }

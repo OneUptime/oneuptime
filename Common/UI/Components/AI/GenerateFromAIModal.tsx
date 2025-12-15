@@ -62,7 +62,13 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
       ] as string;
 
       if (selectedTemplateId && props.templates) {
-        const selectedTemplate = props.templates.find(
+        const selectedTemplate:
+          | {
+              id: string;
+              name: string;
+              content?: string;
+            }
+          | undefined = props.templates.find(
           (t: { id: string; name: string; content?: string }) => {
             return t.id === selectedTemplateId;
           },
