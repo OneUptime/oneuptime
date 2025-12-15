@@ -17,10 +17,10 @@ import {
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import LLMService, { LLMProviderConfig } from "../Utils/LLM/LLMService";
-import AIContextBuilder, {
+import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
-} from "../Utils/AI/AIContextBuilder";
+} from "../Utils/AI/IncidentAIContextBuilder";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import LlmProviderService from "../Services/LlmProviderService";
 import JSONFunctions from "../../Types/JSONFunctions";
@@ -213,7 +213,7 @@ export default class IncidentAPI extends BaseAPI<
 
     // Build incident context
     const contextData: IncidentContextData =
-      await AIContextBuilder.buildIncidentContext({
+      await IncidentAIContextBuilder.buildIncidentContext({
         incidentId,
         includeWorkspaceMessages,
         workspaceMessageLimit: 500,
@@ -221,7 +221,7 @@ export default class IncidentAPI extends BaseAPI<
 
     // Format context for postmortem generation
     const aiContext: AIGenerationContext =
-      AIContextBuilder.formatIncidentContextForPostmortem(contextData, template);
+      IncidentAIContextBuilder.formatIncidentContextForPostmortem(contextData, template);
 
     // Generate postmortem using LLM
     const llmConfig: LLMProviderConfig = {

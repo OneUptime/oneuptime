@@ -68,10 +68,10 @@ import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
 import LLMService, { LLMProviderConfig } from "../Utils/LLM/LLMService";
 import LlmProviderService from "./LlmProviderService";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
-import AIContextBuilder, {
+import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
-} from "../Utils/AI/AIContextBuilder";
+} from "../Utils/AI/IncidentAIContextBuilder";
 
 // key is incidentId for this dictionary.
 type UpdateCarryForward = Dictionary<{
@@ -2435,7 +2435,7 @@ ${incidentSeverity.name}
 
     // Build incident context - always include workspace messages
     const contextData: IncidentContextData =
-      await AIContextBuilder.buildIncidentContext({
+      await IncidentAIContextBuilder.buildIncidentContext({
         incidentId: data.incidentId,
         includeWorkspaceMessages: true,
         workspaceMessageLimit: 500,
@@ -2443,7 +2443,7 @@ ${incidentSeverity.name}
 
     // Format context for postmortem generation
     const aiContext: AIGenerationContext =
-      AIContextBuilder.formatIncidentContextForPostmortem(
+      IncidentAIContextBuilder.formatIncidentContextForPostmortem(
         contextData,
         data.template,
       );
