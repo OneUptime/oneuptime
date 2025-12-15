@@ -177,7 +177,13 @@ metadata:
   {{- if $.Values.metalLb.enabled }}
     metallb.universe.tf/address-pool: {{ printf "%s-%s" $.Release.Name "metallb-address-pool"  }}
   {{- end }}
+  {{- if $.Values.nginx.service.annotations }}
+  {{- toYaml $.Values.nginx.service.annotations | trim | nindent 4 }}
+  {{- end }}
 spec:
+  {{- if $.Values.nginx.service.loadBalancerClass }}
+  loadBalancerClass: {{ $.Values.nginx.service.loadBalancerClass }}
+  {{- end }}
   {{- if $.Values.nginx.service.loadBalancerIP }}
   loadBalancerIP: {{ $.Values.nginx.service.loadBalancerIP }}
   {{- end }}
