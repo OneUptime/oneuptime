@@ -38,8 +38,7 @@ const AIBillingSettings: FunctionComponent<
         name="Current Balance"
         cardProps={{
           title: "Current Balance",
-          description:
-            "Here is your current AI balance for this project.",
+          description: "Here is your current AI balance for this project.",
           buttons: [
             {
               title: "Recharge Balance",
@@ -104,8 +103,7 @@ const AIBillingSettings: FunctionComponent<
               fieldType: FieldType.Boolean,
               title: "Enable AI",
               placeholder: "Not Enabled",
-              description:
-                "Enable AI services for this project.",
+              description: "Enable AI services for this project.",
             },
           ],
           modelId: ProjectUtil.getCurrentProjectId()!,
@@ -240,8 +238,7 @@ const AIBillingSettings: FunctionComponent<
               },
               fieldType: FieldType.Boolean,
               title: "Auto Recharge Enabled",
-              description:
-                "Enable auto recharge for AI balance.",
+              description: "Enable auto recharge for AI balance.",
               placeholder: "Not Enabled",
             },
             {
