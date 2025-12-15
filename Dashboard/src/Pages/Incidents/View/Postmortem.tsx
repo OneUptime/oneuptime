@@ -163,13 +163,29 @@ const IncidentPostmortem: FunctionComponent<
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           select: {
-            templateName: true,
             _id: true,
+            templateName: true,
+            postmortemNote: true,
           },
           sort: {},
         });
 
       setIncidentPostmortemTemplates(listResult.data);
+
+      // Also set AI templates format
+      const templates: Array<{ id: string; name: string; content?: string }> =
+        listResult.data.map((template: IncidentPostmortemTemplate) => {
+          const templateItem: { id: string; name: string; content?: string } = {
+            id: template._id?.toString() || "",
+            name: template.templateName || "Unnamed Template",
+          };
+          if (template.postmortemNote) {
+            templateItem.content = template.postmortemNote;
+          }
+          return templateItem;
+        });
+
+      setAiTemplates(templates);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -212,61 +228,14 @@ const IncidentPostmortem: FunctionComponent<
   };
 
   useEffect(() => {
-    if (!showTemplateModal) {
+    if (!showTemplateModal && !showAIGenerateModal) {
       return;
     }
 
     fetchTemplates().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
-  }, [showTemplateModal]);
-
-  // Fetch templates for AI generation modal
-  useEffect(() => {
-    if (!showAIGenerateModal) {
-      return;
-    }
-
-    const fetchAITemplates: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const listResult: ListResult<IncidentPostmortemTemplate> =
-          await ModelAPI.getList<IncidentPostmortemTemplate>({
-            modelType: IncidentPostmortemTemplate,
-            query: {},
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: {
-              _id: true,
-              templateName: true,
-              postmortemNote: true,
-            },
-            sort: {},
-          });
-
-        const templates: Array<{ id: string; name: string; content?: string }> =
-          listResult.data.map((template: IncidentPostmortemTemplate) => {
-            const templateItem: { id: string; name: string; content?: string } =
-              {
-                id: template._id?.toString() || "",
-                name: template.templateName || "Unnamed Template",
-              };
-            if (template.postmortemNote) {
-              templateItem.content = template.postmortemNote;
-            }
-            return templateItem;
-          });
-
-        setAiTemplates(templates);
-      } catch (err) {
-        // Silently fail - templates are optional
-        setAiTemplates([]);
-      }
-    };
-
-    fetchAITemplates().catch(() => {
-      setAiTemplates([]);
-    });
-  }, [showAIGenerateModal]);
+  }, [showTemplateModal, showAIGenerateModal]);
 
   const handleGeneratePostmortemFromAI: (
     data: GenerateAIRequestData,
