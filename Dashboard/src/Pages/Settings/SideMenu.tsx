@@ -364,7 +364,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           ? [
               {
                 link: {
-                  title: "AI Billing",
+                  title: "AI Credits",
                   to: RouteUtil.populateRouteParams(
                     RouteMap[PageMap.SETTINGS_AI_BILLING] as Route,
                   ),
