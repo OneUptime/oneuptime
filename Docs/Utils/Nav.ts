@@ -107,7 +107,7 @@ const DocsNav: NavGroup[] = [
       },
       {
         title: "Complete Guide",
-        url: "/docs/terraform/README",
+        url: "/docs/terraform/complete-guide",
       },
       {
         title: "Self-Hosted Setup",
