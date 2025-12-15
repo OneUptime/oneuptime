@@ -64,10 +64,6 @@ export class Service extends BaseService {
     // Create log entry (will be updated after completion)
     const logEntry: LlmLog = new LlmLog();
     logEntry.projectId = request.projectId;
-    logEntry.llmProviderId = llmProvider.id;
-    logEntry.llmProviderName = llmProvider.name;
-    logEntry.llmType = llmProvider.llmType;
-    logEntry.modelName = llmProvider.modelName;
     logEntry.isGlobalProvider = llmProvider.isGlobalLlm || false;
     logEntry.feature = request.feature;
     logEntry.requestPrompt = request.messages
@@ -76,11 +72,33 @@ export class Service extends BaseService {
       })
       .join("\n")
       .substring(0, 5000); // Store first 5000 chars
-    logEntry.userId = request.userId;
-    logEntry.incidentId = request.incidentId;
-    logEntry.alertId = request.alertId;
-    logEntry.scheduledMaintenanceId = request.scheduledMaintenanceId;
     logEntry.requestStartedAt = startTime;
+
+    // Set optional fields only if they have values
+    if (llmProvider.id) {
+      logEntry.llmProviderId = llmProvider.id;
+    }
+    if (llmProvider.name) {
+      logEntry.llmProviderName = llmProvider.name;
+    }
+    if (llmProvider.llmType) {
+      logEntry.llmType = llmProvider.llmType;
+    }
+    if (llmProvider.modelName) {
+      logEntry.modelName = llmProvider.modelName;
+    }
+    if (request.userId) {
+      logEntry.userId = request.userId;
+    }
+    if (request.incidentId) {
+      logEntry.incidentId = request.incidentId;
+    }
+    if (request.alertId) {
+      logEntry.alertId = request.alertId;
+    }
+    if (request.scheduledMaintenanceId) {
+      logEntry.scheduledMaintenanceId = request.scheduledMaintenanceId;
+    }
 
     // Check if billing should apply
     const shouldBill: boolean =

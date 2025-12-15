@@ -12,12 +12,11 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Query from "Common/Types/BaseDatabase/Query";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
 
 export interface LlmLogsTableProps {
-  query?: Query<BaseModel>;
+  query?: Query<LlmLog>;
   singularName?: string;
 }
 
@@ -135,6 +134,11 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
       <ModelTable<LlmLog>
         modelType={LlmLog}
         id={
+          props.singularName
+            ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-llm-logs-table`
+            : "llm-logs-table"
+        }
+        userPreferencesKey={
           props.singularName
             ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-llm-logs-table`
             : "llm-logs-table"

@@ -16,7 +16,7 @@ import {
 } from "../Utils/Express";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import AILogService from "../Services/AILogService";
+import AILogService, { AILogRequest } from "../Services/AILogService";
 import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
@@ -209,15 +209,20 @@ export default class IncidentAPI extends BaseAPI<
       );
 
     // Generate postmortem using AILogService (handles billing and logging)
-    const response = await AILogService.executeWithLogging({
+    const aiLogRequest: AILogRequest = {
       projectId: incident.projectId,
-      userId: props.userId,
       feature: "Incident Postmortem",
       incidentId: incidentId,
       messages: aiContext.messages,
       maxTokens: 8192,
       temperature: 0.7,
-    });
+    };
+
+    if (props.userId) {
+      aiLogRequest.userId = props.userId;
+    }
+
+    const response = await AILogService.executeWithLogging(aiLogRequest);
 
     return Response.sendJsonObjectResponse(req, res, {
       postmortemNote: response.content,
