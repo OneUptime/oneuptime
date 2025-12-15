@@ -17,6 +17,16 @@ import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUser
 import WorkspaceUserAuthTokenService from "../../Services/WorkspaceUserAuthTokenService";
 import UserService from "../../Services/UserService";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import OneUptimeDate from "../../../Types/Date";
+
+export interface WorkspaceChannelMessage {
+  messageId: string;
+  text: string;
+  userId?: string;
+  username?: string;
+  timestamp: Date;
+  isBot: boolean;
+}
 
 export default class WorkspaceUtil {
   @CaptureSpan()
@@ -235,5 +245,121 @@ export default class WorkspaceUtil {
     logger.debug(result);
 
     return result;
+  }
+
+  @CaptureSpan()
+  public static async getChannelMessages(params: {
+    channelId: string;
+    authToken: string;
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+    teamId?: string;
+    limit?: number;
+    oldestTimestamp?: Date;
+  }): Promise<Array<WorkspaceChannelMessage>> {
+    switch (params.workspaceType) {
+      case WorkspaceType.Slack: {
+        const slackParams: {
+          channelId: string;
+          authToken: string;
+          limit?: number;
+          oldestTimestamp?: Date;
+        } = {
+          channelId: params.channelId,
+          authToken: params.authToken,
+        };
+
+        if (params.limit !== undefined) {
+          slackParams.limit = params.limit;
+        }
+
+        if (params.oldestTimestamp) {
+          slackParams.oldestTimestamp = params.oldestTimestamp;
+        }
+
+        return await SlackWorkspace.getChannelMessages(slackParams);
+      }
+      case WorkspaceType.MicrosoftTeams: {
+        if (!params.teamId) {
+          logger.error(
+            "Team ID is required for Microsoft Teams channel messages",
+          );
+          return [];
+        }
+
+        const teamsParams: {
+          channelId: string;
+          teamId: string;
+          projectId: ObjectID;
+          limit?: number;
+          oldestTimestamp?: Date;
+        } = {
+          channelId: params.channelId,
+          teamId: params.teamId,
+          projectId: params.projectId,
+        };
+
+        if (params.limit !== undefined) {
+          teamsParams.limit = params.limit;
+        }
+
+        if (params.oldestTimestamp) {
+          teamsParams.oldestTimestamp = params.oldestTimestamp;
+        }
+
+        return await MicrosoftTeamsUtil.getChannelMessages(teamsParams);
+      }
+      default:
+        logger.debug(
+          `Unsupported workspace type for channel messages: ${params.workspaceType}`,
+        );
+        return [];
+    }
+  }
+
+  @CaptureSpan()
+  public static formatMessagesAsContext(
+    messages: Array<WorkspaceChannelMessage>,
+    options?: {
+      includeTimestamp?: boolean;
+      includeUsername?: boolean;
+      maxLength?: number;
+    },
+  ): string {
+    const includeTimestamp: boolean = options?.includeTimestamp ?? true;
+    const includeUsername: boolean = options?.includeUsername ?? true;
+    const maxLength: number = options?.maxLength || 50000;
+
+    let context: string = "";
+
+    for (const msg of messages) {
+      let line: string = "";
+
+      if (includeTimestamp) {
+        const dateStr: string = OneUptimeDate.getDateAsFormattedString(
+          msg.timestamp,
+        );
+        line += `[${dateStr}] `;
+      }
+
+      if (includeUsername && msg.username) {
+        line += `${msg.username}: `;
+      } else if (includeUsername && msg.userId) {
+        line += `User ${msg.userId}: `;
+      }
+
+      line += msg.text;
+      line += "\n";
+
+      // Check if adding this line would exceed max length
+      if (context.length + line.length > maxLength) {
+        context += "\n... (messages truncated due to length)";
+        break;
+      }
+
+      context += line;
+    }
+
+    return context.trim();
   }
 }

@@ -7,15 +7,18 @@ import IncidentService from "../../Services/IncidentService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentInternalNoteService from "../../Services/IncidentInternalNoteService";
 import IncidentPublicNoteService from "../../Services/IncidentPublicNoteService";
-import WorkspaceChannelMessageUtil, {
+import WorkspaceUtil, {
   WorkspaceChannelMessage,
-} from "../Workspace/WorkspaceChannelMessageUtil";
+} from "../Workspace/Workspace";
+import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
+import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import OneUptimeDate from "../../../Types/Date";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LLMMessage } from "../LLM/LLMService";
 import NotificationRuleWorkspaceChannel from "../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 
 export interface IncidentContextData {
   incident: Incident;
@@ -175,7 +178,7 @@ export default class IncidentAIContextBuilder {
       incident.projectId
     ) {
       try {
-        const channelMessagesParams: {
+        const fetchParams: {
           projectId: ObjectID;
           workspaceChannels: Array<NotificationRuleWorkspaceChannel>;
           limit?: number;
@@ -187,13 +190,11 @@ export default class IncidentAIContextBuilder {
         };
 
         if (incident.createdAt) {
-          channelMessagesParams.oldestTimestamp = incident.createdAt;
+          fetchParams.oldestTimestamp = incident.createdAt;
         }
 
         workspaceMessages =
-          await WorkspaceChannelMessageUtil.getChannelMessagesForIncident(
-            channelMessagesParams,
-          );
+          await this.getWorkspaceMessagesForIncident(fetchParams);
       } catch (error) {
         logger.error(`Error fetching workspace messages: ${error}`);
         // Continue without workspace messages
@@ -320,7 +321,7 @@ export default class IncidentAIContextBuilder {
     // Workspace messages (Slack/Teams)
     if (workspaceMessages.length > 0) {
       contextText += "# Discussion from Incident Channel\n\n";
-      contextText += WorkspaceChannelMessageUtil.formatMessagesAsContext(
+      contextText += WorkspaceUtil.formatMessagesAsContext(
         workspaceMessages,
         {
           includeTimestamp: true,
@@ -394,5 +395,79 @@ Write in a professional, clear, and concise manner. Use markdown formatting for 
       systemPrompt: data.systemPrompt,
       messages,
     };
+  }
+
+  @CaptureSpan()
+  private static async getWorkspaceMessagesForIncident(data: {
+    projectId: ObjectID;
+    workspaceChannels: Array<NotificationRuleWorkspaceChannel>;
+    limit?: number;
+    oldestTimestamp?: Date;
+  }): Promise<Array<WorkspaceChannelMessage>> {
+    const allMessages: Array<WorkspaceChannelMessage> = [];
+
+    for (const channel of data.workspaceChannels) {
+      try {
+        // Get auth token for this workspace type
+        const projectAuth: WorkspaceProjectAuthToken | null =
+          await WorkspaceProjectAuthTokenService.getProjectAuth({
+            projectId: data.projectId,
+            workspaceType: channel.workspaceType,
+          });
+
+        if (!projectAuth || !projectAuth.authToken) {
+          logger.debug(
+            `No auth token found for workspace type: ${channel.workspaceType}`,
+          );
+          continue;
+        }
+
+        const messagesParams: {
+          channelId: string;
+          authToken: string;
+          projectId: ObjectID;
+          workspaceType: WorkspaceType;
+          teamId?: string;
+          limit?: number;
+          oldestTimestamp?: Date;
+        } = {
+          channelId: channel.id,
+          authToken: projectAuth.authToken,
+          projectId: data.projectId,
+          workspaceType: channel.workspaceType,
+        };
+
+        if (channel.teamId) {
+          messagesParams.teamId = channel.teamId;
+        }
+
+        if (data.limit !== undefined) {
+          messagesParams.limit = data.limit;
+        }
+
+        if (data.oldestTimestamp) {
+          messagesParams.oldestTimestamp = data.oldestTimestamp;
+        }
+
+        const messages: Array<WorkspaceChannelMessage> =
+          await WorkspaceUtil.getChannelMessages(messagesParams);
+
+        allMessages.push(...messages);
+      } catch (error) {
+        logger.error(
+          `Error fetching messages from channel ${channel.id}: ${error}`,
+        );
+        // Continue with other channels even if one fails
+      }
+    }
+
+    // Sort all messages by timestamp
+    allMessages.sort(
+      (a: WorkspaceChannelMessage, b: WorkspaceChannelMessage) => {
+        return a.timestamp.getTime() - b.timestamp.getTime();
+      },
+    );
+
+    return allMessages;
   }
 }
