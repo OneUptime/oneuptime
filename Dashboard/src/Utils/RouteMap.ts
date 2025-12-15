@@ -209,6 +209,7 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_NOTIFICATION_LOGS]: `${RouteParams.ModelID}/notification-logs`,
+  [PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai-logs`,
 };
 
 export const SettingsRoutePath: Dictionary<string> = {
@@ -835,6 +836,14 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
       ScheduledMaintenanceEventsRoutePath[
         PageMap.SCHEDULED_MAINTENANCE_VIEW_NOTIFICATION_LOGS
+      ]
+    }`,
+  ),
+
+  [PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS
       ]
     }`,
   ),
