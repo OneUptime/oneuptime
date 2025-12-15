@@ -9,6 +9,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import CodeRepositoryImprovementAction from "Common/Types/ServiceCatalog/CodeRepositoryImprovementAction";
 
 const ServiceCatalogCodeRepositories: FunctionComponent<
   PageComponentProps
@@ -26,6 +28,7 @@ const ServiceCatalogCodeRepositories: FunctionComponent<
         isDeleteable={true}
         createVerb={"Link"}
         isCreateable={true}
+        isEditable={true}
         isViewable={false}
         showViewIdButton={true}
         query={{
@@ -72,6 +75,43 @@ const ServiceCatalogCodeRepositories: FunctionComponent<
             placeholder: "/services/api or /src/backend",
             description:
               "The path in the repository where this service's code lives. Leave empty if the service is at the root of the repository.",
+          },
+          {
+            field: {
+              enableAutomaticImprovements: true,
+            },
+            title: "Enable Automatic Code Improvements",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            defaultValue: true,
+            description:
+              "Enable OneUptime to automatically create pull requests to improve the code for this service.",
+          },
+          {
+            field: {
+              maxOpenPullRequests: true,
+            },
+            title: "Max Open Pull Requests",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            defaultValue: 3,
+            placeholder: "3",
+            description:
+              "Maximum number of open pull requests that OneUptime can create for this service at any given time.",
+          },
+          {
+            field: {
+              restrictedImprovementActions: true,
+            },
+            title: "Restrict Code Improvements",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            required: false,
+            dropdownOptions:
+              DropdownUtil.getDropdownOptionsFromEnum(
+                CodeRepositoryImprovementAction,
+              ),
+            description:
+              "Restrict code improvements to only these actions. If none selected, all improvement actions are allowed.",
           },
         ]}
         showRefreshButton={true}
@@ -145,6 +185,20 @@ const ServiceCatalogCodeRepositories: FunctionComponent<
                 </span>
               );
             },
+          },
+          {
+            field: {
+              enableAutomaticImprovements: true,
+            },
+            title: "Auto Improvements",
+            type: FieldType.Boolean,
+          },
+          {
+            field: {
+              maxOpenPullRequests: true,
+            },
+            title: "Max PRs",
+            type: FieldType.Number,
           },
           {
             field: {

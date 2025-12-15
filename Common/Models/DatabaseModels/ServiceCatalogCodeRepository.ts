@@ -21,6 +21,7 @@ import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import ServiceCatalog from "./ServiceCatalog";
 import CodeRepository from "./CodeRepository";
+import CodeRepositoryImprovementAction from "../../Types/ServiceCatalog/CodeRepositoryImprovementAction";
 
 @CanAccessIfCanReadOn("serviceCatalog")
 @EnableDocumentation()
@@ -440,4 +441,109 @@ export default class ServiceCatalogCodeRepository extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public deletedByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateServiceCatalogCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadServiceCatalogCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditServiceCatalogCodeRepository,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: false,
+    isDefaultValueColumn: true,
+    title: "Enable Automatic Code Improvements",
+    description:
+      "Enable OneUptime to automatically create pull requests to improve the code for this service.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public enableAutomaticImprovements?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateServiceCatalogCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadServiceCatalogCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditServiceCatalogCodeRepository,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    isDefaultValueColumn: true,
+    title: "Max Open Pull Requests",
+    description:
+      "Maximum number of open pull requests that OneUptime can create for this service at any given time.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 3,
+  })
+  public maxOpenPullRequests?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateServiceCatalogCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadServiceCatalogCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditServiceCatalogCodeRepository,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Restricted Improvement Actions",
+    description:
+      "Restrict code improvements to only these actions. If empty, all improvement actions are allowed.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public restrictedImprovementActions?: Array<CodeRepositoryImprovementAction> =
+    undefined;
 }
