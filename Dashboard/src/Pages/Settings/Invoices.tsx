@@ -113,7 +113,7 @@ const Settings: FunctionComponent<ComponentProps> = (
           });
 
         if (!paymentMethodsResult || paymentMethodsResult.data.length === 0) {
-          setError("Payment methods not found. Please try again later");
+          setError("Payment methods not found. Please add one in Project Settings -> Billing.");
           return;
         }
 
