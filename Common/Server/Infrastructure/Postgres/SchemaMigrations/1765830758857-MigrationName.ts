@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class MigrationName1765830758857 implements MigrationInterface {
-    name = 'MigrationName1765830758857'
+    public name = 'MigrationName1765830758857'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "LlmLog" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "llmProviderId" uuid, "llmProviderName" character varying(100), "llmType" character varying(100), "modelName" character varying(100), "isGlobalProvider" boolean NOT NULL DEFAULT false, "inputTokens" integer NOT NULL DEFAULT '0', "outputTokens" integer NOT NULL DEFAULT '0', "totalTokens" integer NOT NULL DEFAULT '0', "costInUSDCents" integer NOT NULL DEFAULT '0', "wasBilled" boolean NOT NULL DEFAULT false, "status" character varying(100) NOT NULL, "statusMessage" character varying(500), "feature" character varying(100), "requestPrompt" text, "responsePreview" text, "incidentId" uuid, "alertId" uuid, "scheduledMaintenanceId" uuid, "userId" uuid, "requestStartedAt" TIMESTAMP WITH TIME ZONE, "requestCompletedAt" TIMESTAMP WITH TIME ZONE, "durationMs" integer, "deletedByUserId" uuid, CONSTRAINT "PK_807b7f4578f9dcbb1f7aeeb94f8" PRIMARY KEY ("_id"))`);
