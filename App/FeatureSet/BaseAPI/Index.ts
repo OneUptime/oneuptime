@@ -358,6 +358,10 @@ import ProbeOwnerUserService, {
   Service as ProbeOwnerUserServiceType,
 } from "Common/Server/Services/ProbeOwnerUserService";
 
+import LlmLogService, {
+  Service as LlmLogServiceType,
+} from "Common/Server/Services/LlmLogService";
+
 import TelemetryExceptionService, {
   Service as TelemetryExceptionServiceType,
 } from "Common/Server/Services/TelemetryExceptionService";
@@ -467,6 +471,7 @@ import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
+import LlmLog from "Common/Models/DatabaseModels/LlmLog";
 import ServiceCatalogDependency from "Common/Models/DatabaseModels/ServiceCatalogDependency";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import TelemetyException from "Common/Models/DatabaseModels/TelemetryException";
@@ -1680,6 +1685,14 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new LlmProviderAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<LlmLog, LlmLogServiceType>(
+        LlmLog,
+        LlmLogService,
+      ).getRouter(),
     );
 
     app.use(
