@@ -106,10 +106,9 @@ const ServiceCatalogCodeRepositories: FunctionComponent<
             title: "Restrict Code Improvements",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             required: false,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(
-                CodeRepositoryImprovementAction,
-              ),
+            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+              CodeRepositoryImprovementAction,
+            ),
             description:
               "Restrict code improvements to only these actions. If none selected, all improvement actions are allowed.",
           },
