@@ -1,6 +1,7 @@
 import Incident from "../../Models/DatabaseModels/Incident";
 import File from "../../Models/DatabaseModels/File";
 import NotFoundException from "../../Types/Exception/NotFoundException";
+import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import IncidentService, {
   Service as IncidentServiceType,
@@ -15,6 +16,15 @@ import {
 } from "../Utils/Express";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import LLMService, { LLMProviderConfig } from "../Utils/LLM/LLMService";
+import AIContextBuilder, {
+  AIGenerationContext,
+  IncidentContextData,
+} from "../Utils/AI/AIContextBuilder";
+import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
+import LlmProviderService from "../Services/LlmProviderService";
+import JSONFunctions from "../../Types/JSONFunctions";
+import Permission from "../../Types/Permission";
 
 export default class IncidentAPI extends BaseAPI<
   Incident,
@@ -31,6 +41,21 @@ export default class IncidentAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getPostmortemAttachment(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    // Generate postmortem from AI
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/generate-postmortem-from-ai/:incidentId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.generatePostmortemFromAI(req, res);
         } catch (err) {
           next(err);
         }
@@ -102,5 +127,129 @@ export default class IncidentAPI extends BaseAPI<
 
     Response.setNoCacheHeaders(res);
     return Response.sendFileResponse(req, res, attachment);
+  }
+
+  private async generatePostmortemFromAI(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const incidentIdParam: string | undefined = req.params["incidentId"];
+
+    if (!incidentIdParam) {
+      throw new BadDataException("Incident ID is required");
+    }
+
+    let incidentId: ObjectID;
+
+    try {
+      incidentId = new ObjectID(incidentIdParam);
+    } catch {
+      throw new BadDataException("Invalid Incident ID");
+    }
+
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    // Verify user has permission to edit the incident
+    const permissions: Array<Permission> | undefined =
+      props.userTenantAccessPermission?.["permissions"] as
+        | Array<Permission>
+        | undefined;
+
+    const hasPermission: boolean = permissions
+      ? permissions.some((p: Permission) => {
+          return (
+            p === Permission.ProjectOwner ||
+            p === Permission.ProjectAdmin ||
+            p === Permission.EditProjectIncident
+          );
+        })
+      : false;
+
+    if (!hasPermission && !props.isMasterAdmin) {
+      throw new BadDataException(
+        "You do not have permission to generate postmortem for this incident. You need to have one of these permissions: Project Owner, Project Admin, Edit Project Incident.",
+      );
+    }
+
+    // Get the template from request body if provided
+    const template: string | undefined = JSONFunctions.getJSONValueInPath(
+      req.body,
+      "template",
+    ) as string | undefined;
+
+    // Always include workspace messages for comprehensive context
+    const includeWorkspaceMessages: boolean = true;
+
+    // Get the incident to verify it exists and get the project ID
+    const incident: Incident | null = await this.service.findOneById({
+      id: incidentId,
+      select: {
+        _id: true,
+        projectId: true,
+      },
+      props,
+    });
+
+    if (!incident || !incident.projectId) {
+      throw new NotFoundException("Incident not found");
+    }
+
+    // Get LLM provider for the project
+    const llmProvider: LlmProvider | null =
+      await LlmProviderService.getLLMProviderForProject(incident.projectId);
+
+    if (!llmProvider) {
+      throw new BadDataException(
+        "No LLM provider configured for this project. Please configure an LLM provider in Settings > AI > LLM Providers.",
+      );
+    }
+
+    if (!llmProvider.llmType) {
+      throw new BadDataException(
+        "LLM provider type is not configured properly.",
+      );
+    }
+
+    // Build incident context
+    const contextData: IncidentContextData =
+      await AIContextBuilder.buildIncidentContext({
+        incidentId,
+        includeWorkspaceMessages,
+        workspaceMessageLimit: 500,
+      });
+
+    // Format context for postmortem generation
+    const aiContext: AIGenerationContext =
+      AIContextBuilder.formatIncidentContextForPostmortem(contextData, template);
+
+    // Generate postmortem using LLM
+    const llmConfig: LLMProviderConfig = {
+      llmType: llmProvider.llmType,
+    };
+
+    if (llmProvider.apiKey) {
+      llmConfig.apiKey = llmProvider.apiKey;
+    }
+
+    if (llmProvider.baseUrl) {
+      llmConfig.baseUrl = llmProvider.baseUrl.toString();
+    }
+
+    if (llmProvider.modelName) {
+      llmConfig.modelName = llmProvider.modelName;
+    }
+
+    const response = await LLMService.getCompletion({
+      llmProviderConfig: llmConfig,
+      messages: aiContext.messages,
+      maxTokens: 8192,
+      temperature: 0.7,
+    });
+
+    return Response.sendJsonObjectResponse(req, res, {
+      postmortemNote: response.content,
+
+    });
   }
 }
