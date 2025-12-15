@@ -412,9 +412,11 @@ Changes include:
         if [[ "$FORCE" == true ]]; then
             print_warning "Tag v$VERSION exists on remote, force mode enabled - will overwrite"
         else
-            print_error "Tag v$VERSION already exists on remote repository"
-            print_error "Use --force flag to overwrite, or choose a different version"
-            exit 1
+            print_warning "Tag v$VERSION already exists on remote repository"
+            print_warning "Skipping publishing as this version has already been published"
+            print_status "Use --force flag to overwrite if needed"
+            # Exit gracefully - this is not an error, just means the version was already published
+            exit 0
         fi
     fi
     
