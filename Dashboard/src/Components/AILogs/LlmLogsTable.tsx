@@ -89,8 +89,16 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
     },
     {
       field: { costInUSDCents: true },
-      title: "Cost (cents)",
-      type: FieldType.Number,
+      title: "Cost (USD)",
+      type: FieldType.Text,
+      getElement: (item: LlmLog): ReactElement => {
+        const cents = item["costInUSDCents"] as number;
+        if (cents === undefined || cents === null) {
+          return <p>-</p>;
+        }
+        const usd = cents / 100;
+        return <p>${usd.toFixed(4)}</p>;
+      },
     },
     {
       field: { createdAt: true },
