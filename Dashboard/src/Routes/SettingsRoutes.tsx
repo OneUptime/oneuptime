@@ -91,6 +91,12 @@ const SettingsLlmProviderView: LazyExoticComponent<
   return import("../Pages/Settings/LlmProviderView");
 });
 
+const SettingsAIBilling: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/AIBillingSettings");
+});
+
 const SettingFeatureFlags: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -1124,6 +1130,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[PageMap.SETTINGS_LLM_PROVIDER_VIEW] as Route
                 }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_BILLING)}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingsAIBilling
+                {...props}
+                pageRoute={RouteMap[PageMap.SETTINGS_AI_BILLING] as Route}
               />
             </Suspense>
           }

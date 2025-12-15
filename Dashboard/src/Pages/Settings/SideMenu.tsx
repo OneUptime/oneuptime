@@ -360,6 +360,19 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Brain,
         },
+        ...(BILLING_ENABLED
+          ? [
+              {
+                link: {
+                  title: "AI Billing",
+                  to: RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.SETTINGS_AI_BILLING] as Route,
+                  ),
+                },
+                icon: IconProp.Billing,
+              },
+            ]
+          : []),
       ],
     },
     {

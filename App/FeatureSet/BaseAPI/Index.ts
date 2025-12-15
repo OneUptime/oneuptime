@@ -7,6 +7,7 @@ import FileAPI from "Common/Server/API/FileAPI";
 import GlobalConfigAPI from "Common/Server/API/GlobalConfigAPI";
 import MonitorGroupAPI from "Common/Server/API/MonitorGroupAPI";
 import NotificationAPI from "Common/Server/API/NotificationAPI";
+import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
@@ -1839,6 +1840,8 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, NotificationAPI);
+
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIBillingAPI);
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryAPI);
 

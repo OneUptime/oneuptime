@@ -212,6 +212,22 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Danger Zone",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_LLM_PROVIDERS, [
+      "Project",
+      "Settings",
+      "LLM Providers",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_LLM_PROVIDER_VIEW, [
+      "Project",
+      "Settings",
+      "LLM Providers",
+      "View Provider",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_BILLING, [
+      "Project",
+      "Settings",
+      "AI Billing",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

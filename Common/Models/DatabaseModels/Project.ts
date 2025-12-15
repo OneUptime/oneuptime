@@ -962,6 +962,212 @@ export default class Project extends TenantModel {
   })
   public notEnabledSmsOrCallNotificationSentToOwners?: boolean = undefined;
 
+  // AI Billing Fields
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    isDefaultValueColumn: true,
+    required: true,
+    title: "AI Current Balance",
+    description: "Balance in USD for AI services",
+    defaultValue: 0,
+    example: 2500,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 0,
+  })
+  public aiCurrentBalanceInUSDCents?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    isDefaultValueColumn: true,
+    required: true,
+    title: "AI Auto Recharge Amount",
+    description: "Auto recharge amount in USD for AI services",
+    defaultValue: 20,
+    example: 20,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 20,
+  })
+  public autoAiRechargeByBalanceInUSD?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    isDefaultValueColumn: true,
+    required: true,
+    title: "AI Auto Recharge when current balance falls to",
+    description:
+      "Auto recharge is triggered when current balance falls to this amount in USD for AI services",
+    defaultValue: 10,
+    example: 10,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 10,
+  })
+  public autoRechargeAiWhenCurrentBalanceFallsInUSD?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable AI",
+    description: "Enable AI services for this project.",
+    defaultValue: true,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: true,
+    type: ColumnType.Boolean,
+  })
+  public enableAi?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable auto recharge for AI balance",
+    description: "Enable auto recharge for AI balance for this project.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutoRechargeAiBalance?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Boolean,
+    title: "Low AI Balance Notification Sent to Owners",
+    description: "Low AI Balance Notification Sent to Owners",
+    defaultValue: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public lowAiBalanceNotificationSentToOwners?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    hideColumnInDocumentation: true,
+    title: "Failed AI Balance Charge Notification Sent to Owners",
+    description: "Failed AI Balance Charge Notification Sent to Owners",
+    defaultValue: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public failedAiBalanceChargeNotificationSentToOwners?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Boolean,
+    title: "Not Enabled AI Notification Sent to Owners",
+    description: "Not Enabled AI Notification Sent to Owners",
+    defaultValue: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public notEnabledAiNotificationSentToOwners?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [Permission.User],
     read: [
