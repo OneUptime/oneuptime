@@ -466,8 +466,12 @@ export const GitHubAppClientId: string | null =
 export const GitHubAppClientSecret: string | null =
   process.env["GITHUB_APP_CLIENT_SECRET"] || null;
 
+type DecodePrivateKeyFunction = (key: string | undefined) => string | null;
+
 // Helper function to decode base64 private key if needed
-const decodePrivateKey = (key: string | undefined): string | null => {
+const decodePrivateKey: DecodePrivateKeyFunction = (
+  key: string | undefined,
+): string | null => {
   if (!key) {
     return null;
   }

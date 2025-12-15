@@ -338,7 +338,9 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
               <ServiceCatalogViewCodeRepositories
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.SERVICE_CATALOG_VIEW_CODE_REPOSITORIES] as Route
+                  RouteMap[
+                    PageMap.SERVICE_CATALOG_VIEW_CODE_REPOSITORIES
+                  ] as Route
                 }
               />
             </Suspense>

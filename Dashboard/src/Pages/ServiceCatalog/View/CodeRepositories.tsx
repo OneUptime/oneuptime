@@ -125,7 +125,8 @@ const ServiceCatalogCodeRepositories: FunctionComponent<
                 <div>
                   <div className="font-medium">{codeRepository.name}</div>
                   <div className="text-gray-500 text-sm">
-                    {codeRepository.organizationName}/{codeRepository.repositoryName}
+                    {codeRepository.organizationName}/
+                    {codeRepository.repositoryName}
                   </div>
                 </div>
               );

@@ -81,9 +81,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Code Repositories",
             to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.SERVICE_CATALOG_VIEW_CODE_REPOSITORIES
-              ] as Route,
+              RouteMap[PageMap.SERVICE_CATALOG_VIEW_CODE_REPOSITORIES] as Route,
               { modelId: props.modelId },
             ),
           }}
