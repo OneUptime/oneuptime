@@ -194,6 +194,12 @@
         "service": {
           "type": "object",
           "properties": {
+            "loadBalancerClass": {
+              "type": ["string", "null"]
+            },
+            "annotations": {
+              "type": ["object", "null"]
+            },
             "loadBalancerIP": {
               "type": ["string", "null"]
             },
