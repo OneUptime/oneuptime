@@ -37,6 +37,7 @@ import { getModelIdString } from "../../../Utils/ModelId";
 import GenerateFromAIModal, {
   GenerateAIRequestData,
 } from "Common/UI/Components/AI/GenerateFromAIModal";
+import { INTERNAL_NOTE_TEMPLATES } from "Common/UI/Components/AI/AITemplates";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import URL from "Common/Types/API/URL";
@@ -403,7 +404,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
         <GenerateFromAIModal
           title="Generate Private Note from AI"
           description="AI will analyze the incident data and generate an internal technical note."
-          noteType="internal-note"
+          templates={INTERNAL_NOTE_TEMPLATES}
           onClose={() => {
             setShowGenerateFromAIModal(false);
           }}

@@ -34,7 +34,9 @@ import SubscriberNotificationStatus from "../../../Components/StatusPageSubscrib
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import GenerateFromAIModal, {
   GenerateAIRequestData,
+  AITemplate,
 } from "Common/UI/Components/AI/GenerateFromAIModal";
+import { POSTMORTEM_TEMPLATES } from "Common/UI/Components/AI/AITemplates";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -119,9 +121,7 @@ const IncidentPostmortem: FunctionComponent<
     useState<FormValues<Incident> | null>(null);
   const [showAIGenerateModal, setShowAIGenerateModal] =
     useState<boolean>(false);
-  const [aiTemplates, setAiTemplates] = useState<
-    Array<{ id: string; name: string; content?: string }>
-  >([]);
+  const [aiTemplates, setAiTemplates] = useState<Array<AITemplate>>([]);
 
   const handleResendPostmortemNotification: () => Promise<void> =
     async (): Promise<void> => {
@@ -173,9 +173,9 @@ const IncidentPostmortem: FunctionComponent<
       setIncidentPostmortemTemplates(listResult.data);
 
       // Also set AI templates format
-      const templates: Array<{ id: string; name: string; content?: string }> =
-        listResult.data.map((template: IncidentPostmortemTemplate) => {
-          const templateItem: { id: string; name: string; content?: string } = {
+      const templates: Array<AITemplate> = listResult.data.map(
+        (template: IncidentPostmortemTemplate) => {
+          const templateItem: AITemplate = {
             id: template._id?.toString() || "",
             name: template.templateName || "Unnamed Template",
           };
@@ -183,7 +183,8 @@ const IncidentPostmortem: FunctionComponent<
             templateItem.content = template.postmortemNote;
           }
           return templateItem;
-        });
+        },
+      );
 
       setAiTemplates(templates);
     } catch (err) {
@@ -535,7 +536,7 @@ const IncidentPostmortem: FunctionComponent<
           }}
           onGenerate={handleGeneratePostmortemFromAI}
           onSuccess={handleAIGenerationSuccess}
-          templates={aiTemplates}
+          templates={[...POSTMORTEM_TEMPLATES, ...aiTemplates]}
         />
       ) : (
         <></>

@@ -40,6 +40,7 @@ import { getModelIdString } from "../../../Utils/ModelId";
 import GenerateFromAIModal, {
   GenerateAIRequestData,
 } from "Common/UI/Components/AI/GenerateFromAIModal";
+import { PUBLIC_NOTE_TEMPLATES } from "Common/UI/Components/AI/AITemplates";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import URL from "Common/Types/API/URL";
@@ -498,7 +499,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         <GenerateFromAIModal
           title="Generate Public Note from AI"
           description="AI will analyze the scheduled maintenance data and generate a customer-facing public note."
-          noteType="public-note"
+          templates={PUBLIC_NOTE_TEMPLATES}
           onClose={() => {
             setShowGenerateFromAIModal(false);
           }}

@@ -6,12 +6,18 @@ import React, {
 } from "react";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import AILoader from "./AILoader";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import Alert, { AlertType } from "../Alerts/Alert";
 import ButtonType from "../Button/ButtonTypes";
 import { ButtonStyleType } from "../Button/Button";
 import IconProp from "../../../Types/Icon/IconProp";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import MarkdownEditor from "../Markdown.tsx/MarkdownEditor";
+
+export interface AITemplate {
+  id: string;
+  name: string;
+  content?: string;
+}
 
 export interface GenerateFromAIModalProps {
   title: string;
@@ -19,8 +25,7 @@ export interface GenerateFromAIModalProps {
   onClose: () => void;
   onGenerate: (data: GenerateAIRequestData) => Promise<string>;
   onSuccess: (generatedContent: string) => void;
-  templates?: Array<{ id: string; name: string; content?: string }>;
-  noteType?: NoteType; // Type of note being generated (determines default templates)
+  templates: Array<AITemplate>;
 }
 
 export interface GenerateAIRequestData {
@@ -28,278 +33,19 @@ export interface GenerateAIRequestData {
   templateId?: string;
 }
 
-// Template categories for different note types
-export type NoteType = "postmortem" | "public-note" | "internal-note";
-
-// Default hardcoded templates for incident postmortem
-const POSTMORTEM_TEMPLATES: Array<{
-  id: string;
-  name: string;
-  content: string;
-}> = [
-  {
-    id: "default-standard",
-    name: "Standard Postmortem",
-    content: `## Executive Summary
-[Brief overview of the incident, its impact, and resolution]
-
-## Incident Timeline
-| Time | Event |
-|------|-------|
-| [Time] | [Event description] |
-
-## Root Cause Analysis
-[Detailed analysis of what caused the incident]
-
-## Impact Assessment
-- **Duration**: [How long the incident lasted]
-- **Users Affected**: [Number or percentage of affected users]
-- **Services Affected**: [List of affected services]
-
-## Resolution
-[Steps taken to resolve the incident]
-
-## Action Items
-- [ ] [Action item 1]
-- [ ] [Action item 2]
-- [ ] [Action item 3]
-
-## Lessons Learned
-[Key takeaways and improvements identified]`,
-  },
-  {
-    id: "default-detailed",
-    name: "Detailed Technical Postmortem",
-    content: `## Incident Overview
-**Incident Title**: [Title]
-**Severity**: [P1/P2/P3/P4]
-**Duration**: [Start time] - [End time]
-**Authors**: [Names]
-
-## Summary
-[2-3 sentence summary of the incident]
-
-## Detection
-- **How was the incident detected?** [Monitoring alert / Customer report / etc.]
-- **Time to detection**: [Duration from start to detection]
-
-## Timeline
-| Timestamp | Action | Owner |
-|-----------|--------|-------|
-| [Time] | [What happened] | [Who did it] |
-
-## Root Cause
-### Primary Cause
-[Detailed explanation of the root cause]
-
-### Contributing Factors
-1. [Factor 1]
-2. [Factor 2]
-
-## Impact
-### Customer Impact
-[Description of how customers were affected]
-
-### Business Impact
-[Description of business consequences]
-
-### Technical Impact
-[Systems and services affected]
-
-## Mitigation & Resolution
-### Immediate Actions
-[Steps taken to stop the bleeding]
-
-### Permanent Fix
-[Long-term solution implemented]
-
-## Prevention
-### What Went Well
-- [Item 1]
-- [Item 2]
-
-### What Went Wrong
-- [Item 1]
-- [Item 2]
-
-### Where We Got Lucky
-- [Item 1]
-
-## Action Items
-| Action | Owner | Priority | Due Date |
-|--------|-------|----------|----------|
-| [Action] | [Name] | [High/Medium/Low] | [Date] |
-
-## Appendix
-[Any additional technical details, logs, or graphs]`,
-  },
-  {
-    id: "default-brief",
-    name: "Brief Postmortem",
-    content: `## What Happened
-[Concise description of the incident]
-
-## Why It Happened
-[Root cause explanation]
-
-## How We Fixed It
-[Resolution steps]
-
-## How We Prevent It
-- [ ] [Prevention action 1]
-- [ ] [Prevention action 2]`,
-  },
-];
-
-// Default templates for public notes (customer-facing)
-const PUBLIC_NOTE_TEMPLATES: Array<{
-  id: string;
-  name: string;
-  content: string;
-}> = [
-  {
-    id: "public-status-update",
-    name: "Status Update",
-    content: `## Current Status
-[Brief description of the current situation]
-
-## What We're Doing
-[Actions being taken to resolve the issue]
-
-## Next Update
-[Expected time for next update or resolution]`,
-  },
-  {
-    id: "public-resolution",
-    name: "Resolution Notice",
-    content: `## Issue Resolved
-[Brief description of what was resolved]
-
-## Summary
-[What happened and how it was fixed]
-
-## Prevention
-[Steps taken to prevent recurrence]
-
-Thank you for your patience.`,
-  },
-  {
-    id: "public-maintenance",
-    name: "Maintenance Update",
-    content: `## Maintenance Status
-[Current phase of the maintenance]
-
-## Progress
-[What has been completed]
-
-## Remaining Work
-[What still needs to be done]
-
-## Expected Completion
-[Estimated completion time]`,
-  },
-];
-
-// Default templates for internal notes (team-facing)
-const INTERNAL_NOTE_TEMPLATES: Array<{
-  id: string;
-  name: string;
-  content: string;
-}> = [
-  {
-    id: "internal-investigation",
-    name: "Investigation Update",
-    content: `## Current Investigation Status
-[What we're looking at]
-
-## Findings So Far
-- [Finding 1]
-- [Finding 2]
-
-## Hypothesis
-[Current theory about the root cause]
-
-## Next Steps
-- [ ] [Action 1]
-- [ ] [Action 2]`,
-  },
-  {
-    id: "internal-technical",
-    name: "Technical Analysis",
-    content: `## Technical Details
-[Detailed technical observations]
-
-## Metrics/Logs
-[Relevant metrics or log entries]
-
-## Impact Assessment
-[Technical impact analysis]
-
-## Recommendations
-[Technical recommendations for resolution]`,
-  },
-  {
-    id: "internal-handoff",
-    name: "Shift Handoff",
-    content: `## Current State
-[Where things stand now]
-
-## Actions Taken
-[What has been done so far]
-
-## Open Questions
-[Things that still need investigation]
-
-## Immediate Priorities
-- [ ] [Priority 1]
-- [ ] [Priority 2]
-
-## Contacts
-[Key people involved or to contact]`,
-  },
-];
-
-// Function to get default templates based on note type
-const getDefaultTemplates: (
-  noteType: NoteType,
-) => Array<{ id: string; name: string; content: string }> = (
-  noteType: NoteType,
-): Array<{ id: string; name: string; content: string }> => {
-  switch (noteType) {
-    case "postmortem":
-      return POSTMORTEM_TEMPLATES;
-    case "public-note":
-      return PUBLIC_NOTE_TEMPLATES;
-    case "internal-note":
-      return INTERNAL_NOTE_TEMPLATES;
-    default:
-      return POSTMORTEM_TEMPLATES;
-  }
-};
-
 const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
   props: GenerateFromAIModalProps,
 ): ReactElement => {
-  // Get default templates based on note type
-  const defaultTemplates: Array<{ id: string; name: string; content: string }> =
-    getDefaultTemplates(props.noteType || "postmortem");
-
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
-    defaultTemplates[0]?.id || "",
+    props.templates[0]?.id || "",
   );
   const [templateContent, setTemplateContent] = useState<string>("");
 
-  // Combine default templates with custom templates
-  const allTemplates: Array<{ id: string; name: string; content?: string }> = [
-    ...defaultTemplates,
-    ...(props.templates || []),
-  ];
-
   // Build dropdown options
-  const templateOptions: Array<DropdownOption> = allTemplates.map(
-    (template: { id: string; name: string; content?: string }) => {
+  const templateOptions: Array<DropdownOption> = props.templates.map(
+    (template: AITemplate) => {
       return {
         label: template.name,
         value: template.id,
@@ -310,10 +56,8 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
   // Update template content when selection changes
   useEffect(() => {
     if (selectedTemplateId) {
-      const selectedTemplate:
-        | { id: string; name: string; content?: string }
-        | undefined = allTemplates.find(
-        (t: { id: string; name: string; content?: string }) => {
+      const selectedTemplate: AITemplate | undefined = props.templates.find(
+        (t: AITemplate) => {
           return t.id === selectedTemplateId;
         },
       );
@@ -371,7 +115,14 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
       icon={IconProp.Bolt}
     >
       <>
-        {error && <ErrorMessage message={error} />}
+        {error && (
+          <Alert
+            type={AlertType.DANGER}
+            strongTitle="Error"
+            title={error}
+            className="mb-4"
+          />
+        )}
 
         {isGenerating && <AILoader />}
 
