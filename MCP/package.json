@@ -26,6 +26,7 @@
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.25.0",
         "Common": "file:../Common",
+        "ejs": "^3.1.10",
         "ts-node": "^10.9.2"
     },
     "devDependencies": {
