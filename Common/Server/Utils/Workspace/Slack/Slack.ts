@@ -1892,9 +1892,88 @@ export default class SlackUtil extends WorkspaceBase {
     return apiResult;
   }
 
+  /**
+   * Converts markdown tables to a Slack-friendly format.
+   * Since Slack's mrkdwn doesn't support tables, we convert them to
+   * a row-by-row format with bold headers.
+   */
+  private static convertMarkdownTablesToSlackFormat(markdown: string): string {
+    // Regular expression to match markdown tables
+    const tableRegex: RegExp =
+      /(?:^|\n)((?:\|[^\n]+\|\n)+(?:\|[-:\s|]+\|\n)(?:\|[^\n]+\|\n?)+)/g;
+
+    return markdown.replace(
+      tableRegex,
+      (_match: string, table: string): string => {
+        const lines: Array<string> = table.trim().split("\n");
+
+        if (lines.length < 2) {
+          return table;
+        }
+
+        // Parse header row
+        const headerLine: string = lines[0] || "";
+        const headers: Array<string> = headerLine
+          .split("|")
+          .map((cell: string) => {
+            return cell.trim();
+          })
+          .filter((cell: string) => {
+            return cell.length > 0;
+          });
+
+        /*
+         * Skip separator line (line with dashes)
+         * Find data rows (skip header and separator)
+         */
+        const dataRows: Array<string> = lines.slice(2);
+        const formattedRows: Array<string> = [];
+
+        for (let rowIndex: number = 0; rowIndex < dataRows.length; rowIndex++) {
+          const row: string = dataRows[rowIndex] || "";
+          const cells: Array<string> = row
+            .split("|")
+            .map((cell: string) => {
+              return cell.trim();
+            })
+            .filter((cell: string) => {
+              return cell.length > 0;
+            });
+
+          if (cells.length === 0) {
+            continue;
+          }
+
+          const rowParts: Array<string> = [];
+          for (
+            let cellIndex: number = 0;
+            cellIndex < cells.length;
+            cellIndex++
+          ) {
+            const header: string =
+              headers[cellIndex] || `Column ${cellIndex + 1}`;
+            const value: string = cells[cellIndex] || "";
+            rowParts.push(`*${header}:* ${value}`);
+          }
+
+          if (dataRows.length > 1) {
+            formattedRows.push(`_Row ${rowIndex + 1}_\n${rowParts.join("\n")}`);
+          } else {
+            formattedRows.push(rowParts.join("\n"));
+          }
+        }
+
+        return "\n" + formattedRows.join("\n\n") + "\n";
+      },
+    );
+  }
+
   @CaptureSpan()
   public static convertMarkdownToSlackRichText(markdown: string): string {
-    return SlackifyMarkdown(markdown);
+    // First convert tables to Slack-friendly format
+    const markdownWithConvertedTables: string =
+      this.convertMarkdownTablesToSlackFormat(markdown);
+    return SlackifyMarkdown(markdownWithConvertedTables);
   }
 
   @CaptureSpan()

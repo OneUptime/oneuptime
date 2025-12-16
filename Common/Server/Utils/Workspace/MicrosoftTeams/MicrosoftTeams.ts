@@ -434,12 +434,89 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     return { actionType: actionType as MicrosoftTeamsActionType, actionValue };
   }
 
+  /**
+   * Converts markdown tables to HTML tables for Teams MessageCard.
+   * Teams MessageCard supports HTML in the text field.
+   */
+  private static convertMarkdownTablesToHtml(markdown: string): string {
+    // Regular expression to match markdown tables
+    const tableRegex: RegExp =
+      /(?:^|\n)((?:\|[^\n]+\|\n)+(?:\|[-:\s|]+\|\n)(?:\|[^\n]+\|\n?)+)/g;
+
+    return markdown.replace(
+      tableRegex,
+      (_match: string, table: string): string => {
+        const lines: Array<string> = table.trim().split("\n");
+
+        if (lines.length < 2) {
+          return table;
+        }
+
+        // Parse header row
+        const headerLine: string = lines[0] || "";
+        const headers: Array<string> = headerLine
+          .split("|")
+          .map((cell: string) => {
+            return cell.trim();
+          })
+          .filter((cell: string) => {
+            return cell.length > 0;
+          });
+
+        // Skip separator line (line with dashes) and get data rows
+        const dataRows: Array<string> = lines.slice(2);
+
+        // Build HTML table
+        let html: string =
+          '<table style="border-collapse: collapse; width: 100%;">';
+
+        // Header row
+        html += "<tr>";
+        for (const header of headers) {
+          html += `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;"><strong>${header}</strong></th>`;
+        }
+        html += "</tr>";
+
+        // Data rows
+        for (const row of dataRows) {
+          const cells: Array<string> = row
+            .split("|")
+            .map((cell: string) => {
+              return cell.trim();
+            })
+            .filter((cell: string) => {
+              return cell.length > 0;
+            });
+
+          if (cells.length === 0) {
+            continue;
+          }
+
+          html += "<tr>";
+          for (const cell of cells) {
+            html += `<td style="border: 1px solid #ddd; padding: 8px;">${cell}</td>`;
+          }
+          html += "</tr>";
+        }
+
+        html += "</table>";
+
+        return "\n" + html + "\n";
+      },
+    );
+  }
+
   private static buildMessageCardFromMarkdown(markdown: string): JSONObject {
     /*
      * Teams MessageCard has limited markdown support. Headings like '##' are not supported
      * and single newlines can collapse. Convert common patterns to a structured card.
      */
-    const lines: Array<string> = markdown
+
+    // First, convert markdown tables to HTML
+    const markdownWithHtmlTables: string =
+      this.convertMarkdownTablesToHtml(markdown);
+
+    const lines: Array<string> = markdownWithHtmlTables
       .split("\n")
       .map((l: string) => {
         return l.trim();
