@@ -765,6 +765,18 @@ isolatedVM:
   podSecurityContext: {}
   containerSecurityContext: {}
 
+mcp:
+  enabled: true
+  replicaCount: 1
+  disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 3405
+  resources:
+  nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
+
 serverMonitorIngest:
   enabled: true
   replicaCount: 1

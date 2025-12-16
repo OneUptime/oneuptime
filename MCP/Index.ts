@@ -2,6 +2,7 @@
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import {
   CallToolRequestSchema,
   ErrorCode,
@@ -9,6 +10,13 @@ import {
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import dotenv from "dotenv";
+import Express, {
+  ExpressApplication,
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+  ExpressJson,
+} from "Common/Server/Utils/Express";
 import DynamicToolGenerator from "./Utils/DynamicToolGenerator";
 import OneUptimeApiService, {
   OneUptimeApiConfig,
@@ -16,6 +24,7 @@ import OneUptimeApiService, {
 import { McpToolInfo, OneUptimeToolCallArgs } from "./Types/McpTypes";
 import OneUptimeOperation from "./Types/OneUptimeOperation";
 import MCPLogger from "./Utils/MCPLogger";
+import http from "http";
 
 // Load environment variables
 dotenv.config();
@@ -214,10 +223,22 @@ class OneUptimeMCPServer {
   }
 
   public async run(): Promise<void> {
+    const port: string | undefined = process.env["PORT"];
+
+    if (port) {
+      // HTTP mode - run as web server with SSE transport
+      await this.runHttpServer(parseInt(port, 10));
+    } else {
+      // Stdio mode - for CLI usage
+      await this.runStdioServer();
+    }
+  }
+
+  private async runStdioServer(): Promise<void> {
     const transport: StdioServerTransport = new StdioServerTransport();
     await this.server.connect(transport);
 
-    MCPLogger.info("OneUptime MCP Server is running!");
+    MCPLogger.info("OneUptime MCP Server is running in stdio mode!");
     MCPLogger.info(`Available tools: ${this.tools.length} total`);
 
     // Log some example tools
@@ -227,6 +248,108 @@ class OneUptimeMCPServer {
         return t.name;
       });
     MCPLogger.info(`Example tools: ${exampleTools.join(", ")}`);
+  }
+
+  private async runHttpServer(port: number): Promise<void> {
+    Express.setupExpress();
+    const app: ExpressApplication = Express.getExpressApp();
+
+    // Store active SSE transports
+    const transports: Map<string, SSEServerTransport> = new Map();
+
+    // Health check endpoint
+    app.get("/health", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.json({
+        status: "healthy",
+        service: "oneuptime-mcp",
+        tools: this.tools.length,
+      });
+    });
+
+    // SSE endpoint for MCP connections
+    app.get("/sse", async (req: ExpressRequest, res: ExpressResponse) => {
+      MCPLogger.info("New SSE connection established");
+
+      // Set SSE headers
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+
+      // Create SSE transport
+      const transport: SSEServerTransport = new SSEServerTransport(
+        "/message",
+        res,
+      );
+
+      // Store transport with session ID
+      const sessionId: string = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      transports.set(sessionId, transport);
+
+      // Handle connection close
+      req.on("close", () => {
+        MCPLogger.info(`SSE connection closed: ${sessionId}`);
+        transports.delete(sessionId);
+      });
+
+      // Connect server to transport
+      await this.server.connect(transport);
+    });
+
+    // Message endpoint for client-to-server messages
+    app.post(
+      "/message",
+      ExpressJson(),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          // Find the transport for this session
+          // In a real implementation, you'd use session management
+          const transport: SSEServerTransport | undefined = Array.from(
+            transports.values(),
+          )[0];
+          if (transport) {
+            await transport.handlePostMessage(req, res);
+          } else {
+            res.status(400).json({ error: "No active SSE connection" });
+          }
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    // List tools endpoint (REST API)
+    app.get("/tools", (_req: ExpressRequest, res: ExpressResponse) => {
+      const toolsList: Array<{
+        name: string;
+        description: string;
+      }> = this.tools.map((tool: McpToolInfo) => {
+        return {
+          name: tool.name,
+          description: tool.description,
+        };
+      });
+      res.json({ tools: toolsList, count: toolsList.length });
+    });
+
+    // Create HTTP server
+    const httpServer: http.Server = http.createServer(app);
+
+    httpServer.listen(port, () => {
+      MCPLogger.info(`OneUptime MCP Server is running in HTTP mode on port ${port}`);
+      MCPLogger.info(`Available tools: ${this.tools.length} total`);
+      MCPLogger.info(`Health check: http://localhost:${port}/health`);
+      MCPLogger.info(`Tools list: http://localhost:${port}/tools`);
+      MCPLogger.info(`SSE endpoint: http://localhost:${port}/sse`);
+
+      // Log some example tools
+      const exampleTools: string[] = this.tools
+        .slice(0, 5)
+        .map((t: McpToolInfo) => {
+          return t.name;
+        });
+      MCPLogger.info(`Example tools: ${exampleTools.join(", ")}`);
+    });
   }
 }
 

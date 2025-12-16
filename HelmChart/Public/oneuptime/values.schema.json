@@ -1921,6 +1921,45 @@
       },
       "additionalProperties": false
     },
+    "mcp": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "replicaCount": {
+          "type": "integer"
+        },
+        "disableTelemetryCollection": {
+          "type": "boolean"
+        },
+        "disableAutoscaler": {
+          "type": "boolean"
+        },
+        "ports": {
+          "type": "object",
+          "properties": {
+            "http": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        },
+        "resources": {
+          "type": ["object", "null"]
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
     "serverMonitorIngest": {
       "type": "object",
       "properties": {
