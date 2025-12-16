@@ -82,9 +82,7 @@ import DashboardService, {
 import AlertOwnerUserService, {
   Service as AlertOwnerUserServiceType,
 } from "Common/Server/Services/AlertOwnerUserService";
-import AlertService, {
-  Service as AlertServiceType,
-} from "Common/Server/Services/AlertService";
+
 import AlertSeverityService, {
   Service as AlertSeverityServiceType,
 } from "Common/Server/Services/AlertSeverityService";
@@ -236,9 +234,7 @@ import ScheduledMaintenanceOwnerTeamService, {
 import ScheduledMaintenanceOwnerUserService, {
   Service as ScheduledMaintenanceOwnerUserServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceOwnerUserService";
-import ScheduledMaintenanceService, {
-  Service as ScheduledMaintenanceServiceType,
-} from "Common/Server/Services/ScheduledMaintenanceService";
+
 import ScheduledMaintenanceStateService, {
   Service as ScheduledMaintenanceStateServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceStateService";
@@ -388,7 +384,6 @@ import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 
-import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
@@ -435,7 +430,6 @@ import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import PromoCode from "Common/Models/DatabaseModels/PromoCode";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
-import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
@@ -828,10 +822,7 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new AlertAPI().getRouter(),
-    );
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new AlertAPI().getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

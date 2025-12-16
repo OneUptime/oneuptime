@@ -296,10 +296,9 @@ export default class IncidentAPI extends BaseAPI<
       "template",
     ) as string | undefined;
 
-    const noteType: string = (JSONFunctions.getJSONValueInPath(
-      req.body,
-      "noteType",
-    ) as string) || "internal";
+    const noteType: string =
+      (JSONFunctions.getJSONValueInPath(req.body, "noteType") as string) ||
+      "internal";
 
     if (noteType !== "public" && noteType !== "internal") {
       throw new BadDataException("Note type must be 'public' or 'internal'");
@@ -341,7 +340,10 @@ export default class IncidentAPI extends BaseAPI<
     // Generate note using AIService (handles billing and logging)
     const aiLogRequest: AILogRequest = {
       projectId: incident.projectId,
-      feature: noteType === "public" ? "Incident Public Note" : "Incident Internal Note",
+      feature:
+        noteType === "public"
+          ? "Incident Public Note"
+          : "Incident Internal Note",
       incidentId: incidentId,
       messages: aiContext.messages,
       maxTokens: 4096,

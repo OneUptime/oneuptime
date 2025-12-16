@@ -18,22 +18,26 @@ export default class Domain extends DatabaseProperty {
   }
 
   public static isValidDomain(domain: string): boolean {
-    // Regex-based domain validation
-    // - Each label (part between dots) must be 1-63 characters
-    // - Labels can contain alphanumeric characters and hyphens
-    // - Labels cannot start or end with a hyphen
-    // - TLD must be at least 2 characters and contain only letters
-    // - Total length should not exceed 253 characters
+    /*
+     * Regex-based domain validation
+     * - Each label (part between dots) must be 1-63 characters
+     * - Labels can contain alphanumeric characters and hyphens
+     * - Labels cannot start or end with a hyphen
+     * - TLD must be at least 2 characters and contain only letters
+     * - Total length should not exceed 253 characters
+     */
 
     if (!domain || domain.length > 253) {
       return false;
     }
 
-    // Domain validation regex:
-    // ^                                          - start of string
-    // (?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+  - one or more labels followed by dot
-    // [a-zA-Z]{2,63}                             - TLD: 2-63 letters only
-    // $                                          - end of string
+    /*
+     * Domain validation regex:
+     * ^                                          - start of string
+     * (?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+  - one or more labels followed by dot
+     * [a-zA-Z]{2,63}                             - TLD: 2-63 letters only
+     * $                                          - end of string
+     */
     const domainRegex: RegExp =
       /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$/;
 
