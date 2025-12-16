@@ -4,6 +4,7 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import {
   CallToolRequestSchema,
+  CallToolRequest,
   ErrorCode,
   ListToolsRequestSchema,
   McpError,
@@ -106,8 +107,7 @@ function setupHandlers(): void {
   // Handle tool calls
   mcpServer.setRequestHandler(
     CallToolRequestSchema,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async (request: any) => {
+    async (request: CallToolRequest) => {
       const { name, arguments: args } = request.params;
 
       try {
