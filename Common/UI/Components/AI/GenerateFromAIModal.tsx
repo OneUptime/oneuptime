@@ -20,8 +20,6 @@ export interface GenerateFromAIModalProps {
   onGenerate: (data: GenerateAIRequestData) => Promise<string>;
   onSuccess: (generatedContent: string) => void;
   templates?: Array<{ id: string; name: string; content?: string }>;
-  /** Optional list of data sources that will be used for generation (shown when no templates) */
-  dataSourceItems?: Array<string>;
 }
 
 export interface GenerateAIRequestData {
@@ -238,12 +236,7 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
       <>
         {error && <ErrorMessage message={error} />}
 
-        {isGenerating && (
-          <AILoader
-            title="Generating with AI"
-            dataSourceItems={props.dataSourceItems || undefined}
-          />
-        )}
+        {isGenerating && <AILoader />}
 
         {!isGenerating && (
           <div className="space-y-4">

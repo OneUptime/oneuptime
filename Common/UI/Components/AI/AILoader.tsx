@@ -5,31 +5,32 @@ import React, {
   useState,
 } from "react";
 
-export interface AILoaderProps {
-  /** Optional title to display */
-  title?: string | undefined;
-  /** Data sources that AI is analyzing */
-  dataSourceItems?: Array<string> | undefined;
-}
+const loadingStages: Array<string> = ["Analyzing", "Processing", "Generating"];
 
-const loadingMessages: Array<string> = [
-  "Gathering context",
-  "Analyzing data",
-  "Generating content",
-];
+const AILoader: FunctionComponent = (): ReactElement => {
+  const [stageIndex, setStageIndex] = useState<number>(0);
+  const [dots, setDots] = useState<string>("");
 
-const AILoader: FunctionComponent<AILoaderProps> = (
-  props: AILoaderProps,
-): ReactElement => {
-  const [currentMessageIndex, setCurrentMessageIndex] = useState<number>(0);
-
-  // Cycle through messages
+  // Cycle through stages
   useEffect(() => {
     const interval: NodeJS.Timeout = setInterval(() => {
-      setCurrentMessageIndex((prev: number) => {
-        return (prev + 1) % loadingMessages.length;
+      setStageIndex((prev: number) => {
+        return (prev + 1) % loadingStages.length;
       });
-    }, 3000);
+    }, 2500);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Animate dots
+  useEffect(() => {
+    const interval: NodeJS.Timeout = setInterval(() => {
+      setDots((prev: string) => {
+        return prev.length >= 3 ? "" : prev + ".";
+      });
+    }, 400);
 
     return () => {
       clearInterval(interval);
@@ -37,54 +38,52 @@ const AILoader: FunctionComponent<AILoaderProps> = (
   }, []);
 
   return (
-    <div className="py-12 px-4">
-      <div className="flex flex-col items-center justify-center">
-        {/* Minimal animated bars */}
-        <div className="flex items-end gap-1 h-8 mb-8">
-          {[0, 1, 2, 3, 4].map((index: number) => {
-            return (
-              <div
-                key={index}
-                className="w-1 bg-gray-800 rounded-full"
-                style={{
-                  animation: "aiBarPulse 1.2s ease-in-out infinite",
-                  animationDelay: `${index * 0.1}s`,
-                }}
-              />
-            );
-          })}
+    <div className="py-8 px-4">
+      <div className="flex items-center justify-center gap-3">
+        {/* Pulsing AI indicator */}
+        <div className="relative">
+          <div
+            className="w-2 h-2 bg-indigo-600 rounded-full"
+            style={{
+              animation: "aiPulse 1.5s ease-in-out infinite",
+            }}
+          />
+          <div
+            className="absolute inset-0 w-2 h-2 bg-indigo-600 rounded-full"
+            style={{
+              animation: "aiPing 1.5s ease-out infinite",
+            }}
+          />
         </div>
 
-        {/* Title */}
-        <p className="text-sm font-medium text-gray-900 mb-1 tracking-wide">
-          {props.title || "Generating"}
-        </p>
-
-        {/* Current stage with fade transition */}
-        <p className="text-xs text-gray-500 h-4 transition-opacity duration-500">
-          {loadingMessages[currentMessageIndex]}
-        </p>
-
-        {/* Subtle data sources indicator */}
-        {props.dataSourceItems && props.dataSourceItems.length > 0 && (
-          <p className="text-xs text-gray-400 mt-6">
-            Analyzing {props.dataSourceItems.length} data source
-            {props.dataSourceItems.length > 1 ? "s" : ""}
-          </p>
-        )}
+        {/* Status text */}
+        <span className="text-sm text-gray-600 font-medium min-w-[100px]">
+          {loadingStages[stageIndex]}
+          <span className="inline-block w-4 text-left">{dots}</span>
+        </span>
       </div>
 
-      {/* CSS for animation */}
+      {/* CSS for animations */}
       <style>
         {`
-          @keyframes aiBarPulse {
+          @keyframes aiPulse {
             0%, 100% {
-              height: 8px;
-              opacity: 0.4;
+              opacity: 1;
+              transform: scale(1);
             }
             50% {
-              height: 24px;
-              opacity: 1;
+              opacity: 0.7;
+              transform: scale(1.1);
+            }
+          }
+          @keyframes aiPing {
+            0% {
+              opacity: 0.6;
+              transform: scale(1);
+            }
+            100% {
+              opacity: 0;
+              transform: scale(2.5);
             }
           }
         `}
