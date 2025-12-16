@@ -1,6 +1,6 @@
 #!/usr/bin/env npx ts-node
 
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
   CallToolRequestSchema,
@@ -47,14 +47,14 @@ interface SessionData {
 const sessions: Map<string, SessionData> = new Map();
 
 // MCP Server instance
-let mcpServer: Server;
+let mcpServer: McpServer;
 let tools: McpToolInfo[] = [];
 
 // Current session API key (set before handling each request)
 let currentSessionApiKey: string = "";
 
 function initializeMCPServer(): void {
-  mcpServer = new Server(
+  mcpServer = new McpServer(
     {
       name: "oneuptime-mcp",
       version: "1.0.0",
@@ -94,8 +94,8 @@ function generateTools(): void {
 }
 
 function setupHandlers(): void {
-  // List available tools
-  mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
+  // List available tools - use the underlying server for custom handlers
+  mcpServer.server.setRequestHandler(ListToolsRequestSchema, async () => {
     const mcpTools: Array<{
       name: string;
       description: string;
@@ -113,7 +113,7 @@ function setupHandlers(): void {
   });
 
   // Handle tool calls
-  mcpServer.setRequestHandler(
+  mcpServer.server.setRequestHandler(
     CallToolRequestSchema,
     async (request: CallToolRequest) => {
       const { name, arguments: args } = request.params;
