@@ -34,6 +34,14 @@ import React, {
 } from "react";
 import AttachmentList from "../../../Components/Attachment/AttachmentList";
 import { getModelIdString } from "../../../Utils/ModelId";
+import GenerateFromAIModal, {
+  GenerateAIRequestData,
+} from "Common/UI/Components/AI/GenerateFromAIModal";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject as APIJSONObject } from "Common/Types/JSON";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import URL from "Common/Types/API/URL";
+import { APP_API_URL } from "Common/UI/Config";
 
 const AlertDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -49,6 +57,39 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (
     useState<boolean>(false);
   const [initialValuesForAlert, setInitialValuesForAlert] =
     useState<JSONObject>({});
+  const [showGenerateFromAIModal, setShowGenerateFromAIModal] =
+    useState<boolean>(false);
+
+  const generateNoteFromAI: (
+    data: GenerateAIRequestData,
+  ) => Promise<string> = async (
+    data: GenerateAIRequestData,
+  ): Promise<string> => {
+    const response: HTTPResponse<APIJSONObject> | HTTPErrorResponse =
+      await API.post(
+        URL.fromString(APP_API_URL.toString()).addRoute(
+          `/alert/generate-note-from-ai/${modelId.toString()}`,
+        ),
+        {
+          template: data.template,
+        },
+      );
+
+    if (response instanceof HTTPErrorResponse) {
+      throw new Error(response.message || "Failed to generate note from AI");
+    }
+
+    return response.data["note"] as string;
+  };
+
+  const handleAIGenerationSuccess: (generatedContent: string) => void = (
+    generatedContent: string,
+  ): void => {
+    setShowGenerateFromAIModal(false);
+    setInitialValuesForAlert({
+      note: generatedContent,
+    });
+  };
 
   const fetchAlertNoteTemplate: (id: ObjectID) => Promise<void> = async (
     id: ObjectID,
@@ -144,6 +185,14 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (
           title: "Private Notes",
           description: "Here are private notes for this alert.",
           buttons: [
+            {
+              title: "Generate from AI",
+              icon: IconProp.Bolt,
+              buttonStyle: ButtonStyleType.OUTLINE,
+              onClick: async (): Promise<void> => {
+                setShowGenerateFromAIModal(true);
+              },
+            },
             {
               title: "Create from Template",
               icon: IconProp.Template,
@@ -348,6 +397,19 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (
         />
       ) : (
         <> </>
+      )}
+
+      {showGenerateFromAIModal && (
+        <GenerateFromAIModal
+          title="Generate Private Note from AI"
+          description="AI will analyze the alert data and generate an internal technical note."
+          noteType="internal-note"
+          onClose={() => {
+            setShowGenerateFromAIModal(false);
+          }}
+          onGenerate={generateNoteFromAI}
+          onSuccess={handleAIGenerationSuccess}
+        />
       )}
     </Fragment>
   );

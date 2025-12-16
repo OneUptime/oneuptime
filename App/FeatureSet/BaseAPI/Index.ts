@@ -33,6 +33,8 @@ import IncidentPublicNoteAPI from "Common/Server/API/IncidentPublicNoteAPI";
 import ScheduledMaintenanceInternalNoteAPI from "Common/Server/API/ScheduledMaintenanceInternalNoteAPI";
 import ScheduledMaintenancePublicNoteAPI from "Common/Server/API/ScheduledMaintenancePublicNoteAPI";
 import IncidentAPI from "Common/Server/API/IncidentAPI";
+import ScheduledMaintenanceAPI from "Common/Server/API/ScheduledMaintenanceAPI";
+import AlertAPI from "Common/Server/API/AlertAPI";
 // User Notification methods.
 import UserEmailAPI from "Common/Server/API/UserEmailAPI";
 import UserNotificationLogTimelineAPI from "Common/Server/API/UserOnCallLogTimelineAPI";
@@ -828,7 +830,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<Alert, AlertServiceType>(Alert, AlertService).getRouter(),
+      new AlertAPI().getRouter(),
     );
 
     app.use(
@@ -1299,10 +1301,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ScheduledMaintenance, ScheduledMaintenanceServiceType>(
-        ScheduledMaintenance,
-        ScheduledMaintenanceService,
-      ).getRouter(),
+      new ScheduledMaintenanceAPI().getRouter(),
     );
 
     app.use(

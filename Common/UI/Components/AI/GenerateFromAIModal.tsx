@@ -20,6 +20,7 @@ export interface GenerateFromAIModalProps {
   onGenerate: (data: GenerateAIRequestData) => Promise<string>;
   onSuccess: (generatedContent: string) => void;
   templates?: Array<{ id: string; name: string; content?: string }>;
+  noteType?: NoteType; // Type of note being generated (determines default templates)
 }
 
 export interface GenerateAIRequestData {
@@ -27,8 +28,11 @@ export interface GenerateAIRequestData {
   templateId?: string;
 }
 
+// Template categories for different note types
+export type NoteType = "postmortem" | "public-note" | "internal-note";
+
 // Default hardcoded templates for incident postmortem
-const DEFAULT_TEMPLATES: Array<{ id: string; name: string; content: string }> =
+const POSTMORTEM_TEMPLATES: Array<{ id: string; name: string; content: string }> =
   [
     {
       id: "default-standard",
@@ -144,19 +148,141 @@ const DEFAULT_TEMPLATES: Array<{ id: string; name: string; content: string }> =
     },
   ];
 
+// Default templates for public notes (customer-facing)
+const PUBLIC_NOTE_TEMPLATES: Array<{ id: string; name: string; content: string }> =
+  [
+    {
+      id: "public-status-update",
+      name: "Status Update",
+      content: `## Current Status
+[Brief description of the current situation]
+
+## What We're Doing
+[Actions being taken to resolve the issue]
+
+## Next Update
+[Expected time for next update or resolution]`,
+    },
+    {
+      id: "public-resolution",
+      name: "Resolution Notice",
+      content: `## Issue Resolved
+[Brief description of what was resolved]
+
+## Summary
+[What happened and how it was fixed]
+
+## Prevention
+[Steps taken to prevent recurrence]
+
+Thank you for your patience.`,
+    },
+    {
+      id: "public-maintenance",
+      name: "Maintenance Update",
+      content: `## Maintenance Status
+[Current phase of the maintenance]
+
+## Progress
+[What has been completed]
+
+## Remaining Work
+[What still needs to be done]
+
+## Expected Completion
+[Estimated completion time]`,
+    },
+  ];
+
+// Default templates for internal notes (team-facing)
+const INTERNAL_NOTE_TEMPLATES: Array<{ id: string; name: string; content: string }> =
+  [
+    {
+      id: "internal-investigation",
+      name: "Investigation Update",
+      content: `## Current Investigation Status
+[What we're looking at]
+
+## Findings So Far
+- [Finding 1]
+- [Finding 2]
+
+## Hypothesis
+[Current theory about the root cause]
+
+## Next Steps
+- [ ] [Action 1]
+- [ ] [Action 2]`,
+    },
+    {
+      id: "internal-technical",
+      name: "Technical Analysis",
+      content: `## Technical Details
+[Detailed technical observations]
+
+## Metrics/Logs
+[Relevant metrics or log entries]
+
+## Impact Assessment
+[Technical impact analysis]
+
+## Recommendations
+[Technical recommendations for resolution]`,
+    },
+    {
+      id: "internal-handoff",
+      name: "Shift Handoff",
+      content: `## Current State
+[Where things stand now]
+
+## Actions Taken
+[What has been done so far]
+
+## Open Questions
+[Things that still need investigation]
+
+## Immediate Priorities
+- [ ] [Priority 1]
+- [ ] [Priority 2]
+
+## Contacts
+[Key people involved or to contact]`,
+    },
+  ];
+
+// Function to get default templates based on note type
+const getDefaultTemplates = (
+  noteType: NoteType,
+): Array<{ id: string; name: string; content: string }> => {
+  switch (noteType) {
+    case "postmortem":
+      return POSTMORTEM_TEMPLATES;
+    case "public-note":
+      return PUBLIC_NOTE_TEMPLATES;
+    case "internal-note":
+      return INTERNAL_NOTE_TEMPLATES;
+    default:
+      return POSTMORTEM_TEMPLATES;
+  }
+};
+
 const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
   props: GenerateFromAIModalProps,
 ): ReactElement => {
+  // Get default templates based on note type
+  const defaultTemplates: Array<{ id: string; name: string; content: string }> =
+    getDefaultTemplates(props.noteType || "postmortem");
+
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
-    DEFAULT_TEMPLATES[0]?.id || "",
+    defaultTemplates[0]?.id || "",
   );
   const [templateContent, setTemplateContent] = useState<string>("");
 
   // Combine default templates with custom templates
   const allTemplates: Array<{ id: string; name: string; content?: string }> = [
-    ...DEFAULT_TEMPLATES,
+    ...defaultTemplates,
     ...(props.templates || []),
   ];
 
