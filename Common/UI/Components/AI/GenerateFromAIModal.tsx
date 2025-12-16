@@ -225,7 +225,7 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
         }
       }}
       submitButtonText={isGenerating ? "Generating..." : "Generate with AI"}
-      submitButtonStyleType={ButtonStyleType.SUCCESS}
+      submitButtonStyleType={ButtonStyleType.PRIMARY}
       submitButtonType={ButtonType.Button}
       isLoading={isGenerating}
       disableSubmitButton={isGenerating}

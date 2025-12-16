@@ -292,7 +292,7 @@ const IncidentPostmortem: FunctionComponent<
             {
               title: "Generate from AI",
               icon: IconProp.Bolt,
-              buttonStyle: ButtonStyleType.SUCCESS,
+              buttonStyle: ButtonStyleType.PRIMARY,
               onClick: () => {
                 setShowAIGenerateModal(true);
               },
