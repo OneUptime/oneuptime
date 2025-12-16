@@ -32,12 +32,15 @@ export interface GenerateAIRequestData {
 export type NoteType = "postmortem" | "public-note" | "internal-note";
 
 // Default hardcoded templates for incident postmortem
-const POSTMORTEM_TEMPLATES: Array<{ id: string; name: string; content: string }> =
-  [
-    {
-      id: "default-standard",
-      name: "Standard Postmortem",
-      content: `## Executive Summary
+const POSTMORTEM_TEMPLATES: Array<{
+  id: string;
+  name: string;
+  content: string;
+}> = [
+  {
+    id: "default-standard",
+    name: "Standard Postmortem",
+    content: `## Executive Summary
 [Brief overview of the incident, its impact, and resolution]
 
 ## Incident Timeline
@@ -63,11 +66,11 @@ const POSTMORTEM_TEMPLATES: Array<{ id: string; name: string; content: string }>
 
 ## Lessons Learned
 [Key takeaways and improvements identified]`,
-    },
-    {
-      id: "default-detailed",
-      name: "Detailed Technical Postmortem",
-      content: `## Incident Overview
+  },
+  {
+    id: "default-detailed",
+    name: "Detailed Technical Postmortem",
+    content: `## Incident Overview
 **Incident Title**: [Title]
 **Severity**: [P1/P2/P3/P4]
 **Duration**: [Start time] - [End time]
@@ -129,11 +132,11 @@ const POSTMORTEM_TEMPLATES: Array<{ id: string; name: string; content: string }>
 
 ## Appendix
 [Any additional technical details, logs, or graphs]`,
-    },
-    {
-      id: "default-brief",
-      name: "Brief Postmortem",
-      content: `## What Happened
+  },
+  {
+    id: "default-brief",
+    name: "Brief Postmortem",
+    content: `## What Happened
 [Concise description of the incident]
 
 ## Why It Happened
@@ -145,16 +148,19 @@ const POSTMORTEM_TEMPLATES: Array<{ id: string; name: string; content: string }>
 ## How We Prevent It
 - [ ] [Prevention action 1]
 - [ ] [Prevention action 2]`,
-    },
-  ];
+  },
+];
 
 // Default templates for public notes (customer-facing)
-const PUBLIC_NOTE_TEMPLATES: Array<{ id: string; name: string; content: string }> =
-  [
-    {
-      id: "public-status-update",
-      name: "Status Update",
-      content: `## Current Status
+const PUBLIC_NOTE_TEMPLATES: Array<{
+  id: string;
+  name: string;
+  content: string;
+}> = [
+  {
+    id: "public-status-update",
+    name: "Status Update",
+    content: `## Current Status
 [Brief description of the current situation]
 
 ## What We're Doing
@@ -162,11 +168,11 @@ const PUBLIC_NOTE_TEMPLATES: Array<{ id: string; name: string; content: string }
 
 ## Next Update
 [Expected time for next update or resolution]`,
-    },
-    {
-      id: "public-resolution",
-      name: "Resolution Notice",
-      content: `## Issue Resolved
+  },
+  {
+    id: "public-resolution",
+    name: "Resolution Notice",
+    content: `## Issue Resolved
 [Brief description of what was resolved]
 
 ## Summary
@@ -176,11 +182,11 @@ const PUBLIC_NOTE_TEMPLATES: Array<{ id: string; name: string; content: string }
 [Steps taken to prevent recurrence]
 
 Thank you for your patience.`,
-    },
-    {
-      id: "public-maintenance",
-      name: "Maintenance Update",
-      content: `## Maintenance Status
+  },
+  {
+    id: "public-maintenance",
+    name: "Maintenance Update",
+    content: `## Maintenance Status
 [Current phase of the maintenance]
 
 ## Progress
@@ -191,16 +197,19 @@ Thank you for your patience.`,
 
 ## Expected Completion
 [Estimated completion time]`,
-    },
-  ];
+  },
+];
 
 // Default templates for internal notes (team-facing)
-const INTERNAL_NOTE_TEMPLATES: Array<{ id: string; name: string; content: string }> =
-  [
-    {
-      id: "internal-investigation",
-      name: "Investigation Update",
-      content: `## Current Investigation Status
+const INTERNAL_NOTE_TEMPLATES: Array<{
+  id: string;
+  name: string;
+  content: string;
+}> = [
+  {
+    id: "internal-investigation",
+    name: "Investigation Update",
+    content: `## Current Investigation Status
 [What we're looking at]
 
 ## Findings So Far
@@ -213,11 +222,11 @@ const INTERNAL_NOTE_TEMPLATES: Array<{ id: string; name: string; content: string
 ## Next Steps
 - [ ] [Action 1]
 - [ ] [Action 2]`,
-    },
-    {
-      id: "internal-technical",
-      name: "Technical Analysis",
-      content: `## Technical Details
+  },
+  {
+    id: "internal-technical",
+    name: "Technical Analysis",
+    content: `## Technical Details
 [Detailed technical observations]
 
 ## Metrics/Logs
@@ -228,11 +237,11 @@ const INTERNAL_NOTE_TEMPLATES: Array<{ id: string; name: string; content: string
 
 ## Recommendations
 [Technical recommendations for resolution]`,
-    },
-    {
-      id: "internal-handoff",
-      name: "Shift Handoff",
-      content: `## Current State
+  },
+  {
+    id: "internal-handoff",
+    name: "Shift Handoff",
+    content: `## Current State
 [Where things stand now]
 
 ## Actions Taken
@@ -247,11 +256,13 @@ const INTERNAL_NOTE_TEMPLATES: Array<{ id: string; name: string; content: string
 
 ## Contacts
 [Key people involved or to contact]`,
-    },
-  ];
+  },
+];
 
 // Function to get default templates based on note type
-const getDefaultTemplates = (
+const getDefaultTemplates: (
+  noteType: NoteType,
+) => Array<{ id: string; name: string; content: string }> = (
   noteType: NoteType,
 ): Array<{ id: string; name: string; content: string }> => {
   switch (noteType) {
