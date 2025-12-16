@@ -16,10 +16,10 @@ import {
 } from "../Utils/Express";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import AILogService, {
+import AIService, {
   AILogRequest,
   AILogResponse,
-} from "../Services/AILogService";
+} from "../Services/AIService";
 import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
@@ -211,7 +211,7 @@ export default class IncidentAPI extends BaseAPI<
         template,
       );
 
-    // Generate postmortem using AILogService (handles billing and logging)
+    // Generate postmortem using AIService (handles billing and logging)
     const aiLogRequest: AILogRequest = {
       projectId: incident.projectId,
       feature: "Incident Postmortem",
@@ -226,7 +226,7 @@ export default class IncidentAPI extends BaseAPI<
     }
 
     const response: AILogResponse =
-      await AILogService.executeWithLogging(aiLogRequest);
+      await AIService.executeWithLogging(aiLogRequest);
 
     return Response.sendJsonObjectResponse(req, res, {
       postmortemNote: response.content,
