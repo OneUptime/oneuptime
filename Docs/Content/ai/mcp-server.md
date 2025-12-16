@@ -96,31 +96,6 @@ Replace `oneuptime.com` with your OneUptime domain:
 }
 ```
 
-### Multiple Instances
-
-You can configure multiple OneUptime instances:
-
-```json
-{
-  "mcpServers": {
-    "oneuptime-prod": {
-      "transport": "streamable-http",
-      "url": "https://prod.oneuptime.com/mcp",
-      "headers": {
-        "x-api-key": "prod-api-key"
-      }
-    },
-    "oneuptime-staging": {
-      "transport": "streamable-http",
-      "url": "https://staging.oneuptime.com/mcp",
-      "headers": {
-        "x-api-key": "staging-api-key"
-      }
-    }
-  }
-}
-```
-
 ## Available Endpoints
 
 | Endpoint | Method | Description |
@@ -167,7 +142,6 @@ curl https://your-oneuptime-domain.com/mcp/tools
 ```
 "What's the current status of all my monitors?"
 "Show me incidents from the last 24 hours"
-"List my OneUptime projects"
 ```
 
 ### Monitor Management
