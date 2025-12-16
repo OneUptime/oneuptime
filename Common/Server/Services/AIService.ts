@@ -152,7 +152,6 @@ export class Service extends BaseService {
       const response: LLMCompletionResponse = await LLMService.getCompletion({
         llmProviderConfig: llmConfig,
         messages: request.messages,
-        maxTokens: request.maxTokens || 4096,
         temperature: request.temperature ?? 0.7,
       });
 
