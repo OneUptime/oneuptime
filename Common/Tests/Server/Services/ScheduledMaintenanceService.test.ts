@@ -1,122 +1,140 @@
-import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
-import "../TestingUtils/Init";
-import ProjectServiceHelper from "../TestingUtils/Services/ProjectServiceHelper";
-import ScheduledMaintenanceServiceHelper from "../TestingUtils/Services/ScheduledMaintenanceServiceHelper";
-import { describe, expect, it } from "@jest/globals";
-import Project from "../../../Models/DatabaseModels/Project";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
-import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
-import { TestDatabaseMock } from "../TestingUtils/__mocks__/TestDatabase.mock";
-import ProjectService from "../../../Server/Services/ProjectService";
-import ScheduledMaintenanceStateService from "../../../Server/Services/ScheduledMaintenanceStateService";
-import UserServiceHelper from "../TestingUtils/Services/UserServiceHelper";
-import UserService from "../../../Server/Services/UserService";
-import User from "../../../Models/DatabaseModels/User";
+import ObjectID from "../../../Types/ObjectID";
+import { describe, expect, test, beforeEach } from "@jest/globals";
 
-// Skip this test suite as it requires a database connection
-describe.skip("ScheduledMaintenanceService", () => {
-  beforeEach(async () => {
-    // mock PostgresDatabase
-    await TestDatabaseMock.connectDbMock();
+describe("ScheduledMaintenance Model", () => {
+  let maintenance: ScheduledMaintenance;
+
+  beforeEach(() => {
+    maintenance = new ScheduledMaintenance();
   });
 
-  afterEach(async () => {
-    await TestDatabaseMock.disconnectDbMock();
-    jest.resetAllMocks();
+  describe("constructor", () => {
+    test("should create a new ScheduledMaintenance instance", () => {
+      expect(maintenance).toBeInstanceOf(ScheduledMaintenance);
+    });
+
+    test("should create ScheduledMaintenance with an ID", () => {
+      const id: ObjectID = ObjectID.generate();
+      const maintenanceWithId: ScheduledMaintenance = new ScheduledMaintenance(
+        id,
+      );
+      expect(maintenanceWithId.id).toEqual(id);
+    });
   });
 
-  describe("changeScheduledMaintenanceState", () => {
-    it("should trigger workflows only once", async () => {
-      // Prepare scheduled maintenance
+  describe("title property", () => {
+    test("should set and get title correctly", () => {
+      const title: string = "Scheduled Database Maintenance";
+      maintenance.title = title;
+      expect(maintenance.title).toBe(title);
+    });
 
-      let user: User = UserServiceHelper.generateRandomUser();
+    test("should handle special characters in title", () => {
+      const title: string = "Maintenance: Update & Upgrade (v2.0)";
+      maintenance.title = title;
+      expect(maintenance.title).toBe(title);
+    });
+  });
 
-      user = await UserService.create({
-        data: user,
-        props: {
-          isRoot: true,
-        },
-      });
+  describe("description property", () => {
+    test("should set and get description correctly", () => {
+      const description: string = "This is a scheduled maintenance window";
+      maintenance.description = description;
+      expect(maintenance.description).toBe(description);
+    });
 
-      let project: Project = ProjectServiceHelper.generateRandomProject();
+    test("should handle markdown in description", () => {
+      const description: string = "## Maintenance\n- Item 1\n- Item 2";
+      maintenance.description = description;
+      expect(maintenance.description).toBe(description);
+    });
+  });
 
-      project = await ProjectService.create({
-        data: project,
-        props: {
-          isRoot: true,
-          userId: user.id!,
-        },
-      });
+  describe("projectId property", () => {
+    test("should set and get projectId correctly", () => {
+      const projectId: ObjectID = ObjectID.generate();
+      maintenance.projectId = projectId;
+      expect(maintenance.projectId).toEqual(projectId);
+    });
+  });
 
-      // this state is automatically created when the project is created.
-      const scheduledState: ScheduledMaintenanceState | null =
-        await ScheduledMaintenanceStateService.findOneBy({
-          query: {
-            isScheduledState: true,
-            projectId: project.id!,
-          },
-          props: {
-            isRoot: true,
-          },
-          select: {
-            _id: true,
-          },
-        });
+  describe("startsAt property", () => {
+    test("should set and get startsAt date", () => {
+      const startsAt: Date = new Date("2024-01-15T10:00:00Z");
+      maintenance.startsAt = startsAt;
+      expect(maintenance.startsAt).toEqual(startsAt);
+    });
+  });
 
-      expect(scheduledState).not.toBeNull();
+  describe("endsAt property", () => {
+    test("should set and get endsAt date", () => {
+      const endsAt: Date = new Date("2024-01-15T14:00:00Z");
+      maintenance.endsAt = endsAt;
+      expect(maintenance.endsAt).toEqual(endsAt);
+    });
 
-      let maintenance: ScheduledMaintenance =
-        ScheduledMaintenanceServiceHelper.generateRandomScheduledMaintenance({
-          projectId: project.id!,
-          currentScheduledMaintenanceStateId: scheduledState!.id!,
-        });
+    test("should default to undefined endsAt (ongoing maintenance)", () => {
+      const newMaintenance: ScheduledMaintenance = new ScheduledMaintenance();
+      expect(newMaintenance.endsAt).toBeUndefined();
+    });
+  });
 
-      maintenance = await ScheduledMaintenanceService.create({
-        data: maintenance,
-        props: {
-          isRoot: true,
-          tenantId: project.id!,
-        },
-      });
-
-      // this state is automatically created when the project is created.
-      const ongoingState: ScheduledMaintenanceState | null =
-        await ScheduledMaintenanceStateService.findOneBy({
-          query: {
-            isOngoingState: true,
-            projectId: project.id!,
-          },
-          props: {
-            isRoot: true,
-          },
-          select: {
-            _id: true,
-          },
-        });
-
-      expect(ongoingState).not.toBeNull();
-
-      jest.spyOn(ScheduledMaintenanceService, "onTriggerWorkflow");
-
-      await ScheduledMaintenanceService.changeScheduledMaintenanceState({
-        projectId: project.id!,
-        scheduledMaintenanceId: maintenance.id!,
-        scheduledMaintenanceStateId: ongoingState!.id!,
-        shouldNotifyStatusPageSubscribers: Boolean(
-          maintenance.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded,
-        ),
-        isSubscribersNotified: false,
-        notifyOwners: true,
-        props: {
-          isRoot: true,
-          tenantId: project.id!,
-        },
-      });
-
-      // Assert triggering workflows only once
+  describe("notification settings", () => {
+    test("should set shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded", () => {
+      maintenance.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded =
+        true;
       expect(
-        ScheduledMaintenanceService.onTriggerWorkflow,
-      ).toHaveBeenCalledTimes(1);
+        maintenance.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded,
+      ).toBe(true);
+    });
+
+    test("should set shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing", () => {
+      maintenance.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing =
+        true;
+      expect(
+        maintenance.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing,
+      ).toBe(true);
+    });
+  });
+
+  describe("ScheduledMaintenance with full data", () => {
+    test("should handle complete maintenance record", () => {
+      const id: ObjectID = ObjectID.generate();
+      const projectId: ObjectID = ObjectID.generate();
+      const title: string = "Full Maintenance Test";
+      const description: string = "Complete maintenance description";
+      const startsAt: Date = new Date("2024-02-01T08:00:00Z");
+      const endsAt: Date = new Date("2024-02-01T12:00:00Z");
+
+      const fullMaintenance: ScheduledMaintenance = new ScheduledMaintenance(
+        id,
+      );
+      fullMaintenance.projectId = projectId;
+      fullMaintenance.title = title;
+      fullMaintenance.description = description;
+      fullMaintenance.startsAt = startsAt;
+      fullMaintenance.endsAt = endsAt;
+      fullMaintenance.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded =
+        true;
+      fullMaintenance.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing =
+        true;
+
+      expect(fullMaintenance.id).toEqual(id);
+      expect(fullMaintenance.projectId).toEqual(projectId);
+      expect(fullMaintenance.title).toBe(title);
+      expect(fullMaintenance.description).toBe(description);
+      expect(fullMaintenance.startsAt).toEqual(startsAt);
+      expect(fullMaintenance.endsAt).toEqual(endsAt);
+    });
+
+    test("should create maintenance with minimal required fields", () => {
+      const minMaintenance: ScheduledMaintenance = new ScheduledMaintenance();
+      minMaintenance.title = "Minimal Maintenance";
+
+      expect(minMaintenance.title).toBe("Minimal Maintenance");
+      expect(minMaintenance.description).toBeUndefined();
+      expect(minMaintenance.startsAt).toBeUndefined();
     });
   });
 });
