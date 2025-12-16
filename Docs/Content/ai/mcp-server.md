@@ -39,7 +39,7 @@ With the OneUptime MCP Server, AI assistants can help you:
 
 - OneUptime instance (cloud or self-hosted)
 - Valid OneUptime API key
-- MCP-compatible client (Claude Desktop, etc.)
+- MCP-compatible client (Claude Desktop, VS Code with GitHub Copilot, etc.)
 
 ## Getting Your API Key
 
@@ -95,6 +95,93 @@ Replace `oneuptime.com` with your OneUptime domain:
   }
 }
 ```
+
+### VS Code with GitHub Copilot
+
+VS Code supports MCP servers natively with GitHub Copilot (version 1.99+). This allows Copilot to access OneUptime data directly.
+
+#### Step 1: Requirements
+
+- VS Code version 1.99 or later
+- GitHub Copilot extension installed and activated
+- GitHub Copilot Chat enabled
+
+#### Step 2: Open MCP Configuration
+
+1. Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (macOS)
+2. Type "MCP: Open User Configuration" and press Enter
+3. This opens or creates the `mcp.json` configuration file
+
+Alternatively, create `.vscode/mcp.json` in your workspace for project-specific configuration.
+
+#### For OneUptime Cloud
+
+```json
+{
+  "servers": {
+    "oneuptime": {
+      "type": "http",
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "${input:oneuptime-api-key}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "oneuptime-api-key",
+      "description": "OneUptime API Key",
+      "password": true
+    }
+  ]
+}
+```
+
+#### For Self-Hosted OneUptime
+
+```json
+{
+  "servers": {
+    "oneuptime": {
+      "type": "http",
+      "url": "https://your-oneuptime-domain.com/mcp",
+      "headers": {
+        "x-api-key": "${input:oneuptime-api-key}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "oneuptime-api-key",
+      "description": "OneUptime API Key",
+      "password": true
+    }
+  ]
+}
+```
+
+#### Step 3: Start the MCP Server
+
+1. Press `Ctrl+Shift+P` / `Cmd+Shift+P`
+2. Type "MCP: List Servers" to see available servers
+3. Click on "oneuptime" to start the server
+4. When prompted, enter your OneUptime API key
+
+#### Step 4: Use with Copilot Chat
+
+Open GitHub Copilot Chat and use Agent mode (`@workspace` or ask directly):
+
+```
+"What monitors do I have in OneUptime?"
+"Show me recent incidents"
+"Create a new monitor for https://example.com"
+```
+
+#### Security Note
+
+The configuration above uses input variables with `"password": true` to securely prompt for your API key rather than storing it in plain text. VS Code will prompt you to confirm trust when starting the MCP server for the first time.
 
 ## Available Endpoints
 
