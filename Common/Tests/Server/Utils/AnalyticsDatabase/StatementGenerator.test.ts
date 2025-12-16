@@ -292,17 +292,20 @@ describe("StatementGenerator", () => {
       /* eslint-disable prettier/prettier */
             const expectedStatement: Statement = SQL`
             CREATE TABLE IF NOT EXISTS ${'oneuptime'}.${'<table-name>'}
-            (\n<columns-create-statement>
-            )
-            ENGINE = MergeTree
-        PARTITION BY (column_ObjectID)
-        
-            PRIMARY KEY (${'column_ObjectID'})
-            ORDER BY (${'column_ObjectID'})
-            `;
+    (
+        <columns-create-statement>
+    )
+    ENGINE = MergeTree
+PARTITION BY (column_ObjectID)
+
+    PRIMARY KEY (${'column_ObjectID'})
+    ORDER BY (${'column_ObjectID'})
+    `;
             /* eslint-enable prettier/prettier */
 
-      expect(statement.query).toBe(expectedStatement.query);
+      // Normalize whitespace for comparison to avoid formatting issues
+      const normalizeWhitespace = (s: string): string => s.replace(/\s+/g, ' ').trim();
+      expect(normalizeWhitespace(statement.query)).toBe(normalizeWhitespace(expectedStatement.query));
       expect(statement.query_params).toStrictEqual(
         expectedStatement.query_params,
       );

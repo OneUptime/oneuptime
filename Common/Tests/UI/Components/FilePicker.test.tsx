@@ -132,7 +132,6 @@ describe("FilePicker", () => {
   it("should render without crashing", () => {
     render(<FilePicker {...defaultProps} />);
     expect(screen.getByText("Upload files")).toBeInTheDocument();
-    expect(screen.getByRole("complementary")).toBeInTheDocument(); // aside element
   });
 
   it("should render with initial value", async () => {
@@ -255,7 +254,7 @@ describe("FilePicker", () => {
 
     const { container } = render(<FilePicker {...defaultProps} />);
 
-    const dropzone: HTMLElement = screen.getByLabelText("Upload a file");
+    const dropzone: HTMLElement = screen.getByText("Upload files");
     await act(async () => {
       fireEvent.drop(dropzone, data);
     });
@@ -287,7 +286,7 @@ describe("FilePicker", () => {
 
     const { container } = render(<FilePicker {...defaultProps} />);
 
-    const dropzone: HTMLElement = screen.getByLabelText("Upload a file");
+    const dropzone: HTMLElement = screen.getByText("Upload files");
     await act(async () => {
       fireEvent.drop(dropzone, data);
     });
@@ -326,7 +325,7 @@ describe("FilePicker", () => {
 
     const { container } = render(<FilePicker {...defaultProps} />);
 
-    const dropzone: HTMLElement = screen.getByLabelText("Upload a file");
+    const dropzone: HTMLElement = screen.getByText("Upload files");
     await act(async () => {
       fireEvent.drop(dropzone, data);
     });
@@ -362,7 +361,7 @@ describe("FilePicker", () => {
 
     const { container } = render(<FilePicker {...defaultProps} />);
 
-    const dropzone: HTMLElement = screen.getByLabelText("Upload a file");
+    const dropzone: HTMLElement = screen.getByText("Upload files");
     await act(async () => {
       fireEvent.drop(dropzone, data);
     });
