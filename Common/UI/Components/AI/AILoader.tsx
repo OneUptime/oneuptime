@@ -8,12 +8,8 @@ import React, {
 export interface AILoaderProps {
   /** Optional title to display */
   title?: string | undefined;
-  /** Optional subtitle/description */
-  subtitle?: string | undefined;
   /** Data sources that AI is analyzing */
   dataSourceItems?: Array<string> | undefined;
-  /** Whether to show data sources (can be toggled) */
-  showDataSources?: boolean | undefined;
 }
 
 const loadingMessages: Array<string> = [

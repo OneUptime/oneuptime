@@ -91,7 +91,7 @@ function setupHandlers(): void {
     const mcpTools: Array<{
       name: string;
       description: string;
-      inputSchema: object;
+      inputSchema: Record<string, unknown>;
     }> = tools.map((tool: McpToolInfo) => {
       return {
         name: tool.name,

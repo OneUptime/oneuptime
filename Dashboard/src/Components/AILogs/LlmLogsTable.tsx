@@ -74,11 +74,11 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
             title: "Cost (USD)",
             type: FieldType.Text,
             getElement: (item: LlmLog): ReactElement => {
-              const cents = item["costInUSDCents"] as number;
+              const cents: number = item["costInUSDCents"] as number;
               if (cents === undefined || cents === null) {
                 return <p>-</p>;
               }
-              const usd = cents / 100;
+              const usd: number = cents / 100;
               return <p>${usd.toFixed(4)}</p>;
             },
           },
