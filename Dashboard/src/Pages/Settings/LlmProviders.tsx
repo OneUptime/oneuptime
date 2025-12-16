@@ -192,8 +192,9 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isCreateable={true}
           cardProps={{
             title: "Bring Your Own Large Language Model",
-            description:
-              "Configure LLM Providers for AI features. Connect to OpenAI, Anthropic, Ollama, or other providers.",
+            description: BILLING_ENABLED
+              ? "Configure LLM Providers for AI features. Connect to OpenAI, Anthropic, Ollama, or other providers. You will not be charged for AI usage when you bring your own models."
+              : "Configure LLM Providers for AI features. Connect to OpenAI, Anthropic, Ollama, or other providers.",
           }}
           selectMoreFields={{
             apiKey: true,
