@@ -65,14 +65,14 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (
     data: GenerateAIRequestData,
   ): Promise<string> => {
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-      await API.post(
-        URL.fromString(APP_API_URL.toString()).addRoute(
+      await API.post({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
           `/alert/generate-note-from-ai/${modelId.toString()}`,
         ),
-        {
+        data: {
           template: data.template,
         },
-      );
+      });
 
     if (response instanceof HTTPErrorResponse) {
       throw new Error(response.message || "Failed to generate note from AI");
