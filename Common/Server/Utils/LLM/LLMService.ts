@@ -15,7 +15,6 @@ export interface LLMMessage {
 
 export interface LLMCompletionRequest {
   messages: Array<LLMMessage>;
-  maxTokens?: number;
   temperature?: number;
   llmProviderConfig: LLMProviderConfig;
 }
@@ -80,7 +79,6 @@ export default class LLMService {
               content: msg.content,
             };
           }),
-          max_tokens: request.maxTokens || 4096,
           temperature: request.temperature ?? 0.7,
         },
         headers: {
@@ -154,7 +152,6 @@ export default class LLMService {
     const requestData: JSONObject = {
       model: modelName,
       messages: userMessages,
-      max_tokens: request.maxTokens || 4096,
       temperature: request.temperature ?? 0.7,
     };
 
@@ -244,7 +241,6 @@ export default class LLMService {
           stream: false,
           options: {
             temperature: request.temperature ?? 0.7,
-            num_predict: request.maxTokens || 4096,
           },
         },
         headers: {
