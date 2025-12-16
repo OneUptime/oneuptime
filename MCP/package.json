@@ -25,7 +25,7 @@
     "license": "Apache-2.0",
     "dependencies": {
         "@modelcontextprotocol/sdk": "^0.6.0",
-        "@oneuptime/common": "*",
+        "Common": "file:../Common",
         "dotenv": "^16.4.5",
         "ts-node": "^10.9.1"
     },
