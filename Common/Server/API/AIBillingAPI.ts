@@ -1,5 +1,6 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
 import AIBillingService from "../Services/AIBillingService";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -21,6 +22,14 @@ router.post(
   UserMiddleware.getUserMiddleware,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
+      if (!IsBillingEnabled) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Billing is not enabled"),
+        );
+      }
+
       let amount: number | PositiveNumber = JSONFunctions.deserializeValue(
         req.body.amount,
       ) as number | PositiveNumber;
