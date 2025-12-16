@@ -292,28 +292,6 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
                 </div>
               </div>
             )}
-
-            {/* Data Sources Info */}
-            {!selectedTemplateId &&
-              props.dataSourceItems &&
-              props.dataSourceItems.length > 0 && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-2">
-                    AI will analyze the following data sources:
-                  </p>
-                  <ul className="list-disc ml-5 space-y-1">
-                    {props.dataSourceItems.map(
-                      (item: string, index: number): ReactElement => {
-                        return (
-                          <li key={index} className="text-sm text-gray-600">
-                            {item}
-                          </li>
-                        );
-                      },
-                    )}
-                  </ul>
-                </div>
-              )}
           </div>
         )}
       </>
