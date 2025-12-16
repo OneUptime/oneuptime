@@ -16,6 +16,7 @@ export interface LLMMessage {
 export interface LLMCompletionRequest {
   messages: Array<LLMMessage>;
   temperature?: number;
+  maxTokens?: number;
   llmProviderConfig: LLMProviderConfig;
 }
 
@@ -80,6 +81,7 @@ export default class LLMService {
             };
           }),
           temperature: request.temperature ?? 0.7,
+          max_tokens: request.maxTokens || 4096,
         },
         headers: {
           Authorization: `Bearer ${config.apiKey}`,
@@ -153,6 +155,7 @@ export default class LLMService {
       model: modelName,
       messages: userMessages,
       temperature: request.temperature ?? 0.7,
+      max_tokens: request.maxTokens || 4096,
     };
 
     if (systemMessage) {
@@ -241,6 +244,7 @@ export default class LLMService {
           stream: false,
           options: {
             temperature: request.temperature ?? 0.7,
+            num_predict: request.maxTokens || 4096,
           },
         },
         headers: {
