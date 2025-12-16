@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 export interface AILoaderProps {
   /** Optional title to display */
@@ -40,16 +45,18 @@ const AILoader: FunctionComponent<AILoaderProps> = (
       <div className="flex flex-col items-center justify-center">
         {/* Minimal animated bars */}
         <div className="flex items-end gap-1 h-8 mb-8">
-          {[0, 1, 2, 3, 4].map((index: number) => (
-            <div
-              key={index}
-              className="w-1 bg-gray-800 rounded-full"
-              style={{
-                animation: "aiBarPulse 1.2s ease-in-out infinite",
-                animationDelay: `${index * 0.1}s`,
-              }}
-            />
-          ))}
+          {[0, 1, 2, 3, 4].map((index: number) => {
+            return (
+              <div
+                key={index}
+                className="w-1 bg-gray-800 rounded-full"
+                style={{
+                  animation: "aiBarPulse 1.2s ease-in-out infinite",
+                  animationDelay: `${index * 0.1}s`,
+                }}
+              />
+            );
+          })}
         </div>
 
         {/* Title */}
@@ -65,7 +72,8 @@ const AILoader: FunctionComponent<AILoaderProps> = (
         {/* Subtle data sources indicator */}
         {props.dataSourceItems && props.dataSourceItems.length > 0 && (
           <p className="text-xs text-gray-400 mt-6">
-            Analyzing {props.dataSourceItems.length} data source{props.dataSourceItems.length > 1 ? "s" : ""}
+            Analyzing {props.dataSourceItems.length} data source
+            {props.dataSourceItems.length > 1 ? "s" : ""}
           </p>
         )}
       </div>

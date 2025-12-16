@@ -16,10 +16,7 @@ import {
 } from "../Utils/Express";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import AIService, {
-  AILogRequest,
-  AILogResponse,
-} from "../Services/AIService";
+import AIService, { AILogRequest, AILogResponse } from "../Services/AIService";
 import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,

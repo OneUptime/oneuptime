@@ -1689,10 +1689,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<LlmLog, LlmLogServiceType>(
-        LlmLog,
-        LlmLogService,
-      ).getRouter(),
+      new BaseAPI<LlmLog, LlmLogServiceType>(LlmLog, LlmLogService).getRouter(),
     );
 
     app.use(

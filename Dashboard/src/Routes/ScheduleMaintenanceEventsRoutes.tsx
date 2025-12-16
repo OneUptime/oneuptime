@@ -294,9 +294,7 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
               <ScheduledMaintenanceEventViewAILogs
                 {...props}
                 pageRoute={
-                  RouteMap[
-                    PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS
-                  ] as Route
+                  RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS] as Route
                 }
               />
             </Suspense>

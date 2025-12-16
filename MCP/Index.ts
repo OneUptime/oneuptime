@@ -264,14 +264,12 @@ function setupMCPRoutes(): void {
     app.post(
       `${prefix === "/" ? "" : prefix}/message`,
       ExpressJson(),
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ) => {
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          // Find the transport for this session
-          // In a real implementation, you'd use session management
+          /*
+           * Find the transport for this session
+           * In a real implementation, you'd use session management
+           */
           const transport: SSEServerTransport | undefined = Array.from(
             transports.values(),
           )[0];
@@ -326,8 +324,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     // Simple status check for MCP (no database connections)
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
-      // MCP server doesn't connect to databases directly
-      // Just verify the server is running
+      /*
+       * MCP server doesn't connect to databases directly
+       * Just verify the server is running
+       */
       return Promise.resolve();
     };
 

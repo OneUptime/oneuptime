@@ -9,10 +9,7 @@ import {
   ModelToolsResult,
   JSONSchemaProperty,
 } from "../Types/McpTypes";
-import {
-  ModelSchema,
-  ModelSchemaType,
-} from "Common/Utils/Schema/ModelSchema";
+import { ModelSchema, ModelSchemaType } from "Common/Utils/Schema/ModelSchema";
 import {
   AnalyticsModelSchema,
   AnalyticsModelSchemaType,

@@ -433,12 +433,14 @@ export default class OneUptimeApiService {
 
       // Extract field names from the schema
       const selectObject: JSONObject = {};
-      const rawShape: Record<string, unknown> | (() => Record<string, unknown>) | undefined =
-        selectSchema._def?.shape;
+      const rawShape:
+        | Record<string, unknown>
+        | (() => Record<string, unknown>)
+        | undefined = selectSchema._def?.shape;
 
       // Handle both function and object shapes
       const shape: Record<string, unknown> | undefined =
-        typeof rawShape === 'function' ? rawShape() : rawShape;
+        typeof rawShape === "function" ? rawShape() : rawShape;
 
       MCPLogger.info(
         `Schema shape keys: ${shape ? Object.keys(shape).length : 0}`,
