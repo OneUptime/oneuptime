@@ -290,10 +290,9 @@ DO NOT include:
 
 Write in markdown format for better readability.`;
       }
-    } else {
-      // Internal note
-      if (template) {
-        systemPrompt = `You are an expert Site Reliability Engineer (SRE). Your task is to fill in an internal scheduled maintenance note template based on the provided maintenance event data.
+    } else if (template) {
+      // Internal note with template
+      systemPrompt = `You are an expert Site Reliability Engineer (SRE). Your task is to fill in an internal scheduled maintenance note template based on the provided maintenance event data.
 
 CRITICAL INSTRUCTIONS:
 - You MUST use ONLY the exact template structure provided below
@@ -306,8 +305,9 @@ CRITICAL INSTRUCTIONS:
 TEMPLATE TO FILL (use this exact structure):
 
 ${template}`;
-      } else {
-        systemPrompt = `You are an expert Site Reliability Engineer (SRE). Your task is to generate an internal scheduled maintenance note for the team.
+    } else {
+      // Internal note without template
+      systemPrompt = `You are an expert Site Reliability Engineer (SRE). Your task is to generate an internal scheduled maintenance note for the team.
 
 The note should:
 1. Provide technical details about the maintenance progress
@@ -317,7 +317,6 @@ The note should:
 5. Use technical language appropriate for the engineering team
 
 Write in markdown format for better readability. Be thorough and technical.`;
-      }
     }
 
     // Build user message

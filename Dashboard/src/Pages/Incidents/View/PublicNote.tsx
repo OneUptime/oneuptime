@@ -42,7 +42,6 @@ import GenerateFromAIModal, {
   GenerateAIRequestData,
 } from "Common/UI/Components/AI/GenerateFromAIModal";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import { JSONObject as APIJSONObject } from "Common/Types/JSON";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
@@ -70,7 +69,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
   ) => Promise<string> = async (
     data: GenerateAIRequestData,
   ): Promise<string> => {
-    const response: HTTPResponse<APIJSONObject> | HTTPErrorResponse =
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.post({
         url: URL.fromString(APP_API_URL.toString()).addRoute(
           `/incident/generate-note-from-ai/${modelId.toString()}`,
