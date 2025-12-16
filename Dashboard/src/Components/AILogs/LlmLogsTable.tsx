@@ -168,6 +168,12 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
             title: "View Error",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.Error,
+            isVisible: (item: LlmLog): boolean => {
+              return (
+                item["status"] === LlmLogStatus.Error ||
+                item["status"] === LlmLogStatus.InsufficientBalance
+              );
+            },
             onClick: async (item: LlmLog, onCompleteAction: VoidFunction) => {
               setModalText(
                 (item["statusMessage"] as string) || "No error message",
