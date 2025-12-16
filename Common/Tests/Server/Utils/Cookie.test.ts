@@ -35,10 +35,11 @@ describe("CookieUtils", () => {
       cookie["options"] as JSONObject,
     );
 
+    // setCookie adds default path and sameSite options
     expect(mockResponse.cookie).toHaveBeenCalledWith(
       cookie["name"] as string,
       cookie["value"] as string,
-      cookie["options"] as JSONObject,
+      { path: "/", sameSite: "lax" },
     );
   });
 
@@ -61,7 +62,11 @@ describe("CookieUtils", () => {
     mockResponse.clearCookie = jest.fn();
     CookieUtil.removeCookie(mockResponse, cookieName);
 
-    expect(mockResponse.clearCookie).toHaveBeenCalledWith(cookieName);
+    // removeCookie includes path and sameSite options
+    expect(mockResponse.clearCookie).toHaveBeenCalledWith(cookieName, {
+      path: "/",
+      sameSite: "lax",
+    });
   });
 
   test("Should return all cookies", () => {
@@ -111,11 +116,14 @@ describe("CookieUtils", () => {
     mockResponse.clearCookie = jest.fn();
     CookieUtil.removeAllCookies(mockRequest, mockResponse);
 
+    // clearCookie is called with path and sameSite options
     expect(mockResponse.clearCookie).toHaveBeenCalledWith(
       Object.keys(cookies)[0],
+      { path: "/", sameSite: "lax" },
     );
     expect(mockResponse.clearCookie).toHaveBeenCalledWith(
       Object.keys(cookies)[1],
+      { path: "/", sameSite: "lax" },
     );
   });
 });

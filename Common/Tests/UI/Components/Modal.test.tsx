@@ -72,7 +72,7 @@ describe("Modal", () => {
       </Modal>,
     );
 
-    expect(getByTestId("modal")).toHaveClass("sm:max-w-lg");
+    expect(getByTestId("modal")).toHaveClass("md:max-w-lg");
   });
 
   it("displays the modal with the correct width when modalWidth is set", () => {
@@ -88,7 +88,7 @@ describe("Modal", () => {
       </Modal>,
     );
 
-    expect(getByTestId("modal")).toHaveClass("sm:max-w-3xl");
+    expect(getByTestId("modal")).toHaveClass("md:max-w-3xl");
   });
 
   it("displays the children passed to the modal", () => {
