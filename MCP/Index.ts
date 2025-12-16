@@ -106,7 +106,8 @@ function setupHandlers(): void {
   // Handle tool calls
   mcpServer.setRequestHandler(
     CallToolRequestSchema,
-    async (request: { params: { name: string; arguments: unknown } }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async (request: any) => {
       const { name, arguments: args } = request.params;
 
       try {
