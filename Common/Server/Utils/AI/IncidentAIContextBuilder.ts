@@ -332,7 +332,27 @@ export default class IncidentAIContextBuilder {
     }
 
     // System prompt for postmortem generation
-    const systemPrompt: string = `You are an expert Site Reliability Engineer (SRE) and incident response specialist. Your task is to generate a comprehensive, well-structured incident postmortem based on the provided incident data.
+    let systemPrompt: string;
+
+    if (template) {
+      // When a template is provided, strictly fill only the template
+      systemPrompt = `You are an expert Site Reliability Engineer (SRE) and incident response specialist. Your task is to fill in an incident postmortem template based on the provided incident data.
+
+CRITICAL INSTRUCTIONS:
+- You MUST use ONLY the exact template structure provided below
+- Fill in each section of the template with relevant information from the incident data
+- Do NOT add any new sections, headers, or content that is not part of the template
+- Do NOT add introductions, conclusions, or any text outside the template structure
+- If a section in the template has no relevant data, write "No data available" or leave the placeholder text
+- Be blameless - focus on systemic improvements rather than individual blame
+- Write in a professional, clear, and concise manner
+
+TEMPLATE TO FILL (use this exact structure):
+
+${template}`;
+    } else {
+      // When no template is provided, use standard format
+      systemPrompt = `You are an expert Site Reliability Engineer (SRE) and incident response specialist. Your task is to generate a comprehensive, well-structured incident postmortem based on the provided incident data.
 
 The postmortem should:
 1. Be written in a blameless manner, focusing on systemic improvements rather than individual blame
@@ -343,9 +363,15 @@ The postmortem should:
 6. List actionable items to prevent recurrence
 7. Include lessons learned
 
-${template ? `Use the following template structure:\n\n${template}` : "Use a standard incident postmortem format with sections for: Executive Summary, Timeline, Root Cause Analysis, Impact, Action Items, and Lessons Learned."}
+Use a standard incident postmortem format with sections for: Executive Summary, Timeline, Root Cause Analysis, Impact, Action Items, and Lessons Learned.
 
 Write in a professional, clear, and concise manner. Use markdown formatting for better readability.`;
+    }
+
+    // Build user message based on whether template is provided
+    const userMessage: string = template
+      ? `Fill in the template above using ONLY the following incident data. Output only the filled template, nothing else:\n\n${contextText}`
+      : `Based on the following incident data, please generate a comprehensive incident postmortem:\n\n${contextText}`;
 
     // Build messages array
     const messages: Array<LLMMessage> = [
@@ -355,7 +381,7 @@ Write in a professional, clear, and concise manner. Use markdown formatting for 
       },
       {
         role: "user",
-        content: `Based on the following incident data, please generate a comprehensive incident postmortem:\n\n${contextText}`,
+        content: userMessage,
       },
     ];
 
