@@ -273,7 +273,7 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
                   Edit the template below. AI will fill in the sections with
                   incident data.
                 </p>
-                <div className="border border-gray-200 rounded-md">
+                <div className="">
                   <MarkdownEditor
                     key={selectedTemplateId}
                     initialValue={templateContent}
