@@ -58,7 +58,6 @@ export default class OneUptimeApiService {
   private static api: API;
 
   public static initialize(config: OneUptimeApiConfig): void {
-
     // Parse the URL to extract protocol, hostname, and path
     try {
       const url: URL = URL.fromString(config.url);

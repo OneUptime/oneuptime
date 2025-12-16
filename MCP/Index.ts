@@ -73,9 +73,13 @@ function initializeMCPServer(): void {
 }
 
 function initializeServices(): void {
-  // Initialize OneUptime API Service (API keys are provided per-request via headers)
-  // Use HOST and HTTP_PROTOCOL environment variables to construct the API URL
-  const apiUrl: string = Host ? `${HttpProtocol}${Host}` : "https://oneuptime.com";
+  /*
+   * Initialize OneUptime API Service (API keys are provided per-request via headers)
+   * Use HOST and HTTP_PROTOCOL environment variables to construct the API URL
+   */
+  const apiUrl: string = Host
+    ? `${HttpProtocol}${Host}`
+    : "https://oneuptime.com";
 
   const config: OneUptimeApiConfig = {
     url: apiUrl,
@@ -257,8 +261,14 @@ function setupMCPRoutes(): void {
   ROUTE_PREFIXES.forEach((prefix: string) => {
     const mcpEndpoint: string = prefix === "/" ? "/mcp" : `${prefix}/mcp`;
 
+    type McpHandlerFunction = (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void>;
+
     // MCP endpoint handler - handles all MCP protocol requests (GET, POST, DELETE)
-    const mcpHandler = async (
+    const mcpHandler: McpHandlerFunction = async (
       req: ExpressRequest,
       res: ExpressResponse,
       next: NextFunction,
@@ -296,7 +306,9 @@ function setupMCPRoutes(): void {
         // For new connections (initialization), create a new transport
         const transport: StreamableHTTPServerTransport =
           new StreamableHTTPServerTransport({
-            sessionIdGenerator: (): string => randomUUID(),
+            sessionIdGenerator: (): string => {
+              return randomUUID();
+            },
             onsessioninitialized: (newSessionId: string): void => {
               // Store the transport with the new session ID and API key
               sessions.set(newSessionId, { transport, apiKey });
@@ -319,7 +331,9 @@ function setupMCPRoutes(): void {
         };
 
         // Connect the MCP server to this transport
-        await mcpServer.connect(transport as Parameters<typeof mcpServer.connect>[0]);
+        await mcpServer.connect(
+          transport as Parameters<typeof mcpServer.connect>[0],
+        );
 
         // Handle the request
         await transport.handleRequest(req, res, req.body);
