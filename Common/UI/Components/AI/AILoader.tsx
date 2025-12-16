@@ -2,13 +2,13 @@ import React, { FunctionComponent, ReactElement, useEffect, useState } from "rea
 
 export interface AILoaderProps {
   /** Optional title to display */
-  title?: string;
+  title?: string | undefined;
   /** Optional subtitle/description */
-  subtitle?: string;
+  subtitle?: string | undefined;
   /** Data sources that AI is analyzing */
-  dataSourceItems?: Array<string>;
+  dataSourceItems?: Array<string> | undefined;
   /** Whether to show data sources (can be toggled) */
-  showDataSources?: boolean;
+  showDataSources?: boolean | undefined;
 }
 
 const loadingMessages: Array<string> = [
