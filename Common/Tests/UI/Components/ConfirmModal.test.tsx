@@ -77,7 +77,7 @@ describe("ConfirmModal", () => {
       "modal-footer-submit-button",
     );
 
-    expect(submitButton.getAttribute("disabled")).toBeTruthy();
+    expect(submitButton).toBeDisabled();
   });
 
   it("should have a title content displayed in document when there is error", () => {

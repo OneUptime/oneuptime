@@ -15,7 +15,18 @@
         "<rootDir>/build/dist"
     ],
     "moduleNameMapper": {
-        "Common/(.*)": "<rootDir>/$1"
+        "Common/(.*)": "<rootDir>/$1",
+        "\\.(css|less|scss|sass)$": "<rootDir>/Tests/__mocks__/styleMock.js",
+        "^uuid$": "<rootDir>/Tests/__mocks__/uuid.js",
+        "^locter$": "<rootDir>/Tests/__mocks__/locter.js",
+        "^yaml$": "<rootDir>/Tests/__mocks__/yaml.js",
+        "^otpauth$": "<rootDir>/Tests/__mocks__/otpauth.js",
+        "^@simplewebauthn/server$": "<rootDir>/Tests/__mocks__/simplewebauthn.js",
+        "^botbuilder$": "<rootDir>/Tests/__mocks__/botbuilder.js",
+        "^botbuilder-core$": "<rootDir>/Tests/__mocks__/botbuilder.js",
+        "^botbuilder-stdlib$": "<rootDir>/Tests/__mocks__/botbuilder-stdlib.js",
+        "^botframework-connector$": "<rootDir>/Tests/__mocks__/botbuilder.js",
+        "^@azure/(.*)$": "<rootDir>/Tests/__mocks__/azure.js"
     },
     "moduleFileExtensions": [
         "ts",
@@ -26,7 +37,13 @@
     "transform": {
         ".(ts|tsx)": "ts-jest"
     },
+    "transformIgnorePatterns": [
+        "node_modules/(?!(uuid|locter|yaml|@azure)/)"
+    ],
     "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": [
+        "<rootDir>/Tests/jest.setup.ts"
+    ],
     "collectCoverage": false,
     "coverageReporters": [
         "text",

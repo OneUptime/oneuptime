@@ -59,7 +59,9 @@ describe("Pagination", () => {
 
     render(<Pagination {...props} />);
 
-    fireEvent.click(screen.getByText("Next"));
+    // There are multiple "Next" elements (mobile and desktop), get the first one
+    const nextButtons: HTMLElement[] = screen.getAllByText("Next");
+    fireEvent.click(nextButtons[0]!);
 
     await waitFor(() => {
       expect(mockOnNavigateToPage).toHaveBeenCalledWith(2, 10);
@@ -81,7 +83,9 @@ describe("Pagination", () => {
 
     render(<Pagination {...props} />);
 
-    fireEvent.click(screen.getByText("Previous"));
+    // There are multiple "Previous" elements (mobile and desktop), get the first one
+    const prevButtons: HTMLElement[] = screen.getAllByText("Previous");
+    fireEvent.click(prevButtons[0]!);
 
     await waitFor(() => {
       expect(mockOnNavigateToPage).toHaveBeenCalledWith(1, 10);

@@ -92,7 +92,9 @@ describe("List", () => {
 
   it("handles onNavigateToPage callback", () => {
     render(<List {...defaultProps} />);
-    fireEvent.click(screen.getByText("Next"));
+    // There are multiple "Next" elements (mobile and desktop), get the first one
+    const nextButtons: HTMLElement[] = screen.getAllByText("Next");
+    fireEvent.click(nextButtons[0]!);
 
     expect(defaultProps.onNavigateToPage).toHaveBeenCalledWith(2, 5);
   });

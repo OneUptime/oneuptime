@@ -46,7 +46,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -57,7 +57,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -71,7 +71,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-red-700 bg-white text-base font-medium text-red-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-red-700 bg-white text-base font-medium text-red-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -82,7 +82,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -104,7 +104,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -115,7 +115,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-transparent bg-green-600 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-transparent bg-green-600 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -129,7 +129,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -140,7 +140,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-transparent bg-yellow-600 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2",
+      "inline-flex w-full justify-center rounded-md border border-transparent bg-yellow-600 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -154,7 +154,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      " inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2",
+      " inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -163,7 +163,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      " inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2",
+      " inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
     );
   });
 
@@ -172,7 +172,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-2 py-1",
+      "inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-2 py-1",
     );
   });
 
@@ -181,7 +181,7 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
 
     expect(testId).toHaveClass(
-      " inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-4 py-2",
+      " inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-4 py-2",
     );
   });
 

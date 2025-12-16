@@ -17,7 +17,52 @@ import ObjectID from "../../../Types/ObjectID";
 import React from "react";
 import { act } from "react-test-renderer";
 import Select from "../../../Types/BaseDatabase/Select";
-import * as Navigation from "../../../UI/Utils/Navigation";
+jest.mock("../../../UI/Utils/Navigation", () => {
+  return {
+    __esModule: true,
+    default: {
+      navigate: jest.fn(),
+    },
+  };
+});
+
+import Navigation from "../../../UI/Utils/Navigation";
+
+// Track mock call count to return different values
+let getItemCallCount = 0;
+let createCallCount = 0;
+
+jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
+  return {
+    getItem: jest.fn().mockImplementation(() => {
+      getItemCallCount++;
+      if (getItemCallCount <= 2) {
+        return Promise.resolve({
+          changeThis: "changed",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setValue: function (key: string, value: string): void {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (this as any)[key] = value;
+          },
+          removeValue: jest.fn(),
+        });
+      }
+      return Promise.resolve(undefined);
+    }),
+    create: jest.fn().mockImplementation(() => {
+      createCallCount++;
+      if (createCallCount === 1) {
+        return Promise.resolve({
+          data: {
+            id: "foobar",
+            changeThis: "changed",
+          },
+        });
+      }
+      return Promise.resolve(undefined);
+    }),
+  };
+});
 
 @TableMetaData({
   tableName: "Foo",
@@ -30,47 +75,6 @@ import * as Navigation from "../../../UI/Utils/Navigation";
 class TestModel extends BaseModel {
   public changeThis?: string = "original";
 }
-
-jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
-  return {
-    getItem: (jest.fn() as jest.Mock)
-      .mockResolvedValueOnce({
-        changeThis: "changed",
-        setValue: function (key: "changeThis", value: string) {
-          this[key] = value;
-        },
-        removeValue: jest.fn(),
-      })
-      .mockResolvedValueOnce({
-        changeThis: "changed",
-        setValue: function (key: "changeThis", value: string) {
-          this[key] = value;
-        },
-        removeValue: jest.fn(),
-      })
-      .mockResolvedValueOnce(undefined),
-    create: (jest.fn() as jest.Mock)
-      .mockResolvedValueOnce({
-        data: {
-          id: "foobar",
-          changeThis: "changed",
-        },
-      })
-      .mockResolvedValueOnce(undefined),
-  };
-});
-
-jest.mock("../../../UI/Utils/Navigation", () => {
-  return {
-    default: {
-      navigate: jest.fn(),
-    },
-  };
-});
-
-// Type assertion for the mocked Navigation module
-const MockedNavigation: jest.Mocked<typeof Navigation> =
-  Navigation as jest.Mocked<typeof Navigation>;
 
 describe("DuplicateModel", () => {
   const fieldsToDuplicate: Select<TestModel> = {};
@@ -131,7 +135,7 @@ describe("DuplicateModel", () => {
     expect(
       within(confirmDialog).getByTestId("modal-footer-close-button")
         ?.textContent,
-    ).toBe("Close");
+    ).toBe("Cancel");
   });
   it("duplicates item when confirmation button is clicked", async () => {
     const onDuplicateSuccess: (item: TestModel) => void = jest.fn();
@@ -165,7 +169,7 @@ describe("DuplicateModel", () => {
       });
     });
     await waitFor(() => {
-      return expect(MockedNavigation.default.navigate).toBeCalledWith(
+      return expect(Navigation.navigate).toBeCalledWith(
         new Route("/done/foobar"),
         {
           forceNavigate: true,
@@ -193,7 +197,7 @@ describe("DuplicateModel", () => {
     });
     const dialog: HTMLElement = screen.getByRole("dialog");
     const closeButton: HTMLElement = within(dialog).getByRole("button", {
-      name: "Close",
+      name: "Cancel",
     });
     void act(() => {
       fireEvent.click(closeButton);

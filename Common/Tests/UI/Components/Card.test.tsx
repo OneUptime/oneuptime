@@ -76,12 +76,14 @@ describe("Card", () => {
     expect(button1).toBeInTheDocument();
     expect(button1).toHaveClass(buttons[0]?.className ?? "");
     expect(buttons[0]?.onClick).toHaveBeenCalled();
-    expect(button1.parentElement).not.toHaveStyle({ marginLeft: "10px" });
+    // First button should have first:md:ml-0 class
+    expect(button1.parentElement).toHaveClass("first:md:ml-0");
 
     const button2: HTMLElement = screen.getByText(buttons[1]?.title ?? "");
     expect(button2).toBeInTheDocument();
     expect(button2).toBeDisabled();
-    expect(button2.parentElement).toHaveStyle({ marginLeft: "10px" });
+    // Second button should have md:ml-2 class
+    expect(button2.parentElement).toHaveClass("md:ml-2");
   });
 
   test("should render component children passed in the props and their parent element should have bodyClassName value passed in the props as css class", () => {

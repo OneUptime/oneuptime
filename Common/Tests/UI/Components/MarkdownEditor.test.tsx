@@ -61,7 +61,8 @@ describe("MarkdownEditor", () => {
     const textarea: HTMLTextAreaElement = screen.getByRole(
       "textbox",
     ) as HTMLTextAreaElement;
-    expect(textarea.spellcheck).toBe(true);
+    // jsdom doesn't properly reflect spellcheck property, so we check the attribute
+    expect(textarea.getAttribute("spellcheck")).toBe("true");
   });
 
   test("should enable spell check when disableSpellCheck is undefined", () => {
@@ -76,7 +77,7 @@ describe("MarkdownEditor", () => {
     const textarea: HTMLTextAreaElement = screen.getByRole(
       "textbox",
     ) as HTMLTextAreaElement;
-    expect(textarea.spellcheck).toBe(true);
+    expect(textarea.getAttribute("spellcheck")).toBe("true");
   });
 
   test("should disable spell check when disableSpellCheck is true", () => {
@@ -91,7 +92,7 @@ describe("MarkdownEditor", () => {
     const textarea: HTMLTextAreaElement = screen.getByRole(
       "textbox",
     ) as HTMLTextAreaElement;
-    expect(textarea.spellcheck).toBe(false);
+    expect(textarea.getAttribute("spellcheck")).toBe("false");
   });
 
   test("should handle spell check prop changes", () => {
@@ -106,7 +107,7 @@ describe("MarkdownEditor", () => {
     let textarea: HTMLTextAreaElement = screen.getByRole(
       "textbox",
     ) as HTMLTextAreaElement;
-    expect(textarea.spellcheck).toBe(true);
+    expect(textarea.getAttribute("spellcheck")).toBe("true");
 
     rerender(
       <MarkdownEditor
@@ -117,7 +118,7 @@ describe("MarkdownEditor", () => {
     );
 
     textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
-    expect(textarea.spellcheck).toBe(false);
+    expect(textarea.getAttribute("spellcheck")).toBe("false");
   });
 
   test("should show help text", () => {

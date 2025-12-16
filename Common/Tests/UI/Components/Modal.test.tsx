@@ -112,7 +112,7 @@ describe("Modal", () => {
       </Modal>,
     );
 
-    expect(getByTestId("loader")).toBeInTheDocument();
+    expect(getByTestId("bar-loader")).toBeInTheDocument();
   });
 
   it("does not display the loader when isBodyLoading is false", () => {
@@ -124,7 +124,7 @@ describe("Modal", () => {
       </Modal>,
     );
 
-    expect(queryByTestId("loader")).not.toBeInTheDocument();
+    expect(queryByTestId("bar-loader")).not.toBeInTheDocument();
   });
 
   it("does not display the loader when isBodyLoading is undefined", () => {
@@ -136,7 +136,7 @@ describe("Modal", () => {
       </Modal>,
     );
 
-    expect(queryByTestId("loader")).not.toBeInTheDocument();
+    expect(queryByTestId("bar-loader")).not.toBeInTheDocument();
   });
 
   it("disables the submit button when isLoading is true", () => {
