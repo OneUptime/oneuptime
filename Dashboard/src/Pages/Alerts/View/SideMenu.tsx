@@ -111,7 +111,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Bell}
         />
-        <SideMenuItem
+        {/* <SideMenuItem
           link={{
             title: "AI Logs",
             to: RouteUtil.populateRouteParams(
@@ -120,7 +120,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Bolt}
-        />
+        /> */}
       </SideMenuSection>
 
       <SideMenuSection title="Alert Notes">
