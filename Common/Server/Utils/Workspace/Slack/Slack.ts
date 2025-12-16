@@ -1896,4 +1896,138 @@ export default class SlackUtil extends WorkspaceBase {
   public static convertMarkdownToSlackRichText(markdown: string): string {
     return SlackifyMarkdown(markdown);
   }
+
+  @CaptureSpan()
+  public static async getChannelMessages(params: {
+    channelId: string;
+    authToken: string;
+    limit?: number;
+    oldestTimestamp?: Date;
+  }): Promise<
+    Array<{
+      messageId: string;
+      text: string;
+      userId?: string;
+      username?: string;
+      timestamp: Date;
+      isBot: boolean;
+    }>
+  > {
+    const messages: Array<{
+      messageId: string;
+      text: string;
+      userId?: string;
+      username?: string;
+      timestamp: Date;
+      isBot: boolean;
+    }> = [];
+    let cursor: string | undefined = undefined;
+    const maxMessages: number = params.limit || 1000;
+    const maxPages: number = 10;
+    let pageCount: number = 0;
+
+    do {
+      const requestData: JSONObject = {
+        channel: params.channelId,
+        limit: Math.min(200, maxMessages - messages.length),
+      };
+
+      if (cursor) {
+        requestData["cursor"] = cursor;
+      }
+
+      if (params.oldestTimestamp) {
+        requestData["oldest"] = (
+          params.oldestTimestamp.getTime() / 1000
+        ).toString();
+      }
+
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post<JSONObject>({
+          url: URL.fromString("https://slack.com/api/conversations.history"),
+          data: requestData,
+          headers: {
+            Authorization: `Bearer ${params.authToken}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          options: {
+            retries: 3,
+            exponentialBackoff: true,
+          },
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        logger.error("Error response from Slack API for channel history:");
+        logger.error(response);
+        break;
+      }
+
+      const jsonData: JSONObject = response.jsonData as JSONObject;
+
+      if (jsonData["ok"] !== true) {
+        logger.error("Invalid response from Slack API for channel history:");
+        logger.error(jsonData);
+        break;
+      }
+
+      const slackMessages: Array<JSONObject> =
+        (jsonData["messages"] as Array<JSONObject>) || [];
+
+      for (const msg of slackMessages) {
+        // Skip bot messages if they're from the OneUptime bot (app messages)
+        const isBot: boolean =
+          Boolean(msg["bot_id"]) || msg["subtype"] === "bot_message";
+
+        // Extract text, handling attachments and blocks
+        let text: string = (msg["text"] as string) || "";
+
+        // If there are attachments, append their text
+        const attachments: Array<JSONObject> | undefined = msg[
+          "attachments"
+        ] as Array<JSONObject> | undefined;
+        if (attachments && Array.isArray(attachments)) {
+          for (const attachment of attachments) {
+            if (attachment && attachment["text"]) {
+              text += "\n" + (attachment["text"] as string);
+            }
+            if (attachment && attachment["fallback"]) {
+              text += "\n" + (attachment["fallback"] as string);
+            }
+          }
+        }
+
+        // Skip empty messages
+        if (!text.trim()) {
+          continue;
+        }
+
+        const timestamp: Date = msg["ts"]
+          ? new Date(parseFloat(msg["ts"] as string) * 1000)
+          : new Date();
+
+        messages.push({
+          messageId: msg["ts"] as string,
+          text: text,
+          userId: msg["user"] as string,
+          username: msg["username"] as string,
+          timestamp: timestamp,
+          isBot: isBot,
+        });
+      }
+
+      cursor = (jsonData["response_metadata"] as JSONObject)?.[
+        "next_cursor"
+      ] as string;
+      pageCount++;
+    } while (cursor && messages.length < maxMessages && pageCount < maxPages);
+
+    logger.debug(
+      `Retrieved ${messages.length} messages from Slack channel ${params.channelId}`,
+    );
+
+    // Reverse to get chronological order (Slack returns newest first)
+    messages.reverse();
+
+    return messages;
+  }
 }

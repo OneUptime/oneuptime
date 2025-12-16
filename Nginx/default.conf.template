@@ -72,6 +72,10 @@ upstream opentelemetry-collector-grpc {
     server ${SERVER_OTEL_COLLECTOR_HOSTNAME}:4317;
 }
 
+upstream mcp {
+    server ${SERVER_MCP_HOSTNAME}:${MCP_PORT} weight=10 max_fails=3 fail_timeout=30s;
+}
+
 # Status Pages
 
 server {
@@ -915,17 +919,44 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /workers {
-        # This is for nginx not to crash when service is not available. 
+        # This is for nginx not to crash when service is not available.
         resolver 127.0.0.1 valid=30s;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme; 
+        proxy_set_header X-Forwarded-Proto $scheme;
 
         # enable WebSockets (for ws://sockjs not connected error in the accounts source: https://stackoverflow.com/questions/41381444/websocket-connection-failed-error-during-websocket-handshake-unexpected-respon)
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_pass http://app/api/workers;
+    }
+
+    location /mcp/ {
+        # This is for nginx not to crash when service is not available.
+        resolver 127.0.0.1 valid=30s;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets and SSE (for MCP Server-Sent Events)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # SSE specific settings for long-lived connections
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+        chunked_transfer_encoding on;
+
+        proxy_pass http://mcp/;
+    }
+
+    location = /mcp {
+        return 301 /mcp/;
     }
 }

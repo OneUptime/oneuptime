@@ -6,6 +6,7 @@ import ObjectID from "../../Types/ObjectID";
 import UpdateBy from "../Types/Database/UpdateBy";
 import QueryHelper from "../Types/Database/QueryHelper";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -94,6 +95,63 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public async getLLMProviderForProject(
+    projectId: ObjectID,
+  ): Promise<Model | null> {
+    // First try to get the default provider for the project
+    let provider: Model | null = await this.findOneBy({
+      query: {
+        projectId: projectId,
+        isDefault: true,
+      },
+      select: {
+        _id: true,
+        name: true,
+        llmType: true,
+        apiKey: true,
+        baseUrl: true,
+        modelName: true,
+        isGlobalLlm: true,
+        costPerMillionTokensInUSDCents: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (provider) {
+      return provider;
+    }
+
+    // If no default provider, get any global provider for the project.
+    provider = await this.findOneBy({
+      query: {
+        projectId: QueryHelper.isNull(),
+        isGlobalLlm: true,
+      },
+      select: {
+        _id: true,
+        name: true,
+        llmType: true,
+        apiKey: true,
+        baseUrl: true,
+        modelName: true,
+        isGlobalLlm: true,
+        costPerMillionTokensInUSDCents: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (provider) {
+      return provider;
+    }
+
+    return null;
   }
 }
 

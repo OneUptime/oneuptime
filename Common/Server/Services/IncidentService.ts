@@ -65,6 +65,16 @@ import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import Dictionary from "../../Types/Dictionary";
 import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
+import LLMService, {
+  LLMProviderConfig,
+  LLMCompletionResponse,
+} from "../Utils/LLM/LLMService";
+import LlmProviderService from "./LlmProviderService";
+import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
+import IncidentAIContextBuilder, {
+  AIGenerationContext,
+  IncidentContextData,
+} from "../Utils/AI/IncidentAIContextBuilder";
 
 // key is incidentId for this dictionary.
 type UpdateCarryForward = Dictionary<{
@@ -2387,6 +2397,85 @@ ${incidentSeverity.name}
         `Updated Incident ${incident.id} current state to ${latestTimeline.incidentStateId}`,
       );
     }
+  }
+
+  @CaptureSpan()
+  public async generatePostmortemFromAI(data: {
+    incidentId: ObjectID;
+    template?: string;
+  }): Promise<string> {
+    // Get the incident to verify it exists and get the project ID
+    const incident: Model | null = await this.findOneById({
+      id: data.incidentId,
+      select: {
+        _id: true,
+        projectId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident || !incident.projectId) {
+      throw new BadDataException("Incident not found");
+    }
+
+    // Get LLM provider for the project
+    const llmProvider: LlmProvider | null =
+      await LlmProviderService.getLLMProviderForProject(incident.projectId);
+
+    if (!llmProvider) {
+      throw new BadDataException(
+        "No LLM provider configured for this project. Please configure an LLM provider in Settings > AI > LLM Providers.",
+      );
+    }
+
+    if (!llmProvider.llmType) {
+      throw new BadDataException(
+        "LLM provider type is not configured properly.",
+      );
+    }
+
+    // Build incident context - always include workspace messages
+    const contextData: IncidentContextData =
+      await IncidentAIContextBuilder.buildIncidentContext({
+        incidentId: data.incidentId,
+        includeWorkspaceMessages: true,
+        workspaceMessageLimit: 500,
+      });
+
+    // Format context for postmortem generation
+    const aiContext: AIGenerationContext =
+      IncidentAIContextBuilder.formatIncidentContextForPostmortem(
+        contextData,
+        data.template,
+      );
+
+    // Generate postmortem using LLM
+    const llmConfig: LLMProviderConfig = {
+      llmType: llmProvider.llmType,
+    };
+
+    if (llmProvider.apiKey) {
+      llmConfig.apiKey = llmProvider.apiKey;
+    }
+
+    if (llmProvider.baseUrl) {
+      llmConfig.baseUrl = llmProvider.baseUrl.toString();
+    }
+
+    if (llmProvider.modelName) {
+      llmConfig.modelName = llmProvider.modelName;
+    }
+
+    const response: LLMCompletionResponse = await LLMService.getCompletion({
+      llmProviderConfig: llmConfig,
+      messages: aiContext.messages,
+      maxTokens: 8192,
+      temperature: 0.7,
+    });
+
+    return response.content;
   }
 }
 

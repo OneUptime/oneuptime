@@ -2,25 +2,56 @@ import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
 import { OneUptimeToolCallArgs } from "../Types/McpTypes";
 import MCPLogger from "../Utils/MCPLogger";
-import API from "@oneuptime/common/Utils/API";
-import URL from "@oneuptime/common/Types/API/URL";
-import Route from "@oneuptime/common/Types/API/Route";
-import Headers from "@oneuptime/common/Types/API/Headers";
-import HTTPResponse from "@oneuptime/common/Types/API/HTTPResponse";
-import HTTPErrorResponse from "@oneuptime/common/Types/API/HTTPErrorResponse";
-import { JSONObject } from "@oneuptime/common/Types/JSON";
-import DatabaseModels from "@oneuptime/common/Models/DatabaseModels/Index";
-import AnalyticsModels from "@oneuptime/common/Models/AnalyticsModels/Index";
-import { ModelSchema } from "@oneuptime/common/Utils/Schema/ModelSchema";
-import { AnalyticsModelSchema } from "@oneuptime/common/Utils/Schema/AnalyticsModelSchema";
-import { getTableColumns } from "@oneuptime/common/Types/Database/TableColumn";
-import Permission from "@oneuptime/common/Types/Permission";
-import Protocol from "@oneuptime/common/Types/API/Protocol";
-import Hostname from "@oneuptime/common/Types/API/Hostname";
+import API from "Common/Utils/API";
+import URL from "Common/Types/API/URL";
+import Route from "Common/Types/API/Route";
+import Headers from "Common/Types/API/Headers";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
+import DatabaseModels from "Common/Models/DatabaseModels/Index";
+import AnalyticsModels from "Common/Models/AnalyticsModels/Index";
+import { ModelSchema } from "Common/Utils/Schema/ModelSchema";
+import { AnalyticsModelSchema } from "Common/Utils/Schema/AnalyticsModelSchema";
+import { getTableColumns } from "Common/Types/Database/TableColumn";
+import Permission from "Common/Types/Permission";
+import Protocol from "Common/Types/API/Protocol";
+import Hostname from "Common/Types/API/Hostname";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 
 export interface OneUptimeApiConfig {
   url: string;
   apiKey: string;
+}
+
+// Type for model constructor
+type ModelConstructor<T> = new () => T;
+
+// Type for model class with table name
+interface ModelWithTableName {
+  tableName: string;
+  getColumnAccessControlForAllColumns?: () => Record<
+    string,
+    ColumnAccessControl
+  >;
+}
+
+// Type for column access control
+interface ColumnAccessControl {
+  read?: Permission[];
+  create?: Permission[];
+  update?: Permission[];
+}
+
+// Type for table columns
+type TableColumns = Record<string, unknown>;
+
+// Type for Zod schema shape (shape can be an object or a function returning an object)
+interface ZodSchemaWithShape {
+  _def?: {
+    shape?: Record<string, unknown> | (() => Record<string, unknown>);
+  };
 }
 
 export default class OneUptimeApiService {
@@ -60,7 +91,7 @@ export default class OneUptimeApiService {
     modelType: ModelType,
     apiPath: string,
     args: OneUptimeToolCallArgs,
-  ): Promise<any> {
+  ): Promise<JSONValue> {
     if (!this.api) {
       throw new Error(
         "OneUptime API Service not initialized. Please call initialize() first.",
@@ -69,9 +100,9 @@ export default class OneUptimeApiService {
 
     this.validateOperationArgs(operation, args);
 
-    const route: any = this.buildApiRoute(apiPath, operation, args.id);
-    const headers: any = this.getHeaders();
-    const data: any = this.getRequestData(
+    const route: Route = this.buildApiRoute(apiPath, operation, args.id);
+    const headers: Headers = this.getHeaders();
+    const data: JSONObject | undefined = this.getRequestData(
       operation,
       args,
       tableName,
@@ -83,35 +114,35 @@ export default class OneUptimeApiService {
     );
 
     try {
-      let response: HTTPResponse<any> | HTTPErrorResponse;
+      let response: HTTPResponse<JSONObject> | HTTPErrorResponse;
 
       // Create a direct URL to avoid base route accumulation
       const url: URL = new URL(this.api.protocol, this.api.hostname, route);
+
+      // Build request options, only including data if it's defined
+      const baseOptions: { url: URL; headers: Headers } = {
+        url: url,
+        headers: headers,
+      };
 
       switch (operation) {
         case OneUptimeOperation.Create:
         case OneUptimeOperation.Count:
         case OneUptimeOperation.List:
         case OneUptimeOperation.Read:
-          response = await API.post({
-            url: url,
-            data: data,
-            headers: headers,
-          });
+          response = await API.post(
+            data ? { ...baseOptions, data: data } : baseOptions,
+          );
           break;
         case OneUptimeOperation.Update:
-          response = await API.put({
-            url: url,
-            data: data,
-            headers: headers,
-          });
+          response = await API.put(
+            data ? { ...baseOptions, data: data } : baseOptions,
+          );
           break;
         case OneUptimeOperation.Delete:
-          response = await API.delete({
-            url: url,
-            data: data,
-            headers: headers,
-          });
+          response = await API.delete(
+            data ? { ...baseOptions, data: data } : baseOptions,
+          );
           break;
         default:
           throw new Error(`Unsupported operation: ${operation}`);
@@ -190,7 +221,7 @@ export default class OneUptimeApiService {
           if (
             !["id", "query", "select", "skip", "limit", "sort"].includes(key)
           ) {
-            createData[key] = value;
+            createData[key] = value as JSONValue;
           }
         }
         return { data: createData } as JSONObject;
@@ -202,14 +233,14 @@ export default class OneUptimeApiService {
           if (
             !["id", "query", "select", "skip", "limit", "sort"].includes(key)
           ) {
-            updateData[key] = value;
+            updateData[key] = value as JSONValue;
           }
         }
         return { data: updateData } as JSONObject;
       }
       case OneUptimeOperation.List:
       case OneUptimeOperation.Count: {
-        const generatedSelect: any =
+        const generatedSelect: JSONObject =
           args.select || this.generateAllFieldsSelect(tableName, modelType);
         const requestData: JSONObject = {
           query: args.query || {},
@@ -225,7 +256,7 @@ export default class OneUptimeApiService {
         return requestData;
       }
       case OneUptimeOperation.Read: {
-        const readSelect: any =
+        const readSelect: JSONObject =
           args.select || this.generateAllFieldsSelect(tableName, modelType);
         const readRequestData: JSONObject = {
           select: readSelect,
@@ -254,37 +285,50 @@ export default class OneUptimeApiService {
     );
 
     try {
-      let ModelClass: any = null;
+      let ModelClass:
+        | ModelConstructor<BaseModel>
+        | ModelConstructor<AnalyticsBaseModel>
+        | null = null;
 
       // Find the model class by table name
       if (modelType === ModelType.Database) {
         MCPLogger.info(`Searching DatabaseModels for tableName: ${tableName}`);
-        ModelClass = DatabaseModels.find((Model: any) => {
-          try {
-            const instance: any = new Model();
-            const instanceTableName: string = instance.tableName;
-            MCPLogger.info(
-              `Checking model ${Model.name} with tableName: ${instanceTableName}`,
-            );
-            return instanceTableName === tableName;
-          } catch (error) {
-            MCPLogger.warn(`Error instantiating model ${Model.name}: ${error}`);
-            return false;
-          }
-        });
+        ModelClass =
+          (DatabaseModels.find(
+            (Model: ModelConstructor<BaseModel>): boolean => {
+              try {
+                const instance: ModelWithTableName =
+                  new Model() as unknown as ModelWithTableName;
+                const instanceTableName: string = instance.tableName;
+                MCPLogger.info(
+                  `Checking model ${Model.name} with tableName: ${instanceTableName}`,
+                );
+                return instanceTableName === tableName;
+              } catch (error) {
+                MCPLogger.warn(
+                  `Error instantiating model ${Model.name}: ${error}`,
+                );
+                return false;
+              }
+            },
+          ) as ModelConstructor<BaseModel> | undefined) || null;
       } else if (modelType === ModelType.Analytics) {
         MCPLogger.info(`Searching AnalyticsModels for tableName: ${tableName}`);
-        ModelClass = AnalyticsModels.find((Model: any) => {
-          try {
-            const instance: any = new Model();
-            return instance.tableName === tableName;
-          } catch (error) {
-            MCPLogger.warn(
-              `Error instantiating analytics model ${Model.name}: ${error}`,
-            );
-            return false;
-          }
-        });
+        ModelClass =
+          (AnalyticsModels.find(
+            (Model: ModelConstructor<AnalyticsBaseModel>): boolean => {
+              try {
+                const instance: ModelWithTableName =
+                  new Model() as unknown as ModelWithTableName;
+                return instance.tableName === tableName;
+              } catch (error) {
+                MCPLogger.warn(
+                  `Error instantiating analytics model ${Model.name}: ${error}`,
+                );
+                return false;
+              }
+            },
+          ) as ModelConstructor<AnalyticsBaseModel> | undefined) || null;
       }
 
       if (!ModelClass) {
@@ -300,8 +344,11 @@ export default class OneUptimeApiService {
 
       // Try to get raw table columns first (most reliable approach)
       try {
-        const modelInstance: any = new ModelClass();
-        const tableColumns: any = getTableColumns(modelInstance);
+        const modelInstance: ModelWithTableName =
+          new ModelClass() as unknown as ModelWithTableName;
+        const tableColumns: TableColumns = getTableColumns(
+          modelInstance as BaseModel,
+        );
         const columnNames: string[] = Object.keys(tableColumns);
 
         MCPLogger.info(
@@ -310,13 +357,16 @@ export default class OneUptimeApiService {
 
         if (columnNames.length > 0) {
           // Get access control information to filter out restricted fields
-          const accessControlForColumns: any =
-            modelInstance.getColumnAccessControlForAllColumns();
+          const accessControlForColumns: Record<string, ColumnAccessControl> =
+            modelInstance.getColumnAccessControlForAllColumns
+              ? modelInstance.getColumnAccessControlForAllColumns()
+              : {};
           const selectObject: JSONObject = {};
           let filteredCount: number = 0;
 
           for (const columnName of columnNames) {
-            const accessControl: any = accessControlForColumns[columnName];
+            const accessControl: ColumnAccessControl | undefined =
+              accessControlForColumns[columnName];
 
             /*
              * Include the field if:
@@ -363,27 +413,34 @@ export default class OneUptimeApiService {
       }
 
       // Fallback to schema approach if table columns fail
-      let selectSchema: any;
+      let selectSchema: ZodSchemaWithShape;
       if (modelType === ModelType.Database) {
         MCPLogger.info(
           `Generating select schema for database model: ${ModelClass.name}`,
         );
         selectSchema = ModelSchema.getSelectModelSchema({
-          modelType: ModelClass,
-        });
+          modelType: ModelClass as ModelConstructor<BaseModel>,
+        }) as ZodSchemaWithShape;
       } else {
         MCPLogger.info(
           `Generating schema for analytics model: ${ModelClass.name}`,
         );
         // For analytics models, use the general model schema
         selectSchema = AnalyticsModelSchema.getModelSchema({
-          modelType: ModelClass,
-        });
+          modelType: ModelClass as ModelConstructor<AnalyticsBaseModel>,
+        }) as ZodSchemaWithShape;
       }
 
       // Extract field names from the schema
       const selectObject: JSONObject = {};
-      const shape: any = selectSchema._def?.shape;
+      const rawShape:
+        | Record<string, unknown>
+        | (() => Record<string, unknown>)
+        | undefined = selectSchema._def?.shape;
+
+      // Handle both function and object shapes
+      const shape: Record<string, unknown> | undefined =
+        typeof rawShape === "function" ? rawShape() : rawShape;
 
       MCPLogger.info(
         `Schema shape keys: ${shape ? Object.keys(shape).length : 0}`,

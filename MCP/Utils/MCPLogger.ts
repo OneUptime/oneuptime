@@ -3,10 +3,10 @@
  * All logs are directed to stderr to avoid interfering with the JSON-RPC protocol on stdout
  */
 
-import { LogLevel } from "@oneuptime/common/Server/EnvironmentConfig";
-import ConfigLogLevel from "@oneuptime/common/Server/Types/ConfigLogLevel";
-import { JSONObject } from "@oneuptime/common/Types/JSON";
-import Exception from "@oneuptime/common/Types/Exception/Exception";
+import { LogLevel } from "Common/Server/EnvironmentConfig";
+import ConfigLogLevel from "Common/Server/Types/ConfigLogLevel";
+import { JSONObject } from "Common/Types/JSON";
+import Exception from "Common/Types/Exception/Exception";
 
 export type LogBody = string | JSONObject | Exception | Error | unknown;
 

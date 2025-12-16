@@ -96,6 +96,12 @@ const ScheduledMaintenanceEventViewNotificationLogs: LazyExoticComponent<
   return import("../Pages/ScheduledMaintenanceEvents/View/NotificationLogs");
 });
 
+const ScheduledMaintenanceEventViewAILogs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ScheduledMaintenanceEvents/View/AILogs");
+});
+
 const ScheduledMaintenanceEventViewDescription: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -274,6 +280,21 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
                   RouteMap[
                     PageMap.SCHEDULED_MAINTENANCE_VIEW_NOTIFICATION_LOGS
                   ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <ScheduledMaintenanceEventViewAILogs
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS] as Route
                 }
               />
             </Suspense>

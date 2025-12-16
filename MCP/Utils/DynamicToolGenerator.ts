@@ -1,19 +1,60 @@
-import DatabaseModels from "@oneuptime/common/Models/DatabaseModels/Index";
-import AnalyticsModels from "@oneuptime/common/Models/AnalyticsModels/Index";
-import DatabaseBaseModel from "@oneuptime/common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import AnalyticsBaseModel from "@oneuptime/common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import DatabaseModels from "Common/Models/DatabaseModels/Index";
+import AnalyticsModels from "Common/Models/AnalyticsModels/Index";
+import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
-import { McpToolInfo, ModelToolsResult } from "../Types/McpTypes";
 import {
-  ModelSchema,
-  ModelSchemaType,
-} from "@oneuptime/common/Utils/Schema/ModelSchema";
+  McpToolInfo,
+  ModelToolsResult,
+  JSONSchemaProperty,
+} from "../Types/McpTypes";
+import { ModelSchema, ModelSchemaType } from "Common/Utils/Schema/ModelSchema";
 import {
   AnalyticsModelSchema,
   AnalyticsModelSchemaType,
-} from "@oneuptime/common/Utils/Schema/AnalyticsModelSchema";
+} from "Common/Utils/Schema/AnalyticsModelSchema";
 import MCPLogger from "./MCPLogger";
+
+// Type for Zod field definition
+interface ZodFieldDef {
+  typeName?: string;
+  innerType?: ZodField;
+  description?: string;
+  openapi?: {
+    metadata?: OpenApiMetadata;
+  };
+}
+
+// Type for Zod field
+interface ZodField {
+  _def?: ZodFieldDef;
+}
+
+// Type for OpenAPI metadata
+interface OpenApiMetadata {
+  type?: string;
+  description?: string;
+  example?: unknown;
+  format?: string;
+  default?: unknown;
+  items?: JSONSchemaProperty;
+}
+
+// Type for Zod schema with shape
+interface ZodSchemaWithShape {
+  _def?: {
+    shape?: () => Record<string, ZodField>;
+  };
+}
+
+// Type for zodToJsonSchema return value
+interface ZodToJsonSchemaResult {
+  type: string;
+  properties: Record<string, JSONSchemaProperty>;
+  required?: string[];
+  additionalProperties: boolean;
+}
 
 export default class DynamicToolGenerator {
   /**
@@ -41,15 +82,18 @@ export default class DynamicToolGenerator {
    */
   private static zodToJsonSchema(
     zodSchema: ModelSchemaType | AnalyticsModelSchemaType,
-  ): any {
+  ): ZodToJsonSchemaResult {
     try {
       /*
        * The Zod schemas in this project are extended with OpenAPI metadata
        * We can extract the shape and create a basic JSON schema
        */
-      const shape: any = (zodSchema as any)._def?.shape;
+      const schemaWithShape: ZodSchemaWithShape =
+        zodSchema as unknown as ZodSchemaWithShape;
+      const shapeFunction: (() => Record<string, ZodField>) | undefined =
+        schemaWithShape._def?.shape;
 
-      if (!shape) {
+      if (!shapeFunction) {
         return {
           type: "object",
           properties: {},
@@ -57,23 +101,24 @@ export default class DynamicToolGenerator {
         };
       }
 
-      const properties: any = {};
+      const shape: Record<string, ZodField> = shapeFunction();
+      const properties: Record<string, JSONSchemaProperty> = {};
       const required: string[] = [];
 
-      for (const [key, value] of Object.entries(shape())) {
-        const zodField: any = value as any;
+      for (const [key, value] of Object.entries(shape)) {
+        const zodField: ZodField = value;
 
         // Handle ZodOptional fields by looking at the inner type
-        let actualField: any = zodField;
+        let actualField: ZodField = zodField;
         let isOptional: boolean = false;
 
         if (zodField._def?.typeName === "ZodOptional") {
-          actualField = zodField._def.innerType;
+          actualField = zodField._def.innerType || zodField;
           isOptional = true;
         }
 
         // Extract OpenAPI metadata - it's stored in _def.openapi.metadata
-        const openApiMetadata: any =
+        const openApiMetadata: OpenApiMetadata | undefined =
           actualField._def?.openapi?.metadata ||
           zodField._def?.openapi?.metadata;
 
@@ -85,7 +130,7 @@ export default class DynamicToolGenerator {
         const cleanDescription: string = this.cleanDescription(rawDescription);
 
         if (openApiMetadata) {
-          const fieldSchema: any = {
+          const fieldSchema: JSONSchemaProperty = {
             type: openApiMetadata.type || "string",
             description: cleanDescription,
             ...(openApiMetadata.example !== undefined && {
@@ -120,12 +165,17 @@ export default class DynamicToolGenerator {
         }
       }
 
-      return {
+      const result: ZodToJsonSchemaResult = {
         type: "object",
         properties,
-        required: required.length > 0 ? required : undefined,
         additionalProperties: false,
       };
+
+      if (required.length > 0) {
+        result.required = required;
+      }
+
+      return result;
     } catch {
       return {
         type: "object",
@@ -217,7 +267,8 @@ export default class DynamicToolGenerator {
     });
 
     // CREATE Tool
-    const createSchemaProperties: any = this.zodToJsonSchema(createSchema);
+    const createSchemaProperties: ZodToJsonSchemaResult =
+      this.zodToJsonSchema(createSchema);
     tools.push({
       name: `create_${this.sanitizeToolName(singularName)}`,
       description: `Create a new ${singularName} in OneUptime`,
@@ -292,7 +343,8 @@ export default class DynamicToolGenerator {
     });
 
     // UPDATE Tool
-    const updateSchemaProperties: any = this.zodToJsonSchema(updateSchema);
+    const updateSchemaProperties: ZodToJsonSchemaResult =
+      this.zodToJsonSchema(updateSchema);
     tools.push({
       name: `update_${this.sanitizeToolName(singularName)}`,
       description: `Update an existing ${singularName} in OneUptime`,
@@ -420,7 +472,7 @@ export default class DynamicToolGenerator {
       });
 
     // CREATE Tool for Analytics
-    const analyticsCreateSchemaProperties: any =
+    const analyticsCreateSchemaProperties: ZodToJsonSchemaResult =
       this.zodToJsonSchema(createSchema);
     tools.push({
       name: `create_${this.sanitizeToolName(singularName)}`,

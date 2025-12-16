@@ -1,0 +1,19 @@
+{{- if $.Values.mcp.enabled }}
+# OneUptime MCP Deployment
+{{- $mcpEnv := dict "PORT" $.Values.mcp.ports.http "DISABLE_TELEMETRY" $.Values.mcp.disableTelemetryCollection -}}
+{{- $mcpPorts := $.Values.mcp.ports -}}
+{{- $mcpDeploymentArgs := dict "ServiceName" "mcp" "Ports" $mcpPorts "Release" $.Release "Values" $.Values "Env" $mcpEnv "Resources" $.Values.mcp.resources "NodeSelector" $.Values.mcp.nodeSelector "PodSecurityContext" $.Values.mcp.podSecurityContext "ContainerSecurityContext" $.Values.mcp.containerSecurityContext "DisableAutoscaler" $.Values.mcp.disableAutoscaler "ReplicaCount" $.Values.mcp.replicaCount -}}
+{{- include "oneuptime.deployment" $mcpDeploymentArgs }}
+---
+
+# OneUptime MCP Service
+{{- $mcpPorts := $.Values.mcp.ports -}}
+{{- $mcpServiceArgs := dict "ServiceName" "mcp" "Ports" $mcpPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $mcpServiceArgs }}
+---
+
+# OneUptime MCP autoscaler
+{{- $mcpAutoScalerArgs := dict "ServiceName" "mcp" "Release" $.Release "Values" $.Values "DisableAutoscaler" $.Values.mcp.disableAutoscaler -}}
+{{- include "oneuptime.autoscaler" $mcpAutoScalerArgs }}
+---
+{{- end }}

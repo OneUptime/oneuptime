@@ -1,3 +1,4 @@
+import { WorkspaceChannelMessage } from "../Workspace";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
@@ -3061,5 +3062,170 @@ All monitoring checks are passing normally.`;
       logger.error(error);
       throw error;
     }
+  }
+
+  @CaptureSpan()
+  public static async getChannelMessages(params: {
+    channelId: string;
+    teamId: string;
+    projectId: ObjectID;
+    limit?: number;
+    oldestTimestamp?: Date;
+  }): Promise<
+    Array<{
+      messageId: string;
+      text: string;
+      userId?: string;
+      username?: string;
+      timestamp: Date;
+      isBot: boolean;
+    }>
+  > {
+    const messages: Array<{
+      messageId: string;
+      text: string;
+      userId?: string;
+      username?: string;
+      timestamp: Date;
+      isBot: boolean;
+    }> = [];
+
+    try {
+      // Get valid access token
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await WorkspaceProjectAuthTokenService.getProjectAuth({
+          projectId: params.projectId,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+        });
+
+      if (!projectAuth || !projectAuth.miscData) {
+        logger.error("Microsoft Teams integration not found for this project");
+        return messages;
+      }
+
+      const miscData: JSONObject = projectAuth.miscData as JSONObject;
+      const accessToken: string = miscData["appAccessToken"] as string;
+      const tokenExpiresAt: string = miscData[
+        "appAccessTokenExpiresAt"
+      ] as string;
+
+      // Check if token is expired
+      if (
+        !accessToken ||
+        (tokenExpiresAt &&
+          OneUptimeDate.isInThePast(OneUptimeDate.fromString(tokenExpiresAt)))
+      ) {
+        logger.debug(
+          "Microsoft Teams access token expired or missing, skipping message fetch",
+        );
+        return messages;
+      }
+
+      // Fetch messages from Microsoft Teams channel
+      let nextLink: string | undefined = undefined;
+      const maxMessages: number = params.limit || 1000;
+      const maxPages: number = 10;
+      let pageCount: number = 0;
+
+      do {
+        let requestUrl: string;
+
+        if (nextLink) {
+          requestUrl = nextLink;
+        } else {
+          requestUrl = `https://graph.microsoft.com/v1.0/teams/${params.teamId}/channels/${params.channelId}/messages`;
+          requestUrl += `?$top=${Math.min(50, maxMessages - messages.length)}`;
+        }
+
+        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+          await API.get<JSONObject>({
+            url: URL.fromString(requestUrl),
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            options: {
+              retries: 2,
+              exponentialBackoff: true,
+            },
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          logger.error(
+            "Error response from Microsoft Teams API for channel messages:",
+          );
+          logger.error(response);
+          break;
+        }
+
+        const jsonData: JSONObject = response.jsonData as JSONObject;
+        const teamsMessages: Array<JSONObject> =
+          (jsonData["value"] as Array<JSONObject>) || [];
+
+        for (const msg of teamsMessages) {
+          // Skip system messages
+          if (msg["messageType"] !== "message") {
+            continue;
+          }
+
+          const body: JSONObject = msg["body"] as JSONObject;
+          let text: string = (body?.["content"] as string) || "";
+
+          // Remove HTML tags if present (Teams uses HTML)
+          text = text.replace(/<[^>]*>/g, "");
+          text = text.trim();
+
+          // Skip empty messages
+          if (!text) {
+            continue;
+          }
+
+          const from: JSONObject = msg["from"] as JSONObject;
+          const user: JSONObject = from?.["user"] as JSONObject;
+          const isBot: boolean = Boolean(from?.["application"]);
+
+          const createdDateTime: string = msg["createdDateTime"] as string;
+          const timestamp: Date = createdDateTime
+            ? new Date(createdDateTime)
+            : new Date();
+
+          // Check if message is older than the oldest timestamp filter
+          if (params.oldestTimestamp && timestamp < params.oldestTimestamp) {
+            continue;
+          }
+
+          messages.push({
+            messageId: msg["id"] as string,
+            text: text,
+            userId: user?.["id"] as string,
+            username: user?.["displayName"] as string,
+            timestamp: timestamp,
+            isBot: isBot,
+          });
+        }
+
+        nextLink = jsonData["@odata.nextLink"] as string;
+        pageCount++;
+      } while (
+        nextLink &&
+        messages.length < maxMessages &&
+        pageCount < maxPages
+      );
+
+      logger.debug(
+        `Retrieved ${messages.length} messages from Microsoft Teams channel ${params.channelId}`,
+      );
+
+      // Sort by timestamp (oldest first)
+      messages.sort(
+        (a: WorkspaceChannelMessage, b: WorkspaceChannelMessage) => {
+          return a.timestamp.getTime() - b.timestamp.getTime();
+        },
+      );
+    } catch (error) {
+      logger.error(`Error fetching Microsoft Teams channel messages: ${error}`);
+    }
+
+    return messages;
   }
 }
