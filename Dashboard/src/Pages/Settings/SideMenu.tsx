@@ -351,15 +351,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
     {
       title: "AI",
       items: [
-        {
-          link: {
-            title: "LLM Providers",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
-            ),
-          },
-          icon: IconProp.Brain,
-        },
         ...(BILLING_ENABLED
           ? [
               {
@@ -373,6 +364,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
               },
             ]
           : []),
+        {
+          link: {
+            title: "LLM Providers",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
+            ),
+          },
+          icon: IconProp.Brain,
+        },
         {
           link: {
             title: "AI Logs",
