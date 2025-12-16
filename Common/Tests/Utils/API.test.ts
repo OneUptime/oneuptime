@@ -402,7 +402,11 @@ describe("API.patch", () => {
   test("should make a PATCH request", async () => {
     mockedAxios.mockResolvedValueOnce(createAxiosResponse());
 
-    const url: URL = new URL(Protocol.HTTPS, "catfact.ninja", new Route("fact"));
+    const url: URL = new URL(
+      Protocol.HTTPS,
+      "catfact.ninja",
+      new Route("fact"),
+    );
     const got: HTTPResponse<JSONObject> = await API.patch({
       url,
       data: requestData,

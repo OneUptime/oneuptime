@@ -304,8 +304,12 @@ PARTITION BY (column_ObjectID)
             /* eslint-enable prettier/prettier */
 
       // Normalize whitespace for comparison to avoid formatting issues
-      const normalizeWhitespace = (s: string): string => s.replace(/\s+/g, ' ').trim();
-      expect(normalizeWhitespace(statement.query)).toBe(normalizeWhitespace(expectedStatement.query));
+      const normalizeWhitespace = (s: string): string => {
+        return s.replace(/\s+/g, " ").trim();
+      };
+      expect(normalizeWhitespace(statement.query)).toBe(
+        normalizeWhitespace(expectedStatement.query),
+      );
       expect(statement.query_params).toStrictEqual(
         expectedStatement.query_params,
       );

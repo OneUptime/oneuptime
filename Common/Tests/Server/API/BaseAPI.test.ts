@@ -488,8 +488,10 @@ describe("BaseAPI", () => {
     });
 
     it("should use DEFAULT_LIMIT when limit is 0 (falsy value fallback)", async () => {
-      // When limit is 0, parseInt("0", 10) returns 0 which is falsy,
-      // so the code falls back to DEFAULT_LIMIT via || operator
+      /*
+       * When limit is 0, parseInt("0", 10) returns 0 which is falsy,
+       * so the code falls back to DEFAULT_LIMIT via || operator
+       */
       emptyRequest.query["limit"] = "0";
       // This should NOT throw since limit=0 is converted to DEFAULT_LIMIT
       await expect(

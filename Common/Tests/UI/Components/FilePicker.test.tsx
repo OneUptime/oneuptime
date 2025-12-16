@@ -2,12 +2,7 @@ import FilePicker from "../../../UI/Components/FilePicker/FilePicker";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { describe, expect, beforeEach, jest } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import MimeType from "../../../Types/File/MimeType";
 import ObjectID from "../../../Types/ObjectID";
@@ -68,10 +63,7 @@ const mockCreateResponse: MockCreateResponseFunction = async (
   return new HTTPResponse(200, fileModel as any, {});
 };
 
-type MockFileModelFunction = (
-  file: File,
-  id?: string,
-) => Promise<FileModel>;
+type MockFileModelFunction = (file: File, id?: string) => Promise<FileModel>;
 
 const mockFileModel: MockFileModelFunction = async (
   file: File,
@@ -457,7 +449,7 @@ describe("FilePicker", () => {
   });
 
   // Error on arrayBuffer test
-  it('should handle error when file arrayBuffer fails', async () => {
+  it("should handle error when file arrayBuffer fails", async () => {
     const file: File = mockFile("error-file.png");
     file.arrayBuffer = getJestMockFunction().mockRejectedValue(
       new Error("File too large"),

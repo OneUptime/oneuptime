@@ -1,5 +1,7 @@
-// AI Template definitions for different note types
-// These templates guide AI generation for various use cases
+/*
+ * AI Template definitions for different note types
+ * These templates guide AI generation for various use cases
+ */
 
 export interface AITemplate {
   id: string;
