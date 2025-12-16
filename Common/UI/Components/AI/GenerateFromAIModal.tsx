@@ -151,7 +151,9 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
 ): ReactElement => {
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
+    DEFAULT_TEMPLATES[0]?.id || "",
+  );
   const [templateContent, setTemplateContent] = useState<string>("");
 
   // Combine default templates with custom templates
@@ -161,20 +163,14 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
   ];
 
   // Build dropdown options
-  const templateOptions: Array<DropdownOption> = [
-    {
-      label: "No template (AI will use default format)",
-      value: "",
+  const templateOptions: Array<DropdownOption> = allTemplates.map(
+    (template: { id: string; name: string; content?: string }) => {
+      return {
+        label: template.name,
+        value: template.id,
+      };
     },
-    ...allTemplates.map(
-      (template: { id: string; name: string; content?: string }) => {
-        return {
-          label: template.name,
-          value: template.id,
-        };
-      },
-    ),
-  ];
+  );
 
   // Update template content when selection changes
   useEffect(() => {
@@ -254,7 +250,7 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
             {/* Template Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Select Template (Optional)
+                Select Template
               </label>
               <Dropdown
                 options={templateOptions}
