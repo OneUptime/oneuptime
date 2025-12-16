@@ -1,18 +1,18 @@
-import DatabaseModels from "@oneuptime/common/Models/DatabaseModels/Index";
-import AnalyticsModels from "@oneuptime/common/Models/AnalyticsModels/Index";
-import DatabaseBaseModel from "@oneuptime/common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import AnalyticsBaseModel from "@oneuptime/common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import DatabaseModels from "Common/Models/DatabaseModels/Index";
+import AnalyticsModels from "Common/Models/AnalyticsModels/Index";
+import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
 import { McpToolInfo, ModelToolsResult } from "../Types/McpTypes";
 import {
   ModelSchema,
   ModelSchemaType,
-} from "@oneuptime/common/Utils/Schema/ModelSchema";
+} from "Common/Utils/Schema/ModelSchema";
 import {
   AnalyticsModelSchema,
   AnalyticsModelSchemaType,
-} from "@oneuptime/common/Utils/Schema/AnalyticsModelSchema";
+} from "Common/Utils/Schema/AnalyticsModelSchema";
 import MCPLogger from "./MCPLogger";
 
 export default class DynamicToolGenerator {
