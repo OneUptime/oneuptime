@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Modal, { ModalWidth } from "../Modal/Modal";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
+import AILoader from "./AILoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm from "../Forms/BasicForm";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
@@ -148,29 +148,11 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
         {error && <ErrorMessage message={error} />}
 
         {isGenerating && (
-          <div className="py-8">
-            <ComponentLoader />
-            <div className="text-center mt-4 text-gray-600">
-              <p className="font-medium">Generating content with AI...</p>
-              <p className="text-sm mt-1">
-                This may take a moment depending on the amount of data.
-              </p>
-              {props.dataSourceItems && props.dataSourceItems.length > 0 && (
-                <div className="mt-4 text-left">
-                  <p className="text-sm font-medium text-gray-500">
-                    Data sources being used:
-                  </p>
-                  <ul className="list-disc ml-5 mt-1 text-sm text-gray-500">
-                    {props.dataSourceItems.map(
-                      (item: string, index: number): ReactElement => {
-                        return <li key={index}>{item}</li>;
-                      },
-                    )}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
+          <AILoader
+            title="Generating with AI"
+            subtitle="This may take a moment depending on the amount of data being analyzed."
+            dataSourceItems={props.dataSourceItems}
+          />
         )}
 
         {!isGenerating && formFields.length > 0 && (
