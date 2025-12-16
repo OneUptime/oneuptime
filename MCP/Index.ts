@@ -1,7 +1,6 @@
 #!/usr/bin/env npx ts-node
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import {
   CallToolRequestSchema,
@@ -223,34 +222,9 @@ class OneUptimeMCPServer {
   }
 
   public async run(): Promise<void> {
-    const port: string | undefined = process.env["PORT"];
+    const portString: string | undefined = process.env["PORT"];
+    const port: number = portString ? parseInt(portString, 10) : 3405;
 
-    if (port) {
-      // HTTP mode - run as web server with SSE transport
-      await this.runHttpServer(parseInt(port, 10));
-    } else {
-      // Stdio mode - for CLI usage
-      await this.runStdioServer();
-    }
-  }
-
-  private async runStdioServer(): Promise<void> {
-    const transport: StdioServerTransport = new StdioServerTransport();
-    await this.server.connect(transport);
-
-    MCPLogger.info("OneUptime MCP Server is running in stdio mode!");
-    MCPLogger.info(`Available tools: ${this.tools.length} total`);
-
-    // Log some example tools
-    const exampleTools: string[] = this.tools
-      .slice(0, 5)
-      .map((t: McpToolInfo) => {
-        return t.name;
-      });
-    MCPLogger.info(`Example tools: ${exampleTools.join(", ")}`);
-  }
-
-  private async runHttpServer(port: number): Promise<void> {
     Express.setupExpress();
     const app: ExpressApplication = Express.getExpressApp();
 
@@ -336,7 +310,7 @@ class OneUptimeMCPServer {
     const httpServer: http.Server = http.createServer(app);
 
     httpServer.listen(port, () => {
-      MCPLogger.info(`OneUptime MCP Server is running in HTTP mode on port ${port}`);
+      MCPLogger.info(`OneUptime MCP Server is running on port ${port}`);
       MCPLogger.info(`Available tools: ${this.tools.length} total`);
       MCPLogger.info(`Health check: http://localhost:${port}/health`);
       MCPLogger.info(`Tools list: http://localhost:${port}/tools`);
