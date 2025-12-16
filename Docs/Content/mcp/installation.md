@@ -1,46 +1,32 @@
 # Installation
 
-This guide will walk you through installing and setting up the OneUptime MCP Server.
+This guide will walk you through setting up the OneUptime MCP Server.
 
 ## Prerequisites
 
-Before installing the MCP server, ensure you have:
+Before setting up the MCP server, ensure you have:
 
 - A OneUptime instance (cloud or self-hosted)
 - A valid OneUptime API key
-- Node.js 18 or later (for npm installation)
+- An MCP-compatible client (Claude Desktop, etc.)
 
-## Installation Methods
+## MCP Server URL
 
-### Method 1: NPM Installation (Recommended)
+The MCP server is hosted alongside your OneUptime instance. No local installation is required.
 
-Install the MCP server globally using npm:
+**OneUptime Cloud**: `https://oneuptime.com/mcp`
+**Self-Hosted**: `https://your-oneuptime-domain.com/mcp`
 
-```bash
-npm install -g @oneuptime/mcp-server
-```
+## Available Endpoints
 
-This will install the `oneuptime-mcp` command globally on your system.
+The MCP server exposes the following endpoints:
 
-### Method 2: From Source
-
-If you want to build from source or contribute to the project:
-
-```bash
-# Clone the OneUptime repository
-git clone https://github.com/OneUptime/oneuptime.git
-cd oneuptime
-
-# Generate the MCP server
-cd MCP
-
-
-# Install dependencies
-npm install && npm link
-
-# This should now execute
-oneuptime-mcp --version
-```
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/mcp/sse` | GET | SSE endpoint for MCP connections |
+| `/mcp/message` | POST | Message endpoint for client-to-server communication |
+| `/mcp/health` | GET | Health check endpoint |
+| `/mcp/tools` | GET | REST API to list available tools |
 
 ## Getting Your API Key
 
@@ -64,14 +50,28 @@ oneuptime-mcp --version
 
 ## Verification
 
-Verify your installation by checking the version:
+You can verify the MCP server is running by checking the health endpoint:
 
 ```bash
-oneuptime-mcp --version
+# For OneUptime Cloud
+curl https://oneuptime.com/mcp/health
+
+# For Self-Hosted
+curl https://your-oneuptime-domain.com/mcp/health
+```
+
+You can also list available tools:
+
+```bash
+# For OneUptime Cloud
+curl https://oneuptime.com/mcp/tools
+
+# For Self-Hosted
+curl https://your-oneuptime-domain.com/mcp/tools
 ```
 
 ## Next Steps
 
-- [Configure the MCP Server](/docs/mcp/configuration)
-- [Set up with Claude Desktop](/docs/mcp/quick-start)
-- [Explore configuration options](/docs/mcp/configuration)
+- [Configure with Claude Desktop](/docs/mcp/configuration)
+- [Quick Start Guide](/docs/mcp/quick-start)
+- [View Usage Examples](/docs/mcp/examples)

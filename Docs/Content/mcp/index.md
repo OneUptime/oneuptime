@@ -6,6 +6,13 @@ The OneUptime Model Context Protocol (MCP) Server provides LLMs with direct acce
 
 The OneUptime MCP Server is a bridge between Large Language Models (LLMs) and your OneUptime instance. It implements the Model Context Protocol (MCP), allowing AI assistants like Claude to interact directly with your monitoring infrastructure.
 
+## How It Works
+
+The MCP server is hosted alongside your OneUptime instance and accessible via Server-Sent Events (SSE). No local installation is required.
+
+**Cloud Users**: `https://oneuptime.com/mcp`
+**Self-Hosted Users**: `https://your-oneuptime-domain.com/mcp`
+
 ## Key Features
 
 - **Complete API Coverage**: Access to 711 OneUptime API endpoints
@@ -38,7 +45,6 @@ With the OneUptime MCP Server, AI assistants can help you:
 
 - OneUptime instance (cloud or self-hosted)
 - Valid OneUptime API key
-- Node.js 18+ (for development)
 - MCP-compatible client (Claude Desktop, etc.)
 
 ## Architecture

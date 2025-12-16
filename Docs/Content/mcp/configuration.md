@@ -2,61 +2,83 @@
 
 Learn how to configure the OneUptime MCP Server for your specific needs.
 
-## Environment Variables
+## Claude Desktop Configuration
 
-The MCP server uses environment variables for configuration:
+The MCP server is hosted alongside your OneUptime instance. Configure your Claude Desktop to connect via SSE transport.
 
-| Variable | Description | Required | Default | Example |
-|----------|-------------|----------|---------|---------|
-| `ONEUPTIME_API_KEY` | Your OneUptime API key | **Yes** | - | `xxxxxxxx-xxxx-xxxx-xxxx` |
-| `ONEUPTIME_URL` | Your OneUptime instance URL | No | `https://oneuptime.com` | `https://my-company.oneuptime.com` |
+### Find Your Configuration File
 
-## Setting Environment Variables
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+**Linux**: `~/.config/Claude/claude_desktop_config.json`
 
-### In Claude Desktop Configuration
+### OneUptime Cloud Configuration
 
-The recommended way is to set environment variables in your Claude Desktop configuration:
+Add the following to your Claude Desktop configuration file:
 
 ```json
 {
   "mcpServers": {
     "oneuptime": {
-      "command": "oneuptime-mcp",
-      "env": {
-        "ONEUPTIME_API_KEY": "your-api-key-here",
-        "ONEUPTIME_URL": "https://oneuptime.com" // Replace with your instance URL if you are self-hosting
+      "transport": "sse",
+      "url": "https://oneuptime.com/mcp/sse",
+      "headers": {
+        "x-api-key": "your-api-key-here"
       }
     }
   }
 }
 ```
 
-### System Environment Variables
+### Self-Hosted OneUptime Configuration
 
-Alternatively, you can set system environment variables:
+If you're running a self-hosted OneUptime instance:
 
-**macOS/Linux**:
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "transport": "sse",
+      "url": "https://your-oneuptime-domain.com/mcp/sse",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+## Available Endpoints
+
+The MCP server provides the following endpoints:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/mcp/sse` | GET | SSE endpoint for establishing MCP connections |
+| `/mcp/message` | POST | Endpoint for sending messages to the server |
+| `/mcp/health` | GET | Health check endpoint returning server status |
+| `/mcp/tools` | GET | REST API listing all available tools |
+
+## Testing the Connection
+
+You can verify the server is working by checking the health endpoint:
+
 ```bash
-export ONEUPTIME_API_KEY="your-api-key-here"
-# Optional: Set custom OneUptime URL. Replace with your instance if self-hosted
-export ONEUPTIME_URL="https://oneuptime.com"
+# For OneUptime Cloud
+curl https://oneuptime.com/mcp/health
+
+# For Self-Hosted
+curl https://your-oneuptime-domain.com/mcp/health
 ```
 
-**Windows**:
-```cmd
-set ONEUPTIME_API_KEY=your-api-key-here
-# Optional: Set custom OneUptime URL. Replace with your instance if self-hosted
-set ONEUPTIME_URL=https://oneuptime.com
-```
+Or list available tools:
 
-### Using .env File
+```bash
+# For OneUptime Cloud
+curl https://oneuptime.com/mcp/tools
 
-For development, you can create a `.env` file in your working directory:
-
-```env
-ONEUPTIME_API_KEY=your-api-key-here
-# Optional: Set custom OneUptime URL. Replace with your instance if self-hosted
-ONEUPTIME_URL=https://oneuptime.com
+# For Self-Hosted
+curl https://your-oneuptime-domain.com/mcp/tools
 ```
 
 ## API Key Permissions
@@ -65,7 +87,7 @@ Your API key needs appropriate permissions based on what operations you want to 
 
 ### Read-Only Access
 
-For viewing data only, Please add read permissions for this API Key, 
+For viewing data only, add read permissions for this API Key.
 
 ### Full Access
 
@@ -74,11 +96,9 @@ For full access to create, update, and delete resources, ensure your API key has
 
 ### Minimal Permissions
 
-It is recommended to have minimum set of permissions assigned to your API key for your use-case. 
+It is recommended to have minimum set of permissions assigned to your API key for your use-case.
 
-## Advanced Configuration
-
-### Multiple Instances
+## Multiple Instances
 
 You can configure multiple OneUptime instances by creating separate MCP server configurations:
 
@@ -86,34 +106,17 @@ You can configure multiple OneUptime instances by creating separate MCP server c
 {
   "mcpServers": {
     "oneuptime-prod": {
-      "command": "oneuptime-mcp",
-      "env": {
-        "ONEUPTIME_API_KEY": "prod-api-key",
-        "ONEUPTIME_URL": "https://prod.oneuptime.com"
+      "transport": "sse",
+      "url": "https://prod.oneuptime.com/mcp/sse",
+      "headers": {
+        "x-api-key": "prod-api-key"
       }
     },
     "oneuptime-staging": {
-      "command": "oneuptime-mcp",
-      "env": {
-        "ONEUPTIME_API_KEY": "staging-api-key",
-        "ONEUPTIME_URL": "https://staging.oneuptime.com"
-      }
-    }
-  }
-}
-```
-
-### Custom Command Path
-
-If you installed from source or want to use a specific version:
-
-```json
-{
-  "mcpServers": {
-    "oneuptime": {
-      "command": "/path/to/your/oneuptime-mcp",
-      "env": {
-        "ONEUPTIME_API_KEY": "your-api-key-here"
+      "transport": "sse",
+      "url": "https://staging.oneuptime.com/mcp/sse",
+      "headers": {
+        "x-api-key": "staging-api-key"
       }
     }
   }
@@ -135,10 +138,11 @@ To verify your configuration is working:
 - Check for extra spaces or characters
 - Ensure the key hasn't expired
 
-### Wrong URL
+### Connection Failed
 - Verify your OneUptime instance URL
 - Ensure it includes the protocol (https://)
 - Check for typos in the domain
+- Verify the MCP server is running (check `/mcp/health`)
 
 ### Permission Denied
 - Review your API key permissions
@@ -151,10 +155,8 @@ To verify your configuration is working:
 2. **Rotate API Keys**: Regularly rotate your API keys
 3. **Monitor Usage**: Keep track of API key usage in OneUptime
 4. **Separate Keys**: Use different API keys for different environments
-5. **Store Securely**: Never commit API keys to version control
 
 ## Next Steps
 
 - [Explore usage examples](/docs/mcp/examples)
 - [View available resources](/docs/mcp/resources)
-- [Learn about troubleshooting](/docs/mcp/troubleshooting)

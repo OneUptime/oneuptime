@@ -2,72 +2,64 @@
 
 Get up and running with the OneUptime MCP Server in just a few minutes.
 
-## Step 1: Install the MCP Server
-
-If you haven't already, install the MCP server:
-
-```bash
-npm install -g @oneuptime/mcp-server
-```
-
-## Step 2: Get Your API Key
+## Step 1: Get Your API Key
 
 1. Log in to your OneUptime instance
 2. Go to **Settings** → **API Keys**
 3. Create a new API key with appropriate permissions
 4. Copy the API key for use in configuration
 
-## Step 3: Configure Claude Desktop
+## Step 2: Configure Claude Desktop
 
-Add the OneUptime MCP server to your Claude Desktop configuration.
-
-### Find Your Configuration File
+Find your Claude Desktop configuration file:
 
 **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 **Linux**: `~/.config/Claude/claude_desktop_config.json`
 
-### Update Configuration
+### For OneUptime Cloud
 
-Add the following to your Claude Desktop configuration file:
+Add the following configuration:
 
 ```json
 {
   "mcpServers": {
     "oneuptime": {
-      "command": "oneuptime-mcp",
-      "env": {
-        "ONEUPTIME_API_KEY": "your-api-key-here",
-        "ONEUPTIME_URL": "https://oneuptime.com"
+      "transport": "sse",
+      "url": "https://oneuptime.com/mcp/sse",
+      "headers": {
+        "x-api-key": "your-api-key-here"
       }
     }
   }
 }
 ```
 
-**For self-hosted OneUptime**, replace `https://oneuptime.com` with your instance URL.
+### For Self-Hosted OneUptime
 
-### Example Complete Configuration
+Replace `oneuptime.com` with your OneUptime domain:
 
 ```json
 {
   "mcpServers": {
     "oneuptime": {
-      "command": "oneuptime-mcp",
-      "env": {
-        "ONEUPTIME_API_KEY": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-        "ONEUPTIME_URL": "https://my-company.oneuptime.com"
+      "transport": "sse",
+      "url": "https://your-oneuptime-domain.com/mcp/sse",
+      "headers": {
+        "x-api-key": "your-api-key-here"
       }
     }
   }
 }
 ```
 
-## Step 4: Restart Claude Desktop
+## Step 3: Restart Claude Desktop
 
 Close and restart Claude Desktop for the configuration changes to take effect.
 
-## Step 5: Test the Connection
+That's it! You're ready to use the OneUptime MCP Server.
+
+## Step 4: Test the Connection
 
 Once Claude Desktop restarts, you can test the MCP server by asking Claude to:
 
@@ -104,16 +96,10 @@ If you see permission errors, ensure your API key has the necessary permissions:
 ### Connection Issues
 
 If Claude can't connect to your OneUptime instance:
-1. Verify your `ONEUPTIME_URL` is correct
+1. Verify your OneUptime URL is correct
 2. Check that your API key is valid
 3. Ensure your OneUptime instance is accessible
-
-### MCP Server Not Found
-
-If you get "command not found" errors:
-1. Verify the installation: `npm list -g @oneuptime/mcp-server`
-2. Check your PATH includes npm global binaries
-3. Try reinstalling: `npm install -g @oneuptime/mcp-server`
+4. Test the health endpoint: `curl https://your-oneuptime-domain.com/mcp/health`
 
 ## Next Steps
 
