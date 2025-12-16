@@ -536,12 +536,6 @@ const IncidentPostmortem: FunctionComponent<
           onGenerate={handleGeneratePostmortemFromAI}
           onSuccess={handleAIGenerationSuccess}
           templates={aiTemplates}
-          dataSourceItems={[
-            "Incident details and description",
-            "State timeline and history",
-            "Internal and public notes",
-            "Slack/Teams channel discussions",
-          ]}
         />
       ) : (
         <></>
