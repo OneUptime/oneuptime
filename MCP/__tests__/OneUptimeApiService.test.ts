@@ -86,8 +86,9 @@ jest.mock("../Utils/MCPLogger");
 describe("OneUptimeApiService", () => {
   const mockConfig: OneUptimeApiConfig = {
     url: "https://test.oneuptime.com",
-    apiKey: "test-api-key-123",
   };
+
+  const testApiKey: string = "test-api-key-123";
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -96,37 +97,41 @@ describe("OneUptimeApiService", () => {
   afterEach(() => {
     // Reset the service state
     (OneUptimeApiService as any).api = null;
-    (OneUptimeApiService as any).config = null;
   });
 
   describe("Service Initialization", () => {
-    it("should throw error when API key is missing", () => {
-      const invalidConfig: OneUptimeApiConfig = {
-        url: "https://test.oneuptime.com",
-        apiKey: "",
-      };
-
-      expect(() => {
-        OneUptimeApiService.initialize(invalidConfig);
-      }).toThrow(
-        "OneUptime API key is required. Please set ONEUPTIME_API_KEY environment variable.",
-      );
-    });
-
-    it("should not throw error when API key is provided", () => {
+    it("should not throw error when initialized without API key (API key is per-request)", () => {
       expect(() => {
         OneUptimeApiService.initialize(mockConfig);
       }).not.toThrow();
     });
 
+    it("should throw error when API key is missing during operation", async () => {
+      OneUptimeApiService.initialize(mockConfig);
+      const args: OneUptimeToolCallArgs = { id: "123" };
+
+      await expect(
+        OneUptimeApiService.executeOperation(
+          "Project",
+          OneUptimeOperation.Read,
+          ModelType.Database,
+          "/api/project",
+          args,
+          "", // Empty API key
+        ),
+      ).rejects.toThrow(
+        "API key is required. Please provide x-api-key header in your request.",
+      );
+    });
+
     it("should handle different URL formats", () => {
-      const configs: Array<{ url: string; apiKey: string }> = [
-        { url: "https://oneuptime.com", apiKey: "key1" },
-        { url: "http://localhost:3000", apiKey: "key2" },
-        { url: "https://custom.domain.com:8080/api", apiKey: "key3" },
+      const configs: Array<{ url: string }> = [
+        { url: "https://oneuptime.com" },
+        { url: "http://localhost:3000" },
+        { url: "https://custom.domain.com:8080/api" },
       ];
 
-      configs.forEach((config: { url: string; apiKey: string }) => {
+      configs.forEach((config: { url: string }) => {
         expect(() => {
           OneUptimeApiService.initialize(config);
         }).not.toThrow();
@@ -149,6 +154,7 @@ describe("OneUptimeApiService", () => {
           ModelType.Database,
           "/api/project",
           args,
+          testApiKey,
         ),
       ).rejects.toThrow("ID is required for read operation");
     });
@@ -165,6 +171,7 @@ describe("OneUptimeApiService", () => {
           ModelType.Database,
           "/api/project",
           argsWithoutId,
+          testApiKey,
         ),
       ).rejects.toThrow("ID is required for update operation");
 
@@ -179,6 +186,7 @@ describe("OneUptimeApiService", () => {
           ModelType.Database,
           "/api/project",
           argsWithoutData,
+          testApiKey,
         ),
       ).rejects.toThrow("Data is required for update operation");
     });
@@ -193,6 +201,7 @@ describe("OneUptimeApiService", () => {
           ModelType.Database,
           "/api/project",
           args,
+          testApiKey,
         ),
       ).rejects.toThrow("ID is required for delete operation");
     });
@@ -207,6 +216,7 @@ describe("OneUptimeApiService", () => {
           ModelType.Database,
           "/api/project",
           args,
+          testApiKey,
         ),
       ).rejects.toThrow("Data is required for create operation");
     });
@@ -223,6 +233,7 @@ describe("OneUptimeApiService", () => {
           ModelType.Database,
           "/api/project",
           args,
+          testApiKey,
         ),
       ).rejects.toThrow("OneUptime API Service not initialized");
     });
@@ -238,6 +249,7 @@ describe("OneUptimeApiService", () => {
           ModelType.Database,
           "/api/project",
           args,
+          testApiKey,
         ),
       ).rejects.toThrow("Unsupported operation: unsupported");
     });
@@ -314,20 +326,22 @@ describe("OneUptimeApiService", () => {
 
     it("should include proper authentication headers", () => {
       /*
-       * Test that headers include the API key
+       * Test that headers include the API key (provided per-request)
        * This would require exposing the getHeaders method or testing through executeOperation
        */
-      expect(mockConfig.apiKey).toBe("test-api-key-123");
+      expect(testApiKey).toBe("test-api-key-123");
     });
   });
 
   describe("Configuration Management", () => {
-    it("should store configuration correctly", () => {
-      OneUptimeApiService.initialize(mockConfig);
+    it("should initialize without error", () => {
+      expect(() => {
+        OneUptimeApiService.initialize(mockConfig);
+      }).not.toThrow();
 
-      // Access the private config through type assertion for testing
-      const storedConfig: any = (OneUptimeApiService as any).config;
-      expect(storedConfig).toEqual(mockConfig);
+      // Verify API is initialized
+      const api: any = (OneUptimeApiService as any).api;
+      expect(api).toBeDefined();
     });
 
     it("should handle re-initialization", () => {
@@ -335,15 +349,15 @@ describe("OneUptimeApiService", () => {
 
       const newConfig: OneUptimeApiConfig = {
         url: "https://new.oneuptime.com",
-        apiKey: "new-api-key",
       };
 
       expect(() => {
         OneUptimeApiService.initialize(newConfig);
       }).not.toThrow();
 
-      const storedConfig: any = (OneUptimeApiService as any).config;
-      expect(storedConfig).toEqual(newConfig);
+      // Verify API is still defined after re-initialization
+      const api: any = (OneUptimeApiService as any).api;
+      expect(api).toBeDefined();
     });
   });
 });

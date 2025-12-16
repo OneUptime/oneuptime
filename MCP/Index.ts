@@ -1,7 +1,7 @@
 #!/usr/bin/env npx ts-node
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
   CallToolRequestSchema,
   CallToolRequest,
@@ -9,6 +9,7 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
+import { randomUUID } from "node:crypto";
 import Express, {
   ExpressApplication,
   ExpressRequest,
@@ -36,12 +37,21 @@ const APP_NAME: string = "mcp";
 
 const app: ExpressApplication = Express.getExpressApp();
 
-// Store active SSE transports
-const transports: Map<string, SSEServerTransport> = new Map();
+// Session data including transport and API key
+interface SessionData {
+  transport: StreamableHTTPServerTransport;
+  apiKey: string;
+}
+
+// Store active transports with their API keys (keyed by session ID)
+const sessions: Map<string, SessionData> = new Map();
 
 // MCP Server instance
 let mcpServer: Server;
 let tools: McpToolInfo[] = [];
+
+// Current session API key (set before handling each request)
+let currentSessionApiKey: string = "";
 
 function initializeMCPServer(): void {
   mcpServer = new Server(
@@ -62,21 +72,15 @@ function initializeMCPServer(): void {
 }
 
 function initializeServices(): void {
-  // Initialize OneUptime API Service
-  const apiKey: string | undefined = process.env["ONEUPTIME_API_KEY"];
-  if (!apiKey) {
-    throw new Error(
-      "OneUptime API key is required. Please set ONEUPTIME_API_KEY environment variable.",
-    );
-  }
-
+  // Initialize OneUptime API Service (API keys are provided per-request via headers)
   const config: OneUptimeApiConfig = {
     url: process.env["ONEUPTIME_URL"] || "https://oneuptime.com",
-    apiKey: apiKey,
   };
 
   OneUptimeApiService.initialize(config);
-  logger.info("OneUptime API Service initialized");
+  logger.info(
+    "OneUptime API Service initialized (API keys provided per-request via x-api-key header)",
+  );
 }
 
 function generateTools(): void {
@@ -125,13 +129,22 @@ function setupHandlers(): void {
 
         logger.info(`Executing tool: ${name} for model: ${tool.modelName}`);
 
-        // Execute the OneUptime operation
+        // Validate API key is available for this session
+        if (!currentSessionApiKey) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            "API key is required. Please provide x-api-key header in your request.",
+          );
+        }
+
+        // Execute the OneUptime operation with the session's API key
         const result: unknown = await OneUptimeApiService.executeOperation(
           tool.tableName,
           tool.operation,
           tool.modelType,
           tool.apiPath || "",
           args as OneUptimeToolCallArgs,
+          currentSessionApiKey,
         );
 
         // Format the response
@@ -224,70 +237,97 @@ function formatToolResponse(
   }
 }
 
+// Helper function to extract API key from request headers
+function extractApiKey(req: ExpressRequest): string | undefined {
+  return (
+    (req.headers["x-api-key"] as string) ||
+    (req.headers["authorization"]?.replace("Bearer ", "") as string)
+  );
+}
+
 // Setup MCP-specific routes
 function setupMCPRoutes(): void {
   const ROUTE_PREFIXES: Array<string> = [`/${APP_NAME}`, "/"];
 
   // Use forEach to create proper closures for each route prefix
   ROUTE_PREFIXES.forEach((prefix: string) => {
-    // SSE endpoint for MCP connections
-    app.get(
-      `${prefix === "/" ? "" : prefix}/sse`,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        logger.info("New SSE connection established");
+    const mcpEndpoint: string = prefix === "/" ? "/mcp" : `${prefix}/mcp`;
 
-        // Set SSE headers
-        res.setHeader("Content-Type", "text/event-stream");
-        res.setHeader("Cache-Control", "no-cache");
-        res.setHeader("Connection", "keep-alive");
-        res.setHeader("Access-Control-Allow-Origin", "*");
+    // MCP endpoint handler - handles all MCP protocol requests (GET, POST, DELETE)
+    const mcpHandler = async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): Promise<void> => {
+      try {
+        // Extract API key from request headers
+        const apiKey: string | undefined = extractApiKey(req);
 
-        // Create SSE transport
-        const messageEndpoint: string =
-          prefix === "/" ? "/message" : `${prefix}/message`;
-        const transport: SSEServerTransport = new SSEServerTransport(
-          messageEndpoint,
-          res,
-        );
-
-        // Store transport with session ID
-        const sessionId: string = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-        transports.set(sessionId, transport);
-
-        // Handle connection close
-        req.on("close", () => {
-          logger.info(`SSE connection closed: ${sessionId}`);
-          transports.delete(sessionId);
-        });
-
-        // Connect server to transport
-        await mcpServer.connect(transport);
-      },
-    );
-
-    // Message endpoint for client-to-server messages
-    app.post(
-      `${prefix === "/" ? "" : prefix}/message`,
-      ExpressJson(),
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          /*
-           * Find the transport for this session
-           * In a real implementation, you'd use session management
-           */
-          const transport: SSEServerTransport | undefined = Array.from(
-            transports.values(),
-          )[0];
-          if (transport) {
-            await transport.handlePostMessage(req, res);
-          } else {
-            res.status(400).json({ error: "No active SSE connection" });
-          }
-        } catch (error) {
-          next(error);
+        if (!apiKey) {
+          res.status(401).json({
+            error:
+              "API key is required. Please provide x-api-key or Authorization header.",
+          });
+          return;
         }
-      },
-    );
+
+        // Set the current API key for tool calls
+        currentSessionApiKey = apiKey;
+
+        // Get session ID from request headers
+        const sessionId: string | undefined = req.headers[
+          "mcp-session-id"
+        ] as string;
+
+        // Check for existing session
+        if (sessionId && sessions.has(sessionId)) {
+          // Reuse existing transport for this session
+          const sessionData: SessionData = sessions.get(sessionId)!;
+          // Update API key in case it changed
+          sessionData.apiKey = apiKey;
+          await sessionData.transport.handleRequest(req, res, req.body);
+          return;
+        }
+
+        // For new connections (initialization), create a new transport
+        const transport: StreamableHTTPServerTransport =
+          new StreamableHTTPServerTransport({
+            sessionIdGenerator: (): string => randomUUID(),
+            onsessioninitialized: (newSessionId: string): void => {
+              // Store the transport with the new session ID and API key
+              sessions.set(newSessionId, { transport, apiKey });
+              logger.info(`New MCP session initialized: ${newSessionId}`);
+            },
+          });
+
+        // Handle transport close (must be set before connecting)
+        transport.onclose = (): void => {
+          const transportSessionId: string | undefined = transport.sessionId;
+          if (transportSessionId) {
+            logger.info(`MCP session closed: ${transportSessionId}`);
+            sessions.delete(transportSessionId);
+          }
+        };
+
+        // Handle transport errors
+        transport.onerror = (error: Error): void => {
+          logger.error(`MCP transport error: ${error.message}`);
+        };
+
+        // Connect the MCP server to this transport
+        await mcpServer.connect(transport as Parameters<typeof mcpServer.connect>[0]);
+
+        // Handle the request
+        await transport.handleRequest(req, res, req.body);
+      } catch (error) {
+        next(error);
+      }
+    };
+
+    // Register MCP endpoint for all methods (GET for SSE, POST for requests, DELETE for cleanup)
+    app.get(mcpEndpoint, mcpHandler);
+    app.post(mcpEndpoint, ExpressJson(), mcpHandler);
+    app.delete(mcpEndpoint, mcpHandler);
 
     // List tools endpoint (REST API)
     app.get(

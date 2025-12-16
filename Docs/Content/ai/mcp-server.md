@@ -8,7 +8,7 @@ The OneUptime MCP Server is a bridge between Large Language Models (LLMs) and yo
 
 ## How It Works
 
-The MCP server is hosted alongside your OneUptime instance and accessible via Server-Sent Events (SSE). No local installation is required.
+The MCP server is hosted alongside your OneUptime instance and accessible via the Streamable HTTP transport. No local installation is required.
 
 **Cloud Users**: `https://oneuptime.com/mcp`
 **Self-Hosted Users**: `https://your-oneuptime-domain.com/mcp`
@@ -21,6 +21,7 @@ The MCP server is hosted alongside your OneUptime instance and accessible via Se
 - **Type-safe Interface**: Fully typed with comprehensive input validation
 - **Secure Authentication**: API key-based authentication with proper error handling
 - **Easy Integration**: Works with Claude Desktop and other MCP-compatible clients
+- **Session Management**: Built-in session handling with automatic reconnection support
 
 ## What You Can Do
 
@@ -67,8 +68,8 @@ Add the following configuration:
 {
   "mcpServers": {
     "oneuptime": {
-      "transport": "sse",
-      "url": "https://oneuptime.com/mcp/sse",
+      "transport": "streamable-http",
+      "url": "https://oneuptime.com/mcp",
       "headers": {
         "x-api-key": "your-api-key-here"
       }
@@ -85,8 +86,8 @@ Replace `oneuptime.com` with your OneUptime domain:
 {
   "mcpServers": {
     "oneuptime": {
-      "transport": "sse",
-      "url": "https://your-oneuptime-domain.com/mcp/sse",
+      "transport": "streamable-http",
+      "url": "https://your-oneuptime-domain.com/mcp",
       "headers": {
         "x-api-key": "your-api-key-here"
       }
@@ -103,15 +104,15 @@ You can configure multiple OneUptime instances:
 {
   "mcpServers": {
     "oneuptime-prod": {
-      "transport": "sse",
-      "url": "https://prod.oneuptime.com/mcp/sse",
+      "transport": "streamable-http",
+      "url": "https://prod.oneuptime.com/mcp",
       "headers": {
         "x-api-key": "prod-api-key"
       }
     },
     "oneuptime-staging": {
-      "transport": "sse",
-      "url": "https://staging.oneuptime.com/mcp/sse",
+      "transport": "streamable-http",
+      "url": "https://staging.oneuptime.com/mcp",
       "headers": {
         "x-api-key": "staging-api-key"
       }
@@ -124,10 +125,18 @@ You can configure multiple OneUptime instances:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/mcp/sse` | GET | SSE endpoint for MCP connections |
-| `/mcp/message` | POST | Message endpoint for client-to-server communication |
+| `/mcp` | GET | Server-sent events stream for server-to-client notifications |
+| `/mcp` | POST | JSON-RPC requests for tool calls and other operations |
+| `/mcp` | DELETE | Session cleanup and termination |
 | `/mcp/health` | GET | Health check endpoint |
 | `/mcp/tools` | GET | REST API to list available tools |
+
+## Authentication
+
+All requests to the MCP server require authentication via one of the following headers:
+
+- `x-api-key`: Your OneUptime API key
+- `Authorization`: Bearer token with your API key (e.g., `Bearer your-api-key-here`)
 
 ## Verification
 
@@ -233,6 +242,12 @@ Ensure your API key has the necessary permissions:
 - Verify the API key in your OneUptime settings
 - Check for extra spaces or characters
 - Ensure the key hasn't expired
+
+### Session Errors
+If you receive session-related errors:
+- The MCP server uses the `mcp-session-id` header to track sessions
+- Ensure your client properly handles the session ID returned by the server
+- Sessions are automatically cleaned up when connections close
 
 ## Available Resources
 

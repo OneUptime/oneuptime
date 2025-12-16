@@ -22,7 +22,7 @@ import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel
 
 export interface OneUptimeApiConfig {
   url: string;
-  apiKey: string;
+  apiKey?: string; // Optional - can be provided per request via headers
 }
 
 // Type for model constructor
@@ -56,16 +56,8 @@ interface ZodSchemaWithShape {
 
 export default class OneUptimeApiService {
   private static api: API;
-  private static config: OneUptimeApiConfig;
 
   public static initialize(config: OneUptimeApiConfig): void {
-    if (!config.apiKey) {
-      throw new Error(
-        "OneUptime API key is required. Please set ONEUPTIME_API_KEY environment variable.",
-      );
-    }
-
-    this.config = config;
 
     // Parse the URL to extract protocol, hostname, and path
     try {
@@ -84,6 +76,12 @@ export default class OneUptimeApiService {
 
   /**
    * Execute a OneUptime operation
+   * @param tableName - The table name for the operation
+   * @param operation - The operation type (Create, Read, Update, Delete, List, Count)
+   * @param modelType - The model type (Database or Analytics)
+   * @param apiPath - The API path for the operation
+   * @param args - The tool call arguments
+   * @param apiKey - The API key for authentication (from request headers)
    */
   public static async executeOperation(
     tableName: string,
@@ -91,6 +89,7 @@ export default class OneUptimeApiService {
     modelType: ModelType,
     apiPath: string,
     args: OneUptimeToolCallArgs,
+    apiKey: string,
   ): Promise<JSONValue> {
     if (!this.api) {
       throw new Error(
@@ -98,10 +97,16 @@ export default class OneUptimeApiService {
       );
     }
 
+    if (!apiKey) {
+      throw new Error(
+        "API key is required. Please provide x-api-key header in your request.",
+      );
+    }
+
     this.validateOperationArgs(operation, args);
 
     const route: Route = this.buildApiRoute(apiPath, operation, args.id);
-    const headers: Headers = this.getHeaders();
+    const headers: Headers = this.getHeaders(apiKey);
     const data: JSONObject | undefined = this.getRequestData(
       operation,
       args,
@@ -481,15 +486,12 @@ export default class OneUptimeApiService {
     }
   }
 
-  private static getHeaders(): Headers {
+  private static getHeaders(apiKey: string): Headers {
     const headers: Headers = {
       "Content-Type": "application/json",
       Accept: "application/json",
+      APIKey: apiKey,
     };
-
-    if (this.config.apiKey) {
-      headers["APIKey"] = this.config.apiKey;
-    }
 
     return headers;
   }
