@@ -21,13 +21,11 @@
   "transform": {
     "^.+\\.ts$": ["ts-jest", {
       "tsconfig": {
-        "compilerOptions": {
-          "noUnusedLocals": false,
-          "noUnusedParameters": false,
-          "strict": false,
-          "noPropertyAccessFromIndexSignature": false,
-          "module": "commonjs"
-        }
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
+        "strict": false,
+        "noPropertyAccessFromIndexSignature": false,
+        "module": "commonjs"
       }
     }]
   }
