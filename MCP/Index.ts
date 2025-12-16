@@ -20,7 +20,11 @@ import DynamicToolGenerator from "./Utils/DynamicToolGenerator";
 import OneUptimeApiService, {
   OneUptimeApiConfig,
 } from "./Services/OneUptimeApiService";
-import { McpToolInfo, OneUptimeToolCallArgs } from "./Types/McpTypes";
+import {
+  McpToolInfo,
+  OneUptimeToolCallArgs,
+  JSONSchema,
+} from "./Types/McpTypes";
 import OneUptimeOperation from "./Types/OneUptimeOperation";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
@@ -91,7 +95,7 @@ function setupHandlers(): void {
     const mcpTools: Array<{
       name: string;
       description: string;
-      inputSchema: Record<string, unknown>;
+      inputSchema: JSONSchema;
     }> = tools.map((tool: McpToolInfo) => {
       return {
         name: tool.name,
@@ -224,8 +228,9 @@ function formatToolResponse(
 function setupMCPRoutes(): void {
   const ROUTE_PREFIXES: Array<string> = [`/${APP_NAME}`, "/"];
 
-  // SSE endpoint for MCP connections
-  for (const prefix of ROUTE_PREFIXES) {
+  // Use forEach to create proper closures for each route prefix
+  ROUTE_PREFIXES.forEach((prefix: string) => {
+    // SSE endpoint for MCP connections
     app.get(
       `${prefix === "/" ? "" : prefix}/sse`,
       async (req: ExpressRequest, res: ExpressResponse) => {
@@ -312,7 +317,7 @@ function setupMCPRoutes(): void {
         });
       },
     );
-  }
+  });
 }
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
