@@ -29,8 +29,8 @@ jest.mock("../../../UI/Utils/Navigation", () => {
 import Navigation from "../../../UI/Utils/Navigation";
 
 // Track mock call count to return different values
-let getItemCallCount = 0;
-let createCallCount = 0;
+let getItemCallCount: number = 0;
+let createCallCount: number = 0;
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {

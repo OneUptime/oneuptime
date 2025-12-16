@@ -70,7 +70,9 @@ describe("Breadcrumbs", () => {
     // Set up spy on navigation
     jest.spyOn(Navigation, "navigate");
     // Create a mock event with preventDefault
-    const mockEvent = { preventDefault: jest.fn() };
+    const mockEvent: { preventDefault: jest.Mock } = {
+      preventDefault: jest.fn(),
+    };
     // Assert the second link does not navigate
     anchors[1]?.props["onClick"](mockEvent);
     expect(Navigation.navigate).not.toHaveBeenCalled();
