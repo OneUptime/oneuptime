@@ -31,6 +31,7 @@ import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
 import "ejs";
 
 const APP_NAME: string = "mcp";
@@ -73,13 +74,16 @@ function initializeMCPServer(): void {
 
 function initializeServices(): void {
   // Initialize OneUptime API Service (API keys are provided per-request via headers)
+  // Use HOST and HTTP_PROTOCOL environment variables to construct the API URL
+  const apiUrl: string = Host ? `${HttpProtocol}${Host}` : "https://oneuptime.com";
+
   const config: OneUptimeApiConfig = {
-    url: process.env["ONEUPTIME_URL"] || "https://oneuptime.com",
+    url: apiUrl,
   };
 
   OneUptimeApiService.initialize(config);
   logger.info(
-    "OneUptime API Service initialized (API keys provided per-request via x-api-key header)",
+    `OneUptime API Service initialized with: ${apiUrl} (API keys provided per-request via x-api-key header)`,
   );
 }
 
