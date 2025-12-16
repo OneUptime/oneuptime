@@ -159,9 +159,9 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     title: "Cost per Million Tokens",
                     type: FieldType.Text,
                     getElement: (item: LlmProvider): ReactElement => {
-                      const costInCents =
+                      const costInCents: number =
                         item.costPerMillionTokensInUSDCents || 0;
-                      const costInUSD = costInCents / 100;
+                      const costInUSD: mnumber = costInCents / 100;
                       return <span>${costInUSD.toFixed(2)} USD</span>;
                     },
                   },
