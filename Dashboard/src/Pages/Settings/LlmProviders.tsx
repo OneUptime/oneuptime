@@ -7,7 +7,7 @@ import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { APP_API_URL } from "Common/UI/Config";
+import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmType from "Common/Types/LLM/LlmType";
@@ -150,6 +150,23 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               type: FieldType.Text,
               noValueMessage: "-",
             },
+            ...(BILLING_ENABLED
+              ? [
+                  {
+                    field: {
+                      costPerMillionTokensInUSDCents: true,
+                    },
+                    title: "Cost per Million Tokens",
+                    type: FieldType.Text,
+                    getElement: (item: LlmProvider): ReactElement => {
+                      const costInCents =
+                        item.costPerMillionTokensInUSDCents || 0;
+                      const costInUSD = costInCents / 100;
+                      return <span>${costInUSD.toFixed(2)} USD</span>;
+                    },
+                  },
+                ]
+              : []),
           ]}
         />
 
