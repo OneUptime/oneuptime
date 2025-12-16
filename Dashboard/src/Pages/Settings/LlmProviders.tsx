@@ -161,7 +161,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     getElement: (item: LlmProvider): ReactElement => {
                       const costInCents: number =
                         item.costPerMillionTokensInUSDCents || 0;
-                      const costInUSD: mnumber = costInCents / 100;
+                      const costInUSD: number = costInCents / 100;
                       return <span>${costInUSD.toFixed(2)} USD</span>;
                     },
                   },
