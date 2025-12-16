@@ -37,23 +37,6 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
       noValueMessage: "-",
     },
     {
-      field: { llmType: true },
-      title: "Type",
-      type: FieldType.Text,
-      noValueMessage: "-",
-    },
-    {
-      field: { modelName: true },
-      title: "Model",
-      type: FieldType.Text,
-      noValueMessage: "-",
-    },
-    {
-      field: { isGlobalProvider: true },
-      title: "Global",
-      type: FieldType.Boolean,
-    },
-    {
       field: { feature: true },
       title: "Feature",
       type: FieldType.Text,
@@ -164,8 +147,6 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
           ...(props.query || {}),
         }}
         selectMoreFields={{
-          requestPrompt: true,
-          responsePreview: true,
           statusMessage: true,
         }}
         cardProps={{
@@ -183,32 +164,6 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
         columns={defaultColumns}
         filters={defaultFilters}
         actionButtons={[
-          {
-            title: "View Request",
-            buttonStyleType: ButtonStyleType.NORMAL,
-            icon: IconProp.List,
-            onClick: async (item: LlmLog, onCompleteAction: VoidFunction) => {
-              setModalText(
-                (item["requestPrompt"] as string) || "No request data",
-              );
-              setModalTitle("Request Prompt");
-              setShowModal(true);
-              onCompleteAction();
-            },
-          },
-          {
-            title: "View Response",
-            buttonStyleType: ButtonStyleType.NORMAL,
-            icon: IconProp.File,
-            onClick: async (item: LlmLog, onCompleteAction: VoidFunction) => {
-              setModalText(
-                (item["responsePreview"] as string) || "No response data",
-              );
-              setModalTitle("Response Preview");
-              setShowModal(true);
-              onCompleteAction();
-            },
-          },
           {
             title: "View Error",
             buttonStyleType: ButtonStyleType.NORMAL,
