@@ -125,7 +125,7 @@ export class Service extends BaseService {
         });
 
         throw new BadDataException(
-          "Insufficient AI balance. Please recharge your AI balance in Project Settings > Billing.",
+          "Insufficient AI balance. Please recharge your AI balance in Project Settings > AI Credits.",
         );
       }
     }
