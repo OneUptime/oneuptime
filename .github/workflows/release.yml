@@ -139,6 +139,8 @@ jobs:
   mcp-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -194,6 +196,8 @@ jobs:
   nginx-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -250,6 +254,8 @@ jobs:
   e2e-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -306,6 +312,8 @@ jobs:
   isolated-vm-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -362,6 +370,8 @@ jobs:
   home-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -421,6 +431,8 @@ jobs:
   test-server-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -477,6 +489,8 @@ jobs:
   otel-collector-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -535,6 +549,8 @@ jobs:
   status-page-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -591,6 +607,8 @@ jobs:
   test-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -647,6 +665,8 @@ jobs:
   probe-ingest-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -704,6 +724,8 @@ jobs:
   server-monitor-ingest-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -762,6 +784,8 @@ jobs:
   telemetry-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -819,6 +843,8 @@ jobs:
   incoming-request-ingest-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -875,6 +901,8 @@ jobs:
   probe-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -931,6 +959,8 @@ jobs:
   admin-dashboard-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -988,6 +1018,8 @@ jobs:
   dashboard-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -1044,6 +1076,8 @@ jobs:
   app-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -1101,6 +1135,8 @@ jobs:
   accounts-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -1180,9 +1216,11 @@ jobs:
         run: bash ./Scripts/NPM/PublishAllPackages.sh
 
   
-  docs-docker-image-deploy: 
+  docs-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
 
       - name: Docker Meta
@@ -1240,9 +1278,11 @@ jobs:
 
 
 
-  worker-docker-image-deploy: 
+  worker-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
 
       - name: Docker Meta
@@ -1300,9 +1340,11 @@ jobs:
 
 
 
-  workflow-docker-image-deploy: 
+  workflow-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
 
       - name: Docker Meta
@@ -1420,9 +1462,11 @@ jobs:
 
   
 
-  api-reference-docker-image-deploy: 
+  api-reference-docker-image-deploy:
     needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
 
       - name: Docker Meta
