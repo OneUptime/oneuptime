@@ -86,7 +86,7 @@ jobs:
           echo "patch=${target_patch}" >> "$GITHUB_OUTPUT"
           echo "Using version base: ${new_version}"
 
-  publish-mcp-server:
+  publish-mcp:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     env:
@@ -176,7 +176,7 @@ jobs:
       - name: Build and push Docker images (test)
         run: |
           bash ./Scripts/GHA/build_docker_images.sh \
-            --image mcp-server \
+            --image mcp \
             --version "${{ steps.version.outputs.version }}" \
             --dockerfile ./MCP/Dockerfile.tpl \
             --context . \
@@ -189,7 +189,7 @@ jobs:
       - name: Upload MCP server artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mcp-server-${{ steps.version.outputs.version }}
+          name: mcp-${{ steps.version.outputs.version }}
           path: ./MCP/
           retention-days: 90
 
@@ -1443,7 +1443,7 @@ jobs:
 
   test-helm-chart:
     runs-on: ubuntu-latest
-    needs: [infrastructure-agent-deploy, publish-mcp-server, publish-terraform-provider, telemetry-docker-image-deploy, docs-docker-image-deploy, worker-docker-image-deploy,  workflow-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, api-reference-docker-image-deploy,  test-server-docker-image-deploy, test-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, probe-docker-image-deploy, dashboard-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, accounts-docker-image-deploy, otel-collector-docker-image-deploy, status-page-docker-image-deploy, nginx-docker-image-deploy, e2e-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
+    needs: [infrastructure-agent-deploy, publish-mcp, publish-terraform-provider, telemetry-docker-image-deploy, docs-docker-image-deploy, worker-docker-image-deploy,  workflow-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, api-reference-docker-image-deploy,  test-server-docker-image-deploy, test-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, probe-docker-image-deploy, dashboard-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, accounts-docker-image-deploy, otel-collector-docker-image-deploy, status-page-docker-image-deploy, nginx-docker-image-deploy, e2e-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:

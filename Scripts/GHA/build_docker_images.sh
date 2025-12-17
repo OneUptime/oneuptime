@@ -7,7 +7,7 @@ usage() {
 Usage: build_docker_images.sh --image <name> --version <version> --dockerfile <path> [options]
 
 Required flags:
-	--image <name>        Image name without registry prefix (example: mcp-server)
+	--image <name>        Image name without registry prefix (example: mcp)
 	--version <version>   Version/tag string appended to the generated tags
 	--dockerfile <path>   Path to the Dockerfile relative to the repo root
 

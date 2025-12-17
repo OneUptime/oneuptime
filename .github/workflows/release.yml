@@ -136,7 +136,7 @@ jobs:
           git commit -m "Helm Chart Release ${{needs.read-version.outputs.major_minor}}"
           git push origin master
 
-  publish-mcp-server:
+  publish-mcp:
     runs-on: ubuntu-latest
     needs: [generate-build-number, read-version, publish-npm-packages]
     env:
@@ -248,7 +248,7 @@ jobs:
               exit $PUBLISH_EXIT
             fi
           else
-            echo "✅ Published @oneuptime/mcp-server@${{ steps.version.outputs.version }} to npm"
+            echo "✅ Published @oneuptime/mcp@${{ steps.version.outputs.version }} to npm"
           fi
 
       - name: Set up Docker Buildx
@@ -265,7 +265,7 @@ jobs:
       - name: Build and push Docker images
         run: |
           bash ./Scripts/GHA/build_docker_images.sh \
-            --image mcp-server \
+            --image mcp \
             --version "${{ steps.version.outputs.version }}" \
             --dockerfile ./MCP/Dockerfile.tpl \
             --context . \
@@ -275,7 +275,7 @@ jobs:
       - name: Upload MCP server artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mcp-server-${{ steps.version.outputs.version }}
+          name: mcp-${{ steps.version.outputs.version }}
           path: ./MCP/
           retention-days: 90
 
@@ -1571,7 +1571,7 @@ jobs:
     needs:
       - read-version
       - generate-build-number
-      - publish-mcp-server
+      - publish-mcp
       - nginx-docker-image-deploy
       - e2e-docker-image-deploy
       - isolated-vm-docker-image-deploy
@@ -1600,7 +1600,7 @@ jobs:
       fail-fast: false
       matrix:
         image: [
-          "mcp-server",
+          "mcp",
           "nginx",
           "e2e",
           "isolated-vm",
@@ -1668,7 +1668,7 @@ jobs:
 
   test-e2e-release-saas: 
     runs-on: ubuntu-latest
-    needs: [telemetry-docker-image-deploy, publish-mcp-server, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
+    needs: [telemetry-docker-image-deploy, publish-mcp, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -1756,7 +1756,7 @@ jobs:
   test-e2e-release-self-hosted: 
     runs-on: ubuntu-latest
     # After all the jobs runs
-    needs: [telemetry-docker-image-deploy, publish-mcp-server, incoming-request-ingest-docker-image-deploy, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy]
+    needs: [telemetry-docker-image-deploy, publish-mcp, incoming-request-ingest-docker-image-deploy, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
