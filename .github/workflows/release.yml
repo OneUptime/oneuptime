@@ -136,123 +136,42 @@ jobs:
           git commit -m "Helm Chart Release ${{needs.read-version.outputs.major_minor}}"
           git push origin master
 
-  publish-mcp:
+  mcp-docker-image-deploy:
+    needs: [generate-build-number, read-version]
     runs-on: ubuntu-latest
-    needs: [generate-build-number, read-version, publish-npm-packages]
-    env:
-      CI_PIPELINE_ID: ${{ github.run_number }}
-    permissions:
-      contents: write  # For creating releases
-      packages: write  # For publishing packages
-      id-token: write  # Required for npm OIDC trusted publishing
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
         with:
-          fetch-depth: 0  # Full history for changelog generation
+          images: |
+            oneuptime/mcp
+            ghcr.io/oneuptime/mcp
+          tags: |
+            type=raw,value=release,enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}},pattern={{version}},enable=true
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
-          cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
 
-      - name: Update npm for OIDC support
-        run: npm install -g npm@latest
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
 
-      - name: Install Common dependencies
-        run: cd Common && npm install
-
-      - name: Install Script dependencies
-        run: cd Scripts && npm install
-
-      - name: Determine version
-        id: version
-        run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Publishing MCP server version: $VERSION"
-
-      - name: Verify MCP server directory
-        run: |
-          MCP_DIR="./MCP"
-          
-          if [ ! -d "$MCP_DIR" ]; then
-            echo "❌ MCP server directory not found"
-            exit 1
-          fi
-          
-          echo "✅ MCP server directory found"
-          echo "📊 Source files:"
-          find "$MCP_DIR" -type f -name "*.ts" -o -name "*.js" -o -name "*.json" | wc -l
-          echo "📁 Directory structure:"
-          ls -la "$MCP_DIR"
-
-      - name: Update package version
-        run: |
-          cd MCP
-          npm version ${{ steps.version.outputs.version }} --no-git-tag-version
-
-      - name: Install dependencies
-        run: |
-          cd MCP
-          npm update @oneuptime/common
-          npm install
-
-      - name: Build MCP server
-        run: |
-          cd MCP
-          npm run build
-
-      - name: Run tests
-        run: |
-          cd MCP
-          npm test || echo "No tests found or tests failed, continuing..."
-
-      - name: Verify package before publish
-        run: |
-          cd MCP
-          echo "📦 Package information:"
-          set +e
-          VERIFY_OUTPUT=$(npm publish --dry-run 2>&1)
-          VERIFY_EXIT=$?
-          set -e
-          echo "$VERIFY_OUTPUT"
-          if [ $VERIFY_EXIT -ne 0 ]; then
-            if echo "$VERIFY_OUTPUT" | grep -q "You cannot publish over the previously published versions"; then
-              echo "⚠️ npm publish --dry-run skipped: version already published"
-            else
-              echo "❌ npm publish --dry-run failed"
-              exit $VERIFY_EXIT
-            fi
-          fi
-          echo "📋 Package.json bin configuration:"
-          cat package.json | grep -A 5 -B 5 '"bin"'
-          echo "📁 Build directory contents:"
-          ls -la build/
-
-      - name: Publish to npm
-        run: |
-          cd MCP
-          set +e
-          PUBLISH_OUTPUT=$(npm publish --access public 2>&1)
-          PUBLISH_EXIT=$?
-          set -e
-          echo "$PUBLISH_OUTPUT"
-          if [ $PUBLISH_EXIT -ne 0 ]; then
-            if echo "$PUBLISH_OUTPUT" | grep -q "You cannot publish over the previously published versions"; then
-              echo "⚠️ npm publish skipped: version already published"
-            else
-              echo "❌ npm publish failed"
-              exit $PUBLISH_EXIT
-            fi
-          else
-            echo "✅ Published @oneuptime/mcp@${{ steps.version.outputs.version }} to npm"
-          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
+      # Build and deploy mcp.
 
       - name: Login to Docker Hub
         run: |
@@ -262,22 +181,15 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
-      - name: Build and push Docker images
+      - name: Build and push
         run: |
           bash ./Scripts/GHA/build_docker_images.sh \
             --image mcp \
-            --version "${{ steps.version.outputs.version }}" \
-            --dockerfile ./MCP/Dockerfile.tpl \
+            --version "${{needs.read-version.outputs.major_minor}}" \
+            --dockerfile ./MCP/Dockerfile \
             --context . \
             --platforms linux/amd64,linux/arm64 \
             --git-sha "${{ github.sha }}"
-
-      - name: Upload MCP server artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mcp-${{ steps.version.outputs.version }}
-          path: ./MCP/
-          retention-days: 90
 
   nginx-docker-image-deploy:
     needs: [generate-build-number, read-version]
@@ -1571,7 +1483,7 @@ jobs:
     needs:
       - read-version
       - generate-build-number
-      - publish-mcp
+      - mcp-docker-image-deploy
       - nginx-docker-image-deploy
       - e2e-docker-image-deploy
       - isolated-vm-docker-image-deploy
@@ -1668,7 +1580,7 @@ jobs:
 
   test-e2e-release-saas: 
     runs-on: ubuntu-latest
-    needs: [telemetry-docker-image-deploy, publish-mcp, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
+    needs: [telemetry-docker-image-deploy, mcp-docker-image-deploy, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -1756,7 +1668,7 @@ jobs:
   test-e2e-release-self-hosted: 
     runs-on: ubuntu-latest
     # After all the jobs runs
-    needs: [telemetry-docker-image-deploy, publish-mcp, incoming-request-ingest-docker-image-deploy, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy]
+    needs: [telemetry-docker-image-deploy, mcp-docker-image-deploy, incoming-request-ingest-docker-image-deploy, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, read-version, nginx-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
