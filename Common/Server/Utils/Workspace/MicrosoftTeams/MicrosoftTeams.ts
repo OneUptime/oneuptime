@@ -2935,9 +2935,7 @@ All monitoring checks are passing normally.`;
       try {
         // Fetch joined teams using app-scoped token
         if (data.userId) {
-          logger.debug(
-            "Using app-scoped token to fetch joined teams for user",
-          );
+          logger.debug("Using app-scoped token to fetch joined teams for user");
           const userTeams: Record<string, { id: string; name: string }> =
             await this.getUserJoinedTeams({
               userId: data.userId.toString(),
