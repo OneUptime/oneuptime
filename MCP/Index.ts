@@ -347,6 +347,21 @@ function setupMCPRoutes(): void {
     app.post(mcpEndpoint, ExpressJson(), mcpHandler);
     app.delete(mcpEndpoint, mcpHandler);
 
+    // OPTIONS handler for CORS preflight requests
+    app.options(mcpEndpoint, (_req: ExpressRequest, res: ExpressResponse) => {
+      res.status(200).end();
+    });
+
+    // Also handle root "/" when nginx strips the /mcp/ prefix (for "/" prefix only)
+    if (prefix === "/") {
+      app.get("/", mcpHandler);
+      app.post("/", ExpressJson(), mcpHandler);
+      app.delete("/", mcpHandler);
+      app.options("/", (_req: ExpressRequest, res: ExpressResponse) => {
+        res.status(200).end();
+      });
+    }
+
     // List tools endpoint (REST API)
     app.get(
       `${prefix === "/" ? "" : prefix}/tools`,
