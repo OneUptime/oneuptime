@@ -30,8 +30,6 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
-import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTokenService";
-import WorkspaceUserAuthToken from "../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceProjectAuthToken, {
   MicrosoftTeamsMiscData,
   MicrosoftTeamsTeam,
@@ -2931,43 +2929,23 @@ All monitoring checks are passing normally.`;
         );
       }
 
-      // Try using user scoped token first when available
+      // Use app-scoped token to fetch user's teams
       let allTeams: Array<JSONObject> = [];
-      let usedAccessToken: string | null = null;
 
       try {
-        // If caller provided a userAccessToken directly, use it
-        if (data.userAccessToken) {
-          logger.debug(
-            "Using provided user access token to fetch joined teams",
-          );
-          usedAccessToken = data.userAccessToken;
+        // Fetch joined teams using app-scoped token
+        if (data.userId) {
+          logger.debug("Using app-scoped token to fetch joined teams for user");
           const userTeams: Record<string, { id: string; name: string }> =
-            await this.getUserJoinedTeams(usedAccessToken);
-          allTeams = Object.values(userTeams) as any;
-        } else if (data.userId) {
-          // Try to fetch stored user auth for this project + user
-          logger.debug("Looking up stored user auth token for provided userId");
-          const userAuth: WorkspaceUserAuthToken | null =
-            await WorkspaceUserAuthTokenService.getUserAuth({
+            await this.getUserJoinedTeams({
+              userId: data.userId.toString(),
               projectId: data.projectId,
-              userId: data.userId,
-              workspaceType: WorkspaceType.MicrosoftTeams,
             });
-
-          if (userAuth && userAuth.authToken) {
-            usedAccessToken = userAuth.authToken;
-            logger.debug(
-              "Found user auth token; using it to fetch joined teams",
-            );
-            const userTeams: Record<string, { id: string; name: string }> =
-              await this.getUserJoinedTeams(usedAccessToken);
-            allTeams = Object.values(userTeams) as any;
-          }
+          allTeams = Object.values(userTeams) as any;
         }
       } catch (err) {
         logger.warn(
-          "Failed to fetch teams using user-scoped token, falling back to app token:",
+          "Failed to fetch teams using app-scoped token, falling back to paginated fetch:",
         );
         logger.warn(err);
         allTeams = [];
@@ -3082,19 +3060,30 @@ All monitoring checks are passing normally.`;
     }
   }
 
-  // Method to get user's joined teams using user access token
+  // Method to get user's joined teams using app-scoped token
   @CaptureSpan()
-  public static async getUserJoinedTeams(
-    accessToken: string,
-  ): Promise<Record<string, { id: string; name: string }>> {
+  public static async getUserJoinedTeams(data: {
+    userId: string;
+    projectId: ObjectID;
+  }): Promise<Record<string, { id: string; name: string }>> {
     logger.debug("=== getUserJoinedTeams called ===");
+    logger.debug(`User ID: ${data.userId}`);
+    logger.debug(`Project ID: ${data.projectId.toString()}`);
 
     try {
-      // Get user's teams
+      // Get a valid app access token (refreshed if needed)
+      logger.debug("Refreshing app access token before fetching teams");
+      const accessToken: string = await this.getValidAccessToken({
+        authToken: "", // Not needed for app token refresh
+        projectId: data.projectId,
+      });
+      logger.debug("App access token refreshed successfully");
+
+      // Get user's teams using app-scoped token
       const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get<JSONObject>({
           url: URL.fromString(
-            "https://graph.microsoft.com/v1.0/me/joinedTeams",
+            `https://graph.microsoft.com/v1.0/users/${data.userId}/joinedTeams`,
           ),
           headers: {
             Authorization: `Bearer ${accessToken}`,
