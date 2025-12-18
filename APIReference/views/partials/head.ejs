@@ -6,7 +6,19 @@
 
    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-   <script>hljs.highlightAll();</script>
+   <!-- Load additional language support -->
+   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
+   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/csharp.min.js"></script>
+   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/php.min.js"></script>
+   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/ruby.min.js"></script>
+   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/rust.min.js"></script>
+   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/powershell.min.js"></script>
+   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
 
    <script src="https://cdn.tailwindcss.com"></script>
 
@@ -68,35 +80,102 @@
          padding: 0;
       }
 
-      /* Syntax highlighting overrides */
+      /* Syntax highlighting - comprehensive token styles */
       .hljs {
-         color: unset;
-         background-color: unset;
+         background: transparent !important;
       }
 
-      .hljs-string {
-         color: #a5b4fc;
+      /* Keywords: import, from, def, class, if, else, for, while, return, etc. */
+      .hljs-keyword,
+      .hljs-built_in,
+      .hljs-type,
+      .hljs-literal,
+      .hljs-symbol {
+         color: #c792ea !important;
       }
 
+      /* Strings */
+      .hljs-string,
+      .hljs-doctag,
+      .hljs-regexp {
+         color: #c3e88d !important;
+      }
+
+      /* Numbers */
       .hljs-number {
-         color: #c4b5fd;
+         color: #f78c6c !important;
       }
 
-      .hljs-punctuation {
-         color: #e2e8f0;
-      }
-
+      /* Comments */
       .hljs-comment {
-         color: #94a3b8;
+         color: #676e95 !important;
+         font-style: italic;
       }
 
-      .hljs-keyword {
-         color: #a5b4fc;
-         font-weight: unset;
+      /* Function/method names */
+      .hljs-title,
+      .hljs-title.function_,
+      .hljs-title.class_ {
+         color: #82aaff !important;
       }
 
+      /* Variables and parameters */
+      .hljs-variable,
+      .hljs-params,
       .hljs-attr {
-         color: #fda4af;
+         color: #f07178 !important;
+      }
+
+      /* Properties and attributes */
+      .hljs-property,
+      .hljs-attribute {
+         color: #ffcb6b !important;
+      }
+
+      /* Punctuation */
+      .hljs-punctuation {
+         color: #89ddff !important;
+      }
+
+      /* Operators */
+      .hljs-operator {
+         color: #89ddff !important;
+      }
+
+      /* Meta/preprocessor */
+      .hljs-meta {
+         color: #ffcb6b !important;
+      }
+
+      /* Section headers */
+      .hljs-section {
+         color: #82aaff !important;
+      }
+
+      /* Names (function calls, etc) */
+      .hljs-name {
+         color: #f07178 !important;
+      }
+
+      /* Selector tags in CSS */
+      .hljs-selector-tag,
+      .hljs-selector-class,
+      .hljs-selector-id {
+         color: #c792ea !important;
+      }
+
+      /* Template variables */
+      .hljs-template-variable {
+         color: #f07178 !important;
+      }
+
+      /* Deletion/addition in diffs */
+      .hljs-deletion {
+         color: #f07178 !important;
+      }
+
+      .hljs-addition {
+         color: #c3e88d !important;
       }
 
       /* Custom scrollbar */
@@ -220,7 +299,7 @@
          transition: all 0.2s ease;
       }
 
-      /* Code syntax colors for different languages */
+      /* Code panel base styles */
       .code-panel pre {
          margin: 0;
          background: transparent;
@@ -231,44 +310,6 @@
          font-size: 13px;
          line-height: 1.6;
          color: #e2e8f0;
-      }
-
-      /* Language-specific comment colors */
-      .language-bash .hljs-comment,
-      .language-powershell .hljs-comment {
-         color: #6b7280;
-         font-style: italic;
-      }
-
-      /* Better string highlighting */
-      .code-panel .hljs-string {
-         color: #a5f3fc;
-      }
-
-      /* Variable highlighting */
-      .code-panel .hljs-variable {
-         color: #fca5a5;
-      }
-
-      /* Keyword highlighting */
-      .code-panel .hljs-keyword {
-         color: #c4b5fd;
-      }
-
-      /* Function highlighting */
-      .code-panel .hljs-function,
-      .code-panel .hljs-title {
-         color: #93c5fd;
-      }
-
-      /* Number highlighting */
-      .code-panel .hljs-number {
-         color: #fcd34d;
-      }
-
-      /* Built-in highlighting */
-      .code-panel .hljs-built_in {
-         color: #f0abfc;
       }
 
       /* Better focus states */

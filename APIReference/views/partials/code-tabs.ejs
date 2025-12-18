@@ -245,30 +245,32 @@ function showCopySuccess(btn) {
    }, 2000);
 }
 
-// Apply stored language preference on page load
+// Apply syntax highlighting and stored language preference on page load
 document.addEventListener('DOMContentLoaded', function() {
-   // First, highlight all visible code blocks
-   document.querySelectorAll('.code-tabs-container').forEach(container => {
-      container.querySelectorAll('.code-panel:not(.hidden) pre code').forEach((block) => {
-         if (window.hljs && !block.dataset.highlighted) {
-            hljs.highlightElement(block);
-            block.dataset.highlighted = 'true';
-         }
-      });
-   });
-
-   // Then apply stored preference if exists
-   try {
-      const preferred = localStorage.getItem('preferred-code-lang');
-      if (preferred && preferred !== 'preview') {
-         // Switch all containers to the preferred language
-         document.querySelectorAll('.code-tabs-container').forEach(container => {
-            const tab = container.querySelector(`[data-tab-id="${preferred}"]`);
-            if (tab) {
-               switchCodeTab(container.id, preferred);
+   // Wait a bit for all scripts to load, then highlight all code blocks
+   setTimeout(function() {
+      if (window.hljs) {
+         // Highlight ALL code blocks (including hidden ones)
+         document.querySelectorAll('pre code').forEach((block) => {
+            if (!block.classList.contains('hljs')) {
+               hljs.highlightElement(block);
             }
          });
       }
-   } catch (e) {}
+
+      // Apply stored preference if exists
+      try {
+         const preferred = localStorage.getItem('preferred-code-lang');
+         if (preferred && preferred !== 'preview') {
+            // Switch all containers to the preferred language
+            document.querySelectorAll('.code-tabs-container').forEach(container => {
+               const tab = container.querySelector(`[data-tab-id="${preferred}"]`);
+               if (tab) {
+                  switchCodeTab(container.id, preferred);
+               }
+            });
+         }
+      } catch (e) {}
+   }, 100);
 });
 </script>
