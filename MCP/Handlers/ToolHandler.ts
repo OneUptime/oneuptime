@@ -216,7 +216,38 @@ function formatDeleteResponse(modelName: string, id: string | undefined): string
 }
 
 function formatCountResponse(pluralName: string, result: unknown): string {
-    const totalCount: number =
-        (result as { count?: number })?.count || (result as number) || 0;
+    let totalCount: number = 0;
+
+    if (result !== null && result !== undefined) {
+        if (typeof result === "number") {
+            totalCount = result;
+        } else if (typeof result === "object") {
+            const resultObj: Record<string, unknown> = result as Record<string, unknown>;
+
+            // Handle { count: number } format
+            if ("count" in resultObj) {
+                const countValue: unknown = resultObj["count"];
+                if (typeof countValue === "number") {
+                    totalCount = countValue;
+                } else if (typeof countValue === "object" && countValue !== null) {
+                    // Handle PositiveNumber or other objects with value/toNumber
+                    const countObj: Record<string, unknown> = countValue as Record<string, unknown>;
+                    if (typeof countObj["value"] === "number") {
+                        totalCount = countObj["value"];
+                    } else if (typeof (countObj as { toNumber?: () => number }).toNumber === "function") {
+                        totalCount = (countObj as { toNumber: () => number }).toNumber();
+                    }
+                }
+            }
+            // Handle { data: { count: number } } format
+            else if ("data" in resultObj && typeof resultObj["data"] === "object" && resultObj["data"] !== null) {
+                const dataObj: Record<string, unknown> = resultObj["data"] as Record<string, unknown>;
+                if ("count" in dataObj && typeof dataObj["count"] === "number") {
+                    totalCount = dataObj["count"];
+                }
+            }
+        }
+    }
+
     return `Total count of ${pluralName}: ${totalCount}`;
 }
