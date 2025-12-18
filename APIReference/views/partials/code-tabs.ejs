@@ -1,0 +1,181 @@
+<%
+const uniqueId = 'code-tabs-' + Math.random().toString(36).substr(2, 9);
+const languages = [
+   { id: 'curl', name: 'cURL', icon: 'terminal' },
+   { id: 'javascript', name: 'JavaScript', icon: 'js' },
+   { id: 'python', name: 'Python', icon: 'python' },
+   { id: 'go', name: 'Go', icon: 'go' },
+   { id: 'ruby', name: 'Ruby', icon: 'ruby' },
+   { id: 'rust', name: 'Rust', icon: 'rust' },
+   { id: 'powershell', name: 'PowerShell', icon: 'powershell' }
+];
+%>
+
+<div class="code-tabs-container my-6" id="<%= uniqueId %>">
+   <!-- Header with title and endpoint -->
+   <div class="rounded-t-xl bg-slate-900 border border-slate-700/50 border-b-0">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-b border-slate-700/50">
+         <h4 class="text-sm font-semibold text-slate-200 tracking-wide"><%= title %></h4>
+         <div class="flex items-center gap-2">
+            <% if(requestType === "GET"){ %>
+               <span class="inline-flex items-center rounded-md bg-emerald-500/15 px-2.5 py-1 text-xs font-bold text-emerald-400 ring-1 ring-inset ring-emerald-500/30 uppercase tracking-wide">GET</span>
+            <% } else if(requestType === "POST"){ %>
+               <span class="inline-flex items-center rounded-md bg-indigo-500/15 px-2.5 py-1 text-xs font-bold text-indigo-400 ring-1 ring-inset ring-indigo-500/30 uppercase tracking-wide">POST</span>
+            <% } else if(requestType === "DELETE"){ %>
+               <span class="inline-flex items-center rounded-md bg-red-500/15 px-2.5 py-1 text-xs font-bold text-red-400 ring-1 ring-inset ring-red-500/30 uppercase tracking-wide">DELETE</span>
+            <% } else if(requestType === "PUT"){ %>
+               <span class="inline-flex items-center rounded-md bg-amber-500/15 px-2.5 py-1 text-xs font-bold text-amber-400 ring-1 ring-inset ring-amber-500/30 uppercase tracking-wide">PUT</span>
+            <% } %>
+         </div>
+      </div>
+
+      <% if(requestUrl){ %>
+      <div class="px-4 py-2.5 bg-slate-800/40 border-b border-slate-700/30">
+         <code class="font-mono text-sm text-slate-300 break-all"><%= requestUrl %></code>
+      </div>
+      <% } %>
+
+      <!-- Language Tabs -->
+      <div class="relative">
+         <div class="flex overflow-x-auto scrollbar-hide border-b border-slate-700/50" role="tablist">
+            <% languages.forEach((lang, index) => { %>
+               <button
+                  type="button"
+                  role="tab"
+                  aria-selected="<%= index === 0 ? 'true' : 'false' %>"
+                  aria-controls="<%= uniqueId %>-panel-<%= lang.id %>"
+                  id="<%= uniqueId %>-tab-<%= lang.id %>"
+                  data-tab-id="<%= lang.id %>"
+                  onclick="switchCodeTab('<%= uniqueId %>', '<%= lang.id %>')"
+                  class="code-tab relative flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-all duration-200 <%= index === 0 ? 'text-indigo-400 bg-slate-800/50' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/30' %>"
+               >
+                  <% if(lang.icon === 'terminal'){ %>
+                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  <% } else if(lang.icon === 'js'){ %>
+                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M0 0h24v24H0V0zm22.034 18.276c-.175-1.095-.888-2.015-3.003-2.873-.736-.345-1.554-.585-1.797-1.14-.091-.33-.105-.51-.046-.705.15-.646.915-.84 1.515-.66.39.12.75.42.976.9 1.034-.676 1.034-.676 1.755-1.125-.27-.42-.405-.585-.585-.765-.63-.63-1.47-.93-2.835-.885l-.705.09c-.676.165-1.32.525-1.71 1.005-1.14 1.29-.81 3.54.57 4.47 1.365 1.035 3.369 1.26 3.629 2.235.225 1.17-.87 1.545-1.966 1.41-.811-.18-1.26-.63-1.755-1.455l-1.83 1.05c.21.48.45.689.81 1.109 1.74 1.756 6.09 1.665 6.871-1.004.029-.09.24-.705.074-1.65l.046.067zm-8.983-7.245h-2.248c0 1.938-.009 3.864-.009 5.805 0 1.232.063 2.363-.138 2.711-.33.689-1.18.601-1.566.48-.396-.196-.597-.466-.83-.855-.063-.105-.11-.196-.127-.196l-1.825 1.125c.305.63.75 1.172 1.324 1.517.855.51 2.004.675 3.207.405.783-.226 1.458-.691 1.811-1.411.51-.93.402-2.07.397-3.346.012-2.054 0-4.109 0-6.179l.004-.056z"/></svg>
+                  <% } else if(lang.icon === 'python'){ %>
+                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M14.25.18l.9.2.73.26.59.3.45.32.34.34.25.34.16.33.1.3.04.26.02.2-.01.13V8.5l-.05.63-.13.55-.21.46-.26.38-.3.31-.33.25-.35.19-.35.14-.33.1-.3.07-.26.04-.21.02H8.77l-.69.05-.59.14-.5.22-.41.27-.33.32-.27.35-.2.36-.15.37-.1.35-.07.32-.04.27-.02.21v3.06H3.17l-.21-.03-.28-.07-.32-.12-.35-.18-.36-.26-.36-.36-.35-.46-.32-.59-.28-.73-.21-.88-.14-1.05-.05-1.23.06-1.22.16-1.04.24-.87.32-.71.36-.57.4-.44.42-.33.42-.24.4-.16.36-.1.32-.05.24-.01h.16l.06.01h8.16v-.83H6.18l-.01-2.75-.02-.37.05-.34.11-.31.17-.28.25-.26.31-.23.38-.2.44-.18.51-.15.58-.12.64-.1.71-.06.77-.04.84-.02 1.27.05zm-6.3 1.98l-.23.33-.08.41.08.41.23.34.33.22.41.09.41-.09.33-.22.23-.34.08-.41-.08-.41-.23-.33-.33-.22-.41-.09-.41.09zm13.09 3.95l.28.06.32.12.35.18.36.27.36.35.35.47.32.59.28.73.21.88.14 1.04.05 1.23-.06 1.23-.16 1.04-.24.86-.32.71-.36.57-.4.45-.42.33-.42.24-.4.16-.36.09-.32.05-.24.02-.16-.01h-8.22v.82h5.84l.01 2.76.02.36-.05.34-.11.31-.17.29-.25.25-.31.24-.38.2-.44.17-.51.15-.58.13-.64.09-.71.07-.77.04-.84.01-1.27-.04-1.07-.14-.9-.2-.73-.25-.59-.3-.45-.33-.34-.34-.25-.34-.16-.33-.1-.3-.04-.25-.02-.2.01-.13v-5.34l.05-.64.13-.54.21-.46.26-.38.3-.32.33-.24.35-.2.35-.14.33-.1.3-.06.26-.04.21-.02.13-.01h5.84l.69-.05.59-.14.5-.21.41-.28.33-.32.27-.35.2-.36.15-.36.1-.35.07-.32.04-.28.02-.21V6.07h2.09l.14.01zm-6.47 14.25l-.23.33-.08.41.08.41.23.33.33.23.41.08.41-.08.33-.23.23-.33.08-.41-.08-.41-.23-.33-.33-.23-.41-.08-.41.08z"/></svg>
+                  <% } else if(lang.icon === 'go'){ %>
+                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M1.811 10.231c-.047 0-.058-.023-.035-.059l.246-.315c.023-.035.081-.058.128-.058h4.172c.046 0 .058.035.035.07l-.199.303c-.023.036-.082.07-.117.07zM.047 11.306c-.047 0-.059-.023-.035-.058l.245-.316c.023-.035.082-.058.129-.058h5.328c.047 0 .07.035.058.07l-.093.28c-.012.047-.058.07-.105.07zm2.828 1.075c-.047 0-.059-.035-.035-.07l.163-.292c.023-.035.07-.07.117-.07h2.337c.047 0 .07.035.07.082l-.023.28c0 .047-.047.082-.082.082zm12.129-2.36c-.736.187-1.239.327-1.963.514-.176.046-.187.058-.34-.117-.176-.199-.34-.327-.619-.444-.813-.363-1.693-.257-2.46.187-1.089.514-1.393 1.552-1.393 2.614 0 1.135.631 2.129 1.634 2.408.867.246 1.646.152 2.337-.456.152-.14.291-.292.456-.478h-2.69c-.246 0-.304-.152-.222-.35.152-.362.432-.968.596-1.275.035-.082.117-.222.292-.222h4.394c-.023.327-.023.654-.07.968-.082.504-.21 1.004-.432 1.469-.596 1.251-1.554 2.094-2.934 2.419-1.123.257-2.186.14-3.156-.514-1.076-.714-1.623-1.728-1.8-2.979-.245-1.645.058-3.139.98-4.452.946-1.345 2.232-2.13 3.847-2.36 1.404-.198 2.69.058 3.824.912.772.595 1.287 1.369 1.565 2.304.047.105.023.175-.105.21z"/></svg>
+                  <% } else if(lang.icon === 'ruby'){ %>
+                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.156.083c3.033.525 3.893 2.598 3.829 4.77L24 4.822 22.635 22.71 4.89 23.926h.016C3.433 23.864.15 23.729 0 19.139l1.645-3 2.819 6.586.503 1.172 2.805-9.144-.03.007.016-.03 9.255 2.956-1.396-5.431-.99-3.9 8.82-.569-.615-.51L16.5 2.114 20.159.073l-.003.01zM0 19.089v.026-.029.003zM5.13 5.073c3.561-3.533 8.157-5.621 9.922-3.84 1.762 1.777-.105 6.105-3.673 9.636-3.563 3.532-8.103 5.734-9.864 3.957-1.766-1.777.045-6.217 3.612-9.75l.003-.003z"/></svg>
+                  <% } else if(lang.icon === 'rust'){ %>
+                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M23.687 11.709l-.995-.616a13.559 13.559 0 00-.028-.29l.855-.779a.25.25 0 00-.09-.424l-1.106-.414a10.27 10.27 0 00-.086-.284l.682-.916a.25.25 0 00-.15-.394l-1.174-.217a7.106 7.106 0 00-.144-.27l.486-1.022a.25.25 0 00-.205-.357l-1.2-.022a8.372 8.372 0 00-.197-.248l.27-1.1a.25.25 0 00-.254-.31l-1.185.175a6.873 6.873 0 00-.244-.218l.038-1.14a.25.25 0 00-.297-.254l-1.133.366a8.478 8.478 0 00-.284-.18l-.196-1.14a.25.25 0 00-.333-.191l-1.045.544a8.344 8.344 0 00-.318-.135l-.416-1.105a.25.25 0 00-.361-.126l-.926.706a7.5 7.5 0 00-.345-.082l-.615-1.025a.25.25 0 00-.381-.057l-.783.84a8.72 8.72 0 00-.363-.026l-.79-.923a.25.25 0 00-.391.013l-.614.99a10.002 10.002 0 00-.373.031l-.938-.79a.25.25 0 00-.393.082l-.42 1.104a7.39 7.39 0 00-.374.09l-1.052-.623a.25.25 0 00-.382.148l-.21 1.169a8.24 8.24 0 00-.368.153l-1.135-.428a.25.25 0 00-.36.21l.012 1.19a7.79 7.79 0 00-.353.215l-1.182-.21a.25.25 0 00-.328.267l.236 1.16a7.79 7.79 0 00-.33.273l-1.19.018a.25.25 0 00-.284.32l.454 1.094a7.79 7.79 0 00-.297.327l-1.16.246a.25.25 0 00-.232.367l.656.998a7.79 7.79 0 00-.257.375l-1.092.468a.25.25 0 00-.169.403l.835.87a7.79 7.79 0 00-.207.418l-.99.677a.25.25 0 00-.097.428l.986.715a7.79 7.79 0 00-.15.455l-.855.859a.25.25 0 00-.02.44l1.107.55a7.79 7.79 0 00-.085.487l-.697 1.006a.25.25 0 00.057.362l1.19.366a7.79 7.79 0 00-.014.51l-.518 1.124a.25.25 0 00.13.336l1.24.17c.016.17.037.34.063.508l-.32 1.215a.25.25 0 00.2.3l1.252-.028c.047.166.1.33.158.492l-.108 1.27a.25.25 0 00.263.254l1.228-.221c.08.158.166.313.256.465l.107 1.293a.25.25 0 00.32.2l1.168-.407c.11.143.225.283.346.418l.318 1.28a.25.25 0 00.369.138l1.074-.584c.138.12.28.236.428.347l.519 1.23a.25.25 0 00.406.072l.951-.739c.16.09.325.175.493.256l.707 1.152a.25.25 0 00.435.003l.803-.87a9.665 9.665 0 00.548.15l.876 1.037a.25.25 0 00.447-.067l.626-.97c.186.04.374.076.563.106l1.018.9a.25.25 0 00.445-.132l.428-1.044a9.62 9.62 0 00.57.042l1.135.738a.25.25 0 00.427-.19l.215-1.082a9.62 9.62 0 00.563-.037l1.22.553a.25.25 0 00.395-.24l-.01-1.085c.184-.06.365-.127.544-.198l1.274.35a.25.25 0 00.35-.282l-.234-1.05a9.63 9.63 0 00.512-.354l1.293.134a.25.25 0 00.29-.314l-.448-.98a9.624 9.624 0 00.466-.502l1.28-.092a.25.25 0 00.22-.34l-.644-.876a9.624 9.624 0 00.405-.64l1.227-.32a.25.25 0 00.14-.356l-.816-.743a9.62 9.62 0 00.331-.765l1.14-.537a.25.25 0 00.052-.36l-.967-.593a9.616 9.616 0 00.243-.873l1.02-.74a.25.25 0 00-.04-.361zm-6.27 7.903c-.67.59-1.533 1.03-2.486 1.27-.953.24-1.972.272-2.956.1-.987-.17-1.905-.54-2.692-1.06-.789-.52-1.442-1.18-1.917-1.94a5.48 5.48 0 01-.57-1.06c-.15-.37-.25-.76-.31-1.15a5.35 5.35 0 01.05-2.34c.14-.75.41-1.45.8-2.08.42-.67.97-1.26 1.61-1.73.45-.33.94-.6 1.46-.8l.37-.14c.13-.04.26-.08.39-.11.27-.08.54-.13.82-.17.28-.04.56-.05.84-.05.29 0 .57.02.85.07.28.05.56.11.83.2.27.08.53.19.79.32l.38.2c.12.07.24.15.36.23l.34.26c.11.1.22.19.32.29l-.13.07-1.46.94c-.02.01-.03.03-.03.06s.01.05.03.06l.16.09.18.06h.38l.18-.05.17-.08c.14-.09.28-.18.41-.28.13-.1.25-.21.37-.32.12-.11.23-.23.34-.35l.32-.38c.18.21.34.43.49.66.14.23.27.47.38.72-.16.08-.33.13-.5.16-.17.03-.35.05-.53.05-.18 0-.35-.02-.52-.05-.17-.04-.34-.09-.5-.16l-.15-.07c-.05-.03-.1-.05-.15-.09l-.14-.1-.14-.11-.06-.06-.06-.06c-.05-.04-.09-.09-.13-.14l-.13-.14c-.04.09-.08.17-.14.25l-.16.24c-.07.07-.13.15-.21.21l-.24.17-.27.13-.28.08-.29.04h-.29l-.28-.05c-.1-.02-.18-.05-.27-.1l-.25-.13-.06-.04-.06-.05-.1-.1-.1-.1c-.03-.04-.06-.08-.08-.12l-.08-.13c-.02-.04-.04-.09-.06-.13l-.04-.14-.03-.14-.02-.14v-.57l.02-.14.04-.14.05-.14.06-.13.08-.13.1-.12.1-.1.12-.1.13-.08.13-.06.14-.05.14-.03h.58l.14.03.14.04.13.06.12.08.12.09.11.1.05.06.05.06.1.12c.03.04.06.08.08.13.18-.09.36-.18.53-.29.18-.1.35-.22.51-.36l.16-.14c-.29-.37-.63-.7-1-.97-.38-.27-.79-.5-1.22-.66-.43-.17-.88-.29-1.34-.35-.46-.07-.93-.07-1.4-.02-.46.06-.92.17-1.35.34-.43.17-.84.4-1.21.68-.37.28-.7.61-.99.97-.29.37-.53.77-.72 1.2-.19.42-.32.88-.41 1.33-.09.46-.12.93-.1 1.4.02.46.1.92.24 1.37.13.44.32.87.56 1.27.24.4.53.76.86 1.09.33.33.7.61 1.1.85l.42.24c.07.03.14.07.21.1l.22.09c.14.06.29.1.44.15.15.04.3.08.46.1l.47.08c.16.02.32.03.48.03.16 0 .32 0 .48-.02l.47-.05c.16-.02.31-.06.47-.1l.45-.12c-.32.52-.74.97-1.23 1.35z"/></svg>
+                  <% } else if(lang.icon === 'powershell'){ %>
+                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M23.181 2.974c.568 0 .923.463.792 1.035l-3.659 15.982c-.13.572-.697 1.035-1.265 1.035H.819c-.568 0-.923-.463-.792-1.035L3.686 4.009c.13-.572.697-1.035 1.265-1.035zm-9.506 7.546c-.301-.3-.739-.403-1.106-.221l-.075.041-.076.052-8.036 5.938c-.224.166-.345.47-.284.77.062.3.28.528.567.597l.066.013.068.003c.197 0 .39-.07.539-.195l8.036-5.938c.28-.207.41-.571.31-.9l-.009-.06zm1.364-3.083c-.36-.238-.846-.23-1.196.012l-.055.042-.057.053-3.222 3.33c-.19.197-.278.464-.244.73.035.266.175.506.388.658.213.152.481.209.743.16.261-.05.493-.198.641-.41l3.222-3.33c.293-.303.348-.772.08-1.13l-.03-.046-.035-.042-.035-.027z"/></svg>
+                  <% } %>
+                  <span><%= lang.name %></span>
+                  <% if(index === 0) { %>
+                     <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500"></span>
+                  <% } %>
+               </button>
+            <% }); %>
+         </div>
+      </div>
+   </div>
+
+   <!-- Code Panels -->
+   <div class="rounded-b-xl bg-slate-900 border border-slate-700/50 border-t-0 overflow-hidden">
+      <% languages.forEach((lang, index) => { %>
+         <div
+            role="tabpanel"
+            id="<%= uniqueId %>-panel-<%= lang.id %>"
+            aria-labelledby="<%= uniqueId %>-tab-<%= lang.id %>"
+            class="code-panel relative <%= index === 0 ? '' : 'hidden' %>"
+            data-panel-id="<%= lang.id %>"
+         >
+            <button
+               class="copy-btn-tabs"
+               onclick="copyCodeFromPanel(this)"
+               aria-label="Copy code"
+            >
+               <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+               </svg>
+               <span>Copy</span>
+            </button>
+            <pre class="overflow-x-auto p-4 text-sm leading-relaxed m-0"><code class="language-<%= lang.id === 'javascript' ? 'javascript' : (lang.id === 'python' ? 'python' : (lang.id === 'go' ? 'go' : (lang.id === 'ruby' ? 'ruby' : (lang.id === 'rust' ? 'rust' : (lang.id === 'powershell' ? 'powershell' : 'bash'))))) %>"><%= codeExamples[lang.id] %></code></pre>
+         </div>
+      <% }); %>
+   </div>
+</div>
+
+<script>
+function switchCodeTab(containerId, langId) {
+   const container = document.getElementById(containerId);
+   if (!container) return;
+
+   // Update tabs
+   container.querySelectorAll('.code-tab').forEach(tab => {
+      const isActive = tab.dataset.tabId === langId;
+      tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+
+      // Update tab styling
+      if (isActive) {
+         tab.classList.remove('text-slate-400', 'hover:text-slate-300', 'hover:bg-slate-800/30');
+         tab.classList.add('text-indigo-400', 'bg-slate-800/50');
+         // Add indicator
+         if (!tab.querySelector('.tab-indicator')) {
+            const indicator = document.createElement('span');
+            indicator.className = 'tab-indicator absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500';
+            tab.appendChild(indicator);
+         }
+      } else {
+         tab.classList.add('text-slate-400', 'hover:text-slate-300', 'hover:bg-slate-800/30');
+         tab.classList.remove('text-indigo-400', 'bg-slate-800/50');
+         // Remove indicator
+         const indicator = tab.querySelector('.tab-indicator');
+         if (indicator) indicator.remove();
+      }
+   });
+
+   // Update panels
+   container.querySelectorAll('.code-panel').forEach(panel => {
+      if (panel.dataset.panelId === langId) {
+         panel.classList.remove('hidden');
+         // Re-highlight the code
+         panel.querySelectorAll('pre code').forEach((block) => {
+            if (window.hljs) {
+               hljs.highlightElement(block);
+            }
+         });
+      } else {
+         panel.classList.add('hidden');
+      }
+   });
+
+   // Store preference
+   try {
+      localStorage.setItem('preferred-code-lang', langId);
+   } catch (e) {}
+}
+
+function copyCodeFromPanel(btn) {
+   const panel = btn.closest('.code-panel');
+   const code = panel.querySelector('code');
+   if (code) {
+      navigator.clipboard.writeText(code.textContent).then(() => {
+         const span = btn.querySelector('span');
+         const originalText = span.textContent;
+         span.textContent = 'Copied!';
+         btn.classList.add('copied');
+         setTimeout(() => {
+            span.textContent = originalText;
+            btn.classList.remove('copied');
+         }, 2000);
+      });
+   }
+}
+
+// Apply stored language preference on page load
+document.addEventListener('DOMContentLoaded', function() {
+   try {
+      const preferred = localStorage.getItem('preferred-code-lang');
+      if (preferred) {
+         document.querySelectorAll('.code-tabs-container').forEach(container => {
+            switchCodeTab(container.id, preferred);
+         });
+      }
+   } catch (e) {}
+});
+</script>

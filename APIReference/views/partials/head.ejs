@@ -148,6 +148,124 @@
          border-color: #a5b4fc;
       }
 
+      /* Code tabs styling */
+      .code-tabs-container {
+         --tab-hover-bg: rgba(30, 41, 59, 0.5);
+      }
+
+      .code-tab {
+         position: relative;
+         border-bottom: 2px solid transparent;
+      }
+
+      .code-tab[aria-selected="true"] {
+         border-bottom-color: #6366f1;
+      }
+
+      .code-panel {
+         position: relative;
+      }
+
+      .copy-btn-tabs {
+         position: absolute;
+         top: 12px;
+         right: 12px;
+         display: flex;
+         align-items: center;
+         padding: 6px 12px;
+         font-size: 12px;
+         font-weight: 500;
+         color: #94a3b8;
+         background: rgba(30, 41, 59, 0.9);
+         border: 1px solid #334155;
+         border-radius: 6px;
+         cursor: pointer;
+         opacity: 0;
+         transition: all 0.15s ease;
+         z-index: 10;
+         backdrop-filter: blur(4px);
+      }
+
+      .code-panel:hover .copy-btn-tabs {
+         opacity: 1;
+      }
+
+      .copy-btn-tabs:hover {
+         color: #f1f5f9;
+         background: #334155;
+         border-color: #475569;
+      }
+
+      .copy-btn-tabs.copied {
+         color: #22c55e;
+         border-color: #22c55e;
+      }
+
+      /* Hide scrollbar for tabs but keep functionality */
+      .scrollbar-hide {
+         -ms-overflow-style: none;
+         scrollbar-width: none;
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+         display: none;
+      }
+
+      /* Tab indicator animation */
+      .tab-indicator {
+         transition: all 0.2s ease;
+      }
+
+      /* Code syntax colors for different languages */
+      .code-panel pre {
+         margin: 0;
+         background: transparent;
+      }
+
+      .code-panel code {
+         font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+         font-size: 13px;
+         line-height: 1.6;
+         color: #e2e8f0;
+      }
+
+      /* Language-specific comment colors */
+      .language-bash .hljs-comment,
+      .language-powershell .hljs-comment {
+         color: #6b7280;
+         font-style: italic;
+      }
+
+      /* Better string highlighting */
+      .code-panel .hljs-string {
+         color: #a5f3fc;
+      }
+
+      /* Variable highlighting */
+      .code-panel .hljs-variable {
+         color: #fca5a5;
+      }
+
+      /* Keyword highlighting */
+      .code-panel .hljs-keyword {
+         color: #c4b5fd;
+      }
+
+      /* Function highlighting */
+      .code-panel .hljs-function,
+      .code-panel .hljs-title {
+         color: #93c5fd;
+      }
+
+      /* Number highlighting */
+      .code-panel .hljs-number {
+         color: #fcd34d;
+      }
+
+      /* Built-in highlighting */
+      .code-panel .hljs-built_in {
+         color: #f0abfc;
+      }
+
       /* Better focus states */
       a:focus-visible, button:focus-visible {
          outline: 2px solid #6366f1;
