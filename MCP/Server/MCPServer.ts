@@ -14,24 +14,26 @@ let mcpServerInstance: McpServer | null = null;
  * Initialize and return the MCP server instance
  */
 export function initializeMCPServer(): McpServer {
-    if (mcpServerInstance) {
-        return mcpServerInstance;
-    }
-
-    mcpServerInstance = new McpServer(
-        {
-            name: MCP_SERVER_NAME,
-            version: MCP_SERVER_VERSION,
-        },
-        {
-            capabilities: {
-                tools: {},
-            },
-        }
-    );
-
-    logger.info(`MCP Server initialized: ${MCP_SERVER_NAME} v${MCP_SERVER_VERSION}`);
+  if (mcpServerInstance) {
     return mcpServerInstance;
+  }
+
+  mcpServerInstance = new McpServer(
+    {
+      name: MCP_SERVER_NAME,
+      version: MCP_SERVER_VERSION,
+    },
+    {
+      capabilities: {
+        tools: {},
+      },
+    },
+  );
+
+  logger.info(
+    `MCP Server initialized: ${MCP_SERVER_NAME} v${MCP_SERVER_VERSION}`,
+  );
+  return mcpServerInstance;
 }
 
 /**
@@ -39,24 +41,26 @@ export function initializeMCPServer(): McpServer {
  * @throws Error if server not initialized
  */
 export function getMCPServer(): McpServer {
-    if (!mcpServerInstance) {
-        throw new Error("MCP Server not initialized. Call initializeMCPServer() first.");
-    }
-    return mcpServerInstance;
+  if (!mcpServerInstance) {
+    throw new Error(
+      "MCP Server not initialized. Call initializeMCPServer() first.",
+    );
+  }
+  return mcpServerInstance;
 }
 
 /**
  * Check if MCP server is initialized
  */
 export function isMCPServerInitialized(): boolean {
-    return mcpServerInstance !== null;
+  return mcpServerInstance !== null;
 }
 
 /**
  * Reset MCP server (useful for testing)
  */
 export function resetMCPServer(): void {
-    mcpServerInstance = null;
+  mcpServerInstance = null;
 }
 
 export { McpServer };

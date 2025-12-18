@@ -17,7 +17,7 @@ export const ROUTE_PREFIXES: string[] = [`/${APP_NAME}`, "/"];
 
 // API URL configuration
 export function getApiUrl(): string {
-    return Host ? `${HttpProtocol}${Host}` : "https://oneuptime.com";
+  return Host ? `${HttpProtocol}${Host}` : "https://oneuptime.com";
 }
 
 // Session header name
