@@ -3083,7 +3083,7 @@ All monitoring checks are passing normally.`;
       const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get<JSONObject>({
           url: URL.fromString(
-            `https://graph.microsoft.com/v1.0/users/${data.userId}/memberOf/microsoft.graph.group?$filter=resourceProvisioningOptions/Any(x:x eq 'Team')`,
+            `https://graph.microsoft.com/v1.0/users/${data.userId}/memberOf/$/microsoft.graph.group?$filter=resourceProvisioningOptions/Any(x:x eq 'Team')`,
           ),
           headers: {
             Authorization: `Bearer ${accessToken}`,
