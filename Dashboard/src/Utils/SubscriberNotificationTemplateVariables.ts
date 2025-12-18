@@ -254,9 +254,7 @@ Please select an event type to see available variables.`;
 
   if (isSMS) {
     exampleSection = `**Example SMS:**
-\`\`\`
-${exampleSMSBody}
-\`\`\``;
+\`${exampleSMSBody}\``;
   } else if (isEmail) {
     exampleSection = `**Example Email Subject:** \`${exampleSubject}\`
 
