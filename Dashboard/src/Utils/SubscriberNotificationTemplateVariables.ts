@@ -57,14 +57,14 @@ ${commonVariablesRows}`;
 <p><strong>Affected Resources:</strong> {{resourcesAffected}}</p>
 <p><a href="{{detailsUrl}}">View Details</a></p>`;
       exampleSMSBody = `{{statusPageName}}: {{incidentTitle}} - {{incidentSeverity}}. {{incidentDescription}} Details: {{detailsUrl}}`;
-      exampleSlackBody = `*{{incidentTitle}}*
+      exampleSlackBody = `**{{incidentTitle}}**
 
 {{incidentDescription}}
 
-*Severity:* {{incidentSeverity}}
-*Affected Resources:* {{resourcesAffected}}
+**Severity:** {{incidentSeverity}}
+**Affected Resources:** {{resourcesAffected}}
 
-<{{detailsUrl}}|View Details>`;
+[View Details]({{detailsUrl}})`;
       exampleTeamsBody = `**{{incidentTitle}}**
 
 {{incidentDescription}}
@@ -88,13 +88,13 @@ ${commonVariablesRows}`;
 <p>{{incidentDescription}}</p>
 <p><a href="{{detailsUrl}}">View Details</a></p>`;
       exampleSMSBody = `{{statusPageName}}: {{incidentTitle}} is now {{incidentState}}. Details: {{detailsUrl}}`;
-      exampleSlackBody = `*{{incidentTitle}}*
+      exampleSlackBody = `**{{incidentTitle}}**
 
-Status changed to: *{{incidentState}}*
+Status changed to: **{{incidentState}}**
 
 {{incidentDescription}}
 
-<{{detailsUrl}}|View Details>`;
+[View Details]({{detailsUrl}})`;
       exampleTeamsBody = `**{{incidentTitle}}**
 
 Status changed to: **{{incidentState}}**
@@ -117,13 +117,13 @@ Status changed to: **{{incidentState}}**
 <p>{{note}}</p>
 <p><a href="{{detailsUrl}}">View Details</a></p>`;
       exampleSMSBody = `{{statusPageName}}: Update on {{incidentTitle}} - {{note}} Details: {{detailsUrl}}`;
-      exampleSlackBody = `*Update: {{incidentTitle}}*
+      exampleSlackBody = `**Update: {{incidentTitle}}**
 
-*Posted:* {{postedAt}}
+**Posted:** {{postedAt}}
 
 {{note}}
 
-<{{detailsUrl}}|View Details>`;
+[View Details]({{detailsUrl}})`;
       exampleTeamsBody = `**Update: {{incidentTitle}}**
 
 **Posted:** {{postedAt}}
@@ -142,11 +142,11 @@ Status changed to: **{{incidentState}}**
 <p>{{announcementDescription}}</p>
 <p><a href="{{detailsUrl}}">View Announcement</a></p>`;
       exampleSMSBody = `{{statusPageName}}: {{announcementTitle}} - {{announcementDescription}} Details: {{detailsUrl}}`;
-      exampleSlackBody = `:mega: *{{announcementTitle}}*
+      exampleSlackBody = `**{{announcementTitle}}**
 
 {{announcementDescription}}
 
-<{{detailsUrl}}|View Announcement>`;
+[View Announcement]({{detailsUrl}})`;
       exampleTeamsBody = `**{{announcementTitle}}**
 
 {{announcementDescription}}
@@ -168,14 +168,14 @@ Status changed to: **{{incidentState}}**
 <p><strong>End:</strong> {{scheduledEndTime}}</p>
 <p><a href="{{detailsUrl}}">View Details</a></p>`;
       exampleSMSBody = `{{statusPageName}}: Maintenance scheduled - {{scheduledMaintenanceTitle}}. Start: {{scheduledStartTime}}, End: {{scheduledEndTime}}. Details: {{detailsUrl}}`;
-      exampleSlackBody = `:wrench: *{{scheduledMaintenanceTitle}}*
+      exampleSlackBody = `**{{scheduledMaintenanceTitle}}**
 
 {{scheduledMaintenanceDescription}}
 
-*Start:* {{scheduledStartTime}}
-*End:* {{scheduledEndTime}}
+**Start:** {{scheduledStartTime}}
+**End:** {{scheduledEndTime}}
 
-<{{detailsUrl}}|View Details>`;
+[View Details]({{detailsUrl}})`;
       exampleTeamsBody = `**{{scheduledMaintenanceTitle}}**
 
 {{scheduledMaintenanceDescription}}
@@ -198,13 +198,13 @@ Status changed to: **{{incidentState}}**
 <p>{{scheduledMaintenanceDescription}}</p>
 <p><a href="{{detailsUrl}}">View Details</a></p>`;
       exampleSMSBody = `{{statusPageName}}: {{scheduledMaintenanceTitle}} is now {{scheduledMaintenanceState}}. Details: {{detailsUrl}}`;
-      exampleSlackBody = `:wrench: *{{scheduledMaintenanceTitle}}*
+      exampleSlackBody = `**{{scheduledMaintenanceTitle}}**
 
-Status changed to: *{{scheduledMaintenanceState}}*
+Status changed to: **{{scheduledMaintenanceState}}**
 
 {{scheduledMaintenanceDescription}}
 
-<{{detailsUrl}}|View Details>`;
+[View Details]({{detailsUrl}})`;
       exampleTeamsBody = `**{{scheduledMaintenanceTitle}}**
 
 Status changed to: **{{scheduledMaintenanceState}}**
@@ -227,13 +227,13 @@ Status changed to: **{{scheduledMaintenanceState}}**
 <p>{{note}}</p>
 <p><a href="{{detailsUrl}}">View Details</a></p>`;
       exampleSMSBody = `{{statusPageName}}: Update on {{scheduledMaintenanceTitle}} - {{note}} Details: {{detailsUrl}}`;
-      exampleSlackBody = `*Update: {{scheduledMaintenanceTitle}}*
+      exampleSlackBody = `**Update: {{scheduledMaintenanceTitle}}**
 
-*Posted:* {{postedAt}}
+**Posted:** {{postedAt}}
 
 {{note}}
 
-<{{detailsUrl}}|View Details>`;
+[View Details]({{detailsUrl}})`;
       exampleTeamsBody = `**Update: {{scheduledMaintenanceTitle}}**
 
 **Posted:** {{postedAt}}
@@ -268,7 +268,7 @@ ${exampleEmailBody}
 ${exampleSlackBody}
 \`\`\`
 
-_Note: Slack uses a modified Markdown syntax. Use \`*text*\` for bold and \`<url|text>\` for links._`;
+_Note: Use standard Markdown syntax (\`**text**\` for bold, \`[text](url)\` for links). It will be automatically converted to Slack's format._`;
   } else if (isTeams) {
     exampleSection = `**Example Microsoft Teams Message:**
 \`\`\`
