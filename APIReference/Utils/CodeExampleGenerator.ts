@@ -1,6 +1,12 @@
 import { JSONObject } from "Common/Types/JSON";
 
+export interface RequestPreview {
+  headers: string;
+  body: string;
+}
+
 export interface CodeExamples {
+  requestPreview: RequestPreview;
   curl: string;
   javascript: string;
   typescript: string;
@@ -27,6 +33,7 @@ export default class CodeExampleGenerator {
 
   public static generate(params: ApiRequestParams): CodeExamples {
     return {
+      requestPreview: this.generateRequestPreview(params),
       curl: this.generateCurl(params),
       javascript: this.generateJavaScript(params),
       typescript: this.generateTypeScript(params),
@@ -38,6 +45,23 @@ export default class CodeExampleGenerator {
       ruby: this.generateRuby(params),
       rust: this.generateRust(params),
       powershell: this.generatePowerShell(params),
+    };
+  }
+
+  private static generateRequestPreview(params: ApiRequestParams): RequestPreview {
+    const { body } = params;
+
+    const headers: string = `Content-Type: application/json
+ApiKey: ${this.API_KEY_PLACEHOLDER}`;
+
+    const bodyStr: string =
+      body && Object.keys(body).length > 0
+        ? JSON.stringify(body, null, 2)
+        : "";
+
+    return {
+      headers,
+      body: bodyStr,
     };
   }
 
