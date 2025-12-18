@@ -119,33 +119,31 @@
       .code-block-wrapper {
          position: relative;
       }
-      .copy-btn {
-         position: absolute;
-         top: 12px;
-         right: 12px;
+
+      /* Response block copy button */
+      .copy-btn-response {
+         display: flex;
+         align-items: center;
+         gap: 6px;
          padding: 6px 12px;
          font-size: 12px;
          font-weight: 500;
          color: #94a3b8;
-         background: rgba(30, 41, 59, 0.8);
+         background: rgba(30, 41, 59, 0.6);
          border: 1px solid #334155;
          border-radius: 6px;
          cursor: pointer;
-         opacity: 0;
          transition: all 0.15s ease;
-         z-index: 10;
       }
-      .code-block-wrapper:hover .copy-btn {
-         opacity: 1;
-      }
-      .copy-btn:hover {
+      .copy-btn-response:hover {
          color: #f1f5f9;
          background: #334155;
          border-color: #475569;
       }
-      .copy-btn.copied {
-         color: #a5b4fc;
-         border-color: #a5b4fc;
+      .copy-btn-response.copied {
+         color: #22c55e;
+         border-color: #22c55e;
+         background: rgba(34, 197, 94, 0.1);
       }
 
       /* Code tabs styling */
@@ -172,6 +170,7 @@
          right: 12px;
          display: flex;
          align-items: center;
+         gap: 6px;
          padding: 6px 12px;
          font-size: 12px;
          font-weight: 500;
@@ -199,6 +198,12 @@
       .copy-btn-tabs.copied {
          color: #22c55e;
          border-color: #22c55e;
+         background: rgba(34, 197, 94, 0.1);
+      }
+
+      /* Code content min-height for consistent sizing */
+      .code-content {
+         min-height: 200px;
       }
 
       /* Hide scrollbar for tabs but keep functionality */

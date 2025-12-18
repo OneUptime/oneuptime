@@ -3,8 +3,12 @@ import { JSONObject } from "Common/Types/JSON";
 export interface CodeExamples {
   curl: string;
   javascript: string;
+  typescript: string;
   python: string;
   go: string;
+  java: string;
+  csharp: string;
+  php: string;
   ruby: string;
   rust: string;
   powershell: string;
@@ -26,8 +30,12 @@ export default class CodeExampleGenerator {
     return {
       curl: this.generateCurl(params),
       javascript: this.generateJavaScript(params),
+      typescript: this.generateTypeScript(params),
       python: this.generatePython(params),
       go: this.generateGo(params),
+      java: this.generateJava(params),
+      csharp: this.generateCSharp(params),
+      php: this.generatePHP(params),
       ruby: this.generateRuby(params),
       rust: this.generateRust(params),
       powershell: this.generatePowerShell(params),
@@ -60,8 +68,7 @@ export default class CodeExampleGenerator {
     const { method, endpoint, body } = params;
     const url: string = `${this.BASE_URL}${endpoint}`;
 
-    let code: string = `// Using fetch API
-const response = await fetch("${url}", {
+    let code: string = `const response = await fetch("${url}", {
   method: "${method}",
   headers: {
     "Content-Type": "application/json",
@@ -83,6 +90,42 @@ const response = await fetch("${url}", {
 });
 
 const data = await response.json();
+console.log(data);`;
+
+    return code;
+  }
+
+  private static generateTypeScript(params: ApiRequestParams): string {
+    const { method, endpoint, body } = params;
+    const url: string = `${this.BASE_URL}${endpoint}`;
+
+    let code: string = `interface ApiResponse {
+  // Define your response type here
+  [key: string]: unknown;
+}
+
+const response = await fetch("${url}", {
+  method: "${method}",
+  headers: {
+    "Content-Type": "application/json",
+    "ApiKey": "${this.API_KEY_PLACEHOLDER}",
+    "ProjectID": "${this.PROJECT_ID_PLACEHOLDER}"
+  }`;
+
+    if (body && Object.keys(body).length > 0) {
+      const jsonBody: string = JSON.stringify(body, null, 2)
+        .split("\n")
+        .map((line: string, index: number) =>
+          index === 0 ? line : `  ${line}`,
+        )
+        .join("\n");
+      code += `,\n  body: JSON.stringify(${jsonBody})`;
+    }
+
+    code += `
+});
+
+const data: ApiResponse = await response.json();
 console.log(data);`;
 
     return code;
@@ -166,6 +209,144 @@ func main() {`;
     body, _ := io.ReadAll(resp.Body)
     fmt.Println(string(body))
 }`;
+
+    return code;
+  }
+
+  private static generateJava(params: ApiRequestParams): string {
+    const { method, endpoint, body } = params;
+    const url: string = `${this.BASE_URL}${endpoint}`;
+
+    let code: string = `import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
+public class ApiRequest {
+    public static void main(String[] args) throws Exception {
+        HttpClient client = HttpClient.newHttpClient();
+`;
+
+    if (body && Object.keys(body).length > 0) {
+      const jsonBody: string = JSON.stringify(body, null, 12).replace(
+        /"/g,
+        '\\"',
+      );
+      code += `
+        String jsonBody = "${jsonBody.replace(/\n/g, "\\n")}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create("${url}"))
+            .header("Content-Type", "application/json")
+            .header("ApiKey", "${this.API_KEY_PLACEHOLDER}")
+            .header("ProjectID", "${this.PROJECT_ID_PLACEHOLDER}")
+            .method("${method}", HttpRequest.BodyPublishers.ofString(jsonBody))
+            .build();`;
+    } else {
+      code += `
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create("${url}"))
+            .header("Content-Type", "application/json")
+            .header("ApiKey", "${this.API_KEY_PLACEHOLDER}")
+            .header("ProjectID", "${this.PROJECT_ID_PLACEHOLDER}")
+            .method("${method}", HttpRequest.BodyPublishers.noBody())
+            .build();`;
+    }
+
+    code += `
+
+        HttpResponse<String> response = client.send(request,
+            HttpResponse.BodyHandlers.ofString());
+
+        System.out.println(response.body());
+    }
+}`;
+
+    return code;
+  }
+
+  private static generateCSharp(params: ApiRequestParams): string {
+    const { method, endpoint, body } = params;
+    const url: string = `${this.BASE_URL}${endpoint}`;
+
+    let code: string = `using System;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+
+class Program
+{
+    static async Task Main()
+    {
+        using var client = new HttpClient();
+
+        client.DefaultRequestHeaders.Add("ApiKey", "${this.API_KEY_PLACEHOLDER}");
+        client.DefaultRequestHeaders.Add("ProjectID", "${this.PROJECT_ID_PLACEHOLDER}");
+`;
+
+    if (body && Object.keys(body).length > 0) {
+      const jsonBody: string = JSON.stringify(body, null, 8);
+      code += `
+        var json = @"${jsonBody.replace(/"/g, '""')}";
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var response = await client.${this.csharpMethod(method)}Async(
+            "${url}"${method !== "GET" && method !== "DELETE" ? ", content" : ""});`;
+    } else {
+      code += `
+        var response = await client.${this.csharpMethod(method)}Async("${url}");`;
+    }
+
+    code += `
+
+        var result = await response.Content.ReadAsStringAsync();
+        Console.WriteLine(result);
+    }
+}`;
+
+    return code;
+  }
+
+  private static generatePHP(params: ApiRequestParams): string {
+    const { method, endpoint, body } = params;
+    const url: string = `${this.BASE_URL}${endpoint}`;
+
+    let code: string = `<?php
+
+$url = "${url}";
+
+$headers = [
+    "Content-Type: application/json",
+    "ApiKey: ${this.API_KEY_PLACEHOLDER}",
+    "ProjectID: ${this.PROJECT_ID_PLACEHOLDER}"
+];
+`;
+
+    if (body && Object.keys(body).length > 0) {
+      code += `
+$data = ${this.jsonToPhp(body)};
+
+$ch = curl_init($url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "${method}");
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));`;
+    } else {
+      code += `
+$ch = curl_init($url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "${method}");`;
+    }
+
+    code += `
+
+$response = curl_exec($ch);
+curl_close($ch);
+
+$result = json_decode($response, true);
+print_r($result);
+?>`;
 
     return code;
   }
@@ -409,6 +590,16 @@ $response | ConvertTo-Json -Depth 10`;
     return methodMap[method] || "Get";
   }
 
+  private static csharpMethod(method: string): string {
+    const methodMap: Record<string, string> = {
+      GET: "Get",
+      POST: "Post",
+      PUT: "Put",
+      DELETE: "Delete",
+    };
+    return methodMap[method] || "Get";
+  }
+
   private static jsonToRust(obj: JSONObject, indent: number = 0): string {
     const spaces: string = "    ".repeat(indent);
     const innerSpaces: string = "    ".repeat(indent + 1);
@@ -513,6 +704,51 @@ $response | ConvertTo-Json -Depth 10`;
     }
     if (typeof value === "object") {
       return this.jsonToPowerShell(value as JSONObject, indent);
+    }
+    return String(value);
+  }
+
+  private static jsonToPhp(obj: JSONObject, indent: number = 0): string {
+    const spaces: string = "    ".repeat(indent);
+    const innerSpaces: string = "    ".repeat(indent + 1);
+
+    if (Array.isArray(obj)) {
+      if (obj.length === 0) {
+        return "[]";
+      }
+      const items: Array<string> = obj.map((item: unknown) =>
+        this.jsonToPhp(item as JSONObject, indent + 1),
+      );
+      return `[\n${innerSpaces}${items.join(`,\n${innerSpaces}`)}\n${spaces}]`;
+    }
+
+    if (typeof obj === "object" && obj !== null) {
+      const entries: Array<string> = Object.entries(obj).map(
+        ([key, value]: [string, unknown]) => {
+          return `${innerSpaces}"${key}" => ${this.phpValue(value, indent + 1)}`;
+        },
+      );
+      return `[\n${entries.join(",\n")}\n${spaces}]`;
+    }
+
+    return this.phpValue(obj, indent);
+  }
+
+  private static phpValue(value: unknown, indent: number = 0): string {
+    if (value === null) {
+      return "null";
+    }
+    if (typeof value === "boolean") {
+      return value ? "true" : "false";
+    }
+    if (typeof value === "string") {
+      return `"${value}"`;
+    }
+    if (typeof value === "number") {
+      return String(value);
+    }
+    if (typeof value === "object") {
+      return this.jsonToPhp(value as JSONObject, indent);
     }
     return String(value);
   }
