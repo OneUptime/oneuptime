@@ -98,8 +98,8 @@ export function generateToolsForDatabaseModel(
         ...(apiPath && { apiPath }),
     };
 
-    // Skip if model doesn't have required properties or documentation is disabled
-    if (!modelName || !model.enableDocumentation || !apiPath) {
+    // Skip if model doesn't have required properties or MCP is disabled
+    if (!modelName || !model.enableMCP || !apiPath) {
         return { tools: [], modelInfo };
     }
 
@@ -149,8 +149,8 @@ export function generateToolsForAnalyticsModel(
         apiPath,
     };
 
-    // Skip if model doesn't have required properties
-    if (!modelName || !apiPath) {
+    // Skip if model doesn't have required properties or MCP is disabled
+    if (!modelName || !model.enableMCP || !apiPath) {
         return { tools: [], modelInfo };
     }
 
