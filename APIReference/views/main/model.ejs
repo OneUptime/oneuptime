@@ -129,8 +129,8 @@
             </div>
             <h2 id="list-all-contacts" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">List</h2>
 
-            <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <div class="space-y-8">
+               <div>
                   <p class="text-slate-600 leading-relaxed">This endpoint allows you to retrieve a paginated list of all your <%= pageData.title -%>. By default, a maximum of ten <%= pageData.title -%> are shown per page.</p>
                   <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Optional Query Params</h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
@@ -194,7 +194,7 @@
                   </div>
                </div>
 
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
+               <div class="w-full">
                   <%- include('../partials/code-tabs', {
                      title: "List Request",
                      requestUrl: pageData.apiPath + "/get-list?skip=0&limit=10",
@@ -227,8 +227,8 @@
             </div>
             <h2 id="get-item-by-id" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Get item by ID</h2>
 
-            <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <div class="space-y-8">
+               <div>
                   <p class="text-slate-600 leading-relaxed">This endpoint allows you to retrieve <%= pageData.title -%> by ID.</p>
                   <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Required Query Params</h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
@@ -262,7 +262,7 @@
                   </div>
                </div>
 
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
+               <div class="w-full">
                   <%- include('../partials/code-tabs', {
                      title: "Get Item Request",
                      requestUrl: pageData.apiPath + "/:id/get-item",
@@ -289,8 +289,8 @@
             </div>
             <h2 id="count" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Count</h2>
 
-            <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <div class="space-y-8">
+               <div>
                   <p class="text-slate-600 leading-relaxed">This endpoint allows you to retrieve the count of all your <%= pageData.title -%>.</p>
                   <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Optional Request Body</h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
@@ -309,7 +309,7 @@
                   </div>
                </div>
 
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
+               <div class="w-full">
                   <%- include('../partials/code-tabs', {
                      title: "Count Request",
                      requestUrl: pageData.apiPath + "/count",
@@ -335,8 +335,8 @@
             </div>
             <h2 id="create" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Create <%= pageData.title -%></h2>
 
-            <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <div class="space-y-8">
+               <div>
                   <p class="text-slate-600 leading-relaxed">This endpoint allows you to create a new object.</p>
                   <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Request Body</h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
@@ -355,7 +355,7 @@
                   </div>
                </div>
 
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
+               <div class="w-full">
                   <%- include('../partials/code-tabs', {
                      title: "Create Request",
                      requestUrl: pageData.apiPath,
@@ -383,8 +383,8 @@
             </div>
             <h2 id="update" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Update by ID</h2>
 
-            <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <div class="space-y-8">
+               <div>
                   <p class="text-slate-600 leading-relaxed">This endpoint allows you to update object by its ID.</p>
                   <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Request Body</h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
@@ -417,7 +417,7 @@
                   </div>
                </div>
 
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
+               <div class="w-full">
                   <%- include('../partials/code-tabs', {
                      title: "Update Request",
                      requestUrl: pageData.apiPath + "/:id",
@@ -443,8 +443,8 @@
             </div>
             <h2 id="delete" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Delete by ID</h2>
 
-            <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <div class="space-y-8">
+               <div>
                   <p class="text-slate-600 leading-relaxed">This endpoint allows you to delete object by its ID.</p>
                   <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5 mt-6">
                      <h4 class="font-semibold text-slate-800 text-sm mb-2">Alternative Methods</h4>
@@ -462,7 +462,7 @@
                   </div>
                </div>
 
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
+               <div class="w-full">
                   <%- include('../partials/code-tabs', {
                      title: "Delete Request",
                      requestUrl: pageData.apiPath + "/:id",
