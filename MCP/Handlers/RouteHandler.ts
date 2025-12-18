@@ -105,29 +105,22 @@ function createMCPHandler(): McpHandlerFunction {
         next: NextFunction
     ): Promise<void> => {
         try {
-            // Extract and validate API key
+            // Extract API key (optional - public tools work without it)
             const apiKey: string | undefined = extractApiKey(req);
 
-            if (!apiKey) {
-                res.status(401).json({
-                    error: "API key is required. Please provide x-api-key or Authorization header.",
-                });
-                return;
-            }
-
-            // Set the current API key for tool calls
-            SessionManager.setCurrentApiKey(apiKey);
+            // Set the current API key for tool calls (may be undefined for public tools)
+            SessionManager.setCurrentApiKey(apiKey || "");
 
             // Check for existing session
             const sessionId: string | undefined = req.headers[SESSION_HEADER] as string;
 
             if (sessionId && SessionManager.hasSession(sessionId)) {
-                await handleExistingSession(req, res, sessionId, apiKey);
+                await handleExistingSession(req, res, sessionId, apiKey || "");
                 return;
             }
 
             // Create new session for new connections
-            await handleNewSession(req, res, apiKey);
+            await handleNewSession(req, res, apiKey || "");
         } catch (error) {
             next(error);
         }

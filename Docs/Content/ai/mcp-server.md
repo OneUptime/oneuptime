@@ -38,8 +38,8 @@ With the OneUptime MCP Server, AI assistants can help you:
 ## Requirements
 
 - OneUptime instance (cloud or self-hosted)
-- Valid OneUptime API key
 - MCP-compatible client (Claude Desktop, VS Code with GitHub Copilot, etc.)
+- Valid OneUptime API key (only required for authenticated operations - public tools work without it)
 
 ## Getting Your API Key
 
@@ -95,6 +95,23 @@ Replace `oneuptime.com` with your OneUptime domain:
   }
 }
 ```
+
+### Public Access (No API Key)
+
+To use only public tools (status page information, help), you can connect without an API key:
+
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "transport": "streamable-http",
+      "url": "https://oneuptime.com/mcp"
+    }
+  }
+}
+```
+
+This configuration allows access to public status page tools and help resources without requiring authentication.
 
 ### VS Code with GitHub Copilot
 
@@ -195,7 +212,25 @@ The configuration above uses input variables with `"password": true` to securely
 
 ## Authentication
 
-All requests to the MCP server require authentication via one of the following headers:
+The MCP server supports two modes of operation:
+
+### Public Tools (No Authentication Required)
+
+You can connect to the MCP server without an API key to access public tools:
+
+- **`oneuptime_help`**: Get help and guidance about OneUptime MCP capabilities
+- **`oneuptime_list_resources`**: List available resources and their operations
+- **`get_public_status_page_overview`**: Get overview of a public status page
+- **`get_public_status_page_incidents`**: Get incidents from a public status page
+- **`get_public_status_page_scheduled_maintenance`**: Get scheduled maintenance events
+- **`get_public_status_page_announcements`**: Get announcements from a public status page
+- **`resolve_status_page_domain`**: Resolve a domain to its status page ID
+
+Public status page tools accept either a status page ID (UUID) or the status page domain name.
+
+### Authenticated Tools (API Key Required)
+
+For all other operations (managing monitors, incidents, teams, etc.), authentication is required via one of the following headers:
 
 - `x-api-key`: Your OneUptime API key
 - `Authorization`: Bearer token with your API key (e.g., `Bearer your-api-key-here`)
@@ -262,6 +297,17 @@ curl https://your-oneuptime-domain.com/mcp/tools
 ```
 "Update our status page to show 'Investigating Payment Issues' for the payment service"
 "Create a status page announcement about scheduled maintenance this weekend"
+```
+
+### Public Status Page Queries (No API Key Required)
+
+These queries work without authentication, using only the public status page tools:
+
+```
+"What's the current status of status.example.com?"
+"Show me recent incidents from the OneUptime status page"
+"Are there any scheduled maintenance events on status.acme.com?"
+"Get the latest announcements from my public status page with ID abc123-..."
 ```
 
 ### Advanced Operations
