@@ -16,6 +16,7 @@ import OneUptimeOperation from "../Types/OneUptimeOperation";
 import OneUptimeApiService from "../Services/OneUptimeApiService";
 import SessionManager from "../Server/SessionManager";
 import { LIST_PREVIEW_LIMIT } from "../Config/ServerConfig";
+import { isHelperTool, handleHelperTool } from "../Tools/HelperTools";
 import logger from "Common/Server/Utils/Logger";
 
 /**
@@ -68,13 +69,31 @@ async function handleCallTool(
     const { name, arguments: args } = request.params;
 
     try {
+        // Check if this is a helper tool (doesn't require API key)
+        if (isHelperTool(name)) {
+            logger.info(`Executing helper tool: ${name}`);
+            const responseText: string = handleHelperTool(
+                name,
+                (args || {}) as Record<string, unknown>,
+                tools.filter((t: McpToolInfo) => !isHelperTool(t.name))
+            );
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: responseText,
+                    },
+                ],
+            };
+        }
+
         // Find the tool by name
         const tool: McpToolInfo | undefined = tools.find(
             (t: McpToolInfo) => t.name === name
         );
 
         if (!tool) {
-            throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
+            throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}. Use 'oneuptime_help' to see available tools.`);
         }
 
         logger.info(`Executing tool: ${name} for model: ${tool.modelName}`);
@@ -84,7 +103,7 @@ async function handleCallTool(
         if (!apiKey) {
             throw new McpError(
                 ErrorCode.InvalidRequest,
-                "API key is required. Please provide x-api-key header in your request."
+                "API key is required. Please provide x-api-key header in your request. Use 'oneuptime_help' to learn more."
             );
         }
 
@@ -122,7 +141,7 @@ async function handleCallTool(
 
         throw new McpError(
             ErrorCode.InternalError,
-            `Failed to execute ${name}: ${error}`
+            `Failed to execute ${name}: ${error}. Use 'oneuptime_help' for guidance.`
         );
     }
 }
@@ -164,7 +183,14 @@ export function formatToolResponse(
 }
 
 function formatCreateResponse(modelName: string, result: unknown): string {
-    return `Successfully created ${modelName}: ${JSON.stringify(result, null, 2)}`;
+    const response: Record<string, unknown> = {
+        success: true,
+        operation: "create",
+        resourceType: modelName,
+        message: `Successfully created ${modelName}`,
+        data: result,
+    };
+    return JSON.stringify(response, null, 2);
 }
 
 function formatReadResponse(
@@ -173,9 +199,24 @@ function formatReadResponse(
     id: string | undefined
 ): string {
     if (result) {
-        return `Retrieved ${modelName} (ID: ${id}): ${JSON.stringify(result, null, 2)}`;
+        const response: Record<string, unknown> = {
+            success: true,
+            operation: "read",
+            resourceType: modelName,
+            resourceId: id,
+            data: result,
+        };
+        return JSON.stringify(response, null, 2);
     }
-    return `${modelName} not found with ID: ${id}`;
+    const response: Record<string, unknown> = {
+        success: false,
+        operation: "read",
+        resourceType: modelName,
+        resourceId: id,
+        error: `${modelName} not found with ID: ${id}`,
+        suggestion: `Use list_${modelName.toLowerCase().replace(/\s+/g, "_")}s to find valid IDs`,
+    };
+    return JSON.stringify(response, null, 2);
 }
 
 function formatListResponse(
@@ -187,20 +228,24 @@ function formatListResponse(
         ? result
         : (result as { data?: Array<unknown> })?.data || [];
     const count: number = items.length;
-    const summary: string = `Found ${count} ${count === 1 ? modelName : pluralName}`;
 
-    if (count === 0) {
-        return `${summary}. No items match the criteria.`;
+    const response: Record<string, unknown> = {
+        success: true,
+        operation: "list",
+        resourceType: pluralName,
+        totalReturned: count,
+        hasMore: count >= LIST_PREVIEW_LIMIT,
+        message: count === 0
+            ? `No ${pluralName} found matching the criteria`
+            : `Found ${count} ${count === 1 ? modelName : pluralName}`,
+        data: items.slice(0, LIST_PREVIEW_LIMIT),
+    };
+
+    if (count > LIST_PREVIEW_LIMIT) {
+        response["note"] = `Showing first ${LIST_PREVIEW_LIMIT} results. Use 'skip' parameter to paginate.`;
     }
 
-    const limitedItems: Array<unknown> = items.slice(0, LIST_PREVIEW_LIMIT);
-    const itemsText: string = limitedItems
-        .map((item: unknown, index: number) => `${index + 1}. ${JSON.stringify(item, null, 2)}`)
-        .join("\n");
-
-    const hasMore: string =
-        count > LIST_PREVIEW_LIMIT ? `\n... and ${count - LIST_PREVIEW_LIMIT} more items` : "";
-    return `${summary}:\n${itemsText}${hasMore}`;
+    return JSON.stringify(response, null, 2);
 }
 
 function formatUpdateResponse(
@@ -208,11 +253,26 @@ function formatUpdateResponse(
     result: unknown,
     id: string | undefined
 ): string {
-    return `Successfully updated ${modelName} (ID: ${id}): ${JSON.stringify(result, null, 2)}`;
+    const response: Record<string, unknown> = {
+        success: true,
+        operation: "update",
+        resourceType: modelName,
+        resourceId: id,
+        message: `Successfully updated ${modelName}`,
+        data: result,
+    };
+    return JSON.stringify(response, null, 2);
 }
 
 function formatDeleteResponse(modelName: string, id: string | undefined): string {
-    return `Successfully deleted ${modelName} (ID: ${id})`;
+    const response: Record<string, unknown> = {
+        success: true,
+        operation: "delete",
+        resourceType: modelName,
+        resourceId: id,
+        message: `Successfully deleted ${modelName} (ID: ${id})`,
+    };
+    return JSON.stringify(response, null, 2);
 }
 
 function formatCountResponse(pluralName: string, result: unknown): string {
@@ -249,5 +309,12 @@ function formatCountResponse(pluralName: string, result: unknown): string {
         }
     }
 
-    return `Total count of ${pluralName}: ${totalCount}`;
+    const response: Record<string, unknown> = {
+        success: true,
+        operation: "count",
+        resourceType: pluralName,
+        count: totalCount,
+        message: `Total count of ${pluralName}: ${totalCount}`,
+    };
+    return JSON.stringify(response, null, 2);
 }

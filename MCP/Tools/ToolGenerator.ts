@@ -16,6 +16,7 @@ import { McpToolInfo, ModelToolsResult } from "../Types/McpTypes";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
 import { zodToJsonSchema, sanitizeToolName, ZodToJsonSchemaResult } from "./SchemaConverter";
+import { generateHelperTools } from "./HelperTools";
 import MCPLogger from "../Utils/MCPLogger";
 
 /**
@@ -32,7 +33,11 @@ export function generateAllTools(): McpToolInfo[] {
     const analyticsTools: McpToolInfo[] = generateAnalyticsModelTools();
     allTools.push(...analyticsTools);
 
-    MCPLogger.info(`Generated ${allTools.length} MCP tools for OneUptime models`);
+    // Generate helper tools for discovery and guidance
+    const helperTools: McpToolInfo[] = generateHelperTools(allTools);
+    allTools.push(...helperTools);
+
+    MCPLogger.info(`Generated ${allTools.length} MCP tools for OneUptime models (including ${helperTools.length} helper tools)`);
     return allTools;
 }
 
@@ -201,7 +206,7 @@ function createCreateTool(
 
     return {
         name: `create_${sanitizeToolName(singularName)}`,
-        description: `Create a new ${singularName} in OneUptime`,
+        description: `Create a new ${singularName} in OneUptime. Returns the created ${singularName} object with its ID and all fields. Use this to add new ${pluralName} to your project.`,
         inputSchema: {
             type: "object",
             properties: schemaProperties.properties || {},
@@ -226,13 +231,13 @@ function createReadTool(
 ): McpToolInfo {
     return {
         name: `get_${sanitizeToolName(singularName)}`,
-        description: `Retrieve a single ${singularName} by ID from OneUptime`,
+        description: `Retrieve a single ${singularName} by its unique ID from OneUptime. Returns the complete ${singularName} object with all its fields. Use list_${sanitizeToolName(pluralName)} first if you need to find the ID.`,
         inputSchema: {
             type: "object",
             properties: {
                 id: {
                     type: "string",
-                    description: `ID of the ${singularName} to retrieve`,
+                    description: `The unique identifier (UUID) of the ${singularName} to retrieve. Example: "550e8400-e29b-41d4-a716-446655440000"`,
                 },
             },
             required: ["id"],
@@ -258,21 +263,26 @@ function createListTool(
 ): McpToolInfo {
     return {
         name: `list_${sanitizeToolName(pluralName)}`,
-        description: `List all ${pluralName} from OneUptime`,
+        description: `List and search ${pluralName} from OneUptime with optional filtering, pagination, and sorting. Returns an array of ${singularName} objects. Use the 'query' parameter to filter results by specific field values. Supports pagination via 'skip' and 'limit' parameters.`,
         inputSchema: {
             type: "object",
             properties: {
-                query: zodToJsonSchema(querySchema),
+                query: {
+                    ...zodToJsonSchema(querySchema),
+                    description: `Filter criteria for ${pluralName}. Each field can be used to filter results. Example: {"title": "My ${singularName}"} to find by title.`,
+                },
                 skip: {
                     type: "number",
-                    description: "Number of records to skip. This can be used for pagination.",
+                    description: "Number of records to skip for pagination. Default: 0. Example: skip=10 to start from the 11th record.",
                 },
                 limit: {
                     type: "number",
-                    description:
-                        "Maximum number of records to return. This can be used for pagination. Maximum value is 100.",
+                    description: "Maximum number of records to return. Default: 10, Maximum: 100. Example: limit=25 to get 25 records.",
                 },
-                sort: zodToJsonSchema(sortSchema),
+                sort: {
+                    ...zodToJsonSchema(sortSchema),
+                    description: `Sort order for results. Use 1 for ascending, -1 for descending. Example: {"createdAt": -1} to sort by newest first.`,
+                },
             },
             additionalProperties: false,
         },
@@ -297,13 +307,13 @@ function createUpdateTool(
 
     return {
         name: `update_${sanitizeToolName(singularName)}`,
-        description: `Update an existing ${singularName} in OneUptime`,
+        description: `Update an existing ${singularName} in OneUptime. Only include the fields you want to change - unspecified fields will remain unchanged. Returns the updated ${singularName} object.`,
         inputSchema: {
             type: "object",
             properties: {
                 id: {
                     type: "string",
-                    description: `ID of the ${singularName} to update`,
+                    description: `The unique identifier (UUID) of the ${singularName} to update. Required. Use list_${sanitizeToolName(pluralName)} to find IDs.`,
                 },
                 ...(schemaProperties.properties || {}),
             },
@@ -328,13 +338,13 @@ function createDeleteTool(
 ): McpToolInfo {
     return {
         name: `delete_${sanitizeToolName(singularName)}`,
-        description: `Delete a ${singularName} from OneUptime`,
+        description: `Permanently delete a ${singularName} from OneUptime. This action cannot be undone. Returns a confirmation message upon successful deletion.`,
         inputSchema: {
             type: "object",
             properties: {
                 id: {
                     type: "string",
-                    description: `ID of the ${singularName} to delete`,
+                    description: `The unique identifier (UUID) of the ${singularName} to delete. This action is irreversible.`,
                 },
             },
             required: ["id"],
@@ -359,11 +369,14 @@ function createCountTool(
 ): McpToolInfo {
     return {
         name: `count_${sanitizeToolName(pluralName)}`,
-        description: `Count the number of ${pluralName} in OneUptime`,
+        description: `Count the total number of ${pluralName} in OneUptime, optionally filtered by query criteria. Returns a single number. Useful for dashboards, reports, or checking if records exist before listing.`,
         inputSchema: {
             type: "object",
             properties: {
-                query: zodToJsonSchema(querySchema),
+                query: {
+                    ...zodToJsonSchema(querySchema),
+                    description: `Optional filter criteria. If omitted, counts all ${pluralName}. Example: {"currentIncidentStateId": "..."} to count incidents in a specific state.`,
+                },
             },
             additionalProperties: false,
         },
