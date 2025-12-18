@@ -226,7 +226,7 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_BILLING, [
       "Project",
       "Settings",
-      "AI Billing",
+      "AI Credits",
     ]),
   };
   return breadcrumpLinksMap[path];

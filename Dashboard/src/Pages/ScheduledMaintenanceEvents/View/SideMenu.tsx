@@ -63,7 +63,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Notification Logs">
+      <SideMenuSection title="Logs">
         <SideMenuItem
           link={{
             title: "Notification Logs",
@@ -76,6 +76,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Bell}
         />
+        {/* <SideMenuItem
+          link={{
+            title: "AI Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Bolt}
+        /> */}
       </SideMenuSection>
 
       <SideMenuSection title="Scheduled Maintenance Notes">

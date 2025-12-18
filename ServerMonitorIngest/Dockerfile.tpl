@@ -7,8 +7,8 @@ FROM public.ecr.aws/docker/library/node:23.8
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
-RUN npm config set fetch-retry-mintimeout 100000
-RUN npm config set fetch-retry-maxtimeout 600000
+RUN npm config set fetch-retry-mintimeout 20000
+RUN npm config set fetch-retry-maxtimeout 60000
 
 
 ARG GIT_SHA
@@ -38,9 +38,6 @@ RUN apt-get install bash -y && apt-get install curl -y && apt-get install iputil
 # Install python
 RUN apt-get update && apt-get install -y .gyp python3 make g++
 
-# Install playwright dependencies
-RUN apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libgtk-3-0 libpango-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libasound2 libatspi2.0-0
-
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
@@ -61,8 +58,6 @@ COPY ./Common /usr/src/Common
 ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
-
-RUN PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0 npx playwright install --with-deps
 
 # Install app dependencies
 COPY ./ServerMonitorIngest/package*.json /usr/src/app/

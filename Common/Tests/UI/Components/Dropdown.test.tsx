@@ -110,18 +110,51 @@ describe("Dropdown", () => {
     expect(queryByText("2")).toBeNull();
   });
 
-  test.skip("test value overrides initialValue", () => {
-    const { getByText, queryByText } = render(
+  test("should display value prop in the dropdown", () => {
+    const { getByText } = render(
       <Dropdown
         onChange={() => {}}
         options={options}
-        initialValue={{ value: "1", label: "1" }}
         value={{ value: "2", label: "2" }}
       />,
     );
 
     expect(getByText("2")).toBeInTheDocument();
-    expect(queryByText("1")).toBeNull();
+  });
+
+  test("should handle multiselect with multiple values", () => {
+    const multiOptions: Array<DropdownOption> = [
+      { value: "a", label: "Option A" },
+      { value: "b", label: "Option B" },
+      { value: "c", label: "Option C" },
+    ];
+
+    const { getByText } = render(
+      <Dropdown
+        onChange={() => {}}
+        options={multiOptions}
+        isMultiSelect={true}
+        value={[
+          { value: "a", label: "Option A" },
+          { value: "b", label: "Option B" },
+        ]}
+      />,
+    );
+
+    expect(getByText("Option A")).toBeInTheDocument();
+    expect(getByText("Option B")).toBeInTheDocument();
+  });
+
+  test("should display placeholder when no value is selected", () => {
+    const { getByText } = render(
+      <Dropdown
+        onChange={() => {}}
+        options={options}
+        placeholder="Select an option"
+      />,
+    );
+
+    expect(getByText("Select an option")).toBeInTheDocument();
   });
 
   test("sets className", () => {

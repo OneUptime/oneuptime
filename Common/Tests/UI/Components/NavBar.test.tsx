@@ -2,14 +2,27 @@ import Navbar, {
   ComponentProps,
   NavItem,
 } from "../../../UI/Components/Navbar/NavBar";
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, beforeEach } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import { render, screen } from "@testing-library/react";
 import React from "react";
 import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";
+import Navigation from "../../../UI/Utils/Navigation";
+import { Location } from "react-router-dom";
 
 describe("Navbar", () => {
+  // Mock Navigation location for Navigation utility
+  beforeEach(() => {
+    const mockLocation: Location = {
+      pathname: "/",
+      search: "",
+      hash: "",
+      state: null,
+      key: "default",
+    };
+    Navigation.setLocation(mockLocation);
+  });
   const defaultProps: ComponentProps = {
     children: <div>Test</div>,
   };

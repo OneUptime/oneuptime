@@ -194,6 +194,12 @@
         "service": {
           "type": "object",
           "properties": {
+            "loadBalancerClass": {
+              "type": ["string", "null"]
+            },
+            "annotations": {
+              "type": ["object", "null"]
+            },
             "loadBalancerIP": {
               "type": ["string", "null"]
             },
@@ -1877,6 +1883,45 @@
       "additionalProperties": false
     },
     "isolatedVM": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "replicaCount": {
+          "type": "integer"
+        },
+        "disableTelemetryCollection": {
+          "type": "boolean"
+        },
+        "disableAutoscaler": {
+          "type": "boolean"
+        },
+        "ports": {
+          "type": "object",
+          "properties": {
+            "http": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        },
+        "resources": {
+          "type": ["object", "null"]
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "containerSecurityContext": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "mcp": {
       "type": "object",
       "properties": {
         "enabled": {

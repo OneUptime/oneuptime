@@ -75,6 +75,8 @@ nginx:
     https: 443
   service:
     loadBalancerIP:
+    loadBalancerClass:
+    annotations:
     type: LoadBalancer
     externalIPs:
       # - 51.158.55.153 # Please make sure this is the same as the one in metalLb.ipAdddressPool.addresses
@@ -758,6 +760,18 @@ isolatedVM:
   disableAutoscaler: false
   ports:
     http: 4572
+  resources:
+  nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
+
+mcp:
+  enabled: true
+  replicaCount: 1
+  disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 3405
   resources:
   nodeSelector: {}
   podSecurityContext: {}

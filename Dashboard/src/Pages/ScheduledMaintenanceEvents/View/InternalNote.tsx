@@ -34,6 +34,14 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import AttachmentList from "../../../Components/Attachment/AttachmentList";
 import { getModelIdString } from "../../../Utils/ModelId";
+import GenerateFromAIModal, {
+  GenerateAIRequestData,
+} from "Common/UI/Components/AI/GenerateFromAIModal";
+import { INTERNAL_NOTE_TEMPLATES } from "Common/UI/Components/AI/AITemplates";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import URL from "Common/Types/API/URL";
+import { APP_API_URL } from "Common/UI/Config";
 
 const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -54,6 +62,40 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
     initialValuesForScheduledMaintenance,
     setInitialValuesForScheduledMaintenance,
   ] = useState<JSONObject>({});
+  const [showGenerateFromAIModal, setShowGenerateFromAIModal] =
+    useState<boolean>(false);
+
+  const generateNoteFromAI: (
+    data: GenerateAIRequestData,
+  ) => Promise<string> = async (
+    data: GenerateAIRequestData,
+  ): Promise<string> => {
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
+          `/scheduled-maintenance/generate-note-from-ai/${modelId.toString()}`,
+        ),
+        data: {
+          template: data.template,
+          noteType: "internal",
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      throw new Error(response.message || "Failed to generate note from AI");
+    }
+
+    return response.data["note"] as string;
+  };
+
+  const handleAIGenerationSuccess: (generatedContent: string) => void = (
+    generatedContent: string,
+  ): void => {
+    setShowGenerateFromAIModal(false);
+    setInitialValuesForScheduledMaintenance({
+      note: generatedContent,
+    });
+  };
 
   const fetchScheduledMaintenanceNoteTemplate: (
     id: ObjectID,
@@ -153,6 +195,14 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Private Notes",
           buttons: [
+            {
+              title: "Generate from AI",
+              icon: IconProp.Bolt,
+              buttonStyle: ButtonStyleType.OUTLINE,
+              onClick: async (): Promise<void> => {
+                setShowGenerateFromAIModal(true);
+              },
+            },
             {
               title: "Create from Template",
               icon: IconProp.Template,
@@ -365,6 +415,19 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
         />
       ) : (
         <> </>
+      )}
+
+      {showGenerateFromAIModal && (
+        <GenerateFromAIModal
+          title="Generate Private Note from AI"
+          description="AI will analyze the scheduled maintenance data and generate an internal technical note."
+          templates={INTERNAL_NOTE_TEMPLATES}
+          onClose={() => {
+            setShowGenerateFromAIModal(false);
+          }}
+          onGenerate={generateNoteFromAI}
+          onSuccess={handleAIGenerationSuccess}
+        />
       )}
     </Fragment>
   );

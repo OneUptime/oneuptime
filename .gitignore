@@ -128,3 +128,4 @@ MCP/.env
 MCP/node_modules 
 Dashboard/public/sw.js
 .claude/settings.local.json
+Common/.claude/settings.local.json

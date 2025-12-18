@@ -46,7 +46,7 @@ describe("OrderedSateList", () => {
       isLoading: true,
     };
     render(<OrderedStatesList {...props} />);
-    expect(screen.getByRole("bar-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
   });
   it("should render an error message if error prop is present", () => {
     const props: ComponentProps<ItemData> = {

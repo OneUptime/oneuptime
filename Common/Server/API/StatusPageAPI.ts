@@ -132,6 +132,7 @@ const resolveStatusPageIdOrThrow: ResolveStatusPageIdOrThrowFunction = async (
   }
 
   try {
+    ObjectID.validateUUID(statusPageIdOrDomain);
     return new ObjectID(statusPageIdOrDomain);
   } catch (err) {
     logger.error(
@@ -1399,12 +1400,12 @@ export default class StatusPageAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/overview/:statusPageId`,
+        ?.toString()}/overview/:statusPageIdOrDomain`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const statusPageId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string,
+          const statusPageId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
           );
 
           await this.checkHasReadAccess({
@@ -1940,12 +1941,12 @@ export default class StatusPageAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/incidents/:statusPageId`,
+        ?.toString()}/incidents/:statusPageIdOrDomain`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string,
+          const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
           );
 
           const response: JSONObject = await this.getIncidents(
@@ -1964,12 +1965,12 @@ export default class StatusPageAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/scheduled-maintenance-events/:statusPageId`,
+        ?.toString()}/scheduled-maintenance-events/:statusPageIdOrDomain`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string,
+          const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
           );
 
           const response: JSONObject = await this.getScheduledMaintenanceEvents(
@@ -1989,12 +1990,12 @@ export default class StatusPageAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/announcements/:statusPageId`,
+        ?.toString()}/announcements/:statusPageIdOrDomain`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string,
+          const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
           );
 
           const response: JSONObject = await this.getAnnouncements(
@@ -2014,12 +2015,12 @@ export default class StatusPageAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/incidents/:statusPageId/:incidentId`,
+        ?.toString()}/incidents/:statusPageIdOrDomain/:incidentId`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string,
+          const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
           );
 
           const incidentId: ObjectID = new ObjectID(
@@ -2042,12 +2043,12 @@ export default class StatusPageAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/scheduled-maintenance-events/:statusPageId/:scheduledMaintenanceId`,
+        ?.toString()}/scheduled-maintenance-events/:statusPageIdOrDomain/:scheduledMaintenanceId`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string,
+          const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
           );
 
           const scheduledMaintenanceId: ObjectID = new ObjectID(
@@ -2071,12 +2072,12 @@ export default class StatusPageAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/announcements/:statusPageId/:announcementId`,
+        ?.toString()}/announcements/:statusPageIdOrDomain/:announcementId`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string,
+          const objectId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
           );
 
           const announcementId: ObjectID = new ObjectID(

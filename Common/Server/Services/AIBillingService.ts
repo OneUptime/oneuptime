@@ -24,6 +24,10 @@ export class AIBillingService extends BaseService {
     projectId: ObjectID,
     amountInUSD: number,
   ): Promise<number> {
+    if (!IsBillingEnabled) {
+      throw new BadDataException("Billing is not enabled");
+    }
+
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
       select: {

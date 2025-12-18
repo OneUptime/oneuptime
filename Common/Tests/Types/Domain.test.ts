@@ -13,22 +13,43 @@ describe("class Domain", () => {
     expect(new Domain("example.ac").domain).toBe("example.ac");
   });
   test("new Domain() should throw the BadDataException if domain is invalid", () => {
+    // No dot in domain
     expect(() => {
       return new Domain("example");
     }).toThrowError(BadDataException);
     expect(() => {
       new Domain("example");
     }).toThrowError(BadDataException);
+
+    // Invalid characters
     expect(() => {
       new Domain("example@com");
     }).toThrowError(BadDataException);
 
+    // TLD with numbers (invalid - TLD must be letters only)
     expect(() => {
-      new Domain("example.invalid");
+      new Domain("example.c0m");
     }).toThrowError(BadDataException);
+
+    // Single letter TLD (invalid - TLD must be at least 2 characters)
     expect(() => {
-      const validDomain: Domain = new Domain("example.valid");
-      validDomain.domain = "example.invalid";
+      new Domain("example.c");
+    }).toThrowError(BadDataException);
+
+    // Domain starting with hyphen
+    expect(() => {
+      new Domain("-example.com");
+    }).toThrowError(BadDataException);
+
+    // Domain ending with hyphen before TLD
+    expect(() => {
+      new Domain("example-.com");
+    }).toThrowError(BadDataException);
+
+    // Mutation to invalid domain
+    expect(() => {
+      const validDomain: Domain = new Domain("example.com");
+      validDomain.domain = "invalid";
     }).toThrowError(BadDataException);
   });
   test("Domain.domain should be mutable", () => {

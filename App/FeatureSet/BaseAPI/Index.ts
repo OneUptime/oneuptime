@@ -33,6 +33,8 @@ import IncidentPublicNoteAPI from "Common/Server/API/IncidentPublicNoteAPI";
 import ScheduledMaintenanceInternalNoteAPI from "Common/Server/API/ScheduledMaintenanceInternalNoteAPI";
 import ScheduledMaintenancePublicNoteAPI from "Common/Server/API/ScheduledMaintenancePublicNoteAPI";
 import IncidentAPI from "Common/Server/API/IncidentAPI";
+import ScheduledMaintenanceAPI from "Common/Server/API/ScheduledMaintenanceAPI";
+import AlertAPI from "Common/Server/API/AlertAPI";
 // User Notification methods.
 import UserEmailAPI from "Common/Server/API/UserEmailAPI";
 import UserNotificationLogTimelineAPI from "Common/Server/API/UserOnCallLogTimelineAPI";
@@ -80,9 +82,7 @@ import DashboardService, {
 import AlertOwnerUserService, {
   Service as AlertOwnerUserServiceType,
 } from "Common/Server/Services/AlertOwnerUserService";
-import AlertService, {
-  Service as AlertServiceType,
-} from "Common/Server/Services/AlertService";
+
 import AlertSeverityService, {
   Service as AlertSeverityServiceType,
 } from "Common/Server/Services/AlertSeverityService";
@@ -234,9 +234,7 @@ import ScheduledMaintenanceOwnerTeamService, {
 import ScheduledMaintenanceOwnerUserService, {
   Service as ScheduledMaintenanceOwnerUserServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceOwnerUserService";
-import ScheduledMaintenanceService, {
-  Service as ScheduledMaintenanceServiceType,
-} from "Common/Server/Services/ScheduledMaintenanceService";
+
 import ScheduledMaintenanceStateService, {
   Service as ScheduledMaintenanceStateServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceStateService";
@@ -358,6 +356,10 @@ import ProbeOwnerUserService, {
   Service as ProbeOwnerUserServiceType,
 } from "Common/Server/Services/ProbeOwnerUserService";
 
+import LlmLogService, {
+  Service as LlmLogServiceType,
+} from "Common/Server/Services/LlmLogService";
+
 import TelemetryExceptionService, {
   Service as TelemetryExceptionServiceType,
 } from "Common/Server/Services/TelemetryExceptionService";
@@ -382,7 +384,6 @@ import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 
-import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
@@ -429,7 +430,6 @@ import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import PromoCode from "Common/Models/DatabaseModels/PromoCode";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
-import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
@@ -467,6 +467,7 @@ import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
+import LlmLog from "Common/Models/DatabaseModels/LlmLog";
 import ServiceCatalogDependency from "Common/Models/DatabaseModels/ServiceCatalogDependency";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import TelemetyException from "Common/Models/DatabaseModels/TelemetryException";
@@ -821,10 +822,7 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<Alert, AlertServiceType>(Alert, AlertService).getRouter(),
-    );
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new AlertAPI().getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -1294,10 +1292,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ScheduledMaintenance, ScheduledMaintenanceServiceType>(
-        ScheduledMaintenance,
-        ScheduledMaintenanceService,
-      ).getRouter(),
+      new ScheduledMaintenanceAPI().getRouter(),
     );
 
     app.use(
@@ -1680,6 +1675,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new LlmProviderAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<LlmLog, LlmLogServiceType>(LlmLog, LlmLogService).getRouter(),
     );
 
     app.use(

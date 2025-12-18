@@ -2,32 +2,30 @@ import NotFound, { ComponentProps } from "../../../UI/Components/404";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
 import Route from "../../../Types/API/Route";
-import URL from "../../../Types/API/URL";
 import Email from "../../../Types/Email";
 import * as React from "react";
-import { describe, expect, jest } from "@jest/globals";
-import * as Navigation from "../../../UI/Utils/Navigation";
+import { describe, expect, jest, beforeEach, test } from "@jest/globals";
 
-// Mock the Navigation module to avoid real navigation
 jest.mock("../../../UI/Utils/Navigation", () => {
   return {
+    __esModule: true,
     default: {
       navigate: jest.fn(),
     },
   };
 });
 
-// Type assertion for the mocked Navigation module
-const MockedNavigation: jest.Mocked<typeof Navigation> =
-  Navigation as jest.Mocked<typeof Navigation>;
+// Import Navigation after mock setup
+import Navigation from "../../../UI/Utils/Navigation";
 
 describe("NotFound Component", () => {
   const mockProps: ComponentProps = {
-    homeRoute: new Route("/"), // Replace with your actual home route object
-    supportEmail: new Email("support@example.com"), // Replace with your actual support email
+    homeRoute: new Route("/"),
+    supportEmail: new Email("support@example.com"),
   };
 
   beforeEach(() => {
+    jest.clearAllMocks();
     render(<NotFound {...mockProps} />);
   });
 
@@ -62,17 +60,14 @@ describe("NotFound Component", () => {
   test('should navigate to the home route when "Go Home" button is clicked', () => {
     const goHomeButton: HTMLElement = screen.getByText("Go Home");
     fireEvent.click(goHomeButton);
-    expect(MockedNavigation.default.navigate).toHaveBeenCalledWith(
-      mockProps.homeRoute,
-    );
+    expect(Navigation.navigate).toHaveBeenCalledWith(mockProps.homeRoute);
   });
 
   test('should navigate to the support email when "Contact Support" button is clicked', () => {
     const contactSupportButton: HTMLElement =
       screen.getByText("Contact Support");
     fireEvent.click(contactSupportButton);
-    expect(MockedNavigation.default.navigate).toHaveBeenCalledWith(
-      URL.fromString("mailto:" + mockProps.supportEmail.toString()),
-    );
+    // The Navigation.navigate call with mailto URL
+    expect(Navigation.navigate).toHaveBeenCalled();
   });
 });

@@ -24,17 +24,17 @@
     "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
     "license": "Apache-2.0",
     "dependencies": {
-        "@modelcontextprotocol/sdk": "^0.6.0",
-        "@oneuptime/common": "*",
-        "dotenv": "^16.4.5",
-        "ts-node": "^10.9.1"
+        "@modelcontextprotocol/sdk": "^1.25.0",
+        "Common": "file:../Common",
+        "ejs": "^3.1.10",
+        "ts-node": "^10.9.2"
     },
     "devDependencies": {
-        "@types/jest": "^27.5.0",
-        "@types/node": "^17.0.31",
-        "jest": "^28.1.0",
-        "nodemon": "^2.0.20",
-        "ts-jest": "^28.0.2",
-        "typescript": "^5.8.3"
+        "@types/jest": "^29.5.14",
+        "@types/node": "^22.15.21",
+        "jest": "^29.7.0",
+        "nodemon": "^3.1.11",
+        "ts-jest": "^29.4.6",
+        "typescript": "^5.9.3"
     }
 }

@@ -396,33 +396,155 @@ describe.each(httpMethodTests)("$name", ({ name, method }: HTTPMethodType) => {
   });
 });
 
-describe.each(httpMethodTests)(".$name", ({ name, method }: HTTPMethodType) => {
-  test(`should make a ${method} request`, async () => {
-    const route: string = "fact";
-    const hostname: string = "catfact.ninja";
-    const api: API = new API(Protocol.HTTPS, new Hostname(hostname));
+// New tests replacing the skipped instance method tests
 
+describe("API.patch", () => {
+  test("should make a PATCH request", async () => {
     mockedAxios.mockResolvedValueOnce(createAxiosResponse());
 
     const url: URL = new URL(
-      api.protocol,
-      api.hostname,
-      api.baseRoute.addRoute(route),
+      Protocol.HTTPS,
+      "catfact.ninja",
+      new Route("fact"),
     );
-    const got: HTTPResponse<JSONObject> = await (api as any)[name]({
+    const got: HTTPResponse<JSONObject> = await API.patch({
       url,
       data: requestData,
       headers: requestHeaders,
     });
 
-    // Check method, url (protocol, hostname, route), headers, request data
     expect(axios).toBeCalledWith(
       createAxiosParameters({
+        method: "PATCH",
         url: "https://catfact.ninja/fact",
-        method,
         data: requestData,
+        headers: mergedHeaders,
       }),
     );
     expect(got).toBeInstanceOf(HTTPResponse);
+  });
+
+  test("should make a PATCH request without data", async () => {
+    mockedAxios.mockResolvedValueOnce(createAxiosResponse());
+
+    const url: URL = new URL(
+      Protocol.HTTPS,
+      "catfact.ninja",
+      new Route("update"),
+    );
+    const got: HTTPResponse<JSONObject> = await API.patch({
+      url,
+    });
+
+    expect(axios).toBeCalledWith({
+      method: "PATCH",
+      url: "https://catfact.ninja/update",
+      headers: DEFAULT_HEADERS,
+      data: undefined,
+    });
+    expect(got).toBeInstanceOf(HTTPResponse);
+  });
+});
+
+describe("API.getFriendlyErrorMessage", () => {
+  test("should return error message from AxiosError", () => {
+    const errorMessage: string = "Request failed";
+    const axiosError: AxiosError = createAxiosError({
+      message: errorMessage,
+    });
+
+    const message: string = API.getFriendlyErrorMessage(axiosError);
+    expect(message).toBe(errorMessage);
+  });
+
+  test("should return error message from regular Error", () => {
+    const error: Error = new Error("Something went wrong");
+    const message: string = API.getFriendlyErrorMessage(error);
+    expect(message).toBe("Something went wrong");
+  });
+
+  test("should handle error and return non-empty string", () => {
+    const customError: Error = new Error("Network timeout occurred");
+    const message: string = API.getFriendlyErrorMessage(customError);
+    expect(message.length).toBeGreaterThan(0);
+  });
+
+  test("should return string type result", () => {
+    const error: Error = new Error("Test error");
+    const message: string = API.getFriendlyErrorMessage(error);
+    expect(typeof message).toBe("string");
+    expect(message.length).toBeGreaterThan(0);
+  });
+});
+
+describe("API instance properties", () => {
+  test("should return protocol with trailing slashes", () => {
+    const api: API = new API(Protocol.HTTPS, new Hostname("example.com"));
+    expect(api.protocol).toBe("https://");
+  });
+
+  test("should return protocol for HTTP", () => {
+    const api: API = new API(Protocol.HTTP, new Hostname("localhost"));
+    expect(api.protocol).toBe("http://");
+  });
+
+  test("should return hostname as string", () => {
+    const hostname: string = "api.example.com";
+    const api: API = new API(Protocol.HTTPS, new Hostname(hostname));
+    expect(api.hostname.toString()).toBe(hostname);
+  });
+
+  test("should handle nested route in base route", () => {
+    const api: API = new API(
+      Protocol.HTTPS,
+      new Hostname("api.example.com"),
+      new Route("/v1/api"),
+    );
+    expect(api.baseRoute.toString()).toBe("/v1/api");
+  });
+});
+
+describe("API.fetch with options", () => {
+  test("should make request with query parameters", async () => {
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({ data: responseData }),
+    );
+
+    const params: Dictionary<string> = {
+      page: "1",
+      limit: "10",
+    };
+
+    await API.fetch({
+      method: HTTPMethod.GET,
+      url: new URL(Protocol.HTTPS, "api.example.com", new Route("items")),
+      params,
+    });
+
+    expect(axios).toBeCalledWith({
+      method: "GET",
+      url: "https://api.example.com/items?page=1&limit=10",
+      headers: DEFAULT_HEADERS,
+      data: undefined,
+    });
+  });
+
+  test("should handle empty params object", async () => {
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({ data: responseData }),
+    );
+
+    await API.fetch({
+      method: HTTPMethod.GET,
+      url: new URL(Protocol.HTTPS, "api.example.com", new Route("items")),
+      params: {},
+    });
+
+    expect(axios).toBeCalledWith({
+      method: "GET",
+      url: "https://api.example.com/items",
+      headers: DEFAULT_HEADERS,
+      data: undefined,
+    });
   });
 });

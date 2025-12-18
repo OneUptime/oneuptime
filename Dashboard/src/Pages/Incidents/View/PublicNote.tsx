@@ -38,6 +38,14 @@ import React, {
 } from "react";
 import AttachmentList from "../../../Components/Attachment/AttachmentList";
 import { getModelIdString } from "../../../Utils/ModelId";
+import GenerateFromAIModal, {
+  GenerateAIRequestData,
+} from "Common/UI/Components/AI/GenerateFromAIModal";
+import { PUBLIC_NOTE_TEMPLATES } from "Common/UI/Components/AI/AITemplates";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import URL from "Common/Types/API/URL";
+import { APP_API_URL } from "Common/UI/Config";
 
 const PublicNote: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -54,6 +62,40 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
   const [initialValuesForIncident, setInitialValuesForIncident] =
     useState<JSONObject>({});
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+  const [showGenerateFromAIModal, setShowGenerateFromAIModal] =
+    useState<boolean>(false);
+
+  const generateNoteFromAI: (
+    data: GenerateAIRequestData,
+  ) => Promise<string> = async (
+    data: GenerateAIRequestData,
+  ): Promise<string> => {
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
+          `/incident/generate-note-from-ai/${modelId.toString()}`,
+        ),
+        data: {
+          template: data.template,
+          noteType: "public",
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      throw new Error(response.message || "Failed to generate note from AI");
+    }
+
+    return response.data["note"] as string;
+  };
+
+  const handleAIGenerationSuccess: (generatedContent: string) => void = (
+    generatedContent: string,
+  ): void => {
+    setShowGenerateFromAIModal(false);
+    setInitialValuesForIncident({
+      note: generatedContent,
+    });
+  };
 
   const handleResendNotification: (
     item: IncidentPublicNote,
@@ -168,6 +210,14 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Public Notes",
           buttons: [
+            {
+              title: "Generate from AI",
+              icon: IconProp.Bolt,
+              buttonStyle: ButtonStyleType.OUTLINE,
+              onClick: async (): Promise<void> => {
+                setShowGenerateFromAIModal(true);
+              },
+            },
             {
               title: "Create from Template",
               icon: IconProp.Template,
@@ -424,6 +474,19 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         />
       ) : (
         <> </>
+      )}
+
+      {showGenerateFromAIModal && (
+        <GenerateFromAIModal
+          title="Generate Public Note from AI"
+          description="AI will analyze the incident data and generate a customer-facing public note."
+          templates={PUBLIC_NOTE_TEMPLATES}
+          onClose={() => {
+            setShowGenerateFromAIModal(false);
+          }}
+          onGenerate={generateNoteFromAI}
+          onSuccess={handleAIGenerationSuccess}
+        />
       )}
     </Fragment>
   );

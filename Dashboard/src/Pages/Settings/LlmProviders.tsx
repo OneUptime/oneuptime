@@ -7,7 +7,7 @@ import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { APP_API_URL } from "Common/UI/Config";
+import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmType from "Common/Types/LLM/LlmType";
@@ -150,6 +150,24 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               type: FieldType.Text,
               noValueMessage: "-",
             },
+            ...(BILLING_ENABLED
+              ? [
+                  {
+                    field: {
+                      costPerMillionTokensInUSDCents: true,
+                    },
+                    title: "Cost per 1000 Tokens",
+                    type: FieldType.Text,
+                    getElement: (item: LlmProvider): ReactElement => {
+                      const costPerMillionInCents: number =
+                        item.costPerMillionTokensInUSDCents || 0;
+                      const costPer1000InUSD: number =
+                        costPerMillionInCents / 100 / 1000;
+                      return <span>${costPer1000InUSD.toFixed(4)} USD</span>;
+                    },
+                  },
+                ]
+              : []),
           ]}
         />
 
@@ -175,8 +193,9 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isCreateable={true}
           cardProps={{
             title: "Bring Your Own Large Language Model",
-            description:
-              "Configure LLM Providers for AI features. Connect to OpenAI, Anthropic, Ollama, or other providers.",
+            description: BILLING_ENABLED
+              ? "Configure LLM Providers for AI features. Connect to OpenAI, Anthropic, Ollama, or other providers. You will not be charged for AI usage when you bring your own models."
+              : "Configure LLM Providers for AI features. Connect to OpenAI, Anthropic, Ollama, or other providers.",
           }}
           selectMoreFields={{
             apiKey: true,

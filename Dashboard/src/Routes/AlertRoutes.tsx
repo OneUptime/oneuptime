@@ -31,6 +31,11 @@ const AlertViewNotificationLogs: LazyExoticComponent<
   return import("../Pages/Alerts/View/NotificationLogs");
 });
 
+const AlertViewAILogs: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Alerts/View/AILogs");
+  });
+
 const AlertsWorkspaceConnectionSlack: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -189,6 +194,18 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[PageMap.ALERT_VIEW_NOTIFICATION_LOGS] as Route
                 }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_AI_LOGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertViewAILogs
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_VIEW_AI_LOGS] as Route}
               />
             </Suspense>
           }

@@ -44,6 +44,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     partitionKey: string;
     projections?: Array<Projection> | undefined;
     materializedViews?: Array<MaterializedView> | undefined;
+    enableMCP?: boolean | undefined;
   }) {
     super({
       tableColumns: data.tableColumns,
@@ -146,6 +147,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.partitionKey = data.partitionKey;
     this.projections = data.projections || [];
     this.materializedViews = data.materializedViews || [];
+    this.enableMCP = data.enableMCP || false;
   }
 
   private _enableWorkflowOn: EnableWorkflowOn | undefined;
@@ -270,6 +272,14 @@ export default class AnalyticsBaseModel extends CommonModel {
   }
   public set materializedViews(v: Array<MaterializedView>) {
     this._materializedViews = v;
+  }
+
+  private _enableMCP: boolean = false;
+  public get enableMCP(): boolean {
+    return this._enableMCP;
+  }
+  public set enableMCP(v: boolean) {
+    this._enableMCP = v;
   }
 
   public getTenantColumn(): AnalyticsTableColumn | null {

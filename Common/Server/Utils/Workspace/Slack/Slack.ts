@@ -1892,8 +1892,221 @@ export default class SlackUtil extends WorkspaceBase {
     return apiResult;
   }
 
+  /**
+   * Converts markdown tables to a Slack-friendly format.
+   * Since Slack's mrkdwn doesn't support tables, we convert them to
+   * a row-by-row format with bold headers.
+   */
+  private static convertMarkdownTablesToSlackFormat(markdown: string): string {
+    // Regular expression to match markdown tables
+    const tableRegex: RegExp =
+      /(?:^|\n)((?:\|[^\n]+\|\n)+(?:\|[-:\s|]+\|\n)(?:\|[^\n]+\|\n?)+)/g;
+
+    return markdown.replace(
+      tableRegex,
+      (_match: string, table: string): string => {
+        const lines: Array<string> = table.trim().split("\n");
+
+        if (lines.length < 2) {
+          return table;
+        }
+
+        // Parse header row
+        const headerLine: string = lines[0] || "";
+        const headers: Array<string> = headerLine
+          .split("|")
+          .map((cell: string) => {
+            return cell.trim();
+          })
+          .filter((cell: string) => {
+            return cell.length > 0;
+          });
+
+        /*
+         * Skip separator line (line with dashes)
+         * Find data rows (skip header and separator)
+         */
+        const dataRows: Array<string> = lines.slice(2);
+        const formattedRows: Array<string> = [];
+
+        for (let rowIndex: number = 0; rowIndex < dataRows.length; rowIndex++) {
+          const row: string = dataRows[rowIndex] || "";
+          const cells: Array<string> = row
+            .split("|")
+            .map((cell: string) => {
+              return cell.trim();
+            })
+            .filter((cell: string) => {
+              return cell.length > 0;
+            });
+
+          if (cells.length === 0) {
+            continue;
+          }
+
+          const rowParts: Array<string> = [];
+          for (
+            let cellIndex: number = 0;
+            cellIndex < cells.length;
+            cellIndex++
+          ) {
+            const header: string =
+              headers[cellIndex] || `Column ${cellIndex + 1}`;
+            const value: string = cells[cellIndex] || "";
+            rowParts.push(`*${header}:* ${value}`);
+          }
+
+          if (dataRows.length > 1) {
+            formattedRows.push(`_Row ${rowIndex + 1}_\n${rowParts.join("\n")}`);
+          } else {
+            formattedRows.push(rowParts.join("\n"));
+          }
+        }
+
+        return "\n" + formattedRows.join("\n\n") + "\n";
+      },
+    );
+  }
+
   @CaptureSpan()
   public static convertMarkdownToSlackRichText(markdown: string): string {
-    return SlackifyMarkdown(markdown);
+    // First convert tables to Slack-friendly format
+    const markdownWithConvertedTables: string =
+      this.convertMarkdownTablesToSlackFormat(markdown);
+    return SlackifyMarkdown(markdownWithConvertedTables);
+  }
+
+  @CaptureSpan()
+  public static async getChannelMessages(params: {
+    channelId: string;
+    authToken: string;
+    limit?: number;
+    oldestTimestamp?: Date;
+  }): Promise<
+    Array<{
+      messageId: string;
+      text: string;
+      userId?: string;
+      username?: string;
+      timestamp: Date;
+      isBot: boolean;
+    }>
+  > {
+    const messages: Array<{
+      messageId: string;
+      text: string;
+      userId?: string;
+      username?: string;
+      timestamp: Date;
+      isBot: boolean;
+    }> = [];
+    let cursor: string | undefined = undefined;
+    const maxMessages: number = params.limit || 1000;
+    const maxPages: number = 10;
+    let pageCount: number = 0;
+
+    do {
+      const requestData: JSONObject = {
+        channel: params.channelId,
+        limit: Math.min(200, maxMessages - messages.length),
+      };
+
+      if (cursor) {
+        requestData["cursor"] = cursor;
+      }
+
+      if (params.oldestTimestamp) {
+        requestData["oldest"] = (
+          params.oldestTimestamp.getTime() / 1000
+        ).toString();
+      }
+
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post<JSONObject>({
+          url: URL.fromString("https://slack.com/api/conversations.history"),
+          data: requestData,
+          headers: {
+            Authorization: `Bearer ${params.authToken}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          options: {
+            retries: 3,
+            exponentialBackoff: true,
+          },
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        logger.error("Error response from Slack API for channel history:");
+        logger.error(response);
+        break;
+      }
+
+      const jsonData: JSONObject = response.jsonData as JSONObject;
+
+      if (jsonData["ok"] !== true) {
+        logger.error("Invalid response from Slack API for channel history:");
+        logger.error(jsonData);
+        break;
+      }
+
+      const slackMessages: Array<JSONObject> =
+        (jsonData["messages"] as Array<JSONObject>) || [];
+
+      for (const msg of slackMessages) {
+        // Skip bot messages if they're from the OneUptime bot (app messages)
+        const isBot: boolean =
+          Boolean(msg["bot_id"]) || msg["subtype"] === "bot_message";
+
+        // Extract text, handling attachments and blocks
+        let text: string = (msg["text"] as string) || "";
+
+        // If there are attachments, append their text
+        const attachments: Array<JSONObject> | undefined = msg[
+          "attachments"
+        ] as Array<JSONObject> | undefined;
+        if (attachments && Array.isArray(attachments)) {
+          for (const attachment of attachments) {
+            if (attachment && attachment["text"]) {
+              text += "\n" + (attachment["text"] as string);
+            }
+            if (attachment && attachment["fallback"]) {
+              text += "\n" + (attachment["fallback"] as string);
+            }
+          }
+        }
+
+        // Skip empty messages
+        if (!text.trim()) {
+          continue;
+        }
+
+        const timestamp: Date = msg["ts"]
+          ? new Date(parseFloat(msg["ts"] as string) * 1000)
+          : new Date();
+
+        messages.push({
+          messageId: msg["ts"] as string,
+          text: text,
+          userId: msg["user"] as string,
+          username: msg["username"] as string,
+          timestamp: timestamp,
+          isBot: isBot,
+        });
+      }
+
+      cursor = (jsonData["response_metadata"] as JSONObject)?.[
+        "next_cursor"
+      ] as string;
+      pageCount++;
+    } while (cursor && messages.length < maxMessages && pageCount < maxPages);
+
+    logger.debug(
+      `Retrieved ${messages.length} messages from Slack channel ${params.channelId}`,
+    );
+
+    // Reverse to get chronological order (Slack returns newest first)
+    messages.reverse();
+
+    return messages;
   }
 }

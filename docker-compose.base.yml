@@ -46,6 +46,7 @@ x-common-variables: &common-variables
     SERVER_API_REFERENCE_HOSTNAME: api-reference
     SERVER_DOCS_HOSTNAME: docs
     SERVER_SERVER_MONITOR_INGEST_HOSTNAME: server-monitor-ingest
+    SERVER_MCP_HOSTNAME: mcp
 
     #Ports. Usually they don't need to change. 
     APP_PORT: ${APP_PORT}
@@ -64,6 +65,7 @@ x-common-variables: &common-variables
     API_REFERENCE_PORT: ${API_REFERENCE_PORT}
     DOCS_PORT: ${DOCS_PORT}
     SERVER_MONITOR_INGEST_PORT: ${SERVER_MONITOR_INGEST_PORT}
+    MCP_PORT: ${MCP_PORT}
 
     OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
     OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
@@ -134,9 +136,16 @@ x-common-runtime-variables: &common-runtime-variables
     SLACK_APP_SIGNING_SECRET: ${SLACK_APP_SIGNING_SECRET}
 
     # Microsoft Teams Configuration
-    
+
     MICROSOFT_TEAMS_APP_CLIENT_SECRET: ${MICROSOFT_TEAMS_APP_CLIENT_SECRET}
     CAPTCHA_SECRET_KEY: ${CAPTCHA_SECRET_KEY}
+
+    # GitHub App Configuration
+    GITHUB_APP_ID: ${GITHUB_APP_ID}
+    GITHUB_APP_CLIENT_ID: ${GITHUB_APP_CLIENT_ID}
+    GITHUB_APP_CLIENT_SECRET: ${GITHUB_APP_CLIENT_SECRET}
+    GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY}
+    GITHUB_APP_WEBHOOK_SECRET: ${GITHUB_APP_WEBHOOK_SECRET}
 
 services:
 
@@ -501,9 +510,22 @@ services:
             options:
                 max-size: "1000m"
     
+    mcp:
+        networks:
+          - oneuptime
+        restart: always
+        environment:
+            <<: *common-runtime-variables
+            PORT: ${MCP_PORT}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_MCP}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
+
     e2e:
         restart: "no"
-        network_mode: host # This is needed to access the host network, 
+        network_mode: host # This is needed to access the host network,
         environment:
             <<: *common-variables
             E2E_TEST_IS_USER_REGISTERED: ${E2E_TEST_IS_USER_REGISTERED}

@@ -86,84 +86,45 @@ jobs:
           echo "patch=${target_patch}" >> "$GITHUB_OUTPUT"
           echo "Using version base: ${new_version}"
 
-  publish-mcp-server:
+  mcp-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     env:
-      CI_PIPELINE_ID: ${{ github.run_number }}
-      NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-    permissions:
-      contents: write  # For creating releases
-      packages: write  # For publishing packages
+      QEMU_CPU: max
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
         with:
-          fetch-depth: 0  # Full history for changelog generation
+          images: |
+            oneuptime/mcp
+            ghcr.io/oneuptime/mcp
+          tags: |
+            type=raw,value=test,enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}-test,enable=true
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v4
         with:
           node-version: latest
-          cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
 
-      - name: Install Common dependencies
-        run: cd Common && npm install
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v10.0.4
 
-      - name: Install root dependencies
-        run: npm install
-
-      - name: Install Script dependencies
-        run: cd Scripts && npm install
-
-      - name: Determine version
-        id: version
-        run: |
-          VERSION="${{needs.read-version.outputs.major_minor}}-test"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Publishing MCP server version: $VERSION"
-
-      - name: Verify MCP server directory
-        run: |
-          MCP_DIR="./MCP"
-          
-          if [ ! -d "$MCP_DIR" ]; then
-            echo "❌ MCP server directory not found"
-            exit 1
-          fi
-          
-          echo "✅ MCP server directory found"
-          echo "📊 Source files:"
-          find "$MCP_DIR" -type f -name "*.ts" -o -name "*.js" -o -name "*.json" | wc -l
-          echo "📁 Directory structure:"
-          ls -la "$MCP_DIR"
-
-      - name: Update package version
-        run: |
-          cd MCP
-          npm version ${{ steps.version.outputs.version }} --no-git-tag-version
-
-      - name: Install dependencies and build
-        run: |
-          cd MCP
-          npm update @oneuptime/common
-          npm install
-          npm run build
-
-      - name: Run tests
-        run: |
-          cd MCP
-          npm test || echo "No tests found or tests failed, continuing..."
-
-      - name: Publish to npm (dry run for test releases)
-        run: |
-          cd MCP
-          npm pack --dry-run
-          echo "✅ Dry run completed successfully for test release"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
+      # Build and deploy mcp.
 
       - name: Login to Docker Hub
         run: |
@@ -173,31 +134,23 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
 
-      - name: Build and push Docker images (test)
+      - name: Build and push
         run: |
           bash ./Scripts/GHA/build_docker_images.sh \
-            --image mcp-server \
-            --version "${{ steps.version.outputs.version }}" \
-            --dockerfile ./MCP/Dockerfile.tpl \
+            --image mcp \
+            --version "${{needs.read-version.outputs.major_minor}}-test" \
+            --dockerfile ./MCP/Dockerfile \
             --context . \
             --platforms linux/amd64,linux/arm64 \
             --git-sha "${{ github.sha }}" \
             --extra-tags test \
             --extra-enterprise-tags enterprise-test
-          echo "✅ Pushed test Docker images to Docker Hub and GitHub Container Registry"
-
-      - name: Upload MCP server artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mcp-server-${{ steps.version.outputs.version }}
-          path: ./MCP/
-          retention-days: 90
-
-  
 
   nginx-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -257,6 +210,8 @@ jobs:
   e2e-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -315,6 +270,8 @@ jobs:
   test-server-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -373,6 +330,8 @@ jobs:
   otel-collector-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -431,6 +390,8 @@ jobs:
   isolated-vm-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -489,6 +450,8 @@ jobs:
   home-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -549,6 +512,8 @@ jobs:
   status-page-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -609,6 +574,8 @@ jobs:
   test-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -667,6 +634,8 @@ jobs:
   probe-ingest-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -727,6 +696,8 @@ jobs:
   server-monitor-ingest-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -786,6 +757,8 @@ jobs:
   incoming-request-ingest-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -844,6 +817,8 @@ jobs:
   telemetry-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -902,6 +877,8 @@ jobs:
   probe-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -960,6 +937,8 @@ jobs:
   dashboard-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -1018,6 +997,8 @@ jobs:
   admin-dashboard-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -1076,6 +1057,8 @@ jobs:
   app-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -1137,6 +1120,8 @@ jobs:
   api-reference-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -1196,6 +1181,8 @@ jobs:
   accounts-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -1254,6 +1241,8 @@ jobs:
   worker-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -1313,6 +1302,8 @@ jobs:
   workflow-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -1372,6 +1363,8 @@ jobs:
   docs-docker-image-deploy:
     needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
+    env:
+      QEMU_CPU: max
     steps:
       - name: Docker Meta
         id: meta
@@ -1443,7 +1436,7 @@ jobs:
 
   test-helm-chart:
     runs-on: ubuntu-latest
-    needs: [infrastructure-agent-deploy, publish-mcp-server, publish-terraform-provider, telemetry-docker-image-deploy, docs-docker-image-deploy, worker-docker-image-deploy,  workflow-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, api-reference-docker-image-deploy,  test-server-docker-image-deploy, test-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, probe-docker-image-deploy, dashboard-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, accounts-docker-image-deploy, otel-collector-docker-image-deploy, status-page-docker-image-deploy, nginx-docker-image-deploy, e2e-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
+    needs: [infrastructure-agent-deploy, mcp-docker-image-deploy, publish-terraform-provider, telemetry-docker-image-deploy, docs-docker-image-deploy, worker-docker-image-deploy,  workflow-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, api-reference-docker-image-deploy,  test-server-docker-image-deploy, test-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, probe-docker-image-deploy, dashboard-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, accounts-docker-image-deploy, otel-collector-docker-image-deploy, status-page-docker-image-deploy, nginx-docker-image-deploy, e2e-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:

@@ -347,7 +347,9 @@ export default class BaseAPI<
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
-    const objectId: ObjectID = new ObjectID(req.params["id"] as string);
+    const idParam: string = req.params["id"] as string;
+    ObjectID.validateUUID(idParam);
+    const objectId: ObjectID = new ObjectID(idParam);
     await this.onBeforeGet(req, res);
     let select: Select<BaseModel> = {};
 
@@ -372,7 +374,9 @@ export default class BaseAPI<
     res: ExpressResponse,
   ): Promise<void> {
     await this.onBeforeDelete(req, res);
-    const objectId: ObjectID = new ObjectID(req.params["id"] as string);
+    const idParam: string = req.params["id"] as string;
+    ObjectID.validateUUID(idParam);
+    const objectId: ObjectID = new ObjectID(idParam);
 
     await this.service.deleteOneById({
       id: objectId,
@@ -388,7 +392,9 @@ export default class BaseAPI<
     res: ExpressResponse,
   ): Promise<void> {
     await this.onBeforeUpdate(req, res);
-    const objectId: ObjectID = new ObjectID(req.params["id"] as string);
+    const idParam: string = req.params["id"] as string;
+    ObjectID.validateUUID(idParam);
+    const objectId: ObjectID = new ObjectID(idParam);
     const objectIdString: string = objectId.toString();
     const body: JSONObject = req.body;
 

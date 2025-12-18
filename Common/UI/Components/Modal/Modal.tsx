@@ -39,15 +39,20 @@ const Modal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   let iconBgColor: string = "bg-indigo-100";
+  let iconColor: string = "text-indigo-600";
 
   if (props.iconType === IconType.Info) {
     iconBgColor = "bg-indigo-100";
+    iconColor = "text-indigo-600";
   } else if (props.iconType === IconType.Warning) {
     iconBgColor = "bg-yellow-100";
+    iconColor = "text-yellow-600";
   } else if (props.iconType === IconType.Success) {
     iconBgColor = "bg-green-100";
+    iconColor = "text-green-600";
   } else if (props.iconType === IconType.Danger) {
     iconBgColor = "bg-red-100";
+    iconColor = "text-red-600";
   }
 
   return (
@@ -98,7 +103,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                         ? IconType.Info
                         : props.iconType
                     }
-                    className={"text-red-600 h-6 w-6 stroke-2"}
+                    className={`${iconColor} h-6 w-6 stroke-2`}
                     icon={props.icon}
                     size={SizeProp.Large}
                   />

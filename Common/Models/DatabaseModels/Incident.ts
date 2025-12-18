@@ -17,6 +17,7 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
+import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import MultiTenentQueryAllowed from "../../Types/Database/MultiTenentQueryAllowed";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
@@ -42,6 +43,7 @@ import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 
 @EnableDocumentation()
+@EnableMCP()
 @AccessControlColumn("labels")
 @MultiTenentQueryAllowed(true)
 @TenantColumn("projectId")

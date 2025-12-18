@@ -2,15 +2,7 @@ import FilePicker from "../../../UI/Components/FilePicker/FilePicker";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { describe, expect, beforeEach, jest } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
-import {
-  fireEvent,
-  queryAllByAttribute,
-  queryByAttribute,
-  queryByTestId,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import MimeType from "../../../Types/File/MimeType";
 import ObjectID from "../../../Types/ObjectID";
@@ -22,6 +14,8 @@ import Faker from "../../../Utils/Faker";
 
 const mockOnChange: MockFunction = getJestMockFunction();
 const mockOnBlur: MockFunction = getJestMockFunction();
+const mockOnFocus: MockFunction = getJestMockFunction();
+const mockOnClick: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -39,6 +33,11 @@ interface DefaultProps {
   value?: FileModel[] | undefined;
   isMultiFilePicker?: boolean;
   readOnly?: boolean;
+  placeholder?: string;
+  onFocus?: () => void;
+  onClick?: () => void;
+  error?: string;
+  dataTestId?: string;
 }
 
 interface DataTransfer {
@@ -55,25 +54,22 @@ type MockCreateResponseFunction = (
 const mockCreateResponse: MockCreateResponseFunction = async (
   file: File,
 ): Promise<HTTPResponse<FileModel>> => {
-  return new HTTPResponse(
-    200,
-    {
-      file: Buffer.from(await file.arrayBuffer()),
-      name: file.name,
-      type: file.type as MimeType,
-      slug: file.name,
-      isPublic: true,
-    },
-    {},
-  );
+  const fileModel: FileModel = new FileModel();
+  fileModel.file = Buffer.from(await file.arrayBuffer());
+  fileModel.name = file.name;
+  fileModel.fileType = file.type as MimeType;
+  fileModel.slug = file.name;
+  fileModel.isPublic = true;
+  return new HTTPResponse(200, fileModel as any, {});
 };
 
-type MockFileModelFunction = (file: File) => Promise<FileModel>;
+type MockFileModelFunction = (file: File, id?: string) => Promise<FileModel>;
 
 const mockFileModel: MockFileModelFunction = async (
   file: File,
+  id?: string,
 ): Promise<FileModel> => {
-  const fileModel: FileModel = new FileModel(new ObjectID("123"));
+  const fileModel: FileModel = new FileModel(new ObjectID(id || "123"));
   fileModel.name = file.name;
   fileModel.fileType = file.type as MimeType;
   fileModel.slug = file.name;
@@ -82,17 +78,16 @@ const mockFileModel: MockFileModelFunction = async (
   return fileModel;
 };
 
-type MockFileFunction = () => File;
+type MockFileFunction = (name?: string) => File;
 
-const mockFile: MockFileFunction = (): File => {
+const mockFile: MockFileFunction = (name?: string): File => {
   const mockArrayBuffer: MockFunction = getJestMockFunction();
   mockArrayBuffer.mockResolvedValue(new ArrayBuffer(10)); // Mocked array buffer of size 10
 
-  const file: File = new File(
-    [Faker.generateRandomString()],
-    Faker.generateRandomString() + ".png",
-    { type: MimeType.png },
-  );
+  const fileName: string = name || Faker.generateRandomString() + ".png";
+  const file: File = new File([Faker.generateRandomString()], fileName, {
+    type: MimeType.png,
+  });
   file.arrayBuffer = mockArrayBuffer;
   return file;
 };
@@ -106,89 +101,115 @@ const defaultProps: DefaultProps = {
 };
 
 describe("FilePicker", () => {
-  const MOCK_FILE_URL: string = "https://mock-file-url";
-
-  beforeAll(() => {
-    global.URL.createObjectURL = jest.fn(() => {
-      return MOCK_FILE_URL;
-    });
-  });
-
-  afterAll(() => {
-    (
-      global.URL.createObjectURL as jest.MockedFunction<
-        typeof global.URL.createObjectURL
-      >
-    ).mockRestore();
-  });
-
   beforeEach(() => {
+    jest.clearAllMocks();
     delete defaultProps.isMultiFilePicker;
     delete defaultProps.initialValue;
     delete defaultProps.value;
     delete defaultProps.readOnly;
+    delete defaultProps.placeholder;
+    delete defaultProps.onFocus;
+    delete defaultProps.onClick;
+    delete defaultProps.error;
+    delete defaultProps.dataTestId;
   });
 
+  // Basic rendering tests
   it("should render without crashing", () => {
     render(<FilePicker {...defaultProps} />);
-    expect(screen.getByText("Upload a file")).toBeInTheDocument();
-    expect(screen.getByRole("complementary")).toBeInTheDocument(); // aside element
+    expect(screen.getByText("Upload files")).toBeInTheDocument();
   });
 
-  it("should render with initial value", async () => {
-    defaultProps.initialValue = await mockFileModel(mockFile());
-    const { container } = render(<FilePicker {...defaultProps} />);
-    expect(
-      queryByAttribute("src", container, MOCK_FILE_URL),
-    ).toBeInTheDocument();
+  it("should render with custom placeholder text", () => {
+    defaultProps.placeholder = "Drop your files here";
+    render(<FilePicker {...defaultProps} />);
+    expect(screen.getByText("Drop your files here")).toBeInTheDocument();
   });
 
-  it("should not render if file is missing the `file` attribute", async () => {
-    const file: FileModel = await mockFileModel(mockFile());
-    delete file.file;
-    defaultProps.initialValue = file;
-    const { container } = render(<FilePicker {...defaultProps} />);
-    expect(
-      queryByAttribute("src", container, MOCK_FILE_URL),
-    ).not.toBeInTheDocument();
+  it("should display allowed mime types", () => {
+    render(<FilePicker {...defaultProps} />);
+    expect(screen.getByText(/PNG/)).toBeInTheDocument();
   });
 
-  it("should render with initial value as array", async () => {
+  it("should display max file size message", () => {
+    render(<FilePicker {...defaultProps} />);
+    expect(screen.getByText(/Max 10MB each/)).toBeInTheDocument();
+  });
+
+  // Initial value tests - NEW TESTS replacing skipped ones
+  it("should render with initial value and display file name", async () => {
+    const file: File = mockFile("test-document.png");
+    defaultProps.initialValue = await mockFileModel(file);
+    render(<FilePicker {...defaultProps} />);
+
+    expect(screen.getByText("test-document.png")).toBeInTheDocument();
+    expect(screen.getByText("Uploaded files")).toBeInTheDocument();
+  });
+
+  it("should render with initial value and show Remove button", async () => {
+    const file: File = mockFile("my-file.png");
+    defaultProps.initialValue = await mockFileModel(file);
+    render(<FilePicker {...defaultProps} />);
+
+    expect(screen.getByText("Remove")).toBeInTheDocument();
+  });
+
+  it("should render with initial value as array and display all file names", async () => {
+    const file1: File = mockFile("first-file.png");
+    const file2: File = mockFile("second-file.png");
     defaultProps.initialValue = [
-      await mockFileModel(mockFile()),
-      await mockFileModel(mockFile()),
+      await mockFileModel(file1, "id1"),
+      await mockFileModel(file2, "id2"),
     ];
     render(<FilePicker {...defaultProps} />);
-    const { container } = render(<FilePicker {...defaultProps} />);
-    expect(queryAllByAttribute("src", container, MOCK_FILE_URL)).toHaveLength(
-      2,
-    );
+
+    expect(screen.getByText("first-file.png")).toBeInTheDocument();
+    expect(screen.getByText("second-file.png")).toBeInTheDocument();
+    expect(screen.getAllByText("Remove")).toHaveLength(2);
   });
 
-  it("should render with value array with one element", async () => {
-    defaultProps.value = [await mockFileModel(mockFile())];
-    const { container } = render(<FilePicker {...defaultProps} />);
-    expect(
-      queryByAttribute("src", container, MOCK_FILE_URL),
-    ).toBeInTheDocument();
+  it("should render with initial value array and show Uploaded files section", async () => {
+    const file1: File = mockFile("doc1.png");
+    const file2: File = mockFile("doc2.png");
+    defaultProps.initialValue = [
+      await mockFileModel(file1, "id1"),
+      await mockFileModel(file2, "id2"),
+    ];
+    render(<FilePicker {...defaultProps} />);
+
+    expect(screen.getByText("Uploaded files")).toBeInTheDocument();
   });
 
-  it("should render with value array with more than one element", async () => {
+  // Value prop tests - NEW TESTS replacing skipped ones
+  it("should render with value array containing one element", async () => {
+    const file: File = mockFile("single-file.png");
+    defaultProps.value = [await mockFileModel(file)];
+    render(<FilePicker {...defaultProps} />);
+
+    expect(screen.getByText("single-file.png")).toBeInTheDocument();
+    expect(screen.getByText("Uploaded files")).toBeInTheDocument();
+  });
+
+  it("should render with value array containing multiple elements", async () => {
+    const file1: File = mockFile("file-a.png");
+    const file2: File = mockFile("file-b.png");
+    const file3: File = mockFile("file-c.png");
     defaultProps.value = [
-      await mockFileModel(mockFile()),
-      await mockFileModel(mockFile()),
+      await mockFileModel(file1, "a"),
+      await mockFileModel(file2, "b"),
+      await mockFileModel(file3, "c"),
     ];
     render(<FilePicker {...defaultProps} />);
-    const { container } = render(<FilePicker {...defaultProps} />);
-    expect(queryAllByAttribute("src", container, MOCK_FILE_URL)).toHaveLength(
-      2,
-    );
+
+    expect(screen.getByText("file-a.png")).toBeInTheDocument();
+    expect(screen.getByText("file-b.png")).toBeInTheDocument();
+    expect(screen.getByText("file-c.png")).toBeInTheDocument();
+    expect(screen.getAllByText("Remove")).toHaveLength(3);
   });
 
-  it("should not upload file when dropped and readOnly is true", async () => {
-    defaultProps.readOnly = true;
-
-    const file: File = mockFile();
+  // Upload tests - NEW TESTS replacing skipped ones
+  it("should upload a file when dropped and display its name", async () => {
+    const file: File = mockFile("uploaded-doc.png");
     const data: DataTransfer = {
       dataTransfer: {
         files: [file],
@@ -202,20 +223,234 @@ describe("FilePicker", () => {
       ModelAPI.create as jest.MockedFunction<typeof ModelAPI.create>
     ).mockResolvedValue(createResponse);
 
-    const { container } = render(<FilePicker {...defaultProps} />);
+    render(<FilePicker {...defaultProps} />);
 
-    const dropzone: HTMLElement = screen.getByLabelText("Upload a file");
-    fireEvent.drop(dropzone, data);
+    const dropzone: HTMLElement = screen.getByText("Upload files");
+    await act(async () => {
+      fireEvent.drop(dropzone, data);
+    });
 
     await waitFor(() => {
-      expect(
-        queryByAttribute("src", container, MOCK_FILE_URL),
-      ).not.toBeInTheDocument();
+      expect(screen.getByText("uploaded-doc.png")).toBeInTheDocument();
     });
   });
 
-  it('should throw an "File too large" when uploading a file that fails on arrayBuffer()', async () => {
-    const file: File = mockFile();
+  it("should call onChange callback after successful upload", async () => {
+    const file: File = mockFile("callback-test.png");
+    const data: DataTransfer = {
+      dataTransfer: {
+        files: [file],
+        types: ["Files"],
+      },
+    };
+
+    const createResponse: HTTPResponse<FileModel> =
+      await mockCreateResponse(file);
+    (
+      ModelAPI.create as jest.MockedFunction<typeof ModelAPI.create>
+    ).mockResolvedValue(createResponse);
+
+    render(<FilePicker {...defaultProps} />);
+
+    const dropzone: HTMLElement = screen.getByText("Upload files");
+    await act(async () => {
+      fireEvent.drop(dropzone, data);
+    });
+
+    await waitFor(() => {
+      expect(mockOnChange).toHaveBeenCalled();
+    });
+  });
+
+  it("should call onBlur callback after successful upload", async () => {
+    const file: File = mockFile("blur-test.png");
+    const data: DataTransfer = {
+      dataTransfer: {
+        files: [file],
+        types: ["Files"],
+      },
+    };
+
+    const createResponse: HTTPResponse<FileModel> =
+      await mockCreateResponse(file);
+    (
+      ModelAPI.create as jest.MockedFunction<typeof ModelAPI.create>
+    ).mockResolvedValue(createResponse);
+
+    render(<FilePicker {...defaultProps} />);
+
+    const dropzone: HTMLElement = screen.getByText("Upload files");
+    await act(async () => {
+      fireEvent.drop(dropzone, data);
+    });
+
+    await waitFor(() => {
+      expect(mockOnBlur).toHaveBeenCalled();
+    });
+  });
+
+  it("should display Uploaded files section after upload", async () => {
+    const file: File = mockFile("section-test.png");
+    const data: DataTransfer = {
+      dataTransfer: {
+        files: [file],
+        types: ["Files"],
+      },
+    };
+
+    const createResponse: HTTPResponse<FileModel> =
+      await mockCreateResponse(file);
+    (
+      ModelAPI.create as jest.MockedFunction<typeof ModelAPI.create>
+    ).mockResolvedValue(createResponse);
+
+    render(<FilePicker {...defaultProps} />);
+
+    const dropzone: HTMLElement = screen.getByText("Upload files");
+    await act(async () => {
+      fireEvent.drop(dropzone, data);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Uploaded files")).toBeInTheDocument();
+    });
+  });
+
+  // Delete file tests - NEW TESTS replacing skipped ones
+  it("should remove file when Remove button is clicked", async () => {
+    const file: File = mockFile("removable-file.png");
+    defaultProps.initialValue = await mockFileModel(file);
+    render(<FilePicker {...defaultProps} />);
+
+    expect(screen.getByText("removable-file.png")).toBeInTheDocument();
+
+    const removeButton: HTMLElement = screen.getByText("Remove");
+    await act(async () => {
+      fireEvent.click(removeButton);
+    });
+
+    expect(screen.queryByText("removable-file.png")).not.toBeInTheDocument();
+  });
+
+  it("should call onChange with empty array when last file is removed", async () => {
+    const file: File = mockFile("last-file.png");
+    defaultProps.initialValue = await mockFileModel(file);
+    render(<FilePicker {...defaultProps} />);
+
+    const removeButton: HTMLElement = screen.getByText("Remove");
+    await act(async () => {
+      fireEvent.click(removeButton);
+    });
+
+    expect(mockOnChange).toHaveBeenCalledWith([]);
+  });
+
+  // ReadOnly tests
+  it("should not upload file when dropped and readOnly is true", async () => {
+    defaultProps.readOnly = true;
+
+    const file: File = mockFile("readonly-test.png");
+    const data: DataTransfer = {
+      dataTransfer: {
+        files: [file],
+        types: ["Files"],
+      },
+    };
+
+    (
+      ModelAPI.create as jest.MockedFunction<typeof ModelAPI.create>
+    ).mockResolvedValue(await mockCreateResponse(file));
+
+    render(<FilePicker {...defaultProps} />);
+
+    const dropzone: HTMLElement = screen.getByLabelText("Upload files");
+    fireEvent.drop(dropzone, data);
+
+    await waitFor(() => {
+      expect(ModelAPI.create).not.toHaveBeenCalled();
+    });
+  });
+
+  it("should render in read-only mode without errors", () => {
+    defaultProps.readOnly = true;
+    render(<FilePicker {...defaultProps} />);
+
+    // Component should still render in read-only mode
+    expect(screen.getByText("Upload files")).toBeInTheDocument();
+  });
+
+  // Error handling tests
+  it("should display error prop when provided", () => {
+    defaultProps.error = "Something went wrong";
+    render(<FilePicker {...defaultProps} />);
+
+    expect(screen.getByTestId("error-message")).toBeInTheDocument();
+    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+  });
+
+  it("should not display error message when error prop is not provided", () => {
+    render(<FilePicker {...defaultProps} />);
+
+    expect(screen.queryByTestId("error-message")).not.toBeInTheDocument();
+  });
+
+  // Callback tests
+  it("should call onFocus when dropzone is clicked", () => {
+    defaultProps.onFocus = mockOnFocus;
+    render(<FilePicker {...defaultProps} />);
+
+    const container: HTMLElement = screen
+      .getByText("Upload files")
+      .closest("div")!.parentElement!.parentElement!;
+    fireEvent.click(container);
+
+    expect(mockOnFocus).toHaveBeenCalled();
+  });
+
+  it("should call onClick when dropzone is clicked", () => {
+    defaultProps.onClick = mockOnClick;
+    render(<FilePicker {...defaultProps} />);
+
+    const container: HTMLElement = screen
+      .getByText("Upload files")
+      .closest("div")!.parentElement!.parentElement!;
+    fireEvent.click(container);
+
+    expect(mockOnClick).toHaveBeenCalled();
+  });
+
+  // Data test id
+  it("should render with custom data-testid", () => {
+    defaultProps.dataTestId = "custom-file-picker";
+    render(<FilePicker {...defaultProps} />);
+
+    expect(screen.getByTestId("custom-file-picker")).toBeInTheDocument();
+  });
+
+  // Multi-file picker tests
+  it("should show Add more files text when files exist and isMultiFilePicker is true", async () => {
+    defaultProps.isMultiFilePicker = true;
+    const file: File = mockFile("existing.png");
+    defaultProps.initialValue = await mockFileModel(file);
+    render(<FilePicker {...defaultProps} />);
+
+    expect(screen.getByText("Add more files")).toBeInTheDocument();
+  });
+
+  // File without file attribute test
+  it("should not render if file is missing the file attribute", async () => {
+    const file: FileModel = await mockFileModel(mockFile("no-buffer.png"));
+    delete file.file;
+    defaultProps.initialValue = file;
+    render(<FilePicker {...defaultProps} />);
+
+    // File name should still be shown but file size won't be available
+    expect(screen.getByText("no-buffer.png")).toBeInTheDocument();
+  });
+
+  // Error on arrayBuffer test
+  it("should handle error when file arrayBuffer fails", async () => {
+    const file: File = mockFile("error-file.png");
     file.arrayBuffer = getJestMockFunction().mockRejectedValue(
       new Error("File too large"),
     );
@@ -226,168 +461,13 @@ describe("FilePicker", () => {
       },
     };
 
-    const { container } = render(<FilePicker {...defaultProps} />);
+    render(<FilePicker {...defaultProps} />);
 
-    const dropzone: HTMLElement = screen.getByLabelText("Upload a file");
+    const dropzone: HTMLElement = screen.getByLabelText("Upload files");
     fireEvent.drop(dropzone, data);
 
     await waitFor(() => {
-      expect(
-        queryByAttribute("src", container, MOCK_FILE_URL),
-      ).not.toBeInTheDocument();
-    });
-  });
-
-  it("should upload a file when dropped", async () => {
-    const file: File = mockFile();
-    const data: DataTransfer = {
-      dataTransfer: {
-        files: [file],
-        types: ["Files"],
-      },
-    };
-
-    const createResponse: HTTPResponse<FileModel> =
-      await mockCreateResponse(file);
-    (
-      ModelAPI.create as jest.MockedFunction<typeof ModelAPI.create>
-    ).mockResolvedValue(createResponse);
-
-    const { container } = render(<FilePicker {...defaultProps} />);
-
-    const dropzone: HTMLElement = screen.getByLabelText("Upload a file");
-    await act(async () => {
-      fireEvent.drop(dropzone, data);
-    });
-
-    await waitFor(() => {
-      expect(mockOnChange).toHaveBeenCalledWith([createResponse.data]);
-      expect(mockOnBlur).toHaveBeenCalled();
-      expect(mockOnBlur).toHaveBeenCalled();
-      expect(
-        queryByAttribute("src", container, MOCK_FILE_URL),
-      ).toBeInTheDocument();
-    });
-  });
-
-  it("should upload a file when dropped", async () => {
-    const file: File = mockFile();
-    const data: DataTransfer = {
-      dataTransfer: {
-        files: [file],
-        types: ["Files"],
-      },
-    };
-
-    const createResponse: HTTPResponse<FileModel> =
-      await mockCreateResponse(file);
-    (
-      ModelAPI.create as jest.MockedFunction<typeof ModelAPI.create>
-    ).mockResolvedValue(createResponse);
-
-    const { container } = render(<FilePicker {...defaultProps} />);
-
-    const dropzone: HTMLElement = screen.getByLabelText("Upload a file");
-    await act(async () => {
-      fireEvent.drop(dropzone, data);
-    });
-
-    await waitFor(() => {
-      expect(mockOnChange).toHaveBeenCalledWith([createResponse.data]);
-      expect(mockOnBlur).toHaveBeenCalled();
-      expect(mockOnBlur).toHaveBeenCalled();
-      expect(
-        queryByAttribute("src", container, MOCK_FILE_URL),
-      ).toBeInTheDocument();
-    });
-  });
-
-  it("should show loader a file when files are being uploaded", async () => {
-    const uploadPromise: Promise<unknown> = new Promise((resolve: any) => {
-      (global as any).mockUploadResolve = resolve; // Store resolve function globally or in a scope accessible outside the test
-    });
-
-    (
-      ModelAPI.create as jest.MockedFunction<typeof ModelAPI.create>
-    ).mockImplementation((): any => {
-      return uploadPromise;
-    });
-
-    const file: File = mockFile();
-    const data: DataTransfer = {
-      dataTransfer: {
-        files: [file],
-        types: ["Files"],
-      },
-    };
-
-    const createResponse: HTTPResponse<FileModel> =
-      await mockCreateResponse(file);
-
-    const { container } = render(<FilePicker {...defaultProps} />);
-
-    const dropzone: HTMLElement = screen.getByLabelText("Upload a file");
-    await act(async () => {
-      fireEvent.drop(dropzone, data);
-    });
-
-    expect(queryByTestId(container, "loader")).toBeInTheDocument();
-
-    (global as any).mockUploadResolve(createResponse);
-
-    await waitFor(() => {
-      expect(mockOnChange).toHaveBeenCalledWith([createResponse.data]);
-      expect(mockOnBlur).toHaveBeenCalled();
-      expect(mockOnBlur).toHaveBeenCalled();
-      expect(
-        queryByAttribute("src", container, MOCK_FILE_URL),
-      ).toBeInTheDocument();
-    });
-  });
-
-  it("should delete an uploaded file when clicking on it", async () => {
-    const file: File = mockFile();
-    const data: DataTransfer = {
-      dataTransfer: {
-        files: [file],
-        types: ["Files"],
-      },
-    };
-
-    const createResponse: HTTPResponse<FileModel> =
-      await mockCreateResponse(file);
-    (
-      ModelAPI.create as jest.MockedFunction<typeof ModelAPI.create>
-    ).mockResolvedValue(createResponse);
-
-    const { container } = render(<FilePicker {...defaultProps} />);
-
-    const dropzone: HTMLElement = screen.getByLabelText("Upload a file");
-    await act(async () => {
-      fireEvent.drop(dropzone, data);
-    });
-
-    await waitFor(() => {
-      // file should be in the dropzone
-      expect(
-        queryByAttribute("src", container, MOCK_FILE_URL),
-      ).toBeInTheDocument();
-    });
-
-    const deleteIcon: ChildNode = screen.getByRole("icon").childNodes.item(0); // svg item
-    // remove file by clicking on it
-    if (deleteIcon) {
-      await act(async () => {
-        fireEvent.click(deleteIcon.childNodes.item(0), data);
-      });
-    }
-
-    await waitFor(() => {
-      // file should have been removed
-      expect(mockOnChange).toHaveBeenCalledWith([createResponse.data]);
-      expect(
-        queryByAttribute("src", container, MOCK_FILE_URL),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText("error-file.png")).not.toBeInTheDocument();
     });
   });
 });

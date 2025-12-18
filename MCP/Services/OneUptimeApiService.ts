@@ -1,48 +1,40 @@
+/**
+ * OneUptime API Service
+ * Handles communication with the OneUptime API
+ */
+
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
 import { OneUptimeToolCallArgs } from "../Types/McpTypes";
+import { generateAllFieldsSelect } from "./SelectFieldGenerator";
 import MCPLogger from "../Utils/MCPLogger";
-import API from "@oneuptime/common/Utils/API";
-import URL from "@oneuptime/common/Types/API/URL";
-import Route from "@oneuptime/common/Types/API/Route";
-import Headers from "@oneuptime/common/Types/API/Headers";
-import HTTPResponse from "@oneuptime/common/Types/API/HTTPResponse";
-import HTTPErrorResponse from "@oneuptime/common/Types/API/HTTPErrorResponse";
-import { JSONObject } from "@oneuptime/common/Types/JSON";
-import DatabaseModels from "@oneuptime/common/Models/DatabaseModels/Index";
-import AnalyticsModels from "@oneuptime/common/Models/AnalyticsModels/Index";
-import { ModelSchema } from "@oneuptime/common/Utils/Schema/ModelSchema";
-import { AnalyticsModelSchema } from "@oneuptime/common/Utils/Schema/AnalyticsModelSchema";
-import { getTableColumns } from "@oneuptime/common/Types/Database/TableColumn";
-import Permission from "@oneuptime/common/Types/Permission";
-import Protocol from "@oneuptime/common/Types/API/Protocol";
-import Hostname from "@oneuptime/common/Types/API/Hostname";
+import API from "Common/Utils/API";
+import URL from "Common/Types/API/URL";
+import Route from "Common/Types/API/Route";
+import Headers from "Common/Types/API/Headers";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
+import Protocol from "Common/Types/API/Protocol";
+import Hostname from "Common/Types/API/Hostname";
 
 export interface OneUptimeApiConfig {
   url: string;
-  apiKey: string;
+  apiKey?: string;
 }
 
 export default class OneUptimeApiService {
   private static api: API;
-  private static config: OneUptimeApiConfig;
 
+  /**
+   * Initialize the API service with configuration
+   */
   public static initialize(config: OneUptimeApiConfig): void {
-    if (!config.apiKey) {
-      throw new Error(
-        "OneUptime API key is required. Please set ONEUPTIME_API_KEY environment variable.",
-      );
-    }
-
-    this.config = config;
-
-    // Parse the URL to extract protocol, hostname, and path
     try {
       const url: URL = URL.fromString(config.url);
       const protocol: Protocol = url.protocol;
       const hostname: Hostname = url.hostname;
 
-      // Initialize with no base route to avoid route accumulation
       this.api = new API(protocol, hostname, new Route("/"));
     } catch (error) {
       throw new Error(`Invalid URL format: ${config.url}. Error: ${error}`);
@@ -60,18 +52,15 @@ export default class OneUptimeApiService {
     modelType: ModelType,
     apiPath: string,
     args: OneUptimeToolCallArgs,
-  ): Promise<any> {
-    if (!this.api) {
-      throw new Error(
-        "OneUptime API Service not initialized. Please call initialize() first.",
-      );
-    }
-
+    apiKey: string,
+  ): Promise<JSONValue> {
+    this.validateInitialization();
+    this.validateApiKey(apiKey);
     this.validateOperationArgs(operation, args);
 
-    const route: any = this.buildApiRoute(apiPath, operation, args.id);
-    const headers: any = this.getHeaders();
-    const data: any = this.getRequestData(
+    const route: Route = this.buildApiRoute(apiPath, operation, args.id);
+    const headers: Headers = this.buildHeaders(apiKey);
+    const data: JSONObject | undefined = this.buildRequestData(
       operation,
       args,
       tableName,
@@ -83,50 +72,16 @@ export default class OneUptimeApiService {
     );
 
     try {
-      let response: HTTPResponse<any> | HTTPErrorResponse;
-
-      // Create a direct URL to avoid base route accumulation
-      const url: URL = new URL(this.api.protocol, this.api.hostname, route);
-
-      switch (operation) {
-        case OneUptimeOperation.Create:
-        case OneUptimeOperation.Count:
-        case OneUptimeOperation.List:
-        case OneUptimeOperation.Read:
-          response = await API.post({
-            url: url,
-            data: data,
-            headers: headers,
-          });
-          break;
-        case OneUptimeOperation.Update:
-          response = await API.put({
-            url: url,
-            data: data,
-            headers: headers,
-          });
-          break;
-        case OneUptimeOperation.Delete:
-          response = await API.delete({
-            url: url,
-            data: data,
-            headers: headers,
-          });
-          break;
-        default:
-          throw new Error(`Unsupported operation: ${operation}`);
-      }
-
-      if (response instanceof HTTPErrorResponse) {
-        throw new Error(
-          `API request failed: ${response.statusCode} - ${response.message}`,
-        );
-      }
-
+      const response: JSONValue = await this.makeApiRequest(
+        operation,
+        route,
+        headers,
+        data,
+      );
       MCPLogger.info(
         `Successfully executed ${operation} operation for ${tableName}`,
       );
-      return response.data;
+      return response;
     } catch (error) {
       MCPLogger.error(
         `Error executing ${operation} operation for ${tableName}: ${error}`,
@@ -135,12 +90,58 @@ export default class OneUptimeApiService {
     }
   }
 
+  /**
+   * Make the actual API request
+   */
+  private static async makeApiRequest(
+    operation: OneUptimeOperation,
+    route: Route,
+    headers: Headers,
+    data: JSONObject | undefined,
+  ): Promise<JSONValue> {
+    const url: URL = new URL(this.api.protocol, this.api.hostname, route);
+    const baseOptions: { url: URL; headers: Headers } = { url, headers };
+
+    let response: HTTPResponse<JSONObject> | HTTPErrorResponse;
+
+    switch (operation) {
+      case OneUptimeOperation.Create:
+      case OneUptimeOperation.Count:
+      case OneUptimeOperation.List:
+      case OneUptimeOperation.Read:
+        response = await API.post(
+          data ? { ...baseOptions, data } : baseOptions,
+        );
+        break;
+      case OneUptimeOperation.Update:
+        response = await API.put(data ? { ...baseOptions, data } : baseOptions);
+        break;
+      case OneUptimeOperation.Delete:
+        response = await API.delete(
+          data ? { ...baseOptions, data } : baseOptions,
+        );
+        break;
+      default:
+        throw new Error(`Unsupported operation: ${operation}`);
+    }
+
+    if (response instanceof HTTPErrorResponse) {
+      throw new Error(
+        `API request failed: ${response.statusCode} - ${response.message}`,
+      );
+    }
+
+    return response.data;
+  }
+
+  /**
+   * Build the API route for an operation
+   */
   private static buildApiRoute(
     apiPath: string,
     operation: OneUptimeOperation,
     id?: string,
   ): Route {
-    // Start with the API base path
     let fullPath: string = `/api${apiPath}`;
 
     switch (operation) {
@@ -163,16 +164,17 @@ export default class OneUptimeApiService {
         break;
       case OneUptimeOperation.Create:
       default:
-        // Use the base API path
         fullPath = `/api${apiPath}`;
         break;
     }
 
-    // Create a new route that is completely independent
     return new Route(fullPath);
   }
 
-  private static getRequestData(
+  /**
+   * Build request data based on operation type
+   */
+  private static buildRequestData(
     operation: OneUptimeOperation,
     args: OneUptimeToolCallArgs,
     tableName: string,
@@ -183,258 +185,134 @@ export default class OneUptimeApiService {
     );
 
     switch (operation) {
-      case OneUptimeOperation.Create: {
-        // For create operations, all properties except reserved ones are part of the data
-        const createData: JSONObject = {};
-        for (const [key, value] of Object.entries(args)) {
-          if (
-            !["id", "query", "select", "skip", "limit", "sort"].includes(key)
-          ) {
-            createData[key] = value;
-          }
-        }
-        return { data: createData } as JSONObject;
-      }
-      case OneUptimeOperation.Update: {
-        // For update operations, all properties except reserved ones are part of the data
-        const updateData: JSONObject = {};
-        for (const [key, value] of Object.entries(args)) {
-          if (
-            !["id", "query", "select", "skip", "limit", "sort"].includes(key)
-          ) {
-            updateData[key] = value;
-          }
-        }
-        return { data: updateData } as JSONObject;
-      }
+      case OneUptimeOperation.Create:
+        return this.buildCreateData(args);
+
+      case OneUptimeOperation.Update:
+        return this.buildUpdateData(args);
+
       case OneUptimeOperation.List:
-      case OneUptimeOperation.Count: {
-        const generatedSelect: any =
-          args.select || this.generateAllFieldsSelect(tableName, modelType);
-        const requestData: JSONObject = {
-          query: args.query || {},
-          select: generatedSelect,
-          skip: args.skip,
-          limit: args.limit,
-          sort: args.sort,
-        } as JSONObject;
+      case OneUptimeOperation.Count:
+        return this.buildQueryData(args, tableName, modelType);
 
-        MCPLogger.info(
-          `Request data for ${operation}: ${JSON.stringify(requestData, null, 2)}`,
-        );
-        return requestData;
-      }
-      case OneUptimeOperation.Read: {
-        const readSelect: any =
-          args.select || this.generateAllFieldsSelect(tableName, modelType);
-        const readRequestData: JSONObject = {
-          select: readSelect,
-        } as JSONObject;
+      case OneUptimeOperation.Read:
+        return this.buildReadData(args, tableName, modelType);
 
-        MCPLogger.info(
-          `Request data for Read: ${JSON.stringify(readRequestData, null, 2)}`,
-        );
-        return readRequestData;
-      }
       case OneUptimeOperation.Delete:
       default:
         return undefined;
     }
   }
 
-  /**
-   * Generate a select object that includes all fields from the select schema
-   */
-  private static generateAllFieldsSelect(
+  private static buildCreateData(args: OneUptimeToolCallArgs): JSONObject {
+    const createData: JSONObject = {};
+    const reservedFields: string[] = [
+      "id",
+      "query",
+      "select",
+      "skip",
+      "limit",
+      "sort",
+    ];
+
+    for (const [key, value] of Object.entries(args)) {
+      if (!reservedFields.includes(key)) {
+        createData[key] = value as JSONValue;
+      }
+    }
+
+    return { data: createData } as JSONObject;
+  }
+
+  private static buildUpdateData(args: OneUptimeToolCallArgs): JSONObject {
+    const updateData: JSONObject = {};
+    const reservedFields: string[] = [
+      "id",
+      "query",
+      "select",
+      "skip",
+      "limit",
+      "sort",
+    ];
+
+    for (const [key, value] of Object.entries(args)) {
+      if (!reservedFields.includes(key)) {
+        updateData[key] = value as JSONValue;
+      }
+    }
+
+    return { data: updateData } as JSONObject;
+  }
+
+  private static buildQueryData(
+    args: OneUptimeToolCallArgs,
     tableName: string,
     modelType: ModelType,
   ): JSONObject {
+    const generatedSelect: JSONObject =
+      args.select || generateAllFieldsSelect(tableName, modelType);
+
+    const requestData: JSONObject = {
+      query: args.query || {},
+      select: generatedSelect,
+      skip: args.skip,
+      limit: args.limit,
+      sort: args.sort,
+    } as JSONObject;
+
+    MCPLogger.info(`Request data: ${JSON.stringify(requestData, null, 2)}`);
+    return requestData;
+  }
+
+  private static buildReadData(
+    args: OneUptimeToolCallArgs,
+    tableName: string,
+    modelType: ModelType,
+  ): JSONObject {
+    const readSelect: JSONObject =
+      args.select || generateAllFieldsSelect(tableName, modelType);
+
+    const readRequestData: JSONObject = {
+      select: readSelect,
+    } as JSONObject;
+
     MCPLogger.info(
-      `Generating select for tableName: ${tableName}, modelType: ${modelType}`,
+      `Request data for Read: ${JSON.stringify(readRequestData, null, 2)}`,
     );
+    return readRequestData;
+  }
 
-    try {
-      let ModelClass: any = null;
+  /**
+   * Build headers for API request
+   */
+  private static buildHeaders(apiKey: string): Headers {
+    return {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      APIKey: apiKey,
+    };
+  }
 
-      // Find the model class by table name
-      if (modelType === ModelType.Database) {
-        MCPLogger.info(`Searching DatabaseModels for tableName: ${tableName}`);
-        ModelClass = DatabaseModels.find((Model: any) => {
-          try {
-            const instance: any = new Model();
-            const instanceTableName: string = instance.tableName;
-            MCPLogger.info(
-              `Checking model ${Model.name} with tableName: ${instanceTableName}`,
-            );
-            return instanceTableName === tableName;
-          } catch (error) {
-            MCPLogger.warn(`Error instantiating model ${Model.name}: ${error}`);
-            return false;
-          }
-        });
-      } else if (modelType === ModelType.Analytics) {
-        MCPLogger.info(`Searching AnalyticsModels for tableName: ${tableName}`);
-        ModelClass = AnalyticsModels.find((Model: any) => {
-          try {
-            const instance: any = new Model();
-            return instance.tableName === tableName;
-          } catch (error) {
-            MCPLogger.warn(
-              `Error instantiating analytics model ${Model.name}: ${error}`,
-            );
-            return false;
-          }
-        });
-      }
-
-      if (!ModelClass) {
-        MCPLogger.warn(
-          `Model class not found for ${tableName}, using empty select`,
-        );
-        return {};
-      }
-
-      MCPLogger.info(
-        `Found ModelClass: ${ModelClass.name} for tableName: ${tableName}`,
+  /**
+   * Validate that the service is initialized
+   */
+  private static validateInitialization(): void {
+    if (!this.api) {
+      throw new Error(
+        "OneUptime API Service not initialized. Please call initialize() first.",
       );
-
-      // Try to get raw table columns first (most reliable approach)
-      try {
-        const modelInstance: any = new ModelClass();
-        const tableColumns: any = getTableColumns(modelInstance);
-        const columnNames: string[] = Object.keys(tableColumns);
-
-        MCPLogger.info(
-          `Raw table columns (${columnNames.length}): ${columnNames.slice(0, 10).join(", ")}`,
-        );
-
-        if (columnNames.length > 0) {
-          // Get access control information to filter out restricted fields
-          const accessControlForColumns: any =
-            modelInstance.getColumnAccessControlForAllColumns();
-          const selectObject: JSONObject = {};
-          let filteredCount: number = 0;
-
-          for (const columnName of columnNames) {
-            const accessControl: any = accessControlForColumns[columnName];
-
-            /*
-             * Include the field if:
-             * 1. No access control defined (open access)
-             * 2. Has read permissions that are not empty
-             * 3. Read permissions don't only contain Permission.CurrentUser
-             */
-            if (
-              !accessControl ||
-              (accessControl.read &&
-                accessControl.read.length > 0 &&
-                !(
-                  accessControl.read.length === 1 &&
-                  accessControl.read[0] === Permission.CurrentUser
-                ))
-            ) {
-              selectObject[columnName] = true;
-            } else {
-              filteredCount++;
-              MCPLogger.info(`Filtered out restricted field: ${columnName}`);
-            }
-          }
-
-          MCPLogger.info(
-            `Generated select from table columns for ${tableName} with ${Object.keys(selectObject).length} fields (filtered out ${filteredCount} restricted fields)`,
-          );
-
-          // Ensure we have at least some basic fields
-          if (Object.keys(selectObject).length === 0) {
-            MCPLogger.warn(
-              `All fields were filtered out, adding safe basic fields`,
-            );
-            selectObject["_id"] = true;
-            selectObject["createdAt"] = true;
-            selectObject["updatedAt"] = true;
-          }
-
-          return selectObject;
-        }
-      } catch (tableColumnError) {
-        MCPLogger.warn(
-          `Failed to get table columns for ${tableName}: ${tableColumnError}`,
-        );
-      }
-
-      // Fallback to schema approach if table columns fail
-      let selectSchema: any;
-      if (modelType === ModelType.Database) {
-        MCPLogger.info(
-          `Generating select schema for database model: ${ModelClass.name}`,
-        );
-        selectSchema = ModelSchema.getSelectModelSchema({
-          modelType: ModelClass,
-        });
-      } else {
-        MCPLogger.info(
-          `Generating schema for analytics model: ${ModelClass.name}`,
-        );
-        // For analytics models, use the general model schema
-        selectSchema = AnalyticsModelSchema.getModelSchema({
-          modelType: ModelClass,
-        });
-      }
-
-      // Extract field names from the schema
-      const selectObject: JSONObject = {};
-      const shape: any = selectSchema._def?.shape;
-
-      MCPLogger.info(
-        `Schema shape keys: ${shape ? Object.keys(shape).length : 0}`,
-      );
-
-      if (shape) {
-        const fieldNames: string[] = Object.keys(shape);
-        MCPLogger.info(
-          `Available fields: ${fieldNames.slice(0, 10).join(", ")}${fieldNames.length > 10 ? "..." : ""}`,
-        );
-
-        for (const fieldName of fieldNames) {
-          selectObject[fieldName] = true;
-        }
-      }
-
-      MCPLogger.info(
-        `Generated select for ${tableName} with ${Object.keys(selectObject).length} fields`,
-      );
-
-      // Force include some basic fields if select is empty
-      if (Object.keys(selectObject).length === 0) {
-        MCPLogger.warn(`No fields found, adding basic fields for ${tableName}`);
-        selectObject["_id"] = true;
-        selectObject["createdAt"] = true;
-        selectObject["updatedAt"] = true;
-      }
-
-      return selectObject;
-    } catch (error) {
-      MCPLogger.error(`Error generating select for ${tableName}: ${error}`);
-      // Return some basic fields as fallback
-      return {
-        _id: true,
-        createdAt: true,
-        updatedAt: true,
-      };
     }
   }
 
-  private static getHeaders(): Headers {
-    const headers: Headers = {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    };
-
-    if (this.config.apiKey) {
-      headers["APIKey"] = this.config.apiKey;
+  /**
+   * Validate that an API key is provided
+   */
+  private static validateApiKey(apiKey: string): void {
+    if (!apiKey) {
+      throw new Error(
+        "API key is required. Please provide x-api-key header in your request.",
+      );
     }
-
-    return headers;
   }
 
   /**
@@ -444,14 +322,20 @@ export default class OneUptimeApiService {
     operation: OneUptimeOperation,
     args: OneUptimeToolCallArgs,
   ): void {
+    const reservedFields: string[] = [
+      "id",
+      "query",
+      "select",
+      "skip",
+      "limit",
+      "sort",
+    ];
+
     switch (operation) {
       case OneUptimeOperation.Create: {
-        // For create operations, we need at least one data field (excluding reserved fields)
         const createDataFields: string[] = Object.keys(args).filter(
           (key: string) => {
-            return !["id", "query", "select", "skip", "limit", "sort"].includes(
-              key,
-            );
+            return !reservedFields.includes(key);
           },
         );
         if (createDataFields.length === 0) {
@@ -462,32 +346,27 @@ export default class OneUptimeApiService {
         break;
       }
       case OneUptimeOperation.Read:
-      case OneUptimeOperation.Update:
       case OneUptimeOperation.Delete:
         if (!args.id) {
           throw new Error(`ID is required for ${operation} operation`);
         }
-        if (operation === OneUptimeOperation.Update) {
-          // For update operations, we need at least one data field (excluding reserved fields)
-          const updateDataFields: string[] = Object.keys(args).filter(
-            (key: string) => {
-              return ![
-                "id",
-                "query",
-                "select",
-                "skip",
-                "limit",
-                "sort",
-              ].includes(key);
-            },
+        break;
+      case OneUptimeOperation.Update: {
+        if (!args.id) {
+          throw new Error(`ID is required for ${operation} operation`);
+        }
+        const updateDataFields: string[] = Object.keys(args).filter(
+          (key: string) => {
+            return !reservedFields.includes(key);
+          },
+        );
+        if (updateDataFields.length === 0) {
+          throw new Error(
+            "At least one data field is required for update operation",
           );
-          if (updateDataFields.length === 0) {
-            throw new Error(
-              "At least one data field is required for update operation",
-            );
-          }
         }
         break;
+      }
       case OneUptimeOperation.List:
       case OneUptimeOperation.Count:
         // No required arguments for list/count operations

@@ -69,11 +69,15 @@ describe("Breadcrumbs", () => {
     expect(anchors[1]?.props["className"]).toContain("cursor-default");
     // Set up spy on navigation
     jest.spyOn(Navigation, "navigate");
+    // Create a mock event with preventDefault
+    const mockEvent: { preventDefault: ReturnType<typeof jest.fn> } = {
+      preventDefault: jest.fn(),
+    };
     // Assert the second link does not navigate
-    anchors[1]?.props["onClick"]();
+    anchors[1]?.props["onClick"](mockEvent);
     expect(Navigation.navigate).not.toHaveBeenCalled();
     // Assert the first link navigates
-    anchors[0]?.props["onClick"]();
+    anchors[0]?.props["onClick"](mockEvent);
     expect(Navigation.navigate).toHaveBeenCalledTimes(1);
   });
 });

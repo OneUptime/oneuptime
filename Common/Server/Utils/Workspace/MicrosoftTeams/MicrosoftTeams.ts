@@ -1,3 +1,4 @@
+import { WorkspaceChannelMessage } from "../Workspace";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
@@ -29,8 +30,6 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
-import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTokenService";
-import WorkspaceUserAuthToken from "../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceProjectAuthToken, {
   MicrosoftTeamsMiscData,
   MicrosoftTeamsTeam,
@@ -433,12 +432,89 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     return { actionType: actionType as MicrosoftTeamsActionType, actionValue };
   }
 
+  /**
+   * Converts markdown tables to HTML tables for Teams MessageCard.
+   * Teams MessageCard supports HTML in the text field.
+   */
+  private static convertMarkdownTablesToHtml(markdown: string): string {
+    // Regular expression to match markdown tables
+    const tableRegex: RegExp =
+      /(?:^|\n)((?:\|[^\n]+\|\n)+(?:\|[-:\s|]+\|\n)(?:\|[^\n]+\|\n?)+)/g;
+
+    return markdown.replace(
+      tableRegex,
+      (_match: string, table: string): string => {
+        const lines: Array<string> = table.trim().split("\n");
+
+        if (lines.length < 2) {
+          return table;
+        }
+
+        // Parse header row
+        const headerLine: string = lines[0] || "";
+        const headers: Array<string> = headerLine
+          .split("|")
+          .map((cell: string) => {
+            return cell.trim();
+          })
+          .filter((cell: string) => {
+            return cell.length > 0;
+          });
+
+        // Skip separator line (line with dashes) and get data rows
+        const dataRows: Array<string> = lines.slice(2);
+
+        // Build HTML table
+        let html: string =
+          '<table style="border-collapse: collapse; width: 100%;">';
+
+        // Header row
+        html += "<tr>";
+        for (const header of headers) {
+          html += `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;"><strong>${header}</strong></th>`;
+        }
+        html += "</tr>";
+
+        // Data rows
+        for (const row of dataRows) {
+          const cells: Array<string> = row
+            .split("|")
+            .map((cell: string) => {
+              return cell.trim();
+            })
+            .filter((cell: string) => {
+              return cell.length > 0;
+            });
+
+          if (cells.length === 0) {
+            continue;
+          }
+
+          html += "<tr>";
+          for (const cell of cells) {
+            html += `<td style="border: 1px solid #ddd; padding: 8px;">${cell}</td>`;
+          }
+          html += "</tr>";
+        }
+
+        html += "</table>";
+
+        return "\n" + html + "\n";
+      },
+    );
+  }
+
   private static buildMessageCardFromMarkdown(markdown: string): JSONObject {
     /*
      * Teams MessageCard has limited markdown support. Headings like '##' are not supported
      * and single newlines can collapse. Convert common patterns to a structured card.
      */
-    const lines: Array<string> = markdown
+
+    // First, convert markdown tables to HTML
+    const markdownWithHtmlTables: string =
+      this.convertMarkdownTablesToHtml(markdown);
+
+    const lines: Array<string> = markdownWithHtmlTables
       .split("\n")
       .map((l: string) => {
         return l.trim();
@@ -2853,43 +2929,23 @@ All monitoring checks are passing normally.`;
         );
       }
 
-      // Try using user scoped token first when available
+      // Use app-scoped token to fetch user's teams
       let allTeams: Array<JSONObject> = [];
-      let usedAccessToken: string | null = null;
 
       try {
-        // If caller provided a userAccessToken directly, use it
-        if (data.userAccessToken) {
-          logger.debug(
-            "Using provided user access token to fetch joined teams",
-          );
-          usedAccessToken = data.userAccessToken;
+        // Fetch joined teams using app-scoped token
+        if (data.userId) {
+          logger.debug("Using app-scoped token to fetch joined teams for user");
           const userTeams: Record<string, { id: string; name: string }> =
-            await this.getUserJoinedTeams(usedAccessToken);
-          allTeams = Object.values(userTeams) as any;
-        } else if (data.userId) {
-          // Try to fetch stored user auth for this project + user
-          logger.debug("Looking up stored user auth token for provided userId");
-          const userAuth: WorkspaceUserAuthToken | null =
-            await WorkspaceUserAuthTokenService.getUserAuth({
+            await this.getUserJoinedTeams({
+              userId: data.userId.toString(),
               projectId: data.projectId,
-              userId: data.userId,
-              workspaceType: WorkspaceType.MicrosoftTeams,
             });
-
-          if (userAuth && userAuth.authToken) {
-            usedAccessToken = userAuth.authToken;
-            logger.debug(
-              "Found user auth token; using it to fetch joined teams",
-            );
-            const userTeams: Record<string, { id: string; name: string }> =
-              await this.getUserJoinedTeams(usedAccessToken);
-            allTeams = Object.values(userTeams) as any;
-          }
+          allTeams = Object.values(userTeams) as any;
         }
       } catch (err) {
         logger.warn(
-          "Failed to fetch teams using user-scoped token, falling back to app token:",
+          "Failed to fetch teams using app-scoped token, falling back to paginated fetch:",
         );
         logger.warn(err);
         allTeams = [];
@@ -3004,19 +3060,30 @@ All monitoring checks are passing normally.`;
     }
   }
 
-  // Method to get user's joined teams using user access token
+  // Method to get user's joined teams using app-scoped token
   @CaptureSpan()
-  public static async getUserJoinedTeams(
-    accessToken: string,
-  ): Promise<Record<string, { id: string; name: string }>> {
+  public static async getUserJoinedTeams(data: {
+    userId: string;
+    projectId: ObjectID;
+  }): Promise<Record<string, { id: string; name: string }>> {
     logger.debug("=== getUserJoinedTeams called ===");
+    logger.debug(`User ID: ${data.userId}`);
+    logger.debug(`Project ID: ${data.projectId.toString()}`);
 
     try {
-      // Get user's teams
+      // Get a valid app access token (refreshed if needed)
+      logger.debug("Refreshing app access token before fetching teams");
+      const accessToken: string = await this.getValidAccessToken({
+        authToken: "", // Not needed for app token refresh
+        projectId: data.projectId,
+      });
+      logger.debug("App access token refreshed successfully");
+
+      // Get user's teams using app-scoped token
       const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get<JSONObject>({
           url: URL.fromString(
-            "https://graph.microsoft.com/v1.0/me/joinedTeams",
+            `https://graph.microsoft.com/v1.0/users/${data.userId}/joinedTeams`,
           ),
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -3061,5 +3128,170 @@ All monitoring checks are passing normally.`;
       logger.error(error);
       throw error;
     }
+  }
+
+  @CaptureSpan()
+  public static async getChannelMessages(params: {
+    channelId: string;
+    teamId: string;
+    projectId: ObjectID;
+    limit?: number;
+    oldestTimestamp?: Date;
+  }): Promise<
+    Array<{
+      messageId: string;
+      text: string;
+      userId?: string;
+      username?: string;
+      timestamp: Date;
+      isBot: boolean;
+    }>
+  > {
+    const messages: Array<{
+      messageId: string;
+      text: string;
+      userId?: string;
+      username?: string;
+      timestamp: Date;
+      isBot: boolean;
+    }> = [];
+
+    try {
+      // Get valid access token
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await WorkspaceProjectAuthTokenService.getProjectAuth({
+          projectId: params.projectId,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+        });
+
+      if (!projectAuth || !projectAuth.miscData) {
+        logger.error("Microsoft Teams integration not found for this project");
+        return messages;
+      }
+
+      const miscData: JSONObject = projectAuth.miscData as JSONObject;
+      const accessToken: string = miscData["appAccessToken"] as string;
+      const tokenExpiresAt: string = miscData[
+        "appAccessTokenExpiresAt"
+      ] as string;
+
+      // Check if token is expired
+      if (
+        !accessToken ||
+        (tokenExpiresAt &&
+          OneUptimeDate.isInThePast(OneUptimeDate.fromString(tokenExpiresAt)))
+      ) {
+        logger.debug(
+          "Microsoft Teams access token expired or missing, skipping message fetch",
+        );
+        return messages;
+      }
+
+      // Fetch messages from Microsoft Teams channel
+      let nextLink: string | undefined = undefined;
+      const maxMessages: number = params.limit || 1000;
+      const maxPages: number = 10;
+      let pageCount: number = 0;
+
+      do {
+        let requestUrl: string;
+
+        if (nextLink) {
+          requestUrl = nextLink;
+        } else {
+          requestUrl = `https://graph.microsoft.com/v1.0/teams/${params.teamId}/channels/${params.channelId}/messages`;
+          requestUrl += `?$top=${Math.min(50, maxMessages - messages.length)}`;
+        }
+
+        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+          await API.get<JSONObject>({
+            url: URL.fromString(requestUrl),
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            options: {
+              retries: 2,
+              exponentialBackoff: true,
+            },
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          logger.error(
+            "Error response from Microsoft Teams API for channel messages:",
+          );
+          logger.error(response);
+          break;
+        }
+
+        const jsonData: JSONObject = response.jsonData as JSONObject;
+        const teamsMessages: Array<JSONObject> =
+          (jsonData["value"] as Array<JSONObject>) || [];
+
+        for (const msg of teamsMessages) {
+          // Skip system messages
+          if (msg["messageType"] !== "message") {
+            continue;
+          }
+
+          const body: JSONObject = msg["body"] as JSONObject;
+          let text: string = (body?.["content"] as string) || "";
+
+          // Remove HTML tags if present (Teams uses HTML)
+          text = text.replace(/<[^>]*>/g, "");
+          text = text.trim();
+
+          // Skip empty messages
+          if (!text) {
+            continue;
+          }
+
+          const from: JSONObject = msg["from"] as JSONObject;
+          const user: JSONObject = from?.["user"] as JSONObject;
+          const isBot: boolean = Boolean(from?.["application"]);
+
+          const createdDateTime: string = msg["createdDateTime"] as string;
+          const timestamp: Date = createdDateTime
+            ? new Date(createdDateTime)
+            : new Date();
+
+          // Check if message is older than the oldest timestamp filter
+          if (params.oldestTimestamp && timestamp < params.oldestTimestamp) {
+            continue;
+          }
+
+          messages.push({
+            messageId: msg["id"] as string,
+            text: text,
+            userId: user?.["id"] as string,
+            username: user?.["displayName"] as string,
+            timestamp: timestamp,
+            isBot: isBot,
+          });
+        }
+
+        nextLink = jsonData["@odata.nextLink"] as string;
+        pageCount++;
+      } while (
+        nextLink &&
+        messages.length < maxMessages &&
+        pageCount < maxPages
+      );
+
+      logger.debug(
+        `Retrieved ${messages.length} messages from Microsoft Teams channel ${params.channelId}`,
+      );
+
+      // Sort by timestamp (oldest first)
+      messages.sort(
+        (a: WorkspaceChannelMessage, b: WorkspaceChannelMessage) => {
+          return a.timestamp.getTime() - b.timestamp.getTime();
+        },
+      );
+    } catch (error) {
+      logger.error(`Error fetching Microsoft Teams channel messages: ${error}`);
+    }
+
+    return messages;
   }
 }
