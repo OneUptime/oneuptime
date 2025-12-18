@@ -16,7 +16,7 @@ const tabs = [
 ];
 %>
 
-<div class="code-tabs-container my-6" id="<%= uniqueId %>">
+<div class="code-tabs-container my-6 w-full max-w-full overflow-hidden" id="<%= uniqueId %>">
    <!-- Header with title and endpoint -->
    <div class="rounded-t-xl bg-slate-900 border border-slate-700/50 border-b-0">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-b border-slate-700/50">
@@ -89,13 +89,13 @@ const tabs = [
    </div>
 
    <!-- Code Panels -->
-   <div class="rounded-b-xl bg-slate-900 border border-slate-700/50 border-t-0 overflow-hidden">
+   <div class="rounded-b-xl bg-slate-900 border border-slate-700/50 border-t-0 overflow-hidden min-w-0">
       <% tabs.forEach((tab, index) => { %>
          <div
             role="tabpanel"
             id="<%= uniqueId %>-panel-<%= tab.id %>"
             aria-labelledby="<%= uniqueId %>-tab-<%= tab.id %>"
-            class="code-panel relative <%= index === 0 ? '' : 'hidden' %>"
+            class="code-panel relative min-w-0 w-full <%= index === 0 ? '' : 'hidden' %>"
             data-panel-id="<%= tab.id %>"
          >
             <% if(tab.isPreview) { %>
@@ -113,20 +113,20 @@ const tabs = [
                   </svg>
                   <span class="copy-text">Copy</span>
                </button>
-               <div class="code-content p-4" style="min-height: 200px;">
+               <div class="code-content p-4 w-full max-w-full overflow-hidden" style="min-height: 200px;">
                   <!-- Headers Section -->
                   <div class="mb-4">
                      <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Headers</div>
-                     <div class="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                        <pre class="text-sm text-slate-300 font-mono whitespace-pre-wrap m-0 preview-headers"><%= codeExamples.requestPreview.headers %></pre>
+                     <div class="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50 overflow-hidden">
+                        <pre class="text-sm text-slate-300 font-mono whitespace-pre-wrap m-0 preview-headers overflow-x-auto"><%= codeExamples.requestPreview.headers %></pre>
                      </div>
                   </div>
                   <% if(codeExamples.requestPreview.body) { %>
                   <!-- Body Section -->
                   <div>
                      <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Body</div>
-                     <div class="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                        <pre class="text-sm leading-relaxed m-0"><code class="language-json preview-body"><%= codeExamples.requestPreview.body %></code></pre>
+                     <div class="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50 overflow-hidden">
+                        <pre class="text-sm leading-relaxed m-0 overflow-x-auto"><code class="language-json preview-body"><%= codeExamples.requestPreview.body %></code></pre>
                      </div>
                   </div>
                   <% } %>
@@ -146,8 +146,8 @@ const tabs = [
                   </svg>
                   <span class="copy-text">Copy</span>
                </button>
-               <div class="code-content" style="min-height: 200px;">
-                  <pre class="overflow-x-auto p-4 text-sm leading-relaxed m-0"><code class="language-<%= tab.id === 'javascript' || tab.id === 'typescript' ? 'javascript' : (tab.id === 'python' ? 'python' : (tab.id === 'go' ? 'go' : (tab.id === 'ruby' ? 'ruby' : (tab.id === 'rust' ? 'rust' : (tab.id === 'powershell' ? 'powershell' : (tab.id === 'java' ? 'java' : (tab.id === 'csharp' ? 'csharp' : (tab.id === 'php' ? 'php' : 'bash')))))))) %>"><%= codeExamples[tab.id] %></code></pre>
+               <div class="code-content w-full max-w-full overflow-hidden" style="min-height: 200px;">
+                  <pre class="overflow-x-auto p-4 text-sm leading-relaxed m-0 w-full max-w-full"><code class="language-<%= tab.id === 'javascript' || tab.id === 'typescript' ? 'javascript' : (tab.id === 'python' ? 'python' : (tab.id === 'go' ? 'go' : (tab.id === 'ruby' ? 'ruby' : (tab.id === 'rust' ? 'rust' : (tab.id === 'powershell' ? 'powershell' : (tab.id === 'java' ? 'java' : (tab.id === 'csharp' ? 'csharp' : (tab.id === 'php' ? 'php' : 'bash')))))))) %>"><%= codeExamples[tab.id] %></code></pre>
                </div>
             <% } %>
          </div>

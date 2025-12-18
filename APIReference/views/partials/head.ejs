@@ -285,6 +285,37 @@
          min-height: 200px;
       }
 
+      /* Fix code tabs width - prevent content from expanding container */
+      .code-tabs-container {
+         width: 100%;
+         max-width: 100%;
+         overflow: hidden;
+      }
+
+      .code-tabs-container pre {
+         width: 0;
+         min-width: 100%;
+         overflow-x: auto;
+      }
+
+      .code-panel {
+         width: 100%;
+         max-width: 100%;
+         overflow: hidden;
+      }
+
+      .code-content {
+         width: 100%;
+         max-width: 100%;
+         overflow: hidden;
+      }
+
+      .code-content pre code {
+         display: block;
+         white-space: pre;
+         word-wrap: normal;
+      }
+
       /* Hide scrollbar for tabs but keep functionality */
       .scrollbar-hide {
          -ms-overflow-style: none;
