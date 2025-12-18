@@ -4,9 +4,9 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>OneUptime | Status Page - Public & Private Status Pages</title>
+    <title>OneUptime | Status Page - Beautiful Public & Private Status Pages</title>
     <meta name="description"
-        content="Create beautiful public and private status pages to keep your customers informed. Unlimited subscribers, custom branding, and real-time incident updates.">
+        content="Create beautiful public and private status pages that build customer trust. Unlimited subscribers, custom branding, real-time incident updates, and 99.99% uptime guarantee.">
     <%- include('head', {
         enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
     }) -%>
@@ -16,51 +16,108 @@
     <%- include('nav') -%>
     <main id="main-content">
 
-        <!-- Hero Section -->
-        <div class="relative isolate overflow-hidden bg-white">
-            <!-- Subtle grid pattern background -->
-            <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+        <!-- Hero Section with Animated Background -->
+        <div class="relative isolate overflow-hidden bg-gradient-to-b from-green-50/50 via-white to-white">
+            <!-- Animated gradient orbs -->
+            <div class="absolute inset-0 -z-10 overflow-hidden">
+                <div class="absolute -top-40 -right-32 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-green-200/40 to-emerald-100/40 blur-3xl"></div>
+                <div class="absolute -bottom-40 -left-32 h-[400px] w-[400px] rounded-full bg-gradient-to-tr from-blue-100/30 to-cyan-100/30 blur-3xl"></div>
+            </div>
+
+            <!-- Grid pattern -->
+            <div class="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,#e5e7eb20_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb20_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
 
             <div class="py-24 sm:py-32 lg:py-40">
                 <div class="mx-auto max-w-7xl px-6 lg:px-8">
-                    <div class="mx-auto max-w-3xl text-center">
-                        <!-- Badge -->
-                        <div class="mb-8 inline-flex items-center gap-2 rounded-full bg-green-50 px-4 py-1.5 text-sm text-green-700 ring-1 ring-inset ring-green-200">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <span>Trusted by 10,000+ companies</span>
+                    <div class="mx-auto max-w-4xl text-center">
+                        <!-- Animated Badge -->
+                        <div class="mb-8 inline-flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-sm font-medium text-green-700 ring-1 ring-inset ring-green-200/80 shadow-sm">
+                            <span class="relative flex h-2 w-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            <span>Status Pages for Modern Teams</span>
                         </div>
 
-                        <!-- Main headline -->
-                        <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-6xl lg:leading-[1.1]">
-                            Keep customers informed.<br class="hidden sm:block" />Build trust with transparency.
+                        <!-- Main headline with gradient text -->
+                        <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl lg:leading-[1.1]">
+                            Build trust through
+                            <span class="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent"> transparency</span>
                         </h1>
 
                         <!-- Subheadline -->
-                        <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
-                            Beautiful public and private status pages that showcase your service reliability. Unlimited subscribers, custom branding, and real-time incident communication.
+                        <p class="mt-6 text-lg sm:text-xl leading-8 text-gray-600 max-w-2xl mx-auto">
+                            Beautiful status pages that keep your customers informed. Showcase your reliability, communicate incidents in real-time, and turn downtime into trust-building moments.
                         </p>
 
                         <!-- CTA buttons -->
                         <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
                             <a href="/accounts/register"
-                                class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+                                class="group w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-gray-900 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-gray-900/20 transition-all hover:bg-gray-800 hover:shadow-xl hover:shadow-gray-900/30 hover:-translate-y-0.5">
                                 Create your status page
-                                <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                                <svg class="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
                             </a>
-                            <a href="/enterprise/demo" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50">
-                                Request a demo
+                            <a href="/enterprise/demo" class="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-white px-6 py-3.5 text-base font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-50 hover:ring-gray-300">
+                                <svg class="mr-2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z"></path></svg>
+                                Watch demo
                             </a>
+                        </div>
+
+                        <!-- Trust indicators -->
+                        <div class="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-500">
+                            <div class="flex items-center gap-2">
+                                <svg class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"></path></svg>
+                                <span>Free 14-day trial</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <svg class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"></path></svg>
+                                <span>No credit card required</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <svg class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"></path></svg>
+                                <span>Setup in 5 minutes</span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Hero Image -->
+                    <!-- Hero Image with floating elements -->
                     <div class="mt-16 flow-root sm:mt-24">
-                        <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-                            <img src="/img/status-pages.png" alt="OneUptime status page showing service health and incident updates" width="2432" height="1442"
-                                class="rounded-md shadow-2xl ring-1 ring-gray-900/10">
-                            <%- include('./Partials/watch-demo.ejs', {videoId: "F6BNipy5VCk"}) -%>
+                        <div class="relative">
+                            <!-- Floating status indicators -->
+                            <div class="absolute -left-4 top-1/4 z-10 hidden lg:block">
+                                <div class="rounded-xl bg-white p-4 shadow-xl ring-1 ring-gray-100 animate-float">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                                            <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">All Systems Operational</p>
+                                            <p class="text-xs text-gray-500">99.99% uptime this month</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="absolute -right-4 top-1/3 z-10 hidden lg:block">
+                                <div class="rounded-xl bg-white p-4 shadow-xl ring-1 ring-gray-100 animate-float-delayed">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+                                            <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">1,234 Subscribers</p>
+                                            <p class="text-xs text-gray-500">Getting instant updates</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Main image -->
+                            <div class="-m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                                <img src="/img/status-pages.png" alt="OneUptime status page showing real-time service health monitoring" width="2432" height="1442"
+                                    class="rounded-md shadow-2xl ring-1 ring-gray-900/10">
+                                <%- include('./Partials/watch-demo.ejs', {videoId: "F6BNipy5VCk"}) -%>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -71,20 +128,20 @@
         <div class="bg-gray-900 py-16 sm:py-20">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
-                    <div class="text-center">
-                        <div class="text-4xl font-bold text-white">Unlimited</div>
+                    <div class="text-center group">
+                        <div class="text-4xl font-bold text-white group-hover:text-green-400 transition-colors">Unlimited</div>
                         <div class="mt-2 text-sm text-gray-400">Status pages</div>
                     </div>
-                    <div class="text-center">
-                        <div class="text-4xl font-bold text-white">Unlimited</div>
+                    <div class="text-center group">
+                        <div class="text-4xl font-bold text-white group-hover:text-green-400 transition-colors">Unlimited</div>
                         <div class="mt-2 text-sm text-gray-400">Subscribers</div>
                     </div>
-                    <div class="text-center">
-                        <div class="text-4xl font-bold text-white">99.99%</div>
+                    <div class="text-center group">
+                        <div class="text-4xl font-bold text-white group-hover:text-green-400 transition-colors">99.99%</div>
                         <div class="mt-2 text-sm text-gray-400">Platform uptime</div>
                     </div>
-                    <div class="text-center">
-                        <div class="text-4xl font-bold text-white">Free SSL</div>
+                    <div class="text-center group">
+                        <div class="text-4xl font-bold text-white group-hover:text-green-400 transition-colors">Free SSL</div>
                         <div class="mt-2 text-sm text-gray-400">Custom domains</div>
                     </div>
                 </div>
@@ -93,16 +150,72 @@
 
         <%- include('logo-roll') -%>
 
-        <!-- Features Grid -->
+        <!-- How It Works Section -->
         <div class="bg-white py-24 sm:py-32">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="mx-auto max-w-2xl text-center">
-                    <h2 class="text-base font-semibold leading-7 text-indigo-600">Status Page Features</h2>
+                    <h2 class="text-base font-semibold leading-7 text-green-600">Simple Setup</h2>
+                    <p class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+                        Up and running in minutes
+                    </p>
+                    <p class="mt-6 text-lg leading-8 text-gray-600">
+                        Create a professional status page in three simple steps. No technical expertise required.
+                    </p>
+                </div>
+
+                <div class="mx-auto mt-16 max-w-5xl">
+                    <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
+                        <!-- Step 1 -->
+                        <div class="relative">
+                            <div class="flex flex-col items-center text-center">
+                                <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-600 text-white text-2xl font-bold shadow-lg shadow-green-600/30">
+                                    1
+                                </div>
+                                <h3 class="mt-6 text-xl font-semibold text-gray-900">Add your services</h3>
+                                <p class="mt-3 text-gray-600">List the services and components you want to display on your status page. Group them logically.</p>
+                            </div>
+                            <!-- Connector line -->
+                            <div class="hidden md:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-green-200 to-green-100"></div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="relative">
+                            <div class="flex flex-col items-center text-center">
+                                <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-600 text-white text-2xl font-bold shadow-lg shadow-green-600/30">
+                                    2
+                                </div>
+                                <h3 class="mt-6 text-xl font-semibold text-gray-900">Customize your brand</h3>
+                                <p class="mt-3 text-gray-600">Add your logo, colors, and custom domain. Make it look like it was built in-house.</p>
+                            </div>
+                            <!-- Connector line -->
+                            <div class="hidden md:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-green-200 to-green-100"></div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="relative">
+                            <div class="flex flex-col items-center text-center">
+                                <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-600 text-white text-2xl font-bold shadow-lg shadow-green-600/30">
+                                    3
+                                </div>
+                                <h3 class="mt-6 text-xl font-semibold text-gray-900">Go live</h3>
+                                <p class="mt-3 text-gray-600">Publish your status page and start building trust with your customers immediately.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="bg-gray-50 py-24 sm:py-32">
+            <div class="mx-auto max-w-7xl px-6 lg:px-8">
+                <div class="mx-auto max-w-2xl text-center">
+                    <h2 class="text-base font-semibold leading-7 text-green-600">Powerful Features</h2>
                     <p class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
                         Everything you need for transparent communication
                     </p>
                     <p class="mt-6 text-lg leading-8 text-gray-600">
-                        From public status pages to private internal dashboards, we have every feature you need to keep stakeholders informed.
+                        From public status pages to private internal dashboards, we have every feature you need.
                     </p>
                 </div>
 
@@ -110,103 +223,103 @@
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 
                         <!-- Public Status Pages -->
-                        <div class="group relative rounded-2xl border border-gray-200 p-6 hover:border-indigo-300 hover:shadow-md transition-all">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
-                                <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <div class="group relative rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-green-200 transition-all duration-300">
+                            <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30">
+                                <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
                                 </svg>
                             </div>
-                            <h3 class="mt-4 text-lg font-semibold text-gray-900">Public Status Pages</h3>
-                            <p class="mt-2 text-sm text-gray-600">Beautiful, branded status pages for your customers. Show real-time service health and uptime history.</p>
+                            <h3 class="mt-6 text-xl font-semibold text-gray-900">Public Status Pages</h3>
+                            <p class="mt-3 text-gray-600">Beautiful, branded status pages for your customers. Show real-time service health and uptime history.</p>
                         </div>
 
                         <!-- Private Status Pages -->
-                        <div class="group relative rounded-2xl border border-gray-200 p-6 hover:border-indigo-300 hover:shadow-md transition-all">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
-                                <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <div class="group relative rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-green-200 transition-all duration-300">
+                            <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30">
+                                <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                                 </svg>
                             </div>
-                            <h3 class="mt-4 text-lg font-semibold text-gray-900">Private Status Pages</h3>
-                            <p class="mt-2 text-sm text-gray-600">Password-protected or SSO-enabled status pages for internal teams and enterprise customers.</p>
+                            <h3 class="mt-6 text-xl font-semibold text-gray-900">Private Status Pages</h3>
+                            <p class="mt-3 text-gray-600">Password-protected or SSO-enabled status pages for internal teams and enterprise customers.</p>
                         </div>
 
                         <!-- Custom Branding -->
-                        <div class="group relative rounded-2xl border border-gray-200 p-6 hover:border-indigo-300 hover:shadow-md transition-all">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
-                                <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <div class="group relative rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-green-200 transition-all duration-300">
+                            <span class="absolute top-6 right-6 inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-600/20">Popular</span>
+                            <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 text-white shadow-lg shadow-purple-500/30">
+                                <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z" />
                                 </svg>
                             </div>
-                            <h3 class="mt-4 text-lg font-semibold text-gray-900">Custom Branding</h3>
-                            <p class="mt-2 text-sm text-gray-600">Customize colors, logos, and add custom CSS/JavaScript to match your brand identity.</p>
-                            <span class="absolute top-4 right-4 inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Popular</span>
+                            <h3 class="mt-6 text-xl font-semibold text-gray-900">Custom Branding</h3>
+                            <p class="mt-3 text-gray-600">Customize colors, logos, and add custom CSS/JavaScript to match your brand identity perfectly.</p>
                         </div>
 
                         <!-- Unlimited Subscribers -->
-                        <div class="group relative rounded-2xl border border-gray-200 p-6 hover:border-indigo-300 hover:shadow-md transition-all">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
-                                <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <div class="group relative rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-green-200 transition-all duration-300">
+                            <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/30">
+                                <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
                                 </svg>
                             </div>
-                            <h3 class="mt-4 text-lg font-semibold text-gray-900">Unlimited Subscribers</h3>
-                            <p class="mt-2 text-sm text-gray-600">No subscriber limits. Notify via email, SMS, webhooks, or RSS feeds automatically.</p>
+                            <h3 class="mt-6 text-xl font-semibold text-gray-900">Unlimited Subscribers</h3>
+                            <p class="mt-3 text-gray-600">No subscriber limits. Notify via email, SMS, webhooks, Slack, or RSS feeds automatically.</p>
                         </div>
 
                         <!-- Custom Domains -->
-                        <div class="group relative rounded-2xl border border-gray-200 p-6 hover:border-indigo-300 hover:shadow-md transition-all">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
-                                <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <div class="group relative rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-green-200 transition-all duration-300">
+                            <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 text-white shadow-lg shadow-cyan-500/30">
+                                <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                                 </svg>
                             </div>
-                            <h3 class="mt-4 text-lg font-semibold text-gray-900">Custom Domains</h3>
-                            <p class="mt-2 text-sm text-gray-600">Use your own domain like status.yourcompany.com with free SSL certificates included.</p>
+                            <h3 class="mt-6 text-xl font-semibold text-gray-900">Custom Domains</h3>
+                            <p class="mt-3 text-gray-600">Use your own domain like status.yourcompany.com with free SSL certificates included.</p>
                         </div>
 
                         <!-- Incident Updates -->
-                        <div class="group relative rounded-2xl border border-gray-200 p-6 hover:border-indigo-300 hover:shadow-md transition-all">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
-                                <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <div class="group relative rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-green-200 transition-all duration-300">
+                            <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/30">
+                                <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
                                 </svg>
                             </div>
-                            <h3 class="mt-4 text-lg font-semibold text-gray-900">Incident Updates</h3>
-                            <p class="mt-2 text-sm text-gray-600">Post real-time updates during incidents. Keep customers informed with timeline views.</p>
+                            <h3 class="mt-6 text-xl font-semibold text-gray-900">Real-time Incident Updates</h3>
+                            <p class="mt-3 text-gray-600">Post real-time updates during incidents. Keep customers informed with beautiful timeline views.</p>
                         </div>
 
                         <!-- Scheduled Maintenance -->
-                        <div class="group relative rounded-2xl border border-gray-200 p-6 hover:border-indigo-300 hover:shadow-md transition-all">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
-                                <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <div class="group relative rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-green-200 transition-all duration-300">
+                            <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/30">
+                                <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <h3 class="mt-4 text-lg font-semibold text-gray-900">Scheduled Maintenance</h3>
-                            <p class="mt-2 text-sm text-gray-600">Announce upcoming maintenance windows. Automatically notify subscribers in advance.</p>
+                            <h3 class="mt-6 text-xl font-semibold text-gray-900">Scheduled Maintenance</h3>
+                            <p class="mt-3 text-gray-600">Announce upcoming maintenance windows and automatically notify subscribers in advance.</p>
                         </div>
 
                         <!-- Uptime History -->
-                        <div class="group relative rounded-2xl border border-gray-200 p-6 hover:border-indigo-300 hover:shadow-md transition-all">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
-                                <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <div class="group relative rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-green-200 transition-all duration-300">
+                            <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/30">
+                                <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" />
                                 </svg>
                             </div>
-                            <h3 class="mt-4 text-lg font-semibold text-gray-900">Uptime History</h3>
-                            <p class="mt-2 text-sm text-gray-600">Display 90+ days of uptime history with beautiful graphs and SLA metrics.</p>
+                            <h3 class="mt-6 text-xl font-semibold text-gray-900">90+ Day Uptime History</h3>
+                            <p class="mt-3 text-gray-600">Display comprehensive uptime history with beautiful graphs and SLA metrics.</p>
                         </div>
 
                         <!-- Postmortem Reports -->
-                        <div class="group relative rounded-2xl border border-gray-200 p-6 hover:border-indigo-300 hover:shadow-md transition-all">
-                            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
-                                <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <div class="group relative rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-green-200 transition-all duration-300">
+                            <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-slate-500 to-gray-600 text-white shadow-lg shadow-slate-500/30">
+                                <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                                 </svg>
                             </div>
-                            <h3 class="mt-4 text-lg font-semibold text-gray-900">Postmortem Reports</h3>
-                            <p class="mt-2 text-sm text-gray-600">Publish detailed postmortem reports after incidents to maintain transparency.</p>
+                            <h3 class="mt-6 text-xl font-semibold text-gray-900">Postmortem Reports</h3>
+                            <p class="mt-3 text-gray-600">Publish detailed postmortem reports after incidents to maintain transparency and trust.</p>
                         </div>
 
                     </div>
@@ -215,11 +328,11 @@
         </div>
 
         <!-- Feature Section: Subscriber Notifications -->
-        <div class="bg-gray-50 py-24 sm:py-32">
+        <div class="bg-white py-24 sm:py-32 overflow-hidden">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
                     <div>
-                        <h2 class="text-base font-semibold leading-7 text-indigo-600">Subscriber Notifications</h2>
+                        <h2 class="text-base font-semibold leading-7 text-green-600">Subscriber Notifications</h2>
                         <p class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
                             Keep everyone in the loop automatically
                         </p>
@@ -229,50 +342,53 @@
 
                         <dl class="mt-10 space-y-6">
                             <div class="flex gap-x-4">
-                                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-600">
-                                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/30">
+                                    <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <dt class="font-semibold text-gray-900">Email Notifications</dt>
+                                    <dt class="text-lg font-semibold text-gray-900">Email Notifications</dt>
                                     <dd class="mt-1 text-gray-600">Beautifully formatted emails with incident details and status updates.</dd>
                                 </div>
                             </div>
                             <div class="flex gap-x-4">
-                                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-600">
-                                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30">
+                                    <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <dt class="font-semibold text-gray-900">SMS Notifications</dt>
+                                    <dt class="text-lg font-semibold text-gray-900">SMS & Phone Notifications</dt>
                                     <dd class="mt-1 text-gray-600">Critical alerts via SMS for subscribers who need instant notifications.</dd>
                                 </div>
                             </div>
                             <div class="flex gap-x-4">
-                                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-600">
-                                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 shadow-lg shadow-purple-500/30">
+                                    <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <dt class="font-semibold text-gray-900">Webhooks & RSS</dt>
-                                    <dd class="mt-1 text-gray-600">Integrate with any system via webhooks or let subscribers follow RSS feeds.</dd>
+                                    <dt class="text-lg font-semibold text-gray-900">Webhooks, Slack & RSS</dt>
+                                    <dd class="mt-1 text-gray-600">Integrate with any system via webhooks, Slack, or let subscribers follow RSS feeds.</dd>
                                 </div>
                             </div>
                         </dl>
 
                         <div class="mt-10">
-                            <a href="/accounts/register" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition-colors">
-                                Get started
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                            <a href="/accounts/register" class="group inline-flex items-center gap-2 rounded-xl bg-gray-900 px-5 py-3 text-base font-semibold text-white shadow-lg shadow-gray-900/20 transition-all hover:bg-gray-800 hover:shadow-xl hover:-translate-y-0.5">
+                                Get started free
+                                <svg class="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
                             </a>
                         </div>
                     </div>
                     <div class="mt-16 lg:mt-0">
-                        <div class="rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:rounded-2xl lg:p-4">
-                            <img src="/img/subscribers.png" alt="Status page subscriber management" class="rounded-lg shadow-xl">
+                        <div class="relative">
+                            <div class="absolute -inset-4 rounded-2xl bg-gradient-to-r from-green-100 to-emerald-100 opacity-50 blur-2xl"></div>
+                            <div class="relative rounded-2xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:rounded-2xl lg:p-4">
+                                <img src="/img/subscribers.png" alt="Status page subscriber management interface" class="rounded-lg shadow-xl">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -280,81 +396,127 @@
         </div>
 
         <!-- Branding Section -->
-        <div class="bg-indigo-600 py-24 sm:py-32">
-            <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="relative bg-gradient-to-br from-green-600 via-emerald-600 to-teal-700 py-24 sm:py-32 overflow-hidden">
+            <!-- Background pattern -->
+            <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff10_1px,transparent_1px),linear-gradient(to_bottom,#ffffff10_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
+
+            <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="mx-auto max-w-2xl text-center">
                     <h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">
                         Your brand, your status page
                     </h2>
-                    <p class="mt-6 text-lg leading-8 text-indigo-100">
+                    <p class="mt-6 text-lg leading-8 text-green-100">
                         Make your status page look like it was built in-house. Full customization with no OneUptime branding required.
                     </p>
                 </div>
 
                 <div class="mx-auto mt-16 max-w-5xl">
-                    <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                        <div class="rounded-xl bg-white/10 p-6 backdrop-blur">
-                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
-                                <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        <div class="rounded-2xl bg-white/10 p-6 backdrop-blur-sm ring-1 ring-white/20 hover:bg-white/15 transition-colors">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+                                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z" />
                                 </svg>
                             </div>
                             <h3 class="mt-4 text-lg font-semibold text-white">Custom Colors</h3>
-                            <p class="mt-2 text-sm text-indigo-100">Match your brand colors perfectly with full color customization.</p>
+                            <p class="mt-2 text-sm text-green-100">Match your brand colors perfectly with full color customization.</p>
                         </div>
-                        <div class="rounded-xl bg-white/10 p-6 backdrop-blur">
-                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
-                                <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <div class="rounded-2xl bg-white/10 p-6 backdrop-blur-sm ring-1 ring-white/20 hover:bg-white/15 transition-colors">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+                                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                                 </svg>
                             </div>
                             <h3 class="mt-4 text-lg font-semibold text-white">Logo & Favicon</h3>
-                            <p class="mt-2 text-sm text-indigo-100">Upload your logo and favicon for complete brand consistency.</p>
+                            <p class="mt-2 text-sm text-green-100">Upload your logo and favicon for complete brand consistency.</p>
                         </div>
-                        <div class="rounded-xl bg-white/10 p-6 backdrop-blur">
-                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
-                                <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <div class="rounded-2xl bg-white/10 p-6 backdrop-blur-sm ring-1 ring-white/20 hover:bg-white/15 transition-colors">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+                                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
                                 </svg>
                             </div>
                             <h3 class="mt-4 text-lg font-semibold text-white">Custom CSS/JS</h3>
-                            <p class="mt-2 text-sm text-indigo-100">Add custom CSS and JavaScript for advanced customization.</p>
+                            <p class="mt-2 text-sm text-green-100">Add custom CSS and JavaScript for advanced customization.</p>
                         </div>
-                        <div class="rounded-xl bg-white/10 p-6 backdrop-blur">
-                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
-                                <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <div class="rounded-2xl bg-white/10 p-6 backdrop-blur-sm ring-1 ring-white/20 hover:bg-white/15 transition-colors">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+                                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                                 </svg>
                             </div>
                             <h3 class="mt-4 text-lg font-semibold text-white">Custom Domain</h3>
-                            <p class="mt-2 text-sm text-indigo-100">Use status.yourcompany.com with automatic SSL certificates.</p>
+                            <p class="mt-2 text-sm text-green-100">Use status.yourcompany.com with automatic SSL certificates.</p>
                         </div>
-                        <div class="rounded-xl bg-white/10 p-6 backdrop-blur">
-                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
-                                <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <div class="rounded-2xl bg-white/10 p-6 backdrop-blur-sm ring-1 ring-white/20 hover:bg-white/15 transition-colors">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+                                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
                                 </svg>
                             </div>
-                            <h3 class="mt-4 text-lg font-semibold text-white">Custom Layout</h3>
-                            <p class="mt-2 text-sm text-indigo-100">Organize components and groups exactly how you want them.</p>
+                            <h3 class="mt-4 text-lg font-semibold text-white">Flexible Layout</h3>
+                            <p class="mt-2 text-sm text-green-100">Organize components and groups exactly how you want them.</p>
                         </div>
-                        <div class="rounded-xl bg-white/10 p-6 backdrop-blur">
-                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
-                                <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <div class="rounded-2xl bg-white/10 p-6 backdrop-blur-sm ring-1 ring-white/20 hover:bg-white/15 transition-colors">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+                                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
                                 </svg>
                             </div>
-                            <h3 class="mt-4 text-lg font-semibold text-white">Remove Branding</h3>
-                            <p class="mt-2 text-sm text-indigo-100">Option to remove OneUptime branding completely.</p>
+                            <h3 class="mt-4 text-lg font-semibold text-white">White Label</h3>
+                            <p class="mt-2 text-sm text-green-100">Remove all OneUptime branding for a fully white-label experience.</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="mt-16 text-center">
-                    <a href="/accounts/register" class="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-indigo-600 shadow-sm hover:bg-indigo-50 transition-colors">
+                    <a href="/accounts/register" class="group inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-base font-semibold text-green-700 shadow-lg transition-all hover:bg-green-50 hover:shadow-xl hover:-translate-y-0.5">
                         Create your branded status page
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                        <svg class="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
                     </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integration Section -->
+        <div class="bg-white py-24 sm:py-32">
+            <div class="mx-auto max-w-7xl px-6 lg:px-8">
+                <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+                    <div class="order-2 lg:order-1 mt-16 lg:mt-0">
+                        <div class="relative">
+                            <div class="absolute -inset-4 rounded-2xl bg-gradient-to-r from-blue-100 to-indigo-100 opacity-50 blur-2xl"></div>
+                            <div class="relative rounded-2xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:rounded-2xl lg:p-4">
+                                <img src="/img/status-page-integrations.png" alt="Status page monitoring integrations" class="rounded-lg shadow-xl">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="order-1 lg:order-2">
+                        <h2 class="text-base font-semibold leading-7 text-green-600">Seamless Integration</h2>
+                        <p class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+                            Connected to your monitoring stack
+                        </p>
+                        <p class="mt-6 text-lg leading-8 text-gray-600">
+                            Your status page automatically reflects your actual service health. No manual updates required - when monitoring detects an issue, your status page updates instantly.
+                        </p>
+                        <ul class="mt-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <svg class="h-6 w-6 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"></path></svg>
+                                <span class="text-gray-700"><strong class="text-gray-900">Auto-sync with monitors</strong> - Status updates automatically when monitors detect issues</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <svg class="h-6 w-6 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"></path></svg>
+                                <span class="text-gray-700"><strong class="text-gray-900">Incident auto-creation</strong> - Create incidents from alerts with one click</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <svg class="h-6 w-6 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"></path></svg>
+                                <span class="text-gray-700"><strong class="text-gray-900">Uptime calculated automatically</strong> - Real metrics from real monitoring data</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <svg class="h-6 w-6 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"></path></svg>
+                                <span class="text-gray-700"><strong class="text-gray-900">API & Terraform support</strong> - Automate status page management with code</span>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -370,6 +532,20 @@
 
     <%- include('footer') -%>
     <%- include('./Partials/video-script') -%>
+
+    <style>
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        .animate-float-delayed {
+            animation: float 3s ease-in-out infinite;
+            animation-delay: 1.5s;
+        }
+    </style>
 
 </body>
 

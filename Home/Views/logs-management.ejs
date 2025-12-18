@@ -18,64 +18,58 @@
 
   <!-- Hero Section -->
   <div class="relative isolate overflow-hidden bg-white">
-    <div class="absolute inset-0 -z-10 overflow-hidden">
-      <svg class="absolute left-[max(50%,25rem)] top-0 h-[64rem] w-[128rem] -translate-x-1/2 stroke-gray-200 [mask-image:radial-gradient(64rem_64rem_at_top,white,transparent)]" aria-hidden="true">
-        <defs>
-          <pattern id="logs-grid" width="200" height="200" x="50%" y="-1" patternUnits="userSpaceOnUse">
-            <path d="M100 200V.5M.5 .5H200" fill="none" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" stroke-width="0" fill="url(#logs-grid)" />
-      </svg>
-    </div>
-
-    <div class="py-24 sm:py-32">
-      <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto max-w-4xl text-center">
-          <span class="inline-flex items-center rounded-full bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20 mb-8">
-            <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-            </svg>
-            Log Management
-          </span>
-          <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">Fastest log ingest and search on the planet.</h1>
-          <p class="mt-6 text-xl sm:text-2xl leading-8 text-gray-600">Powered by Ceph & Clickhouse. Ingest petabytes of logs and search in milliseconds. Save 8x compared to competitors.</p>
-          <div class="mt-10 flex items-center justify-center gap-x-6">
-            <a href="/accounts/register"
-              class="rounded-md bg-gray-900 px-5 py-3 text-base font-semibold text-white shadow-sm hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">Start Free Trial</a>
-            <a href="/enterprise/demo" class="rounded-md bg-white px-5 py-3 text-base font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Request Demo <span aria-hidden="true">→</span></a>
-          </div>
+    <div class="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:px-8">
+      <div class="mx-auto max-w-3xl text-center">
+        <div class="mb-8 inline-flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2">
+          <span class="h-2 w-2 rounded-full bg-indigo-600"></span>
+          <span class="text-sm font-medium text-gray-900">Log Management</span>
         </div>
-        <div class="mt-16 flow-root sm:mt-24">
-          <div
-            class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-              <img src="/img/log-management.png" alt="OneUptime log management dashboard showing real-time log monitoring and analysis" width="2432" height="1442"
-                class="rounded-md shadow-2xl ring-1 ring-gray-900/10">
-          </div>
+        <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+          Fastest log ingest and search on the planet
+        </h1>
+        <p class="mt-6 text-lg leading-8 text-gray-600">
+          Powered by Ceph & Clickhouse. Ingest petabytes of logs and search in milliseconds. Save 8x compared to competitors.
+        </p>
+        <div class="mt-10 flex items-center justify-center gap-x-6">
+          <a href="/accounts/register"
+            class="rounded-md bg-indigo-600 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+            Start Free Trial
+          </a>
+          <a href="/enterprise/demo" class="rounded-md bg-white px-6 py-3 text-base font-semibold text-gray-900 shadow-sm ring-1 ring-gray-300 hover:bg-gray-50">
+            Request Demo
+          </a>
+        </div>
+      </div>
+
+      <!-- Hero Screenshot -->
+      <div class="mt-16 sm:mt-24">
+        <div class="rounded-xl bg-gray-50 p-2 ring-1 ring-gray-200 lg:rounded-2xl lg:p-3">
+          <img src="/img/log-management.png" alt="OneUptime log management dashboard showing real-time log monitoring and analysis"
+            class="rounded-lg shadow-md ring-1 ring-gray-200 lg:rounded-xl">
         </div>
       </div>
     </div>
   </div>
 
   <!-- Stats Section -->
-  <div class="bg-gray-900 py-16">
+  <div class="border-y border-gray-200 bg-gray-50 py-16">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
         <div class="text-center">
-          <div class="text-4xl font-bold text-white">Petabytes</div>
-          <div class="mt-2 text-sm text-gray-400">Log Storage</div>
+          <div class="text-4xl font-bold text-gray-900">Petabytes</div>
+          <div class="mt-2 text-sm text-gray-600">Log Storage</div>
         </div>
         <div class="text-center">
-          <div class="text-4xl font-bold text-white">&lt;100ms</div>
-          <div class="mt-2 text-sm text-gray-400">Search Speed</div>
+          <div class="text-4xl font-bold text-gray-900">&lt;100ms</div>
+          <div class="mt-2 text-sm text-gray-600">Search Speed</div>
         </div>
         <div class="text-center">
-          <div class="text-4xl font-bold text-white">8x</div>
-          <div class="mt-2 text-sm text-gray-400">Cost Savings</div>
+          <div class="text-4xl font-bold text-gray-900">8x</div>
+          <div class="mt-2 text-sm text-gray-600">Cost Savings</div>
         </div>
         <div class="text-center">
-          <div class="text-4xl font-bold text-white">100%</div>
-          <div class="mt-2 text-sm text-gray-400">Hot Storage</div>
+          <div class="text-4xl font-bold text-gray-900">100%</div>
+          <div class="mt-2 text-sm text-gray-600">Hot Storage</div>
         </div>
       </div>
     </div>
@@ -83,113 +77,148 @@
 
   <%- include('logo-roll') -%>
 
-  <!-- Core Features Grid -->
+  <!-- Technology Stack Section -->
   <div class="bg-white py-24 sm:py-32">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center mb-16">
+        <p class="text-base font-semibold text-indigo-600">Powered By</p>
+        <h2 class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Battle-tested technology stack</h2>
+        <p class="mt-6 text-lg text-gray-600">Built on the world's fastest data infrastructure for unmatched performance and reliability.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <!-- Ceph -->
+        <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+          <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600 text-white mb-4">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Ceph Distributed Storage</h3>
+          <p class="text-sm text-gray-600">Petabyte-scale distributed storage with automatic replication. Your logs are always available and durable.</p>
+        </div>
+
+        <!-- ClickHouse -->
+        <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+          <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600 text-white mb-4">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">ClickHouse Analytics</h3>
+          <p class="text-sm text-gray-600">Blazing fast OLAP database. Search billions of logs in milliseconds with full SQL support.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core Features Grid -->
+  <div class="bg-gray-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="mx-auto max-w-2xl text-center">
-        <h2 class="text-base font-semibold leading-7 text-emerald-600">Enterprise Log Management</h2>
-        <p class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Everything you need for log analytics</p>
-        <p class="mt-6 text-lg leading-8 text-gray-600">From ingest to alerting, OneUptime provides a complete log management platform at a fraction of the cost.</p>
+        <p class="text-base font-semibold text-indigo-600">Enterprise Log Management</p>
+        <h2 class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Everything you need for log analytics</h2>
+        <p class="mt-6 text-lg text-gray-600">From ingest to alerting, OneUptime provides a complete log management platform at a fraction of the cost.</p>
       </div>
       <div class="mx-auto mt-16 max-w-7xl">
         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <!-- Feature 1: Petabyte Scale -->
-          <div class="group relative rounded-2xl border border-gray-200 p-8 hover:border-emerald-200 hover:shadow-lg transition-all duration-200">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white mb-6">
-              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900">Petabyte Scale</h3>
-            <p class="mt-3 text-sm text-gray-600">Ingest and store petabytes of logs. Powered by Ceph distributed storage for unlimited scalability.</p>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">Petabyte Scale</h3>
+            <p class="mt-2 text-sm text-gray-600">Ingest and store petabytes of logs. Powered by Ceph distributed storage for unlimited scalability.</p>
           </div>
 
           <!-- Feature 2: Millisecond Search -->
-          <div class="group relative rounded-2xl border border-gray-200 p-8 hover:border-emerald-200 hover:shadow-lg transition-all duration-200">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white mb-6">
-              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900">Millisecond Search</h3>
-            <p class="mt-3 text-sm text-gray-600">Search across billions of log entries in milliseconds. Powered by ClickHouse for blazing fast analytics.</p>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">Millisecond Search</h3>
+            <p class="mt-2 text-sm text-gray-600">Search across billions of log entries in milliseconds. Powered by ClickHouse for blazing fast analytics.</p>
           </div>
 
           <!-- Feature 3: OpenTelemetry -->
-          <div class="group relative rounded-2xl border border-gray-200 p-8 hover:border-emerald-200 hover:shadow-lg transition-all duration-200">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-600 text-white mb-6">
-              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900">OpenTelemetry Native</h3>
-            <p class="mt-3 text-sm text-gray-600">Native OpenTelemetry support. Ingest logs from any application with just one line of code change.</p>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">OpenTelemetry Native</h3>
+            <p class="mt-2 text-sm text-gray-600">Native OpenTelemetry support. Ingest logs from any application with just one line of code change.</p>
           </div>
 
           <!-- Feature 4: SQL Queries -->
-          <div class="group relative rounded-2xl border border-gray-200 p-8 hover:border-emerald-200 hover:shadow-lg transition-all duration-200">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-600 text-white mb-6">
-              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900">SQL Query Support</h3>
-            <p class="mt-3 text-sm text-gray-600">Full-text search or write custom SQL queries. ClickHouse SQL gives you complete flexibility.</p>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">SQL Query Support</h3>
+            <p class="mt-2 text-sm text-gray-600">Full-text search or write custom SQL queries. ClickHouse SQL gives you complete flexibility.</p>
           </div>
 
           <!-- Feature 5: No Rehydration -->
-          <div class="group relative rounded-2xl border border-gray-200 p-8 hover:border-emerald-200 hover:shadow-lg transition-all duration-200">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-600 text-white mb-6">
-              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900">No Rehydration</h3>
-            <p class="mt-3 text-sm text-gray-600">All logs are hot storage. No waiting for data rehydration. Search instantly, anytime.</p>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">No Rehydration</h3>
+            <p class="mt-2 text-sm text-gray-600">All logs are hot storage. No waiting for data rehydration. Search instantly, anytime.</p>
           </div>
 
           <!-- Feature 6: Custom Retention -->
-          <div class="group relative rounded-2xl border border-gray-200 p-8 hover:border-emerald-200 hover:shadow-lg transition-all duration-200">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-600 text-white mb-6">
-              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900">Custom Retention</h3>
-            <p class="mt-3 text-sm text-gray-600">Set different retention periods per service. Keep critical logs longer, save costs on non-critical data.</p>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">Custom Retention</h3>
+            <p class="mt-2 text-sm text-gray-600">Set different retention periods per service. Keep critical logs longer, save costs on non-critical data.</p>
           </div>
 
           <!-- Feature 7: Data Residency -->
-          <div class="group relative rounded-2xl border border-gray-200 p-8 hover:border-emerald-200 hover:shadow-lg transition-all duration-200">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-white mb-6">
-              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900">Data Residency</h3>
-            <p class="mt-3 text-sm text-gray-600">Choose where your data lives. US, EU, or custom regions for GDPR and compliance requirements.</p>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">Data Residency</h3>
+            <p class="mt-2 text-sm text-gray-600">Choose where your data lives. US, EU, or custom regions for GDPR and compliance requirements.</p>
           </div>
 
           <!-- Feature 8: Log Alerts -->
-          <div class="group relative rounded-2xl border border-gray-200 p-8 hover:border-emerald-200 hover:shadow-lg transition-all duration-200">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-600 text-white mb-6">
-              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900">Log-Based Alerts</h3>
-            <p class="mt-3 text-sm text-gray-600">Create alerts based on log patterns. Get notified when errors spike or specific events occur.</p>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">Log-Based Alerts</h3>
+            <p class="mt-2 text-sm text-gray-600">Create alerts based on log patterns. Get notified when errors spike or specific events occur.</p>
           </div>
 
           <!-- Feature 9: Data Export -->
-          <div class="group relative rounded-2xl border border-gray-200 p-8 hover:border-emerald-200 hover:shadow-lg transition-all duration-200">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-600 text-white mb-6">
-              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900">Data Export</h3>
-            <p class="mt-3 text-sm text-gray-600">Export logs to BigQuery, S3, or any data warehouse. You own your data completely.</p>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">Data Export</h3>
+            <p class="mt-2 text-sm text-gray-600">Export logs to BigQuery, S3, or any data warehouse. You own your data completely.</p>
           </div>
         </div>
       </div>
@@ -197,169 +226,195 @@
   </div>
 
   <!-- Ingest Sources Section -->
-  <div class="relative overflow-hidden bg-gray-50 py-24">
-    <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-2 lg:gap-24 lg:px-8">
-      <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none lg:py-16 lg:px-0">
+  <div class="bg-white py-24">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
         <div>
-          <span class="rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">Ingest</span>
+          <span class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700">
+            Ingest
+          </span>
           <h2 class="mt-6 text-3xl font-bold tracking-tight text-gray-900">Ingest from any source</h2>
-          <p class="mt-4 text-lg text-gray-500">Native OpenTelemetry support means you can ingest logs from any application, container, or infrastructure component.</p>
-          <div class="mt-8 grid grid-cols-2 gap-4">
+          <p class="mt-4 text-lg text-gray-600">Native OpenTelemetry support means you can ingest logs from any application, container, or infrastructure component.</p>
+          <div class="mt-8 grid grid-cols-2 gap-3">
             <div class="flex items-center">
-              <svg class="h-5 w-5 text-emerald-500 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 mr-3">
+                <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </div>
               <span class="text-sm text-gray-700">Applications</span>
             </div>
             <div class="flex items-center">
-              <svg class="h-5 w-5 text-emerald-500 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 mr-3">
+                <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </div>
               <span class="text-sm text-gray-700">Docker Containers</span>
             </div>
             <div class="flex items-center">
-              <svg class="h-5 w-5 text-emerald-500 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 mr-3">
+                <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </div>
               <span class="text-sm text-gray-700">Kubernetes</span>
             </div>
             <div class="flex items-center">
-              <svg class="h-5 w-5 text-emerald-500 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 mr-3">
+                <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </div>
               <span class="text-sm text-gray-700">Syslog</span>
             </div>
             <div class="flex items-center">
-              <svg class="h-5 w-5 text-emerald-500 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 mr-3">
+                <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </div>
               <span class="text-sm text-gray-700">AWS CloudWatch</span>
             </div>
             <div class="flex items-center">
-              <svg class="h-5 w-5 text-emerald-500 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 mr-3">
+                <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </div>
               <span class="text-sm text-gray-700">Fluentd/Fluent Bit</span>
             </div>
             <div class="flex items-center">
-              <svg class="h-5 w-5 text-emerald-500 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 mr-3">
+                <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </div>
               <span class="text-sm text-gray-700">Logstash</span>
             </div>
             <div class="flex items-center">
-              <svg class="h-5 w-5 text-emerald-500 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 mr-3">
+                <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </div>
               <span class="text-sm text-gray-700">And more...</span>
             </div>
           </div>
           <div class="mt-8">
-            <a href="/accounts/register" class="rounded-md bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-700">Start Ingesting</a>
+            <a href="/accounts/register" class="inline-flex items-center rounded-md bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+              Start Ingesting
+              <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </a>
           </div>
         </div>
-      </div>
-      <div class="mt-12 sm:mt-16 lg:mt-0">
-        <div class="-mr-48 pl-6 md:-mr-16 lg:relative lg:m-0 lg:h-full lg:px-0">
-          <img class="w-full rounded-xl shadow-xl ring-1 ring-black ring-opacity-5 lg:absolute lg:left-0 lg:h-full lg:w-auto lg:max-w-none" src="/img/logs-sources.png" alt="Log ingest sources">
+        <div class="mt-12 lg:mt-0">
+          <img class="rounded-lg shadow-md ring-1 ring-gray-200" src="/img/logs-sources.png" alt="Log ingest sources">
         </div>
       </div>
     </div>
   </div>
 
   <!-- SQL Search Section -->
-  <div class="relative overflow-hidden bg-white py-24">
-    <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-2 lg:gap-24 lg:px-8">
-      <div class="mx-auto max-w-xl px-6 lg:col-start-2 lg:mx-0 lg:max-w-none lg:py-16 lg:px-0">
-        <div>
-          <span class="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">Search</span>
+  <div class="bg-gray-50 py-24">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+        <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+          <img class="rounded-lg shadow-md ring-1 ring-gray-200" src="/img/search-with-sql.png" alt="SQL log search">
+        </div>
+        <div class="order-1 lg:order-2">
+          <span class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700">
+            Search
+          </span>
           <h2 class="mt-6 text-3xl font-bold tracking-tight text-gray-900">Search with SQL or full-text</h2>
-          <p class="mt-4 text-lg text-gray-500">Use simple full-text search or write powerful ClickHouse SQL queries. Search petabytes of data in seconds with no rehydration needed.</p>
-          <div class="mt-6 rounded-lg bg-gray-900 p-4">
-            <code class="text-sm text-emerald-400">
-              SELECT * FROM logs<br/>
-              WHERE service = 'api'<br/>
-              AND level = 'error'<br/>
-              AND timestamp > now() - INTERVAL 1 HOUR<br/>
-              ORDER BY timestamp DESC<br/>
-              LIMIT 100
+          <p class="mt-4 text-lg text-gray-600">Use simple full-text search or write powerful ClickHouse SQL queries. Search petabytes of data in seconds with no rehydration needed.</p>
+          <div class="mt-6 rounded-lg bg-gray-900 p-4 shadow-md">
+            <code class="text-sm text-green-400 font-mono leading-relaxed">
+              <span class="text-blue-400">SELECT</span> * <span class="text-blue-400">FROM</span> logs<br/>
+              <span class="text-blue-400">WHERE</span> service = <span class="text-amber-400">'api'</span><br/>
+              <span class="text-blue-400">AND</span> level = <span class="text-amber-400">'error'</span><br/>
+              <span class="text-blue-400">AND</span> timestamp > <span class="text-purple-400">now()</span> - <span class="text-blue-400">INTERVAL</span> <span class="text-amber-400">1 HOUR</span><br/>
+              <span class="text-blue-400">ORDER BY</span> timestamp <span class="text-blue-400">DESC</span><br/>
+              <span class="text-blue-400">LIMIT</span> <span class="text-amber-400">100</span>
             </code>
           </div>
           <div class="mt-8">
-            <a href="/accounts/register" class="rounded-md bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-700">Try SQL Search</a>
+            <a href="/accounts/register" class="inline-flex items-center rounded-md bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+              Try SQL Search
+              <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </a>
           </div>
-        </div>
-      </div>
-      <div class="mt-12 sm:mt-16 lg:col-start-1 lg:mt-0">
-        <div class="-ml-48 pr-6 md:-ml-16 lg:relative lg:m-0 lg:h-full lg:px-0">
-          <img class="w-full rounded-xl shadow-xl ring-1 ring-black ring-opacity-5 lg:absolute lg:right-0 lg:h-full lg:w-auto lg:max-w-none" src="/img/search-with-sql.png" alt="SQL log search">
         </div>
       </div>
     </div>
   </div>
 
   <!-- Cost Savings Highlight -->
-  <div class="bg-emerald-600 py-24 sm:py-32">
+  <div class="bg-indigo-600 py-24 sm:py-32">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="mx-auto max-w-2xl text-center">
         <h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Save 8x compared to competitors</h2>
-        <p class="mt-6 text-lg leading-8 text-emerald-100">Most cost-effective log management on the planet. Don't break the bank on observability.</p>
+        <p class="mt-6 text-lg text-indigo-100">Most cost-effective log management on the planet. Don't break the bank on observability.</p>
       </div>
       <div class="mx-auto mt-16 max-w-5xl">
-        <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          <div class="rounded-2xl bg-white/10 backdrop-blur-sm p-8 ring-1 ring-white/20">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="rounded-lg bg-white/10 p-6">
             <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 mb-4">
-              <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-white">Pay per GB ingested</h3>
-            <p class="mt-2 text-sm text-emerald-100">Simple, predictable pricing. No hidden fees for queries, storage, or users.</p>
+            <p class="mt-2 text-sm text-indigo-100">Simple, predictable pricing. No hidden fees for queries, storage, or users.</p>
           </div>
-          <div class="rounded-2xl bg-white/10 backdrop-blur-sm p-8 ring-1 ring-white/20">
+          <div class="rounded-lg bg-white/10 p-6">
             <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 mb-4">
-              <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-white">Custom Retention</h3>
-            <p class="mt-2 text-sm text-emerald-100">Lower retention for non-critical services. Keep important logs longer without the cost.</p>
+            <p class="mt-2 text-sm text-indigo-100">Lower retention for non-critical services. Keep important logs longer without the cost.</p>
           </div>
-          <div class="rounded-2xl bg-white/10 backdrop-blur-sm p-8 ring-1 ring-white/20">
+          <div class="rounded-lg bg-white/10 p-6">
             <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 mb-4">
-              <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-white">No Rehydration Fees</h3>
-            <p class="mt-2 text-sm text-emerald-100">All logs are hot. No extra charges to search old data like with competitors.</p>
+            <p class="mt-2 text-sm text-indigo-100">All logs are hot. No extra charges to search old data like with competitors.</p>
           </div>
-          <div class="rounded-2xl bg-white/10 backdrop-blur-sm p-8 ring-1 ring-white/20">
+          <div class="rounded-lg bg-white/10 p-6">
             <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 mb-4">
-              <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-white">Unlimited Users</h3>
-            <p class="mt-2 text-sm text-emerald-100">No per-seat pricing. Give your entire team access without worrying about costs.</p>
+            <p class="mt-2 text-sm text-indigo-100">No per-seat pricing. Give your entire team access without worrying about costs.</p>
           </div>
-          <div class="rounded-2xl bg-white/10 backdrop-blur-sm p-8 ring-1 ring-white/20">
+          <div class="rounded-lg bg-white/10 p-6">
             <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 mb-4">
-              <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-white">Unlimited Queries</h3>
-            <p class="mt-2 text-sm text-emerald-100">Search as much as you want. No query fees or rate limits.</p>
+            <p class="mt-2 text-sm text-indigo-100">Search as much as you want. No query fees or rate limits.</p>
           </div>
-          <div class="rounded-2xl bg-white/10 backdrop-blur-sm p-8 ring-1 ring-white/20">
+          <div class="rounded-lg bg-white/10 p-6">
             <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 mb-4">
-              <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-white">Efficient Compression</h3>
-            <p class="mt-2 text-sm text-emerald-100">ClickHouse compression reduces storage costs significantly.</p>
+            <p class="mt-2 text-sm text-indigo-100">ClickHouse compression reduces storage costs significantly.</p>
           </div>
         </div>
       </div>
@@ -367,142 +422,128 @@
   </div>
 
   <!-- Data Retention Section -->
-  <div class="relative overflow-hidden bg-white py-24">
-    <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-2 lg:gap-24 lg:px-8">
-      <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none lg:py-16 lg:px-0">
+  <div class="bg-white py-24">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
         <div>
-          <span class="rounded-full bg-cyan-100 px-3 py-1 text-sm font-medium text-cyan-700">Compliance</span>
+          <span class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700">
+            Compliance
+          </span>
           <h2 class="mt-6 text-3xl font-bold tracking-tight text-gray-900">Custom data retention and residency</h2>
-          <p class="mt-4 text-lg text-gray-500">Set custom data retention policies per service. Choose US or EU data centers for GDPR compliance. Full control over your data lifecycle.</p>
+          <p class="mt-4 text-lg text-gray-600">Set custom data retention policies per service. Choose US or EU data centers for GDPR compliance. Full control over your data lifecycle.</p>
           <ul class="mt-8 space-y-4">
             <li class="flex items-center">
-              <svg class="h-5 w-5 text-emerald-500 mr-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 mr-3">
+                <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </div>
               <span class="text-gray-700">Per-service retention policies</span>
             </li>
             <li class="flex items-center">
-              <svg class="h-5 w-5 text-emerald-500 mr-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 mr-3">
+                <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </div>
               <span class="text-gray-700">US or EU data residency</span>
             </li>
             <li class="flex items-center">
-              <svg class="h-5 w-5 text-emerald-500 mr-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 mr-3">
+                <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </div>
               <span class="text-gray-700">GDPR, HIPAA, CCPA compliant</span>
             </li>
             <li class="flex items-center">
-              <svg class="h-5 w-5 text-emerald-500 mr-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 mr-3">
+                <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </div>
               <span class="text-gray-700">SOC 2 Type II certified</span>
             </li>
           </ul>
           <div class="mt-8">
-            <a href="/accounts/register" class="rounded-md bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-700">Configure Retention</a>
+            <a href="/accounts/register" class="inline-flex items-center rounded-md bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+              Configure Retention
+              <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </a>
           </div>
         </div>
-      </div>
-      <div class="mt-12 sm:mt-16 lg:mt-0">
-        <div class="-mr-48 pl-6 md:-mr-16 lg:relative lg:m-0 lg:h-full lg:px-0">
-          <img class="w-full rounded-xl shadow-xl ring-1 ring-black ring-opacity-5 lg:absolute lg:left-0 lg:h-full lg:w-auto lg:max-w-none" src="/img/custom-data-retention.png" alt="Custom data retention settings">
+        <div class="mt-12 lg:mt-0">
+          <img class="rounded-lg shadow-md ring-1 ring-gray-200" src="/img/custom-data-retention.png" alt="Custom data retention settings">
         </div>
       </div>
     </div>
   </div>
 
-  <!-- More Features Grid -->
-  <div class="relative bg-gray-50 py-24 sm:py-32">
-    <div class="mx-auto max-w-md px-6 text-center sm:max-w-3xl lg:max-w-7xl lg:px-8">
-      <h2 class="text-lg font-semibold text-emerald-600">Enterprise Ready</h2>
-      <p class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Advanced features for growing teams</p>
-      <p class="mx-auto mt-5 max-w-prose text-xl text-gray-500">Built to scale with your organization.</p>
-      <div class="mt-20">
-        <div class="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
-          <div class="pt-6">
-            <div class="flow-root rounded-lg bg-white px-6 pb-8">
-              <div class="-mt-6">
-                <span class="inline-flex items-center justify-center rounded-xl bg-emerald-500 p-3 shadow-lg">
-                  <svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                  </svg>
-                </span>
-                <h3 class="mt-8 text-lg font-semibold leading-8 tracking-tight text-gray-900">High Availability</h3>
-                <p class="mt-5 text-base leading-7 text-gray-600">Multi-cloud distributed infrastructure. Your log management is never down, even during major cloud outages.</p>
-              </div>
+  <!-- Enterprise Features -->
+  <div class="bg-gray-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center">
+        <p class="text-base font-semibold text-indigo-600">Enterprise Ready</p>
+        <h2 class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Advanced features for growing teams</h2>
+        <p class="mt-6 text-lg text-gray-600">Built to scale with your organization.</p>
+      </div>
+      <div class="mx-auto mt-16 max-w-5xl">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white mb-4">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+              </svg>
             </div>
+            <h3 class="text-lg font-semibold text-gray-900">High Availability</h3>
+            <p class="mt-2 text-sm text-gray-600">Multi-cloud distributed infrastructure. Your log management is never down, even during major cloud outages.</p>
           </div>
-
-          <div class="pt-6">
-            <div class="flow-root rounded-lg bg-white px-6 pb-8">
-              <div class="-mt-6">
-                <span class="inline-flex items-center justify-center rounded-xl bg-emerald-500 p-3 shadow-lg">
-                  <svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                  </svg>
-                </span>
-                <h3 class="mt-8 text-lg font-semibold leading-8 tracking-tight text-gray-900">Incident Integration</h3>
-                <p class="mt-5 text-base leading-7 text-gray-600">Seamlessly integrated with incident management. Create incidents from log patterns automatically.</p>
-              </div>
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white mb-4">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
             </div>
+            <h3 class="text-lg font-semibold text-gray-900">Incident Integration</h3>
+            <p class="mt-2 text-sm text-gray-600">Seamlessly integrated with incident management. Create incidents from log patterns automatically.</p>
           </div>
-
-          <div class="pt-6">
-            <div class="flow-root rounded-lg bg-white px-6 pb-8">
-              <div class="-mt-6">
-                <span class="inline-flex items-center justify-center rounded-xl bg-emerald-500 p-3 shadow-lg">
-                  <svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v2.25A2.25 2.25 0 006 10.5zm0 9.75h2.25A2.25 2.25 0 0010.5 18v-2.25a2.25 2.25 0 00-2.25-2.25H6a2.25 2.25 0 00-2.25 2.25V18A2.25 2.25 0 006 20.25zm9.75-9.75H18a2.25 2.25 0 002.25-2.25V6A2.25 2.25 0 0018 3.75h-2.25A2.25 2.25 0 0013.5 6v2.25a2.25 2.25 0 002.25 2.25z" />
-                  </svg>
-                </span>
-                <h3 class="mt-8 text-lg font-semibold leading-8 tracking-tight text-gray-900">5000+ Integrations</h3>
-                <p class="mt-5 text-base leading-7 text-gray-600">Connect with your existing tools. Slack, PagerDuty, Jira, and thousands more integrations available.</p>
-              </div>
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white mb-4">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v2.25A2.25 2.25 0 006 10.5zm0 9.75h2.25A2.25 2.25 0 0010.5 18v-2.25a2.25 2.25 0 00-2.25-2.25H6a2.25 2.25 0 00-2.25 2.25V18A2.25 2.25 0 006 20.25zm9.75-9.75H18a2.25 2.25 0 002.25-2.25V6A2.25 2.25 0 0018 3.75h-2.25A2.25 2.25 0 0013.5 6v2.25a2.25 2.25 0 002.25 2.25z" />
+              </svg>
             </div>
+            <h3 class="text-lg font-semibold text-gray-900">5000+ Integrations</h3>
+            <p class="mt-2 text-sm text-gray-600">Connect with your existing tools. Slack, PagerDuty, Jira, and thousands more integrations available.</p>
           </div>
-
-          <div class="pt-6">
-            <div class="flow-root rounded-lg bg-white px-6 pb-8">
-              <div class="-mt-6">
-                <span class="inline-flex items-center justify-center rounded-xl bg-emerald-500 p-3 shadow-lg">
-                  <svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-                  </svg>
-                </span>
-                <h3 class="mt-8 text-lg font-semibold leading-8 tracking-tight text-gray-900">Workflows</h3>
-                <p class="mt-5 text-base leading-7 text-gray-600">Build complex automation without code. Trigger actions based on log patterns and metrics.</p>
-              </div>
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white mb-4">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
             </div>
+            <h3 class="text-lg font-semibold text-gray-900">Workflows</h3>
+            <p class="mt-2 text-sm text-gray-600">Build complex automation without code. Trigger actions based on log patterns and metrics.</p>
           </div>
-
-          <div class="pt-6">
-            <div class="flow-root rounded-lg bg-white px-6 pb-8">
-              <div class="-mt-6">
-                <span class="inline-flex items-center justify-center rounded-xl bg-emerald-500 p-3 shadow-lg">
-                  <svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                  </svg>
-                </span>
-                <h3 class="mt-8 text-lg font-semibold leading-8 tracking-tight text-gray-900">SOC 2/3 & ISO Compliant</h3>
-                <p class="mt-5 text-base leading-7 text-gray-600">SOC 2/3, ISO 27001, GDPR, HIPAA, CCPA compliant. Enterprise security from day one.</p>
-              </div>
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white mb-4">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+              </svg>
             </div>
+            <h3 class="text-lg font-semibold text-gray-900">SOC 2/3 & ISO Compliant</h3>
+            <p class="mt-2 text-sm text-gray-600">SOC 2/3, ISO 27001, GDPR, HIPAA, CCPA compliant. Enterprise security from day one.</p>
           </div>
-
-          <div class="pt-6">
-            <div class="flow-root rounded-lg bg-white px-6 pb-8">
-              <div class="-mt-6">
-                <span class="inline-flex items-center justify-center rounded-xl bg-emerald-500 p-3 shadow-lg">
-                  <svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
-                  </svg>
-                </span>
-                <h3 class="mt-8 text-lg font-semibold leading-8 tracking-tight text-gray-900">Export to Data Warehouse</h3>
-                <p class="mt-5 text-base leading-7 text-gray-600">Export logs to BigQuery, S3, or any destination. Complete ownership of your data.</p>
-              </div>
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white mb-4">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375" />
+              </svg>
             </div>
+            <h3 class="text-lg font-semibold text-gray-900">Export to Data Warehouse</h3>
+            <p class="mt-2 text-sm text-gray-600">Export logs to BigQuery, S3, or any destination. Complete ownership of your data.</p>
           </div>
         </div>
       </div>
@@ -510,7 +551,7 @@
   </div>
 
   <%- include('testimonials') -%>
-  <%- include('enterprise-ready') -%>
+  <%- include('./Partials/enterprise-ready') -%>
   <%- include('features-table') -%>
   <%- include('cta') -%>
   </main>
