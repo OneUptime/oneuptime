@@ -357,6 +357,14 @@ RunCron(
               incidentDescription: incident.description || "",
             };
 
+            // Prepare SMS-specific template variables with plain text (no HTML/Markdown)
+            const smsTemplateVariables: Record<string, string> = {
+              ...templateVariables,
+              incidentDescription: Markdown.convertToPlainText(
+                incident.description || "",
+              ),
+            };
+
             for (const subscriber of subscribers) {
               try {
                 if (!subscriber._id) {
@@ -501,13 +509,20 @@ RunCron(
                     `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked}.`,
                   );
 
+                  // SMS-specific template variables with unsubscribe URL
+                  const subscriberSmsTemplateVariables: Record<string, string> =
+                    {
+                      ...smsTemplateVariables,
+                      unsubscribeUrl: unsubscribeUrl,
+                    };
+
                   let smsMessage: string;
                   if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
                     // Use custom template only when custom Twilio is configured
                     smsMessage =
                       StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                         smsTemplate.templateBody,
-                        subscriberTemplateVariables,
+                        subscriberSmsTemplateVariables,
                       );
                   } else {
                     // Use default hard-coded template

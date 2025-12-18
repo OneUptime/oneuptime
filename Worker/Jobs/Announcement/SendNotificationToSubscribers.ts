@@ -351,12 +351,15 @@ RunCron(
                   // Build SMS message - use custom template if available and custom Twilio is configured
                   let smsMessage: string;
                   if (smsTemplate?.templateBody && statuspage.callSmsConfig) {
+                    // SMS-specific template variables with plain text (no HTML/Markdown)
                     const smsTemplateVariables: Record<string, string> = {
                       statusPageName: statusPageName,
                       statusPageUrl: statusPageURL,
                       detailsUrl: announcementDetailsUrl,
                       announcementTitle: announcement.title || "",
-                      announcementDescription: announcement.description || "",
+                      announcementDescription: Markdown.convertToPlainText(
+                        announcement.description || "",
+                      ),
                       unsubscribeUrl: unsubscribeUrl,
                     };
                     smsMessage =
