@@ -6,6 +6,10 @@ import { JSONObject, ObjectType } from "./JSON";
 import { FindOperator } from "typeorm";
 import Zod from "../Utils/Schema/Zod";
 
+// UUID validation regex - matches standard UUID format
+const UUID_REGEX: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default class ObjectID extends DatabaseProperty {
   private _id: string = "";
   public get id(): string {
@@ -110,6 +114,27 @@ export default class ObjectID extends DatabaseProperty {
 
   public static fromString(id: string): ObjectID {
     return new ObjectID(id);
+  }
+
+  /**
+   * Check if a string is a valid UUID format
+   */
+  public static isValidUUID(id: string): boolean {
+    if (!id || typeof id !== "string") {
+      return false;
+    }
+    return UUID_REGEX.test(id);
+  }
+
+  /**
+   * Validate that a string is a valid UUID, throw BadDataException if not
+   */
+  public static validateUUID(id: string): void {
+    if (!ObjectID.isValidUUID(id.toString())) {
+      throw new BadDataException(
+        `Invalid ID format: "${id}". Expected a valid UUID (e.g., "550e8400-e29b-41d4-a716-446655440000").`,
+      );
+    }
   }
 
   public static override getSchema(): any {
