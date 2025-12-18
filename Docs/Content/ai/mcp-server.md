@@ -224,7 +224,6 @@ You can connect to the MCP server without an API key to access public tools:
 - **`get_public_status_page_incidents`**: Get incidents from a public status page
 - **`get_public_status_page_scheduled_maintenance`**: Get scheduled maintenance events
 - **`get_public_status_page_announcements`**: Get announcements from a public status page
-- **`resolve_status_page_domain`**: Resolve a domain to its status page ID
 
 Public status page tools accept either a status page ID (UUID) or the status page domain name.
 

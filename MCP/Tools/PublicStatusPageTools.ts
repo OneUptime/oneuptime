@@ -40,7 +40,6 @@ export function generatePublicStatusPageTools(): McpToolInfo[] {
     createGetIncidentsTool(),
     createGetScheduledMaintenanceTool(),
     createGetAnnouncementsTool(),
-    createResolveStatusPageTool(),
   ];
 }
 
@@ -199,31 +198,6 @@ RETURNS:
   };
 }
 
-function createResolveStatusPageTool(): McpToolInfo {
-  return {
-    name: "resolve_status_page_domain",
-    description: `Resolve a status page domain to get the status page ID and basic information.
-
-This tool does NOT require an API key.
-
-USAGE:
-- statusPageIdOrDomain = "status.company.com"
-
-RETURNS:
-- Status page ID
-- Page title
-- Page description`,
-    inputSchema: statusPageIdentifierSchema,
-    modelName: "StatusPageResolve",
-    operation: OneUptimeOperation.Read,
-    modelType: ModelType.Database,
-    singularName: "Status Page",
-    pluralName: "Status Pages",
-    tableName: "StatusPageResolve",
-    apiPath: "/status-page",
-  };
-}
-
 /**
  * Check if a tool is a public status page tool
  */
@@ -232,8 +206,7 @@ export function isPublicStatusPageTool(toolName: string): boolean {
     toolName === "get_public_status_page_overview" ||
     toolName === "get_public_status_page_incidents" ||
     toolName === "get_public_status_page_scheduled_maintenance" ||
-    toolName === "get_public_status_page_announcements" ||
-    toolName === "resolve_status_page_domain"
+    toolName === "get_public_status_page_announcements"
   );
 }
 
@@ -275,9 +248,6 @@ export async function handlePublicStatusPageTool(
           statusPageIdOrDomain,
           args["announcementId"] as string | undefined,
         );
-
-      case "resolve_status_page_domain":
-        return await resolveStatusPage(statusPageIdOrDomain);
 
       default:
         return JSON.stringify({
@@ -398,33 +368,6 @@ async function getStatusPageAnnouncements(
       statusPageIdOrDomain,
       announcementId: announcementId || null,
       data: response,
-    },
-    null,
-    2,
-  );
-}
-
-/**
- * Resolve status page and get basic info
- */
-async function resolveStatusPage(
-  statusPageIdOrDomain: string,
-): Promise<string> {
-  const seoData: JSONObject = await makeStatusPageApiRequest(
-    "GET",
-    `/api/status-page/seo/${statusPageIdOrDomain}`,
-  );
-
-  return JSON.stringify(
-    {
-      success: true,
-      operation: "resolve_status_page",
-      statusPageIdOrDomain,
-      data: {
-        statusPageId: seoData["_id"],
-        title: seoData["title"],
-        description: seoData["description"],
-      },
     },
     null,
     2,
