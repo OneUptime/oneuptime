@@ -23,7 +23,6 @@ export interface ApiRequestParams {
 
 export default class CodeExampleGenerator {
   private static readonly API_KEY_PLACEHOLDER: string = "YOUR_API_KEY";
-  private static readonly PROJECT_ID_PLACEHOLDER: string = "YOUR_PROJECT_ID";
   private static readonly BASE_URL: string = "https://oneuptime.com";
 
   public static generate(params: ApiRequestParams): CodeExamples {
@@ -49,7 +48,6 @@ export default class CodeExampleGenerator {
     let curlCmd: string = `curl -X ${method} "${url}"`;
     curlCmd += ` \\\n  -H "Content-Type: application/json"`;
     curlCmd += ` \\\n  -H "ApiKey: ${this.API_KEY_PLACEHOLDER}"`;
-    curlCmd += ` \\\n  -H "ProjectID: ${this.PROJECT_ID_PLACEHOLDER}"`;
 
     if (body && Object.keys(body).length > 0) {
       const jsonBody: string = JSON.stringify(body, null, 2)
@@ -68,12 +66,14 @@ export default class CodeExampleGenerator {
     const { method, endpoint, body } = params;
     const url: string = `${this.BASE_URL}${endpoint}`;
 
-    let code: string = `const response = await fetch("${url}", {
-  method: "${method}",
+    let code: string = `const axios = require('axios');
+
+const response = await axios({
+  method: '${method.toLowerCase()}',
+  url: '${url}',
   headers: {
-    "Content-Type": "application/json",
-    "ApiKey": "${this.API_KEY_PLACEHOLDER}",
-    "ProjectID": "${this.PROJECT_ID_PLACEHOLDER}"
+    'Content-Type': 'application/json',
+    'ApiKey': '${this.API_KEY_PLACEHOLDER}'
   }`;
 
     if (body && Object.keys(body).length > 0) {
@@ -83,14 +83,13 @@ export default class CodeExampleGenerator {
           index === 0 ? line : `  ${line}`,
         )
         .join("\n");
-      code += `,\n  body: JSON.stringify(${jsonBody})`;
+      code += `,\n  data: ${jsonBody}`;
     }
 
     code += `
 });
 
-const data = await response.json();
-console.log(data);`;
+console.log(response.data);`;
 
     return code;
   }
@@ -99,17 +98,19 @@ console.log(data);`;
     const { method, endpoint, body } = params;
     const url: string = `${this.BASE_URL}${endpoint}`;
 
-    let code: string = `interface ApiResponse {
+    let code: string = `import axios, { AxiosResponse } from 'axios';
+
+interface ApiResponse {
   // Define your response type here
   [key: string]: unknown;
 }
 
-const response = await fetch("${url}", {
-  method: "${method}",
+const response: AxiosResponse<ApiResponse> = await axios({
+  method: '${method.toLowerCase()}',
+  url: '${url}',
   headers: {
-    "Content-Type": "application/json",
-    "ApiKey": "${this.API_KEY_PLACEHOLDER}",
-    "ProjectID": "${this.PROJECT_ID_PLACEHOLDER}"
+    'Content-Type': 'application/json',
+    'ApiKey': '${this.API_KEY_PLACEHOLDER}'
   }`;
 
     if (body && Object.keys(body).length > 0) {
@@ -119,14 +120,13 @@ const response = await fetch("${url}", {
           index === 0 ? line : `  ${line}`,
         )
         .join("\n");
-      code += `,\n  body: JSON.stringify(${jsonBody})`;
+      code += `,\n  data: ${jsonBody}`;
     }
 
     code += `
 });
 
-const data: ApiResponse = await response.json();
-console.log(data);`;
+console.log(response.data);`;
 
     return code;
   }
@@ -140,8 +140,7 @@ console.log(data);`;
 url = "${url}"
 headers = {
     "Content-Type": "application/json",
-    "ApiKey": "${this.API_KEY_PLACEHOLDER}",
-    "ProjectID": "${this.PROJECT_ID_PLACEHOLDER}"
+    "ApiKey": "${this.API_KEY_PLACEHOLDER}"
 }`;
 
     if (body && Object.keys(body).length > 0) {
@@ -200,7 +199,6 @@ func main() {`;
     code += `
     req.Header.Set("Content-Type", "application/json")
     req.Header.Set("ApiKey", "${this.API_KEY_PLACEHOLDER}")
-    req.Header.Set("ProjectID", "${this.PROJECT_ID_PLACEHOLDER}")
 
     client := &http.Client{}
     resp, _ := client.Do(req)
@@ -239,7 +237,6 @@ public class ApiRequest {
             .uri(URI.create("${url}"))
             .header("Content-Type", "application/json")
             .header("ApiKey", "${this.API_KEY_PLACEHOLDER}")
-            .header("ProjectID", "${this.PROJECT_ID_PLACEHOLDER}")
             .method("${method}", HttpRequest.BodyPublishers.ofString(jsonBody))
             .build();`;
     } else {
@@ -248,7 +245,6 @@ public class ApiRequest {
             .uri(URI.create("${url}"))
             .header("Content-Type", "application/json")
             .header("ApiKey", "${this.API_KEY_PLACEHOLDER}")
-            .header("ProjectID", "${this.PROJECT_ID_PLACEHOLDER}")
             .method("${method}", HttpRequest.BodyPublishers.noBody())
             .build();`;
     }
@@ -281,7 +277,6 @@ class Program
         using var client = new HttpClient();
 
         client.DefaultRequestHeaders.Add("ApiKey", "${this.API_KEY_PLACEHOLDER}");
-        client.DefaultRequestHeaders.Add("ProjectID", "${this.PROJECT_ID_PLACEHOLDER}");
 `;
 
     if (body && Object.keys(body).length > 0) {
@@ -317,8 +312,7 @@ $url = "${url}";
 
 $headers = [
     "Content-Type: application/json",
-    "ApiKey: ${this.API_KEY_PLACEHOLDER}",
-    "ProjectID: ${this.PROJECT_ID_PLACEHOLDER}"
+    "ApiKey: ${this.API_KEY_PLACEHOLDER}"
 ];
 `;
 
@@ -365,8 +359,7 @@ http.use_ssl = true
 
 request = Net::HTTP::${this.rubyMethodClass(method)}.new(uri.request_uri)
 request["Content-Type"] = "application/json"
-request["ApiKey"] = "${this.API_KEY_PLACEHOLDER}"
-request["ProjectID"] = "${this.PROJECT_ID_PLACEHOLDER}"`;
+request["ApiKey"] = "${this.API_KEY_PLACEHOLDER}"`;
 
     if (body && Object.keys(body).length > 0) {
       const rubyBody: string = this.jsonToRuby(body);
@@ -396,8 +389,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-    headers.insert("ApiKey", HeaderValue::from_static("${this.API_KEY_PLACEHOLDER}"));
-    headers.insert("ProjectID", HeaderValue::from_static("${this.PROJECT_ID_PLACEHOLDER}"));`;
+    headers.insert("ApiKey", HeaderValue::from_static("${this.API_KEY_PLACEHOLDER}"));`;
 
     if (body && Object.keys(body).length > 0) {
       const rustBody: string = this.jsonToRust(body);
@@ -439,7 +431,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let code: string = `$headers = @{
     "Content-Type" = "application/json"
     "ApiKey" = "${this.API_KEY_PLACEHOLDER}"
-    "ProjectID" = "${this.PROJECT_ID_PLACEHOLDER}"
 }`;
 
     if (body && Object.keys(body).length > 0) {
