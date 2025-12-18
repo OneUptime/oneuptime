@@ -716,7 +716,7 @@ const HomeFeatureSet: FeatureSet = {
           ],
         },
         {
-          name: "Reliability Copilot",
+          name: "AI Agent",
           data: [
             {
               name: "Scan your Codebase",
