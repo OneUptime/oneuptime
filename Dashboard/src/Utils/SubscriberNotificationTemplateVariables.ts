@@ -24,7 +24,8 @@ export const getSubscriberNotificationTemplateVariablesDocumentation: (
   const isSlack: boolean =
     notificationMethod === StatusPageSubscriberNotificationMethod.Slack;
   const isTeams: boolean =
-    notificationMethod === StatusPageSubscriberNotificationMethod.MicrosoftTeams;
+    notificationMethod ===
+    StatusPageSubscriberNotificationMethod.MicrosoftTeams;
 
   if (!eventType) {
     return `**Available Template Variables**
