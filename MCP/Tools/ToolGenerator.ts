@@ -112,7 +112,7 @@ export function generateToolsForDatabaseModel(
   const pluralName: string = model.pluralName || `${singularName}s`;
   const apiPath: string | undefined = model.crudApiPath?.toString();
 
-  const modelInfo = {
+  const modelInfo: ModelToolsResult["modelInfo"] = {
     tableName: modelName,
     singularName,
     pluralName,
@@ -182,7 +182,7 @@ export function generateToolsForAnalyticsModel(
   const pluralName: string = model.pluralName || `${singularName}s`;
   const apiPath: string | undefined = model.crudApiPath?.toString();
 
-  const modelInfo = {
+  const modelInfo: ModelToolsResult["modelInfo"] = {
     tableName: modelName,
     singularName,
     pluralName,

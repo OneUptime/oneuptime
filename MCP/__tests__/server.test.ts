@@ -58,7 +58,10 @@ describe("OneUptime MCP Server", () => {
       // Mock the service to throw error for missing API key
       (OneUptimeApiService.initialize as jest.Mock).mockImplementation(
         (config: unknown) => {
-          const typedConfig = config as { url: string; apiKey: string };
+          const typedConfig: { url: string; apiKey: string } = config as {
+            url: string;
+            apiKey: string;
+          };
           if (!typedConfig.apiKey) {
             throw new Error("OneUptime API key is required");
           }

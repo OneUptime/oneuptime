@@ -12,7 +12,7 @@ import {
   NextFunction,
   ExpressJson,
 } from "Common/Server/Utils/Express";
-import { getMCPServer } from "../Server/MCPServer";
+import { getMCPServer, McpServer } from "../Server/MCPServer";
 import SessionManager, { SessionData } from "../Server/SessionManager";
 import { McpToolInfo } from "../Types/McpTypes";
 import {
@@ -163,7 +163,7 @@ async function handleNewSession(
   res: ExpressResponse,
   apiKey: string,
 ): Promise<void> {
-  const mcpServer = getMCPServer();
+  const mcpServer: McpServer = getMCPServer();
 
   const transport: StreamableHTTPServerTransport =
     new StreamableHTTPServerTransport({

@@ -56,7 +56,10 @@ export function generateAllFieldsSelect(
   );
 
   try {
-    const ModelClass = findModelClass(tableName, modelType);
+    const ModelClass:
+      | ModelConstructor<BaseModel>
+      | ModelConstructor<AnalyticsBaseModel>
+      | null = findModelClass(tableName, modelType);
 
     if (!ModelClass) {
       MCPLogger.warn(

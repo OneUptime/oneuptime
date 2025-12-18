@@ -72,7 +72,7 @@ export default class OneUptimeApiService {
     );
 
     try {
-      const response = await this.makeApiRequest(
+      const response: JSONValue = await this.makeApiRequest(
         operation,
         route,
         headers,
@@ -206,7 +206,14 @@ export default class OneUptimeApiService {
 
   private static buildCreateData(args: OneUptimeToolCallArgs): JSONObject {
     const createData: JSONObject = {};
-    const reservedFields = ["id", "query", "select", "skip", "limit", "sort"];
+    const reservedFields: string[] = [
+      "id",
+      "query",
+      "select",
+      "skip",
+      "limit",
+      "sort",
+    ];
 
     for (const [key, value] of Object.entries(args)) {
       if (!reservedFields.includes(key)) {
@@ -219,7 +226,14 @@ export default class OneUptimeApiService {
 
   private static buildUpdateData(args: OneUptimeToolCallArgs): JSONObject {
     const updateData: JSONObject = {};
-    const reservedFields = ["id", "query", "select", "skip", "limit", "sort"];
+    const reservedFields: string[] = [
+      "id",
+      "query",
+      "select",
+      "skip",
+      "limit",
+      "sort",
+    ];
 
     for (const [key, value] of Object.entries(args)) {
       if (!reservedFields.includes(key)) {
@@ -308,13 +322,22 @@ export default class OneUptimeApiService {
     operation: OneUptimeOperation,
     args: OneUptimeToolCallArgs,
   ): void {
-    const reservedFields = ["id", "query", "select", "skip", "limit", "sort"];
+    const reservedFields: string[] = [
+      "id",
+      "query",
+      "select",
+      "skip",
+      "limit",
+      "sort",
+    ];
 
     switch (operation) {
       case OneUptimeOperation.Create: {
-        const createDataFields = Object.keys(args).filter((key: string) => {
-          return !reservedFields.includes(key);
-        });
+        const createDataFields: string[] = Object.keys(args).filter(
+          (key: string) => {
+            return !reservedFields.includes(key);
+          },
+        );
         if (createDataFields.length === 0) {
           throw new Error(
             "At least one data field is required for create operation",
@@ -332,9 +355,11 @@ export default class OneUptimeApiService {
         if (!args.id) {
           throw new Error(`ID is required for ${operation} operation`);
         }
-        const updateDataFields = Object.keys(args).filter((key: string) => {
-          return !reservedFields.includes(key);
-        });
+        const updateDataFields: string[] = Object.keys(args).filter(
+          (key: string) => {
+            return !reservedFields.includes(key);
+          },
+        );
         if (updateDataFields.length === 0) {
           throw new Error(
             "At least one data field is required for update operation",
