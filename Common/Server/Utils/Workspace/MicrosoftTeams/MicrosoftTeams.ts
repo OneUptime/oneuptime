@@ -3074,7 +3074,7 @@ All monitoring checks are passing normally.`;
 
     try {
       // Fetch user email from UserService
-      const user: User | null  = await UserService.findOneById({
+      const user: User | null = await UserService.findOneById({
         id: data.userId,
         select: {
           email: true,
@@ -3087,7 +3087,7 @@ All monitoring checks are passing normally.`;
       if (!user || !user.email) {
         logger.error("User or user email not found");
         throw new BadDataException(
-          "User email not found for Microsoft Teams integration"
+          "User email not found for Microsoft Teams integration",
         );
       }
       
