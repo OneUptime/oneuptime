@@ -55,7 +55,7 @@ import IncidentStateService from "../../../Services/IncidentStateService";
 import AlertStateService from "../../../Services/AlertStateService";
 
 // Import user services
-import User from "../../Models/DatabaseModels/User";
+import User from "../../../../Models/DatabaseModels/User";
 import UserService from "../../../Services/UserService";
 
 // Import database utilities
