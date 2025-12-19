@@ -2940,12 +2940,10 @@ All monitoring checks are passing normally.`;
         // Fetch joined teams using app-scoped token
         if (data.userId) {
           logger.debug("Using app-scoped token to fetch joined teams for user");
-          const userTeams: Record<string, { id: string; name: string }> =
-            await this.getUserJoinedTeams({
-              userId: data.userId,
-              projectId: data.projectId,
-            });
-          allTeams = Object.values(userTeams) as any;
+          allTeams = await this.getUserJoinedTeams({
+            userId: data.userId,
+            projectId: data.projectId,
+          });
         }
       } catch (err) {
         logger.warn(
@@ -3069,14 +3067,14 @@ All monitoring checks are passing normally.`;
   public static async getUserJoinedTeams(data: {
     userId: ObjectID;
     projectId: ObjectID;
-  }): Promise<Record<string, { id: string; name: string }>> {
+  }): Promise<Array<JSONObject>> {
     logger.debug("=== getUserJoinedTeams called ===");
     logger.debug(`User ID: ${data.userId.toString()}`);
     logger.debug(`Project ID: ${data.projectId.toString()}`);
 
     try {
       // Fetch user email from UserService
-      const user: User | null = await UserService.findOneById({
+      const user: User | null  = await UserService.findOneById({
         id: data.userId,
         select: {
           email: true,
@@ -3085,12 +3083,14 @@ All monitoring checks are passing normally.`;
           isRoot: true,
         },
       });
+      
       if (!user || !user.email) {
         logger.error("User or user email not found");
         throw new BadDataException(
-          "User email not found for Microsoft Teams integration",
+          "User email not found for Microsoft Teams integration"
         );
       }
+      
       const userEmail: string = user.email.toString();
       logger.debug(`Retrieved user email: ${userEmail}`);
 
@@ -3123,29 +3123,9 @@ All monitoring checks are passing normally.`;
       const teams: Array<JSONObject> =
         (teamsData["value"] as Array<JSONObject>) || [];
 
-      if (teams.length === 0) {
-        logger.debug("No joined teams found for user");
-        return {};
-      }
+      logger.debug(`Fetched ${teams.length} joined teams`);
 
-      // Process teams
-      const availableTeams: Record<string, MicrosoftTeamsTeam> = teams.reduce(
-        (acc: Record<string, MicrosoftTeamsTeam>, t: JSONObject) => {
-          const team: MicrosoftTeamsTeam = {
-            id: t["id"] as string,
-            name: (t["displayName"] as string) || "Unnamed Team",
-          };
-          acc[team.name] = team;
-          return acc;
-        },
-        {} as Record<string, MicrosoftTeamsTeam>,
-      );
-
-      logger.debug(
-        `Fetched ${Object.keys(availableTeams).length} joined teams`,
-      );
-
-      return availableTeams;
+      return teams;
     } catch (error) {
       logger.error("Error getting user joined teams:");
       logger.error(error);
