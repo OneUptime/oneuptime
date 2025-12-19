@@ -583,48 +583,138 @@
     </section>
 
     <!-- FAQ -->
-    <section class="py-20 sm:py-28 bg-gray-50 border-t border-gray-100">
+    <section class="py-20 sm:py-28 border-t border-gray-100">
       <div class="mx-auto max-w-3xl px-6 lg:px-8">
-        <div class="text-center mb-16">
+        <div class="text-center mb-12">
+          <p class="text-sm font-medium text-indigo-600 mb-3">FAQ</p>
           <h2 class="text-3xl font-semibold tracking-tight text-gray-900">
-            Frequently asked questions
+            Common questions
           </h2>
         </div>
 
-        <div class="space-y-8">
-          <div>
-            <h3 class="font-medium text-gray-900 mb-2">What happens during the demo?</h3>
-            <p class="text-gray-500 text-sm leading-relaxed">
-              We'll start by understanding your current observability setup and challenges. Then we'll give you a personalized walkthrough of OneUptime, focusing on the features most relevant to your team. We'll leave time for Q&A at the end.
-            </p>
+        <div class="divide-y divide-gray-200">
+          <!-- FAQ Item 1 -->
+          <div class="faq-item">
+            <button class="faq-trigger w-full flex items-center justify-between py-5 text-left group" onclick="toggleFaq(this)">
+              <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors pr-8">What happens during the demo?</span>
+              <span class="faq-icon flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-indigo-50 flex items-center justify-center transition-all">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"></path>
+                </svg>
+              </span>
+            </button>
+            <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
+              <p class="pb-5 text-gray-500 text-sm leading-relaxed">
+                We'll start by understanding your current observability setup and challenges. Then we'll give you a personalized walkthrough of OneUptime, focusing on the features most relevant to your team. We'll leave time for Q&A at the end.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 class="font-medium text-gray-900 mb-2">How long does it take to get started?</h3>
-            <p class="text-gray-500 text-sm leading-relaxed">
-              Most teams are up and running within a day. Our quick-start guides and dedicated onboarding support make it easy to integrate with your existing infrastructure.
-            </p>
+
+          <!-- FAQ Item 2 -->
+          <div class="faq-item">
+            <button class="faq-trigger w-full flex items-center justify-between py-5 text-left group" onclick="toggleFaq(this)">
+              <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors pr-8">How long does it take to get started?</span>
+              <span class="faq-icon flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-indigo-50 flex items-center justify-center transition-all">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"></path>
+                </svg>
+              </span>
+            </button>
+            <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
+              <p class="pb-5 text-gray-500 text-sm leading-relaxed">
+                Most teams are up and running within a day. Our quick-start guides and dedicated onboarding support make it easy to integrate with your existing infrastructure.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 class="font-medium text-gray-900 mb-2">Can I self-host OneUptime?</h3>
-            <p class="text-gray-500 text-sm leading-relaxed">
-              Yes. OneUptime is open source and can be deployed on your own infrastructure using Docker, Kubernetes, or our Helm charts. We also offer managed cloud hosting in US and EU regions.
-            </p>
+
+          <!-- FAQ Item 3 -->
+          <div class="faq-item">
+            <button class="faq-trigger w-full flex items-center justify-between py-5 text-left group" onclick="toggleFaq(this)">
+              <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors pr-8">Can I self-host OneUptime?</span>
+              <span class="faq-icon flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-indigo-50 flex items-center justify-center transition-all">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"></path>
+                </svg>
+              </span>
+            </button>
+            <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
+              <p class="pb-5 text-gray-500 text-sm leading-relaxed">
+                Yes. OneUptime is open source and can be deployed on your own infrastructure using Docker, Kubernetes, or our Helm charts. We also offer managed cloud hosting in US and EU regions.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 class="font-medium text-gray-900 mb-2">What integrations do you support?</h3>
-            <p class="text-gray-500 text-sm leading-relaxed">
-              We integrate with 5000+ tools including Slack, Microsoft Teams, PagerDuty, Jira, GitHub, GitLab, AWS, GCP, Azure, and more. We also support OpenTelemetry for traces, metrics, and logs ingestion.
-            </p>
+
+          <!-- FAQ Item 4 -->
+          <div class="faq-item">
+            <button class="faq-trigger w-full flex items-center justify-between py-5 text-left group" onclick="toggleFaq(this)">
+              <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors pr-8">What integrations do you support?</span>
+              <span class="faq-icon flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-indigo-50 flex items-center justify-center transition-all">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"></path>
+                </svg>
+              </span>
+            </button>
+            <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
+              <p class="pb-5 text-gray-500 text-sm leading-relaxed">
+                We integrate with 5000+ tools including Slack, Microsoft Teams, PagerDuty, Jira, GitHub, GitLab, AWS, GCP, Azure, and more. We also support OpenTelemetry for traces, metrics, and logs ingestion.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 class="font-medium text-gray-900 mb-2">Is there a free tier?</h3>
-            <p class="text-gray-500 text-sm leading-relaxed">
-              Yes. We offer a generous free tier that includes status pages, basic monitoring, and incident management. No credit card required to get started.
-            </p>
+
+          <!-- FAQ Item 5 -->
+          <div class="faq-item">
+            <button class="faq-trigger w-full flex items-center justify-between py-5 text-left group" onclick="toggleFaq(this)">
+              <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors pr-8">Is there a free tier?</span>
+              <span class="faq-icon flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-indigo-50 flex items-center justify-center transition-all">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"></path>
+                </svg>
+              </span>
+            </button>
+            <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
+              <p class="pb-5 text-gray-500 text-sm leading-relaxed">
+                Yes. We offer a generous free tier that includes status pages, basic monitoring, and incident management. No credit card required to get started.
+              </p>
+            </div>
           </div>
+        </div>
+
+        <div class="mt-10 text-center">
+          <p class="text-sm text-gray-500">
+            Have more questions? <a href="mailto:support@oneuptime.com" class="text-indigo-600 hover:text-indigo-700 font-medium">Contact us</a>
+          </p>
         </div>
       </div>
     </section>
+
+    <script>
+      function toggleFaq(button) {
+        const item = button.closest('.faq-item');
+        const content = item.querySelector('.faq-content');
+        const icon = button.querySelector('.faq-icon svg');
+        const isOpen = item.classList.contains('open');
+
+        // Close all other items
+        document.querySelectorAll('.faq-item.open').forEach(openItem => {
+          if (openItem !== item) {
+            openItem.classList.remove('open');
+            openItem.querySelector('.faq-content').style.maxHeight = '0';
+            openItem.querySelector('.faq-icon svg').style.transform = 'rotate(0deg)';
+          }
+        });
+
+        // Toggle current item
+        if (isOpen) {
+          item.classList.remove('open');
+          content.style.maxHeight = '0';
+          icon.style.transform = 'rotate(0deg)';
+        } else {
+          item.classList.add('open');
+          content.style.maxHeight = content.scrollHeight + 'px';
+          icon.style.transform = 'rotate(45deg)';
+        }
+      }
+    </script>
 
     <!-- Final CTA -->
     <section class="py-20 sm:py-28 border-t border-gray-100">
