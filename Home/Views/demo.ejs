@@ -4,82 +4,508 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-  <title>OneUptime | One Complete Observability platform. </title>
+  <title>Request Demo | OneUptime</title>
   <meta name="description"
-    content="OneUptime monitors websites, APIs, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+    content="Schedule a personalized demo of OneUptime. See how our complete observability platform can help you monitor, observe, debug, and resolve issues faster.">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
 
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+
+    .fade-edge {
+      mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+      -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+    }
+  </style>
 </head>
 
-<body>
+<body class="antialiased bg-white">
   <%- include('nav') -%>
+
   <main id="main-content">
-    <div class="bg-white">
-      <div class="mx-auto max-w-7xl py-24 px-6 lg:px-8">
-        <div class="sm:align-center sm:flex sm:flex-col">
-          <h1 class="text-5xl font-bold tracking-tight text-gray-900 sm:text-center">Request Demo</h1>
-          <p class="mt-5 text-xl text-gray-500 sm:text-center">Our team is happy to give you a personalized demo. Pick
-            any time slot that works for you.</p>
 
+    <!-- Hero Section -->
+    <section class="py-16 sm:py-24">
+      <div class="mx-auto max-w-4xl px-6 lg:px-8 text-center">
+        <p class="text-sm font-medium text-indigo-600 mb-4">Request a demo</p>
+        <h1 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 leading-[1.1]">
+          See how OneUptime keeps your systems reliable
+        </h1>
+        <p class="mt-6 text-lg text-gray-500 leading-relaxed max-w-2xl mx-auto">
+          Get a personalized walkthrough of our complete observability platform. We'll show you how teams monitor, debug, and resolve issues faster with OneUptime.
+        </p>
+
+        <!-- What's included - horizontal layout -->
+        <div class="mt-12 grid sm:grid-cols-3 gap-8 text-left max-w-3xl mx-auto">
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+              <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div>
+              <p class="font-medium text-gray-900 text-sm">30 minute demo</p>
+              <p class="text-xs text-gray-500 mt-0.5">Tailored to your use cases</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+              <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5"></path>
+              </svg>
+            </div>
+            <div>
+              <p class="font-medium text-gray-900 text-sm">Live walkthrough</p>
+              <p class="text-xs text-gray-500 mt-0.5">See all features in action</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+              <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"></path>
+              </svg>
+            </div>
+            <div>
+              <p class="font-medium text-gray-900 text-sm">Technical Q&A</p>
+              <p class="text-xs text-gray-500 mt-0.5">Get all your questions answered</p>
+            </div>
+          </div>
         </div>
-
-
-        <div style="margin-top: 50px;">
-          <!-- Cal inline embed code begins -->
-          <div style="width:100%;height:100%;overflow:scroll" id="my-cal-inline"></div>
-          <script type="text/javascript">
-            (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; typeof namespace === "string" ? (cal.ns[namespace] = api) && p(api, ar) : p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
-            Cal("init", { origin: "https://cal.com" });
-
-            Cal("inline", {
-              elementOrSelector: "#my-cal-inline",
-              calLink: "oneuptimehq/demo",
-              layout: "month_view"
-            });
-
-            Cal("ui", { "styles": { "branding": { "brandColor": "#6366f1" } }, "hideEventTypeDetails": false, "layout": "month_view" });
-
-            Cal("on", {
-              action: "bookingSuccessful",
-              callback: (e) => {
-                // `data` is properties for the event.
-                // `type` is the name of the action(You can also call it type of the action.) This would be same as "ANY_ACTION_NAME" except when ANY_ACTION_NAME="*" which listens to all the events.
-                // `namespace` tells you the Cal namespace for which the event is fired/
-                const { data, type, namespace } = e.detail;
-
-                if (posthog) {
-                  posthog.capture('home/demo-booked', {
-                    'page': {
-                      'path': window.location.pathname,
-                      'referrer': document.referrer,
-                      'search': window.location.search,
-                      'url': window.location.href,
-                      'title': document.title,
-                    },
-                    'data': data,
-                    'type': type,
-                    'namespace': namespace
-                  });
-                }
-              }
-            })
-
-          </script>
-          <!-- Cal inline embed code ends -->
-        </div>
-
-
       </div>
-    </div>
+    </section>
 
-    <%- include('logo-roll') -%>
+    <!-- Full-width Calendar Section -->
+    <section class="pb-16 sm:pb-24" id="book-demo">
+      <div class="mx-auto max-w-5xl px-6 lg:px-8">
+        <div class="rounded-2xl bg-white border border-indigo-100 shadow-sm overflow-hidden ring-1 ring-indigo-50">
+          <div style="width:100%;height:700px;overflow:hidden" id="my-cal-inline"></div>
+        </div>
+        <p class="mt-4 text-center text-sm text-gray-400">
+          Prefer email? <a href="mailto:sales@oneuptime.com" class="text-indigo-600 hover:text-indigo-700 underline underline-offset-2">sales@oneuptime.com</a>
+        </p>
+      </div>
 
-      <%- include('features-table') -%>
-        <%- include('cta') -%>
+      <!-- Cal.com Script -->
+      <script type="text/javascript">
+        (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; typeof namespace === "string" ? (cal.ns[namespace] = api) && p(api, ar) : p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
+        Cal("init", { origin: "https://cal.com" });
+        Cal("inline", {
+          elementOrSelector: "#my-cal-inline",
+          calLink: "oneuptimehq/demo",
+          layout: "month_view"
+        });
+        Cal("ui", { "styles": { "branding": { "brandColor": "#4f46e5" } }, "hideEventTypeDetails": false, "layout": "month_view" });
+        Cal("on", {
+          action: "bookingSuccessful",
+          callback: (e) => {
+            const { data, type, namespace } = e.detail;
+            if (typeof posthog !== 'undefined' && posthog) {
+              posthog.capture('home/demo-booked', {
+                'page': {
+                  'path': window.location.pathname,
+                  'referrer': document.referrer,
+                  'search': window.location.search,
+                  'url': window.location.href,
+                  'title': document.title,
+                },
+                'data': data,
+                'type': type,
+                'namespace': namespace
+              });
+            }
+          }
+        });
+      </script>
+    </section>
+
+    <!-- Trusted By -->
+    <section class="py-12 border-t border-gray-100">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <p class="text-center text-sm text-gray-400 mb-8">Trusted by engineering teams worldwide</p>
+        <div class="flex flex-wrap items-center justify-center gap-x-12 gap-y-6 opacity-60">
+          <img class="h-6" src="/img/securonix-blue.svg" alt="Securonix">
+          <img class="h-5" src="/img/viewsonic.svg" alt="ViewSonic">
+          <img class="h-8" src="/img/skillable-logo.svg" alt="Skillable">
+          <img class="h-7" src="/img/sodexo.svg" alt="Sodexo">
+          <img class="h-6" src="/img/Dotdash_Meredith.svg" alt="Dotdash Meredith">
+          <img class="h-8" src="/img/trustify.svg" alt="Trustify">
+          <img class="h-8" src="/img/talkwalker.svg" alt="Talkwalker">
+        </div>
+      </div>
+    </section>
+
+    <!-- Platform Overview -->
+    <section class="py-20 sm:py-28 bg-gray-50 border-t border-gray-100">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-2xl mb-16">
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900">
+            The complete observability platform
+          </h2>
+          <p class="mt-4 text-lg text-gray-500">
+            Replace your fragmented toolchain with one unified platform. Monitor, observe, debug, and resolve faster.
+          </p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10">
+          <a href="/product/status-page" class="group block">
+            <div class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-5 w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">Status Pages</p>
+            <p class="mt-1 text-sm text-gray-500">Beautiful public and private status pages with custom domains and branding.</p>
+          </a>
+
+          <a href="/product/monitoring" class="group block">
+            <div class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-5 w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">Monitoring</p>
+            <p class="mt-1 text-sm text-gray-500">Monitor websites, APIs, servers, containers, and Kubernetes clusters.</p>
+          </a>
+
+          <a href="/product/incident-management" class="group block">
+            <div class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-5 w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">Incident Management</p>
+            <p class="mt-1 text-sm text-gray-500">Detect, respond, and resolve incidents faster with automated workflows.</p>
+          </a>
+
+          <a href="/product/on-call" class="group block">
+            <div class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-5 w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">On-Call & Alerts</p>
+            <p class="mt-1 text-sm text-gray-500">Smart escalations, rotations, and multi-channel alerting.</p>
+          </a>
+
+          <a href="/product/logs-management" class="group block">
+            <div class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-5 w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">Logs Management</p>
+            <p class="mt-1 text-sm text-gray-500">Centralize logs from any source and search in milliseconds.</p>
+          </a>
+
+          <a href="/product/apm" class="group block">
+            <div class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-5 w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">APM & Traces</p>
+            <p class="mt-1 text-sm text-gray-500">Distributed tracing and performance monitoring for any stack.</p>
+          </a>
+
+          <a href="/product/workflows" class="group block">
+            <div class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-5 w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">Workflows</p>
+            <p class="mt-1 text-sm text-gray-500">Automate incident response with 5000+ integrations.</p>
+          </a>
+
+          <a href="/product/ai-agent" class="group block">
+            <div class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-5 w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">AI Copilot</p>
+            <p class="mt-1 text-sm text-gray-500">Automatically fix errors with AI-generated pull requests.</p>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Why OneUptime -->
+    <section class="py-20 sm:py-28 border-t border-gray-100">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-2xl mb-16">
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900">
+            Why teams choose OneUptime
+          </h2>
+          <p class="mt-4 text-lg text-gray-500">
+            Built for modern engineering teams who want simplicity without compromising on power.
+          </p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-16">
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center mb-4">
+              <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"></path>
+              </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">All-in-one platform</h3>
+            <p class="text-sm text-gray-500 leading-relaxed">
+              Replace StatusPage.io, PagerDuty, Datadog, and Sentry with one unified platform. One dashboard, one bill, one vendor.
+            </p>
+          </div>
+
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center mb-4">
+              <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">Open source</h3>
+            <p class="text-sm text-gray-500 leading-relaxed">
+              Self-host on your infrastructure or use our managed cloud. Full transparency, no vendor lock-in, and your data stays yours.
+            </p>
+          </div>
+
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center mb-4">
+              <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+              </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">Enterprise ready</h3>
+            <p class="text-sm text-gray-500 leading-relaxed">
+              SOC 2 Type II, ISO 27001, HIPAA, and GDPR compliant. SSO, SAML, SCIM, custom data residency, and dedicated support.
+            </p>
+          </div>
+
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center mb-4">
+              <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"></path>
+              </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">AI-powered remediation</h3>
+            <p class="text-sm text-gray-500 leading-relaxed">
+              Our AI copilot automatically identifies root causes and creates pull requests to fix issues in your codebase.
+            </p>
+          </div>
+
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center mb-4">
+              <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"></path>
+              </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">OpenTelemetry native</h3>
+            <p class="text-sm text-gray-500 leading-relaxed">
+              Built on open standards. Ingest traces, metrics, and logs from any source without proprietary agents or SDKs.
+            </p>
+          </div>
+
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center mb-4">
+              <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">Predictable pricing</h3>
+            <p class="text-sm text-gray-500 leading-relaxed">
+              No surprise bills. Simple, transparent pricing based on your needs. Free tier available for small teams.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="py-20 sm:py-28 bg-gray-50 border-t border-gray-100">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-2xl mb-16">
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900">
+            What our customers say
+          </h2>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div class="bg-white rounded-xl p-8 border border-gray-200">
+            <blockquote>
+              <p class="text-gray-700 leading-relaxed">
+                "OneUptime replaced three separate tools for us. Having everything unified has cut our incident response time in half and saved us over $50k annually."
+              </p>
+            </blockquote>
+            <div class="mt-6 pt-6 border-t border-gray-100">
+              <p class="font-medium text-gray-900">Engineering Lead</p>
+              <p class="text-sm text-gray-500">Fortune 500 Technology Company</p>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl p-8 border border-gray-200">
+            <blockquote>
+              <p class="text-gray-700 leading-relaxed">
+                "The AI copilot is a game changer. It automatically fixed a memory leak that had been plaguing us for weeks. Just created a PR and we merged it."
+              </p>
+            </blockquote>
+            <div class="mt-6 pt-6 border-t border-gray-100">
+              <p class="font-medium text-gray-900">Senior SRE</p>
+              <p class="text-sm text-gray-500">Series B Startup</p>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl p-8 border border-gray-200">
+            <blockquote>
+              <p class="text-gray-700 leading-relaxed">
+                "We self-host OneUptime in our private cloud. Having full control over our observability data while getting enterprise features is exactly what we needed."
+              </p>
+            </blockquote>
+            <div class="mt-6 pt-6 border-t border-gray-100">
+              <p class="font-medium text-gray-900">VP of Engineering</p>
+              <p class="text-sm text-gray-500">Healthcare SaaS Company</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Security & Compliance -->
+    <section class="py-20 sm:py-28 border-t border-gray-100">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-2xl mb-12">
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900">
+            Enterprise-grade security
+          </h2>
+          <p class="mt-4 text-lg text-gray-500">
+            Built with security and compliance at its core.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
+          <div class="text-center p-4">
+            <div class="w-12 h-12 rounded-lg bg-indigo-50 flex items-center justify-center mx-auto mb-3">
+              <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+              </svg>
+            </div>
+            <p class="text-sm font-medium text-gray-900">SOC 2 Type II</p>
+          </div>
+          <div class="text-center p-4">
+            <div class="w-12 h-12 rounded-lg bg-indigo-50 flex items-center justify-center mx-auto mb-3">
+              <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+              </svg>
+            </div>
+            <p class="text-sm font-medium text-gray-900">ISO 27001</p>
+          </div>
+          <div class="text-center p-4">
+            <div class="w-12 h-12 rounded-lg bg-indigo-50 flex items-center justify-center mx-auto mb-3">
+              <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+              </svg>
+            </div>
+            <p class="text-sm font-medium text-gray-900">HIPAA</p>
+          </div>
+          <div class="text-center p-4">
+            <div class="w-12 h-12 rounded-lg bg-indigo-50 flex items-center justify-center mx-auto mb-3">
+              <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+              </svg>
+            </div>
+            <p class="text-sm font-medium text-gray-900">GDPR</p>
+          </div>
+          <div class="text-center p-4">
+            <div class="w-12 h-12 rounded-lg bg-indigo-50 flex items-center justify-center mx-auto mb-3">
+              <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+              </svg>
+            </div>
+            <p class="text-sm font-medium text-gray-900">PCI DSS</p>
+          </div>
+          <div class="text-center p-4">
+            <div class="w-12 h-12 rounded-lg bg-indigo-50 flex items-center justify-center mx-auto mb-3">
+              <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+              </svg>
+            </div>
+            <p class="text-sm font-medium text-gray-900">SOC 3</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="py-20 sm:py-28 bg-gray-50 border-t border-gray-100">
+      <div class="mx-auto max-w-3xl px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900">
+            Frequently asked questions
+          </h2>
+        </div>
+
+        <div class="space-y-8">
+          <div>
+            <h3 class="font-medium text-gray-900 mb-2">What happens during the demo?</h3>
+            <p class="text-gray-500 text-sm leading-relaxed">
+              We'll start by understanding your current observability setup and challenges. Then we'll give you a personalized walkthrough of OneUptime, focusing on the features most relevant to your team. We'll leave time for Q&A at the end.
+            </p>
+          </div>
+          <div>
+            <h3 class="font-medium text-gray-900 mb-2">How long does it take to get started?</h3>
+            <p class="text-gray-500 text-sm leading-relaxed">
+              Most teams are up and running within a day. Our quick-start guides and dedicated onboarding support make it easy to integrate with your existing infrastructure.
+            </p>
+          </div>
+          <div>
+            <h3 class="font-medium text-gray-900 mb-2">Can I self-host OneUptime?</h3>
+            <p class="text-gray-500 text-sm leading-relaxed">
+              Yes. OneUptime is open source and can be deployed on your own infrastructure using Docker, Kubernetes, or our Helm charts. We also offer managed cloud hosting in US and EU regions.
+            </p>
+          </div>
+          <div>
+            <h3 class="font-medium text-gray-900 mb-2">What integrations do you support?</h3>
+            <p class="text-gray-500 text-sm leading-relaxed">
+              We integrate with 5000+ tools including Slack, Microsoft Teams, PagerDuty, Jira, GitHub, GitLab, AWS, GCP, Azure, and more. We also support OpenTelemetry for traces, metrics, and logs ingestion.
+            </p>
+          </div>
+          <div>
+            <h3 class="font-medium text-gray-900 mb-2">Is there a free tier?</h3>
+            <p class="text-gray-500 text-sm leading-relaxed">
+              Yes. We offer a generous free tier that includes status pages, basic monitoring, and incident management. No credit card required to get started.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="py-20 sm:py-28 border-t border-gray-100">
+      <div class="mx-auto max-w-3xl px-6 lg:px-8 text-center">
+        <h2 class="text-3xl sm:text-4xl font-semibold tracking-tight text-gray-900">
+          Ready to get started?
+        </h2>
+        <p class="mt-4 text-lg text-gray-500">
+          Book a demo with our team or start using OneUptime for free today.
+        </p>
+        <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a href="#book-demo" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-colors">
+            Schedule a demo
+          </a>
+          <a href="/accounts/register" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50 transition-colors">
+            Start free
+          </a>
+        </div>
+        <p class="mt-6 text-sm text-gray-400">
+          No credit card required. Free tier available.
+        </p>
+      </div>
+    </section>
+
   </main>
-          <%- include('footer') -%>
+
+  <%- include('footer') -%>
 </body>
 
 </html>
