@@ -228,7 +228,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
               </pre>
             ) : (
               <p className="whitespace-pre-wrap break-words font-mono text-[13px] leading-6 text-slate-100">
-                {bodyDetails.pretty || "—"}
+                {bodyDetails.pretty || "-"}
               </p>
             )}
           </div>

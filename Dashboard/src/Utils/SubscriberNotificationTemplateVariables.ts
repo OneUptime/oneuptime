@@ -286,7 +286,7 @@ ${exampleEmailBody}
 \`\`\``;
   }
 
-  return `**Available Template Variables** — Use these variables in your template with the \`{{variableName}}\` syntax.
+  return `**Available Template Variables** - Use these variables in your template with the \`{{variableName}}\` syntax.
 
 | Variable | Description |
 |----------|-------------|

@@ -187,7 +187,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                         ? OneUptimeDate.getDateAsUserFriendlyFormattedString(
                             log.time,
                           )
-                        : "—"}
+                        : "-"}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3 text-sm text-slate-300">
@@ -211,7 +211,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                             className={`whitespace-pre-wrap break-words text-sm text-slate-200 transition-colors duration-150 group-hover:text-slate-50 ${severityTheme.textClass}`}
                             title={message}
                           >
-                            {message || "—"}
+                            {message || "-"}
                           </p>
                           {(traceId || spanId) && (
                             <div className="flex flex-wrap gap-3 text-[11px] tracking-wide text-slate-500">
