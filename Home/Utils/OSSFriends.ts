@@ -1,7 +1,6 @@
 import URL from "Common/Types/API/URL";
 
 export type OSSCategory =
-  | "Observability & Monitoring"
   | "Data & Analytics"
   | "Developer Tools"
   | "Productivity & Collaboration"
@@ -18,64 +17,6 @@ export interface OSSFriend {
 }
 
 const OSSFriends: OSSFriend[] = [
-  // Observability & Monitoring
-  {
-    name: "Grafana",
-    description:
-      "The open-source platform for monitoring and observability. Visualize metrics, logs, and traces from multiple sources.",
-    repositoryUrl: URL.fromString("https://github.com/grafana/grafana"),
-    websiteUrl: URL.fromString("https://grafana.com"),
-    category: "Observability & Monitoring",
-  },
-  {
-    name: "Prometheus",
-    description:
-      "An open-source monitoring system with a dimensional data model, flexible query language, and alerting functionality.",
-    repositoryUrl: URL.fromString("https://github.com/prometheus/prometheus"),
-    websiteUrl: URL.fromString("https://prometheus.io"),
-    category: "Observability & Monitoring",
-  },
-  {
-    name: "Jaeger",
-    description:
-      "Open-source, end-to-end distributed tracing. Monitor and troubleshoot complex microservices architectures.",
-    repositoryUrl: URL.fromString("https://github.com/jaegertracing/jaeger"),
-    websiteUrl: URL.fromString("https://jaegertracing.io"),
-    category: "Observability & Monitoring",
-  },
-  {
-    name: "Sentry",
-    description:
-      "Application monitoring platform that helps developers identify and fix crashes in real time.",
-    repositoryUrl: URL.fromString("https://github.com/getsentry/sentry"),
-    websiteUrl: URL.fromString("https://sentry.io"),
-    category: "Observability & Monitoring",
-  },
-  {
-    name: "Uptrace",
-    description:
-      "Open-source APM tool that supports distributed tracing, metrics, and logs with OpenTelemetry.",
-    repositoryUrl: URL.fromString("https://github.com/uptrace/uptrace"),
-    websiteUrl: URL.fromString("https://uptrace.dev"),
-    category: "Observability & Monitoring",
-  },
-  {
-    name: "Signoz",
-    description:
-      "Open-source observability platform with logs, traces, and metrics in a single application.",
-    repositoryUrl: URL.fromString("https://github.com/SigNoz/signoz"),
-    websiteUrl: URL.fromString("https://signoz.io"),
-    category: "Observability & Monitoring",
-  },
-  {
-    name: "Uptime Kuma",
-    description:
-      "A fancy self-hosted monitoring tool. Monitor HTTP(s), TCP, DNS, Docker containers, and more.",
-    repositoryUrl: URL.fromString("https://github.com/louislam/uptime-kuma"),
-    websiteUrl: URL.fromString("https://uptime.kuma.pet"),
-    category: "Observability & Monitoring",
-  },
-
   // Data & Analytics
   {
     name: "Airbyte",
