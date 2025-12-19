@@ -3082,14 +3082,12 @@ All monitoring checks are passing normally.`;
           isRoot: true,
         },
       });
-      
       if (!user || !user.email) {
         logger.error("User or user email not found");
         throw new BadDataException(
           "User email not found for Microsoft Teams integration",
         );
       }
-      
       const userEmail: string = user.email.toString();
       logger.debug(`Retrieved user email: ${userEmail}`);
 
