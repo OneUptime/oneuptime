@@ -61,24 +61,23 @@
     </div>
   </div>
 
-  <!-- Stats Section -->
-  <div class="bg-white py-12">
+  <!-- Category Navigation -->
+  <div class="sticky top-0 z-10 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl lg:max-w-none">
-        <dl class="grid grid-cols-1 gap-0.5 overflow-hidden rounded-2xl text-center sm:grid-cols-3">
-          <div class="flex flex-col bg-gray-50 p-8">
-            <dt class="text-sm font-semibold leading-6 text-gray-600">Open Source Projects</dt>
-            <dd class="order-first text-3xl font-semibold tracking-tight text-gray-900"><%= ossFriends.length %></dd>
-          </div>
-          <div class="flex flex-col bg-gray-50 p-8">
-            <dt class="text-sm font-semibold leading-6 text-gray-600">Categories</dt>
-            <dd class="order-first text-3xl font-semibold tracking-tight text-gray-900"><%= categories.length %></dd>
-          </div>
-          <div class="flex flex-col bg-gray-50 p-8">
-            <dt class="text-sm font-semibold leading-6 text-gray-600">Community Driven</dt>
-            <dd class="order-first text-3xl font-semibold tracking-tight text-gray-900">100%</dd>
-          </div>
-        </dl>
+      <div class="flex items-center justify-between py-4">
+        <div class="flex items-center gap-2 text-sm text-gray-500">
+          <span class="font-medium text-gray-900"><%= ossFriends.length %></span> projects across
+          <span class="font-medium text-gray-900"><%= categories.length %></span> categories
+        </div>
+        <nav class="hidden sm:flex items-center gap-1">
+          <% for(var c=0; c<categories.length; c++) { %>
+            <% var cat = categories[c]; %>
+            <% var catId = cat.toLowerCase().replace(/[^a-z0-9]+/g, '-'); %>
+            <a href="#category-<%= catId %>" class="rounded-full px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900">
+              <%= cat.split(' & ')[0] %>
+            </a>
+          <% } %>
+        </nav>
       </div>
     </div>
   </div>
@@ -89,9 +88,10 @@
 
       <% for(var c=0; c<categories.length; c++) { %>
         <% var category = categories[c]; %>
+        <% var categoryId = category.toLowerCase().replace(/[^a-z0-9]+/g, '-'); %>
         <% var categoryFriends = ossFriends.filter(function(friend) { return friend.category === category; }); %>
 
-        <div class="<%= c > 0 ? 'mt-20' : '' %>">
+        <div id="category-<%= categoryId %>" class="<%= c > 0 ? 'mt-20' : '' %> scroll-mt-20">
           <!-- Category Header -->
           <div class="flex items-center gap-x-4 mb-8">
             <% if(category === 'Data & Analytics') { %>
