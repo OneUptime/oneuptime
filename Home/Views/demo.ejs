@@ -20,6 +20,20 @@
       mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
       -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
     }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .animate-float {
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .animate-float-delayed {
+      animation: float 6s ease-in-out infinite;
+      animation-delay: -3s;
+    }
   </style>
 </head>
 
@@ -29,49 +43,79 @@
   <main id="main-content">
 
     <!-- Hero Section -->
-    <section class="py-16 sm:py-24">
-      <div class="mx-auto max-w-4xl px-6 lg:px-8 text-center">
-        <p class="text-sm font-medium text-indigo-600 mb-4">Request a demo</p>
-        <h1 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 leading-[1.1]">
-          See how OneUptime keeps your systems reliable
-        </h1>
-        <p class="mt-6 text-lg text-gray-500 leading-relaxed max-w-2xl mx-auto">
-          Get a personalized walkthrough of our complete observability platform. We'll show you how teams monitor, debug, and resolve issues faster with OneUptime.
-        </p>
+    <section class="relative isolate overflow-hidden">
+      <!-- Background pattern -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
 
-        <!-- What's included - horizontal layout -->
-        <div class="mt-12 grid sm:grid-cols-3 gap-8 text-left max-w-3xl mx-auto">
-          <div class="flex items-start gap-3">
-            <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-              <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      <!-- Floating decorative elements -->
+      <div class="absolute top-20 left-10 w-72 h-72 bg-indigo-100/40 rounded-full blur-3xl animate-float"></div>
+      <div class="absolute top-40 right-10 w-96 h-96 bg-purple-100/30 rounded-full blur-3xl animate-float-delayed"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Badge -->
+            <div class="mb-8 inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-1.5 text-sm text-indigo-700 ring-1 ring-inset ring-indigo-200">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"></path>
               </svg>
+              <span class="font-medium">Book a personalized demo</span>
             </div>
-            <div>
-              <p class="font-medium text-gray-900 text-sm">30 minute demo</p>
-              <p class="text-xs text-gray-500 mt-0.5">Tailored to your use cases</p>
+
+            <!-- Main headline -->
+            <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-6xl lg:leading-[1.1]">
+              See OneUptime in action
+            </h1>
+
+            <!-- Subheadline -->
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              Get a personalized walkthrough of our complete observability platform. Learn how leading teams use OneUptime to monitor, debug, and resolve issues faster.
+            </p>
+
+            <!-- CTA buttons -->
+            <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <a href="#book-demo"
+                class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-indigo-600 px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                Schedule your demo
+                <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+              </a>
+              <a href="/accounts/register" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-8 py-3.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50">
+                Try it free instead
+              </a>
             </div>
-          </div>
-          <div class="flex items-start gap-3">
-            <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-              <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5"></path>
-              </svg>
-            </div>
-            <div>
-              <p class="font-medium text-gray-900 text-sm">Live walkthrough</p>
-              <p class="text-xs text-gray-500 mt-0.5">See all features in action</p>
-            </div>
-          </div>
-          <div class="flex items-start gap-3">
-            <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-              <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"></path>
-              </svg>
-            </div>
-            <div>
-              <p class="font-medium text-gray-900 text-sm">Technical Q&A</p>
-              <p class="text-xs text-gray-500 mt-0.5">Get all your questions answered</p>
+
+            <!-- What you'll learn -->
+            <div class="mt-16 pt-12 border-t border-gray-200">
+              <p class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-8">What you'll learn in 30 minutes</p>
+              <div class="grid sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
+                <div class="group rounded-xl bg-white/80 backdrop-blur-sm p-5 ring-1 ring-gray-200 transition-all hover:ring-indigo-200 hover:shadow-md">
+                  <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-100">
+                    <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"></path>
+                    </svg>
+                  </div>
+                  <p class="font-semibold text-gray-900">Platform overview</p>
+                  <p class="mt-1 text-sm text-gray-500">See how all observability tools work together in one platform</p>
+                </div>
+                <div class="group rounded-xl bg-white/80 backdrop-blur-sm p-5 ring-1 ring-gray-200 transition-all hover:ring-indigo-200 hover:shadow-md">
+                  <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-100">
+                    <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"></path>
+                    </svg>
+                  </div>
+                  <p class="font-semibold text-gray-900">AI-powered features</p>
+                  <p class="mt-1 text-sm text-gray-500">Discover how AI can auto-fix issues in your codebase</p>
+                </div>
+                <div class="group rounded-xl bg-white/80 backdrop-blur-sm p-5 ring-1 ring-gray-200 transition-all hover:ring-indigo-200 hover:shadow-md">
+                  <div class="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-100">
+                    <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+                    </svg>
+                  </div>
+                  <p class="font-semibold text-gray-900">Enterprise options</p>
+                  <p class="mt-1 text-sm text-gray-500">Learn about self-hosting, compliance, and security</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
