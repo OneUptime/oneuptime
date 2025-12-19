@@ -15,25 +15,6 @@
     html {
       scroll-behavior: smooth;
     }
-
-    .fade-edge {
-      mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-      -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
-    }
-
-    .animate-float {
-      animation: float 6s ease-in-out infinite;
-    }
-
-    .animate-float-delayed {
-      animation: float 6s ease-in-out infinite;
-      animation-delay: -3s;
-    }
   </style>
 </head>
 
@@ -44,12 +25,8 @@
 
     <!-- Hero Section -->
     <section class="relative isolate overflow-hidden">
-      <!-- Background pattern -->
-      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
-
-      <!-- Floating decorative elements -->
-      <div class="absolute top-20 left-10 w-72 h-72 bg-indigo-100/40 rounded-full blur-3xl animate-float"></div>
-      <div class="absolute top-40 right-10 w-96 h-96 bg-purple-100/30 rounded-full blur-3xl animate-float-delayed"></div>
+      <!-- Background - subtle dot pattern -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-gray-50 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-[size:20px_20px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
 
       <div class="py-20 sm:py-28 lg:py-32">
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
