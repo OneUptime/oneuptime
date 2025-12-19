@@ -21,7 +21,7 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import "ejs";
 // xmlbuilder imports removed (handled inside Sitemap util)
-import OSSFriends, { OSSFriend } from "./Utils/OSSFriends";
+import OSSFriends, { OSSFriend, OSSCategory } from "./Utils/OSSFriends";
 import Reviews from "./Utils/Reviews";
 
 // import jobs.
@@ -138,13 +138,24 @@ const HomeFeatureSet: FeatureSet = {
           "/oss-friends",
           res.locals["homeUrl"] as string,
         );
+
+        // Get unique categories in the order they appear
+        const categories: OSSCategory[] = [];
+        for (const friend of OSSFriends) {
+          if (!categories.includes(friend.category)) {
+            categories.push(friend.category);
+          }
+        }
+
         res.render(`${ViewsPath}/oss-friends`, {
           ossFriends: OSSFriends.map((friend: OSSFriend) => {
             return {
               ...friend,
               repositoryUrl: friend.repositoryUrl.toString(),
+              websiteUrl: friend.websiteUrl.toString(),
             };
           }),
+          categories,
           enableGoogleTagManager: IsBillingEnabled,
           seo,
         });

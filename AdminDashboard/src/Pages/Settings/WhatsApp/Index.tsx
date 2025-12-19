@@ -176,7 +176,7 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
   const webhookSection: string = [
     "### Configure Meta Webhook Subscription",
     "1. In the OneUptime Admin Dashboard, open **Settings → WhatsApp → Meta WhatsApp Settings** and enter a strong value in **Webhook Verify Token**. Save the form so the encrypted token is stored in Global Config.",
-    "2. Keep that verify token handy—Meta does not generate one for you. You'll paste the exact same value when configuring the callback.",
+    "2. Keep that verify token handy-Meta does not generate one for you. You'll paste the exact same value when configuring the callback.",
     "3. In [Meta for Developers](https://developers.facebook.com/apps/), select your WhatsApp app and navigate to **WhatsApp → Configuration → Webhooks**.",
     `4. Click **Configure**, then supply one of the following callback URLs when Meta asks for your endpoint:\n   - \`${primaryWebhookUrl}\`\n `,
     "5. Paste the verify token from step 1 into Meta's **Verify Token** field and submit. Meta will call the callback URL and expect that value to match before it approves the subscription.",
@@ -195,7 +195,7 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     "### Required WhatsApp Templates",
     templateSummaryTable,
     "### Template Bodies",
-    "> Copy the exact template body below—including punctuation and spacing—when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.",
+    "> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.",
     templateBodies,
   ]
     .filter(Boolean)

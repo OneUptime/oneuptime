@@ -1963,13 +1963,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     return `Hello! I'm the OneUptime bot. I can help you with the following commands:
 
 **Available Commands:**
-- **help** — Show this help message
-- **create incident** — Create a new incident
-- **create maintenance** — Create a new scheduled maintenance event
-- **show active incidents** — Display all currently active incidents
-- **show scheduled maintenance** — Show upcoming scheduled maintenance events
-- **show ongoing maintenance** — Display currently ongoing maintenance events
-- **show active alerts** — Display all active alerts
+- **help** - Show this help message
+- **create incident** - Create a new incident
+- **create maintenance** - Create a new scheduled maintenance event
+- **show active incidents** - Display all currently active incidents
+- **show scheduled maintenance** - Show upcoming scheduled maintenance events
+- **show ongoing maintenance** - Display currently ongoing maintenance events
+- **show active alerts** - Display all active alerts
 
 Just type any of these commands to get the information you need!`;
   }
