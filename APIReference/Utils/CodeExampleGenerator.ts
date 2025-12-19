@@ -48,16 +48,16 @@ export default class CodeExampleGenerator {
     };
   }
 
-  private static generateRequestPreview(params: ApiRequestParams): RequestPreview {
+  private static generateRequestPreview(
+    params: ApiRequestParams,
+  ): RequestPreview {
     const { body } = params;
 
     const headers: string = `Content-Type: application/json
 ApiKey: ${this.API_KEY_PLACEHOLDER}`;
 
     const bodyStr: string =
-      body && Object.keys(body).length > 0
-        ? JSON.stringify(body, null, 2)
-        : "";
+      body && Object.keys(body).length > 0 ? JSON.stringify(body, null, 2) : "";
 
     return {
       headers,
@@ -76,9 +76,9 @@ ApiKey: ${this.API_KEY_PLACEHOLDER}`;
     if (body && Object.keys(body).length > 0) {
       const jsonBody: string = JSON.stringify(body, null, 2)
         .split("\n")
-        .map((line: string, index: number) =>
-          index === 0 ? line : `  ${line}`,
-        )
+        .map((line: string, index: number) => {
+          return index === 0 ? line : `  ${line}`;
+        })
         .join("\n");
       curlCmd += ` \\\n  -d '${jsonBody}'`;
     }
@@ -103,9 +103,9 @@ const response = await axios({
     if (body && Object.keys(body).length > 0) {
       const jsonBody: string = JSON.stringify(body, null, 2)
         .split("\n")
-        .map((line: string, index: number) =>
-          index === 0 ? line : `  ${line}`,
-        )
+        .map((line: string, index: number) => {
+          return index === 0 ? line : `  ${line}`;
+        })
         .join("\n");
       code += `,\n  data: ${jsonBody}`;
     }
@@ -140,9 +140,9 @@ const response: AxiosResponse<ApiResponse> = await axios({
     if (body && Object.keys(body).length > 0) {
       const jsonBody: string = JSON.stringify(body, null, 2)
         .split("\n")
-        .map((line: string, index: number) =>
-          index === 0 ? line : `  ${line}`,
-        )
+        .map((line: string, index: number) => {
+          return index === 0 ? line : `  ${line}`;
+        })
         .join("\n");
       code += `,\n  data: ${jsonBody}`;
     }
@@ -486,9 +486,9 @@ $response | ConvertTo-Json -Depth 10`;
       if (obj.length === 0) {
         return "[]";
       }
-      const items: Array<string> = obj.map((item: unknown) =>
-        this.jsonToPython(item as JSONObject, indent + 1),
-      );
+      const items: Array<string> = obj.map((item: unknown) => {
+        return this.jsonToPython(item as JSONObject, indent + 1);
+      });
       return `[\n${innerSpaces}${items.join(`,\n${innerSpaces}`)}\n${spaces}]`;
     }
 
@@ -537,7 +537,11 @@ $response | ConvertTo-Json -Depth 10`;
       return String(value);
     }
     if (Array.isArray(value)) {
-      return `[]interface{}{${value.map((v: unknown) => this.goValue(v)).join(", ")}}`;
+      return `[]interface{}{${value
+        .map((v: unknown) => {
+          return this.goValue(v);
+        })
+        .join(", ")}}`;
     }
     if (typeof value === "object") {
       const entries: Array<string> = Object.entries(
@@ -558,9 +562,9 @@ $response | ConvertTo-Json -Depth 10`;
       if (obj.length === 0) {
         return "[]";
       }
-      const items: Array<string> = obj.map((item: unknown) =>
-        this.jsonToRuby(item as JSONObject, indent + 1),
-      );
+      const items: Array<string> = obj.map((item: unknown) => {
+        return this.jsonToRuby(item as JSONObject, indent + 1);
+      });
       return `[\n${innerSpaces}${items.join(`,\n${innerSpaces}`)}\n${spaces}]`;
     }
 
@@ -623,9 +627,9 @@ $response | ConvertTo-Json -Depth 10`;
       if (obj.length === 0) {
         return "json!([])";
       }
-      const items: Array<string> = obj.map((item: unknown) =>
-        this.rustInnerValue(item, indent + 1),
-      );
+      const items: Array<string> = obj.map((item: unknown) => {
+        return this.rustInnerValue(item, indent + 1);
+      });
       return `json!([\n${innerSpaces}${items.join(`,\n${innerSpaces}`)}\n${spaces}])`;
     }
 
@@ -657,9 +661,9 @@ $response | ConvertTo-Json -Depth 10`;
     if (Array.isArray(value)) {
       const spaces: string = "    ".repeat(indent);
       const innerSpaces: string = "    ".repeat(indent + 1);
-      const items: Array<string> = value.map((v: unknown) =>
-        this.rustInnerValue(v, indent + 1),
-      );
+      const items: Array<string> = value.map((v: unknown) => {
+        return this.rustInnerValue(v, indent + 1);
+      });
       return `[\n${innerSpaces}${items.join(`,\n${innerSpaces}`)}\n${spaces}]`;
     }
     if (typeof value === "object") {
@@ -675,10 +679,7 @@ $response | ConvertTo-Json -Depth 10`;
     return String(value);
   }
 
-  private static jsonToPowerShell(
-    obj: JSONObject,
-    indent: number = 0,
-  ): string {
+  private static jsonToPowerShell(obj: JSONObject, indent: number = 0): string {
     const spaces: string = "    ".repeat(indent);
     const innerSpaces: string = "    ".repeat(indent + 1);
 
@@ -686,9 +687,9 @@ $response | ConvertTo-Json -Depth 10`;
       if (obj.length === 0) {
         return "@()";
       }
-      const items: Array<string> = obj.map((item: unknown) =>
-        this.jsonToPowerShell(item as JSONObject, indent + 1),
-      );
+      const items: Array<string> = obj.map((item: unknown) => {
+        return this.jsonToPowerShell(item as JSONObject, indent + 1);
+      });
       return `@(\n${innerSpaces}${items.join(`,\n${innerSpaces}`)}\n${spaces})`;
     }
 
@@ -731,9 +732,9 @@ $response | ConvertTo-Json -Depth 10`;
       if (obj.length === 0) {
         return "[]";
       }
-      const items: Array<string> = obj.map((item: unknown) =>
-        this.jsonToPhp(item as JSONObject, indent + 1),
-      );
+      const items: Array<string> = obj.map((item: unknown) => {
+        return this.jsonToPhp(item as JSONObject, indent + 1);
+      });
       return `[\n${innerSpaces}${items.join(`,\n${innerSpaces}`)}\n${spaces}]`;
     }
 
