@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+    <title>OneUptime | AI Agent - Automatically Fix Code Issues</title>
+    <meta name="description"
+        content="AI Agent automatically fixes errors, performance issues, and database queries in your code. Powered by OpenTelemetry observability data. Get pull requests with fixes, not just alerts.">
+        <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+  <main id="main-content">
+
+  <!-- Hero Section -->
+  <div class="bg-white">
+    <div class="py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <div class="mb-6 inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-1.5 text-sm font-medium text-indigo-700">
+            <span class="h-1.5 w-1.5 rounded-full bg-indigo-600"></span>
+            AI Agent
+          </div>
+          <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+            Stop debugging. Start merging fixes.
+          </h1>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            AI Agent automatically fixes errors, performance issues, and database queries in your code. Get pull requests with fixes, not just alerts.
+          </p>
+          <div class="mt-10 flex items-center justify-center gap-x-4">
+            <a href="/accounts/register"
+              class="rounded-md bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition-colors">
+              Start Free Trial
+            </a>
+            <a href="/enterprise/demo" class="rounded-md bg-gray-50 px-6 py-3 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-200 hover:bg-gray-100 transition-colors">
+              Request Demo
+            </a>
+          </div>
+        </div>
+
+        <!-- Screenshot -->
+        <div class="mt-16 sm:mt-24">
+          <div class="rounded-xl bg-gray-50 p-2 ring-1 ring-gray-200">
+            <img src="/img/copilot.png" alt="OneUptime AI Agent automatically fixing code issues"
+              class="rounded-lg shadow-sm">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Section -->
+  <div class="border-y border-gray-200 bg-gray-50">
+    <div class="mx-auto max-w-7xl px-6 py-12 lg:px-8">
+      <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
+        <div class="text-center">
+          <div class="text-2xl font-semibold text-gray-900">Automatic</div>
+          <div class="mt-1 text-sm text-gray-500">Error Fixes</div>
+        </div>
+        <div class="text-center">
+          <div class="text-2xl font-semibold text-gray-900">Ready PRs</div>
+          <div class="mt-1 text-sm text-gray-500">To Merge</div>
+        </div>
+        <div class="text-center">
+          <div class="text-2xl font-semibold text-gray-900">Any LLM</div>
+          <div class="mt-1 text-sm text-gray-500">Model Support</div>
+        </div>
+        <div class="text-center">
+          <div class="text-2xl font-semibold text-gray-900">Zero</div>
+          <div class="mt-1 text-sm text-gray-500">Code Storage</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('logo-roll') -%>
+
+  <!-- How It Works -->
+  <div class="bg-white py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center">
+        <p class="text-sm font-medium text-indigo-600">How It Works</p>
+        <h2 class="mt-2 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">From detection to pull request</h2>
+      </div>
+      <div class="mx-auto mt-16 max-w-5xl">
+        <div class="grid grid-cols-1 gap-8 md:grid-cols-4">
+          <!-- Step 1 -->
+          <div class="text-center">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-600 text-white text-lg font-semibold">
+              1
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Collect Data</h3>
+            <p class="mt-2 text-sm text-gray-600">OpenTelemetry collects traces, logs, and metrics from your application</p>
+          </div>
+          <!-- Step 2 -->
+          <div class="text-center">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-600 text-white text-lg font-semibold">
+              2
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Detect Issues</h3>
+            <p class="mt-2 text-sm text-gray-600">AI identifies errors, performance bottlenecks, and slow queries</p>
+          </div>
+          <!-- Step 3 -->
+          <div class="text-center">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-600 text-white text-lg font-semibold">
+              3
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Generate Fix</h3>
+            <p class="mt-2 text-sm text-gray-600">AI analyzes your codebase and creates the fix automatically</p>
+          </div>
+          <!-- Step 4 -->
+          <div class="text-center">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-600 text-white text-lg font-semibold">
+              4
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Create PR</h3>
+            <p class="mt-2 text-sm text-gray-600">Pull request with fix and detailed report ready for review</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features Grid Section -->
+  <div class="bg-gray-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center">
+        <p class="text-sm font-medium text-indigo-600">Capabilities</p>
+        <h2 class="mt-2 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Automatically fix issues in your codebase</h2>
+        <p class="mt-4 text-base text-gray-600">
+          Stop spending days debugging. AI Agent analyzes your observability data and creates pull requests with fixes.
+        </p>
+      </div>
+
+      <div class="mx-auto mt-16 max-w-7xl">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <!-- Feature 1 -->
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Fix Errors Automatically</h3>
+            <p class="mt-2 text-sm text-gray-600">When AI Agent notices exceptions in your traces or logs, it automatically fixes the issue and creates a PR.</p>
+          </div>
+
+          <!-- Feature 2 -->
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Fix Performance Issues</h3>
+            <p class="mt-2 text-sm text-gray-600">Analyzes traces that take the longest to execute and creates pull requests with performance optimizations.</p>
+          </div>
+
+          <!-- Feature 3 -->
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Fix Database Queries</h3>
+            <p class="mt-2 text-sm text-gray-600">Identifies slow or inefficient database queries and optimizes them with proper indexing and query rewrites.</p>
+          </div>
+
+          <!-- Feature 4 -->
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Fix Frontend Issues</h3>
+            <p class="mt-2 text-sm text-gray-600">Addresses frontend-specific performance problems, rendering issues, and JavaScript errors automatically.</p>
+          </div>
+
+          <!-- Feature 5 -->
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Add Telemetry Automatically</h3>
+            <p class="mt-2 text-sm text-gray-600">Add tracing, metrics, and logs to your codebase with a single click. No manual instrumentation needed.</p>
+          </div>
+
+          <!-- Feature 6 -->
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">GitHub & GitLab Integration</h3>
+            <p class="mt-2 text-sm text-gray-600">Seamlessly integrates with your existing repositories. PRs are created directly in your workflow.</p>
+          </div>
+
+          <!-- Feature 7 -->
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">CI/CD Integration</h3>
+            <p class="mt-2 text-sm text-gray-600">Integrates with your existing CI/CD pipelines. Fixes are tested and validated before PR creation.</p>
+          </div>
+
+          <!-- Feature 8 -->
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25l-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3l2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75l2.25-1.313M12 21.75V19.5m0 2.25l-2.25-1.313m0-16.875L12 2.25l2.25 1.313M21 14.25v2.25l-2.25 1.313m-13.5 0L3 16.5v-2.25" />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Terraform Support</h3>
+            <p class="mt-2 text-sm text-gray-600">Fix infrastructure issues automatically. Supports Terraform and OpenTofu for infrastructure-as-code.</p>
+          </div>
+
+          <!-- Feature 9 -->
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Issue Tracker Integration</h3>
+            <p class="mt-2 text-sm text-gray-600">Connects with Jira, Linear, and other issue trackers. Automatically links fixes to relevant issues.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LLM Provider Section -->
+  <div class="bg-white py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center">
+        <p class="text-sm font-medium text-indigo-600">Flexible AI</p>
+        <h2 class="mt-2 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Use any AI model you want</h2>
+        <p class="mt-4 text-base text-gray-600">OneUptime works with any LLM provider. Self-host your AI model and keep your code completely private.</p>
+      </div>
+      <div class="mx-auto mt-12 max-w-3xl">
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div class="flex flex-col items-center p-6 rounded-lg bg-gray-50 ring-1 ring-gray-200">
+            <div class="text-lg font-semibold text-gray-900">GPT</div>
+            <span class="text-xs text-gray-500">OpenAI</span>
+          </div>
+          <div class="flex flex-col items-center p-6 rounded-lg bg-gray-50 ring-1 ring-gray-200">
+            <div class="text-lg font-semibold text-gray-900">Claude</div>
+            <span class="text-xs text-gray-500">Anthropic</span>
+          </div>
+          <div class="flex flex-col items-center p-6 rounded-lg bg-gray-50 ring-1 ring-gray-200">
+            <div class="text-lg font-semibold text-gray-900">Llama</div>
+            <span class="text-xs text-gray-500">Meta / Ollama</span>
+          </div>
+          <div class="flex flex-col items-center p-6 rounded-lg bg-gray-50 ring-1 ring-gray-200">
+            <div class="text-lg font-semibold text-gray-900">Custom</div>
+            <span class="text-xs text-gray-500">Self-hosted</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Privacy Section -->
+  <div class="bg-indigo-600 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center">
+        <div class="inline-flex items-center gap-2 rounded-full bg-indigo-500 px-3 py-1 text-sm font-medium text-white mb-6">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+          Privacy First
+        </div>
+        <h2 class="text-3xl font-semibold tracking-tight text-white sm:text-4xl">We never see, store, or train on your code</h2>
+        <p class="mt-4 text-lg text-indigo-100">Regardless of your plan, no part of your code is sent to or stored by us. Use your own AI provider for complete privacy.</p>
+      </div>
+      <div class="mx-auto mt-12 max-w-4xl">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div class="rounded-lg bg-indigo-500 p-6 text-center">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-400 mb-4">
+              <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+              </svg>
+            </div>
+            <h3 class="text-base font-semibold text-white">No Code Access</h3>
+            <p class="mt-2 text-sm text-indigo-100">Your code stays on your infrastructure</p>
+          </div>
+
+          <div class="rounded-lg bg-indigo-500 p-6 text-center">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-400 mb-4">
+              <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+              </svg>
+            </div>
+            <h3 class="text-base font-semibold text-white">No Data Storage</h3>
+            <p class="mt-2 text-sm text-indigo-100">Zero data retention policy</p>
+          </div>
+
+          <div class="rounded-lg bg-indigo-500 p-6 text-center">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-400 mb-4">
+              <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
+              </svg>
+            </div>
+            <h3 class="text-base font-semibold text-white">No Training</h3>
+            <p class="mt-2 text-sm text-indigo-100">Your code is never used for training</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enterprise Features -->
+  <div class="bg-gray-50 py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center">
+        <p class="text-sm font-medium text-indigo-600">Enterprise Ready</p>
+        <h2 class="mt-2 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Advanced features for teams</h2>
+        <p class="mt-4 text-base text-gray-600">Built to scale with your organization.</p>
+      </div>
+      <div class="mx-auto mt-16 max-w-5xl">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">AI Billing Management</h3>
+            <p class="mt-2 text-sm text-gray-600">Track AI usage and costs. Set up auto-recharge thresholds to never run out of credits.</p>
+          </div>
+
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">AI Logs & Audit</h3>
+            <p class="mt-2 text-sm text-gray-600">Complete audit trail of all AI operations. Track token usage, costs, and requests.</p>
+          </div>
+
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Slack & Teams</h3>
+            <p class="mt-2 text-sm text-gray-600">Get notified when AI creates pull requests. Review and approve fixes from chat.</p>
+          </div>
+
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">SOC 2 & ISO Compliant</h3>
+            <p class="mt-2 text-sm text-gray-600">SOC 2/3, ISO 27001, GDPR, HIPAA compliant. Enterprise security from day one.</p>
+          </div>
+
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Advanced Workflows</h3>
+            <p class="mt-2 text-sm text-gray-600">Build custom automation based on AI findings. Trigger workflows when issues are detected.</p>
+          </div>
+
+          <div class="rounded-lg bg-white p-6 ring-1 ring-gray-200">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+              </svg>
+            </div>
+            <h3 class="mt-4 text-base font-semibold text-gray-900">Team Management</h3>
+            <p class="mt-2 text-sm text-gray-600">Configure AI settings per project. Manage LLM providers and credits across your organization.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('testimonials') -%>
+  <%- include('./Partials/enterprise-ready') -%>
+  <%- include('features-table') -%>
+  <%- include('cta') -%>
+  </main>
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+
+</body>
+
+</html>

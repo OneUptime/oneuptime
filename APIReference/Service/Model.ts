@@ -1,4 +1,7 @@
 import { CodeExamplesPath, ViewsPath } from "../Utils/Config";
+import CodeExampleGenerator, {
+  CodeExamples,
+} from "../Utils/CodeExampleGenerator";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import PageNotFoundServiceHandler from "./PageNotFound";
 import { AppApiRoute } from "Common/ServiceRoute";
@@ -27,6 +30,15 @@ interface ExampleObjects {
   simpleUpdateExample: JSONObject;
   simpleResponseExample: JSONObject;
   simpleListResponseExample: Array<JSONObject>;
+}
+
+interface ApiCodeExamples {
+  list: CodeExamples;
+  getItem: CodeExamples;
+  count: CodeExamples;
+  create: CodeExamples;
+  update: CodeExamples;
+  delete: CodeExamples;
 }
 
 // Helper function to get a default example value based on column type
@@ -222,6 +234,81 @@ function generateExampleObjects(
     simpleUpdateExample,
     simpleResponseExample,
     simpleListResponseExample,
+  };
+}
+
+// Helper function to generate code examples for all API operations
+function generateApiCodeExamples(
+  apiPath: string,
+  exampleObjects: ExampleObjects,
+  exampleObjectID: string,
+): ApiCodeExamples {
+  // List endpoint
+  const listExamples: CodeExamples = CodeExampleGenerator.generate({
+    method: "POST",
+    endpoint: `${apiPath}/get-list?skip=0&limit=10`,
+    body: {
+      select: exampleObjects.simpleSelectExample,
+      query: exampleObjects.simpleQueryExample,
+      sort: exampleObjects.simpleSortExample,
+    },
+    description: "List items with pagination",
+  });
+
+  // Get item endpoint
+  const getItemExamples: CodeExamples = CodeExampleGenerator.generate({
+    method: "POST",
+    endpoint: `${apiPath}/${exampleObjectID}/get-item`,
+    body: {
+      select: exampleObjects.simpleSelectExample,
+    },
+    description: "Get a single item by ID",
+  });
+
+  // Count endpoint
+  const countExamples: CodeExamples = CodeExampleGenerator.generate({
+    method: "POST",
+    endpoint: `${apiPath}/count`,
+    body: {
+      query: exampleObjects.simpleQueryExample,
+    },
+    description: "Count items matching a query",
+  });
+
+  // Create endpoint
+  const createExamples: CodeExamples = CodeExampleGenerator.generate({
+    method: "POST",
+    endpoint: apiPath,
+    body: {
+      data: exampleObjects.simpleCreateExample,
+    },
+    description: "Create a new item",
+  });
+
+  // Update endpoint
+  const updateExamples: CodeExamples = CodeExampleGenerator.generate({
+    method: "PUT",
+    endpoint: `${apiPath}/${exampleObjectID}`,
+    body: {
+      data: exampleObjects.simpleUpdateExample,
+    },
+    description: "Update an existing item",
+  });
+
+  // Delete endpoint
+  const deleteExamples: CodeExamples = CodeExampleGenerator.generate({
+    method: "DELETE",
+    endpoint: `${apiPath}/${exampleObjectID}`,
+    description: "Delete an item by ID",
+  });
+
+  return {
+    list: listExamples,
+    getItem: getItemExamples,
+    count: countExamples,
+    create: createExamples,
+    update: updateExamples,
+    delete: deleteExamples,
   };
 }
 
@@ -479,8 +566,17 @@ export default class ServiceHandler {
     pageData["exampleObjects"] = exampleObjects;
 
     // Construct the API path for the current resource
-    pageData["apiPath"] =
+    const apiPath: string =
       AppApiRoute.toString() + currentResource.model.crudApiPath?.toString();
+    pageData["apiPath"] = apiPath;
+
+    // Generate code examples for all languages
+    const codeExamples: ApiCodeExamples = generateApiCodeExamples(
+      apiPath,
+      exampleObjects,
+      exampleObjectID,
+    );
+    pageData["codeExamples"] = codeExamples;
 
     // Check if the current resource is a master admin API
     pageData["isMasterAdminApiDocs"] =

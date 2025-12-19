@@ -129,8 +129,8 @@
             </div>
             <h2 id="list-all-contacts" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">List</h2>
 
-            <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <div class="space-y-8">
+               <div>
                   <p class="text-slate-600 leading-relaxed">This endpoint allows you to retrieve a paginated list of all your <%= pageData.title -%>. By default, a maximum of ten <%= pageData.title -%> are shown per page.</p>
                   <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Optional Query Params</h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
@@ -194,21 +194,15 @@
                   </div>
                </div>
 
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
+               <div class="w-full">
+                  <%- include('../partials/code-tabs', {
+                     title: "List Request",
+                     requestUrl: pageData.apiPath + "/get-list?skip=0&limit=10",
+                     requestType: "POST",
+                     codeExamples: pageData.codeExamples.list
+                  }) -%>
+
                   <%
-                  const listRequestCode = `Request Headers:
-
-ApiKey: {secret-api-key}
-ProjectID: {project-id}
-
-Request Body:
-
-${JSON.stringify({
-    select: pageData.exampleObjects.simpleSelectExample,
-    query: pageData.exampleObjects.simpleQueryExample,
-    sort: pageData.exampleObjects.simpleSortExample
-}, null, 4)}`;
-
                   const listResponseCode = JSON.stringify({
                       count: 10,
                       limit: 10,
@@ -216,8 +210,7 @@ ${JSON.stringify({
                       data: pageData.exampleObjects.simpleListResponseExample
                   }, null, 4);
                   %>
-                  <%- include('../partials/code', {title: "Example List Request" , requestUrl: pageData.apiPath+"/get-list?skip=0&limit=10", code: listRequestCode, requestType: "POST" }) -%>
-                  <%- include('../partials/code', {title: "Example List Response" , code: listResponseCode, requestType: "" }) -%>
+                  <%- include('../partials/code', {title: "Response" , code: listResponseCode, requestType: "", requestUrl: "" }) -%>
                </div>
             </div>
          </div>
@@ -234,8 +227,8 @@ ${JSON.stringify({
             </div>
             <h2 id="get-item-by-id" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Get item by ID</h2>
 
-            <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <div class="space-y-8">
+               <div>
                   <p class="text-slate-600 leading-relaxed">This endpoint allows you to retrieve <%= pageData.title -%> by ID.</p>
                   <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Required Query Params</h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
@@ -269,23 +262,16 @@ ${JSON.stringify({
                   </div>
                </div>
 
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-                  <%
-                  const itemRequestCode = `Request Headers:
+               <div class="w-full">
+                  <%- include('../partials/code-tabs', {
+                     title: "Get Item Request",
+                     requestUrl: pageData.apiPath + "/:id/get-item",
+                     requestType: "POST",
+                     codeExamples: pageData.codeExamples.getItem
+                  }) -%>
 
-ApiKey: {secret-api-key}
-ProjectID: {project-id}
-
-Request Body:
-
-${JSON.stringify({
-    select: pageData.exampleObjects.simpleSelectExample
-}, null, 4)}`;
-
-                  const itemResponseCode = JSON.stringify(pageData.exampleObjects.simpleResponseExample, null, 4);
-                  %>
-                  <%- include('../partials/code', {title: "Example Item Request" , requestUrl: pageData.apiPath+"/:id/get-item", code: itemRequestCode, requestType: "POST" }) -%>
-                  <%- include('../partials/code', {title: "Example Item Response" , code: itemResponseCode, requestType: "" }) -%>
+                  <% const itemResponseCode = JSON.stringify(pageData.exampleObjects.simpleResponseExample, null, 4); %>
+                  <%- include('../partials/code', {title: "Response" , code: itemResponseCode, requestType: "", requestUrl: "" }) -%>
                </div>
             </div>
          </div>
@@ -303,8 +289,8 @@ ${JSON.stringify({
             </div>
             <h2 id="count" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Count</h2>
 
-            <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <div class="space-y-8">
+               <div>
                   <p class="text-slate-600 leading-relaxed">This endpoint allows you to retrieve the count of all your <%= pageData.title -%>.</p>
                   <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Optional Request Body</h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
@@ -323,23 +309,16 @@ ${JSON.stringify({
                   </div>
                </div>
 
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-                  <%
-                  const countRequestCode = `Request Headers:
+               <div class="w-full">
+                  <%- include('../partials/code-tabs', {
+                     title: "Count Request",
+                     requestUrl: pageData.apiPath + "/count",
+                     requestType: "POST",
+                     codeExamples: pageData.codeExamples.count
+                  }) -%>
 
-ApiKey: {secret-api-key}
-ProjectID: {project-id}
-
-Request Body:
-
-${JSON.stringify({
-    query: pageData.exampleObjects.simpleQueryExample
-}, null, 4)}`;
-
-                  const countResponseCode = JSON.stringify({ count: 107 }, null, 4);
-                  %>
-                  <%- include('../partials/code', {title: "Example Count Request" , requestUrl: pageData.apiPath+"/count", code: countRequestCode, requestType: "POST" }) -%>
-                  <%- include('../partials/code', {title: "Example Count Response" , code: countResponseCode, requestType: "" }) -%>
+                  <% const countResponseCode = JSON.stringify({ count: 107 }, null, 4); %>
+                  <%- include('../partials/code', {title: "Response" , code: countResponseCode, requestType: "", requestUrl: "" }) -%>
                </div>
             </div>
          </div>
@@ -356,8 +335,8 @@ ${JSON.stringify({
             </div>
             <h2 id="create" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Create <%= pageData.title -%></h2>
 
-            <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <div class="space-y-8">
+               <div>
                   <p class="text-slate-600 leading-relaxed">This endpoint allows you to create a new object.</p>
                   <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Request Body</h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
@@ -376,23 +355,16 @@ ${JSON.stringify({
                   </div>
                </div>
 
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-                  <%
-                  const createRequestCode = `Request Headers:
+               <div class="w-full">
+                  <%- include('../partials/code-tabs', {
+                     title: "Create Request",
+                     requestUrl: pageData.apiPath,
+                     requestType: "POST",
+                     codeExamples: pageData.codeExamples.create
+                  }) -%>
 
-ApiKey: {secret-api-key}
-ProjectID: {project-id}
-
-Request Body:
-
-${JSON.stringify({
-    data: pageData.exampleObjects.simpleCreateExample
-}, null, 4)}`;
-
-                  const createResponseCode = JSON.stringify(pageData.exampleObjects.simpleResponseExample, null, 4);
-                  %>
-                  <%- include('../partials/code', {title: "Example Create Request" , requestUrl: pageData.apiPath, code: createRequestCode, requestType: "POST" }) -%>
-                  <%- include('../partials/code', {title: "Example Create Response" , code: createResponseCode, requestType: "" }) -%>
+                  <% const createResponseCode = JSON.stringify(pageData.exampleObjects.simpleResponseExample, null, 4); %>
+                  <%- include('../partials/code', {title: "Response" , code: createResponseCode, requestType: "", requestUrl: "" }) -%>
                </div>
             </div>
          </div>
@@ -411,8 +383,8 @@ ${JSON.stringify({
             </div>
             <h2 id="update" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Update by ID</h2>
 
-            <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <div class="space-y-8">
+               <div>
                   <p class="text-slate-600 leading-relaxed">This endpoint allows you to update object by its ID.</p>
                   <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3">Request Body</h3>
                   <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
@@ -445,23 +417,16 @@ ${JSON.stringify({
                   </div>
                </div>
 
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-                  <%
-                  const updateRequestCode = `Request Headers:
+               <div class="w-full">
+                  <%- include('../partials/code-tabs', {
+                     title: "Update Request",
+                     requestUrl: pageData.apiPath + "/:id",
+                     requestType: "PUT",
+                     codeExamples: pageData.codeExamples.update
+                  }) -%>
 
-ApiKey: {secret-api-key}
-ProjectID: {project-id}
-
-Request Body:
-
-${JSON.stringify({
-    data: pageData.exampleObjects.simpleUpdateExample
-}, null, 4)}`;
-
-                  const updateResponseCode = JSON.stringify({}, null, 4);
-                  %>
-                  <%- include('../partials/code', {title: "Example Update Request" , requestUrl: pageData.apiPath+"/:id", code: updateRequestCode, requestType: "PUT" }) -%>
-                  <%- include('../partials/code', {title: "Example Update Response" , code: updateResponseCode, requestType: "" }) -%>
+                  <% const updateResponseCode = JSON.stringify({}, null, 4); %>
+                  <%- include('../partials/code', {title: "Response" , code: updateResponseCode, requestType: "", requestUrl: "" }) -%>
                </div>
             </div>
          </div>
@@ -478,8 +443,8 @@ ${JSON.stringify({
             </div>
             <h2 id="delete" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32">Delete by ID</h2>
 
-            <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+            <div class="space-y-8">
+               <div>
                   <p class="text-slate-600 leading-relaxed">This endpoint allows you to delete object by its ID.</p>
                   <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5 mt-6">
                      <h4 class="font-semibold text-slate-800 text-sm mb-2">Alternative Methods</h4>
@@ -497,17 +462,16 @@ ${JSON.stringify({
                   </div>
                </div>
 
-               <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
-                  <%
-                  const deleteRequestCode = `Request Headers:
+               <div class="w-full">
+                  <%- include('../partials/code-tabs', {
+                     title: "Delete Request",
+                     requestUrl: pageData.apiPath + "/:id",
+                     requestType: "DELETE",
+                     codeExamples: pageData.codeExamples.delete
+                  }) -%>
 
-ApiKey: {secret-api-key}
-ProjectID: {project-id}`;
-
-                  const deleteResponseCode = JSON.stringify({}, null, 4);
-                  %>
-                  <%- include('../partials/code', {title: "Example Delete Request" , requestUrl: pageData.apiPath+"/:id", code: deleteRequestCode, requestType: "DELETE" }) -%>
-                  <%- include('../partials/code', {title: "Example Delete Response" , code: deleteResponseCode, requestType: "" }) -%>
+                  <% const deleteResponseCode = JSON.stringify({}, null, 4); %>
+                  <%- include('../partials/code', {title: "Response" , code: deleteResponseCode, requestType: "", requestUrl: "" }) -%>
                </div>
             </div>
          </div>

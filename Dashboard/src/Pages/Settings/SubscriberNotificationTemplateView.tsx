@@ -166,55 +166,95 @@ const SubscriberNotificationTemplateView: FunctionComponent<
         cardProps={{
           title: "Template Content",
           description:
-            "The email subject and template body for this notification template.",
+            notificationMethod === StatusPageSubscriberNotificationMethod.Email
+              ? "The email subject and template body for this notification template."
+              : "The template body for this notification template.",
         }}
         createEditModalWidth={ModalWidth.Large}
         isEditable={true}
-        formFields={[
-          {
-            field: {
-              emailSubject: true,
-            },
-            title: "Email Subject",
-            description:
-              "Subject line for email notifications. Only used when notification method is Email. You can use template variables like {{incidentTitle}}.",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "{{statusPageName}}: {{incidentTitle}}",
-          },
-          {
-            field: {
-              templateBody: true,
-            },
-            title: "Template Body",
-            description:
-              "The template content. For Email: Use HTML. For SMS: Use plain text. For Slack/Teams: Use Markdown. You can use template variables.",
-            fieldType: getTemplateBodyFieldType(),
-            required: true,
-            placeholder:
-              "<p>Hello,</p><p>{{incidentTitle}} has been created.</p>",
-          },
-        ]}
+        formFields={
+          notificationMethod === StatusPageSubscriberNotificationMethod.Email
+            ? [
+                {
+                  field: {
+                    emailSubject: true,
+                  },
+                  title: "Email Subject",
+                  description:
+                    "Subject line for email notifications. You can use template variables like {{incidentTitle}}.",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  placeholder: "{{statusPageName}}: {{incidentTitle}}",
+                },
+                {
+                  field: {
+                    templateBody: true,
+                  },
+                  title: "Template Body",
+                  description:
+                    "The template content using HTML. You can use template variables.",
+                  fieldType: getTemplateBodyFieldType(),
+                  required: true,
+                  placeholder:
+                    "<p>Hello,</p><p>{{incidentTitle}} has been created.</p>",
+                },
+              ]
+            : [
+                {
+                  field: {
+                    templateBody: true,
+                  },
+                  title: "Template Body",
+                  description:
+                    notificationMethod ===
+                    StatusPageSubscriberNotificationMethod.SMS
+                      ? "The template content using plain text. Keep it concise for SMS. You can use template variables."
+                      : "The template content. For Slack/Teams: Use Markdown. You can use template variables.",
+                  fieldType: getTemplateBodyFieldType(),
+                  required: true,
+                  placeholder:
+                    notificationMethod ===
+                    StatusPageSubscriberNotificationMethod.SMS
+                      ? "{{statusPageName}}: {{incidentTitle}} - {{incidentDescription}}"
+                      : "**{{incidentTitle}}**\n{{incidentDescription}}",
+                },
+              ]
+        }
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
           modelType: StatusPageSubscriberNotificationTemplate,
           id: "model-detail-template-content",
-          fields: [
-            {
-              field: {
-                emailSubject: true,
-              },
-              title: "Email Subject",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                templateBody: true,
-              },
-              title: "Template Body",
-              fieldType: FieldType.HTML,
-            },
-          ],
+          fields:
+            notificationMethod === StatusPageSubscriberNotificationMethod.Email
+              ? [
+                  {
+                    field: {
+                      emailSubject: true,
+                    },
+                    title: "Email Subject",
+                    fieldType: FieldType.Text,
+                  },
+                  {
+                    field: {
+                      templateBody: true,
+                    },
+                    title: "Template Body",
+                    fieldType: FieldType.HTML,
+                  },
+                ]
+              : [
+                  {
+                    field: {
+                      templateBody: true,
+                    },
+                    title: "Template Body",
+                    fieldType:
+                      notificationMethod ===
+                      StatusPageSubscriberNotificationMethod.SMS
+                        ? FieldType.Text
+                        : FieldType.Markdown,
+                  },
+                ],
           modelId: modelId,
         }}
       />
@@ -222,12 +262,17 @@ const SubscriberNotificationTemplateView: FunctionComponent<
       {/* Template Variables Reference */}
       <Card
         title="Template Variables Reference"
-        description="Available variables you can use in your template body and email subject based on the selected event type."
+        description={
+          notificationMethod === StatusPageSubscriberNotificationMethod.Email
+            ? "Available variables you can use in your template body and email subject based on the selected event type."
+            : "Available variables you can use in your template body based on the selected event type."
+        }
       >
         <div className="p-4">
           <MarkdownViewer
             text={getSubscriberNotificationTemplateVariablesDocumentation(
               eventType,
+              notificationMethod,
             )}
           />
         </div>

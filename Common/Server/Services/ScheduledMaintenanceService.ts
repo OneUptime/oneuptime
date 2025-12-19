@@ -291,6 +291,14 @@ export class Service extends DatabaseService<Model> {
             unsubscribeUrl: unsubscribeUrl,
           };
 
+          // SMS-specific template variables with plain text (no HTML/Markdown)
+          const smsTemplateVariables: Record<string, string> = {
+            ...templateVariables,
+            scheduledMaintenanceDescription: Markdown.convertToPlainText(
+              event.description || "",
+            ),
+          };
+
           if (subscriber.subscriberPhone) {
             let smsMessage: string;
 
@@ -303,7 +311,7 @@ export class Service extends DatabaseService<Model> {
               smsMessage =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   smsTemplate.templateBody,
-                  templateVariables,
+                  smsTemplateVariables,
                 );
             } else {
               // Use default template

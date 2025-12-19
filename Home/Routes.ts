@@ -716,7 +716,7 @@ const HomeFeatureSet: FeatureSet = {
           ],
         },
         {
-          name: "Reliability Copilot",
+          name: "AI Agent",
           data: [
             {
               name: "Scan your Codebase",
@@ -1163,11 +1163,29 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get(
+      "/product/ai-agent",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/ai-agent",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/ai-agent`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
       "/incident-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.redirect("/product/incident-management");
       },
     );
+
+    app.get("/ai-agent", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.redirect("/product/ai-agent");
+    });
 
     app.get(
       "/enterprise/overview",

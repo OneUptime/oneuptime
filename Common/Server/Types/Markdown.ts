@@ -10,6 +10,66 @@ export enum MarkdownContentType {
 }
 
 export default class Markdown {
+  @CaptureSpan()
+  public static convertToPlainText(markdown: string): string {
+    if (!markdown) {
+      return "";
+    }
+
+    let text: string = markdown;
+
+    // Remove HTML tags
+    text = text.replace(/<[^>]*>/g, "");
+
+    // Convert markdown links [text](url) to just text
+    text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+
+    // Convert markdown images ![alt](url) to just alt text
+    text = text.replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1");
+
+    // Remove markdown bold/italic markers
+    text = text.replace(/\*\*([^*]+)\*\*/g, "$1"); // **bold**
+    text = text.replace(/\*([^*]+)\*/g, "$1"); // *italic*
+    text = text.replace(/__([^_]+)__/g, "$1"); // __bold__
+    text = text.replace(/_([^_]+)_/g, "$1"); // _italic_
+
+    // Remove markdown strikethrough
+    text = text.replace(/~~([^~]+)~~/g, "$1");
+
+    // Remove markdown code blocks
+    text = text.replace(/```[\s\S]*?```/g, "");
+    text = text.replace(/`([^`]+)`/g, "$1");
+
+    // Remove markdown headers
+    text = text.replace(/^#{1,6}\s+/gm, "");
+
+    // Remove markdown blockquotes
+    text = text.replace(/^>\s+/gm, "");
+
+    // Remove markdown horizontal rules
+    text = text.replace(/^[-*_]{3,}$/gm, "");
+
+    // Remove markdown list markers
+    text = text.replace(/^[\s]*[-*+]\s+/gm, "");
+    text = text.replace(/^[\s]*\d+\.\s+/gm, "");
+
+    // Decode HTML entities
+    text = text.replace(/&lt;/g, "<");
+    text = text.replace(/&gt;/g, ">");
+    text = text.replace(/&amp;/g, "&");
+    text = text.replace(/&quot;/g, '"');
+    text = text.replace(/&#39;/g, "'");
+    text = text.replace(/&nbsp;/g, " ");
+
+    // Normalize whitespace - collapse multiple spaces/newlines
+    text = text.replace(/\n\s*\n/g, "\n");
+    text = text.replace(/[ \t]+/g, " ");
+
+    // Trim whitespace
+    text = text.trim();
+
+    return text;
+  }
   private static blogRenderer: Renderer | null = null;
   private static docsRenderer: Renderer | null = null;
   private static emailRenderer: Renderer | null = null;

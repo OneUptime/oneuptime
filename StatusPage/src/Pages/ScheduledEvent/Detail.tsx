@@ -187,11 +187,9 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
     ) {
       timeline.push({
         state: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState,
-        date: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
-          ?.isScheduledState
-          ? scheduledMaintenance.startsAt!
-          : scheduledMaintenanceEventstateTimeline?.startsAt ||
-            (scheduledMaintenanceEventstateTimeline?.createdAt as Date),
+        date:
+          scheduledMaintenanceEventstateTimeline?.startsAt ||
+          (scheduledMaintenanceEventstateTimeline?.createdAt as Date),
         type: TimelineItemType.StateChange,
         icon: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
           .isScheduledState
