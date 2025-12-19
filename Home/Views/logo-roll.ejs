@@ -1,33 +1,112 @@
+<style>
+  @keyframes scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .logo-marquee {
+    display: flex;
+    animation: scroll 25s linear infinite;
+  }
+
+  .logo-marquee:hover {
+    animation-play-state: paused;
+  }
+
+  .logo-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 180px;
+    height: 60px;
+    padding: 0 24px;
+  }
+
+  .logo-item img {
+    max-height: 36px;
+    max-width: 140px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+  }
+
+  .logo-item img:hover {
+    opacity: 1;
+  }
+
+  .marquee-container {
+    overflow: hidden;
+    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  }
+</style>
+
 <div class="bg-indigo-700">
-  <div class="mx-auto max-w-7xl py-16 px-6 sm:py-20 lg:px-8">
-    <h2 class="text-2xl font-medium tracking-tight text-white text-center text-indigo-300">Thousands of world's most
-      innovative companies use OneUptime to build reliable software.</h2>
-    <div class="grid grid-cols-4 gap-4 mt-10">
+  <div class="mx-auto max-w-7xl py-12 px-6 sm:py-16 lg:px-8">
+    <p class="text-center text-sm font-medium uppercase tracking-wider text-indigo-200 mb-8">
+      Trusted by engineering teams at innovative companies worldwide
+    </p>
 
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-8" src="/img/securonix-blue.svg" alt="Securonix">
-      </div>
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-6 mt-2" src="/img/viewsonic.svg" alt="ViewSonic">
-      </div>
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-12 -mt-4" src="/img/skillable-logo.svg" alt="Skillable">
-      </div>
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-11 -mt-2" src="/img/sodexo.svg" alt="Sodexo">
-      </div>
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-10 mt-0" src="/img/Dotdash_Meredith.svg" alt="Dotdash">
-      </div>
+    <div class="marquee-container">
+      <div class="logo-marquee">
+        <!-- First set of logos -->
+        <div class="logo-item">
+          <img src="/img/securonix-blue.svg" alt="Securonix">
+        </div>
+        <div class="logo-item">
+          <img src="/img/viewsonic.svg" alt="ViewSonic">
+        </div>
+        <div class="logo-item">
+          <img src="/img/skillable-logo.svg" alt="Skillable">
+        </div>
+        <div class="logo-item">
+          <img src="/img/sodexo.svg" alt="Sodexo">
+        </div>
+        <div class="logo-item">
+          <img src="/img/Dotdash_Meredith.svg" alt="Dotdash Meredith">
+        </div>
+        <div class="logo-item">
+          <img src="/img/trustify.svg" alt="Trustify">
+        </div>
+        <div class="logo-item">
+          <img src="/img/bowie.svg" alt="Bowie">
+        </div>
+        <div class="logo-item">
+          <img src="/img/talkwalker.svg" alt="Talkwalker">
+        </div>
 
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-12" src="/img/trustify.svg" alt="Securonix">
-      </div>
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-24 -mt-8" src="/img/bowie.svg" alt="ViewSonic">
-      </div>
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-12 mt-2 -ml-10" src="/img/talkwalker.svg" alt="Siemens">
+        <!-- Duplicate set for seamless loop -->
+        <div class="logo-item">
+          <img src="/img/securonix-blue.svg" alt="Securonix">
+        </div>
+        <div class="logo-item">
+          <img src="/img/viewsonic.svg" alt="ViewSonic">
+        </div>
+        <div class="logo-item">
+          <img src="/img/skillable-logo.svg" alt="Skillable">
+        </div>
+        <div class="logo-item">
+          <img src="/img/sodexo.svg" alt="Sodexo">
+        </div>
+        <div class="logo-item">
+          <img src="/img/Dotdash_Meredith.svg" alt="Dotdash Meredith">
+        </div>
+        <div class="logo-item">
+          <img src="/img/trustify.svg" alt="Trustify">
+        </div>
+        <div class="logo-item">
+          <img src="/img/bowie.svg" alt="Bowie">
+        </div>
+        <div class="logo-item">
+          <img src="/img/talkwalker.svg" alt="Talkwalker">
+        </div>
       </div>
     </div>
   </div>
