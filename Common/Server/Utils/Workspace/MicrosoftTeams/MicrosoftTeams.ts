@@ -32,7 +32,6 @@ import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceProjectAuthToken, {
   MicrosoftTeamsMiscData,
-  MicrosoftTeamsTeam,
 } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
