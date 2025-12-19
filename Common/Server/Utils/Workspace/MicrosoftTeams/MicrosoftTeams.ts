@@ -3076,7 +3076,7 @@ All monitoring checks are passing normally.`;
 
     try {
       // Fetch user email from UserService
-      const user: User = await UserService.findOneById({
+      const user: User | null = await UserService.findOneById({
         id: data.userId,
         select: {
           email: true,
