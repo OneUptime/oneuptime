@@ -54,6 +54,10 @@ import ScheduledMaintenanceService from "../../../Services/ScheduledMaintenanceS
 import IncidentStateService from "../../../Services/IncidentStateService";
 import AlertStateService from "../../../Services/AlertStateService";
 
+// Import user services
+import User from "../../../../Models/DatabaseModels/User";
+import UserService from "../../../Services/UserService";
+
 // Import database utilities
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -2938,7 +2942,7 @@ All monitoring checks are passing normally.`;
           logger.debug("Using app-scoped token to fetch joined teams for user");
           const userTeams: Record<string, { id: string; name: string }> =
             await this.getUserJoinedTeams({
-              userId: data.userId.toString(),
+              userId: data.userId,
               projectId: data.projectId,
             });
           allTeams = Object.values(userTeams) as any;
@@ -3063,14 +3067,33 @@ All monitoring checks are passing normally.`;
   // Method to get user's joined teams using app-scoped token
   @CaptureSpan()
   public static async getUserJoinedTeams(data: {
-    userId: string;
+    userId: ObjectID;
     projectId: ObjectID;
   }): Promise<Record<string, { id: string; name: string }>> {
     logger.debug("=== getUserJoinedTeams called ===");
-    logger.debug(`User ID: ${data.userId}`);
+    logger.debug(`User ID: ${data.userId.toString()}`);
     logger.debug(`Project ID: ${data.projectId.toString()}`);
 
     try {
+      // Fetch user email from UserService
+      const user: User | null = await UserService.findOneById({
+        id: data.userId,
+        select: {
+          email: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+      if (!user || !user.email) {
+        logger.error("User or user email not found");
+        throw new BadDataException(
+          "User email not found for Microsoft Teams integration",
+        );
+      }
+      const userEmail: string = user.email.toString();
+      logger.debug(`Retrieved user email: ${userEmail}`);
+
       // Get a valid app access token (refreshed if needed)
       logger.debug("Refreshing app access token before fetching teams");
       const accessToken: string = await this.getValidAccessToken({
@@ -3083,7 +3106,7 @@ All monitoring checks are passing normally.`;
       const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get<JSONObject>({
           url: URL.fromString(
-            `https://graph.microsoft.com/v1.0/users/${data.userId}/joinedTeams`,
+            `https://graph.microsoft.com/v1.0/users/${userEmail}/joinedTeams`,
           ),
           headers: {
             Authorization: `Bearer ${accessToken}`,
