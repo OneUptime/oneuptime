@@ -1,37 +1,40 @@
 
-<section id="reviews" aria-labelledby="reviews-title" class="pb-16 pt-20 sm:pb-24 sm:pt-32 bg-gray-50 border-gray-100 border-t-2 border-b-2">
+<section id="reviews" aria-labelledby="reviews-title" class="pb-16 pt-20 sm:pb-24 sm:pt-32 bg-gradient-to-b from-slate-50 to-white border-gray-100 border-t border-b">
 
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 rounded bg-gray-50">
-        <h2 id="reviews-title" class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-center">Here's what developers say about us.</h2>
-        <p class="mt-5 text-xl text-gray-500 sm:text-center">OneUptime is used by thousands of companies worldwide. Here's what they say about us.</p>
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <p class="text-sm font-semibold uppercase tracking-wider text-indigo-600">Testimonials</p>
+            <h2 id="reviews-title" class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Trusted by engineering teams worldwide</h2>
+            <p class="mx-auto mt-4 max-w-2xl text-lg text-gray-600">See why developers and SRE teams choose OneUptime for their monitoring and incident management needs.</p>
+        </div>
         <div
-            class="bg-gray-50 relative -mx-4 mt-16 grid h-[49rem] max-h-[150vh] grid-cols-1 items-start gap-8 overflow-hidden px-4 sm:mt-20 md:grid-cols-2 lg:grid-cols-3">
-            <div class="animate-marquee space-y-8 py-4" style="--marquee-duration: 28320ms;">
+            class="relative -mx-4 mt-12 grid h-[49rem] max-h-[150vh] grid-cols-1 items-start gap-6 overflow-hidden px-4 sm:mt-16 md:grid-cols-2 lg:grid-cols-3">
+            <div class="animate-marquee space-y-6 py-4" style="--marquee-duration: 35000ms;">
                 <% for(var i=0; i<reviewsList1.length; i++) {%>
                     <%- include('./review', {
                         review: reviewsList1[i]
                     }) -%>
                 <% } %>
-                
+
             </div>
-            <div class="animate-marquee space-y-8 py-4 hidden md:block" style="--marquee-duration: 48320ms;">
+            <div class="animate-marquee space-y-6 py-4 hidden md:block" style="--marquee-duration: 42000ms;">
                 <% for(var i=0; i<reviewsList2.length; i++) {%>
                     <%- include('./review', {
                         review: reviewsList2[i]
                     }) -%>
                 <% } %>
-                
+
             </div>
-            <div class="animate-marquee space-y-8 py-4 hidden lg:block" style="--marquee-duration: 38320ms;">
+            <div class="animate-marquee space-y-6 py-4 hidden lg:block" style="--marquee-duration: 38000ms;">
                 <% for(var i=0; i<reviewsList3.length; i++) {%>
                     <%- include('./review', {
                         review: reviewsList3[i]
                     }) -%>
                 <% } %>
-                
+
             </div>
-            <div class="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-slate-50"></div>
-            <div class="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-50"></div>
+            <div class="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-slate-50"></div>
+            <div class="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-white"></div>
         </div>
     </div>
 </section>
