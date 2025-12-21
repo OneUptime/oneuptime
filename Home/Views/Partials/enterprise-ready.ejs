@@ -1,20 +1,26 @@
-<section class="relative py-24 lg:py-32 bg-gradient-to-b from-slate-50 to-white overflow-hidden">
-    <!-- Subtle background pattern -->
-    <div class="absolute inset-0 opacity-40">
-        <div class="absolute top-0 left-1/4 w-96 h-96 bg-indigo-100 rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-emerald-100 rounded-full blur-3xl"></div>
+<section class="relative py-24 lg:py-32 bg-white overflow-hidden">
+    <!-- Subtle grid pattern -->
+    <div class="absolute inset-0 opacity-[0.02]">
+        <svg class="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <pattern id="enterprise-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+                    <path d="M0 32V0h32" fill="none" stroke="currentColor" stroke-width="1"/>
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#enterprise-grid)" />
+        </svg>
     </div>
 
     <div class="relative mx-auto max-w-6xl px-6 lg:px-8">
         <!-- Header -->
         <div class="text-center mb-16">
-            <span class="inline-block px-4 py-1.5 text-xs font-semibold tracking-wider text-indigo-600 uppercase bg-indigo-50 rounded-full mb-6">
+            <span class="inline-block px-4 py-1.5 text-xs font-medium tracking-wider text-slate-600 uppercase bg-slate-100 rounded-full mb-6 border border-slate-200">
                 For Teams of All Sizes
             </span>
             <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 mb-5">
                 Enterprise-grade, out of the box
             </h2>
-            <p class="max-w-2xl mx-auto text-lg text-slate-600">
+            <p class="max-w-2xl mx-auto text-lg text-slate-500">
                 SOC 2 certified, GDPR compliant, and battle-tested by teams from startups to Fortune 500. Your data stays secure while you stay focused on what matters.
             </p>
         </div>
@@ -24,28 +30,28 @@
 
             <!-- Security - Featured Large Card -->
             <div class="lg:col-span-2 group">
-                <div class="h-full p-8 lg:p-10 rounded-2xl bg-white border border-slate-200/80 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-slate-300 hover:-translate-y-0.5">
-                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-50 mb-6">
-                        <svg class="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="h-full p-8 lg:p-10 rounded-2xl bg-slate-50/50 border border-slate-200 transition-all duration-300 hover:bg-slate-50 hover:border-slate-300">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 mb-6">
+                        <svg class="w-6 h-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
                         </svg>
                     </div>
                     <h3 class="text-2xl font-semibold text-slate-900 mb-3">Security & Compliance</h3>
                     <p class="text-slate-500 mb-6 max-w-md">Enterprise-grade security with comprehensive compliance certifications for regulated industries.</p>
                     <div class="flex flex-wrap gap-2">
-                        <span class="px-3 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200">SOC 2 Type II</span>
-                        <span class="px-3 py-1 text-xs font-medium text-blue-700 bg-blue-50 rounded-full border border-blue-200">ISO 27001</span>
-                        <span class="px-3 py-1 text-xs font-medium text-violet-700 bg-violet-50 rounded-full border border-violet-200">HIPAA</span>
-                        <span class="px-3 py-1 text-xs font-medium text-indigo-700 bg-indigo-50 rounded-full border border-indigo-200">GDPR</span>
+                        <span class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white rounded-lg border border-slate-200">SOC 2 Type II</span>
+                        <span class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white rounded-lg border border-slate-200">ISO 27001</span>
+                        <span class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white rounded-lg border border-slate-200">HIPAA</span>
+                        <span class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white rounded-lg border border-slate-200">GDPR</span>
                     </div>
                 </div>
             </div>
 
             <!-- SSO -->
             <div class="group">
-                <div class="h-full p-7 rounded-2xl bg-white border border-slate-200/80 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-slate-300 hover:-translate-y-0.5">
-                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-indigo-50 mb-5">
-                        <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="h-full p-7 rounded-2xl bg-slate-50/50 border border-slate-200 transition-all duration-300 hover:bg-slate-50 hover:border-slate-300">
+                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 mb-5">
+                        <svg class="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
                         </svg>
                     </div>
@@ -56,9 +62,9 @@
 
             <!-- Access Control -->
             <div class="group">
-                <div class="h-full p-7 rounded-2xl bg-white border border-slate-200/80 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-slate-300 hover:-translate-y-0.5">
-                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-violet-50 mb-5">
-                        <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="h-full p-7 rounded-2xl bg-slate-50/50 border border-slate-200 transition-all duration-300 hover:bg-slate-50 hover:border-slate-300">
+                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 mb-5">
+                        <svg class="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
                         </svg>
                     </div>
@@ -69,15 +75,11 @@
 
             <!-- Integrations - Featured Card -->
             <div class="md:col-span-2 lg:col-span-1 lg:row-span-2 group">
-                <div class="h-full rounded-2xl bg-white border border-slate-200/80 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-slate-300 hover:-translate-y-0.5 overflow-hidden relative">
-                    <!-- Decorative elements -->
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-100/50 rounded-full blur-2xl"></div>
-                    <div class="absolute bottom-0 left-0 w-24 h-24 bg-violet-100/50 rounded-full blur-2xl"></div>
-
-                    <div class="h-full flex flex-col p-7 relative z-10">
+                <div class="h-full rounded-2xl bg-slate-50/50 border border-slate-200 transition-all duration-300 hover:bg-slate-50 hover:border-slate-300 overflow-hidden">
+                    <div class="h-full flex flex-col p-7">
                         <!-- Header -->
                         <div class="flex items-center gap-3 mb-4">
-                            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/25">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-900">
                                 <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
                                 </svg>
@@ -92,65 +94,65 @@
                         <div class="flex-1 flex flex-col justify-center">
                             <div class="grid grid-cols-4 gap-2">
                                 <!-- Row 1 -->
-                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all cursor-default" title="Slack">
-                                    <svg class="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="currentColor">
+                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all cursor-default" title="Slack">
+                                    <svg class="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.27 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.163 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.163 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.163 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.27a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.163a2.528 2.528 0 0 1-2.522 2.523h-6.315z"/>
                                     </svg>
                                 </div>
-                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all cursor-default" title="GitHub">
-                                    <svg class="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="currentColor">
+                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all cursor-default" title="GitHub">
+                                    <svg class="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
                                     </svg>
                                 </div>
-                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all cursor-default" title="Jira">
-                                    <svg class="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="currentColor">
+                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all cursor-default" title="Jira">
+                                    <svg class="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.005-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.758a1.001 1.001 0 0 0-1.001-1.001zM23.013 0H11.455a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.215 5.215 0 0 0 24 12.483V1.005A1.005 1.005 0 0 0 23.013 0z"/>
                                     </svg>
                                 </div>
-                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all cursor-default" title="AWS">
-                                    <svg class="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="currentColor">
+                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all cursor-default" title="AWS">
+                                    <svg class="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M6.763 10.036c0 .296.032.535.088.71.064.176.144.368.256.576.04.063.056.127.056.183 0 .08-.048.16-.152.24l-.503.335a.383.383 0 0 1-.208.072c-.08 0-.16-.04-.239-.112a2.47 2.47 0 0 1-.287-.375 6.18 6.18 0 0 1-.248-.471c-.622.734-1.405 1.101-2.347 1.101-.67 0-1.205-.191-1.596-.574-.391-.384-.59-.894-.59-1.533 0-.678.239-1.23.726-1.644.487-.415 1.133-.623 1.955-.623.272 0 .551.024.846.064.296.04.6.104.918.176v-.583c0-.607-.127-1.03-.375-1.277-.255-.248-.686-.367-1.3-.367-.28 0-.568.031-.863.103-.296.072-.583.16-.862.272a2.287 2.287 0 0 1-.28.104.488.488 0 0 1-.127.023c-.112 0-.168-.08-.168-.247v-.391c0-.128.016-.224.056-.28a.597.597 0 0 1 .224-.167c.279-.144.614-.264 1.005-.36a4.84 4.84 0 0 1 1.246-.151c.95 0 1.644.216 2.091.647.439.43.662 1.085.662 1.963v2.586zM21.698 16.207c-2.626 1.94-6.442 2.969-9.722 2.969-4.598 0-8.74-1.7-11.87-4.526-.247-.223-.024-.527.27-.351 3.384 1.963 7.559 3.153 11.877 3.153 2.914 0 6.114-.607 9.06-1.852.439-.2.814.287.385.607z"/>
                                     </svg>
                                 </div>
                                 <!-- Row 2 -->
-                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all cursor-default" title="Microsoft Teams">
-                                    <svg class="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="currentColor">
+                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all cursor-default" title="Microsoft Teams">
+                                    <svg class="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M20.625 8.073c.574 0 1.094.234 1.469.609.375.375.609.895.609 1.469v5.036c0 1.193-.482 2.273-1.26 3.055-.782.778-1.858 1.26-3.051 1.26h-.107c-.287 1.47-1.581 2.578-3.128 2.578H8.073c-1.77 0-3.201-1.431-3.201-3.201v-6.952c0-1.77 1.431-3.201 3.201-3.201h7.084c.908 0 1.728.38 2.312.985.295-.51.635-.99 1.022-1.43.609-.694 1.333-1.28 2.134-1.708zM16.5 3.75c1.035 0 1.875.84 1.875 1.875S17.535 7.5 16.5 7.5s-1.875-.84-1.875-1.875S15.465 3.75 16.5 3.75zm4.125 0c1.035 0 1.875.84 1.875 1.875S21.66 7.5 20.625 7.5 18.75 6.66 18.75 5.625s.84-1.875 1.875-1.875z"/>
                                     </svg>
                                 </div>
-                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all cursor-default" title="Google Cloud">
-                                    <svg class="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="currentColor">
+                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all cursor-default" title="Google Cloud">
+                                    <svg class="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
                                     </svg>
                                 </div>
-                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all cursor-default" title="PagerDuty">
-                                    <svg class="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="currentColor">
+                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all cursor-default" title="PagerDuty">
+                                    <svg class="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M16.965 1.18C15.085.164 13.769 0 10.683 0H3.73v14.55h6.926c2.743 0 4.8-.164 6.61-1.37 1.975-1.303 3.004-3.44 3.004-6.003 0-2.893-1.328-4.942-3.305-5.997zM11.87 10.59H8.282V3.608h3.348c2.788 0 4.42 1.207 4.42 3.42 0 2.375-1.632 3.562-4.18 3.562zM3.73 17.803h4.552V24H3.73z"/>
                                     </svg>
                                 </div>
-                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all cursor-default" title="Datadog">
-                                    <svg class="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="currentColor">
+                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all cursor-default" title="Datadog">
+                                    <svg class="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 18c-3.314 0-6-2.686-6-6s2.686-6 6-6 6 2.686 6 6-2.686 6-6 6z"/>
                                     </svg>
                                 </div>
                                 <!-- Row 3 -->
-                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all cursor-default" title="Docker">
-                                    <svg class="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="currentColor">
+                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all cursor-default" title="Docker">
+                                    <svg class="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M13.983 11.078h2.119a.186.186 0 0 0 .186-.185V9.006a.186.186 0 0 0-.186-.186h-2.119a.185.185 0 0 0-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 0 0 .186-.186V3.574a.186.186 0 0 0-.186-.185h-2.118a.185.185 0 0 0-.185.185v1.888c0 .102.082.185.185.185m0 2.716h2.118a.187.187 0 0 0 .186-.186V6.29a.186.186 0 0 0-.186-.185h-2.118a.185.185 0 0 0-.185.185v1.887c0 .102.082.186.185.186m-2.93 0h2.12a.186.186 0 0 0 .184-.186V6.29a.185.185 0 0 0-.185-.185H8.1a.185.185 0 0 0-.185.185v1.887c0 .102.083.186.185.186m-2.964 0h2.119a.186.186 0 0 0 .185-.186V6.29a.185.185 0 0 0-.185-.185H5.136a.186.186 0 0 0-.186.185v1.887c0 .102.084.186.186.186m5.893 2.715h2.118a.186.186 0 0 0 .186-.185V9.006a.186.186 0 0 0-.186-.186h-2.118a.185.185 0 0 0-.185.185v1.888c0 .102.082.185.185.185"/>
                                     </svg>
                                 </div>
-                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all cursor-default" title="Kubernetes">
-                                    <svg class="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="currentColor">
+                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all cursor-default" title="Kubernetes">
+                                    <svg class="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M10.204 14.35l.007.01-.999 2.413a5.171 5.171 0 0 1-2.075-2.597l2.578-.437.004.005a.44.44 0 0 1 .484.606zm-.833-2.129a.44.44 0 0 0 .173-.756l.002-.011L7.585 9.7a5.143 5.143 0 0 0-.73 3.255l2.514-.725.002-.009zm1.145-1.98a.44.44 0 0 0 .699-.337l.01-.005.15-2.62a5.144 5.144 0 0 0-3.01 1.442l2.147 1.523.004-.002zm.76 2.75l.723.349.722-.347.18-.78-.5-.623h-.804l-.5.623.179.778z"/>
                                     </svg>
                                 </div>
-                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all cursor-default" title="Prometheus">
-                                    <svg class="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="currentColor">
+                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all cursor-default" title="Prometheus">
+                                    <svg class="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22.157c-1.47 0-2.662-1.085-2.662-2.422h5.324c0 1.337-1.192 2.422-2.662 2.422zm4.404-3.448H7.596v-1.875h8.808v1.875z"/>
                                     </svg>
                                 </div>
-                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:border-slate-200 transition-all cursor-default" title="Grafana">
-                                    <svg class="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="currentColor">
+                                <div class="flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all cursor-default" title="Grafana">
+                                    <svg class="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 18c-3.314 0-6-2.686-6-6s2.686-6 6-6 6 2.686 6 6-2.686 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/>
                                     </svg>
                                 </div>
@@ -158,10 +160,10 @@
                         </div>
 
                         <!-- Bottom Badge -->
-                        <div class="mt-5 pt-4 border-t border-slate-100">
+                        <div class="mt-5 pt-4 border-t border-slate-200">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs text-slate-500">Popular tools supported</span>
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full shadow-lg shadow-indigo-500/25">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white rounded-lg border border-slate-200">
                                     <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                     </svg>
@@ -175,9 +177,9 @@
 
             <!-- API -->
             <div class="group">
-                <div class="h-full p-7 rounded-2xl bg-white border border-slate-200/80 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-slate-300 hover:-translate-y-0.5">
-                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-cyan-50 mb-5">
-                        <svg class="w-5 h-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="h-full p-7 rounded-2xl bg-slate-50/50 border border-slate-200 transition-all duration-300 hover:bg-slate-50 hover:border-slate-300">
+                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 mb-5">
+                        <svg class="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
                         </svg>
                     </div>
@@ -188,9 +190,9 @@
 
             <!-- Data Residency -->
             <div class="group">
-                <div class="h-full p-7 rounded-2xl bg-white border border-slate-200/80 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-slate-300 hover:-translate-y-0.5">
-                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-blue-50 mb-5">
-                        <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="h-full p-7 rounded-2xl bg-slate-50/50 border border-slate-200 transition-all duration-300 hover:bg-slate-50 hover:border-slate-300">
+                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 mb-5">
+                        <svg class="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
                         </svg>
                     </div>
@@ -201,9 +203,9 @@
 
             <!-- Audit Logs -->
             <div class="group">
-                <div class="h-full p-7 rounded-2xl bg-white border border-slate-200/80 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-slate-300 hover:-translate-y-0.5">
-                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-amber-50 mb-5">
-                        <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="h-full p-7 rounded-2xl bg-slate-50/50 border border-slate-200 transition-all duration-300 hover:bg-slate-50 hover:border-slate-300">
+                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 mb-5">
+                        <svg class="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                         </svg>
                     </div>
@@ -214,9 +216,9 @@
 
             <!-- Support -->
             <div class="group">
-                <div class="h-full p-7 rounded-2xl bg-white border border-slate-200/80 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-slate-300 hover:-translate-y-0.5">
-                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-rose-50 mb-5">
-                        <svg class="w-5 h-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="h-full p-7 rounded-2xl bg-slate-50/50 border border-slate-200 transition-all duration-300 hover:bg-slate-50 hover:border-slate-300">
+                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 mb-5">
+                        <svg class="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
                         </svg>
                     </div>
@@ -227,9 +229,9 @@
 
             <!-- Uptime SLA -->
             <div class="group">
-                <div class="h-full p-7 rounded-2xl bg-white border border-slate-200/80 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-slate-300 hover:-translate-y-0.5">
-                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-teal-50 mb-5">
-                        <svg class="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="h-full p-7 rounded-2xl bg-slate-50/50 border border-slate-200 transition-all duration-300 hover:bg-slate-50 hover:border-slate-300">
+                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 mb-5">
+                        <svg class="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
                         </svg>
                     </div>
@@ -240,9 +242,9 @@
 
             <!-- Custom Contracts -->
             <div class="group">
-                <div class="h-full p-7 rounded-2xl bg-white border border-slate-200/80 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-slate-300 hover:-translate-y-0.5">
-                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-orange-50 mb-5">
-                        <svg class="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="h-full p-7 rounded-2xl bg-slate-50/50 border border-slate-200 transition-all duration-300 hover:bg-slate-50 hover:border-slate-300">
+                    <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 mb-5">
+                        <svg class="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                         </svg>
                     </div>
