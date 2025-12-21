@@ -27,6 +27,12 @@ import Reviews from "./Utils/Reviews";
 // import jobs.
 import "./Jobs/UpdateBlog";
 import { getGitHubStarsCount, formatStarCount } from "./Jobs/FetchGitHubStars";
+import "./Jobs/FetchGitHubStats";
+import {
+  getGitHubContributorsCount,
+  getGitHubCommitsCount,
+  formatCount,
+} from "./Jobs/FetchGitHubStats";
 import { Host, IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 
@@ -94,6 +100,10 @@ const HomeFeatureSet: FeatureSet = {
       );
 
       const githubStars: string | null = formatStarCount(getGitHubStarsCount());
+      const githubContributors: string | null = formatCount(
+        getGitHubContributorsCount(),
+      );
+      const githubCommits: string | null = formatCount(getGitHubCommitsCount());
 
       res.render(`${ViewsPath}/index`, {
         support: false,
@@ -107,6 +117,8 @@ const HomeFeatureSet: FeatureSet = {
         reviewsList3,
         seo,
         githubStars,
+        githubContributors,
+        githubCommits,
       });
     });
 

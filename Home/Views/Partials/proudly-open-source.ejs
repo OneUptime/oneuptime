@@ -24,11 +24,11 @@
         <!-- Stats -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto mb-16">
             <div class="text-center p-8 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-                <div class="text-4xl sm:text-5xl font-semibold text-white mb-2">80+</div>
+                <div class="text-4xl sm:text-5xl font-semibold text-white mb-2"><%= typeof githubContributors !== 'undefined' && githubContributors ? githubContributors : '80+' %></div>
                 <div class="text-sm text-slate-400">Contributors</div>
             </div>
             <div class="text-center p-8 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-                <div class="text-4xl sm:text-5xl font-semibold text-white mb-2">29K+</div>
+                <div class="text-4xl sm:text-5xl font-semibold text-white mb-2"><%= typeof githubCommits !== 'undefined' && githubCommits ? githubCommits : '29k+' %></div>
                 <div class="text-sm text-slate-400">Commits</div>
             </div>
             <div class="text-center p-8 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
