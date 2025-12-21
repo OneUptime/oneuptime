@@ -1,14 +1,34 @@
-<!-- This example requires Tailwind CSS v3.0+ -->
-<div class="bg-white">
-  <div class="mx-auto max-w-7xl px-6 py-10 sm:py-10 lg:flex lg:items-center lg:justify-between lg:px-8">
-    <div>
-    <h2 class="text-4xl font-bold tracking-tight text-gray-900">Get started for free today.</h2>
-    <p class="mx-auto mt-2 max-w-xl text-lg leading-8 text-gray-600">We have a generous free plan. Get started for free today or request a demo. No credit card required.</p>
-  </div>
-   
-    <div class="mt-10 flex items-center gap-x-6 lg:mt-0 lg:flex-shrink-0">
-      <a href="/accounts/register" class="rounded-md bg-indigo-600 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-indigo-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Sign up</a>
-      <a href="/enterprise/demo" class="text-base font-semibold leading-7 text-gray-900">Request Demo <span aria-hidden="true">→</span></a>
+<section class="relative py-32 sm:py-40 bg-white">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="text-center max-w-3xl mx-auto">
+            <!-- Heading -->
+            <h2 class="text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tight text-slate-900 leading-[1.1]">
+                Get started for free
+            </h2>
+
+            <!-- Subtext -->
+            <p class="mt-6 text-xl text-slate-500 leading-relaxed">
+                No credit card required. Start monitoring in minutes.
+            </p>
+
+            <!-- Buttons -->
+            <div class="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="/accounts/register"
+                   class="group inline-flex items-center gap-2 px-8 py-4 rounded-full bg-slate-900 text-white font-medium text-base hover:bg-slate-800 transition-colors duration-200">
+                    <span>Start for free</span>
+                    <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                    </svg>
+                </a>
+
+                <a href="/enterprise/demo"
+                   class="inline-flex items-center gap-2 px-8 py-4 rounded-full text-slate-600 font-medium text-base hover:text-slate-900 transition-colors duration-200">
+                    <span>Request a demo</span>
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25" />
+                    </svg>
+                </a>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
+</section>
