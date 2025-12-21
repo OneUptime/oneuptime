@@ -118,7 +118,7 @@
     </div>
 
     <!-- Ambient glow from bottom right -->
-    <div class="absolute -bottom-32 -right-32 w-[1000px] h-[800px] pointer-events-none" style="background: radial-gradient(ellipse at 70% 70%, rgb(99 102 241 / 0.25) 0%, rgb(139 92 246 / 0.15) 20%, rgb(59 130 246 / 0.08) 40%, transparent 65%);"></div>
+    <div id="enterprise-ambient-glow" class="absolute -bottom-32 -right-32 w-[1000px] h-[800px] pointer-events-none" style="background: transparent; opacity: 0; transition: opacity 0.35s ease-out;"></div>
 
     <div class="relative mx-auto max-w-6xl px-6 lg:px-8">
         <!-- Header -->
@@ -378,3 +378,74 @@
         </div>
     </div>
 </section>
+
+<script>
+(function() {
+    const ambientGlow = document.getElementById('enterprise-ambient-glow');
+    const cardWrappers = document.querySelectorAll('.enterprise-card-wrapper');
+    let currentColor = null;
+    let fadeTimeout = null;
+
+    const glowColors = {
+        'glow-emerald-wrapper': 'radial-gradient(ellipse at 70% 70%, rgb(16 185 129 / 0.25) 0%, rgb(16 185 129 / 0.12) 25%, rgb(16 185 129 / 0.05) 45%, transparent 65%)',
+        'glow-violet-wrapper': 'radial-gradient(ellipse at 70% 70%, rgb(139 92 246 / 0.25) 0%, rgb(139 92 246 / 0.12) 25%, rgb(139 92 246 / 0.05) 45%, transparent 65%)',
+        'glow-blue-wrapper': 'radial-gradient(ellipse at 70% 70%, rgb(59 130 246 / 0.25) 0%, rgb(59 130 246 / 0.12) 25%, rgb(59 130 246 / 0.05) 45%, transparent 65%)',
+        'glow-indigo-wrapper': 'radial-gradient(ellipse at 70% 70%, rgb(99 102 241 / 0.25) 0%, rgb(99 102 241 / 0.12) 25%, rgb(99 102 241 / 0.05) 45%, transparent 65%)',
+        'glow-cyan-wrapper': 'radial-gradient(ellipse at 70% 70%, rgb(6 182 212 / 0.25) 0%, rgb(6 182 212 / 0.12) 25%, rgb(6 182 212 / 0.05) 45%, transparent 65%)',
+        'glow-amber-wrapper': 'radial-gradient(ellipse at 70% 70%, rgb(245 158 11 / 0.25) 0%, rgb(245 158 11 / 0.12) 25%, rgb(245 158 11 / 0.05) 45%, transparent 65%)',
+        'glow-rose-wrapper': 'radial-gradient(ellipse at 70% 70%, rgb(244 63 94 / 0.25) 0%, rgb(244 63 94 / 0.12) 25%, rgb(244 63 94 / 0.05) 45%, transparent 65%)',
+        'glow-yellow-wrapper': 'radial-gradient(ellipse at 70% 70%, rgb(234 179 8 / 0.25) 0%, rgb(234 179 8 / 0.12) 25%, rgb(234 179 8 / 0.05) 45%, transparent 65%)',
+        'glow-teal-wrapper': 'radial-gradient(ellipse at 70% 70%, rgb(20 184 166 / 0.25) 0%, rgb(20 184 166 / 0.12) 25%, rgb(20 184 166 / 0.05) 45%, transparent 65%)',
+        'glow-slate-wrapper': 'radial-gradient(ellipse at 70% 70%, rgb(100 116 139 / 0.25) 0%, rgb(100 116 139 / 0.12) 25%, rgb(100 116 139 / 0.05) 45%, transparent 65%)'
+    };
+
+    function getGlowColor(wrapper) {
+        const wrapperClasses = wrapper.className.split(' ');
+        for (var i = 0; i < wrapperClasses.length; i++) {
+            if (glowColors[wrapperClasses[i]]) {
+                return glowColors[wrapperClasses[i]];
+            }
+        }
+        return null;
+    }
+
+    cardWrappers.forEach(function(wrapper) {
+        wrapper.addEventListener('mouseenter', function() {
+            const newColor = getGlowColor(wrapper);
+
+            if (fadeTimeout) {
+                clearTimeout(fadeTimeout);
+                fadeTimeout = null;
+            }
+
+            if (currentColor && currentColor !== newColor) {
+                // Fade out first, then fade in new color
+                ambientGlow.style.opacity = '0';
+                fadeTimeout = setTimeout(function() {
+                    ambientGlow.style.background = newColor;
+                    ambientGlow.style.opacity = '1';
+                    currentColor = newColor;
+                }, 250);
+            } else if (!currentColor) {
+                // No current color, just fade in
+                ambientGlow.style.background = newColor;
+                ambientGlow.style.opacity = '1';
+                currentColor = newColor;
+            }
+        });
+
+        wrapper.addEventListener('mouseleave', function() {
+            if (fadeTimeout) {
+                clearTimeout(fadeTimeout);
+                fadeTimeout = null;
+            }
+
+            // Small delay before fading out to allow for card-to-card transitions
+            fadeTimeout = setTimeout(function() {
+                ambientGlow.style.opacity = '0';
+                currentColor = null;
+            }, 100);
+        });
+    });
+})();
+</script>
