@@ -43,8 +43,8 @@ export const formatCount: (count: number) => string = (
   count: number,
 ): string => {
   if (count >= 1000) {
-    const thousands: number = Math.floor(count / 100) / 10;
-    return `${thousands.toLocaleString("en-US", { minimumFractionDigits: thousands % 1 === 0 ? 0 : 1, maximumFractionDigits: 1 })}k+`;
+    const thousands: number = Math.ceil(count / 1000);
+    return `${thousands}k+`;
   }
   return `${count}+`;
 };
