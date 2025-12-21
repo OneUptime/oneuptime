@@ -1,143 +1,80 @@
-<section class="relative py-32 overflow-hidden bg-slate-950">
-    <!-- Background effects -->
-    <div class="absolute inset-0">
-        <div class="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"></div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-green-500/10 via-emerald-500/5 to-teal-500/10 blur-3xl"></div>
-    </div>
-
-    <!-- Animated code rain effect (subtle) -->
-    <div class="absolute inset-0 overflow-hidden opacity-[0.03]">
-        <div class="absolute top-0 left-[10%] text-green-500 font-mono text-xs animate-pulse">01001111 01110000 01100101 01101110</div>
-        <div class="absolute top-[20%] right-[15%] text-green-500 font-mono text-xs animate-pulse delay-100">const open = true;</div>
-        <div class="absolute top-[40%] left-[5%] text-green-500 font-mono text-xs animate-pulse delay-200">git commit -m "feat"</div>
-        <div class="absolute top-[60%] right-[8%] text-green-500 font-mono text-xs animate-pulse delay-300">npm install oneuptime</div>
-        <div class="absolute top-[80%] left-[20%] text-green-500 font-mono text-xs animate-pulse delay-500">docker pull oneuptime</div>
-    </div>
+<section class="relative py-24 sm:py-32 bg-slate-900 overflow-hidden">
+    <!-- Subtle background gradient -->
+    <div class="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-800/50 to-slate-900"></div>
 
     <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
-        <!-- Header Section -->
-        <div class="text-center mb-20">
-            <div class="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-green-500/10 border border-green-500/20 backdrop-blur-sm mb-8">
-                <svg class="w-5 h-5 text-green-400" viewBox="0 0 24 24" fill="currentColor">
+        <!-- Header -->
+        <div class="text-center mb-16">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8">
+                <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                 </svg>
-                <span class="text-sm font-medium text-green-300">Open Source & Community Driven</span>
+                <span class="text-sm text-slate-400">Open Source</span>
             </div>
 
-            <h2 class="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-                <span class="text-white">Proudly</span>
-                <br>
-                <span class="bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 bg-clip-text text-transparent">open-source</span>
+            <h2 class="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1]">
+                <span class="text-slate-400 block">Proudly</span>
+                <span class="text-white block">open-source</span>
             </h2>
-
-            <p class="max-w-2xl mx-auto text-lg sm:text-xl text-slate-400 leading-relaxed mb-10">
-                Built in the open, powered by the community. Our entire platform is open-source,
-                giving you full transparency, security, and the freedom to self-host.
+            <p class="mt-6 text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                Full transparency, complete control. Our entire codebase is open for you to inspect, modify, and self-host.
             </p>
-
-            <!-- GitHub CTA Button -->
-            <a href="https://github.com/oneuptime/oneuptime" target="_blank"
-               class="group inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-white text-slate-900 font-semibold text-lg hover:bg-slate-100 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-green-500/20">
-                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                </svg>
-                <span>Star us on GitHub</span>
-                <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                </svg>
-            </a>
         </div>
 
-        <!-- Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            <!-- Contributors Card -->
-            <div class="group relative">
-                <div class="absolute inset-0 bg-gradient-to-r from-violet-500/20 to-purple-500/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div class="relative h-full p-8 lg:p-10 rounded-3xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10 backdrop-blur-sm overflow-hidden">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-violet-500/20 to-transparent rounded-full blur-2xl"></div>
-                    <div class="relative">
-                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-500 mb-6">
-                            <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-                            </svg>
-                        </div>
-                        <div class="text-5xl lg:text-6xl font-bold bg-gradient-to-r from-violet-300 to-purple-300 bg-clip-text text-transparent mb-3">80+</div>
-                        <h3 class="text-xl font-semibold text-white mb-2">Contributors</h3>
-                        <p class="text-slate-400 leading-relaxed">Developers from around the world building OneUptime together.</p>
-                    </div>
-                </div>
+        <!-- Stats -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto mb-16">
+            <div class="text-center p-8 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                <div class="text-4xl sm:text-5xl font-semibold text-white mb-2">80+</div>
+                <div class="text-sm text-slate-400">Contributors</div>
             </div>
-
-            <!-- Commits Card -->
-            <div class="group relative">
-                <div class="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div class="relative h-full p-8 lg:p-10 rounded-3xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10 backdrop-blur-sm overflow-hidden">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-green-500/20 to-transparent rounded-full blur-2xl"></div>
-                    <div class="relative">
-                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 mb-6">
-                            <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
-                            </svg>
-                        </div>
-                        <div class="text-5xl lg:text-6xl font-bold bg-gradient-to-r from-green-300 to-emerald-300 bg-clip-text text-transparent mb-3">29K+</div>
-                        <h3 class="text-xl font-semibold text-white mb-2">Commits</h3>
-                        <p class="text-slate-400 leading-relaxed">Constant improvements, new features, and bug fixes every week.</p>
-                    </div>
-                </div>
+            <div class="text-center p-8 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                <div class="text-4xl sm:text-5xl font-semibold text-white mb-2">29K+</div>
+                <div class="text-sm text-slate-400">Commits</div>
             </div>
-
-            <!-- Downloads Card -->
-            <div class="group relative">
-                <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div class="relative h-full p-8 lg:p-10 rounded-3xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10 backdrop-blur-sm overflow-hidden">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-cyan-500/20 to-transparent rounded-full blur-2xl"></div>
-                    <div class="relative">
-                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500 mb-6">
-                            <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                            </svg>
-                        </div>
-                        <div class="text-5xl lg:text-6xl font-bold bg-gradient-to-r from-cyan-300 to-blue-300 bg-clip-text text-transparent mb-3">100K+</div>
-                        <h3 class="text-xl font-semibold text-white mb-2">Downloads</h3>
-                        <p class="text-slate-400 leading-relaxed">Trusted by startups and enterprises worldwide.</p>
-                    </div>
-                </div>
+            <div class="text-center p-8 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                <div class="text-4xl sm:text-5xl font-semibold text-white mb-2">100K+</div>
+                <div class="text-sm text-slate-400">Downloads</div>
             </div>
         </div>
 
-        <!-- Terminal/Install Section -->
-        <div class="mt-16 lg:mt-20">
-            <div class="relative rounded-3xl bg-slate-900/80 border border-slate-700/50 overflow-hidden backdrop-blur-sm">
-                <!-- Terminal Header -->
-                <div class="flex items-center gap-2 px-4 py-3 bg-slate-800/50 border-b border-slate-700/50">
+        <!-- Terminal -->
+        <div class="max-w-2xl mx-auto mb-12">
+            <div class="rounded-2xl bg-black/40 border border-white/[0.06] overflow-hidden">
+                <div class="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
                     <div class="flex gap-1.5">
-                        <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
-                        <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-                        <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
+                        <div class="w-3 h-3 rounded-full bg-white/10"></div>
+                        <div class="w-3 h-3 rounded-full bg-white/10"></div>
+                        <div class="w-3 h-3 rounded-full bg-white/10"></div>
                     </div>
                     <span class="ml-2 text-xs text-slate-500 font-mono">terminal</span>
                 </div>
-                <!-- Terminal Content -->
-                <div class="p-6 lg:p-8">
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
-                        <div class="flex-1">
-                            <p class="text-slate-400 text-sm mb-3">Get started in seconds:</p>
-                            <code class="block text-green-400 font-mono text-sm sm:text-base lg:text-lg">
-                                <span class="text-slate-500">$</span> docker compose up -d
-                            </code>
-                        </div>
-                        <div class="flex-shrink-0">
-                            <a href="https://github.com/oneuptime/oneuptime#readme" target="_blank"
-                               class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 font-medium text-sm hover:bg-green-500/20 hover:border-green-500/50 transition-all duration-300">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-                                </svg>
-                                View Documentation
-                            </a>
-                        </div>
-                    </div>
+                <div class="px-6 py-5">
+                    <code class="text-slate-300 font-mono text-sm sm:text-base">
+                        <span class="text-slate-500">$</span> docker compose up -d
+                    </code>
                 </div>
             </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="https://github.com/oneuptime/oneuptime" target="_blank"
+               class="group inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-slate-900 font-medium text-sm hover:bg-slate-100 transition-colors">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                <span>Star on GitHub</span>
+                <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+            </a>
+            <a href="https://github.com/oneuptime/oneuptime#readme" target="_blank"
+               class="inline-flex items-center gap-2 px-6 py-3 rounded-full text-slate-400 font-medium text-sm hover:text-white transition-colors">
+                <span>View documentation</span>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+            </a>
         </div>
     </div>
 </section>
