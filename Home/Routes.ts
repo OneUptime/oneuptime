@@ -100,10 +100,8 @@ const HomeFeatureSet: FeatureSet = {
       );
 
       const githubStars: string | null = formatStarCount(getGitHubStarsCount());
-      const githubContributors: string | null = formatCount(
-        getGitHubContributorsCount(),
-      );
-      const githubCommits: string | null = formatCount(getGitHubCommitsCount());
+      const githubContributors: string = formatCount(getGitHubContributorsCount());
+      const githubCommits: string = formatCount(getGitHubCommitsCount());
 
       res.render(`${ViewsPath}/index`, {
         support: false,

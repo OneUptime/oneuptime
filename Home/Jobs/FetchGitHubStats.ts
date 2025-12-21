@@ -13,35 +13,35 @@ const GITHUB_STATS_NAMESPACE: string = "home";
 const GITHUB_CONTRIBUTORS_CACHE_KEY: string = "githubContributors";
 const GITHUB_COMMITS_CACHE_KEY: string = "githubCommits";
 
-export const getGitHubContributorsCount: () => number | null =
-  (): number | null => {
+// Default fallback values (used if API fails)
+const DEFAULT_CONTRIBUTORS: number = 80;
+const DEFAULT_COMMITS: number = 29000;
+
+export const getGitHubContributorsCount: () => number =
+  (): number => {
     if (
       !LocalCache.hasValue(GITHUB_STATS_NAMESPACE, GITHUB_CONTRIBUTORS_CACHE_KEY)
     ) {
-      return null;
+      return DEFAULT_CONTRIBUTORS;
     }
 
     return LocalCache.getNumber(
       GITHUB_STATS_NAMESPACE,
       GITHUB_CONTRIBUTORS_CACHE_KEY,
-    );
+    ) || DEFAULT_CONTRIBUTORS;
   };
 
-export const getGitHubCommitsCount: () => number | null = (): number | null => {
+export const getGitHubCommitsCount: () => number = (): number => {
   if (!LocalCache.hasValue(GITHUB_STATS_NAMESPACE, GITHUB_COMMITS_CACHE_KEY)) {
-    return null;
+    return DEFAULT_COMMITS;
   }
 
-  return LocalCache.getNumber(GITHUB_STATS_NAMESPACE, GITHUB_COMMITS_CACHE_KEY);
+  return LocalCache.getNumber(GITHUB_STATS_NAMESPACE, GITHUB_COMMITS_CACHE_KEY) || DEFAULT_COMMITS;
 };
 
-export const formatCount: (count: number | null) => string | null = (
-  count: number | null,
-): string | null => {
-  if (count === null) {
-    return null;
-  }
-
+export const formatCount: (count: number) => string = (
+  count: number,
+): string => {
   if (count >= 1000) {
     const thousands: number = Math.floor(count / 100) / 10;
     return `${thousands.toLocaleString("en-US", { minimumFractionDigits: thousands % 1 === 0 ? 0 : 1, maximumFractionDigits: 1 })}k+`;
