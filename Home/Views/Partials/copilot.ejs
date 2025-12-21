@@ -1,126 +1,192 @@
-<style>
-  .highlight {
-    background-color: yellow;
-    padding-left: 15px;
-    padding-right: 15px;
-    border-radius: 20px;
-  }
-</style>
+<section class="relative overflow-hidden bg-gradient-to-b from-slate-900 to-slate-800">
+  <!-- Background pattern -->
+  <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMyMDI5M2EiIGZpbGwtb3BhY2l0eT0iMC40Ij48cGF0aCBkPSJNMzYgMzRoLTJ2LTRoMnY0em0wLTZoLTJ2LTRoMnY0em0wLTZoLTJWMThoMnY0em0wLTZoLTJ2LTRoMnY0eiIvPjwvZz48L2c+PC9zdmc+')] opacity-20"></div>
 
-<section class="mb-32 border-gray-100 border-t-2">
-  <div class="relative isolate overflow-hidden bg-white px-6 py-24 sm:py-32 lg:overflow-visible lg:px-0">
-    <div
-      class="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-start lg:gap-y-10">
-      <div
-        class="lg:col-span-2 lg:col-start-1 lg:row-start-1 lg:mx-auto lg:grid lg:w-full lg:max-w-7xl lg:grid-cols-2 lg:gap-x-8 lg:px-8">
-        <div class="lg:pr-4">
-          <div class="lg:max-w-lg">
-            <div class="inline-flex space-x-6 mb-5">
-              <span
-                class="rounded-full bg-indigo-600/10 px-3 py-1 text-sm font-semibold leading-6 text-indigo-600 ring-1 ring-inset ring-indigo-600/10">Reliability
-                Copilot</span>
+  <div class="relative mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:px-8">
+    <!-- Header -->
+    <div class="mx-auto max-w-2xl text-center">
+      <div class="inline-flex items-center gap-2 rounded-full bg-indigo-500/10 px-4 py-2 mb-8 ring-1 ring-indigo-500/20">
+        <svg class="h-4 w-4 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />
+        </svg>
+        <span class="text-sm font-medium text-indigo-400">AI-Powered Reliability</span>
+      </div>
+      <h2 class="text-4xl font-bold tracking-tight text-white sm:text-5xl">
+        Stop debugging.<br>
+        <span class="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">Start shipping.</span>
+      </h2>
+      <p class="mt-6 text-lg leading-8 text-slate-300">
+        OneUptime analyzes your logs, traces, and metrics — then automatically fixes issues and opens a pull request. You just review and merge.
+      </p>
+    </div>
+
+    <!-- How it works -->
+    <div class="mx-auto mt-16 max-w-5xl">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div class="relative rounded-2xl bg-slate-800/50 p-6 ring-1 ring-white/10">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500">
+            <span class="text-lg font-bold text-white">1</span>
+          </div>
+          <h3 class="mt-4 text-lg font-semibold text-white">Connect</h3>
+          <p class="mt-2 text-sm text-slate-400">Link your GitHub or GitLab repo. OneUptime auto-instruments your code with OpenTelemetry.</p>
+        </div>
+        <div class="relative rounded-2xl bg-slate-800/50 p-6 ring-1 ring-white/10">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500">
+            <span class="text-lg font-bold text-white">2</span>
+          </div>
+          <h3 class="mt-4 text-lg font-semibold text-white">Detect</h3>
+          <p class="mt-2 text-sm text-slate-400">AI monitors your logs, traces, and metrics 24/7. It identifies errors, exceptions, and performance bottlenecks.</p>
+        </div>
+        <div class="relative rounded-2xl bg-slate-800/50 p-6 ring-1 ring-white/10">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500">
+            <span class="text-lg font-bold text-white">3</span>
+          </div>
+          <h3 class="mt-4 text-lg font-semibold text-white">Fix</h3>
+          <p class="mt-2 text-sm text-slate-400">AI generates a fix, opens a pull request, and provides a detailed explanation. You review and merge.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screenshot -->
+    <div class="mx-auto mt-16 max-w-5xl">
+      <div class="relative rounded-2xl bg-slate-800/50 p-2 ring-1 ring-white/10">
+        <img class="rounded-xl shadow-2xl" src="/img/copilot.png" alt="OneUptime Copilot showing an AI-generated pull request with code fixes">
+      </div>
+    </div>
+
+    <!-- Features grid -->
+    <div class="mx-auto mt-20 max-w-5xl">
+      <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="flex gap-4">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600">
+            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-semibold text-white">Auto-instrument</h3>
+            <p class="mt-1 text-sm text-slate-400">Add tracing, metrics, and logging with one click. No SDK setup required.</p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600">
+            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-semibold text-white">Fix exceptions</h3>
+            <p class="mt-1 text-sm text-slate-400">AI catches errors in production and generates fixes before users notice.</p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600">
+            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-semibold text-white">Optimize performance</h3>
+            <p class="mt-1 text-sm text-slate-400">Identifies slow traces and submits optimized code automatically.</p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600">
+            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-semibold text-white">Fix flaky tests</h3>
+            <p class="mt-1 text-sm text-slate-400">Detects and fixes intermittent test failures in your CI/CD pipeline.</p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600">
+            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-semibold text-white">Optimize queries</h3>
+            <p class="mt-1 text-sm text-slate-400">Finds slow database queries and suggests indexes or rewrites.</p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600">
+            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-semibold text-white">Security patches</h3>
+            <p class="mt-1 text-sm text-slate-400">Detects vulnerable dependencies and creates PRs with safe upgrades.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enterprise section -->
+    <div class="mx-auto mt-24 max-w-3xl">
+      <div class="rounded-3xl bg-gradient-to-r from-indigo-500/10 to-cyan-500/10 p-8 ring-1 ring-white/10 sm:p-12">
+        <h3 class="text-center text-2xl font-bold text-white">Built for enterprise security</h3>
+        <div class="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <div class="flex items-start gap-4">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10">
+              <svg class="h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+              </svg>
             </div>
-            <h1 class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Spending days debugging?</h1>
-            <p class="mt-6 text-xl leading-8 text-gray-700 ">
-              OneUptime is building next frontier in software observability.
-              <span class="highlight">We not only find issues with your software, but also fix it for you
-                automatically.</span>
-            </p>
+            <div>
+              <h4 class="font-semibold text-white">Bring your own LLM</h4>
+              <p class="mt-1 text-sm text-slate-400">Use Claude, GPT-4, Llama, or self-host. Your code stays in your infrastructure.</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-4">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10">
+              <svg class="h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+            </div>
+            <div>
+              <h4 class="font-semibold text-white">Zero data retention</h4>
+              <p class="mt-1 text-sm text-slate-400">We never store, view, or train on your code. SOC 2 Type II compliant.</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-4">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10">
+              <svg class="h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+              </svg>
+            </div>
+            <div>
+              <h4 class="font-semibold text-white">Self-hosted option</h4>
+              <p class="mt-1 text-sm text-slate-400">Deploy OneUptime entirely within your own cloud or on-premises infrastructure.</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-4">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10">
+              <svg class="h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+              </svg>
+            </div>
+            <div>
+              <h4 class="font-semibold text-white">SSO &amp; RBAC</h4>
+              <p class="mt-1 text-sm text-slate-400">Enterprise SSO with SAML/OIDC. Fine-grained role-based access controls.</p>
+            </div>
           </div>
         </div>
       </div>
-      <div class="-ml-12 -mt-12 p-12 lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:overflow-hidden">
-        <img class="w-[48rem] max-w-none rounded-xl bg-gray-900 shadow-xl ring-1 ring-gray-400/10 sm:w-[57rem]"
-          src="/img/copilot.png" alt="OneUptime Copilot AI assistant interface showing code fix suggestions">
-      </div>
-      <div
-        class="lg:col-span-2 lg:col-start-1 lg:row-start-2 lg:mx-auto lg:grid lg:w-full lg:max-w-7xl lg:grid-cols-2 lg:gap-x-8 lg:px-8">
-        <div class="lg:pr-4">
-          <div class="max-w-xl text-base leading-7 text-gray-700 lg:max-w-lg">
-            <p>
-              OneUptime integrates with OpenTelemetry to collect logs, metrics, traces from your software and
-              infrastructure. We then use generative AI to fix the issues
-              in your code. 
-              <span class="highlight">All you see is a pull request with the fixes and a detailed report of what was
-                fixed waiting to be reviewed and merged.</span>
-            </p>
-            <ul role="list" class="mt-8 space-y-8 text-gray-600">
-              <li class="flex gap-x-3">
-                <svg class="mt-1 h-5 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
-                  aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />
-                </svg>
-                <span><strong class="font-semibold text-gray-900">
-                    Automatically add telemetry code.
-                  </strong>
-                  No need to manually add it. Add tracing, metrics, and logs in your codebase with a single
-                  click.
-                </span>
-              </li>
-              <li class="flex gap-x-3">
-                <svg class="mt-1 h-5 w-5 flex-none text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="size-6">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                </svg>
-                
-                
-                <span><strong class="font-semibold text-gray-900">Fix exceptions automatically.</strong>
-                  When we notice exceptions in your traces or logs, we automatically fix the issue in your codebase.
-                </span>
-              </li>
-              <li class="flex gap-x-3">
-                <svg class="mt-1 h-5 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
-                  aria-hidden="true">
+    </div>
 
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
-
-
-                </svg>
-                <span><strong class="font-semibold text-gray-900">Improve performance automatically</strong>
-                  We look at the traces that take the longest time to execute and and automatically create a pull
-                  request with a fix.
-                </span>
-              </li>
-            </ul>
-            <p class="mt-8">
-              Less time looking at graphs and charts (like in other obervability tools), more time reviewing at fixed code.
-            </p>
-            <h2 class="mt-16 text-2xl font-bold tracking-tight text-gray-900">
-              Enterprise? We have you covered.
-            </h2>
-            <p class="mt-6">
-              <ul role="list" class="mt-8 space-y-8 text-gray-600">
-              <li class="flex gap-x-3">
-               
-                <svg class="mt-1 h-5 w-5 flex-none text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="size-6">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
-                </svg>
-                
-                <span><strong class="font-semibold text-gray-900">
-                    Use AI model of your choice.
-                  </strong>
-                  OneUptime works with any AI model of your choice. Self host your AI model and no data or code is sent
-                  to us.
-                </span>
-              </li>
-              <li class="flex gap-x-3">
-               
-                <svg class="mt-1 h-5 w-5 flex-none text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="size-6">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
-                </svg>
-                
-                <span><strong class="font-semibold text-gray-900">
-                    We don't see, store or train on your code.
-                  </strong>
-                  Regardless whether you are on the free tier or enterprise tier, we don't store or train on your code. No part of your code is sent to us.
-                </span>
-              </li>
-            </ul>
-            </p>
-          </div>
-        </div>
-      </div>
+    <!-- CTA -->
+    <div class="mx-auto mt-16 max-w-2xl text-center">
+      <a href="/enterprise/demo" class="inline-flex items-center gap-2 rounded-full bg-indigo-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-400">
+        See it in action
+        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+        </svg>
+      </a>
     </div>
   </div>
 </section>
