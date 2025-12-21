@@ -16,10 +16,97 @@
 <body>
   <%- include('nav') -%>
 
+  <style>
+    /* Hero Product Card Glow Styles */
+    .hero-card-wrapper {
+        position: relative;
+    }
+    .hero-card-wrapper::before {
+        content: '';
+        position: absolute;
+        inset: -30px;
+        border-radius: 50%;
+        opacity: 0;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none;
+        z-index: 0;
+    }
+    .hero-card-wrapper:hover::before {
+        opacity: 1;
+    }
+    .hero-card {
+        position: relative;
+        z-index: 1;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .hero-card:hover {
+        transform: translateY(-2px);
+    }
+    /* Emerald - Status Page */
+    .hero-glow-emerald-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(16 185 129 / 0.06) 0%, rgb(16 185 129 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-emerald:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 1px rgb(16 185 129 / 0.08), 0 4px 12px -4px rgb(16 185 129 / 0.1), 0 0 30px -8px rgb(16 185 129 / 0.08);
+    }
+    /* Rose - Incident Management & Error Tracking */
+    .hero-glow-rose-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(244 63 94 / 0.06) 0%, rgb(244 63 94 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-rose:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 1px rgb(244 63 94 / 0.08), 0 4px 12px -4px rgb(244 63 94 / 0.1), 0 0 30px -8px rgb(244 63 94 / 0.08);
+    }
+    /* Blue - Monitoring */
+    .hero-glow-blue-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(59 130 246 / 0.06) 0%, rgb(59 130 246 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-blue:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 1px rgb(59 130 246 / 0.08), 0 4px 12px -4px rgb(59 130 246 / 0.1), 0 0 30px -8px rgb(59 130 246 / 0.08);
+    }
+    /* Amber - On-Call & Alerts */
+    .hero-glow-amber-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(245 158 11 / 0.06) 0%, rgb(245 158 11 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-amber:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 1px rgb(245 158 11 / 0.08), 0 4px 12px -4px rgb(245 158 11 / 0.1), 0 0 30px -8px rgb(245 158 11 / 0.08);
+    }
+    /* Indigo - Logs Management */
+    .hero-glow-indigo-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(99 102 241 / 0.06) 0%, rgb(99 102 241 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-indigo:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 1px rgb(99 102 241 / 0.08), 0 4px 12px -4px rgb(99 102 241 / 0.1), 0 0 30px -8px rgb(99 102 241 / 0.08);
+    }
+    /* Cyan - APM */
+    .hero-glow-cyan-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(6 182 212 / 0.06) 0%, rgb(6 182 212 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-cyan:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 1px rgb(6 182 212 / 0.08), 0 4px 12px -4px rgb(6 182 212 / 0.1), 0 0 30px -8px rgb(6 182 212 / 0.08);
+    }
+    /* Violet - AI Agent */
+    .hero-glow-violet-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(139 92 246 / 0.06) 0%, rgb(139 92 246 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-violet:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 1px rgb(139 92 246 / 0.08), 0 4px 12px -4px rgb(139 92 246 / 0.1), 0 0 30px -8px rgb(139 92 246 / 0.08);
+    }
+  </style>
+
     <main id="main-content">
     <div class="relative isolate bg-white overflow-hidden">
       <!-- Subtle grid pattern background -->
       <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <!-- Hero ambient glow -->
+      <div id="hero-ambient-glow" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/4 w-[800px] h-[600px] pointer-events-none" style="background: transparent; opacity: 0; transition: opacity 0.35s ease-out;"></div>
       
       <div class="py-24 sm:py-32 lg:py-40">
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
@@ -60,79 +147,95 @@
             </div>
             
             <!-- Feature grid -->
-            <div class="mt-20 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-              <!-- Status Page -->
-              <a href="/product/status-page" class="group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:bg-gray-50 hover:ring-gray-200 block">
-                <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
-                  <!-- Checkmark circle icon -->
-                  <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                </div>
-                <div class="text-sm font-medium text-gray-900">Status Page</div>
-                <div class="mt-0.5 text-xs text-gray-500">Keep customers informed with real-time updates</div>
-              </a>
-              <!-- Incident Management -->
-              <a href="/product/incident-management" class="group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:bg-gray-50 hover:ring-gray-200 block">
-                <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
-                  <!-- Warning triangle icon -->
-                  <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"></path></svg>
-                </div>
-                <div class="text-sm font-medium text-gray-900">Incident Management</div>
-                <div class="mt-0.5 text-xs text-gray-500">Detect, respond, and resolve issues faster</div>
-              </a>
-              <!-- Monitoring -->
-              <a href="/product/monitoring" class="group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:bg-gray-50 hover:ring-gray-200 block">
-                <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
-                  <!-- Globe icon -->
-                  <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"></path></svg>
-                </div>
-                <div class="text-sm font-medium text-gray-900">Monitoring</div>
-                <div class="mt-0.5 text-xs text-gray-500">Monitor all your services and infrastructure</div>
-              </a>
-              <!-- On-Call & Alerts -->
-              <a href="/product/on-call" class="group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:bg-gray-50 hover:ring-gray-200 block">
-                <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
-                  <!-- Phone icon -->
-                  <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"></path></svg>
-                </div>
-                <div class="text-sm font-medium text-gray-900">On-Call &amp; Alerts</div>
-                <div class="mt-0.5 text-xs text-gray-500">Smart routing to the right person, every time</div>
-              </a>
-              <!-- Logs Management -->
-              <a href="/product/logs-management" class="group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:bg-gray-50 hover:ring-gray-200 block">
-                <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
-                  <!-- Bars/menu icon -->
-                  <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"></path></svg>
-                </div>
-                <div class="text-sm font-medium text-gray-900">Logs Management</div>
-                <div class="mt-0.5 text-xs text-gray-500">Centralize, search, and analyze logs at scale</div>
-              </a>
-              <!-- APM -->
-              <a href="/product/apm" class="group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:bg-gray-50 hover:ring-gray-200 block">
-                <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
-                  <!-- Activity/pulse chart icon -->
-                  <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l3-9 4 18 3-9h4"></path></svg>
-                </div>
-                <div class="text-sm font-medium text-gray-900">APM</div>
-                <div class="mt-0.5 text-xs text-gray-500">Deep insights into application performance</div>
-              </a>
-              <!-- Error Tracking -->
-              <a href="/product/apm" class="group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:bg-gray-50 hover:ring-gray-200 block">
-                <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
-                  <!-- Info circle icon -->
-                  <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"></path></svg>
-                </div>
-                <div class="text-sm font-medium text-gray-900">Error Tracking</div>
-                <div class="mt-0.5 text-xs text-gray-500">Catch, prioritize, and fix bugs before users notice</div>
-              </a>
-              <!-- AI Agent -->
-              <a href="/product/ai-agent" class="group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:bg-gray-50 hover:ring-gray-200 block">
-                <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
-                  <!-- Lightning bolt icon -->
-                  <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"></path></svg>
-                </div>
-                <div class="text-sm font-medium text-gray-900">AI Agent</div>
-                <div class="mt-0.5 text-xs text-gray-500">Auto-fix issues with AI-generated code changes</div>
-              </a>
+            <div class="mt-20 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4" id="hero-feature-grid">
+              <!-- Status Page - Emerald (Green) -->
+              <div class="hero-card-wrapper hero-glow-emerald-wrapper">
+                <a href="/product/status-page" class="hero-card hero-glow-emerald group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:ring-gray-200 block">
+                  <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
+                    <!-- Checkmark circle icon -->
+                    <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  </div>
+                  <div class="text-sm font-medium text-gray-900">Status Page</div>
+                  <div class="mt-0.5 text-xs text-gray-500">Keep customers informed with real-time updates</div>
+                </a>
+              </div>
+              <!-- Incident Management - Rose (Red/Pink) -->
+              <div class="hero-card-wrapper hero-glow-rose-wrapper">
+                <a href="/product/incident-management" class="hero-card hero-glow-rose group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:ring-gray-200 block">
+                  <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
+                    <!-- Warning triangle icon -->
+                    <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"></path></svg>
+                  </div>
+                  <div class="text-sm font-medium text-gray-900">Incident Management</div>
+                  <div class="mt-0.5 text-xs text-gray-500">Detect, respond, and resolve issues faster</div>
+                </a>
+              </div>
+              <!-- Monitoring - Blue -->
+              <div class="hero-card-wrapper hero-glow-blue-wrapper">
+                <a href="/product/monitoring" class="hero-card hero-glow-blue group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:ring-gray-200 block">
+                  <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
+                    <!-- Globe icon -->
+                    <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"></path></svg>
+                  </div>
+                  <div class="text-sm font-medium text-gray-900">Monitoring</div>
+                  <div class="mt-0.5 text-xs text-gray-500">Monitor all your services and infrastructure</div>
+                </a>
+              </div>
+              <!-- On-Call & Alerts - Amber (Yellow/Orange) -->
+              <div class="hero-card-wrapper hero-glow-amber-wrapper">
+                <a href="/product/on-call" class="hero-card hero-glow-amber group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:ring-gray-200 block">
+                  <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
+                    <!-- Phone icon -->
+                    <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"></path></svg>
+                  </div>
+                  <div class="text-sm font-medium text-gray-900">On-Call &amp; Alerts</div>
+                  <div class="mt-0.5 text-xs text-gray-500">Smart routing to the right person, every time</div>
+                </a>
+              </div>
+              <!-- Logs Management - Indigo (Purple) -->
+              <div class="hero-card-wrapper hero-glow-indigo-wrapper">
+                <a href="/product/logs-management" class="hero-card hero-glow-indigo group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:ring-gray-200 block">
+                  <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
+                    <!-- Bars/menu icon -->
+                    <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"></path></svg>
+                  </div>
+                  <div class="text-sm font-medium text-gray-900">Logs Management</div>
+                  <div class="mt-0.5 text-xs text-gray-500">Centralize, search, and analyze logs at scale</div>
+                </a>
+              </div>
+              <!-- APM - Cyan -->
+              <div class="hero-card-wrapper hero-glow-cyan-wrapper">
+                <a href="/product/apm" class="hero-card hero-glow-cyan group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:ring-gray-200 block">
+                  <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
+                    <!-- Activity/pulse chart icon -->
+                    <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l3-9 4 18 3-9h4"></path></svg>
+                  </div>
+                  <div class="text-sm font-medium text-gray-900">APM</div>
+                  <div class="mt-0.5 text-xs text-gray-500">Deep insights into application performance</div>
+                </a>
+              </div>
+              <!-- Error Tracking - Rose (Red) -->
+              <div class="hero-card-wrapper hero-glow-rose-wrapper">
+                <a href="/product/apm" class="hero-card hero-glow-rose group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:ring-gray-200 block">
+                  <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
+                    <!-- Info circle icon -->
+                    <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"></path></svg>
+                  </div>
+                  <div class="text-sm font-medium text-gray-900">Error Tracking</div>
+                  <div class="mt-0.5 text-xs text-gray-500">Catch, prioritize, and fix bugs before users notice</div>
+                </a>
+              </div>
+              <!-- AI Agent - Violet (Purple) -->
+              <div class="hero-card-wrapper hero-glow-violet-wrapper">
+                <a href="/product/ai-agent" class="hero-card hero-glow-violet group rounded-xl bg-gray-50/50 p-4 ring-1 ring-inset ring-gray-100 transition-all hover:ring-gray-200 block">
+                  <div class="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
+                    <!-- Lightning bolt icon -->
+                    <svg class="h-5 w-5 text-gray-700" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"></path></svg>
+                  </div>
+                  <div class="text-sm font-medium text-gray-900">AI Agent</div>
+                  <div class="mt-0.5 text-xs text-gray-500">Auto-fix issues with AI-generated code changes</div>
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -175,6 +278,71 @@
                       <%- include('footer') -%>
 
                         <%- include('./Partials/video-script') -%>
+
+<script>
+(function() {
+    const heroAmbientGlow = document.getElementById('hero-ambient-glow');
+    const heroCardWrappers = document.querySelectorAll('.hero-card-wrapper');
+    let currentHeroColor = null;
+    let heroFadeTimeout = null;
+
+    const heroGlowColors = {
+        'hero-glow-emerald-wrapper': 'radial-gradient(ellipse at center, rgb(16 185 129 / 0.08) 0%, rgb(16 185 129 / 0.03) 35%, rgb(16 185 129 / 0.01) 55%, transparent 75%)',
+        'hero-glow-rose-wrapper': 'radial-gradient(ellipse at center, rgb(244 63 94 / 0.08) 0%, rgb(244 63 94 / 0.03) 35%, rgb(244 63 94 / 0.01) 55%, transparent 75%)',
+        'hero-glow-blue-wrapper': 'radial-gradient(ellipse at center, rgb(59 130 246 / 0.08) 0%, rgb(59 130 246 / 0.03) 35%, rgb(59 130 246 / 0.01) 55%, transparent 75%)',
+        'hero-glow-amber-wrapper': 'radial-gradient(ellipse at center, rgb(245 158 11 / 0.08) 0%, rgb(245 158 11 / 0.03) 35%, rgb(245 158 11 / 0.01) 55%, transparent 75%)',
+        'hero-glow-indigo-wrapper': 'radial-gradient(ellipse at center, rgb(99 102 241 / 0.08) 0%, rgb(99 102 241 / 0.03) 35%, rgb(99 102 241 / 0.01) 55%, transparent 75%)',
+        'hero-glow-cyan-wrapper': 'radial-gradient(ellipse at center, rgb(6 182 212 / 0.08) 0%, rgb(6 182 212 / 0.03) 35%, rgb(6 182 212 / 0.01) 55%, transparent 75%)',
+        'hero-glow-violet-wrapper': 'radial-gradient(ellipse at center, rgb(139 92 246 / 0.08) 0%, rgb(139 92 246 / 0.03) 35%, rgb(139 92 246 / 0.01) 55%, transparent 75%)'
+    };
+
+    function getHeroGlowColor(wrapper) {
+        const wrapperClasses = wrapper.className.split(' ');
+        for (var i = 0; i < wrapperClasses.length; i++) {
+            if (heroGlowColors[wrapperClasses[i]]) {
+                return heroGlowColors[wrapperClasses[i]];
+            }
+        }
+        return null;
+    }
+
+    heroCardWrappers.forEach(function(wrapper) {
+        wrapper.addEventListener('mouseenter', function() {
+            const newColor = getHeroGlowColor(wrapper);
+
+            if (heroFadeTimeout) {
+                clearTimeout(heroFadeTimeout);
+                heroFadeTimeout = null;
+            }
+
+            if (currentHeroColor && currentHeroColor !== newColor) {
+                heroAmbientGlow.style.opacity = '0';
+                heroFadeTimeout = setTimeout(function() {
+                    heroAmbientGlow.style.background = newColor;
+                    heroAmbientGlow.style.opacity = '1';
+                    currentHeroColor = newColor;
+                }, 250);
+            } else if (!currentHeroColor) {
+                heroAmbientGlow.style.background = newColor;
+                heroAmbientGlow.style.opacity = '1';
+                currentHeroColor = newColor;
+            }
+        });
+
+        wrapper.addEventListener('mouseleave', function() {
+            if (heroFadeTimeout) {
+                clearTimeout(heroFadeTimeout);
+                heroFadeTimeout = null;
+            }
+
+            heroFadeTimeout = setTimeout(function() {
+                heroAmbientGlow.style.opacity = '0';
+                currentHeroColor = null;
+            }, 100);
+        });
+    });
+})();
+</script>
 
 </body>
 
