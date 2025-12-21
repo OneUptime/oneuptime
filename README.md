@@ -125,10 +125,8 @@ By using OneUptime Cloud, you also support the continued development of the open
 ## 🛠️ Installation
 
 ```bash
-# Quick start with Docker Compose
-git clone https://github.com/OneUptime/oneuptime.git
-cd oneuptime
-npm run start
+# Quick start with one command
+curl https://oneuptime.com/install.sh | bash
 ```
 
 For detailed installation guides, see:

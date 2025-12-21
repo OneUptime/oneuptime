@@ -130,6 +130,12 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+    app.get("/install.sh", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.redirect(
+        "https://raw.githubusercontent.com/OneUptime/oneuptime/release/Home/Scripts/Install.sh",
+      );
+    });
+
     app.get("/support", async (_req: ExpressRequest, res: ExpressResponse) => {
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
         "/support",
