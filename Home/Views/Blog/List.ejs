@@ -27,12 +27,12 @@
             <% if(blogPosts.length> 0){ %>
               <% const featured = blogPosts[0]; const rest = blogPosts.slice(1); %>
               <!-- Featured Post -->
-              <div class="relative mb-14 rounded-3xl overflow-hidden border border-slate-100 bg-gradient-to-br from-slate-100 via-white to-slate-100/40 p-8 md:p-12 shadow-sm ring-1 ring-slate-100/60">
+              <div class="relative mb-14 rounded-3xl overflow-hidden border border-gray-100 bg-gradient-to-br from-gray-100 via-white to-gray-100/40 p-8 md:p-12 shadow-sm ring-1 ring-gray-100/60">
                 <div class="grid md:grid-cols-5 gap-10 items-center">
                   <div class="md:col-span-3">
                     <a href="<%- featured.blogUrl %>" class="group no-underline">
-                      <p class="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-700 bg-slate-100/70 px-3 py-1 rounded-full ring-1 ring-slate-200">Featured</p>
-                      <h2 class="mt-5 text-3xl md:text-4xl font-bold tracking-tight text-gray-900 group-hover:text-slate-700 transition-colors"><%- featured.title %></h2>
+                      <p class="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-700 bg-gray-100/70 px-3 py-1 rounded-full ring-1 ring-gray-200">Featured</p>
+                      <h2 class="mt-5 text-3xl md:text-4xl font-bold tracking-tight text-gray-900 group-hover:text-gray-700 transition-colors"><%- featured.title %></h2>
                       <p class="mt-5 text-base md:text-lg leading-relaxed text-gray-600 line-clamp-5"><%- featured.description %></p>
                       <div class="mt-6 text-xs text-gray-500 flex flex-wrap items-center gap-2">
                         <img class="h-8 w-8 rounded-full ring-2 ring-white shadow" src="https://avatars.githubusercontent.com/<%- featured.authorGitHubUsername -%>?s=80" alt="@<%- featured.authorGitHubUsername -%>" width="32" height="32" loading="lazy" decoding="async">
@@ -43,7 +43,7 @@
                       <div class="mt-6">
                         <%- include('./Partials/Tags', { blogPost: featured }) -%>
                       </div>
-                      <div class="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 group-hover:text-slate-500">Read article <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></div>
+                      <div class="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-gray-600 group-hover:text-gray-500">Read article <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></div>
                     </a>
                   </div>
                   <div class="md:col-span-2 relative">

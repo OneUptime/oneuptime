@@ -1,10 +1,10 @@
-<div class="group relative flex flex-col h-full rounded-2xl border border-gray-200/80 bg-white/70 backdrop-blur-sm p-6 shadow-sm ring-1 ring-gray-200/60 hover:shadow-lg hover:border-slate-300 hover:ring-slate-200 transition-all duration-300 focus-within:shadow-lg" tabindex="0" aria-label="Blog post card: <%- blogPost.title.replace(/\"/g,'') -%>">
-  <div class="absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition pointer-events-none bg-gradient-to-br from-slate-500/5 via-transparent to-slate-400/10"></div>
+<div class="group relative flex flex-col h-full rounded-2xl border border-gray-200/80 bg-white/70 backdrop-blur-sm p-6 shadow-sm ring-1 ring-gray-200/60 hover:shadow-lg hover:border-gray-300 hover:ring-gray-200 transition-all duration-300 focus-within:shadow-lg" tabindex="0" aria-label="Blog post card: <%- blogPost.title.replace(/\"/g,'') -%>">
+  <div class="absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition pointer-events-none bg-gradient-to-br from-gray-500/5 via-transparent to-gray-400/10"></div>
   <div class="flex-1 flex flex-col relative z-10">
     <div class="flex items-start gap-3">
       <div class="flex-1">
-        <a href="<%= blogPost.blogUrl %>" class="no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 rounded-md">
-          <h2 class="text-xl font-semibold tracking-tight text-gray-900 group-hover:text-slate-600 transition-colors line-clamp-2">
+        <a href="<%= blogPost.blogUrl %>" class="no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 rounded-md">
+          <h2 class="text-xl font-semibold tracking-tight text-gray-900 group-hover:text-gray-600 transition-colors line-clamp-2">
             <%= blogPost.title %>
           </h2>
         </a>
@@ -16,14 +16,14 @@
     </div>
     <div class="mt-6 flex items-center justify-between">
       <a href="https://github.com/<%- blogPost.authorGitHubUsername -%>" target="_blank" class="flex items-center gap-3 group/author">
-  <img loading="lazy" src="https://avatars.githubusercontent.com/<%- blogPost.authorGitHubUsername -%>?s=64" alt="@<%- blogPost.authorGitHubUsername -%>" class="h-10 w-10 rounded-full ring-2 ring-white shadow-sm group-hover/author:ring-slate-200 transition" width="40" height="40" decoding="async">
+  <img loading="lazy" src="https://avatars.githubusercontent.com/<%- blogPost.authorGitHubUsername -%>?s=64" alt="@<%- blogPost.authorGitHubUsername -%>" class="h-10 w-10 rounded-full ring-2 ring-white shadow-sm group-hover/author:ring-gray-200 transition" width="40" height="40" decoding="async">
         <div class="text-[11px] leading-4 text-gray-600">
           <span class="text-gray-500">By</span> @<%- blogPost.authorGitHubUsername -%><br/>
           <span class="text-gray-400"><%- blogPost.formattedPostDate -%></span>
         </div>
       </a>
-      <a href="<%= blogPost.blogUrl %>" class="shrink-0 text-sm font-medium text-slate-600 hover:text-slate-500 inline-flex items-center gap-1 group/cta">Read
-        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 transition-transform group-hover/cta:translate-x-0.5"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+      <a href="<%= blogPost.blogUrl %>" class="shrink-0 text-sm font-medium text-gray-600 hover:text-gray-500 inline-flex items-center gap-1 group/cta">Read
+        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 transition-transform group-hover/cta:trangray-x-0.5"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
       </a>
     </div>
   </div>

@@ -9,7 +9,7 @@
     <div>
         <div class="sm:hidden px-6">
             <label for="location" class="block text-sm font-medium leading-6 text-gray-900">Select Product</label>
-            <select id="location" onchange="showTab(this.value)" name="location" class="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-slate-600 sm:text-sm sm:leading-6">
+            <select id="location" onchange="showTab(this.value)" name="location" class="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-gray-600 sm:text-sm sm:leading-6">
                 <option value="1" selected>Status Pages</option>
                 <option value="2">Monitoring</option>
                 <option value="3">Incidents</option>
@@ -24,11 +24,11 @@
         <div class="hidden sm:block">
             <div class="border-b border-gray-200">
                 <nav class="-mb-px flex justify-center space-x-8" aria-label="Product feature tabs" role="tablist">
-                    <!-- Current: "border-slate-500 text-slate-600", Default: "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700" -->
+                    <!-- Current: "border-gray-500 text-gray-600", Default: "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700" -->
                     <button type="button" onclick="showTab('status-pages')" id="tab-status-pages" role="tab" aria-selected="true" aria-controls="panel-status-pages"
-                        class="tab-status-pages-button tab-1-button cursor-pointer border-slate-500 text-slate-600 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="0" aria-label="Status Pages - communicates service availability to users">
-                        <!-- Current: "text-slate-500", Default: "text-gray-400 group-hover:text-gray-500" -->
-                        <svg class="icon-tab-1 text-gray-400 text-slate-500 -ml-0.5 mr-2 h-5 w-5"
+                        class="tab-status-pages-button tab-1-button cursor-pointer border-gray-500 text-gray-600 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="0" aria-label="Status Pages - communicates service availability to users">
+                        <!-- Current: "text-gray-500", Default: "text-gray-400 group-hover:text-gray-500" -->
+                        <svg class="icon-tab-1 text-gray-400 text-gray-500 -ml-0.5 mr-2 h-5 w-5"
                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor" class="w-6 h-6">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -677,13 +677,13 @@
 
         const button = document.querySelector(`.tab-${tab}-button`) || document.querySelector(`.tab-${TAB_ORDER.indexOf(tab)+1}-button`);
         if (button) {
-            button.classList.remove('border-slate-500', 'text-slate-600');
+            button.classList.remove('border-gray-500', 'text-gray-600');
             button.classList.add('border-transparent', 'text-gray-500', 'hover:border-gray-300', 'hover:text-gray-700');
             button.setAttribute('aria-selected','false');
             button.setAttribute('tabindex','-1');
         }
         const icon = document.querySelector(`.icon-tab-${TAB_ORDER.indexOf(tab)+1}`) || document.querySelector(`.icon-tab-${tab}`);
-        if (icon) { icon.classList.remove('text-slate-500'); icon.classList.add('text-gray-400'); }
+        if (icon) { icon.classList.remove('text-gray-500'); icon.classList.add('text-gray-400'); }
     }
 
     function showTab(tab) {
@@ -698,14 +698,14 @@
         const button = document.querySelector(`.tab-${tab}-button`) || document.querySelector(`.tab-${numericIndex}-button`);
         if (button) {
             button.classList.remove('border-transparent', 'text-gray-500', 'hover:border-gray-300', 'hover:text-gray-700');
-            button.classList.add('border-slate-500', 'text-slate-600');
+            button.classList.add('border-gray-500', 'text-gray-600');
             button.setAttribute('aria-selected','true');
             button.setAttribute('tabindex','0');
             button.focus();
         }
 
         const icon = document.querySelector(`.icon-tab-${numericIndex}`) || document.querySelector(`.icon-tab-${tab}`);
-        if (icon) { icon.classList.remove('text-gray-400'); icon.classList.add('text-slate-500'); }
+        if (icon) { icon.classList.remove('text-gray-400'); icon.classList.add('text-gray-500'); }
 
         currentActiveTab = tab;
         if (history.replaceState) { history.replaceState(null, '', `#tab-${tab}`); }
