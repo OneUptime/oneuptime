@@ -75,8 +75,10 @@ const products: Dictionary<Product> = {
     price: "$21-$49",
     oneuptimePrice: "$0",
     tagline: "Complete observability platform vs expensive alerting-only tool",
-    competitorFocus: "On-call alerting and incident response only - monitoring, status pages sold separately",
-    oneuptimeFocus: "Complete platform: Monitoring + Status Pages + On-Call + Incident Management - all included",
+    competitorFocus:
+      "On-call alerting and incident response only - monitoring, status pages sold separately",
+    oneuptimeFocus:
+      "Complete platform: Monitoring + Status Pages + On-Call + Incident Management - all included",
     annualSavings: "$10,000+",
     lastUpdated: "December 2024",
     productDescription:
@@ -189,14 +191,17 @@ const products: Dictionary<Product> = {
       },
       {
         scenario: "25-person team with status pages and incident management",
-        competitorSolution: "PagerDuty Business + Status Pages add-on + Monitoring",
+        competitorSolution:
+          "PagerDuty Business + Status Pages add-on + Monitoring",
         competitorCost: "$1,025/month + $89/month + $200/month = $1,314/month",
-        oneuptimeSolution: "OneUptime with unlimited status pages and subscribers",
+        oneuptimeSolution:
+          "OneUptime with unlimited status pages and subscribers",
         oneuptimeCost: "$0-299/month",
       },
       {
         scenario: "Enterprise with 100 engineers and stakeholder access",
-        competitorSolution: "PagerDuty Enterprise + Stakeholder licenses + Add-ons",
+        competitorSolution:
+          "PagerDuty Enterprise + Stakeholder licenses + Add-ons",
         competitorCost: "$5,000+/month + add-ons",
         oneuptimeSolution: "OneUptime Enterprise with unlimited users",
         oneuptimeCost: "Contact for enterprise pricing",
@@ -242,32 +247,38 @@ const products: Dictionary<Product> = {
     keyDifferences: [
       {
         title: "Built-in Monitoring",
-        description: "Monitor websites, APIs, servers, and containers without purchasing Datadog, New Relic, or Pingdom",
+        description:
+          "Monitor websites, APIs, servers, and containers without purchasing Datadog, New Relic, or Pingdom",
         icon: "monitoring",
       },
       {
         title: "Unlimited Status Pages",
-        description: "Public and private status pages with unlimited subscribers included - PagerDuty charges $89-599/mo extra",
+        description:
+          "Public and private status pages with unlimited subscribers included - PagerDuty charges $89-599/mo extra",
         icon: "status-page",
       },
       {
         title: "No Per-User Pricing Trap",
-        description: "Add team members without watching costs climb - PagerDuty charges $21-49 per additional user",
+        description:
+          "Add team members without watching costs climb - PagerDuty charges $21-49 per additional user",
         icon: "savings",
       },
       {
         title: "Unified Platform",
-        description: "One dashboard, one vendor, one bill - no integration complexity between 4-5 separate tools",
+        description:
+          "One dashboard, one vendor, one bill - no integration complexity between 4-5 separate tools",
         icon: "unified",
       },
       {
         title: "Open Source & Self-Hostable",
-        description: "Apache 2.0 licensed - audit the code, self-host on your infrastructure, no vendor lock-in",
+        description:
+          "Apache 2.0 licensed - audit the code, self-host on your infrastructure, no vendor lock-in",
         icon: "open-source",
       },
       {
         title: "No Hidden Add-on Costs",
-        description: "No surprise charges for AIOps ($699/mo), AI features ($415/mo), or stakeholder licenses ($150/mo)",
+        description:
+          "No surprise charges for AIOps ($699/mo), AI features ($415/mo), or stakeholder licenses ($150/mo)",
         icon: "transparent",
       },
     ],
@@ -277,7 +288,8 @@ const products: Dictionary<Product> = {
         data: [
           {
             title: "Multi-channel Alerts",
-            description: "SMS, phone call, email, push notifications, Slack, Microsoft Teams",
+            description:
+              "SMS, phone call, email, push notifications, Slack, Microsoft Teams",
             productColumn: "tick",
             oneuptimeColumn: "tick",
           },
@@ -545,8 +557,10 @@ const products: Dictionary<Product> = {
     price: "$0-$1,499",
     oneuptimePrice: "$0",
     tagline: "Complete reliability platform vs status-pages-only tool",
-    competitorFocus: "Status pages only - no monitoring, no on-call, no incident management",
-    oneuptimeFocus: "Complete platform: Status Pages + Monitoring + On-Call + Incident Management",
+    competitorFocus:
+      "Status pages only - no monitoring, no on-call, no incident management",
+    oneuptimeFocus:
+      "Complete platform: Status Pages + Monitoring + On-Call + Incident Management",
     annualSavings: "$5,000+",
     lastUpdated: "December 2024",
     productDescription:
@@ -675,14 +689,17 @@ const products: Dictionary<Product> = {
       },
       {
         scenario: "Growing company with 10,000 status page subscribers",
-        competitorSolution: "Statuspage Enterprise (still under cap) + monitoring + on-call",
+        competitorSolution:
+          "Statuspage Enterprise (still under cap) + monitoring + on-call",
         competitorCost: "$1,499 + $150 + $300 = $1,949/month",
         oneuptimeSolution: "OneUptime with unlimited everything",
         oneuptimeCost: "$0-299/month",
       },
       {
-        scenario: "SaaS company needing private status pages for enterprise clients",
-        competitorSolution: "Statuspage Corporate Private ($599) + monitoring + on-call",
+        scenario:
+          "SaaS company needing private status pages for enterprise clients",
+        competitorSolution:
+          "Statuspage Corporate Private ($599) + monitoring + on-call",
         competitorCost: "$599 + $150 + $300 = $1,049/month",
         oneuptimeSolution: "OneUptime with unlimited private status pages",
         oneuptimeCost: "$0-299/month",
@@ -728,32 +745,38 @@ const products: Dictionary<Product> = {
     keyDifferences: [
       {
         title: "Unlimited Subscribers",
-        description: "No per-subscriber pricing - Statuspage charges $29-1,499/mo based on subscriber count",
+        description:
+          "No per-subscriber pricing - Statuspage charges $29-1,499/mo based on subscriber count",
         icon: "subscribers",
       },
       {
         title: "Built-in Monitoring",
-        description: "Automatic status updates when issues are detected - Statuspage requires external tools",
+        description:
+          "Automatic status updates when issues are detected - Statuspage requires external tools",
         icon: "monitoring",
       },
       {
         title: "On-Call Scheduling",
-        description: "Alert the right people when incidents occur - Statuspage offers no alerting",
+        description:
+          "Alert the right people when incidents occur - Statuspage offers no alerting",
         icon: "on-call",
       },
       {
         title: "Incident Management",
-        description: "Full incident workflow with timelines and postmortems - not just status updates",
+        description:
+          "Full incident workflow with timelines and postmortems - not just status updates",
         icon: "incident",
       },
       {
         title: "Complete Platform",
-        description: "Replace 4 tools with 1 - monitoring, status pages, on-call, and incident management",
+        description:
+          "Replace 4 tools with 1 - monitoring, status pages, on-call, and incident management",
         icon: "unified",
       },
       {
         title: "SMS on Free Plan",
-        description: "SMS notifications included free - Statuspage requires $99/month Startup plan",
+        description:
+          "SMS notifications included free - Statuspage requires $99/month Startup plan",
         icon: "sms",
       },
     ],
@@ -1017,13 +1040,16 @@ const products: Dictionary<Product> = {
     productName: "SolarWinds Pingdom",
     iconUrl: "/img/pingdom.svg",
     price: "$10-$100+",
-    productDescription: "Per month. Synthetic Monitoring starts at $10/month. Real User Monitoring (RUM) is separate at $10/month. Pricing scales based on number of uptime checks, page views, and advanced features. Enterprise pricing requires contact.",
+    productDescription:
+      "Per month. Synthetic Monitoring starts at $10/month. Real User Monitoring (RUM) is separate at $10/month. Pricing scales based on number of uptime checks, page views, and advanced features. Enterprise pricing requires contact.",
     oneUptimeDescription:
       "Unlimited monitors from 7+ global locations. Plus get status pages with unlimited subscribers, on-call scheduling, and incident management - all included. No per-monitor pricing.",
     oneuptimePrice: "$0",
     tagline: "Complete observability without per-monitor pricing",
-    competitorFocus: "Uptime monitoring only - status pages, on-call, incident management are separate products or don't exist",
-    oneuptimeFocus: "Complete platform: Unlimited Monitoring + Status Pages + On-Call + Incident Management",
+    competitorFocus:
+      "Uptime monitoring only - status pages, on-call, incident management are separate products or don't exist",
+    oneuptimeFocus:
+      "Complete platform: Unlimited Monitoring + Status Pages + On-Call + Incident Management",
     annualSavings: "$3,000+",
     lastUpdated: "December 2024",
     description:
@@ -1117,7 +1143,8 @@ const products: Dictionary<Product> = {
       },
       {
         scenario: "E-commerce site with synthetic transactions",
-        competitorSolution: "Pingdom Transaction monitoring + on-call + status page",
+        competitorSolution:
+          "Pingdom Transaction monitoring + on-call + status page",
         competitorCost: "$200+ + $400 + $99 = $699+/month",
         oneuptimeSolution: "OneUptime with synthetic monitoring included",
         oneuptimeCost: "$0-299/month",
@@ -1163,17 +1190,20 @@ const products: Dictionary<Product> = {
     keyDifferences: [
       {
         title: "Unlimited Monitors",
-        description: "No per-monitor pricing - monitor every endpoint without cost concerns",
+        description:
+          "No per-monitor pricing - monitor every endpoint without cost concerns",
         icon: "unlimited",
       },
       {
         title: "Included Status Pages",
-        description: "Full-featured status pages with unlimited subscribers - not a limited add-on",
+        description:
+          "Full-featured status pages with unlimited subscribers - not a limited add-on",
         icon: "status-page",
       },
       {
         title: "On-Call Scheduling",
-        description: "Full on-call with rotations and escalations - Pingdom has no scheduling",
+        description:
+          "Full on-call with rotations and escalations - Pingdom has no scheduling",
         icon: "on-call",
       },
       {
@@ -1183,7 +1213,8 @@ const products: Dictionary<Product> = {
       },
       {
         title: "Server Monitoring Included",
-        description: "CPU, memory, disk metrics included - no separate agent purchase",
+        description:
+          "CPU, memory, disk metrics included - no separate agent purchase",
         icon: "monitoring",
       },
       {
@@ -1483,8 +1514,10 @@ const products: Dictionary<Product> = {
     price: "$15-$40+",
     oneuptimePrice: "$0",
     tagline: "Complete observability without per-host pricing complexity",
-    competitorFocus: "Enterprise APM and monitoring with complex per-host and per-GB pricing",
-    oneuptimeFocus: "Simple, predictable pricing for monitoring + status pages + on-call + incidents",
+    competitorFocus:
+      "Enterprise APM and monitoring with complex per-host and per-GB pricing",
+    oneuptimeFocus:
+      "Simple, predictable pricing for monitoring + status pages + on-call + incidents",
     annualSavings: "$15,000+",
     lastUpdated: "December 2024",
     productDescription:
@@ -1586,15 +1619,18 @@ const products: Dictionary<Product> = {
     useCases: [
       {
         scenario: "Startup with 10 servers needing monitoring and APM",
-        competitorSolution: "Datadog Infrastructure + APM + StatusPage + PagerDuty",
+        competitorSolution:
+          "Datadog Infrastructure + APM + StatusPage + PagerDuty",
         competitorCost: "$150 + $310 + $99 + $210 = $769/month",
         oneuptimeSolution: "OneUptime with unlimited monitoring",
         oneuptimeCost: "$0/month (Free tier) or $99/month (Growth)",
       },
       {
         scenario: "Growing company with 50 servers and log management",
-        competitorSolution: "Datadog full stack + status page + on-call + incidents",
-        competitorCost: "$2,000-4,000+/month + $399 + $500 + $340 = $3,239-5,239/month",
+        competitorSolution:
+          "Datadog full stack + status page + on-call + incidents",
+        competitorCost:
+          "$2,000-4,000+/month + $399 + $500 + $340 = $3,239-5,239/month",
         oneuptimeSolution: "OneUptime with everything included",
         oneuptimeCost: "$0-299/month",
       },
@@ -1646,32 +1682,38 @@ const products: Dictionary<Product> = {
     keyDifferences: [
       {
         title: "Predictable Pricing",
-        description: "No per-host, per-GB, per-container surprises - Datadog bills get complex fast",
+        description:
+          "No per-host, per-GB, per-container surprises - Datadog bills get complex fast",
         icon: "savings",
       },
       {
         title: "Status Pages Included",
-        description: "Unlimited status pages with unlimited subscribers - Datadog has none",
+        description:
+          "Unlimited status pages with unlimited subscribers - Datadog has none",
         icon: "status-page",
       },
       {
         title: "On-Call Included",
-        description: "Full on-call scheduling built-in - requires PagerDuty with Datadog ($200+/mo)",
+        description:
+          "Full on-call scheduling built-in - requires PagerDuty with Datadog ($200+/mo)",
         icon: "on-call",
       },
       {
         title: "Incident Management",
-        description: "Complete incident workflow included - requires Incident.io with Datadog ($250+/mo)",
+        description:
+          "Complete incident workflow included - requires Incident.io with Datadog ($250+/mo)",
         icon: "incident",
       },
       {
         title: "Self-Hosting Option",
-        description: "Run on your infrastructure with zero per-unit fees - Datadog is SaaS-only",
+        description:
+          "Run on your infrastructure with zero per-unit fees - Datadog is SaaS-only",
         icon: "open-source",
       },
       {
         title: "Single Vendor",
-        description: "One platform, one bill - Datadog needs 3-4 additional tools for complete coverage",
+        description:
+          "One platform, one bill - Datadog needs 3-4 additional tools for complete coverage",
         icon: "unified",
       },
     ],
@@ -1895,8 +1937,10 @@ const products: Dictionary<Product> = {
     price: "$99-$349",
     oneuptimePrice: "$0",
     tagline: "Complete observability without per-user pricing complexity",
-    competitorFocus: "Full-stack observability with per-user and per-GB pricing",
-    oneuptimeFocus: "Straightforward monitoring + status pages + on-call + incidents - all included",
+    competitorFocus:
+      "Full-stack observability with per-user and per-GB pricing",
+    oneuptimeFocus:
+      "Straightforward monitoring + status pages + on-call + incidents - all included",
     annualSavings: "$10,000+",
     lastUpdated: "December 2024",
     productDescription:
@@ -1985,10 +2029,7 @@ const products: Dictionary<Product> = {
           "HIPAA/FedRAMP eligibility",
           "Dedicated support",
         ],
-        limitations: [
-          "Requires sales engagement",
-          "Still usage-based pricing",
-        ],
+        limitations: ["Requires sales engagement", "Still usage-based pricing"],
       },
     ],
     useCases: [
@@ -2001,7 +2042,8 @@ const products: Dictionary<Product> = {
       },
       {
         scenario: "10-person engineering team with 500GB data/month",
-        competitorSolution: "New Relic Pro + data overages + StatusPage + PagerDuty",
+        competitorSolution:
+          "New Relic Pro + data overages + StatusPage + PagerDuty",
         competitorCost: "$3,490 + $200 + $99 + $210 = $3,999/month",
         oneuptimeSolution: "OneUptime with unlimited features",
         oneuptimeCost: "$0-299/month",
@@ -2044,7 +2086,8 @@ const products: Dictionary<Product> = {
     keyDifferences: [
       {
         title: "No Per-User Pricing",
-        description: "Add team members without cost scaling - New Relic charges $99-349/user",
+        description:
+          "Add team members without cost scaling - New Relic charges $99-349/user",
         icon: "savings",
       },
       {
@@ -2054,17 +2097,20 @@ const products: Dictionary<Product> = {
       },
       {
         title: "Status Pages Included",
-        description: "Unlimited status pages and subscribers - New Relic has none",
+        description:
+          "Unlimited status pages and subscribers - New Relic has none",
         icon: "status-page",
       },
       {
         title: "On-Call Included",
-        description: "Full on-call scheduling built-in - requires PagerDuty with New Relic",
+        description:
+          "Full on-call scheduling built-in - requires PagerDuty with New Relic",
         icon: "on-call",
       },
       {
         title: "Incident Management",
-        description: "Complete incident workflow included - basic only in New Relic",
+        description:
+          "Complete incident workflow included - basic only in New Relic",
         icon: "incident",
       },
       {
@@ -2216,8 +2262,10 @@ const products: Dictionary<Product> = {
     price: "$0-$29+",
     oneuptimePrice: "$0",
     tagline: "Complete platform without per-monitor or per-responder pricing",
-    competitorFocus: "Uptime monitoring with separate charges for extra monitors and on-call responders",
-    oneuptimeFocus: "All-inclusive: Unlimited Monitoring + Status Pages + On-Call + Incidents",
+    competitorFocus:
+      "Uptime monitoring with separate charges for extra monitors and on-call responders",
+    oneuptimeFocus:
+      "All-inclusive: Unlimited Monitoring + Status Pages + On-Call + Incidents",
     annualSavings: "$3,000+",
     lastUpdated: "December 2024",
     productDescription:
@@ -2302,7 +2350,8 @@ const products: Dictionary<Product> = {
       },
       {
         scenario: "Growing company with 200 monitors and 3 responders",
-        competitorSolution: "Better Stack (200 monitors + 3 responders + telemetry)",
+        competitorSolution:
+          "Better Stack (200 monitors + 3 responders + telemetry)",
         competitorCost: "$84 + $87 + $50 = $221/month",
         oneuptimeSolution: "OneUptime with everything included",
         oneuptimeCost: "$0-99/month",
@@ -2333,12 +2382,14 @@ const products: Dictionary<Product> = {
     keyDifferences: [
       {
         title: "Unlimited Monitors",
-        description: "No per-monitor fees - Better Stack charges $21/50 monitors",
+        description:
+          "No per-monitor fees - Better Stack charges $21/50 monitors",
         icon: "unlimited",
       },
       {
         title: "No Responder Licenses",
-        description: "On-call included - Better Stack charges $29/month per responder",
+        description:
+          "On-call included - Better Stack charges $29/month per responder",
         icon: "on-call",
       },
       {
@@ -2493,8 +2544,10 @@ const products: Dictionary<Product> = {
     price: "$0-$54",
     oneuptimePrice: "$0",
     tagline: "All-in-one platform vs monitoring-only tool",
-    competitorFocus: "Simple uptime monitoring - no on-call, limited incident management",
-    oneuptimeFocus: "Complete platform: Monitoring + Status Pages + On-Call + Incident Management",
+    competitorFocus:
+      "Simple uptime monitoring - no on-call, limited incident management",
+    oneuptimeFocus:
+      "Complete platform: Monitoring + Status Pages + On-Call + Incident Management",
     annualSavings: "$2,000+",
     lastUpdated: "December 2024",
     productDescription:
@@ -2632,17 +2685,20 @@ const products: Dictionary<Product> = {
     keyDifferences: [
       {
         title: "On-Call Scheduling",
-        description: "Full rotation and escalation support - Uptime Robot has none",
+        description:
+          "Full rotation and escalation support - Uptime Robot has none",
         icon: "on-call",
       },
       {
         title: "Incident Management",
-        description: "Complete workflow with timelines - basic tracking in Uptime Robot",
+        description:
+          "Complete workflow with timelines - basic tracking in Uptime Robot",
         icon: "incident",
       },
       {
         title: "Unlimited Monitors",
-        description: "No monitor caps - Uptime Robot limits 50-200 based on plan",
+        description:
+          "No monitor caps - Uptime Robot limits 50-200 based on plan",
         icon: "unlimited",
       },
       {
@@ -2851,8 +2907,10 @@ const products: Dictionary<Product> = {
     price: "$0-$64",
     oneuptimePrice: "$0",
     tagline: "Complete observability platform vs synthetic testing specialist",
-    competitorFocus: "Synthetic monitoring and API testing for developers - no on-call or incidents",
-    oneuptimeFocus: "Complete platform: Monitoring + Status Pages + On-Call + Incident Management",
+    competitorFocus:
+      "Synthetic monitoring and API testing for developers - no on-call or incidents",
+    oneuptimeFocus:
+      "Complete platform: Monitoring + Status Pages + On-Call + Incident Management",
     annualSavings: "$4,000+",
     lastUpdated: "December 2024",
     productDescription:
@@ -2998,12 +3056,14 @@ const products: Dictionary<Product> = {
       },
       {
         title: "Incident Management",
-        description: "Complete workflow with timelines - not available in Checkly",
+        description:
+          "Complete workflow with timelines - not available in Checkly",
         icon: "incident",
       },
       {
         title: "Status Pages",
-        description: "Unlimited subscriber status pages - basic only in Checkly",
+        description:
+          "Unlimited subscriber status pages - basic only in Checkly",
         icon: "status-page",
       },
       {
@@ -3167,9 +3227,12 @@ const products: Dictionary<Product> = {
     oneUptimeDescription:
       "Complete incident management plus monitoring, status pages, and on-call scheduling. No per-user pricing trap. All features included, not sold as add-ons.",
     oneuptimePrice: "$0",
-    tagline: "Complete incident lifecycle platform vs Slack-only incident response",
-    competitorFocus: "Incident management focused on Slack - monitoring and status pages require separate tools",
-    oneuptimeFocus: "Full lifecycle: Detection (Monitoring) + Response (Incidents) + Communication (Status Pages) + On-Call",
+    tagline:
+      "Complete incident lifecycle platform vs Slack-only incident response",
+    competitorFocus:
+      "Incident management focused on Slack - monitoring and status pages require separate tools",
+    oneuptimeFocus:
+      "Full lifecycle: Detection (Monitoring) + Response (Incidents) + Communication (Status Pages) + On-Call",
     annualSavings: "$6,000+",
     lastUpdated: "December 2024",
     description:
@@ -3270,14 +3333,16 @@ const products: Dictionary<Product> = {
     useCases: [
       {
         scenario: "10-person engineering team with on-call",
-        competitorSolution: "Incident.io Pro + On-call add-on + Monitoring + Status Page",
+        competitorSolution:
+          "Incident.io Pro + On-call add-on + Monitoring + Status Page",
         competitorCost: "$250 + $200 + $150 + $99 = $699/month",
         oneuptimeSolution: "OneUptime with everything included",
         oneuptimeCost: "$0/month (Free tier) or $99/month (Growth)",
       },
       {
         scenario: "25-person team with multiple environments",
-        competitorSolution: "Incident.io Enterprise + on-call + monitoring + status pages",
+        competitorSolution:
+          "Incident.io Enterprise + on-call + monitoring + status pages",
         competitorCost: "$1,000+ + $500 + $200 + $99 = $1,799+/month",
         oneuptimeSolution: "OneUptime with unlimited users",
         oneuptimeCost: "$0-299/month",
@@ -3330,32 +3395,38 @@ const products: Dictionary<Product> = {
     keyDifferences: [
       {
         title: "Built-in Monitoring",
-        description: "Detect incidents automatically - Incident.io has zero monitoring capabilities",
+        description:
+          "Detect incidents automatically - Incident.io has zero monitoring capabilities",
         icon: "monitoring",
       },
       {
         title: "Included Status Pages",
-        description: "Communicate with customers during incidents - not available in Incident.io",
+        description:
+          "Communicate with customers during incidents - not available in Incident.io",
         icon: "status-page",
       },
       {
         title: "On-Call Included",
-        description: "Full on-call scheduling included - Incident.io charges +$10-20/user extra",
+        description:
+          "Full on-call scheduling included - Incident.io charges +$10-20/user extra",
         icon: "on-call",
       },
       {
         title: "No Per-User Pricing",
-        description: "Add team members without cost scaling - Incident.io charges per user",
+        description:
+          "Add team members without cost scaling - Incident.io charges per user",
         icon: "savings",
       },
       {
         title: "Complete Lifecycle",
-        description: "Detection, Response, Communication, Learning - all in one platform",
+        description:
+          "Detection, Response, Communication, Learning - all in one platform",
         icon: "unified",
       },
       {
         title: "Teams on All Plans",
-        description: "Microsoft Teams included free - Incident.io requires $25/user Pro plan",
+        description:
+          "Microsoft Teams included free - Incident.io requires $25/user Pro plan",
         icon: "teams",
       },
     ],
@@ -3638,8 +3709,10 @@ const products: Dictionary<Product> = {
     price: "$49+",
     oneuptimePrice: "$0",
     tagline: "Complete observability platform vs usage-based APM tool",
-    competitorFocus: "Logs, metrics, and traces with usage-based pricing - no on-call or status pages",
-    oneuptimeFocus: "Complete platform: Monitoring + Status Pages + On-Call + Incident Management",
+    competitorFocus:
+      "Logs, metrics, and traces with usage-based pricing - no on-call or status pages",
+    oneuptimeFocus:
+      "Complete platform: Monitoring + Status Pages + On-Call + Incident Management",
     annualSavings: "$5,000+",
     lastUpdated: "December 2024",
     productDescription:
@@ -3777,7 +3850,8 @@ const products: Dictionary<Product> = {
       },
       {
         title: "Incident Management",
-        description: "Complete workflow with timelines - not available in SigNoz",
+        description:
+          "Complete workflow with timelines - not available in SigNoz",
         icon: "incident",
       },
       {

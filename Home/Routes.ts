@@ -27,7 +27,6 @@ import Reviews from "./Utils/Reviews";
 // import jobs.
 import "./Jobs/UpdateBlog";
 import { getGitHubStarsCount, formatStarCount } from "./Jobs/FetchGitHubStars";
-import "./Jobs/FetchGitHubStats";
 import {
   getGitHubContributorsCount,
   getGitHubCommitsCount,
@@ -100,7 +99,9 @@ const HomeFeatureSet: FeatureSet = {
       );
 
       const githubStars: string | null = formatStarCount(getGitHubStarsCount());
-      const githubContributors: string = formatCount(getGitHubContributorsCount());
+      const githubContributors: string = formatCount(
+        getGitHubContributorsCount(),
+      );
       const githubCommits: string = formatCount(getGitHubCommitsCount());
 
       res.render(`${ViewsPath}/index`, {

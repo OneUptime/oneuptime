@@ -17,26 +17,30 @@ const GITHUB_COMMITS_CACHE_KEY: string = "githubCommits";
 const DEFAULT_CONTRIBUTORS: number = 80;
 const DEFAULT_COMMITS: number = 29000;
 
-export const getGitHubContributorsCount: () => number =
-  (): number => {
-    if (
-      !LocalCache.hasValue(GITHUB_STATS_NAMESPACE, GITHUB_CONTRIBUTORS_CACHE_KEY)
-    ) {
-      return DEFAULT_CONTRIBUTORS;
-    }
+export const getGitHubContributorsCount: () => number = (): number => {
+  if (
+    !LocalCache.hasValue(GITHUB_STATS_NAMESPACE, GITHUB_CONTRIBUTORS_CACHE_KEY)
+  ) {
+    return DEFAULT_CONTRIBUTORS;
+  }
 
-    return LocalCache.getNumber(
+  return (
+    LocalCache.getNumber(
       GITHUB_STATS_NAMESPACE,
       GITHUB_CONTRIBUTORS_CACHE_KEY,
-    ) || DEFAULT_CONTRIBUTORS;
-  };
+    ) || DEFAULT_CONTRIBUTORS
+  );
+};
 
 export const getGitHubCommitsCount: () => number = (): number => {
   if (!LocalCache.hasValue(GITHUB_STATS_NAMESPACE, GITHUB_COMMITS_CACHE_KEY)) {
     return DEFAULT_COMMITS;
   }
 
-  return LocalCache.getNumber(GITHUB_STATS_NAMESPACE, GITHUB_COMMITS_CACHE_KEY) || DEFAULT_COMMITS;
+  return (
+    LocalCache.getNumber(GITHUB_STATS_NAMESPACE, GITHUB_COMMITS_CACHE_KEY) ||
+    DEFAULT_COMMITS
+  );
 };
 
 export const formatCount: (count: number) => string = (
@@ -112,8 +116,10 @@ const fetchGitHubStats: () => Promise<void> = async (): Promise<void> => {
       });
 
     if (!(commitsResponse instanceof HTTPErrorResponse)) {
-      // Parse the Link header to get total commits count
-      // Format: '<https://api.github.com/repositories/xxx/commits?sha=master&per_page=1&page=2>; rel="next", <https://api.github.com/repositories/xxx/commits?sha=master&per_page=1&page=22486>; rel="last"'
+      /*
+       * Parse the Link header to get total commits count
+       * Format: '<https://api.github.com/repositories/xxx/commits?sha=master&per_page=1&page=2>; rel="next", <https://api.github.com/repositories/xxx/commits?sha=master&per_page=1&page=22486>; rel="last"'
+       */
       const link: string | undefined = commitsResponse.headers["link"];
       if (link) {
         const lastLink: string | undefined = link
