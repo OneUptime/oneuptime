@@ -15,6 +15,7 @@
         top: 2rem;
         max-height: calc(100vh - 4rem);
         overflow-y: auto;
+        overflow-x: hidden;
       }
     }
     /* Smooth scroll for in-page navigation */
@@ -52,10 +53,14 @@
     }
     /* Table of contents link hover effect */
     .toc-link {
-      transition: all 0.15s ease;
+      transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
     }
     .toc-link:hover {
       transform: translateX(2px);
+    }
+    /* Prevent horizontal overflow on sidebar */
+    .legal-sidebar {
+      overflow-x: hidden;
     }
     /* Content prose enhancements */
     #content h1 { margin-bottom: 1rem; font-size: 1.875rem; font-weight: 700; color: #111827; }
