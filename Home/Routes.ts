@@ -1217,6 +1217,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/enterprise/overview",
       (_req: ExpressRequest, res: ExpressResponse) => {
+        const { reviewsList1, reviewsList2, reviewsList3 } = Reviews;
         const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
           "/enterprise/overview",
           res.locals["homeUrl"] as string,
@@ -1228,6 +1229,9 @@ const HomeFeatureSet: FeatureSet = {
           cta: true,
           blackLogo: false,
           requestDemoCta: true,
+          reviewsList1,
+          reviewsList2,
+          reviewsList3,
           seo,
         });
       },
