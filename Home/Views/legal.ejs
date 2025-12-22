@@ -7,87 +7,339 @@
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
+  <style>
+    /* Sticky sidebar */
+    @media (min-width: 1024px) {
+      .legal-sidebar {
+        position: sticky;
+        top: 2rem;
+        max-height: calc(100vh - 4rem);
+        overflow-y: auto;
+      }
+    }
+    /* Smooth scroll for in-page navigation */
+    html {
+      scroll-behavior: smooth;
+    }
+    /* Custom scrollbar for sidebar */
+    .legal-sidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .legal-sidebar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .legal-sidebar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 2px;
+    }
+    .legal-sidebar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    /* Active nav indicator animation */
+    .nav-item-active {
+      position: relative;
+    }
+    .nav-item-active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 60%;
+      background: linear-gradient(to bottom, #475569, #64748b);
+      border-radius: 0 2px 2px 0;
+    }
+    /* Table of contents link hover effect */
+    .toc-link {
+      transition: all 0.15s ease;
+    }
+    .toc-link:hover {
+      transform: translateX(2px);
+    }
+    /* Content prose enhancements */
+    #content h1 { margin-bottom: 1rem; font-size: 1.875rem; font-weight: 700; color: #111827; }
+    #content h2 { margin-top: 2.5rem; margin-bottom: 1rem; font-size: 1.5rem; font-weight: 600; color: #1f2937; padding-top: 1.5rem; border-top: 1px solid #f3f4f6; }
+    #content h2:first-of-type { border-top: none; padding-top: 0; margin-top: 1.5rem; }
+    #content h3 { margin-top: 2rem; margin-bottom: 0.75rem; font-size: 1.25rem; font-weight: 600; color: #374151; }
+    #content p { margin-top: 1rem; margin-bottom: 1rem; line-height: 1.75; color: #4b5563; }
+    #content ul, #content ol { margin-top: 1rem; margin-bottom: 1rem; padding-left: 1.5rem; }
+    #content ul { list-style-type: disc; }
+    #content ol { list-style-type: decimal; }
+    #content li { margin-top: 0.5rem; margin-bottom: 0.5rem; color: #4b5563; line-height: 1.625; }
+    #content a { color: #475569; font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
+    #content a:hover { color: #334155; }
+    #content strong { font-weight: 600; color: #1f2937; }
+    #content table { width: 100%; margin-top: 1.5rem; margin-bottom: 1.5rem; border-collapse: collapse; }
+    #content th { text-align: left; padding: 0.75rem 1rem; background: #f9fafb; border-bottom: 2px solid #e5e7eb; font-weight: 600; color: #374151; }
+    #content td { padding: 0.75rem 1rem; border-bottom: 1px solid #f3f4f6; color: #4b5563; }
+    #content tr:hover td { background: #fafafa; }
+    #content blockquote { margin: 1.5rem 0; padding: 1rem 1.5rem; background: #f8fafc; border-left: 4px solid #64748b; color: #475569; font-style: italic; border-radius: 0 0.5rem 0.5rem 0; }
+    #content code { font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 0.875em; background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 0.25rem; color: #1f2937; }
+    #content header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e5e7eb; }
+    #content header h1 { margin-bottom: 0.5rem; }
+    #content header p { color: #6b7280; font-size: 1.125rem; margin: 0; }
+    #content section { padding-top: 0; padding-bottom: 0; }
+  </style>
 </head>
 
-<body class="bg-white antialiased text-gray-900">
+<body class="bg-gray-50 antialiased text-gray-900">
   <%- include('nav') -%>
 
-  <!-- Hero -->
-  <header class="bg-slate-700">
-    <div class="mx-auto max-w-7xl px-6 py-14 sm:py-20 lg:px-8">
-      <h1 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Legal Center</h1>
-      <p class="mt-4 max-w-3xl text-base leading-7 text-gray-300">All of our policies, certifications, and compliance documentation in one place.</p>
+  <!-- Hero Section -->
+  <header class="relative isolate overflow-hidden bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800">
+    <!-- Ambient glow effects -->
+    <div class="absolute inset-0 -z-10 opacity-30" aria-hidden="true">
+      <div class="absolute top-0 left-1/4 w-96 h-96 bg-slate-500/30 rounded-full blur-3xl"></div>
+      <div class="absolute bottom-0 right-1/4 w-80 h-80 bg-slate-400/20 rounded-full blur-3xl"></div>
+    </div>
+    <div class="absolute inset-0 -z-10 opacity-20" aria-hidden="true">
+      <div class="h-full w-full bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(255,255,255,0.3),transparent)]"></div>
+    </div>
+
+    <div class="mx-auto max-w-7xl px-6 py-16 sm:py-20 lg:px-8">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm ring-1 ring-white/20">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+        <span class="text-sm font-medium text-slate-300 tracking-wide uppercase">Legal</span>
+      </div>
+      <h1 class="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">Legal Center</h1>
+      <p class="mt-4 max-w-2xl text-lg leading-7 text-slate-300">All of our policies, certifications, and compliance documentation in one place. Transparency builds trust.</p>
+
+      <!-- Quick stats / trust badges -->
+      <div class="mt-8 flex flex-wrap gap-6">
+        <div class="flex items-center gap-2">
+          <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-green-500/20 ring-1 ring-green-400/30">
+            <svg class="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <span class="text-sm text-slate-300">SOC 2 Compliant</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-green-500/20 ring-1 ring-green-400/30">
+            <svg class="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <span class="text-sm text-slate-300">GDPR Ready</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-green-500/20 ring-1 ring-green-400/30">
+            <svg class="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <span class="text-sm text-slate-300">ISO 27001 Certified</span>
+        </div>
+      </div>
     </div>
   </header>
 
-  <!-- Content -->
-  <main id="main-content" class="mx-auto max-w-7xl px-6 py-10 lg:py-16 lg:px-8">
-    <div class="grid grid-cols-1 gap-10 lg:grid-cols-12">
-      <!-- Sidebar -->
-      <aside class="lg:col-span-4">
-        <div class="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
-          <h2 class="px-2 text-sm font-semibold uppercase tracking-wide text-gray-500">Policies &amp; Docs</h2>
-          <nav class="mt-2">
-            <ul class="space-y-1">
-              <li>
-                <a href="/legal/terms" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'terms' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'terms' ? 'page' : 'false' %>">Terms of Service</a>
-              </li>
-              <li>
-                <a href="/legal/privacy" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'privacy' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'privacy' ? 'page' : 'false' %>">Privacy Policy</a>
-              </li>
-              <li>
-                <a href="/legal/code-of-conduct" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'code-of-conduct' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'code-of-conduct' ? 'page' : 'false' %>">Code of Conduct</a>
-              </li>
-              <li>
-                <a href="/legal/sla" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'sla' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'sla' ? 'page' : 'false' %>">Service Level Agreement</a>
-              </li>
-              <li>
-                <a href="/legal/gdpr" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'gdpr' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'gdpr' ? 'page' : 'false' %>">GDPR</a>
-              </li>
-              <li>
-                <a href="/legal/ccpa" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'ccpa' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'ccpa' ? 'page' : 'false' %>">CCPA</a>
-              </li>
-              <li>
-                <a href="/legal/hipaa" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'hipaa' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'hipaa' ? 'page' : 'false' %>">HIPAA</a>
-              </li>
-              <li>
-                <a href="/legal/iso-27001" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'iso-27001' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'iso-27001' ? 'page' : 'false' %>">ISO/IEC 27001</a>
-              </li>
-              <li>
-                <a href="/legal/iso-27017" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'iso-27017' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'iso-27017' ? 'page' : 'false' %>">ISO/IEC 27017</a>
-              </li>
-              <li>
-                <a href="/legal/iso-27018" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'iso-27018' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'iso-27018' ? 'page' : 'false' %>">ISO/IEC 27018</a>
-              </li>
-              <li>
-                <a href="/legal/soc-2" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'soc-2' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'soc-2' ? 'page' : 'false' %>">SOC 2</a>
-              </li>
-              <li>
-                <a href="/legal/soc-3" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'soc-3' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'soc-3' ? 'page' : 'false' %>">SOC 3</a>
-              </li>
-              <li>
-                <a href="/legal/data-residency" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'data-residency' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'data-residency' ? 'page' : 'false' %>">Data Residency</a>
-              </li>
-              <li>
-                <a href="/legal/pci" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'pci' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'pci' ? 'page' : 'false' %>">PCI</a>
-              </li>
-              <li>
-                <a href="/legal/dmca" class="block rounded-md px-3 py-2 text-sm font-medium <%= section && section.includes('dmca') ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section && section.includes('dmca') ? 'page' : 'false' %>">DMCA</a>
-              </li>
-              <li>
-                <a href="/legal/subprocessors" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'subprocessors' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'subprocessors' ? 'page' : 'false' %>">Subprocessors</a>
-              </li>
-              <li>
-                <a href="/legal/contact" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'contact' ? 'bg-slate-100 text-slate-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'contact' ? 'page' : 'false' %>">Contact</a>
-              </li>
-            </ul>
+  <!-- Content Section -->
+  <main id="main-content" class="mx-auto max-w-7xl px-6 py-10 lg:py-14 lg:px-8">
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
+
+      <!-- Sidebar Navigation -->
+      <aside class="lg:col-span-3">
+        <div class="legal-sidebar">
+          <!-- Mobile dropdown (shown on small screens) -->
+          <div class="lg:hidden mb-6">
+            <label for="legal-nav-mobile" class="sr-only">Select legal document</label>
+            <select id="legal-nav-mobile" onchange="window.location.href=this.value" class="block w-full rounded-lg border-gray-300 bg-white py-2.5 pl-3 pr-10 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-slate-600">
+              <optgroup label="Core Policies">
+                <option value="/legal/terms" <%= section === 'terms' ? 'selected' : '' %>>Terms of Service</option>
+                <option value="/legal/privacy" <%= section === 'privacy' ? 'selected' : '' %>>Privacy Policy</option>
+                <option value="/legal/code-of-conduct" <%= section === 'code-of-conduct' ? 'selected' : '' %>>Code of Conduct</option>
+                <option value="/legal/sla" <%= section === 'sla' ? 'selected' : '' %>>Service Level Agreement</option>
+              </optgroup>
+              <optgroup label="Privacy & Data">
+                <option value="/legal/gdpr" <%= section === 'gdpr' ? 'selected' : '' %>>GDPR</option>
+                <option value="/legal/ccpa" <%= section === 'ccpa' ? 'selected' : '' %>>CCPA</option>
+                <option value="/legal/hipaa" <%= section === 'hipaa' ? 'selected' : '' %>>HIPAA</option>
+                <option value="/legal/data-residency" <%= section === 'data-residency' ? 'selected' : '' %>>Data Residency</option>
+                <option value="/legal/subprocessors" <%= section === 'subprocessors' ? 'selected' : '' %>>Subprocessors</option>
+              </optgroup>
+              <optgroup label="Security Certifications">
+                <option value="/legal/iso-27001" <%= section === 'iso-27001' ? 'selected' : '' %>>ISO/IEC 27001</option>
+                <option value="/legal/iso-27017" <%= section === 'iso-27017' ? 'selected' : '' %>>ISO/IEC 27017</option>
+                <option value="/legal/iso-27018" <%= section === 'iso-27018' ? 'selected' : '' %>>ISO/IEC 27018</option>
+                <option value="/legal/soc-2" <%= section === 'soc-2' ? 'selected' : '' %>>SOC 2</option>
+                <option value="/legal/soc-3" <%= section === 'soc-3' ? 'selected' : '' %>>SOC 3</option>
+                <option value="/legal/pci" <%= section === 'pci' ? 'selected' : '' %>>PCI DSS</option>
+              </optgroup>
+              <optgroup label="Other">
+                <option value="/legal/dmca" <%= section && section.includes('dmca') ? 'selected' : '' %>>DMCA</option>
+                <option value="/legal/contact" <%= section === 'contact' ? 'selected' : '' %>>Contact</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <!-- Desktop sidebar (hidden on mobile) -->
+          <nav class="hidden lg:block space-y-6" aria-label="Legal navigation">
+            <!-- Core Policies -->
+            <div>
+              <h2 class="flex items-center gap-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Core Policies
+              </h2>
+              <ul class="mt-2 space-y-0.5">
+                <li>
+                  <a href="/legal/terms" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'terms' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    Terms of Service
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/privacy" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'privacy' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    Privacy Policy
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/code-of-conduct" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'code-of-conduct' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    Code of Conduct
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/sla" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'sla' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    Service Level Agreement
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Privacy & Data -->
+            <div>
+              <h2 class="flex items-center gap-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Privacy & Data
+              </h2>
+              <ul class="mt-2 space-y-0.5">
+                <li>
+                  <a href="/legal/gdpr" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'gdpr' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    GDPR
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/ccpa" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'ccpa' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    CCPA
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/hipaa" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'hipaa' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    HIPAA
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/data-residency" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'data-residency' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    Data Residency
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/subprocessors" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'subprocessors' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    Subprocessors
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Security Certifications -->
+            <div>
+              <h2 class="flex items-center gap-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                Security Certifications
+              </h2>
+              <ul class="mt-2 space-y-0.5">
+                <li>
+                  <a href="/legal/iso-27001" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'iso-27001' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    ISO/IEC 27001
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/iso-27017" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'iso-27017' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    ISO/IEC 27017
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/iso-27018" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'iso-27018' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    ISO/IEC 27018
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/soc-2" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'soc-2' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    SOC 2
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/soc-3" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'soc-3' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    SOC 3
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/pci" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'pci' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    PCI DSS
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Other -->
+            <div>
+              <h2 class="flex items-center gap-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Other
+              </h2>
+              <ul class="mt-2 space-y-0.5">
+                <li>
+                  <a href="/legal/dmca" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section && section.includes('dmca') ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    DMCA
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/contact" class="toc-link flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors <%= section === 'contact' ? 'nav-item-active bg-slate-100 text-slate-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' %>">
+                    Contact
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Help Card -->
+            <div class="mt-8 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 p-4 ring-1 ring-slate-200/50">
+              <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-slate-600 text-white">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="text-sm font-semibold text-gray-900">Have questions?</h3>
+                  <p class="text-xs text-gray-500 mt-0.5">Our team is here to help</p>
+                </div>
+              </div>
+              <a href="/legal/contact" class="mt-3 flex items-center justify-center gap-1 rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 transition-colors">
+                Contact us
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+            </div>
           </nav>
         </div>
       </aside>
 
-      <!-- Main article -->
-      <section class="lg:col-span-8">
-        <article id="content" class="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 [&_h1]:mb-4 [&_h1]:text-3xl [&_h1]:font-bold [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-xl [&_h3]:font-semibold [&_p]:my-4 [&_p]:leading-7 [&_p]:text-gray-700 [&_a]:text-slate-700 [&_a:hover]:text-slate-600 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6">
+      <!-- Main Content -->
+      <section class="lg:col-span-9">
+        <article id="content" class="rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 p-6 sm:p-8 lg:p-10">
 
           <% if(section === "terms") { %>
           <%- include('terms') -%>
@@ -157,7 +409,85 @@
           <%- include('subprocessors') -%>
           <% } %>
 
+          <!-- Document Footer -->
+          <div class="mt-12 pt-8 border-t border-gray-200">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="flex items-center gap-3 text-sm text-gray-500">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Last updated: December 2024</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <a href="/legal/contact" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  Questions? Contact us
+                </a>
+              </div>
+            </div>
+          </div>
         </article>
+
+        <!-- Related Documents -->
+        <div class="mt-8 rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 p-6">
+          <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide">Related Documents</h3>
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <% if(section !== 'terms') { %>
+            <a href="/legal/terms" class="group flex items-center gap-3 rounded-lg p-3 bg-gray-50 hover:bg-slate-50 transition-colors">
+              <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-white shadow-sm ring-1 ring-gray-200 group-hover:ring-slate-300 transition-colors">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <span class="text-sm font-medium text-gray-900 group-hover:text-slate-900">Terms of Service</span>
+                <span class="block text-xs text-gray-500">Usage agreement</span>
+              </div>
+            </a>
+            <% } %>
+            <% if(section !== 'privacy') { %>
+            <a href="/legal/privacy" class="group flex items-center gap-3 rounded-lg p-3 bg-gray-50 hover:bg-slate-50 transition-colors">
+              <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-white shadow-sm ring-1 ring-gray-200 group-hover:ring-slate-300 transition-colors">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <div>
+                <span class="text-sm font-medium text-gray-900 group-hover:text-slate-900">Privacy Policy</span>
+                <span class="block text-xs text-gray-500">How we protect your data</span>
+              </div>
+            </a>
+            <% } %>
+            <% if(section !== 'sla') { %>
+            <a href="/legal/sla" class="group flex items-center gap-3 rounded-lg p-3 bg-gray-50 hover:bg-slate-50 transition-colors">
+              <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-white shadow-sm ring-1 ring-gray-200 group-hover:ring-slate-300 transition-colors">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <div>
+                <span class="text-sm font-medium text-gray-900 group-hover:text-slate-900">Service Level Agreement</span>
+                <span class="block text-xs text-gray-500">Uptime guarantees</span>
+              </div>
+            </a>
+            <% } %>
+            <% if(section !== 'gdpr' && section !== 'privacy') { %>
+            <a href="/legal/gdpr" class="group flex items-center gap-3 rounded-lg p-3 bg-gray-50 hover:bg-slate-50 transition-colors">
+              <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-white shadow-sm ring-1 ring-gray-200 group-hover:ring-slate-300 transition-colors">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <span class="text-sm font-medium text-gray-900 group-hover:text-slate-900">GDPR Compliance</span>
+                <span class="block text-xs text-gray-500">EU data protection</span>
+              </div>
+            </a>
+            <% } %>
+          </div>
+        </div>
       </section>
     </div>
   </main>
