@@ -17,6 +17,7 @@
                 <option value="5">Logs</option>
                 <option value="6">APM</option>
                 <option value="7">Workflows </option>
+                <option value="8">AI Agent</option>
             </select>
           </div>
 
@@ -87,7 +88,7 @@
 
                     <button type="button" onclick="showTab('workflows')" id="tab-workflows" role="tab" aria-selected="false" aria-controls="panel-workflows"
                         class="tab-workflows-button tab-7-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Workflows - automate reliability operations and responses">
-                    
+
                         <svg class="icon-tab-7 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor" class="w-6 h-6">
@@ -95,6 +96,18 @@
                                 d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z" />
                         </svg>
                         <span>Workflows</span>
+                    </button>
+
+                    <button type="button" onclick="showTab('ai-agent')" id="tab-ai-agent" role="tab" aria-selected="false" aria-controls="panel-ai-agent"
+                        class="tab-ai-agent-button tab-8-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="AI Agent - intelligent automation powered by AI">
+
+                        <svg class="icon-tab-8 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
+                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                            stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+                        </svg>
+                        <span>AI Agent</span>
                     </button>
                 </nav>
             </div>
@@ -576,12 +589,78 @@
         </div>
     </div>
 
+
+    <div class="mt-10 tab-8" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+
+
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">AI-powered incident resolution and automation.</h2>
+
+                        <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Auto-resolve incidents with AI</div>
+                            </li>
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Intelligent root cause analysis</div>
+                            </li>
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">AI-generated runbooks</div>
+                            </li>
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Smart alert correlation</div>
+                            </li>
+                        </ul>
+
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/copilot"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <blockquote>
+                        <div>
+                            <p class="text-base text-gray-500">&ldquo;AI Agent reduces our mean time to resolution by automatically diagnosing and fixing common issues.&rdquo;</p>
+                        </div>
+                        <footer class="mt-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="text-base font-medium text-gray-700">OneUptime Team
+                                </div>
+                            </div>
+                        </footer>
+                    </blockquote>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div
+                    class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+
+                    <img class="relative rounded-lg shadow-lg" src="/img/copilot.png" alt="OneUptime AI Agent dashboard showing intelligent incident resolution and automation">
+
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 
 <script>
     // Semantic tab slugs in desired order
-    const TAB_ORDER = ['status-pages','monitoring','incidents','on-call','logs','apm','workflows'];
+    const TAB_ORDER = ['status-pages','monitoring','incidents','on-call','logs','apm','workflows','ai-agent'];
     let currentActiveTab = 'status-pages';
 
 
