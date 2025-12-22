@@ -4,54 +4,25 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>OneUptime vs Competitors | Compare Pricing & Features</title>
+    <title>OneUptime vs Competitors | Complete Feature Comparison</title>
     <meta name="description"
-        content="Compare OneUptime pricing with PagerDuty, StatusPage.io, Pingdom, and Incident.io. See how much you can save with our complete observability platform.">
+        content="Compare OneUptime features with PagerDuty, StatusPage.io, Pingdom, and Incident.io. See why OneUptime is the complete observability platform.">
         <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
     <style>
-      .gradient-border {
-        position: relative;
-        background: linear-gradient(135deg, #10b981, #06b6d4);
-        padding: 2px;
-        border-radius: 1rem;
-      }
-      .gradient-border-content {
-        background: white;
-        border-radius: calc(1rem - 2px);
-        height: 100%;
-      }
-      .animated-gradient {
-        background: linear-gradient(-45deg, #10b981, #06b6d4, #3b82f6, #10b981);
-        background-size: 400% 400%;
-        animation: gradient-shift 8s ease infinite;
-      }
-      @keyframes gradient-shift {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-      }
-      .pulse-glow {
-        animation: pulse-glow 2s ease-in-out infinite;
-      }
-      @keyframes pulse-glow {
-        0%, 100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
-        50% { box-shadow: 0 0 40px rgba(16, 185, 129, 0.5); }
-      }
       .hover-lift {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
       }
       .hover-lift:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
       }
-      .count-up {
-        animation: count-up 1s ease-out forwards;
+      .feature-card {
+        transition: border-color 0.2s ease;
       }
-      @keyframes count-up {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+      .feature-card:hover {
+        border-color: #18181b;
       }
     </style>
 </head>
@@ -61,91 +32,51 @@
   <main id="main-content">
 
   <!-- Hero Section -->
-  <div class="relative isolate overflow-hidden bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800">
-    <!-- Background decorations -->
-    <div class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80" aria-hidden="true">
-      <div class="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-emerald-500 to-cyan-500 opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]" style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)"></div>
-    </div>
-
-    <div class="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:px-8">
-      <div class="mx-auto max-w-4xl text-center">
-        <!-- Badges -->
-        <div class="mb-8 flex justify-center gap-3 flex-wrap">
-          <span class="inline-flex items-center rounded-full bg-emerald-500/10 px-4 py-1.5 text-sm font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
-            <svg class="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-            </svg>
-            Open Source (Apache 2.0)
+  <div class="relative bg-zinc-950">
+    <div class="mx-auto max-w-7xl px-6 py-20 sm:py-28 lg:px-8">
+      <div class="mx-auto max-w-3xl text-center">
+        <!-- Feature Pills -->
+        <div class="mb-8 flex justify-center gap-2 flex-wrap">
+          <span class="inline-flex items-center rounded-full bg-zinc-900 px-3 py-1 text-xs font-medium text-zinc-300 ring-1 ring-zinc-800">
+            Open Source
           </span>
-          <span class="inline-flex items-center rounded-full bg-cyan-500/10 px-4 py-1.5 text-sm font-medium text-cyan-400 ring-1 ring-inset ring-cyan-500/20">
-            <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z" />
-            </svg>
+          <span class="inline-flex items-center rounded-full bg-zinc-900 px-3 py-1 text-xs font-medium text-zinc-300 ring-1 ring-zinc-800">
             Self-Hostable
           </span>
-          <span class="inline-flex items-center rounded-full bg-purple-500/10 px-4 py-1.5 text-sm font-medium text-purple-400 ring-1 ring-inset ring-purple-500/20">
-            <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-            </svg>
+          <span class="inline-flex items-center rounded-full bg-zinc-900 px-3 py-1 text-xs font-medium text-zinc-300 ring-1 ring-zinc-800">
             SOC 2 Compliant
           </span>
         </div>
 
-        <h1 class="text-4xl font-bold tracking-tight text-white sm:text-6xl">
-          Save <span class="text-emerald-400">$10,000+</span> annually. <br class="hidden sm:block"/>Get <span class="text-cyan-400">more features</span>.
+        <h1 class="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+          One platform. Complete observability.
         </h1>
 
-        <p class="mt-6 text-xl leading-8 text-gray-300">
-          Stop paying for 4-5 separate tools. OneUptime is a complete observability platform with monitoring, status pages, on-call scheduling, and incident management - all in one.
+        <p class="mt-6 text-lg leading-8 text-zinc-400">
+          Stop juggling 4-5 separate tools. OneUptime combines monitoring, status pages, on-call scheduling, and incident management in one platform.
         </p>
 
-        <!-- Quick stats in hero -->
-        <div class="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
-          <div class="rounded-xl bg-gray-800/50 px-4 py-3 ring-1 ring-gray-700">
-            <p class="text-2xl font-bold text-white">$0</p>
-            <p class="text-xs text-gray-400">Free to start</p>
-          </div>
-          <div class="rounded-xl bg-gray-800/50 px-4 py-3 ring-1 ring-gray-700">
-            <p class="text-2xl font-bold text-white">Unlimited</p>
-            <p class="text-xs text-gray-400">Subscribers</p>
-          </div>
-          <div class="rounded-xl bg-gray-800/50 px-4 py-3 ring-1 ring-gray-700">
-            <p class="text-2xl font-bold text-white">4-in-1</p>
-            <p class="text-xs text-gray-400">Platform</p>
-          </div>
-          <div class="rounded-xl bg-gray-800/50 px-4 py-3 ring-1 ring-gray-700">
-            <p class="text-2xl font-bold text-white">7+</p>
-            <p class="text-xs text-gray-400">Global Probes</p>
-          </div>
-        </div>
-
-        <div class="mt-10 flex items-center justify-center gap-x-6">
-          <a href="/accounts/register" class="rounded-lg bg-emerald-500 px-6 py-3 text-base font-semibold text-white shadow-lg hover:bg-emerald-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400 transition-all duration-200 pulse-glow">
+        <div class="mt-10 flex items-center justify-center gap-x-4">
+          <a href="/accounts/register" class="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 transition-colors">
             Start Free Today
           </a>
-          <a href="/enterprise/demo" class="text-base font-semibold leading-6 text-gray-300 hover:text-white transition-colors">
-            Request Demo <span aria-hidden="true">→</span>
+          <a href="/enterprise/demo" class="rounded-lg px-5 py-2.5 text-sm font-semibold text-zinc-300 ring-1 ring-zinc-700 hover:ring-zinc-600 hover:text-white transition-all">
+            Request Demo
           </a>
         </div>
       </div>
     </div>
-
-    <!-- Bottom decoration -->
-    <div class="absolute inset-x-0 bottom-0 -z-10 transform-gpu overflow-hidden blur-3xl" aria-hidden="true">
-      <div class="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-cyan-500 to-emerald-500 opacity-20 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]" style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)"></div>
-    </div>
   </div>
 
   <!-- Comparison Grid -->
-  <div class="bg-white py-20 sm:py-24">
+  <div class="bg-zinc-50 py-20 sm:py-24">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="mx-auto max-w-2xl text-center mb-16">
-        <h2 class="text-base font-semibold leading-7 text-emerald-600">Pricing comparison</h2>
-        <p class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-          See how much you can save
-        </p>
-        <p class="mt-4 text-lg text-gray-600">
-          Compare OneUptime with popular observability tools and see why thousands of teams are making the switch.
+        <h2 class="text-3xl font-semibold tracking-tight text-zinc-900">
+          One tool vs. many fragmented ones
+        </h2>
+        <p class="mt-4 text-base text-zinc-600">
+          Compare OneUptime with popular observability tools and see why teams are switching.
         </p>
       </div>
 
@@ -153,9 +84,9 @@
 
         <!-- OneUptime Card (Featured) -->
         <div class="lg:col-span-2">
-          <div class="relative rounded-3xl border-2 border-emerald-500 bg-gradient-to-br from-emerald-50 to-white p-8 md:p-12 shadow-xl ring-1 ring-emerald-500/20">
-            <div class="absolute -top-4 left-8">
-              <span class="inline-flex items-center rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-white shadow-lg">
+          <div class="relative rounded-2xl border border-zinc-900 bg-zinc-950 p-8 md:p-10">
+            <div class="absolute -top-3 left-8">
+              <span class="inline-flex items-center rounded-full bg-zinc-900 px-3 py-1 text-xs font-medium text-white ring-1 ring-zinc-800">
                 Complete Platform
               </span>
             </div>
@@ -163,71 +94,63 @@
             <div class="grid md:grid-cols-2 gap-8 items-center">
               <div>
                 <div class="flex items-center gap-4 mb-6">
-                  <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 shadow-sm">
-                    <img src="/img/3-transparent.svg" alt="OneUptime" class="h-10 w-10">
+                  <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-800">
+                    <img src="/img/3-transparent.svg" alt="OneUptime" class="h-8 w-8">
                   </div>
                   <div>
-                    <h3 class="text-2xl font-bold text-gray-900">OneUptime</h3>
-                    <p class="text-emerald-600 font-medium">All-in-one observability</p>
+                    <h3 class="text-xl font-semibold text-white">OneUptime</h3>
+                    <p class="text-zinc-400 text-sm">All-in-one observability</p>
                   </div>
                 </div>
 
-                <div class="flex items-baseline gap-2 mb-6">
-                  <span class="text-5xl font-bold text-gray-900">$0</span>
-                  <span class="text-gray-500 text-lg">/month to start</span>
-                </div>
-
-                <p class="text-gray-600 mb-8">
-                  Get monitoring, status pages, incident management, and on-call scheduling in one unified platform. Free forever plan available with generous limits.
+                <p class="text-zinc-400 text-sm mb-8 leading-relaxed">
+                  Get monitoring, status pages, incident management, and on-call scheduling in one unified platform. Free tier available.
                 </p>
 
-                <a href="/accounts/register" class="inline-flex items-center justify-center rounded-lg bg-emerald-500 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-emerald-400 transition-all">
+                <a href="/accounts/register" class="inline-flex items-center justify-center rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 transition-colors">
                   Get Started Free
-                  <svg class="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                  </svg>
                 </a>
               </div>
 
-              <div class="grid grid-cols-2 gap-4">
-                <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 mb-3">
-                    <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <div class="grid grid-cols-2 gap-3">
+                <div class="rounded-lg bg-zinc-900 p-4 border border-zinc-800">
+                  <div class="flex h-8 w-8 items-center justify-center rounded-md bg-zinc-800 mb-3">
+                    <svg class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" />
                     </svg>
                   </div>
-                  <h4 class="font-semibold text-gray-900">Monitoring</h4>
-                  <p class="text-sm text-gray-500 mt-1">Unlimited monitors</p>
+                  <h4 class="font-medium text-white text-sm">Monitoring</h4>
+                  <p class="text-xs text-zinc-500 mt-1">Unlimited monitors</p>
                 </div>
 
-                <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 mb-3">
-                    <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="rounded-lg bg-zinc-900 p-4 border border-zinc-800">
+                  <div class="flex h-8 w-8 items-center justify-center rounded-md bg-zinc-800 mb-3">
+                    <svg class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h4 class="font-semibold text-gray-900">Status Pages</h4>
-                  <p class="text-sm text-gray-500 mt-1">Unlimited subscribers</p>
+                  <h4 class="font-medium text-white text-sm">Status Pages</h4>
+                  <p class="text-xs text-zinc-500 mt-1">Unlimited subscribers</p>
                 </div>
 
-                <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 mb-3">
-                    <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="rounded-lg bg-zinc-900 p-4 border border-zinc-800">
+                  <div class="flex h-8 w-8 items-center justify-center rounded-md bg-zinc-800 mb-3">
+                    <svg class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                     </svg>
                   </div>
-                  <h4 class="font-semibold text-gray-900">On-Call</h4>
-                  <p class="text-sm text-gray-500 mt-1">Full scheduling</p>
+                  <h4 class="font-medium text-white text-sm">On-Call</h4>
+                  <p class="text-xs text-zinc-500 mt-1">Full scheduling</p>
                 </div>
 
-                <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 mb-3">
-                    <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <div class="rounded-lg bg-zinc-900 p-4 border border-zinc-800">
+                  <div class="flex h-8 w-8 items-center justify-center rounded-md bg-zinc-800 mb-3">
+                    <svg class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                     </svg>
                   </div>
-                  <h4 class="font-semibold text-gray-900">Incidents</h4>
-                  <p class="text-sm text-gray-500 mt-1">Full workflow</p>
+                  <h4 class="font-medium text-white text-sm">Incidents</h4>
+                  <p class="text-xs text-zinc-500 mt-1">Full workflow</p>
                 </div>
               </div>
             </div>
@@ -235,226 +158,150 @@
         </div>
 
         <!-- PagerDuty Card -->
-        <div class="relative rounded-2xl border border-gray-200 bg-white p-8 hover:shadow-lg transition-shadow hover-lift">
-          <div class="absolute -top-3 right-6">
-            <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+        <div class="feature-card relative rounded-xl border border-zinc-200 bg-white p-6 hover-lift">
+          <div class="absolute -top-2.5 right-6">
+            <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
               On-call only
             </span>
           </div>
-          <div class="flex items-center gap-4 mb-6">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-400 to-green-600">
-              <span class="text-xl font-bold text-white">P</span>
+          <div class="flex items-center gap-3 mb-4">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100">
+              <span class="text-base font-semibold text-zinc-700">P</span>
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-gray-900">PagerDuty</h3>
-              <p class="text-sm text-gray-500">On-call & Alerting</p>
+              <h3 class="text-base font-semibold text-zinc-900">PagerDuty</h3>
+              <p class="text-xs text-zinc-500">On-call & Alerting</p>
             </div>
           </div>
 
-          <div class="flex items-baseline gap-2 mb-2">
-            <span class="text-3xl font-bold text-gray-900">$21-$49</span>
-            <span class="text-gray-500">/user/month</span>
-          </div>
-          <p class="text-xs text-gray-500 mb-4">Professional to Enterprise plans</p>
-
-          <p class="text-sm text-gray-600 mb-6">
-            Team of 10 = <span class="font-semibold text-red-600">$210-$490/mo</span> just for on-call. Add-ons: AIOps ($699/mo), Status Pages ($89-599/mo).
-          </p>
-
-          <div class="space-y-2 mb-6">
+          <div class="space-y-2 mb-5">
             <div class="flex items-center gap-2 text-sm">
-              <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-              </svg>
-              <span class="text-gray-600">No monitoring - need Datadog/etc</span>
+              <span class="h-1.5 w-1.5 rounded-full bg-zinc-300"></span>
+              <span class="text-zinc-600">No monitoring included</span>
             </div>
             <div class="flex items-center gap-2 text-sm">
-              <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-              </svg>
-              <span class="text-gray-600">Status pages extra ($89+/mo)</span>
+              <span class="h-1.5 w-1.5 rounded-full bg-zinc-300"></span>
+              <span class="text-zinc-600">Status pages extra</span>
             </div>
             <div class="flex items-center gap-2 text-sm">
-              <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-              </svg>
-              <span class="text-gray-600">AIOps add-on $699/mo extra</span>
+              <span class="h-1.5 w-1.5 rounded-full bg-zinc-300"></span>
+              <span class="text-zinc-600">Per-user pricing</span>
             </div>
           </div>
 
-          <a href="/compare/pagerduty" class="inline-flex items-center justify-center w-full rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-200 transition-all">
+          <a href="/compare/pagerduty" class="inline-flex items-center justify-center w-full rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors">
             Full Comparison
-            <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-            </svg>
           </a>
         </div>
 
         <!-- StatusPage.io Card -->
-        <div class="relative rounded-2xl border border-gray-200 bg-white p-8 hover:shadow-lg transition-shadow hover-lift">
-          <div class="absolute -top-3 right-6">
-            <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+        <div class="feature-card relative rounded-xl border border-zinc-200 bg-white p-6 hover-lift">
+          <div class="absolute -top-2.5 right-6">
+            <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
               Status pages only
             </span>
           </div>
-          <div class="flex items-center gap-4 mb-6">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 to-blue-600">
-              <span class="text-xl font-bold text-white">S</span>
+          <div class="flex items-center gap-3 mb-4">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100">
+              <span class="text-base font-semibold text-zinc-700">S</span>
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-gray-900">Atlassian Statuspage</h3>
-              <p class="text-sm text-gray-500">Status Pages Only</p>
+              <h3 class="text-base font-semibold text-zinc-900">Atlassian Statuspage</h3>
+              <p class="text-xs text-zinc-500">Status Pages Only</p>
             </div>
           </div>
 
-          <div class="flex items-baseline gap-2 mb-2">
-            <span class="text-3xl font-bold text-gray-900">$29-$1,499</span>
-            <span class="text-gray-500">/month</span>
-          </div>
-          <p class="text-xs text-gray-500 mb-4">Based on subscriber count</p>
-
-          <p class="text-sm text-gray-600 mb-6">
-            Limits: 250 subs ($29), 1K subs ($99), 5K subs ($399), 25K subs (<span class="font-semibold text-red-600">$1,499</span>). Private pages extra.
-          </p>
-
-          <div class="space-y-2 mb-6">
+          <div class="space-y-2 mb-5">
             <div class="flex items-center gap-2 text-sm">
-              <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-              </svg>
-              <span class="text-gray-600">Strict subscriber limits</span>
+              <span class="h-1.5 w-1.5 rounded-full bg-zinc-300"></span>
+              <span class="text-zinc-600">Strict subscriber limits</span>
             </div>
             <div class="flex items-center gap-2 text-sm">
-              <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-              </svg>
-              <span class="text-gray-600">No monitoring included</span>
+              <span class="h-1.5 w-1.5 rounded-full bg-zinc-300"></span>
+              <span class="text-zinc-600">No monitoring included</span>
             </div>
             <div class="flex items-center gap-2 text-sm">
-              <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-              </svg>
-              <span class="text-gray-600">No on-call or incidents</span>
+              <span class="h-1.5 w-1.5 rounded-full bg-zinc-300"></span>
+              <span class="text-zinc-600">No on-call or incidents</span>
             </div>
           </div>
 
-          <a href="/compare/statuspage.io" class="inline-flex items-center justify-center w-full rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-200 transition-all">
+          <a href="/compare/statuspage.io" class="inline-flex items-center justify-center w-full rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors">
             Full Comparison
-            <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-            </svg>
           </a>
         </div>
 
         <!-- Pingdom Card -->
-        <div class="relative rounded-2xl border border-gray-200 bg-white p-8 hover:shadow-lg transition-shadow hover-lift">
-          <div class="absolute -top-3 right-6">
-            <span class="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800">
+        <div class="feature-card relative rounded-xl border border-zinc-200 bg-white p-6 hover-lift">
+          <div class="absolute -top-2.5 right-6">
+            <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
               Monitoring only
             </span>
           </div>
-          <div class="flex items-center gap-4 mb-6">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-orange-400 to-orange-600">
-              <span class="text-xl font-bold text-white">P</span>
+          <div class="flex items-center gap-3 mb-4">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100">
+              <span class="text-base font-semibold text-zinc-700">P</span>
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-gray-900">SolarWinds Pingdom</h3>
-              <p class="text-sm text-gray-500">Uptime Monitoring</p>
+              <h3 class="text-base font-semibold text-zinc-900">SolarWinds Pingdom</h3>
+              <p class="text-xs text-zinc-500">Uptime Monitoring</p>
             </div>
           </div>
 
-          <div class="flex items-baseline gap-2 mb-2">
-            <span class="text-3xl font-bold text-gray-900">$10-$100+</span>
-            <span class="text-gray-500">/month</span>
-          </div>
-          <p class="text-xs text-gray-500 mb-4">Per-check pricing</p>
-
-          <p class="text-sm text-gray-600 mb-6">
-            Pay per monitor check. Synthetic starts at $10/mo. RUM separate at $10/mo. Scales with usage.
-          </p>
-
-          <div class="space-y-2 mb-6">
+          <div class="space-y-2 mb-5">
             <div class="flex items-center gap-2 text-sm">
-              <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-              </svg>
-              <span class="text-gray-600">Per-monitor costs add up</span>
+              <span class="h-1.5 w-1.5 rounded-full bg-zinc-300"></span>
+              <span class="text-zinc-600">Per-monitor pricing</span>
             </div>
             <div class="flex items-center gap-2 text-sm">
-              <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-              </svg>
-              <span class="text-gray-600">No on-call scheduling</span>
+              <span class="h-1.5 w-1.5 rounded-full bg-zinc-300"></span>
+              <span class="text-zinc-600">No on-call scheduling</span>
             </div>
             <div class="flex items-center gap-2 text-sm">
-              <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-              </svg>
-              <span class="text-gray-600">No incident management</span>
+              <span class="h-1.5 w-1.5 rounded-full bg-zinc-300"></span>
+              <span class="text-zinc-600">No incident management</span>
             </div>
           </div>
 
-          <a href="/compare/pingdom" class="inline-flex items-center justify-center w-full rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-200 transition-all">
+          <a href="/compare/pingdom" class="inline-flex items-center justify-center w-full rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors">
             Full Comparison
-            <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-            </svg>
           </a>
         </div>
 
         <!-- Incident.io Card -->
-        <div class="relative rounded-2xl border border-gray-200 bg-white p-8 hover:shadow-lg transition-shadow hover-lift">
-          <div class="absolute -top-3 right-6">
-            <span class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
+        <div class="feature-card relative rounded-xl border border-zinc-200 bg-white p-6 hover-lift">
+          <div class="absolute -top-2.5 right-6">
+            <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
               Incidents only
             </span>
           </div>
-          <div class="flex items-center gap-4 mb-6">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-400 to-purple-600">
-              <span class="text-xl font-bold text-white">I</span>
+          <div class="flex items-center gap-3 mb-4">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100">
+              <span class="text-base font-semibold text-zinc-700">I</span>
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-gray-900">Incident.io</h3>
-              <p class="text-sm text-gray-500">Incident Management</p>
+              <h3 class="text-base font-semibold text-zinc-900">Incident.io</h3>
+              <p class="text-xs text-zinc-500">Incident Management</p>
             </div>
           </div>
 
-          <div class="flex items-baseline gap-2 mb-2">
-            <span class="text-3xl font-bold text-gray-900">$15-$25</span>
-            <span class="text-gray-500">/user/month</span>
-          </div>
-          <p class="text-xs text-gray-500 mb-4">On-call add-on +$10-20/user extra</p>
-
-          <p class="text-sm text-gray-600 mb-6">
-            Team of 10 with on-call = <span class="font-semibold text-red-600">$250-$450/mo</span>. Teams on Pro ($25/user), on-call extra.
-          </p>
-
-          <div class="space-y-2 mb-6">
+          <div class="space-y-2 mb-5">
             <div class="flex items-center gap-2 text-sm">
-              <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-              </svg>
-              <span class="text-gray-600">On-call is paid add-on</span>
+              <span class="h-1.5 w-1.5 rounded-full bg-zinc-300"></span>
+              <span class="text-zinc-600">On-call is paid add-on</span>
             </div>
             <div class="flex items-center gap-2 text-sm">
-              <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-              </svg>
-              <span class="text-gray-600">No monitoring at all</span>
+              <span class="h-1.5 w-1.5 rounded-full bg-zinc-300"></span>
+              <span class="text-zinc-600">No monitoring at all</span>
             </div>
             <div class="flex items-center gap-2 text-sm">
-              <svg class="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-              </svg>
-              <span class="text-gray-600">No status pages</span>
+              <span class="h-1.5 w-1.5 rounded-full bg-zinc-300"></span>
+              <span class="text-zinc-600">No status pages</span>
             </div>
           </div>
 
-          <a href="/compare/incident.io" class="inline-flex items-center justify-center w-full rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-900 hover:bg-gray-200 transition-all">
+          <a href="/compare/incident.io" class="inline-flex items-center justify-center w-full rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors">
             Full Comparison
-            <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-            </svg>
           </a>
         </div>
 
@@ -462,48 +309,383 @@
     </div>
   </div>
 
-  <!-- Cost Calculator Section -->
-  <div class="bg-gray-50 py-20 sm:py-24">
+  <!-- Feature Comparison Matrix -->
+  <div class="bg-zinc-950 py-20 sm:py-24">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="mx-auto max-w-2xl text-center mb-16">
-        <span class="inline-flex items-center rounded-full bg-red-100 px-4 py-1.5 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-600/20 mb-4">
+        <h2 class="text-3xl font-semibold tracking-tight text-white">
+          What you get with each tool
+        </h2>
+        <p class="mt-4 text-base text-zinc-400">
+          Most tools only cover part of the incident lifecycle. See the gaps.
+        </p>
+      </div>
+
+      <!-- Feature Matrix -->
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[800px]">
+          <thead>
+            <tr>
+              <th class="pb-4 pr-4 text-left text-sm font-semibold text-zinc-400">Feature</th>
+              <th class="pb-4 px-4 text-center">
+                <div class="flex flex-col items-center">
+                  <div class="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center mb-2">
+                    <img src="/img/3-transparent.svg" alt="OneUptime" class="h-6 w-6">
+                  </div>
+                  <span class="text-white font-semibold text-sm">OneUptime</span>
+                </div>
+              </th>
+              <th class="pb-4 px-4 text-center">
+                <div class="flex flex-col items-center">
+                  <div class="h-10 w-10 rounded-lg bg-zinc-800 flex items-center justify-center mb-2">
+                    <span class="text-zinc-400 font-bold">P</span>
+                  </div>
+                  <span class="text-zinc-400 text-sm">PagerDuty</span>
+                </div>
+              </th>
+              <th class="pb-4 px-4 text-center">
+                <div class="flex flex-col items-center">
+                  <div class="h-10 w-10 rounded-lg bg-zinc-800 flex items-center justify-center mb-2">
+                    <span class="text-zinc-400 font-bold">S</span>
+                  </div>
+                  <span class="text-zinc-400 text-sm">Statuspage</span>
+                </div>
+              </th>
+              <th class="pb-4 px-4 text-center">
+                <div class="flex flex-col items-center">
+                  <div class="h-10 w-10 rounded-lg bg-zinc-800 flex items-center justify-center mb-2">
+                    <span class="text-zinc-400 font-bold">D</span>
+                  </div>
+                  <span class="text-zinc-400 text-sm">Datadog</span>
+                </div>
+              </th>
+              <th class="pb-4 px-4 text-center">
+                <div class="flex flex-col items-center">
+                  <div class="h-10 w-10 rounded-lg bg-zinc-800 flex items-center justify-center mb-2">
+                    <span class="text-zinc-400 font-bold">I</span>
+                  </div>
+                  <span class="text-zinc-400 text-sm">Incident.io</span>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-zinc-800">
+            <!-- Monitoring Row -->
+            <tr class="hover:bg-zinc-800/50 transition-colors">
+              <td class="py-4 pr-4">
+                <div class="flex items-center gap-3">
+                  <div class="h-8 w-8 rounded-lg bg-zinc-800 flex items-center justify-center">
+                    <svg class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" />
+                    </svg>
+                  </div>
+                  <span class="font-medium text-white">Uptime Monitoring</span>
+                </div>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <div class="flex justify-center">
+                  <span class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">
+                    <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    Included
+                  </span>
+                </div>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-500">
+                  <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                  </svg>
+                  No
+                </span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-500">
+                  <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                  </svg>
+                  No
+                </span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-400">$15+/host</span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-500">
+                  <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                  </svg>
+                  No
+                </span>
+              </td>
+            </tr>
+
+            <!-- Status Pages Row -->
+            <tr class="hover:bg-zinc-800/50 transition-colors">
+              <td class="py-4 pr-4">
+                <div class="flex items-center gap-3">
+                  <div class="h-8 w-8 rounded-lg bg-zinc-800 flex items-center justify-center">
+                    <svg class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <span class="font-medium text-white">Status Pages</span>
+                </div>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">Unlimited subs</span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-400">+$89-599/mo</span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-400">$29-1,499/mo</span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-500">
+                  <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                  </svg>
+                  No
+                </span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-400">Basic only</span>
+              </td>
+            </tr>
+
+            <!-- On-Call Row -->
+            <tr class="hover:bg-zinc-800/50 transition-colors">
+              <td class="py-4 pr-4">
+                <div class="flex items-center gap-3">
+                  <div class="h-8 w-8 rounded-lg bg-zinc-800 flex items-center justify-center">
+                    <svg class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                    </svg>
+                  </div>
+                  <span class="font-medium text-white">On-Call Scheduling</span>
+                </div>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">
+                  <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                  </svg>
+                  Included
+                </span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-400">$21-49/user</span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-500">
+                  <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                  </svg>
+                  No
+                </span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-500">
+                  <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                  </svg>
+                  No
+                </span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-400">+$10-20/user</span>
+              </td>
+            </tr>
+
+            <!-- Incident Management Row -->
+            <tr class="hover:bg-zinc-800/50 transition-colors">
+              <td class="py-4 pr-4">
+                <div class="flex items-center gap-3">
+                  <div class="h-8 w-8 rounded-lg bg-zinc-800 flex items-center justify-center">
+                    <svg class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                  </div>
+                  <span class="font-medium text-white">Incident Management</span>
+                </div>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">
+                  <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                  </svg>
+                  Included
+                </span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-400">Basic</span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-500">
+                  <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                  </svg>
+                  No
+                </span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-400">Basic</span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-400">$15-25/user</span>
+              </td>
+            </tr>
+
+            <!-- Self-Hosting Row -->
+            <tr class="hover:bg-zinc-800/50 transition-colors">
+              <td class="py-4 pr-4">
+                <div class="flex items-center gap-3">
+                  <div class="h-8 w-8 rounded-lg bg-zinc-800 flex items-center justify-center">
+                    <svg class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z" />
+                    </svg>
+                  </div>
+                  <span class="font-medium text-white">Self-Hosting Option</span>
+                </div>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">
+                  <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                  </svg>
+                  Apache 2.0
+                </span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-500">
+                  <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                  </svg>
+                  No
+                </span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-500">
+                  <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                  </svg>
+                  No
+                </span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-500">
+                  <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                  </svg>
+                  No
+                </span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-500">
+                  <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                  </svg>
+                  No
+                </span>
+              </td>
+            </tr>
+
+            <!-- Unlimited Subscribers Row -->
+            <tr class="hover:bg-zinc-800/50 transition-colors">
+              <td class="py-4 pr-4">
+                <div class="flex items-center gap-3">
+                  <div class="h-8 w-8 rounded-lg bg-zinc-800 flex items-center justify-center">
+                    <svg class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                    </svg>
+                  </div>
+                  <span class="font-medium text-white">Unlimited Subscribers</span>
+                </div>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">
+                  <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                  </svg>
+                  Yes
+                </span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-400">Limited</span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-400">250-25K caps</span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-500">N/A</span>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <span class="inline-flex items-center rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-400">Limited</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Summary -->
+      <div class="mt-12 text-center">
+        <p class="text-zinc-400 mb-6">
+          <span class="text-white font-semibold">The bottom line:</span> Other tools solve parts of the problem. OneUptime solves all of it.
+        </p>
+        <a href="/accounts/register" class="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-base font-semibold text-zinc-900 hover:bg-zinc-100 transition-all">
+          Start Free Today
+          <svg class="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cost Calculator Section -->
+  <div class="bg-zinc-100 py-20 sm:py-24">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center mb-16">
+        <span class="inline-flex items-center rounded-full bg-zinc-200 px-4 py-1.5 text-sm font-medium text-zinc-700 ring-1 ring-inset ring-zinc-300 mb-4">
           <svg class="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
           </svg>
           Hidden Cost Warning
         </span>
-        <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+        <h2 class="text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
           The true cost of a fragmented stack
         </h2>
-        <p class="mt-4 text-lg text-gray-600">
+        <p class="mt-4 text-base text-zinc-600">
           Most teams end up paying for 4-5 separate tools. Here's what that really costs for a team of 10 engineers.
         </p>
       </div>
 
       <div class="mx-auto max-w-4xl">
-        <div class="rounded-2xl bg-white shadow-xl ring-1 ring-gray-200 overflow-hidden">
+        <div class="rounded-2xl bg-white shadow-sm ring-1 ring-zinc-200 overflow-hidden">
           <!-- Header -->
-          <div class="bg-gray-900 px-8 py-6">
+          <div class="bg-zinc-900 px-8 py-6">
             <div class="grid grid-cols-3 gap-4 text-sm font-semibold text-white">
               <div>Tool Category</div>
               <div class="text-center">Typical Cost (10 users)</div>
-              <div class="text-center text-emerald-400">With OneUptime</div>
+              <div class="text-center">With OneUptime</div>
             </div>
           </div>
 
           <!-- Rows -->
-          <div class="divide-y divide-gray-200">
-            <div class="grid grid-cols-3 gap-4 px-8 py-5 items-center hover:bg-gray-50 transition-colors">
+          <div class="divide-y divide-zinc-200">
+            <div class="grid grid-cols-3 gap-4 px-8 py-5 items-center hover:bg-zinc-50 transition-colors">
               <div>
-                <p class="font-medium text-gray-900">Uptime Monitoring</p>
-                <p class="text-sm text-gray-500">Pingdom, Datadog, New Relic</p>
+                <p class="font-medium text-zinc-900">Uptime Monitoring</p>
+                <p class="text-sm text-zinc-500">Pingdom, Datadog, New Relic</p>
               </div>
               <div class="text-center">
-                <span class="text-lg font-semibold text-gray-900">$50-200</span>
-                <span class="text-gray-500 text-sm">/mo</span>
+                <span class="text-lg font-semibold text-zinc-900">$50-200</span>
+                <span class="text-zinc-500 text-sm">/mo</span>
               </div>
               <div class="text-center">
-                <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">
+                <span class="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-700">
                   <svg class="mr-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                   </svg>
@@ -512,18 +694,18 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-4 px-8 py-5 items-center hover:bg-gray-50 transition-colors">
+            <div class="grid grid-cols-3 gap-4 px-8 py-5 items-center hover:bg-zinc-50 transition-colors">
               <div>
-                <p class="font-medium text-gray-900">Status Pages</p>
-                <p class="text-sm text-gray-500">Atlassian Statuspage</p>
+                <p class="font-medium text-zinc-900">Status Pages</p>
+                <p class="text-sm text-zinc-500">Atlassian Statuspage</p>
               </div>
               <div class="text-center">
-                <span class="text-lg font-semibold text-gray-900">$99-1,499</span>
-                <span class="text-gray-500 text-sm">/mo</span>
-                <p class="text-xs text-gray-400">Based on subscribers</p>
+                <span class="text-lg font-semibold text-zinc-900">$99-1,499</span>
+                <span class="text-zinc-500 text-sm">/mo</span>
+                <p class="text-xs text-zinc-400">Based on subscribers</p>
               </div>
               <div class="text-center">
-                <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">
+                <span class="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-700">
                   <svg class="mr-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                   </svg>
@@ -532,18 +714,18 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-4 px-8 py-5 items-center hover:bg-gray-50 transition-colors">
+            <div class="grid grid-cols-3 gap-4 px-8 py-5 items-center hover:bg-zinc-50 transition-colors">
               <div>
-                <p class="font-medium text-gray-900">On-Call & Alerting</p>
-                <p class="text-sm text-gray-500">PagerDuty, OpsGenie</p>
+                <p class="font-medium text-zinc-900">On-Call & Alerting</p>
+                <p class="text-sm text-zinc-500">PagerDuty, OpsGenie</p>
               </div>
               <div class="text-center">
-                <span class="text-lg font-semibold text-gray-900">$210-490</span>
-                <span class="text-gray-500 text-sm">/mo</span>
-                <p class="text-xs text-gray-400">$21-49/user</p>
+                <span class="text-lg font-semibold text-zinc-900">$210-490</span>
+                <span class="text-zinc-500 text-sm">/mo</span>
+                <p class="text-xs text-zinc-400">$21-49/user</p>
               </div>
               <div class="text-center">
-                <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">
+                <span class="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-700">
                   <svg class="mr-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                   </svg>
@@ -552,18 +734,18 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-4 px-8 py-5 items-center hover:bg-gray-50 transition-colors">
+            <div class="grid grid-cols-3 gap-4 px-8 py-5 items-center hover:bg-zinc-50 transition-colors">
               <div>
-                <p class="font-medium text-gray-900">Incident Management</p>
-                <p class="text-sm text-gray-500">Incident.io, FireHydrant</p>
+                <p class="font-medium text-zinc-900">Incident Management</p>
+                <p class="text-sm text-zinc-500">Incident.io, FireHydrant</p>
               </div>
               <div class="text-center">
-                <span class="text-lg font-semibold text-gray-900">$250-450</span>
-                <span class="text-gray-500 text-sm">/mo</span>
-                <p class="text-xs text-gray-400">$25/user + on-call add-on</p>
+                <span class="text-lg font-semibold text-zinc-900">$250-450</span>
+                <span class="text-zinc-500 text-sm">/mo</span>
+                <p class="text-xs text-zinc-400">$25/user + on-call add-on</p>
               </div>
               <div class="text-center">
-                <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">
+                <span class="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-700">
                   <svg class="mr-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                   </svg>
@@ -573,18 +755,18 @@
             </div>
 
             <!-- Hidden costs row -->
-            <div class="grid grid-cols-3 gap-4 px-8 py-5 items-center bg-red-50/50">
+            <div class="grid grid-cols-3 gap-4 px-8 py-5 items-center bg-zinc-50">
               <div>
-                <p class="font-medium text-red-700">Add-ons & Hidden Costs</p>
-                <p class="text-sm text-red-500">AIOps, premium features, etc.</p>
+                <p class="font-medium text-zinc-700">Add-ons & Hidden Costs</p>
+                <p class="text-sm text-zinc-500">AIOps, premium features, etc.</p>
               </div>
               <div class="text-center">
-                <span class="text-lg font-semibold text-red-600">$200-1,500+</span>
-                <span class="text-red-400 text-sm">/mo</span>
-                <p class="text-xs text-red-400">Often required extras</p>
+                <span class="text-lg font-semibold text-zinc-700">$200-1,500+</span>
+                <span class="text-zinc-500 text-sm">/mo</span>
+                <p class="text-xs text-zinc-400">Often required extras</p>
               </div>
               <div class="text-center">
-                <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">
+                <span class="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-700">
                   <svg class="mr-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                   </svg>
@@ -595,32 +777,32 @@
           </div>
 
           <!-- Total -->
-          <div class="bg-gradient-to-r from-gray-900 to-gray-800 px-8 py-8">
+          <div class="bg-zinc-900 px-8 py-8">
             <div class="grid grid-cols-3 gap-4 items-center">
               <div>
-                <p class="text-lg font-bold text-white">Total Monthly Cost</p>
-                <p class="text-sm text-gray-400">For a team of 10</p>
+                <p class="text-lg font-semibold text-white">Total Monthly Cost</p>
+                <p class="text-sm text-zinc-400">For a team of 10</p>
               </div>
               <div class="text-center">
-                <span class="text-3xl font-bold text-red-400">$809-4,139</span>
-                <span class="text-gray-400">/mo</span>
-                <p class="text-sm text-gray-400 mt-1">$9,708-49,668/year</p>
+                <span class="text-3xl font-bold text-zinc-300">$809-4,139</span>
+                <span class="text-zinc-400">/mo</span>
+                <p class="text-sm text-zinc-500 mt-1">$9,708-49,668/year</p>
               </div>
               <div class="text-center">
-                <span class="text-3xl font-bold text-emerald-400">$0</span>
-                <span class="text-gray-400">/mo to start</span>
-                <p class="text-sm text-emerald-400 mt-1">Free tier available</p>
+                <span class="text-3xl font-bold text-white">$0</span>
+                <span class="text-zinc-400">/mo to start</span>
+                <p class="text-sm text-zinc-400 mt-1">Free tier available</p>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Savings callout -->
-        <div class="mt-8 rounded-2xl bg-emerald-600 p-6 text-center">
+        <div class="mt-8 rounded-2xl bg-zinc-900 p-6 text-center">
           <p class="text-lg font-semibold text-white">
             Average savings of <span class="text-2xl font-bold">$10,000+</span> per year by switching to OneUptime
           </p>
-          <p class="mt-2 text-emerald-100 text-sm">
+          <p class="mt-2 text-zinc-400 text-sm">
             Based on typical team costs. Calculator uses December 2024 pricing from official websites.
           </p>
         </div>
@@ -632,72 +814,72 @@
   <div class="bg-white py-20 sm:py-24">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="mx-auto max-w-2xl text-center mb-16">
-        <h2 class="text-base font-semibold leading-7 text-emerald-600">Why teams switch</h2>
-        <p class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+        <h2 class="text-sm font-semibold leading-7 text-zinc-500 uppercase tracking-wide">Why teams switch</h2>
+        <p class="mt-2 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
           More than just cost savings
         </p>
       </div>
 
       <div class="mx-auto max-w-5xl">
-        <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          <div class="rounded-2xl bg-gray-50 p-8">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 mb-6">
-              <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="rounded-xl bg-zinc-50 p-6 border border-zinc-100">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 mb-5">
+              <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">One Unified Platform</h3>
-            <p class="text-gray-600">No more jumping between tools. One dashboard, one vendor, one source of truth for your entire observability stack.</p>
+            <h3 class="text-base font-semibold text-zinc-900 mb-2">One Unified Platform</h3>
+            <p class="text-sm text-zinc-600 leading-relaxed">No more jumping between tools. One dashboard, one vendor, one source of truth for your entire observability stack.</p>
           </div>
 
-          <div class="rounded-2xl bg-gray-50 p-8">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 mb-6">
-              <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="rounded-xl bg-zinc-50 p-6 border border-zinc-100">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 mb-5">
+              <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Open Source</h3>
-            <p class="text-gray-600">Apache 2.0 licensed. Audit the code, contribute improvements, or self-host on your own infrastructure.</p>
+            <h3 class="text-base font-semibold text-zinc-900 mb-2">Open Source</h3>
+            <p class="text-sm text-zinc-600 leading-relaxed">Apache 2.0 licensed. Audit the code, contribute improvements, or self-host on your own infrastructure.</p>
           </div>
 
-          <div class="rounded-2xl bg-gray-50 p-8">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 mb-6">
-              <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="rounded-xl bg-zinc-50 p-6 border border-zinc-100">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 mb-5">
+              <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Vendor Lock-in</h3>
-            <p class="text-gray-600">Your data, your infrastructure. Export everything, self-host anytime. You're never locked in.</p>
+            <h3 class="text-base font-semibold text-zinc-900 mb-2">No Vendor Lock-in</h3>
+            <p class="text-sm text-zinc-600 leading-relaxed">Your data, your infrastructure. Export everything, self-host anytime. You're never locked in.</p>
           </div>
 
-          <div class="rounded-2xl bg-gray-50 p-8">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 mb-6">
-              <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="rounded-xl bg-zinc-50 p-6 border border-zinc-100">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 mb-5">
+              <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Faster Incident Response</h3>
-            <p class="text-gray-600">With monitoring, alerting, and incident management in one place, your team responds faster and resolves issues quicker.</p>
+            <h3 class="text-base font-semibold text-zinc-900 mb-2">Faster Incident Response</h3>
+            <p class="text-sm text-zinc-600 leading-relaxed">With monitoring, alerting, and incident management in one place, your team responds faster and resolves issues quicker.</p>
           </div>
 
-          <div class="rounded-2xl bg-gray-50 p-8">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 mb-6">
-              <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="rounded-xl bg-zinc-50 p-6 border border-zinc-100">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 mb-5">
+              <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Automatic Workflows</h3>
-            <p class="text-gray-600">Monitors trigger alerts, alerts create incidents, incidents update status pages. Everything connected automatically.</p>
+            <h3 class="text-base font-semibold text-zinc-900 mb-2">Automatic Workflows</h3>
+            <p class="text-sm text-zinc-600 leading-relaxed">Monitors trigger alerts, alerts create incidents, incidents update status pages. Everything connected automatically.</p>
           </div>
 
-          <div class="rounded-2xl bg-gray-50 p-8">
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 mb-6">
-              <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="rounded-xl bg-zinc-50 p-6 border border-zinc-100">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 mb-5">
+              <svg class="h-5 w-5 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Enterprise Ready</h3>
-            <p class="text-gray-600">SOC 2 compliant, SSO/SAML support, role-based access control, and audit logs. Ready for enterprise requirements.</p>
+            <h3 class="text-base font-semibold text-zinc-900 mb-2">Enterprise Ready</h3>
+            <p class="text-sm text-zinc-600 leading-relaxed">SOC 2 compliant, SSO/SAML support, role-based access control, and audit logs. Ready for enterprise requirements.</p>
           </div>
         </div>
       </div>
@@ -705,85 +887,85 @@
   </div>
 
   <!-- More Comparisons Section -->
-  <div class="bg-gray-50 py-16 sm:py-20">
+  <div class="bg-zinc-100 py-16 sm:py-20">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="mx-auto max-w-2xl text-center mb-12">
-        <h2 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+        <h2 class="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
           More comparison pages
         </h2>
-        <p class="mt-4 text-base text-gray-600">
+        <p class="mt-4 text-base text-zinc-600">
           See how OneUptime compares to other popular tools in the observability space
         </p>
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <!-- Datadog -->
-        <a href="/compare/datadog" class="group relative rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-emerald-300 transition-all text-center hover-lift">
-          <div class="flex h-12 w-12 mx-auto items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-700 mb-3">
-            <span class="text-xl font-bold text-white">D</span>
+        <a href="/compare/datadog" class="group relative rounded-xl bg-white p-6 ring-1 ring-zinc-200 hover:ring-zinc-400 transition-all text-center hover-lift">
+          <div class="flex h-12 w-12 mx-auto items-center justify-center rounded-lg bg-zinc-100 mb-3">
+            <span class="text-xl font-bold text-zinc-700">D</span>
           </div>
-          <h3 class="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">Datadog</h3>
-          <p class="text-xs text-gray-500 mt-1">APM & Monitoring</p>
-          <p class="text-xs font-medium text-purple-600 mt-2">$15-40+/host/mo</p>
+          <h3 class="font-semibold text-zinc-900 group-hover:text-zinc-700 transition-colors">Datadog</h3>
+          <p class="text-xs text-zinc-500 mt-1">APM & Monitoring</p>
+          <p class="text-xs font-medium text-zinc-600 mt-2">$15-40+/host/mo</p>
         </a>
 
         <!-- New Relic -->
-        <a href="/compare/newrelic" class="group relative rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-emerald-300 transition-all text-center hover-lift">
-          <div class="flex h-12 w-12 mx-auto items-center justify-center rounded-lg bg-gradient-to-br from-teal-500 to-teal-700 mb-3">
-            <span class="text-xl font-bold text-white">NR</span>
+        <a href="/compare/newrelic" class="group relative rounded-xl bg-white p-6 ring-1 ring-zinc-200 hover:ring-zinc-400 transition-all text-center hover-lift">
+          <div class="flex h-12 w-12 mx-auto items-center justify-center rounded-lg bg-zinc-100 mb-3">
+            <span class="text-xl font-bold text-zinc-700">NR</span>
           </div>
-          <h3 class="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">New Relic</h3>
-          <p class="text-xs text-gray-500 mt-1">Full-Stack Observability</p>
-          <p class="text-xs font-medium text-teal-600 mt-2">$99-349/user/mo</p>
+          <h3 class="font-semibold text-zinc-900 group-hover:text-zinc-700 transition-colors">New Relic</h3>
+          <p class="text-xs text-zinc-500 mt-1">Full-Stack Observability</p>
+          <p class="text-xs font-medium text-zinc-600 mt-2">$99-349/user/mo</p>
         </a>
 
         <!-- Better Stack -->
-        <a href="/compare/better-uptime" class="group relative rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-emerald-300 transition-all text-center hover-lift">
-          <div class="flex h-12 w-12 mx-auto items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 mb-3">
-            <span class="text-xl font-bold text-white">B</span>
+        <a href="/compare/better-uptime" class="group relative rounded-xl bg-white p-6 ring-1 ring-zinc-200 hover:ring-zinc-400 transition-all text-center hover-lift">
+          <div class="flex h-12 w-12 mx-auto items-center justify-center rounded-lg bg-zinc-100 mb-3">
+            <span class="text-xl font-bold text-zinc-700">B</span>
           </div>
-          <h3 class="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">Better Stack</h3>
-          <p class="text-xs text-gray-500 mt-1">Uptime & Logs</p>
-          <p class="text-xs font-medium text-indigo-600 mt-2">$0-29+/mo</p>
+          <h3 class="font-semibold text-zinc-900 group-hover:text-zinc-700 transition-colors">Better Stack</h3>
+          <p class="text-xs text-zinc-500 mt-1">Uptime & Logs</p>
+          <p class="text-xs font-medium text-zinc-600 mt-2">$0-29+/mo</p>
         </a>
 
         <!-- Uptime Robot -->
-        <a href="/compare/uptime-robot" class="group relative rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-emerald-300 transition-all text-center hover-lift">
-          <div class="flex h-12 w-12 mx-auto items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-green-700 mb-3">
-            <span class="text-xl font-bold text-white">U</span>
+        <a href="/compare/uptime-robot" class="group relative rounded-xl bg-white p-6 ring-1 ring-zinc-200 hover:ring-zinc-400 transition-all text-center hover-lift">
+          <div class="flex h-12 w-12 mx-auto items-center justify-center rounded-lg bg-zinc-100 mb-3">
+            <span class="text-xl font-bold text-zinc-700">U</span>
           </div>
-          <h3 class="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">Uptime Robot</h3>
-          <p class="text-xs text-gray-500 mt-1">Basic Monitoring</p>
-          <p class="text-xs font-medium text-green-600 mt-2">$0-54/mo</p>
+          <h3 class="font-semibold text-zinc-900 group-hover:text-zinc-700 transition-colors">Uptime Robot</h3>
+          <p class="text-xs text-zinc-500 mt-1">Basic Monitoring</p>
+          <p class="text-xs font-medium text-zinc-600 mt-2">$0-54/mo</p>
         </a>
 
         <!-- Checkly -->
-        <a href="/compare/checkly" class="group relative rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-emerald-300 transition-all text-center hover-lift">
-          <div class="flex h-12 w-12 mx-auto items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-cyan-700 mb-3">
-            <span class="text-xl font-bold text-white">C</span>
+        <a href="/compare/checkly" class="group relative rounded-xl bg-white p-6 ring-1 ring-zinc-200 hover:ring-zinc-400 transition-all text-center hover-lift">
+          <div class="flex h-12 w-12 mx-auto items-center justify-center rounded-lg bg-zinc-100 mb-3">
+            <span class="text-xl font-bold text-zinc-700">C</span>
           </div>
-          <h3 class="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">Checkly</h3>
-          <p class="text-xs text-gray-500 mt-1">Synthetic Monitoring</p>
-          <p class="text-xs font-medium text-cyan-600 mt-2">$0-64/mo</p>
+          <h3 class="font-semibold text-zinc-900 group-hover:text-zinc-700 transition-colors">Checkly</h3>
+          <p class="text-xs text-zinc-500 mt-1">Synthetic Monitoring</p>
+          <p class="text-xs font-medium text-zinc-600 mt-2">$0-64/mo</p>
         </a>
 
         <!-- SigNoz -->
-        <a href="/compare/signoz" class="group relative rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-emerald-300 transition-all text-center hover-lift">
-          <div class="flex h-12 w-12 mx-auto items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-red-600 mb-3">
-            <span class="text-xl font-bold text-white">S</span>
+        <a href="/compare/signoz" class="group relative rounded-xl bg-white p-6 ring-1 ring-zinc-200 hover:ring-zinc-400 transition-all text-center hover-lift">
+          <div class="flex h-12 w-12 mx-auto items-center justify-center rounded-lg bg-zinc-100 mb-3">
+            <span class="text-xl font-bold text-zinc-700">S</span>
           </div>
-          <h3 class="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">SigNoz</h3>
-          <p class="text-xs text-gray-500 mt-1">Open Source APM</p>
-          <p class="text-xs font-medium text-orange-600 mt-2">$49+/mo</p>
+          <h3 class="font-semibold text-zinc-900 group-hover:text-zinc-700 transition-colors">SigNoz</h3>
+          <p class="text-xs text-zinc-500 mt-1">Open Source APM</p>
+          <p class="text-xs font-medium text-zinc-600 mt-2">$49+/mo</p>
         </a>
       </div>
     </div>
   </div>
 
   <!-- CTA Section -->
-  <div class="relative isolate overflow-hidden bg-gray-900">
+  <div class="relative isolate overflow-hidden bg-zinc-950">
     <div class="absolute inset-0 -z-10 overflow-hidden">
-      <svg class="absolute left-[max(50%,25rem)] top-0 h-[64rem] w-[128rem] -translate-x-1/2 stroke-gray-700 [mask-image:radial-gradient(64rem_64rem_at_top,white,transparent)]" aria-hidden="true">
+      <svg class="absolute left-[max(50%,25rem)] top-0 h-[64rem] w-[128rem] -translate-x-1/2 stroke-zinc-800 [mask-image:radial-gradient(64rem_64rem_at_top,white,transparent)]" aria-hidden="true">
         <defs>
           <pattern id="cta-pattern-2" width="200" height="200" x="50%" y="-1" patternUnits="userSpaceOnUse">
             <path d="M100 200V.5M.5 .5H200" fill="none" />
@@ -795,21 +977,21 @@
 
     <div class="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:px-8">
       <div class="mx-auto max-w-2xl text-center">
-        <h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+        <h2 class="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
           Ready to consolidate your stack?
         </h2>
-        <p class="mx-auto mt-6 max-w-xl text-lg leading-8 text-gray-300">
+        <p class="mx-auto mt-6 max-w-xl text-lg leading-8 text-zinc-400">
           Join thousands of teams who have simplified their observability with OneUptime. Start free, no credit card required.
         </p>
         <div class="mt-10 flex items-center justify-center gap-x-6">
-          <a href="/accounts/register" class="rounded-lg bg-emerald-500 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-emerald-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400 transition-all">
+          <a href="/accounts/register" class="rounded-lg bg-white px-6 py-3 text-base font-semibold text-zinc-900 hover:bg-zinc-100 transition-all">
             Get Started Free
           </a>
-          <a href="/enterprise/demo" class="text-base font-semibold leading-6 text-white hover:text-emerald-400 transition-colors">
+          <a href="/enterprise/demo" class="text-base font-semibold leading-6 text-zinc-300 hover:text-white transition-colors">
             Book a Demo <span aria-hidden="true">→</span>
           </a>
         </div>
-        <p class="mt-6 text-sm text-gray-400">
+        <p class="mt-6 text-sm text-zinc-500">
           Free forever plan available. No credit card required.
         </p>
       </div>
