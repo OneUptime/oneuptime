@@ -15,7 +15,7 @@
       <% } %>
       <% for(let p = start; p<=end; p++){ %>
         <% if(p === page){ %>
-          <span class="px-3 py-2 text-sm font-semibold rounded-md bg-indigo-600 text-white border border-indigo-600"><%- p %></span>
+          <span class="px-3 py-2 text-sm font-semibold rounded-md bg-slate-600 text-white border border-slate-600"><%- p %></span>
         <% } else { %>
           <a href="<%- basePath %>?page=<%- p %>&pageSize=<%- pageSize %>" class="px-3 py-2 text-sm font-medium rounded-md border border-gray-200 bg-white hover:bg-gray-50"><%- p %></a>
         <% } %>
