@@ -27,7 +27,7 @@ const components: Array<ComponentMetadata> = [
         id: "chat-id",
         name: "Chat ID",
         description:
-          "The unique identifier for the target chat or username of the target channel (in the format @channelusername)",
+          "The unique identifier for the target chat or username of the target channel (in the format @channelusername). Please make sure the bot is added to the channel as an administrator.",
         type: ComponentInputType.Text,
         required: true,
         placeholder: "@channelname",
