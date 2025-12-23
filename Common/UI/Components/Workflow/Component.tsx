@@ -1,7 +1,7 @@
 import Icon, { ThickProp } from "../Icon/Icon";
 import Pill from "../Pill/Pill";
 import Tooltip from "../Tooltip/Tooltip";
-import { Green } from "../../../Types/BrandColors";
+import { Yellow } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   ComponentType,
@@ -20,32 +20,85 @@ export interface ComponentProps {
 const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const [isHovering, setIsHovering] = useState<boolean>(false);
 
-  let textColor: string = "#6b7280";
-  let descriptionColor: string = "#6b7280";
+  const isTrigger: boolean =
+    props.data.metadata.componentType === ComponentType.Trigger;
+  const isPlaceholder: boolean =
+    props.data.nodeType === NodeType.PlaceholderNode;
+  const hasError: boolean = Boolean(
+    props.data.error && !props.data.isPreview && !isPlaceholder,
+  );
 
-  if (isHovering) {
-    textColor = "#111827";
-    descriptionColor = "#111827";
-  }
-
-  let componentStyle: React.CSSProperties = {
-    width: "15rem",
-    height: "10rem",
-    padding: "1rem",
-    borderColor: props.selected ? "#6366f1" : textColor,
-    alignItems: "center",
-    borderRadius: "0.25rem",
-    borderWidth: "2px",
-    backgroundColor: "white",
-    display: "inline-block",
-    verticalAlign: "middle",
-    boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+  // Colors based on state
+  const getBorderColor = (): string => {
+    if (props.selected) {
+      return "#6366f1"; // indigo-500
+    }
+    if (hasError) {
+      return "#ef4444"; // red-500
+    }
+    if (isHovering) {
+      if (isPlaceholder) {
+        return "#a5b4fc"; // indigo-300
+      }
+      return "#818cf8"; // indigo-400
+    }
+    if (isPlaceholder) {
+      return "#cbd5e1"; // slate-300
+    }
+    if (isTrigger) {
+      return "#fbbf24"; // amber-400
+    }
+    return "#e2e8f0"; // slate-200
   };
 
-  let handleStyle: React.CSSProperties = {
-    background: "#6b7280",
-    height: "0.75rem",
-    width: "0.75rem",
+  const getBackgroundGradient = (): string => {
+    if (isPlaceholder) {
+      return "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)";
+    }
+    if (isTrigger) {
+      return "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)";
+    }
+    return "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)";
+  };
+
+  const getIconBackgroundColor = (): string => {
+    if (isPlaceholder) {
+      return isHovering ? "#e0e7ff" : "#f1f5f9";
+    }
+    if (isTrigger) {
+      return "#fef3c7";
+    }
+    if (props.selected) {
+      return "#e0e7ff";
+    }
+    return isHovering ? "#e0e7ff" : "#f1f5f9";
+  };
+
+  const getIconColor = (): string => {
+    if (isPlaceholder) {
+      return isHovering ? "#6366f1" : "#94a3b8";
+    }
+    if (isTrigger) {
+      return "#d97706";
+    }
+    if (props.selected || isHovering) {
+      return "#6366f1";
+    }
+    return "#64748b";
+  };
+
+  const getTitleColor = (): string => {
+    if (isPlaceholder) {
+      return isHovering ? "#475569" : "#94a3b8";
+    }
+    return isHovering || props.selected ? "#1e293b" : "#334155";
+  };
+
+  const getDescriptionColor = (): string => {
+    if (isPlaceholder) {
+      return isHovering ? "#64748b" : "#cbd5e1";
+    }
+    return "#64748b";
   };
 
   type GetPortPositionFunction = (
@@ -60,7 +113,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     isLabel: boolean,
   ): React.CSSProperties => {
     if (portCount === 1 && totalPorts === 1) {
-      return isLabel ? { left: 100 } : {};
+      return isLabel ? { left: 112 } : {};
     }
 
     if (portCount === 1 && totalPorts === 2) {
@@ -72,54 +125,37 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     }
 
     if (portCount === 1 && totalPorts === 3) {
-      return { left: isLabel ? 70 : 80 };
+      return { left: isLabel ? 50 : 60 };
     }
 
     if (portCount === 2 && totalPorts === 3) {
-      return isLabel ? { left: 100 } : {};
+      return isLabel ? { left: 112 } : {};
     }
 
     if (portCount === 3 && totalPorts === 3) {
-      return { left: isLabel ? 150 : 160 };
+      return { left: isLabel ? 170 : 180 };
     }
 
-    // default
     return {};
   };
 
-  if (props.data.nodeType === NodeType.PlaceholderNode) {
-    handleStyle = {
-      background: "#cbd5e1",
-      height: "0.75rem",
-      width: "0.75rem",
-    };
+  const handleStyle: React.CSSProperties = {
+    background: isPlaceholder ? "#cbd5e1" : "#6366f1",
+    height: "12px",
+    width: "12px",
+    border: "2px solid white",
+    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.2)",
+    transition: "transform 0.15s ease",
+  };
 
-    componentStyle = {
-      borderStyle: "dashed",
-      width: "15rem",
-      height: "8rem",
-      padding: "1rem",
-      display: "inline-block",
-      alignItems: "center",
-      verticalAlign: "middle",
-      borderColor: isHovering ? "#94a3b8" : "#cbd5e1",
-      borderRadius: "0.25rem",
-      borderWidth: "2px",
-      backgroundColor: "white",
-    };
-
-    textColor = "#cbd5e1";
-    descriptionColor = "#cbd5e1";
-
-    if (isHovering) {
-      textColor = "#94a3b8";
-      descriptionColor = "#94a3b8";
-    }
-  }
+  const handleHoverStyle: React.CSSProperties = {
+    ...handleStyle,
+    transform: "scale(1.2)",
+  };
 
   return (
     <div
-      className="cursor-pointer"
+      className="cursor-pointer transition-all duration-200"
       onMouseOver={() => {
         setIsHovering(true);
       }}
@@ -127,8 +163,20 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         setIsHovering(false);
       }}
       style={{
-        ...componentStyle,
-        height: props.data.id ? "12rem" : "10rem",
+        width: "240px",
+        minHeight: isPlaceholder ? "120px" : props.data.id ? "160px" : "140px",
+        padding: "16px",
+        borderRadius: "12px",
+        borderWidth: isPlaceholder ? "2px" : "1px",
+        borderStyle: isPlaceholder ? "dashed" : "solid",
+        borderColor: getBorderColor(),
+        background: getBackgroundGradient(),
+        boxShadow: props.selected
+          ? "0 0 0 3px rgba(99, 102, 241, 0.2), 0 10px 25px -5px rgba(0, 0, 0, 0.1)"
+          : isHovering
+            ? "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)"
+            : "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)",
+        transform: isHovering && !isPlaceholder ? "translateY(-2px)" : "none",
       }}
       onClick={() => {
         if (props.data.onClick) {
@@ -136,42 +184,35 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         }
       }}
     >
-      <div className="flex justify-center">
-        {props.data.metadata.componentType === ComponentType.Trigger &&
-          props.data.nodeType !== NodeType.PlaceholderNode &&
-          !props.data.isPreview && <Pill text="Trigger" color={Green} />}
-      </div>
-      {!props.data.isPreview &&
-        props.data.error &&
-        props.data.nodeType !== NodeType.PlaceholderNode && (
-          <div
-            style={{
-              width: "20px",
-              height: "20px",
-              borderRadius: "100px",
-              color: "#ef4444",
-              position: "absolute",
-              top: "0px",
-              left: "220px",
-              cursor: "pointer",
-            }}
-            onClick={() => {}}
-          >
-            <Icon
-              icon={IconProp.Alert}
-              style={{
-                color: "#ef4444",
-                width: "1rem",
-                height: "1rem",
-                textAlign: "center",
-                margin: "auto",
-                marginTop: "2px",
-              }}
-              thick={ThickProp.Thick}
-            />
-          </div>
+      {/* Badge area */}
+      <div className="flex justify-between items-start mb-2">
+        <div>
+          {isTrigger && !isPlaceholder && !props.data.isPreview && (
+            <Pill text="Trigger" color={Yellow} />
+          )}
+        </div>
+        {/* Error indicator */}
+        {hasError && (
+          <Tooltip text={props.data.error || "Error in component"}>
+            <div
+              className="flex items-center justify-center w-6 h-6 rounded-full bg-red-100"
+              style={{ cursor: "help" }}
+            >
+              <Icon
+                icon={IconProp.Alert}
+                style={{
+                  color: "#ef4444",
+                  width: "14px",
+                  height: "14px",
+                }}
+                thick={ThickProp.Thick}
+              />
+            </div>
+          </Tooltip>
         )}
+      </div>
 
+      {/* Input ports (top) */}
       {!props.data.isPreview &&
         props.data.metadata.componentType !== ComponentType.Trigger && (
           <div>
@@ -187,7 +228,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     isConnectable={true}
                     position={Position.Top}
                     style={{
-                      ...handleStyle,
+                      ...(isHovering ? handleHoverStyle : handleStyle),
                       ...getPortPosition(
                         i + 1,
                         props.data.metadata.inPorts.length,
@@ -200,120 +241,118 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           </div>
         )}
 
-      <div
-        style={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-        }}
-      >
-        <div
-          style={{
-            margin: "auto",
-            marginTop: props.data.metadata.iconProp ? "0.5rem" : "1rem",
-          }}
-        >
-          {props.data.metadata.iconProp && (
+      {/* Icon and content */}
+      <div className="flex flex-col items-center text-center">
+        {/* Icon container */}
+        {props.data.metadata.iconProp && (
+          <div
+            className="flex items-center justify-center rounded-xl mb-3 transition-colors duration-200"
+            style={{
+              width: "48px",
+              height: "48px",
+              backgroundColor: getIconBackgroundColor(),
+            }}
+          >
             <Icon
               icon={props.data.metadata.iconProp}
               style={{
-                color: textColor,
-                width: "1.5rem",
-                height: "1.5rem",
-                textAlign: "center",
-                margin: "auto",
+                color: getIconColor(),
+                width: "24px",
+                height: "24px",
               }}
             />
-          )}
+          </div>
+        )}
+
+        {/* Title */}
+        <p
+          className="font-semibold text-sm leading-tight mb-1 transition-colors duration-200"
+          style={{ color: getTitleColor() }}
+        >
+          {props.data.metadata.title}
+        </p>
+
+        {/* Component ID */}
+        {!props.data.isPreview && props.data.id && (
           <p
-            style={{
-              color: textColor,
-              fontSize: "0.875rem",
-              lineHeight: "1.25rem",
-              textAlign: "center",
-              marginTop: "6px",
-            }}
+            className="text-xs mb-1 font-mono"
+            style={{ color: "#94a3b8" }}
           >
-            {props.data.metadata.title}
+            {props.data.id}
           </p>
-          {!props.data.isPreview && props.data.id && (
-            <p
-              style={{
-                color: descriptionColor,
-                fontSize: "0.875rem",
-                textAlign: "center",
-              }}
-            >
-              ({props.data.id.trim()})
-            </p>
-          )}
-          <p
-            style={{
-              color: descriptionColor,
-              fontSize: "0.775rem",
-              lineHeight: "1.0rem",
-              textAlign: "center",
-              marginTop: "6px",
-            }}
-          >
-            {props.data.metadata.description}
-          </p>
-        </div>
+        )}
+
+        {/* Description */}
+        <p
+          className="text-xs leading-tight transition-colors duration-200"
+          style={{
+            color: getDescriptionColor(),
+            maxWidth: "200px",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+          }}
+        >
+          {props.data.metadata.description}
+        </p>
       </div>
 
-      {!props.data.isPreview &&
-        props.data.nodeType !== NodeType.PlaceholderNode && (
-          <>
-            <div>
-              {props.data.metadata.outPorts &&
-                props.data.metadata.outPorts.length > 0 &&
-                props.data.metadata.outPorts.map((port: Port, i: number) => {
-                  return (
-                    <Handle
-                      key={i}
-                      type="source"
-                      id={port.id}
-                      onConnect={(_params: Connection) => {}}
-                      isConnectable={true}
-                      position={Position.Bottom}
+      {/* Output ports (bottom) */}
+      {!props.data.isPreview && !isPlaceholder && (
+        <>
+          <div>
+            {props.data.metadata.outPorts &&
+              props.data.metadata.outPorts.length > 0 &&
+              props.data.metadata.outPorts.map((port: Port, i: number) => {
+                return (
+                  <Handle
+                    key={i}
+                    type="source"
+                    id={port.id}
+                    onConnect={(_params: Connection) => {}}
+                    isConnectable={true}
+                    position={Position.Bottom}
+                    style={{
+                      ...(isHovering ? handleHoverStyle : handleStyle),
+                      ...getPortPosition(
+                        i + 1,
+                        props.data.metadata.outPorts.length,
+                        false,
+                      ),
+                    }}
+                  />
+                );
+              })}
+          </div>
+          {/* Port labels */}
+          <div>
+            {props.data.metadata.outPorts &&
+              props.data.metadata.outPorts.length > 1 &&
+              props.data.metadata.outPorts.map((port: Port, i: number) => {
+                return (
+                  <Tooltip key={i} text={port.description || ""}>
+                    <div
+                      className="absolute text-xs font-medium"
                       style={{
-                        ...handleStyle,
+                        bottom: "8px",
+                        color: "#94a3b8",
                         ...getPortPosition(
                           i + 1,
                           props.data.metadata.outPorts.length,
-                          false,
+                          true,
                         ),
                       }}
-                    />
-                  );
-                })}
-            </div>
-            <div>
-              {props.data.metadata.outPorts &&
-                props.data.metadata.outPorts.length > 0 &&
-                props.data.metadata.outPorts.map((port: Port, i: number) => {
-                  return (
-                    <Tooltip key={i} text={port.description || ""}>
-                      <div
-                        key={i}
-                        className="text-sm text-gray-400 absolute"
-                        style={{
-                          bottom: "10px",
-                          ...getPortPosition(
-                            i + 1,
-                            props.data.metadata.outPorts.length,
-                            true,
-                          ),
-                        }}
-                      >
-                        {port.title}
-                      </div>
-                    </Tooltip>
-                  );
-                })}
-            </div>
-          </>
-        )}
+                    >
+                      {port.title}
+                    </div>
+                  </Tooltip>
+                );
+              })}
+          </div>
+        </>
+      )}
     </div>
   );
 };

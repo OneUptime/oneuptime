@@ -2,10 +2,10 @@ import WorkflowComponent from "./Component";
 import ComponentSettingsModal from "./ComponentSettingsModal";
 import ComponentsModal from "./ComponentsModal";
 import RunModal from "./RunModal";
+import WorkflowEmptyState from "./WorkflowEmptyState";
 import { loadComponentsAndCategories } from "./Utils";
 import { VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
-import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ComponentMetadata, {
   ComponentCategory,
@@ -22,7 +22,9 @@ import React, {
 } from "react";
 import ReactFlow, {
   Background,
+  BackgroundVariant,
   Connection,
+  ConnectionLineType,
   Controls,
   Edge,
   MarkerType,
@@ -41,6 +43,7 @@ import ReactFlow, {
 } from "reactflow";
 // 👇 you need to import the reactflow styles
 import "reactflow/dist/style.css";
+import "./WorkflowCanvas.css";
 
 type GetPlaceholderTriggerNodeFunction = () => Node;
 
@@ -77,23 +80,59 @@ const edgeStyle: React.CSSProperties = {
 };
 
 const selectedEdgeStyle: React.CSSProperties = {
-  strokeWidth: "2px",
-  stroke: "#818cf8",
-  color: "#818cf8",
+  strokeWidth: "3px",
+  stroke: "#6366f1",
+  color: "#6366f1",
 };
 
-type GetEdgeDefaultPropsFunction = (selected: boolean) => JSONObject;
+const animatedEdgeStyle: React.CSSProperties = {
+  strokeWidth: "2px",
+  stroke: "#10b981",
+  color: "#10b981",
+};
+
+interface EdgeDefaultProps {
+  type: string;
+  markerEnd: {
+    type: MarkerType;
+    color: string;
+    width: number;
+    height: number;
+  };
+  style: React.CSSProperties;
+  animated: boolean;
+}
+
+type GetEdgeDefaultPropsFunction = (
+  selected: boolean,
+  animated?: boolean,
+) => EdgeDefaultProps;
 
 export const getEdgeDefaultProps: GetEdgeDefaultPropsFunction = (
   selected: boolean,
-): JSONObject => {
+  animated?: boolean,
+): EdgeDefaultProps => {
+  let style: React.CSSProperties = edgeStyle;
+  let markerColor: string = edgeStyle.color?.toString() || "#94a3b8";
+
+  if (selected) {
+    style = selectedEdgeStyle;
+    markerColor = selectedEdgeStyle.color?.toString() || "#6366f1";
+  } else if (animated) {
+    style = animatedEdgeStyle;
+    markerColor = animatedEdgeStyle.color?.toString() || "#10b981";
+  }
+
   return {
     type: "smoothstep",
     markerEnd: {
-      type: MarkerType.Arrow,
-      color: edgeStyle.color?.toString() || "",
+      type: MarkerType.ArrowClosed,
+      color: markerColor,
+      width: 20,
+      height: 20,
     },
-    style: selected ? { ...selectedEdgeStyle } : { ...edgeStyle },
+    style,
+    animated: animated || false,
   };
 };
 
@@ -398,15 +437,23 @@ const WorkflowInner: FunctionComponent<WorkflowInnerProps> = (
     }
   };
 
+  const [isDragOver, setIsDragOver] = useState<boolean>(false);
+
   // Drag and drop handlers for sidebar components
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
+    setIsDragOver(true);
+  }, []);
+
+  const onDragLeave = useCallback(() => {
+    setIsDragOver(false);
   }, []);
 
   const onDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
+      setIsDragOver(false);
 
       const dataStr: string = event.dataTransfer.getData("application/reactflow");
       if (!dataStr) {
@@ -449,12 +496,61 @@ const WorkflowInner: FunctionComponent<WorkflowInnerProps> = (
     [props.allComponentMetadataLoaded, reactFlowInstance, addToGraph],
   );
 
+  // Custom minimap node color
+  const minimapNodeColor = (node: Node): string => {
+    if (node.data?.nodeType === NodeType.PlaceholderNode) {
+      return "#e2e8f0";
+    }
+    if (node.data?.componentType === ComponentType.Trigger) {
+      return "#fbbf24";
+    }
+    return "#6366f1";
+  };
+
+  // Check if workflow is essentially empty (only has placeholder or single trigger)
+  const isWorkflowEmpty: boolean =
+    nodes.length === 0 ||
+    (nodes.length === 1 &&
+      nodes[0]?.data?.nodeType === NodeType.PlaceholderNode);
+
+  const hasTrigger: boolean = nodes.some((node: Node) => {
+    return (
+      node.data?.componentType === ComponentType.Trigger &&
+      node.data?.nodeType === NodeType.Node
+    );
+  });
+
   return (
-    <div className="h-full" ref={reactFlowWrapper}>
+    <div
+      className={`h-full relative transition-all duration-200 ${isDragOver ? "ring-2 ring-inset ring-indigo-400" : ""}`}
+      ref={reactFlowWrapper}
+      onDragLeave={onDragLeave}
+    >
+      {/* Drop zone overlay */}
+      {isDragOver && (
+        <div className="absolute inset-0 bg-indigo-50/30 z-10 pointer-events-none flex items-center justify-center">
+          <div className="bg-white/90 px-6 py-3 rounded-lg shadow-lg border-2 border-dashed border-indigo-400">
+            <p className="text-indigo-600 font-medium text-sm">
+              Drop component here
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state hint */}
+      {isWorkflowEmpty && !isDragOver && (
+        <WorkflowEmptyState hasTrigger={hasTrigger} />
+      )}
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
         fitView={true}
+        fitViewOptions={{
+          padding: 0.2,
+          minZoom: 0.5,
+          maxZoom: 1.5,
+        }}
         onEdgeClick={() => {
           refreshEdges();
         }}
@@ -472,10 +568,46 @@ const WorkflowInner: FunctionComponent<WorkflowInnerProps> = (
         onEdgeUpdateEnd={onEdgeUpdateEnd}
         onDrop={onDrop}
         onDragOver={onDragOver}
+        defaultEdgeOptions={{
+          type: "smoothstep",
+          style: edgeStyle,
+        }}
+        connectionLineStyle={{
+          stroke: "#6366f1",
+          strokeWidth: 2,
+        }}
+        connectionLineType={ConnectionLineType.SmoothStep}
+        snapToGrid={true}
+        snapGrid={[15, 15]}
+        minZoom={0.2}
+        maxZoom={2}
       >
-        <MiniMap />
-        <Controls />
-        <Background color="#111827" />
+        <MiniMap
+          nodeColor={minimapNodeColor}
+          maskColor="rgba(0, 0, 0, 0.1)"
+          style={{
+            backgroundColor: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            borderRadius: "8px",
+          }}
+          zoomable
+          pannable
+        />
+        <Controls
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px",
+          }}
+          showInteractive={false}
+        />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={20}
+          size={1}
+          color="#d1d5db"
+          style={{ backgroundColor: "#f9fafb" }}
+        />
       </ReactFlow>
 
       {showComponentsModal && (

@@ -1,0 +1,115 @@
+/* Custom styles for ReactFlow workflow canvas */
+
+/* Controls styling */
+.react-flow__controls {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: white;
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+.react-flow__controls-button:hover {
+  background: #f1f5f9;
+}
+
+.react-flow__controls-button svg {
+  fill: #64748b;
+  width: 14px;
+  height: 14px;
+}
+
+.react-flow__controls-button:hover svg {
+  fill: #334155;
+}
+
+/* MiniMap styling */
+.react-flow__minimap {
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+
+/* Edge animation */
+.react-flow__edge.animated path {
+  stroke-dasharray: 5;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+  from {
+    stroke-dashoffset: 10;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Connection line while dragging */
+.react-flow__connection-line {
+  stroke: #6366f1;
+  stroke-width: 2px;
+}
+
+/* Handle (port) hover effects */
+.react-flow__handle:hover {
+  transform: scale(1.3);
+}
+
+/* Selection box */
+.react-flow__selection {
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px dashed #6366f1;
+}
+
+/* Node selection */
+.react-flow__node.selected {
+  box-shadow: 0 0 0 2px #6366f1;
+}
+
+/* Attribution (hidden) */
+.react-flow__attribution {
+  display: none;
+}
+
+/* Panel styling */
+.react-flow__panel {
+  margin: 12px;
+}
+
+/* Smooth transitions */
+.react-flow__node {
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+/* Edge path */
+.react-flow__edge-path {
+  transition: stroke 0.15s ease, stroke-width 0.15s ease;
+}
+
+/* Edge interaction path (wider for easier clicking) */
+.react-flow__edge-interaction {
+  stroke-width: 20px;
+}
+
+/* Background pattern enhancement */
+.react-flow__background {
+  opacity: 1;
+}
