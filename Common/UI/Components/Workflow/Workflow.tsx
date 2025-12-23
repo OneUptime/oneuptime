@@ -31,11 +31,13 @@ import ReactFlow, {
   NodeTypes,
   OnConnect,
   ProOptions,
+  ReactFlowProvider,
   addEdge,
   getConnectedEdges,
   updateEdge,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from "reactflow";
 // 👇 you need to import the reactflow styles
 import "reactflow/dist/style.css";
@@ -105,26 +107,20 @@ export interface ComponentProps {
   workflowId: ObjectID;
   onRunModalUpdate: (isModalShown: boolean) => void;
   onRun: (trigger: NodeDataProp) => void;
+  allComponentMetadata?: Array<ComponentMetadata>;
 }
 
-const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
-  const [allComponentMetadata, setAllComponentMetadata] = useState<
-    Array<ComponentMetadata>
-  >([]);
-  const [allComponentCategories, setAllComponentCategories] = useState<
-    Array<ComponentCategory>
-  >([]);
+// Inner component that uses useReactFlow hook
+interface WorkflowInnerProps extends ComponentProps {
+  allComponentMetadataLoaded: Array<ComponentMetadata>;
+  allComponentCategoriesLoaded: Array<ComponentCategory>;
+}
 
-  useEffect(() => {
-    const value: {
-      components: Array<ComponentMetadata>;
-      categories: Array<ComponentCategory>;
-    } = loadComponentsAndCategories();
-
-    setAllComponentCategories(value.categories);
-    setAllComponentMetadata(value.components);
-  }, []);
-
+const WorkflowInner: FunctionComponent<WorkflowInnerProps> = (
+  props: WorkflowInnerProps,
+) => {
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const reactFlowInstance = useReactFlow();
   const edgeUpdateSuccessful: any = useRef(true);
   const [showComponentSettingsModal, setShowComponentSettingsModal] =
     useState<boolean>(false);
@@ -334,12 +330,17 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     props.onRunModalUpdate(showRunModal);
   }, [showRunModal]);
 
-  type AddToGraphFunction = (componentMetadata: ComponentMetadata) => void;
+  type AddToGraphFunction = (
+    componentMetadata: ComponentMetadata,
+    position?: { x: number; y: number },
+  ) => void;
 
   const addToGraph: AddToGraphFunction = (
     componentMetadata: ComponentMetadata,
+    position?: { x: number; y: number },
   ) => {
     const metaDataId: string = componentMetadata.id;
+    const nodePosition: { x: number; y: number } = position || { x: 200, y: 200 };
 
     let hasFoundExistingId: boolean = true;
     let idCounter: number = 1;
@@ -361,7 +362,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const compToAdd: Node = {
       id: ObjectID.generate().toString(), // react-flow id
       type: "node",
-      position: { x: 200, y: 200 },
+      position: nodePosition,
       selected: true,
       data: {
         nodeType: NodeType.Node,
@@ -397,8 +398,59 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     }
   };
 
+  // Drag and drop handlers for sidebar components
+  const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+
+      const dataStr: string = event.dataTransfer.getData("application/reactflow");
+      if (!dataStr) {
+        return;
+      }
+
+      try {
+        const data: { componentId: string; componentType: ComponentType } =
+          JSON.parse(dataStr);
+
+        // Find the component metadata
+        const componentMetadata: ComponentMetadata | undefined = (
+          props.allComponentMetadataLoaded || []
+        ).find((c: ComponentMetadata) => {
+          return c.id === data.componentId;
+        });
+
+        if (!componentMetadata) {
+          return;
+        }
+
+        // Get the position relative to the canvas
+        const bounds: DOMRect | undefined =
+          reactFlowWrapper.current?.getBoundingClientRect();
+        if (!bounds) {
+          return;
+        }
+
+        const position: { x: number; y: number } =
+          reactFlowInstance.screenToFlowPosition({
+            x: event.clientX,
+            y: event.clientY,
+          });
+
+        addToGraph(componentMetadata, position);
+      } catch (e) {
+        // Invalid JSON data
+      }
+    },
+    [props.allComponentMetadataLoaded, reactFlowInstance, addToGraph],
+  );
+
   return (
-    <div className="h-[48rem]">
+    <div className="h-full" ref={reactFlowWrapper}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -418,6 +470,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         nodeTypes={nodeTypes}
         onEdgeUpdateStart={onEdgeUpdateStart}
         onEdgeUpdateEnd={onEdgeUpdateEnd}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
       >
         <MiniMap />
         <Controls />
@@ -430,10 +484,12 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           onCloseModal={() => {
             setShowComponentsModal(false);
           }}
-          categories={allComponentCategories}
-          components={allComponentMetadata.filter((comp: ComponentMetadata) => {
-            return comp.componentType === ComponentType.Component;
-          })}
+          categories={props.allComponentCategoriesLoaded}
+          components={props.allComponentMetadataLoaded.filter(
+            (comp: ComponentMetadata) => {
+              return comp.componentType === ComponentType.Component;
+            },
+          )}
           onComponentClick={(component: ComponentMetadata) => {
             setShowComponentsModal(false);
 
@@ -448,10 +504,12 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           onCloseModal={() => {
             setShowTriggersModal(false);
           }}
-          categories={allComponentCategories}
-          components={allComponentMetadata.filter((comp: ComponentMetadata) => {
-            return comp.componentType === ComponentType.Trigger;
-          })}
+          categories={props.allComponentCategoriesLoaded}
+          components={props.allComponentMetadataLoaded.filter(
+            (comp: ComponentMetadata) => {
+              return comp.componentType === ComponentType.Trigger;
+            },
+          )}
           onComponentClick={(component: ComponentMetadata) => {
             setShowTriggersModal(false);
 
@@ -522,4 +580,39 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   );
 };
 
+// Main Workflow component that wraps everything in ReactFlowProvider
+const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
+  const [allComponentMetadata, setAllComponentMetadata] = useState<
+    Array<ComponentMetadata>
+  >([]);
+  const [allComponentCategories, setAllComponentCategories] = useState<
+    Array<ComponentCategory>
+  >([]);
+
+  useEffect(() => {
+    const value: {
+      components: Array<ComponentMetadata>;
+      categories: Array<ComponentCategory>;
+    } = loadComponentsAndCategories();
+
+    setAllComponentCategories(value.categories);
+    setAllComponentMetadata(value.components);
+  }, []);
+
+  return (
+    <ReactFlowProvider>
+      <WorkflowInner
+        {...props}
+        allComponentMetadataLoaded={
+          props.allComponentMetadata || allComponentMetadata
+        }
+        allComponentCategoriesLoaded={allComponentCategories}
+      />
+    </ReactFlowProvider>
+  );
+};
+
 export default Workflow;
+
+// Export for use in WorkflowBuilderLayout
+export { loadComponentsAndCategories };

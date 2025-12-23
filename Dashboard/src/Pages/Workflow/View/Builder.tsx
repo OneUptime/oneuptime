@@ -2,7 +2,6 @@ import PageComponentProps from "../../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
@@ -13,8 +12,7 @@ import ComponentMetadata, {
   NodeType,
 } from "Common/Types/Workflow/Component";
 import Banner from "Common/UI/Components/Banner/Banner";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Card from "Common/UI/Components/Card/Card";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { loadComponentsAndCategories } from "Common/UI/Components/Workflow/Utils";
@@ -22,6 +20,8 @@ import Workflow, {
   getEdgeDefaultProps,
   getPlaceholderTriggerNode,
 } from "Common/UI/Components/Workflow/Workflow";
+import WorkflowBuilderLayout from "Common/UI/Components/Workflow/WorkflowBuilderLayout";
+import { applyAutoLayout } from "Common/UI/Components/Workflow/workflowLayoutUtils";
 import { WORKFLOW_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -31,6 +31,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useState,
 } from "react";
 import { Edge, Node } from "reactflow";
@@ -56,6 +57,44 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     useState<boolean>(false);
 
   const [showRunModal, setShowRunModal] = useState<boolean>(false);
+
+  const [isAutoLayouting, setIsAutoLayouting] = useState<boolean>(false);
+
+  // Load component metadata for sidebar
+  const [allComponentMetadata, setAllComponentMetadata] = useState<
+    Array<ComponentMetadata>
+  >([]);
+  const [allComponentCategories, setAllComponentCategories] = useState<
+    Array<ComponentCategory>
+  >([]);
+
+  useEffect(() => {
+    const value: {
+      components: Array<ComponentMetadata>;
+      categories: Array<ComponentCategory>;
+    } = loadComponentsAndCategories();
+
+    setAllComponentCategories(value.categories);
+    setAllComponentMetadata(value.components);
+  }, []);
+
+  const handleAutoLayout = async (): Promise<void> => {
+    if (nodes.length < 2) {
+      return;
+    }
+
+    setIsAutoLayouting(true);
+    try {
+      const result: { nodes: Array<Node>; edges: Array<Edge> } =
+        await applyAutoLayout(nodes, edges);
+      setNodes(result.nodes);
+      setEdges(result.edges);
+      await saveGraph(result.nodes, result.edges);
+    } catch (err) {
+      setError("Failed to apply auto layout");
+    }
+    setIsAutoLayouting(false);
+  };
 
   const loadGraph: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -261,36 +300,23 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           link={URL.fromString("https://youtu.be/k1-reCQTZnM")}
           hideOnMobile={true}
         />
-        <Card
-          title={"Workflow Builder"}
-          description={"Workflow builder for OneUptime"}
-          rightElement={
-            <div className="flex">
-              <p className="text-sm text-gray-400 mr-3 mt-2">{saveStatus}</p>
-              <div>
-                <Button
-                  title="Add Component"
-                  icon={IconProp.Add}
-                  onClick={() => {
-                    setShowComponentPickerModal(true);
-                  }}
-                />
-              </div>
-              <div>
-                <Button
-                  title="Run Workflow Manually"
-                  icon={IconProp.Play}
-                  onClick={() => {
-                    setShowRunModal(true);
-                  }}
-                />
-              </div>
-            </div>
-          }
-        >
-          {isLoading ? <ComponentLoader /> : <></>}
 
-          {!isLoading ? (
+        {isLoading ? (
+          <div className="p-8">
+            <ComponentLoader />
+          </div>
+        ) : (
+          <WorkflowBuilderLayout
+            components={allComponentMetadata}
+            categories={allComponentCategories}
+            nodes={nodes}
+            saveStatus={saveStatus}
+            onRunWorkflow={() => {
+              setShowRunModal(true);
+            }}
+            onAutoLayout={handleAutoLayout}
+            isAutoLayouting={isAutoLayouting}
+          >
             <Workflow
               workflowId={modelId}
               showComponentsPickerModal={showComponentPickerModal}
@@ -303,6 +329,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }}
               showRunModal={showRunModal}
               initialEdges={edges}
+              allComponentMetadata={allComponentMetadata}
               onWorkflowUpdated={async (
                 nodes: Array<Node>,
                 edges: Array<Edge>,
@@ -333,10 +360,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 }
               }}
             />
-          ) : (
-            <></>
-          )}
-        </Card>
+          </WorkflowBuilderLayout>
+        )}
         {error && (
           <ConfirmModal
             title={`Error`}
