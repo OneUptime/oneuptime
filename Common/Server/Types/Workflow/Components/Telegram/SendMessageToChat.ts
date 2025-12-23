@@ -89,23 +89,52 @@ export default class SendMessageToChat extends ComponentCode {
         },
       });
 
+      const helpMessage: string =
+        " Note: For usernames, the user must have started a conversation with the bot first. For groups/channels, the bot must be added as a member or admin.";
+
       if (apiResult instanceof HTTPErrorResponse) {
+        // Telegram returns errors in 'description' field
+        const telegramError: string =
+          (apiResult.data?.["description"] as string) ||
+          apiResult.message ||
+          "Server Error.";
         return Promise.resolve({
           returnValues: {
-            error: apiResult.message || "Server Error.",
+            error: telegramError + helpMessage,
           },
           executePort: errorPort,
         });
       }
+
+      // Check if Telegram returned ok: false (some errors return 200 OK)
+      if (apiResult.data && apiResult.data["ok"] === false) {
+        const telegramError: string =
+          (apiResult.data["description"] as string) || "Telegram API Error.";
+        return Promise.resolve({
+          returnValues: {
+            error: telegramError + helpMessage,
+          },
+          executePort: errorPort,
+        });
+      }
+
       return Promise.resolve({
         returnValues: {},
         executePort: successPort,
       });
     } catch (err) {
+      const helpMessage: string =
+        " Note: For usernames, the user must have started a conversation with the bot first. For groups/channels, the bot must be added as a member or admin.";
+
       if (err instanceof HTTPErrorResponse) {
+        // Telegram returns errors in 'description' field
+        const telegramError: string =
+          (err.data?.["description"] as string) ||
+          err.message ||
+          "Server Error.";
         return Promise.resolve({
           returnValues: {
-            error: err.message || "Server Error.",
+            error: telegramError + helpMessage,
           },
           executePort: errorPort,
         });
