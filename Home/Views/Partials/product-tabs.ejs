@@ -27,86 +27,98 @@
                     <!-- Current: "border-gray-500 text-gray-600", Default: "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700" -->
                     <button type="button" onclick="showTab('status-pages')" id="tab-status-pages" role="tab" aria-selected="true" aria-controls="panel-status-pages"
                         class="tab-status-pages-button tab-1-button cursor-pointer border-gray-500 text-gray-600 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="0" aria-label="Status Pages - communicates service availability to users">
-                        <!-- Current: "text-gray-500", Default: "text-gray-400 group-hover:text-gray-500" -->
-                        <svg class="icon-tab-1 text-gray-400 text-gray-500 -ml-0.5 mr-2 h-5 w-5"
-                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 mr-2">
+                            <svg class="icon-tab-1 text-emerald-600 h-4 w-4"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </span>
                         <span>Status Pages</span>
                     </button>
                     <button type="button" onclick="showTab('monitoring')" id="tab-monitoring" role="tab" aria-selected="false" aria-controls="panel-monitoring"
                         class="tab-monitoring-button tab-2-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Monitoring - uptime, performance and synthetic checks">
-                        <svg class="icon-tab-2 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
-                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-                        </svg>
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 mr-2">
+                            <svg class="icon-tab-2 text-blue-600 h-4 w-4"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+                            </svg>
+                        </span>
                         <span>Monitoring</span>
                     </button>
                     <button type="button" onclick="showTab('incidents')" id="tab-incidents" role="tab" aria-selected="false" aria-controls="panel-incidents"
                         class="tab-incidents-button tab-3-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Incidents - detect, respond and learn from outages">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                            class="icon-tab-3 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5" fill="none"
-                            viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                        </svg>
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 mr-2">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="icon-tab-3 text-amber-600 h-4 w-4" fill="none"
+                                viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                            </svg>
+                        </span>
                         <span>Incidents</span>
                     </button>
                     <button type="button" onclick="showTab('on-call')" id="tab-on-call" role="tab" aria-selected="false" aria-controls="panel-on-call"
                         class="tab-on-call-button tab-4-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="On Call Alerts - intelligent alert routing and scheduling">
-                        <svg class="icon-tab-4 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
-                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                        </svg>
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-purple-50 mr-2">
+                            <svg class="icon-tab-4 text-purple-600 h-4 w-4"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                            </svg>
+                        </span>
                         <span>On Call Alerts</span>
                     </button>
 
                     <button type="button" onclick="showTab('logs')" id="tab-logs" role="tab" aria-selected="false" aria-controls="panel-logs"
                         class="tab-logs-button tab-5-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Logs - centralized log management and analytics">
-                        <svg class="icon-tab-5 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" >
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
-                          </svg>
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 mr-2">
+                            <svg class="icon-tab-5 text-slate-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
+                            </svg>
+                        </span>
                         <span>Logs</span>
                     </button>
 
                     <button type="button" onclick="showTab('apm')" id="tab-apm" role="tab" aria-selected="false" aria-controls="panel-apm"
                         class="tab-apm-button tab-6-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="APM - metrics, traces and error tracking for applications">
-                    
-                        <svg class="icon-tab-6 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
-                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l3-9 4 18 3-9h4" />
-                        </svg>
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-teal-50 mr-2">
+                            <svg class="icon-tab-6 text-teal-600 h-4 w-4"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l3-9 4 18 3-9h4" />
+                            </svg>
+                        </span>
                         <span>APM</span>
                     </button>
 
                     <button type="button" onclick="showTab('workflows')" id="tab-workflows" role="tab" aria-selected="false" aria-controls="panel-workflows"
                         class="tab-workflows-button tab-7-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Workflows - automate reliability operations and responses">
-
-                        <svg class="icon-tab-7 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
-                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-6 h-6">
-                            <path strokeLinecap="round" strokeLinejoin="round"
-                                d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z" />
-                        </svg>
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-indigo-50 mr-2">
+                            <svg class="icon-tab-7 text-indigo-600 h-4 w-4"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z" />
+                            </svg>
+                        </span>
                         <span>Workflows</span>
                     </button>
 
                     <button type="button" onclick="showTab('ai-agent')" id="tab-ai-agent" role="tab" aria-selected="false" aria-controls="panel-ai-agent"
                         class="tab-ai-agent-button tab-8-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="AI Agent - intelligent automation powered by AI">
-
-                        <svg class="icon-tab-8 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
-                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
-                        </svg>
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-violet-50 mr-2">
+                            <svg class="icon-tab-8 text-violet-600 h-4 w-4"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+                            </svg>
+                        </span>
                         <span>AI Agent</span>
                     </button>
                 </nav>
