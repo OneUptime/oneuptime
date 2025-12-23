@@ -1,5 +1,5 @@
 import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
-import { Page, expect, test } from "@playwright/test";
+import { Locator, Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 
 test.beforeEach(async ({ page }: { page: Page }) => {
@@ -30,7 +30,7 @@ test.describe("navigation bar", () => {
     if (!IS_BILLING_ENABLED) {
       return;
     }
-    const navPricingLink = page
+    const navPricingLink: Locator = page
       .getByRole("navigation")
       .getByRole("link", { name: "Pricing" });
     await navPricingLink.click();
@@ -45,7 +45,7 @@ test.describe("navigation bar", () => {
     if (!IS_BILLING_ENABLED) {
       return;
     }
-    const navEnterpriseLink = page
+    const navEnterpriseLink: Locator = page
       .getByRole("navigation")
       .getByRole("link", { name: "Enterprise" });
     await navEnterpriseLink.click();
