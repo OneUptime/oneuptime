@@ -23,7 +23,7 @@
         "Common": "file:../Common",
         "ejs": "^3.1.10",
         "ts-node": "^10.9.1",
-        "xmlbuilder2": "^4.0.0"
+        "xmlbuilder2": "^4.0.3"
     },
     "devDependencies": {
         "@types/jest": "^29.5.11",
