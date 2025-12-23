@@ -66,9 +66,7 @@ export default class SendMessageToChat extends ComponentCode {
     }
 
     if (!args["text"]) {
-      throw options.onError(
-        new BadDataException("Telegram message not found"),
-      );
+      throw options.onError(new BadDataException("Telegram message not found"));
     }
 
     const botToken: string = args["bot-token"]?.toString() as string;
