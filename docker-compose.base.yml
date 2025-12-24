@@ -407,7 +407,7 @@ services:
         restart: always
         network_mode: host
         environment:
-            AI_AGENT_ID: ${AI_AGENT_ID}
+            <<: *common-runtime-variables
             AI_AGENT_KEY: ${AI_AGENT_KEY}
             ONEUPTIME_URL: ${AI_AGENT_ONEUPTIME_URL}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_AI_AGENT}
