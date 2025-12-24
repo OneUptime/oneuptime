@@ -30,6 +30,8 @@ type TemplateIdsMap = {
   readonly OnCallUserAddedToPolicyNotification: "oneuptime_oncall_user_added_to_policy_notification";
   readonly OnCallUserRemovedFromPolicyNotification: "oneuptime_oncall_user_removed_from_policy_notification";
   readonly OnCallUserNoLongerActiveNotification: "oneuptime_oncall_user_no_longer_active_notification";
+  readonly AIAgentStatusChangedOwnerNotification: "oneuptime_ai_agent_status_changed_owner_notification";
+  readonly AIAgentOwnerAddedNotification: "oneuptime_ai_agent_owner_added_notification";
 };
 
 const templateIds: TemplateIdsMap = {
@@ -85,6 +87,9 @@ const templateIds: TemplateIdsMap = {
     "oneuptime_oncall_user_removed_from_policy_notification",
   OnCallUserNoLongerActiveNotification:
     "oneuptime_oncall_user_no_longer_active_notification",
+  AIAgentStatusChangedOwnerNotification:
+    "oneuptime_ai_agent_status_changed_owner_notification",
+  AIAgentOwnerAddedNotification: "oneuptime_ai_agent_owner_added_notification",
 } as const;
 
 export const WhatsAppTemplateIds: TemplateIdsMap = templateIds;
@@ -132,6 +137,8 @@ export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
   [WhatsAppTemplateIds.OnCallUserAddedToPolicyNotification]: `You have been added to on-call policy {{on_call_policy_name}} for {{on_call_context}}. Review the on-call policy using {{policy_link}} on the OneUptime dashboard for full guidelines.`,
   [WhatsAppTemplateIds.OnCallUserRemovedFromPolicyNotification]: `You have been removed from on-call policy {{on_call_policy_name}} for {{on_call_context}}. View on-call policies using {{policy_link}} on the OneUptime dashboard for updates.`,
   [WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification]: `You are no longer on-call for policy {{on_call_policy_name}} on schedule {{schedule_name}}. Review your schedule using {{schedule_link}} on the OneUptime dashboard to stay informed.`,
+  [WhatsAppTemplateIds.AIAgentStatusChangedOwnerNotification]: `AI Agent {{ai_agent_name}} status is {{ai_agent_status}}. Review the AI agent using {{ai_agent_link}} on the OneUptime dashboard for specifics.`,
+  [WhatsAppTemplateIds.AIAgentOwnerAddedNotification]: `You have been added as an owner of AI Agent {{ai_agent_name}}. Manage the AI agent using {{ai_agent_link}} on the OneUptime dashboard to take action.`,
 };
 
 export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
@@ -166,6 +173,8 @@ export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.OnCallUserAddedToPolicyNotification]: "en",
   [WhatsAppTemplateIds.OnCallUserRemovedFromPolicyNotification]: "en",
   [WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification]: "en",
+  [WhatsAppTemplateIds.AIAgentStatusChangedOwnerNotification]: "en",
+  [WhatsAppTemplateIds.AIAgentOwnerAddedNotification]: "en",
 };
 
 // Authentication templates that require OTP button components

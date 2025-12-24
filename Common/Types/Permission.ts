@@ -96,6 +96,11 @@ enum Permission {
   EditProjectProbe = "EditProjectProbe",
   ReadProjectProbe = "ReadProjectProbe",
 
+  CreateProjectAIAgent = "CreateProjectAIAgent",
+  DeleteProjectAIAgent = "DeleteProjectAIAgent",
+  EditProjectAIAgent = "EditProjectAIAgent",
+  ReadProjectAIAgent = "ReadProjectAIAgent",
+
   CreateProjectLlm = "CreateProjectLlm",
   DeleteProjectLlm = "DeleteProjectLlm",
   EditProjectLlm = "EditProjectLlm",
@@ -645,6 +650,16 @@ enum Permission {
   DeleteProbeOwnerUser = "DeleteProbeOwnerUser",
   EditProbeOwnerUser = "EditProbeOwnerUser",
   ReadProbeOwnerUser = "ReadProbeOwnerUser",
+
+  CreateAIAgentOwnerTeam = "CreateAIAgentOwnerTeam",
+  DeleteAIAgentOwnerTeam = "DeleteAIAgentOwnerTeam",
+  EditAIAgentOwnerTeam = "EditAIAgentOwnerTeam",
+  ReadAIAgentOwnerTeam = "ReadAIAgentOwnerTeam",
+
+  CreateAIAgentOwnerUser = "CreateAIAgentOwnerUser",
+  DeleteAIAgentOwnerUser = "DeleteAIAgentOwnerUser",
+  EditAIAgentOwnerUser = "EditAIAgentOwnerUser",
+  ReadAIAgentOwnerUser = "ReadAIAgentOwnerUser",
 
   CreateTableView = "CreateTableView",
   DeleteTableView = "DeleteTableView",
@@ -2745,6 +2760,35 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateProjectAIAgent,
+        title: "Create AI Agent",
+        description: "This permission can create AI agents for this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.DeleteProjectAIAgent,
+        title: "Delete AI Agent",
+        description: "This permission can delete AI agents of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.EditProjectAIAgent,
+        title: "Edit AI Agent",
+        description: "This permission can edit AI agents of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.ReadProjectAIAgent,
+        title: "Read AI Agent",
+        description: "This permission can read AI agents of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+
+      {
         permission: Permission.CreateProjectLlm,
         title: "Create LLM",
         description:
@@ -3302,6 +3346,64 @@ export class PermissionHelper {
         permission: Permission.ReadProbeOwnerUser,
         title: "Read Probe Owner User",
         description: "This permission can read owners for probes",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateAIAgentOwnerTeam,
+        title: "Create AI Agent Owner Team",
+        description: "This permission can create team owners for AI agents.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAIAgentOwnerTeam,
+        title: "Delete AI Agent Owner Team",
+        description: "This permission can delete team owners for AI agents",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAIAgentOwnerTeam,
+        title: "Edit AI Agent Owner Team",
+        description: "This permission can edit team owners for AI agents",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAIAgentOwnerTeam,
+        title: "Read AI Agent Owner Team",
+        description: "This permission can read team owners for AI agents",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateAIAgentOwnerUser,
+        title: "Create AI Agent Owner User",
+        description: "This permission can create user owners for AI agents.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteAIAgentOwnerUser,
+        title: "Delete AI Agent Owner User",
+        description: "This permission can delete user owners for AI agents",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditAIAgentOwnerUser,
+        title: "Edit AI Agent Owner User",
+        description: "This permission can edit user owners for AI agents",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadAIAgentOwnerUser,
+        title: "Read AI Agent Owner User",
+        description: "This permission can read user owners for AI agents",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
