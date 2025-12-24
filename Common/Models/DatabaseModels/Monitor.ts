@@ -1030,6 +1030,39 @@ export default class Monitor extends BaseModel {
   public isNoProbeEnabledOnThisMonitor?: boolean = undefined;
 
   @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Minimum Probe Agreement",
+    description:
+      "Minimum number of probes that must agree on a status before the monitor status changes. If null, all enabled and connected probes must agree.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public minimumProbeAgreement?: number = undefined;
+
+  @ColumnAccessControl({
     create: [],
     read: [],
     update: [],

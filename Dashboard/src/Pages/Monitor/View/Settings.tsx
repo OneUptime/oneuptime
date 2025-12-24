@@ -4,7 +4,9 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import DuplicateModel from "Common/UI/Components/DuplicateModel/DuplicateModel";
@@ -129,6 +131,63 @@ const MonitorCriteria: FunctionComponent<
               modelId: modelId,
             }}
           />
+        )}
+
+        {monitor?.monitorType &&
+        MonitorTypeHelper.isProbableMonitor(monitor.monitorType) ? (
+          <div className="mt-5">
+            <CardModelDetail
+              name="Probe Agreement Settings"
+              editButtonText="Edit Probe Agreement"
+              cardProps={{
+                title: "Probe Agreement Settings",
+                description:
+                  "Configure how many probes must agree on a status before the monitor status changes.",
+              }}
+              onSaveSuccess={() => {
+                setAlertRefreshToggle(
+                  OneUptimeDate.getCurrentDate().toString(),
+                );
+              }}
+              isEditable={true}
+              formFields={[
+                {
+                  field: {
+                    minimumProbeAgreement: true,
+                  },
+                  title: "Minimum Probe Agreement",
+                  description:
+                    "The minimum number of probes that must agree on a condition before the monitor status changes. Leave empty to require all enabled and connected probes to agree.",
+                  fieldType: FormFieldSchemaType.Number,
+                  required: false,
+                  placeholder: "Leave empty for all probes",
+                  validation: {
+                    minValue: 1,
+                  },
+                },
+              ]}
+              modelDetailProps={{
+                showDetailsInNumberOfColumns: 1,
+                modelType: Monitor,
+                id: "model-detail-probe-agreement",
+                fields: [
+                  {
+                    field: {
+                      minimumProbeAgreement: true,
+                    },
+                    title: "Minimum Probe Agreement",
+                    description:
+                      "Number of probes that must agree on a condition. Empty means all probes.",
+                    fieldType: FieldType.Number,
+                    placeholder: "All probes must agree",
+                  },
+                ],
+                modelId: modelId,
+              }}
+            />
+          </div>
+        ) : (
+          <></>
         )}
 
         {monitor?.monitorType === MonitorType.IncomingRequest ? (
