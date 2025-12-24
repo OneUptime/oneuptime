@@ -23,6 +23,12 @@ if (!process.env["AI_AGENT_KEY"]) {
 
 export const AI_AGENT_KEY: string = process.env["AI_AGENT_KEY"];
 
+export const AI_AGENT_NAME: string | null =
+  process.env["AI_AGENT_NAME"] || null;
+
+export const AI_AGENT_DESCRIPTION: string | null =
+  process.env["AI_AGENT_DESCRIPTION"] || null;
+
 export const HOSTNAME: string = process.env["HOSTNAME"] || "localhost";
 
 export const PORT: Port = new Port(

@@ -1,11 +1,19 @@
-import { ONEUPTIME_URL, AI_AGENT_ID, AI_AGENT_KEY } from "../Config";
+import {
+  ONEUPTIME_URL,
+  AI_AGENT_ID,
+  AI_AGENT_KEY,
+  AI_AGENT_NAME,
+  AI_AGENT_DESCRIPTION,
+} from "../Config";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
+import { HasClusterKey } from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
 export default class Register {
   public static async registerAIAgent(): Promise<void> {
@@ -35,36 +43,65 @@ export default class Register {
   }
 
   private static async _registerAIAgent(): Promise<void> {
-    // Validate AI agent by sending alive request
-    if (!AI_AGENT_ID) {
-      logger.error("AI_AGENT_ID should be set");
-      return process.exit();
-    }
+    if (HasClusterKey) {
+      // Clustered mode: Auto-register and get ID from server
+      const aiAgentRegistrationUrl: URL = URL.fromString(
+        ONEUPTIME_URL.toString(),
+      ).addRoute("/api/ai-agent/register");
 
-    const aliveUrl: URL = URL.fromString(ONEUPTIME_URL.toString()).addRoute(
-      "/api/ai-agent/alive",
-    );
+      logger.debug("Registering AI Agent...");
+      logger.debug("Sending request to: " + aiAgentRegistrationUrl.toString());
 
-    logger.debug("Registering AI Agent...");
-    logger.debug("Sending request to: " + aliveUrl.toString());
+      const result: HTTPResponse<JSONObject> = await API.post({
+        url: aiAgentRegistrationUrl,
+        data: {
+          aiAgentKey: AI_AGENT_KEY,
+          aiAgentName: AI_AGENT_NAME,
+          aiAgentDescription: AI_AGENT_DESCRIPTION,
+          clusterKey: ClusterKeyAuthorization.getClusterKey(),
+        },
+      });
 
-    const result: HTTPResponse<JSONObject> = await API.post({
-      url: aliveUrl,
-      data: {
-        aiAgentKey: AI_AGENT_KEY.toString(),
-        aiAgentId: AI_AGENT_ID.toString(),
-      },
-    });
+      if (result.isSuccess()) {
+        logger.debug("AI Agent Registered");
+        logger.debug(result.data);
 
-    if (result.isSuccess()) {
-      LocalCache.setString(
-        "AI_AGENT",
-        "AI_AGENT_ID",
-        AI_AGENT_ID.toString() as string,
-      );
-      logger.debug("AI Agent registered successfully");
+        const aiAgentId: string = result.data["_id"] as string;
+
+        LocalCache.setString("AI_AGENT", "AI_AGENT_ID", aiAgentId as string);
+      }
     } else {
-      throw new Error("Failed to register AI Agent: " + result.statusCode);
+      // Non-clustered mode: Validate AI agent by sending alive request
+      if (!AI_AGENT_ID) {
+        logger.error("AI_AGENT_ID or ONEUPTIME_SECRET should be set");
+        return process.exit();
+      }
+
+      const aliveUrl: URL = URL.fromString(ONEUPTIME_URL.toString()).addRoute(
+        "/api/ai-agent/alive",
+      );
+
+      logger.debug("Registering AI Agent...");
+      logger.debug("Sending request to: " + aliveUrl.toString());
+
+      const result: HTTPResponse<JSONObject> = await API.post({
+        url: aliveUrl,
+        data: {
+          aiAgentKey: AI_AGENT_KEY.toString(),
+          aiAgentId: AI_AGENT_ID.toString(),
+        },
+      });
+
+      if (result.isSuccess()) {
+        LocalCache.setString(
+          "AI_AGENT",
+          "AI_AGENT_ID",
+          AI_AGENT_ID.toString() as string,
+        );
+        logger.debug("AI Agent registered successfully");
+      } else {
+        throw new Error("Failed to register AI Agent: " + result.statusCode);
+      }
     }
 
     logger.debug(
