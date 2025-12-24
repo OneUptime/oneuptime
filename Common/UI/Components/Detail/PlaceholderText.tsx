@@ -7,7 +7,11 @@ export interface ComponentProps {
 const PlaceholderText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  return <div className="text-gray-500">{props.text}</div>;
+  return (
+    <span className="text-gray-400 italic text-sm select-none">
+      {props.text}
+    </span>
+  );
 };
 
 export default PlaceholderText;
