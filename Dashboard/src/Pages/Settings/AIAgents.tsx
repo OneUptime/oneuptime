@@ -22,10 +22,10 @@ import React, {
   useState,
 } from "react";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import Project from "Common/Models/DatabaseModels/Project";
 
-const AIAgentsPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const AIAgentsPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
 
   const [currentAIAgent, setCurrentAIAgent] = useState<AIAgent | null>(null);
@@ -253,7 +253,7 @@ const AIAgentsPage: FunctionComponent<PageComponentProps> = (): ReactElement => 
                 label: "name",
                 value: "_id",
               },
-            }
+            },
           ]}
           columns={[
             {
@@ -307,7 +307,9 @@ const AIAgentsPage: FunctionComponent<PageComponentProps> = (): ReactElement => 
             title={`AI Agent Key`}
             description={
               <div>
-                <span>Here is your AI agent key. Please keep this a secret.</span>
+                <span>
+                  Here is your AI agent key. Please keep this a secret.
+                </span>
                 <br />
                 <br />
                 <span>
@@ -330,7 +332,6 @@ const AIAgentsPage: FunctionComponent<PageComponentProps> = (): ReactElement => 
           <></>
         )}
       </>
-
     </Fragment>
   );
 };

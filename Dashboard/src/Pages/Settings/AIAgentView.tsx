@@ -205,7 +205,10 @@ const AIAgentView: FunctionComponent<PageComponentProps> = (
       />
 
       {aiAgentKey && (
-        <CustomAIAgentDocumentation aiAgentKey={aiAgentKey} aiAgentId={modelId} />
+        <CustomAIAgentDocumentation
+          aiAgentKey={aiAgentKey}
+          aiAgentId={modelId}
+        />
       )}
 
       <ModelTable<AIAgentOwnerTeam>
