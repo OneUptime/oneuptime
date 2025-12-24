@@ -1,16 +1,46 @@
 # AI Agents
 
-AI Agents in OneUptime are autonomous agents that can help you manage incidents, alerts, and other operational tasks. You can deploy AI agents within your infrastructure to provide intelligent assistance for your team.
+AI Agents in OneUptime automatically fix errors, performance issues, and database queries in your code. Powered by OpenTelemetry observability data, AI Agents create pull requests with fixes—not just alerts.
 
 ## What Can AI Agents Do?
 
-AI Agents help automate and enhance your incident management workflow:
+AI Agents analyze your observability data (traces, logs, and metrics) to detect and automatically fix issues in your codebase:
 
-- **Incident Management**: Automatically analyze and respond to incidents
-- **Alert Triage**: Help categorize and prioritize alerts
-- **Root Cause Analysis**: Assist in identifying the root cause of issues
-- **Automated Responses**: Execute predefined actions based on incident patterns
-- **Knowledge Base Integration**: Leverage your documentation and runbooks for contextual assistance
+- **Fix Errors Automatically**: When AI Agent notices exceptions in your traces or logs, it automatically fixes the issue and creates a pull request.
+- **Fix Performance Issues**: Analyzes traces that take the longest to execute and creates pull requests with performance optimizations.
+- **Fix Database Queries**: Identifies slow or inefficient database queries and optimizes them with proper indexing and query rewrites.
+- **Fix Frontend Issues**: Addresses frontend-specific performance problems, rendering issues, and JavaScript errors automatically.
+- **Add Telemetry Automatically**: Add tracing, metrics, and logs to your codebase with a single click. No manual instrumentation needed.
+- **GitHub & GitLab Integration**: Seamlessly integrates with your existing repositories. PRs are created directly in your workflow.
+- **CI/CD Integration**: Integrates with your existing CI/CD pipelines. Fixes are tested and validated before PR creation.
+- **Terraform Support**: Fix infrastructure issues automatically. Supports Terraform and OpenTofu for infrastructure-as-code.
+- **Issue Tracker Integration**: Connects with Jira, Linear, and other issue trackers. Automatically links fixes to relevant issues.
+
+## How It Works
+
+1. **Collect Data**: OpenTelemetry collects traces, logs, and metrics from your application
+2. **Detect Issues**: AI identifies errors, performance bottlenecks, and slow queries
+3. **Generate Fix**: AI analyzes your codebase and creates the fix automatically
+4. **Create PR**: Pull request with fix and detailed report ready for review
+
+## LLM Provider Flexibility
+
+OneUptime works with any LLM provider. You can use:
+
+- **OpenAI GPT** models
+- **Anthropic Claude** models
+- **Meta Llama** (via Ollama or other providers)
+- **Custom self-hosted** models
+
+Self-host your AI model and keep your code completely private.
+
+## Privacy
+
+Regardless of your plan, OneUptime never sees, stores, or trains on your code:
+
+- **No Code Access**: Your code stays on your infrastructure
+- **No Data Storage**: Zero data retention policy
+- **No Training**: Your code is never used for AI training
 
 ## Global AI Agents vs Self-Hosted AI Agents
 
@@ -133,57 +163,6 @@ The AI agent supports the following environment variables:
 | `AI_AGENT_ID` | The AI agent ID from your OneUptime dashboard |
 | `ONEUPTIME_URL` | The URL of your OneUptime instance (default: https://oneuptime.com) |
 
-## Managing AI Agents
-
-### Viewing Agent Status
-
-You can view the status of your AI agents in **Project Settings** > **AI Agents**. Each agent shows:
-
-- **Connection Status**: Whether the agent is connected or disconnected
-- **Last Seen**: When the agent last communicated with OneUptime
-- **Version**: The version of the AI agent
-
-### Resetting Agent Key
-
-If you need to reset an AI agent's key (e.g., if it was compromised):
-
-1. Go to **Project Settings** > **AI Agents**
-2. Click on the AI agent you want to reset
-3. Click **Reset Secret Key**
-4. Update your deployed agent with the new key
-
-### Deleting an AI Agent
-
-To delete an AI agent:
-
-1. Go to **Project Settings** > **AI Agents**
-2. Click on the AI agent you want to delete
-3. Click **Delete AI Agent**
-4. Confirm the deletion
-
-**Note**: Deleting an AI agent will immediately disconnect any deployed instances using that agent's credentials.
-
-## Owner Management
-
-You can assign owners (users or teams) to AI agents. Owners will receive notifications when:
-
-- The AI agent's connection status changes (connected/disconnected)
-- They are added as an owner to an AI agent
-
-To manage owners:
-
-1. Go to **Project Settings** > **AI Agents**
-2. Click on the AI agent
-3. Use the **Owners (Users)** or **Owners (Teams)** sections to add or remove owners
-
-## Global AI Agent Settings
-
-By default, Global AI Agents are automatically enabled for new resources in your project. To change this behavior:
-
-1. Go to **Project Settings** > **AI Agents**
-2. Toggle **Enable Global AI Agents for New Resources**
-
-When disabled, Global AI Agents will not be automatically assigned to new monitors, incidents, or other resources.
 
 ## Verifying Your AI Agent
 
