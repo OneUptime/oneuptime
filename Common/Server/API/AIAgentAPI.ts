@@ -61,7 +61,7 @@ export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
           });
 
           const defaultDescription: string =
-            "A global AI agent that can assist with incident management, alert triage, and other operational tasks across all projects.";
+            "AI-powered agent that analyzes and resolves code issues, triages incidents and alerts, and helps automate operational workflows.";
 
           if (aiAgent) {
             await AIAgentService.updateOneById({
