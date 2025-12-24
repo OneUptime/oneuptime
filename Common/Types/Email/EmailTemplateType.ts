@@ -4,6 +4,8 @@ enum EmailTemplateType {
   ProbeOffline = "ProbeOffline.hbs",
   SignupWelcomeEmail = "SignupWelcomeEmail.hbs",
   ProbeConnectionStatusChange = "ProbeConnectionStatusChange.hbs",
+  AIAgentConnectionStatusChange = "AIAgentConnectionStatusChange.hbs",
+  AIAgentOwnerAdded = "AIAgentOwnerAdded.hbs",
   ConfirmStatusPageSubscription = "ConfirmStatusPageSubscription.hbs",
   EmailVerified = "EmailVerified.hbs",
   PasswordChanged = "PasswordChanged.hbs",

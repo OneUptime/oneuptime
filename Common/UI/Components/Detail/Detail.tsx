@@ -21,11 +21,18 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement, useEffect, useState } from "react";
 
+export enum DetailStyle {
+  Default = "default",
+  Card = "card",
+  Minimal = "minimal",
+}
+
 export interface ComponentProps<T extends GenericObject> {
   item: T;
   fields: Array<Field<T>>;
   id?: string | undefined;
   showDetailsInNumberOfColumns?: number | undefined;
+  style?: DetailStyle | undefined;
 }
 
 type DetailFunction = <T extends GenericObject>(
@@ -75,25 +82,27 @@ const Detail: DetailFunction = <T extends GenericObject>(
     placeholder: string,
   ): ReactElement => {
     if (!options) {
-      return <div>No options found</div>;
+      return (
+        <span className="text-gray-400 italic text-sm">No options found</span>
+      );
     }
 
-    if (
-      !options.find((i: DropdownOption) => {
+    const selectedOption: DropdownOption | undefined = options.find(
+      (i: DropdownOption) => {
         return i.value === data;
-      })
-    ) {
-      return <div>{placeholder}</div>;
+      },
+    );
+
+    if (!selectedOption) {
+      return (
+        <span className="text-gray-400 italic text-sm">{placeholder}</span>
+      );
     }
 
     return (
-      <div>
-        {
-          options.find((i: DropdownOption) => {
-            return i.value === data;
-          })?.label as string
-        }
-      </div>
+      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-gray-800 text-sm font-medium">
+        {selectedOption.label as string}
+      </span>
     );
   };
 
@@ -122,7 +131,19 @@ const Detail: DetailFunction = <T extends GenericObject>(
       return <></>;
     }
 
-    return <div className="text-gray-900">{usdCents / 100} USD</div>;
+    const formattedAmount: string = (usdCents / 100).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+    return (
+      <div className="inline-flex items-center gap-1.5">
+        <span className="font-semibold text-gray-900">${formattedAmount}</span>
+        <span className="text-xs text-gray-500 uppercase tracking-wide">
+          USD
+        </span>
+      </div>
+    );
   };
 
   type GetMinutesFieldFunction = (minutes: number | null) => ReactElement;
@@ -135,8 +156,11 @@ const Detail: DetailFunction = <T extends GenericObject>(
     }
 
     return (
-      <div className="text-gray-900">
-        {minutes} {minutes > 1 ? "minutes" : "minute"}
+      <div className="inline-flex items-center gap-1.5">
+        <span className="font-semibold text-gray-900">{minutes}</span>
+        <span className="text-xs text-gray-500">
+          {minutes > 1 ? "minutes" : "minute"}
+        </span>
       </div>
     );
   };
@@ -274,13 +298,16 @@ const Detail: DetailFunction = <T extends GenericObject>(
         const url: string = URL.createObjectURL(blob);
 
         data = (
-          <img
-            src={url}
-            className={"rounded"}
-            style={{
-              height: "100px",
-            }}
-          />
+          <div className="group/image relative inline-block">
+            <img
+              src={url}
+              className="rounded-lg shadow-sm border border-gray-100 object-cover transition-transform duration-200 hover:scale-[1.02]"
+              style={{
+                height: "100px",
+              }}
+              alt=""
+            />
+          </div>
         );
       } else {
         data = "";
@@ -387,9 +414,28 @@ const Detail: DetailFunction = <T extends GenericObject>(
       data = data.toString();
     }
 
+    // Determine style-based classes
+    const styleType: DetailStyle = props.style || DetailStyle.Default;
+    const isCardStyle: boolean = styleType === DetailStyle.Card;
+    const isMinimalStyle: boolean = styleType === DetailStyle.Minimal;
+
+    /* Container classes based on style - uses first:pt-0 to remove top padding from first field */
+    let containerClasses: string =
+      "group transition-all duration-200 ease-in-out";
+
+    if (isCardStyle) {
+      containerClasses += " bg-white rounded-lg border border-gray-100 p-4";
+    } else if (isMinimalStyle) {
+      containerClasses +=
+        " py-3 first:pt-0 last:pb-0 border-b border-gray-50 last:border-b-0";
+    } else {
+      containerClasses +=
+        " py-4 first:pt-0 last:pb-0 border-b border-gray-100 last:border-b-0";
+    }
+
     return (
       <div
-        className={className}
+        className={`${className} ${containerClasses}`}
         key={index}
         id={props.id}
         style={
@@ -406,20 +452,29 @@ const Detail: DetailFunction = <T extends GenericObject>(
           description={field.description}
           sideLink={field.sideLink}
           alignClassName={alignClassName}
+          isCardStyle={isCardStyle}
         />
 
-        <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>
+        <div
+          className={`mt-2 text-sm leading-relaxed ${alignClassName} ${
+            isCardStyle ? "text-gray-800" : "text-gray-700"
+          }`}
+        >
           {data && (
             <div
-              className={`${field.contentClassName} w-full ${
-                field.opts?.isCopyable ? "flex" : ""
+              className={`${field.contentClassName || ""} w-full ${
+                field.opts?.isCopyable
+                  ? "flex items-center gap-2 group/copyable"
+                  : ""
               }`}
             >
-              <div>{data}</div>
+              <div className="break-words">{data}</div>
 
               {field.opts?.isCopyable &&
                 field.fieldType !== FieldType.HiddenText && (
-                  <CopyableButton textToBeCopied={data.toString()} />
+                  <div className="opacity-0 group-hover/copyable:opacity-100 transition-opacity duration-150">
+                    <CopyableButton textToBeCopied={data.toString()} />
+                  </div>
                 )}
             </div>
           )}
@@ -430,9 +485,16 @@ const Detail: DetailFunction = <T extends GenericObject>(
     );
   };
 
+  // Determine grid gap based on style
+  const styleType: DetailStyle = props.style || DetailStyle.Default;
+  const isCardStyle: boolean = styleType === DetailStyle.Card;
+
+  // Grid gap classes - cards need more gap, others less since they have internal padding
+  const gapClasses: string = isCardStyle ? "gap-4" : "gap-0";
+
   return (
     <div
-      className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${
+      className={`grid grid-cols-1 ${gapClasses} sm:grid-cols-${
         props.showDetailsInNumberOfColumns || 1
       } w-full`}
     >

@@ -327,4 +327,33 @@ export default class PushNotificationUtil {
 
     return PushNotificationUtil.applyDefaults(notification);
   }
+
+  public static createAIAgentStatusChangedNotification(params: {
+    aiAgentName: string;
+    projectName: string;
+    connectionStatus: string;
+    clickAction?: string;
+  }): PushNotificationMessage {
+    const { aiAgentName, projectName, connectionStatus, clickAction } = params;
+    const notification: Partial<PushNotificationMessage> = {
+      title: `AI Agent ${connectionStatus}: ${aiAgentName}`,
+      body: `AI Agent ${aiAgentName} is ${connectionStatus} in ${projectName}. Click to view details.`,
+      tag: "ai-agent-status-changed",
+      requireInteraction: true,
+      data: {
+        type: "ai-agent-status-changed",
+        aiAgentName: aiAgentName,
+        projectName: projectName,
+        connectionStatus: connectionStatus,
+      },
+    };
+
+    if (clickAction) {
+      notification.clickAction = clickAction;
+      notification.url = clickAction;
+      notification.data!["url"] = clickAction;
+    }
+
+    return PushNotificationUtil.applyDefaults(notification);
+  }
 }

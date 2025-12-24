@@ -9,6 +9,7 @@ import SettingsWhatsApp from "./Pages/Settings/WhatsApp/Index";
 // Settings Pages.
 import SettingsEmail from "./Pages/Settings/Email/Index";
 import SettingsProbes from "./Pages/Settings/Probes/Index";
+import SettingsAIAgents from "./Pages/Settings/AIAgents/Index";
 import SettingsLlmProviders from "./Pages/Settings/LlmProviders/Index";
 import Users from "./Pages/Users/Index";
 import PageMap from "./Utils/PageMap";
@@ -121,6 +122,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.SETTINGS_PROBES]?.toString() || ""}
           element={<SettingsProbes />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.SETTINGS_AI_AGENTS]?.toString() || ""}
+          element={<SettingsAIAgents />}
         />
 
         <PageRoute

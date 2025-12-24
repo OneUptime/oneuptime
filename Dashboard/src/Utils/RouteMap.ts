@@ -281,6 +281,8 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_PROBE_VIEW]: `probes/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_LABELS]: "labels",
   [PageMap.SETTINGS_PROBES]: "probes",
+  [PageMap.SETTINGS_AI_AGENTS]: "ai-agents",
+  [PageMap.SETTINGS_AI_AGENT_VIEW]: `ai-agents/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_LLM_PROVIDERS]: "llm-provider",
   [PageMap.SETTINGS_LLM_PROVIDER_VIEW]: `llm-provider/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_AI_BILLING]: "ai-credits",
@@ -1936,6 +1938,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_PROBES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_PROBES]
+    }`,
+  ),
+
+  // AI Agents.
+  [PageMap.SETTINGS_AI_AGENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AI_AGENTS]
+    }`,
+  ),
+  [PageMap.SETTINGS_AI_AGENT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AI_AGENT_VIEW]
     }`,
   ),
 
