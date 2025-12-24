@@ -40,6 +40,17 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorStatusService from "../../Services/MonitorStatusService";
+import { ProbeConnectionStatus } from "../../../Models/DatabaseModels/Probe";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+
+interface ProbeAgreementResult {
+  hasAgreement: boolean;
+  agreementCount: number;
+  requiredCount: number;
+  totalActiveProbes: number;
+  agreedCriteriaId: string | null;
+  agreedRootCause: string | null;
+}
 
 export default class MonitorResourceUtil {
   @CaptureSpan()
@@ -125,6 +136,7 @@ export default class MonitorResourceUtil {
         currentMonitorStatusId: true,
         _id: true,
         name: true,
+        minimumProbeAgreement: true,
       },
       props: {
         isRoot: true,
@@ -500,6 +512,62 @@ export default class MonitorResourceUtil {
       evaluationSummary: evaluationSummary,
     });
 
+    // Check probe agreement for probe-based monitors
+    if (
+      monitor.monitorType &&
+      MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
+    ) {
+      const probeAgreementResult: ProbeAgreementResult =
+        await MonitorResourceUtil.checkProbeAgreement({
+          monitor: monitor,
+          monitorStep: monitorStep,
+          currentCriteriaMetId: response.criteriaMetId || null,
+          currentRootCause: response.rootCause || null,
+        });
+
+      // Add probe agreement event to evaluation summary
+      evaluationSummary.events.push({
+        type: "criteria-evaluation",
+        title: "Probe Agreement Check",
+        message: probeAgreementResult.hasAgreement
+          ? `Probe agreement reached: ${probeAgreementResult.agreementCount}/${probeAgreementResult.requiredCount} probes agree (${probeAgreementResult.totalActiveProbes} active probes total).`
+          : `Probe agreement not reached: ${probeAgreementResult.agreementCount}/${probeAgreementResult.requiredCount} probes agree (${probeAgreementResult.totalActiveProbes} active probes total). Skipping status change.`,
+        at: OneUptimeDate.getCurrentDate(),
+      });
+
+      if (!probeAgreementResult.hasAgreement) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Probe agreement not met. ${probeAgreementResult.agreementCount}/${probeAgreementResult.requiredCount} probes agree. Skipping status change.`,
+        );
+
+        // Release lock and return early - no status change
+        if (mutex) {
+          try {
+            await Semaphore.release(mutex);
+          } catch (err) {
+            logger.error(err);
+          }
+        }
+
+        await persistLatestMonitorPayload();
+
+        MonitorLogUtil.saveMonitorLog({
+          monitorId: monitor.id!,
+          projectId: monitor.projectId!,
+          dataToProcess: dataToProcess,
+        });
+
+        response.evaluationSummary = evaluationSummary;
+        return response;
+      }
+
+      // Use the agreed criteria result
+      response.criteriaMetId = probeAgreementResult.agreedCriteriaId
+        ? probeAgreementResult.agreedCriteriaId
+        : undefined;
+      response.rootCause = probeAgreementResult.agreedRootCause;
+    }
+
     if (response.criteriaMetId && response.rootCause) {
       logger.debug(
         `${dataToProcess.monitorId.toString()} - Criteria met: ${
@@ -734,5 +802,165 @@ export default class MonitorResourceUtil {
     });
 
     return response;
+  }
+
+  @CaptureSpan()
+  private static async checkProbeAgreement(input: {
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+    currentCriteriaMetId: string | null;
+    currentRootCause: string | null;
+  }): Promise<ProbeAgreementResult> {
+    const { monitor, monitorStep, currentCriteriaMetId, currentRootCause } =
+      input;
+
+    /*
+     * If minimumProbeAgreement is not set, all probes must agree
+     * Get all MonitorProbes for this monitor with their probe connection status
+     */
+    const monitorProbes: Array<MonitorProbe> = await MonitorProbeService.findBy(
+      {
+        query: {
+          monitorId: monitor.id!,
+        },
+        select: {
+          probeId: true,
+          isEnabled: true,
+          lastMonitoringLog: true,
+          probe: {
+            connectionStatus: true,
+          },
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      },
+    );
+
+    // Filter to only active probes (enabled AND connected)
+    const activeProbes: Array<MonitorProbe> = monitorProbes.filter(
+      (mp: MonitorProbe) => {
+        return (
+          mp.isEnabled &&
+          mp.probe?.connectionStatus === ProbeConnectionStatus.Connected
+        );
+      },
+    );
+
+    // If no active probes, treat as agreement met (nothing to compare)
+    if (activeProbes.length === 0) {
+      logger.debug(
+        `${monitor.id?.toString()} - No active probes found. Treating as agreement met.`,
+      );
+      return {
+        hasAgreement: true,
+        agreementCount: 0,
+        requiredCount: 0,
+        totalActiveProbes: 0,
+        agreedCriteriaId: currentCriteriaMetId,
+        agreedRootCause: currentRootCause,
+      };
+    }
+
+    // Determine required count for agreement
+    const requiredCount: number =
+      monitor.minimumProbeAgreement ?? activeProbes.length;
+    // Effective threshold cannot exceed number of active probes
+    const effectiveThreshold: number = Math.min(
+      requiredCount,
+      activeProbes.length,
+    );
+
+    /*
+     * Count how many probes agree on each criteria result
+     * Key: criteriaId or "none" for no criteria met
+     * Value: { count, rootCause }
+     */
+    const criteriaAgreements: Map<
+      string,
+      { count: number; rootCause: string | null }
+    > = new Map();
+
+    const stepId: string = monitorStep.id.toString();
+
+    for (const monitorProbe of activeProbes) {
+      const probeResponse: ProbeMonitorResponse | undefined =
+        monitorProbe.lastMonitoringLog?.[stepId];
+
+      if (!probeResponse) {
+        // No response yet for this step from this probe - skip
+        logger.debug(
+          `${monitor.id?.toString()} - Probe ${monitorProbe.probeId?.toString()} has no response for step ${stepId}. Skipping.`,
+        );
+        continue;
+      }
+
+      // Evaluate this probe's response against criteria
+      const tempResponse: ProbeApiIngestResponse = {
+        monitorId: monitor.id!,
+        criteriaMetId: undefined,
+        rootCause: null,
+      };
+
+      const tempEvaluationSummary: MonitorEvaluationSummary = {
+        evaluatedAt: OneUptimeDate.getCurrentDate(),
+        criteriaResults: [],
+        events: [],
+      };
+
+      const evaluatedResponse: ProbeApiIngestResponse =
+        await MonitorCriteriaEvaluator.processMonitorStep({
+          dataToProcess: probeResponse as DataToProcess,
+          monitorStep: monitorStep,
+          monitor: monitor,
+          probeApiIngestResponse: tempResponse,
+          evaluationSummary: tempEvaluationSummary,
+        });
+
+      // Record the result
+      const criteriaKey: string = evaluatedResponse.criteriaMetId || "none";
+      const existing: { count: number; rootCause: string | null } | undefined =
+        criteriaAgreements.get(criteriaKey);
+
+      if (existing) {
+        existing.count += 1;
+      } else {
+        criteriaAgreements.set(criteriaKey, {
+          count: 1,
+          rootCause: evaluatedResponse.rootCause,
+        });
+      }
+    }
+
+    // Find the criteria with the most agreement
+    let maxCount: number = 0;
+    let winningCriteriaId: string | null = null;
+    let winningRootCause: string | null = null;
+
+    for (const [criteriaId, data] of criteriaAgreements) {
+      if (data.count > maxCount) {
+        maxCount = data.count;
+        winningCriteriaId = criteriaId === "none" ? null : criteriaId;
+        winningRootCause = data.rootCause;
+      }
+    }
+
+    // Check if the winning criteria has reached the agreement threshold
+    const hasAgreement: boolean = maxCount >= effectiveThreshold;
+
+    logger.debug(
+      `${monitor.id?.toString()} - Probe agreement check: ${maxCount}/${effectiveThreshold} probes agree on criteria "${winningCriteriaId || "none"}". Agreement ${hasAgreement ? "reached" : "not reached"}.`,
+    );
+
+    return {
+      hasAgreement,
+      agreementCount: maxCount,
+      requiredCount: effectiveThreshold,
+      totalActiveProbes: activeProbes.length,
+      agreedCriteriaId: hasAgreement ? winningCriteriaId : null,
+      agreedRootCause: hasAgreement ? winningRootCause : null,
+    };
   }
 }
