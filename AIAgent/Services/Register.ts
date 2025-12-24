@@ -1,5 +1,4 @@
 import { ONEUPTIME_URL, AI_AGENT_ID, AI_AGENT_KEY } from "../Config";
-import AIAgentAPIRequest from "../Utils/AIAgentAPIRequest";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
@@ -44,7 +43,7 @@ export default class Register {
 
     const aliveUrl: URL = URL.fromString(
       ONEUPTIME_URL.toString(),
-    ).addRoute("/alive");
+    ).addRoute("/api/ai-agent/alive");
 
     logger.debug("Registering AI Agent...");
     logger.debug("Sending request to: " + aliveUrl.toString());

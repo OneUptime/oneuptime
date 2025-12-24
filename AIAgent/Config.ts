@@ -8,19 +8,9 @@ if (!process.env["ONEUPTIME_URL"]) {
   process.exit();
 }
 
-export let ONEUPTIME_URL: URL = URL.fromString(
+export const ONEUPTIME_URL: URL = URL.fromString(
   process.env["ONEUPTIME_URL"] || "https://oneuptime.com",
 );
-
-// If the URL does not have the ai-agent-ingest path, add it.
-if (
-  !ONEUPTIME_URL.toString().endsWith("ai-agent-ingest") &&
-  !ONEUPTIME_URL.toString().endsWith("ai-agent-ingest/")
-) {
-  ONEUPTIME_URL = URL.fromString(
-    ONEUPTIME_URL.addRoute("/ai-agent-ingest").toString(),
-  );
-}
 
 export const AI_AGENT_ID: ObjectID | null = process.env["AI_AGENT_ID"]
   ? new ObjectID(process.env["AI_AGENT_ID"])

@@ -37,7 +37,7 @@ const InitJob: VoidFunction = (): void => {
 
       const aliveUrl: URL = URL.fromString(
         ONEUPTIME_URL.toString(),
-      ).addRoute("/alive");
+      ).addRoute("/api/ai-agent/alive");
 
       const result: HTTPResponse<JSONObject> = await API.post({
         url: aliveUrl,
