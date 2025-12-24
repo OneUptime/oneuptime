@@ -164,13 +164,13 @@ export default class AIAgent extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.Name,
+    type: TableColumnType.Description,
     example: "AI agent for automated incident triage and response",
   })
   @Column({
     nullable: true,
-    type: ColumnType.Name,
-    length: ColumnLength.Name,
+    type: ColumnType.Description,
+    length: ColumnLength.Description,
   })
   public description?: string = undefined;
 
