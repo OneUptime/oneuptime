@@ -282,7 +282,7 @@ services:
             context: .
             dockerfile: ./Probe/Dockerfile
 
-    probe-2: 
+    probe-2:
         volumes:
             - ./Probe:/usr/src/app:cached
             # Use node modules of the container and not host system.
@@ -292,7 +292,7 @@ services:
 
             - /usr/src/Common/node_modules/
 
-              
+
         extends:
             file: ./docker-compose.base.yml
             service: probe-2
@@ -300,6 +300,25 @@ services:
             network: host
             context: .
             dockerfile: ./Probe/Dockerfile
+
+    ai-agent:
+        volumes:
+            - ./AIAgent:/usr/src/app:cached
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common:cached
+
+            - /usr/src/Common/node_modules/
+
+
+        extends:
+            file: ./docker-compose.base.yml
+            service: ai-agent
+        build:
+            network: host
+            context: .
+            dockerfile: ./AIAgent/Dockerfile
 
     isolated-vm:
         volumes:

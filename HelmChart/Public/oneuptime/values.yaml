@@ -777,6 +777,25 @@ mcp:
   podSecurityContext: {}
   containerSecurityContext: {}
 
+# AI Agent Configuration
+# Deploy this to run an AI Agent within your Kubernetes cluster
+# Note: This is disabled by default. To enable, set enabled to true and provide the AI Agent credentials
+aiAgent:
+  enabled: false
+  replicaCount: 1
+  disableTelemetryCollection: false
+  disableAutoscaler: false
+  # AI Agent ID from OneUptime dashboard (required when enabled)
+  id:
+  # AI Agent Key from OneUptime dashboard (will be stored in secrets if not provided)
+  key:
+  ports:
+    http: 3875
+  resources:
+  nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
+
 serverMonitorIngest:
   enabled: true
   replicaCount: 1

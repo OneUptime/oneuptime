@@ -383,7 +383,7 @@ services:
             options:
                 max-size: "1000m"
 
-    probe-2:   
+    probe-2:
         restart: always
         network_mode: host
         environment:
@@ -402,7 +402,20 @@ services:
             driver: "local"
             options:
                 max-size: "1000m"
-       
+
+    ai-agent:
+        restart: always
+        network_mode: host
+        environment:
+            AI_AGENT_ID: ${AI_AGENT_ID}
+            AI_AGENT_KEY: ${AI_AGENT_KEY}
+            ONEUPTIME_URL: ${AI_AGENT_ONEUPTIME_URL}
+            DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_AI_AGENT}
+            PORT: ${AI_AGENT_PORT}
+        logging:
+            driver: "local"
+            options:
+                max-size: "1000m"
 
     otel-collector:
         networks:
