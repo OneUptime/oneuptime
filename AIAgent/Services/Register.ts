@@ -62,14 +62,30 @@ export default class Register {
         },
       });
 
-      if (result.isSuccess()) {
-        logger.debug("AI Agent Registered");
-        logger.debug(result.data);
-
-        const aiAgentId: string = result.data["_id"] as string;
-
-        LocalCache.setString("AI_AGENT", "AI_AGENT_ID", aiAgentId as string);
+      if (!result.isSuccess()) {
+        logger.error(
+          `Failed to register AI Agent. Status: ${result.statusCode}`,
+        );
+        logger.error(result.data);
+        throw new Error(
+          "Failed to register AI Agent: HTTP " + result.statusCode,
+        );
       }
+
+      logger.debug("AI Agent Registered");
+      logger.debug(result.data);
+
+      const aiAgentId: string | undefined = result.data["_id"] as
+        | string
+        | undefined;
+
+      if (!aiAgentId) {
+        logger.error("AI Agent ID not found in response");
+        logger.error(result.data);
+        throw new Error("AI Agent ID not found in registration response");
+      }
+
+      LocalCache.setString("AI_AGENT", "AI_AGENT_ID", aiAgentId);
     } else {
       // Non-clustered mode: Validate AI agent by sending alive request
       if (!AI_AGENT_ID) {
