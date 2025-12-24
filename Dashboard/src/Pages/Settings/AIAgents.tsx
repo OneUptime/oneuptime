@@ -106,7 +106,7 @@ const AIAgentsPage: FunctionComponent<
           openInNewTab={true}
           title="Need help with setting up Custom AI Agents?"
           description="Here is a guide which will help you get set up"
-          link={Route.fromString("/docs/ai-agent/custom-ai-agent")}
+          link={Route.fromString("/docs/ai/ai-agent")}
           hideOnMobile={true}
         />
 
