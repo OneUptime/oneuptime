@@ -41,9 +41,9 @@ export default class Register {
       return process.exit();
     }
 
-    const aliveUrl: URL = URL.fromString(
-      ONEUPTIME_URL.toString(),
-    ).addRoute("/api/ai-agent/alive");
+    const aliveUrl: URL = URL.fromString(ONEUPTIME_URL.toString()).addRoute(
+      "/api/ai-agent/alive",
+    );
 
     logger.debug("Registering AI Agent...");
     logger.debug("Sending request to: " + aliveUrl.toString());
