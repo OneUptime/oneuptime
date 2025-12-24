@@ -382,6 +382,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Bolt,
         },
+        {
+          link: {
+            title: "AI Agents",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
+            ),
+          },
+          icon: IconProp.Automation,
+        },
       ],
     },
     {
@@ -395,15 +404,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             ),
           },
           icon: IconProp.Signal,
-        },
-        {
-          link: {
-            title: "AI Agents",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
-            ),
-          },
-          icon: IconProp.Brain,
         },
         {
           link: {
