@@ -425,13 +425,13 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
     if (isCardStyle) {
       containerClasses +=
-        " bg-white rounded-lg border border-gray-100 p-4 hover:border-gray-200 hover:shadow-sm";
+        " bg-white rounded-lg border border-gray-100 p-4";
     } else if (isMinimalStyle) {
       containerClasses +=
         " py-3 first:pt-0 last:pb-0 border-b border-gray-50 last:border-b-0";
     } else {
       containerClasses +=
-        " py-4 first:pt-0 last:pb-0 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50";
+        " py-4 first:pt-0 last:pb-0 border-b border-gray-100 last:border-b-0";
     }
 
     return (
