@@ -64,6 +64,9 @@ import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 // On-Call Duty
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import ProbeService from "./ProbeService";
+import AIAgentService from "./AIAgentService";
+import AIAgentOwnerUserService from "./AIAgentOwnerUserService";
+import AIAgentOwnerTeamService from "./AIAgentOwnerTeamService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService from "./ProjectService";
 // Project SMTP Config.
@@ -241,6 +244,9 @@ const services: Array<BaseService> = [
   ProjectService,
   ProjectSmtpConfigService,
   ProbeService,
+  AIAgentService,
+  AIAgentOwnerUserService,
+  AIAgentOwnerTeamService,
   ProjectSsoService,
 
   ScheduledMaintenanceCustomFieldService,

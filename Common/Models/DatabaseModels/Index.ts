@@ -72,6 +72,9 @@ import OnCallDutyPolicyTimeLog from "./OnCallDutyPolicyTimeLog";
 import Probe from "./Probe";
 import ProbeOwnerTeam from "./ProbeOwnerTeam";
 import ProbeOwnerUser from "./ProbeOwnerUser";
+import AIAgent from "./AIAgent";
+import AIAgentOwnerTeam from "./AIAgentOwnerTeam";
+import AIAgentOwnerUser from "./AIAgentOwnerUser";
 import LlmProvider from "./LlmProvider";
 import LlmLog from "./LlmLog";
 import Project from "./Project";
@@ -378,6 +381,10 @@ const AllModelTypes: Array<{
 
   ProbeOwnerTeam,
   ProbeOwnerUser,
+
+  AIAgent,
+  AIAgentOwnerTeam,
+  AIAgentOwnerUser,
 
   LlmProvider,
   LlmLog,

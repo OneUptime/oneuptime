@@ -1,0 +1,124 @@
+{{- if .Values.aiAgent.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "ai-agent" }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name "ai-agent" }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+    {{- if $.Values.deployment.includeTimestampLabel }}
+    date: "{{ now | unixEpoch }}"
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ printf "%s-%s" $.Release.Name "ai-agent" }}
+  {{- if and (ne $.Values.aiAgent.replicaCount nil) $.Values.aiAgent.disableAutoscaler }}
+  replicas: {{ $.Values.aiAgent.replicaCount }}
+  {{- else }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.aiAgent.disableAutoscaler) }}
+  replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
+  {{- end }}
+  strategy: {{- toYaml $.Values.deployment.updateStrategy | nindent 4 }}
+  template:
+    metadata:
+      labels:
+        app: {{ printf "%s-%s" $.Release.Name "ai-agent" }}
+        {{- if $.Values.deployment.includeTimestampLabel }}
+        date: "{{ now | unixEpoch }}"
+        {{- end }}
+        appname: oneuptime
+    spec:
+      {{- if $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.aiAgent.podSecurityContext }}
+      securityContext:
+        {{- toYaml $.Values.aiAgent.podSecurityContext | nindent 8 }}
+      {{- else if $.Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.affinity }}
+      affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.tolerations }}
+      tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.aiAgent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.aiAgent.nodeSelector | nindent 8 }}
+      {{- else if $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.nodeSelector | nindent 8 }}
+      {{- end }}
+      containers:
+        - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "ai-agent") }}
+          name: {{ printf "%s-%s" $.Release.Name "ai-agent" }}
+          {{- if $.Values.aiAgent.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.aiAgent.containerSecurityContext | nindent 12 }}
+          {{- else if $.Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
+          {{- end }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          env:
+            - name: BILLING_ENABLED
+              value: {{ $.Values.billing.enabled | squote }}
+            - name: LOG_LEVEL
+              value: {{ $.Values.logLevel }}
+            - name: PORT
+              value: {{ $.Values.aiAgent.ports.http | squote }}
+            - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+              value: {{ $.Values.openTelemetryExporter.headers }}
+            - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+              value: {{ $.Values.openTelemetryExporter.endpoint }}
+            - name: ONEUPTIME_URL
+              value: http://{{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.app.ports.http }}
+            - name: AI_AGENT_ID
+              value: {{ $.Values.aiAgent.id | squote }}
+            - name: AI_AGENT_KEY
+              {{- if $.Values.aiAgent.key }}
+              value: {{ $.Values.aiAgent.key }}
+              {{- else }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-%s" $.Release.Name "secrets" }}
+                  key: ai-agent-key
+              {{- end }}
+            {{- if $.Values.aiAgent.disableTelemetryCollection }}
+            - name: DISABLE_TELEMETRY
+              value: {{ $.Values.aiAgent.disableTelemetryCollection | quote }}
+            {{- end }}
+            {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
+          ports:
+            - containerPort: {{ $.Values.aiAgent.ports.http }}
+              protocol: TCP
+              name: http
+          {{- if $.Values.aiAgent.resources }}
+          resources:
+            {{- toYaml $.Values.aiAgent.resources | nindent 12 }}
+          {{- end }}
+      restartPolicy: {{ $.Values.image.restartPolicy }}
+---
+
+# OneUptime AI Agent Service
+{{- $aiAgentPort := $.Values.aiAgent.ports.http }}
+{{- $aiAgentPorts := dict "port" $aiAgentPort -}}
+{{- $aiAgentServiceArgs := dict "ServiceName" "ai-agent" "Ports" $aiAgentPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $aiAgentServiceArgs }}
+---
+
+{{- if not $.Values.aiAgent.disableAutoscaler }}
+# OneUptime AI Agent autoscaler
+{{- $aiAgentAutoScalerArgs := dict "ServiceName" "ai-agent" "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.autoscaler" $aiAgentAutoScalerArgs }}
+{{- end }}
+
+{{- end }}
