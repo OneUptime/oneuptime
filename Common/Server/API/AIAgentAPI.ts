@@ -128,7 +128,7 @@ export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
           const aiAgent: AIAgent | null = await AIAgentService.findOneBy({
             query: {
               _id: aiAgentId.toString(),
-              secretKey: aiAgentKey,
+              key: aiAgentKey,
             },
             select: {
               _id: true,
