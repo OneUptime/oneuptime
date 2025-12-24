@@ -1,0 +1,28 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "AI Agent: " aiAgentName) }}
+
+{{> InfoBlock info="You have been added as the owner of this AI agent."}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="AI Agent Name:" text=aiAgentName }}
+{{> DetailBoxField title="AI Agent Description: " text=aiAgentDescription  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this AI agent by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=viewAIAgentLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=viewAIAgentLink}}
+
+{{> InfoBlock info="You will be notified when the status of this AI agent changes."}}
+
+{{> Footer this }}
+
+{{> End this}}

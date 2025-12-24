@@ -75,6 +75,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       <SideMenuSection title="AI">
         <SideMenuItem
           link={{
+            title: "Global AI Agents",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
+            ),
+          }}
+          icon={IconProp.Brain}
+        />
+        <SideMenuItem
+          link={{
             title: "Global LLM Providers",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,

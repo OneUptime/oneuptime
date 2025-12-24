@@ -1,0 +1,32 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=title}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="AI Agent Name:" text=aiAgentName }}
+{{> DetailBoxField title="AI Agent Description:" text=aiAgentDescription }}
+{{> DetailBoxField title="AI Agent Status:" text=aiAgentStatus }}
+{{> DetailBoxField title="Status Since:" text=lastAlive }}
+{{> DetailBoxField title="Project Name: " text=projectName  }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this AI agent by going to Project Settings > AI Agents "}}
+
+{{> ButtonBlock buttonUrl=viewAIAgentsLink buttonText="View AI Agents"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=viewAIAgentsLink}}
+
+{{> InfoBlock info="You will be notified when the status of this AI agent changes."}}
+
+{{> OwnerInfo this }}
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}
