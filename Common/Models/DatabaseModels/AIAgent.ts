@@ -60,7 +60,7 @@ export enum AIAgentConnectionStatus {
   tableName: "AIAgent",
   singularName: "AI Agent",
   pluralName: "AI Agents",
-  icon: IconProp.Brain,
+  icon: IconProp.Automation,
   tableDescription:
     "Manages custom AI agents. Deploy AI agents anywhere and connect them to your project for automated incident management.",
 })

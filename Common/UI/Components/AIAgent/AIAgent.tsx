@@ -50,7 +50,7 @@ const AIAgentElement: FunctionComponent<ComponentProps> = (
         {!props.aiAgent?.iconFileId && (
           <Icon
             data-testid="ai-agent-icon"
-            icon={IconProp.Brain}
+            icon={IconProp.Automation}
             className="text-gray-400 group-hover:text-gray-500 flex-shrink-0 -ml-0.5 mt-0.5 h-6 w-6"
           />
         )}

@@ -80,7 +80,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
               RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
             ),
           }}
-          icon={IconProp.Brain}
+          icon={IconProp.Automation}
         />
         <SideMenuItem
           link={{
