@@ -60,12 +60,16 @@ export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
             },
           });
 
+          const defaultDescription: string =
+            "A global AI agent that can assist with incident management, alert triage, and other operational tasks across all projects.";
+
           if (aiAgent) {
             await AIAgentService.updateOneById({
               id: aiAgent.id!,
               data: {
                 name: (data["aiAgentName"] as string) || "Global AI Agent",
-                description: data["aiAgentDescription"] as string,
+                description:
+                  (data["aiAgentDescription"] as string) || defaultDescription,
                 lastAlive: OneUptimeDate.getCurrentDate(),
                 connectionStatus: AIAgentConnectionStatus.Connected,
               },
@@ -85,7 +89,8 @@ export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
           newAIAgent.key = aiAgentKey;
           newAIAgent.name =
             (data["aiAgentName"] as string) || "Global AI Agent";
-          newAIAgent.description = data["aiAgentDescription"] as string;
+          newAIAgent.description =
+            (data["aiAgentDescription"] as string) || defaultDescription;
           newAIAgent.lastAlive = OneUptimeDate.getCurrentDate();
           newAIAgent.connectionStatus = AIAgentConnectionStatus.Connected;
           newAIAgent.aiAgentVersion = new Version("1.0.0");
