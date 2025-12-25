@@ -68,7 +68,6 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-
     // Get the telemetry exception to verify it exists and get the details
     const telemetryException: TelemetryException | null =
       await this.service.findOneById({
@@ -118,7 +117,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     const createdTask: AIAgentTask = await AIAgentTaskService.create({
       data: aiAgentTask,
       props: {
-        ...props
+        ...props,
       },
     });
 
