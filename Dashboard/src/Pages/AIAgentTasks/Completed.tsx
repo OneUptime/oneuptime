@@ -25,7 +25,7 @@ const CompletedTasksPage: FunctionComponent<
       name="Completed Tasks"
       isViewable={true}
       query={{
-        status: AIAgentTaskStatus.Success,
+        status: AIAgentTaskStatus.Completed,
       }}
       cardProps={{
         title: "Completed Tasks",
@@ -79,7 +79,7 @@ const CompletedTasksPage: FunctionComponent<
           title: "Status",
           type: FieldType.Element,
           getElement: (_item: AIAgentTask): ReactElement => {
-            return <Pill text="Success" color={Green} />;
+            return <Pill text="Completed" color={Green} />;
           },
         },
         {

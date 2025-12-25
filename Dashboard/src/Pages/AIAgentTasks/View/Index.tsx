@@ -67,8 +67,8 @@ const AIAgentTaskViewPage: FunctionComponent<
               if (item.status === AIAgentTaskStatus.InProgress) {
                 return <Pill text="In Progress" color={Yellow} />;
               }
-              if (item.status === AIAgentTaskStatus.Success) {
-                return <Pill text="Success" color={Green} />;
+              if (item.status === AIAgentTaskStatus.Completed) {
+                return <Pill text="Completed" color={Green} />;
               }
               if (item.status === AIAgentTaskStatus.Error) {
                 return <Pill text="Error" color={Red} />;

@@ -44,12 +44,7 @@ import { AIAgentTaskMetadata } from "../../Types/AI/AIAgentTaskMetadata";
     "Manage tasks assigned to AI agents. Tasks can be scheduled, monitored, and tracked for completion.",
 })
 @TableAccessControl({
-  create: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.CreateProjectAIAgent,
-  ],
+  create: [],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -71,12 +66,7 @@ import { AIAgentTaskMetadata } from "../../Types/AI/AIAgentTaskMetadata";
 })
 export default class AIAgentTask extends BaseModel {
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectAIAgent,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -108,12 +98,7 @@ export default class AIAgentTask extends BaseModel {
   public project?: Project = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectAIAgent,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -138,12 +123,7 @@ export default class AIAgentTask extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectAIAgent,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -180,12 +160,7 @@ export default class AIAgentTask extends BaseModel {
   public aiAgent?: AIAgent = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectAIAgent,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -215,12 +190,7 @@ export default class AIAgentTask extends BaseModel {
   public aiAgentId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectAIAgent,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -245,12 +215,7 @@ export default class AIAgentTask extends BaseModel {
   public taskType?: AIAgentTaskType = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectAIAgent,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -281,12 +246,7 @@ export default class AIAgentTask extends BaseModel {
   public status?: AIAgentTaskStatus = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectAIAgent,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -314,12 +274,7 @@ export default class AIAgentTask extends BaseModel {
   public statusMessage?: string = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectAIAgent,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -347,12 +302,7 @@ export default class AIAgentTask extends BaseModel {
   public metadata?: AIAgentTaskMetadata = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectAIAgent,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -375,12 +325,7 @@ export default class AIAgentTask extends BaseModel {
   public startedAt?: Date = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectAIAgent,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -442,12 +387,7 @@ export default class AIAgentTask extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectAIAgent,
-    ],
+    create: [],
     read: [Permission.ProjectOwner, Permission.ProjectAdmin],
     update: [],
   })
@@ -467,12 +407,7 @@ export default class AIAgentTask extends BaseModel {
   public createdByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectAIAgent,
-    ],
+    create: [],
     read: [Permission.ProjectOwner, Permission.ProjectAdmin],
     update: [],
   })
