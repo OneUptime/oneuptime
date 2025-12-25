@@ -69,6 +69,7 @@ import AlertCustomFieldService, {
   Service as AlertCustomFieldServiceType,
 } from "Common/Server/Services/AlertCustomFieldService";
 import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
+import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import AlertNoteTemplateService, {
   Service as AlertNoteTemplateServiceType,
 } from "Common/Server/Services/AlertNoteTemplateService";
@@ -379,9 +380,6 @@ import LlmLogService, {
   Service as LlmLogServiceType,
 } from "Common/Server/Services/LlmLogService";
 
-import TelemetryExceptionService, {
-  Service as TelemetryExceptionServiceType,
-} from "Common/Server/Services/TelemetryExceptionService";
 
 import ExceptionInstanceService, {
   ExceptionInstanceService as ExceptionInstanceServiceType,
@@ -491,7 +489,6 @@ import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
 import LlmLog from "Common/Models/DatabaseModels/LlmLog";
 import ServiceCatalogDependency from "Common/Models/DatabaseModels/ServiceCatalogDependency";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
-import TelemetyException from "Common/Models/DatabaseModels/TelemetryException";
 import WorkspaceNotificationLogService, {
   Service as WorkspaceNotificationLogServiceType,
 } from "Common/Server/Services/WorkspaceNotificationLogService";
@@ -900,10 +897,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TelemetyException, TelemetryExceptionServiceType>(
-        TelemetyException,
-        TelemetryExceptionService,
-      ).getRouter(),
+      new TelemetryExceptionAPI().getRouter(),
     );
 
     // scheduled maintenance template

@@ -1,6 +1,5 @@
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
-import AIAgentTask from "Common/Models/DatabaseModels/AIAgentTask";
 import ExceptionDetail from "./ExceptionDetail";
 import ObjectID from "Common/Types/ObjectID";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -20,12 +19,11 @@ import User from "Common/UI/Utils/User";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import OccouranceTable from "./OccuranceTable";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
-import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
-import { FixExceptionTaskMetadata } from "Common/Types/AI/AIAgentTaskMetadata";
-import ProjectUtil from "Common/UI/Utils/Project";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import AIAgentTaskTelemetryException from "Common/Models/DatabaseModels/AIAgentTaskTelemetryException";
+import { JSONObject } from "Common/Types/JSON";
+import URL from "Common/Types/API/URL";
+import { APP_API_URL } from "Common/UI/Config";
 
 export interface ComponentProps {
   telemetryExceptionId: ObjectID;
@@ -184,65 +182,42 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
   type CreateAIAgentTaskFunction = () => Promise<void>;
 
-  const createAIAgentTask: CreateAIAgentTaskFunction = async (): Promise<void> => {
-    try {
-      setIsCreateAITaskLoading(true);
+  const createAIAgentTask: CreateAIAgentTaskFunction =
+    async (): Promise<void> => {
+      try {
+        setIsCreateAITaskLoading(true);
 
-      const aiAgentTask: AIAgentTask = new AIAgentTask();
-      aiAgentTask.projectId = ProjectUtil.getCurrentProjectId()!;
-      aiAgentTask.taskType = AIAgentTaskType.FixException;
-      aiAgentTask.status = AIAgentTaskStatus.Scheduled;
+        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+          await API.post({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              `/telemetry-exception-status/create-ai-agent-task/${props.telemetryExceptionId.toString()}`,
+            ),
+            data: {},
+          });
 
-      const metadata: FixExceptionTaskMetadata = {
-        taskType: AIAgentTaskType.FixException,
-        exceptionId: props.telemetryExceptionId.toString(),
-      };
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
 
-      if (telemetryException?.stackTrace) {
-        metadata.stackTrace = telemetryException.stackTrace;
+        const aiAgentTaskId: string | undefined = response.data?.[
+          "aiAgentTaskId"
+        ] as string | undefined;
+
+        if (aiAgentTaskId) {
+          // Navigate to the AI Agent Task view page
+          Navigation.navigate(
+            RouteMap[PageMap.AI_AGENT_TASK_VIEW]!.addRouteParam(
+              "modelId",
+              aiAgentTaskId,
+            ),
+          );
+        }
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
       }
 
-      if (telemetryException?.message) {
-        metadata.errorMessage = telemetryException.message;
-      }
-
-      aiAgentTask.metadata = metadata;
-
-      const response: HTTPResponse<AIAgentTask> =
-        (await ModelAPI.create<AIAgentTask>({
-          model: aiAgentTask,
-          modelType: AIAgentTask,
-        })) as HTTPResponse<AIAgentTask>;
-
-      const createdTask: AIAgentTask = response.data as AIAgentTask;
-
-      if (createdTask && createdTask.id) {
-        // Create the link between the task and exception
-        const taskExceptionLink: AIAgentTaskTelemetryException =
-          new AIAgentTaskTelemetryException();
-        taskExceptionLink.projectId = ProjectUtil.getCurrentProjectId()!;
-        taskExceptionLink.aiAgentTaskId = createdTask.id;
-        taskExceptionLink.telemetryExceptionId = props.telemetryExceptionId;
-
-        await ModelAPI.create<AIAgentTaskTelemetryException>({
-          model: taskExceptionLink,
-          modelType: AIAgentTaskTelemetryException,
-        });
-
-        // Navigate to the AI Agent Task view page
-        Navigation.navigate(
-          RouteMap[PageMap.AI_AGENT_TASK_VIEW]!.addRouteParam(
-            "modelId",
-            createdTask.id.toString(),
-          ),
-        );
-      }
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-
-    setIsCreateAITaskLoading(false);
-  };
+      setIsCreateAITaskLoading(false);
+    };
 
   return (
     <div className="space-y-4 mb-10">
