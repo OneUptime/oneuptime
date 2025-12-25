@@ -365,6 +365,11 @@ import AIAgentOwnerUserService, {
   Service as AIAgentOwnerUserServiceType,
 } from "Common/Server/Services/AIAgentOwnerUserService";
 
+import AIAgentTask from "Common/Models/DatabaseModels/AIAgentTask";
+import AIAgentTaskService, {
+  Service as AIAgentTaskServiceType,
+} from "Common/Server/Services/AIAgentTaskService";
+
 import LlmLogService, {
   Service as LlmLogServiceType,
 } from "Common/Server/Services/LlmLogService";
@@ -1698,6 +1703,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AIAgentOwnerTeam, AIAgentOwnerTeamServiceType>(
         AIAgentOwnerTeam,
         AIAgentOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // AI Agent Task
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AIAgentTask, AIAgentTaskServiceType>(
+        AIAgentTask,
+        AIAgentTaskService,
       ).getRouter(),
     );
 

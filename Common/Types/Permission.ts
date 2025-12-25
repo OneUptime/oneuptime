@@ -101,6 +101,10 @@ enum Permission {
   EditProjectAIAgent = "EditProjectAIAgent",
   ReadProjectAIAgent = "ReadProjectAIAgent",
 
+  DeleteProjectAIAgentTask = "DeleteProjectAIAgentTask",
+  EditProjectAIAgentTask = "EditProjectAIAgentTask",
+  ReadProjectAIAgentTask = "ReadProjectAIAgentTask",
+
   CreateProjectLlm = "CreateProjectLlm",
   DeleteProjectLlm = "DeleteProjectLlm",
   EditProjectLlm = "EditProjectLlm",
@@ -2784,6 +2788,29 @@ export class PermissionHelper {
         permission: Permission.ReadProjectAIAgent,
         title: "Read AI Agent",
         description: "This permission can read AI agents of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+
+      {
+        permission: Permission.DeleteProjectAIAgentTask,
+        title: "Delete AI Agent Task",
+        description:
+          "This permission can delete AI agent tasks of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.EditProjectAIAgentTask,
+        title: "Edit AI Agent Task",
+        description: "This permission can edit AI agent tasks of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.ReadProjectAIAgentTask,
+        title: "Read AI Agent Task",
+        description: "This permission can read AI agent tasks of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
       },

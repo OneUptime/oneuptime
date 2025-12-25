@@ -65,6 +65,14 @@ export const WorkflowRoutePath: Dictionary<string> = {
   [PageMap.WORKFLOW_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
 };
 
+export const AIAgentTasksRoutePath: Dictionary<string> = {
+  [PageMap.AI_AGENT_TASKS_SCHEDULED]: "scheduled",
+  [PageMap.AI_AGENT_TASKS_IN_PROGRESS]: "in-progress",
+  [PageMap.AI_AGENT_TASKS_COMPLETED]: "completed",
+  [PageMap.AI_AGENT_TASK_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.AI_AGENT_TASK_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+};
+
 export const TelemetryRoutePath: Dictionary<string> = {
   [PageMap.TELEMETRY_SERVICES]: "services",
   [PageMap.TELEMETRY_DOCUMENTATION]: "documentation",
@@ -2103,6 +2111,45 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITOR_GROUP_VIEW_ALERTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitor-groups/${
       MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW_ALERTS]
+    }`,
+  ),
+
+  // AI Agent Tasks
+  [PageMap.AI_AGENT_TASKS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/*`,
+  ),
+
+  [PageMap.AI_AGENT_TASKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks`,
+  ),
+
+  [PageMap.AI_AGENT_TASKS_SCHEDULED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
+      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASKS_SCHEDULED]
+    }`,
+  ),
+
+  [PageMap.AI_AGENT_TASKS_IN_PROGRESS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
+      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASKS_IN_PROGRESS]
+    }`,
+  ),
+
+  [PageMap.AI_AGENT_TASKS_COMPLETED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
+      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASKS_COMPLETED]
+    }`,
+  ),
+
+  [PageMap.AI_AGENT_TASK_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
+      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW]
+    }`,
+  ),
+
+  [PageMap.AI_AGENT_TASK_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
+      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_DELETE]
     }`,
   ),
 };
