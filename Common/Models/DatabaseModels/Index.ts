@@ -75,6 +75,7 @@ import ProbeOwnerUser from "./ProbeOwnerUser";
 import AIAgent from "./AIAgent";
 import AIAgentOwnerTeam from "./AIAgentOwnerTeam";
 import AIAgentOwnerUser from "./AIAgentOwnerUser";
+import AIAgentTask from "./AIAgentTask";
 import LlmProvider from "./LlmProvider";
 import LlmLog from "./LlmLog";
 import Project from "./Project";
@@ -385,6 +386,7 @@ const AllModelTypes: Array<{
   AIAgent,
   AIAgentOwnerTeam,
   AIAgentOwnerUser,
+  AIAgentTask,
 
   LlmProvider,
   LlmLog,
