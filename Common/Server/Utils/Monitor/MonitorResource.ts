@@ -527,7 +527,7 @@ export default class MonitorResourceUtil {
 
       // Add probe agreement event to evaluation summary
       evaluationSummary.events.push({
-        type: "criteria-evaluation",
+        type: "probe-agreement",
         title: "Probe Agreement Check",
         message: probeAgreementResult.hasAgreement
           ? `Probe agreement reached: ${probeAgreementResult.agreementCount}/${probeAgreementResult.requiredCount} probes agree (${probeAgreementResult.totalActiveProbes} active probes total).`
