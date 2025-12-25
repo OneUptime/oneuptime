@@ -171,45 +171,36 @@ export default class AIAgentTaskAPI extends BaseAPI<
             );
           }
 
-          /* Build update data based on status */
-          const updateData: {
-            status: AIAgentTaskStatus;
-            aiAgentId?: ObjectID;
-            startedAt?: Date;
-            completedAt?: Date;
-            statusMessage?: string;
-          } = {
-            status: status,
-          };
-
-          if (aiAgent.id) {
-            updateData.aiAgentId = aiAgent.id;
-          }
-
+          /* Update the task based on status */
           if (status === AIAgentTaskStatus.InProgress) {
-            updateData.startedAt = OneUptimeDate.getCurrentDate();
-          }
-
-          if (
+            await AIAgentTaskService.updateOneById({
+              id: taskId,
+              data: {
+                status: status,
+                ...(aiAgent.id && { aiAgentId: aiAgent.id }),
+                startedAt: OneUptimeDate.getCurrentDate(),
+                ...(statusMessage && { statusMessage: statusMessage }),
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+          } else if (
             status === AIAgentTaskStatus.Completed ||
             status === AIAgentTaskStatus.Error
           ) {
-            updateData.completedAt = OneUptimeDate.getCurrentDate();
+            await AIAgentTaskService.updateOneById({
+              id: taskId,
+              data: {
+                status: status,
+                completedAt: OneUptimeDate.getCurrentDate(),
+                ...(statusMessage && { statusMessage: statusMessage }),
+              },
+              props: {
+                isRoot: true,
+              },
+            });
           }
-
-          if (statusMessage) {
-            updateData.statusMessage = statusMessage;
-          }
-
-          /* Update the task */
-          await AIAgentTaskService.updateOneById({
-            id: taskId,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            data: updateData as any,
-            props: {
-              isRoot: true,
-            },
-          });
 
           return Response.sendJsonObjectResponse(req, res, {
             taskId: taskId.toString(),
