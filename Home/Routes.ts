@@ -27,6 +27,11 @@ import Reviews from "./Utils/Reviews";
 // import jobs.
 import "./Jobs/UpdateBlog";
 import { getGitHubStarsCount, formatStarCount } from "./Jobs/FetchGitHubStars";
+import {
+  getGitHubContributorsCount,
+  getGitHubCommitsCount,
+  formatCount,
+} from "./Jobs/FetchGitHubStats";
 import { Host, IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 
@@ -94,6 +99,10 @@ const HomeFeatureSet: FeatureSet = {
       );
 
       const githubStars: string | null = formatStarCount(getGitHubStarsCount());
+      const githubContributors: string = formatCount(
+        getGitHubContributorsCount(),
+      );
+      const githubCommits: string = formatCount(getGitHubCommitsCount());
 
       res.render(`${ViewsPath}/index`, {
         support: false,
@@ -107,6 +116,8 @@ const HomeFeatureSet: FeatureSet = {
         reviewsList3,
         seo,
         githubStars,
+        githubContributors,
+        githubCommits,
       });
     });
 
@@ -119,6 +130,12 @@ const HomeFeatureSet: FeatureSet = {
         );
       },
     );
+
+    app.get("/install.sh", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.redirect(
+        "https://raw.githubusercontent.com/OneUptime/oneuptime/release/Home/Scripts/Install.sh",
+      );
+    });
 
     app.get("/support", async (_req: ExpressRequest, res: ExpressResponse) => {
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
@@ -1201,6 +1218,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/enterprise/overview",
       (_req: ExpressRequest, res: ExpressResponse) => {
+        const { reviewsList1, reviewsList2, reviewsList3 } = Reviews;
         const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
           "/enterprise/overview",
           res.locals["homeUrl"] as string,
@@ -1212,6 +1230,9 @@ const HomeFeatureSet: FeatureSet = {
           cta: true,
           blackLogo: false,
           requestDemoCta: true,
+          reviewsList1,
+          reviewsList2,
+          reviewsList3,
           seo,
         });
       },
