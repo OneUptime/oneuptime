@@ -11,6 +11,7 @@ import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
 import AIAgentAPI from "Common/Server/API/AIAgentAPI";
+import AIAgentTaskAPI from "Common/Server/API/AIAgentTaskAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
@@ -1707,10 +1708,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // AI Agent Task
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AIAgentTask, AIAgentTaskServiceType>(
-        AIAgentTask,
-        AIAgentTaskService,
-      ).getRouter(),
+      new AIAgentTaskAPI().getRouter(),
     );
 
     // AI Agent Task Telemetry Exception (linking table)
