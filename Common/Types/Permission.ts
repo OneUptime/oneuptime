@@ -101,6 +101,7 @@ enum Permission {
   EditProjectAIAgent = "EditProjectAIAgent",
   ReadProjectAIAgent = "ReadProjectAIAgent",
 
+  CreateProjectAIAgentTask = "CreateProjectAIAgentTask",
   DeleteProjectAIAgentTask = "DeleteProjectAIAgentTask",
   EditProjectAIAgentTask = "EditProjectAIAgentTask",
   ReadProjectAIAgentTask = "ReadProjectAIAgentTask",
@@ -2792,6 +2793,14 @@ export class PermissionHelper {
         isAccessControlPermission: true,
       },
 
+      {
+        permission: Permission.CreateProjectAIAgentTask,
+        title: "Create AI Agent Task",
+        description:
+          "This permission can create AI agent tasks for this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
       {
         permission: Permission.DeleteProjectAIAgentTask,
         title: "Delete AI Agent Task",

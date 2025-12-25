@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
+import AIAgentTask from "Common/Models/DatabaseModels/AIAgentTask";
 import ExceptionDetail from "./ExceptionDetail";
 import ObjectID from "Common/Types/ObjectID";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -19,6 +20,11 @@ import User from "Common/UI/Utils/User";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import OccouranceTable from "./OccuranceTable";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
+import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
+import { FixExceptionTaskMetadata } from "Common/Types/AI/AIAgentTaskMetadata";
+import ProjectUtil from "Common/UI/Utils/Project";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 
 export interface ComponentProps {
   telemetryExceptionId: ObjectID;
@@ -38,6 +44,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
   const [isArchived, setIsArchived] = React.useState<boolean>(false);
   const [isResolved, setIsResolved] = React.useState<boolean>(false);
+  const [isCreateAITaskLoading, setIsCreateAITaskLoading] =
+    React.useState<boolean>(false);
 
   type RefeshExceptionItemFunction = () => Promise<void>;
 
@@ -173,6 +181,56 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     setIsArchiveLoading(false);
   };
 
+  type CreateAIAgentTaskFunction = () => Promise<void>;
+
+  const createAIAgentTask: CreateAIAgentTaskFunction = async (): Promise<void> => {
+    try {
+      setIsCreateAITaskLoading(true);
+
+      const aiAgentTask: AIAgentTask = new AIAgentTask();
+      aiAgentTask.projectId = ProjectUtil.getCurrentProjectId()!;
+      aiAgentTask.taskType = AIAgentTaskType.FixException;
+      aiAgentTask.status = AIAgentTaskStatus.Scheduled;
+
+      const metadata: FixExceptionTaskMetadata = {
+        taskType: AIAgentTaskType.FixException,
+        exceptionId: props.telemetryExceptionId.toString(),
+      };
+
+      if (telemetryException?.stackTrace) {
+        metadata.stackTrace = telemetryException.stackTrace;
+      }
+
+      if (telemetryException?.message) {
+        metadata.errorMessage = telemetryException.message;
+      }
+
+      aiAgentTask.metadata = metadata;
+
+      const response: HTTPResponse<AIAgentTask> =
+        (await ModelAPI.create<AIAgentTask>({
+          model: aiAgentTask,
+          modelType: AIAgentTask,
+        })) as HTTPResponse<AIAgentTask>;
+
+      const createdTask: AIAgentTask = response.data as AIAgentTask;
+
+      if (createdTask && createdTask.id) {
+        // Navigate to the AI Agent Task view page
+        Navigation.navigate(
+          RouteMap[PageMap.AI_AGENT_TASK_VIEW]!.addRouteParam(
+            "modelId",
+            createdTask.id.toString(),
+          ),
+        );
+      }
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+
+    setIsCreateAITaskLoading(false);
+  };
+
   return (
     <div className="space-y-4 mb-10">
       {/** Resolve / Unresolve Button */}
@@ -219,6 +277,26 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       {/** Exception Details */}
 
       <ExceptionDetail {...telemetryException} />
+
+      {/** Fix with AI Agent Button */}
+
+      {!isResolved && (
+        <ActionCard
+          title="Fix this exception with AI Agent"
+          description="Create an AI Agent task to analyze and fix this exception automatically."
+          actions={[
+            {
+              actionName: "Fix with AI Agent",
+              actionIcon: IconProp.Bolt,
+              actionButtonStyle: ButtonStyleType.PRIMARY,
+              isLoading: isCreateAITaskLoading,
+              onConfirmAction: async () => {
+                await createAIAgentTask();
+              },
+            },
+          ]}
+        />
+      )}
 
       {/** Assign / Unassign Button */}
 
