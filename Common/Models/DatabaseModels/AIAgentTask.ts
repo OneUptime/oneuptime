@@ -49,19 +49,19 @@ import { AIAgentTaskMetadata } from "../../Types/AI/AIAgentTaskMetadata";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.ReadProjectAIAgent,
+    Permission.ReadProjectAIAgentTask,
   ],
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.DeleteProjectAIAgent,
+    Permission.DeleteProjectAIAgentTask,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.EditProjectAIAgent,
+    Permission.EditProjectAIAgentTask,
   ],
 })
 export default class AIAgentTask extends BaseModel {
@@ -71,7 +71,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectAIAgent,
+      Permission.ReadProjectAIAgentTask,
     ],
     update: [],
   })
@@ -103,7 +103,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectAIAgent,
+      Permission.ReadProjectAIAgentTask,
     ],
     update: [],
   })
@@ -128,13 +128,13 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectAIAgent,
+      Permission.ReadProjectAIAgentTask,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectAIAgent,
+      Permission.EditProjectAIAgentTask,
     ],
   })
   @TableColumn({
@@ -165,13 +165,13 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectAIAgent,
+      Permission.ReadProjectAIAgentTask,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectAIAgent,
+      Permission.EditProjectAIAgentTask,
     ],
   })
   @Index()
@@ -195,7 +195,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectAIAgent,
+      Permission.ReadProjectAIAgentTask,
     ],
     update: [],
   })
@@ -220,13 +220,13 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectAIAgent,
+      Permission.ReadProjectAIAgentTask,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectAIAgent,
+      Permission.EditProjectAIAgentTask,
     ],
   })
   @Index()
@@ -251,13 +251,13 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectAIAgent,
+      Permission.ReadProjectAIAgentTask,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectAIAgent,
+      Permission.EditProjectAIAgentTask,
     ],
   })
   @TableColumn({
@@ -279,13 +279,13 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectAIAgent,
+      Permission.ReadProjectAIAgentTask,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.EditProjectAIAgent,
+      Permission.EditProjectAIAgentTask,
     ],
   })
   @TableColumn({
@@ -307,7 +307,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectAIAgent,
+      Permission.ReadProjectAIAgentTask,
     ],
     update: [],
   })
@@ -330,7 +330,7 @@ export default class AIAgentTask extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.ReadProjectAIAgent,
+      Permission.ReadProjectAIAgentTask,
     ],
     update: [],
   })
