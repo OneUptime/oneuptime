@@ -19,7 +19,6 @@ import {
 } from "../Utils/Express";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import Permission from "../../Types/Permission";
 import AIAgentTaskType from "../../Types/AI/AIAgentTaskType";
 import AIAgentTaskStatus from "../../Types/AI/AIAgentTaskStatus";
 import { FixExceptionTaskMetadata } from "../../Types/AI/AIAgentTaskMetadata";

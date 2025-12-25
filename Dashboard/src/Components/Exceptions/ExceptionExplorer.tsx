@@ -190,7 +190,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
           await API.post({
             url: URL.fromString(APP_API_URL.toString()).addRoute(
-              `/telemetry-exception-status/create-ai-agent-task/${props.telemetryExceptionId.toString()}`,
+              `/telemetry-exception/create-ai-agent-task/${props.telemetryExceptionId.toString()}`,
             ),
             data: {},
           });

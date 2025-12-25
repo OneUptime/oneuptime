@@ -44,7 +44,7 @@ import TelemetryService from "./TelemetryService";
     Permission.EditTelemetryException,
   ],
 })
-@CrudApiEndpoint(new Route("/telemetry-exception-status"))
+@CrudApiEndpoint(new Route("/telemetry-exception"))
 @TableMetadata({
   tableName: "TelemetryException",
   singularName: "Exception",
