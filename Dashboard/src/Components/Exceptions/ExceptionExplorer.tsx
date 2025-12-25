@@ -25,6 +25,7 @@ import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import { FixExceptionTaskMetadata } from "Common/Types/AI/AIAgentTaskMetadata";
 import ProjectUtil from "Common/UI/Utils/Project";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import AIAgentTaskTelemetryException from "Common/Models/DatabaseModels/AIAgentTaskTelemetryException";
 
 export interface ComponentProps {
   telemetryExceptionId: ObjectID;
@@ -216,6 +217,18 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       const createdTask: AIAgentTask = response.data as AIAgentTask;
 
       if (createdTask && createdTask.id) {
+        // Create the link between the task and exception
+        const taskExceptionLink: AIAgentTaskTelemetryException =
+          new AIAgentTaskTelemetryException();
+        taskExceptionLink.projectId = ProjectUtil.getCurrentProjectId()!;
+        taskExceptionLink.aiAgentTaskId = createdTask.id;
+        taskExceptionLink.telemetryExceptionId = props.telemetryExceptionId;
+
+        await ModelAPI.create<AIAgentTaskTelemetryException>({
+          model: taskExceptionLink,
+          modelType: AIAgentTaskTelemetryException,
+        });
+
         // Navigate to the AI Agent Task view page
         Navigation.navigate(
           RouteMap[PageMap.AI_AGENT_TASK_VIEW]!.addRouteParam(

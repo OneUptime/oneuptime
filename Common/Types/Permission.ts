@@ -106,6 +106,11 @@ enum Permission {
   EditProjectAIAgentTask = "EditProjectAIAgentTask",
   ReadProjectAIAgentTask = "ReadProjectAIAgentTask",
 
+  CreateProjectAIAgentTaskTelemetryException = "CreateProjectAIAgentTaskTelemetryException",
+  DeleteProjectAIAgentTaskTelemetryException = "DeleteProjectAIAgentTaskTelemetryException",
+  EditProjectAIAgentTaskTelemetryException = "EditProjectAIAgentTaskTelemetryException",
+  ReadProjectAIAgentTaskTelemetryException = "ReadProjectAIAgentTaskTelemetryException",
+
   CreateProjectLlm = "CreateProjectLlm",
   DeleteProjectLlm = "DeleteProjectLlm",
   EditProjectLlm = "EditProjectLlm",
@@ -2820,6 +2825,39 @@ export class PermissionHelper {
         permission: Permission.ReadProjectAIAgentTask,
         title: "Read AI Agent Task",
         description: "This permission can read AI agent tasks of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+
+      {
+        permission: Permission.CreateProjectAIAgentTaskTelemetryException,
+        title: "Create AI Agent Task Exception Link",
+        description:
+          "This permission can create links between AI agent tasks and telemetry exceptions.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteProjectAIAgentTaskTelemetryException,
+        title: "Delete AI Agent Task Exception Link",
+        description:
+          "This permission can delete links between AI agent tasks and telemetry exceptions.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.EditProjectAIAgentTaskTelemetryException,
+        title: "Edit AI Agent Task Exception Link",
+        description:
+          "This permission can edit links between AI agent tasks and telemetry exceptions.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+      },
+      {
+        permission: Permission.ReadProjectAIAgentTaskTelemetryException,
+        title: "Read AI Agent Task Exception Link",
+        description:
+          "This permission can read links between AI agent tasks and telemetry exceptions.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
       },

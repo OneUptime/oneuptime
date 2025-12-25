@@ -370,6 +370,11 @@ import AIAgentTaskService, {
   Service as AIAgentTaskServiceType,
 } from "Common/Server/Services/AIAgentTaskService";
 
+import AIAgentTaskTelemetryException from "Common/Models/DatabaseModels/AIAgentTaskTelemetryException";
+import AIAgentTaskTelemetryExceptionService, {
+  Service as AIAgentTaskTelemetryExceptionServiceType,
+} from "Common/Server/Services/AIAgentTaskTelemetryExceptionService";
+
 import LlmLogService, {
   Service as LlmLogServiceType,
 } from "Common/Server/Services/LlmLogService";
@@ -1712,6 +1717,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AIAgentTask, AIAgentTaskServiceType>(
         AIAgentTask,
         AIAgentTaskService,
+      ).getRouter(),
+    );
+
+    // AI Agent Task Telemetry Exception (linking table)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        AIAgentTaskTelemetryException,
+        AIAgentTaskTelemetryExceptionServiceType
+      >(
+        AIAgentTaskTelemetryException,
+        AIAgentTaskTelemetryExceptionService,
       ).getRouter(),
     );
 
