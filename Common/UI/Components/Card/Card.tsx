@@ -32,16 +32,18 @@ const Card: FunctionComponent<ComponentProps> = (
 
   return (
     <React.Fragment>
-      <div data-testid="card" className={`mb-4 ${props.className || ""}`}>
-        <div className="shadow md:rounded-md">
-          <div className="bg-white py-6 px-4 md:p-6">
-            <div className="flex flex-col md:flex-row md:justify-between">
-              <div className={`${noRightElementsOrButtons ? "w-full" : ""}`}>
+      <div data-testid="card" className={`mb-5 ${props.className || ""}`}>
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
+          <div className="py-6 px-5 md:px-6">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-start">
+              <div
+                className={`${noRightElementsOrButtons ? "w-full" : "flex-1 min-w-0"}`}
+              >
                 {props.title && (
                   <h2
                     data-testid="card-details-heading"
                     id="card-details-heading"
-                    className="text-lg font-medium leading-6 text-gray-900"
+                    className="text-lg font-semibold leading-6 text-gray-900"
                   >
                     {props.title}
                   </h2>
@@ -49,7 +51,7 @@ const Card: FunctionComponent<ComponentProps> = (
                 {props.description && (
                   <p
                     data-testid="card-description"
-                    className="mt-1 text-sm text-gray-500 w-full hidden md:block"
+                    className="mt-1.5 text-sm text-gray-500 w-full hidden md:block leading-relaxed"
                   >
                     {props.description}
                   </p>
@@ -57,21 +59,21 @@ const Card: FunctionComponent<ComponentProps> = (
               </div>
               {(props.rightElement ||
                 (props.buttons && props.buttons.length > 0)) && (
-                <div className="flex flex-col md:flex-row md:w-fit mt-4 md:mt-0 gap-2 md:gap-0">
+                <div className="flex flex-col md:flex-row md:items-center md:w-fit mt-4 md:mt-0 md:ml-4 gap-2 md:gap-0 flex-shrink-0">
                   {props.rightElement && (
-                    <div className="mb-2 md:mb-0 md:mr-2">
+                    <div className="mb-2 md:mb-0 md:mr-3">
                       {props.rightElement}
                     </div>
                   )}
                   {props.buttons && props.buttons.length > 0 && (
-                    <div className="flex flex-wrap gap-2 md:gap-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       {props.buttons.map(
                         (
                           button: CardButtonSchema | ReactElement,
                           i: number,
                         ) => {
                           return (
-                            <div className="md:ml-2 first:md:ml-0" key={i}>
+                            <div key={i}>
                               {React.isValidElement(button) ? button : null}
                               {React.isValidElement(button) ? null : (
                                 <Button
@@ -112,7 +114,11 @@ const Card: FunctionComponent<ComponentProps> = (
             </div>
 
             {props.children && (
-              <div className={props.bodyClassName || "mt-6"}>
+              <div
+                className={
+                  props.bodyClassName || "mt-6 pt-5 border-t border-gray-100"
+                }
+              >
                 {props.children}
               </div>
             )}

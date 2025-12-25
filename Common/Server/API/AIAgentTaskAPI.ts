@@ -78,7 +78,7 @@ export default class AIAgentTaskAPI extends BaseAPI<
               _id: task._id?.toString(),
               projectId: task.projectId?.toString(),
               taskType: task.taskType,
-              metadata: task.metadata,
+              metadata: task.metadata as JSONObject | undefined,
               createdAt: task.createdAt,
             },
             message: "Task fetched successfully",
@@ -172,10 +172,19 @@ export default class AIAgentTaskAPI extends BaseAPI<
           }
 
           /* Build update data based on status */
-          const updateData: Partial<AIAgentTask> = {
+          const updateData: {
+            status: AIAgentTaskStatus;
+            aiAgentId?: ObjectID;
+            startedAt?: Date;
+            completedAt?: Date;
+            statusMessage?: string;
+          } = {
             status: status,
-            aiAgentId: aiAgent.id,
           };
+
+          if (aiAgent.id) {
+            updateData.aiAgentId = aiAgent.id;
+          }
 
           if (status === AIAgentTaskStatus.InProgress) {
             updateData.startedAt = OneUptimeDate.getCurrentDate();
@@ -195,7 +204,8 @@ export default class AIAgentTaskAPI extends BaseAPI<
           /* Update the task */
           await AIAgentTaskService.updateOneById({
             id: taskId,
-            data: updateData,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data: updateData as any,
             props: {
               isRoot: true,
             },
