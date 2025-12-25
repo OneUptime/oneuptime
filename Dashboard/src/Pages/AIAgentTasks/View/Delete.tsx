@@ -18,9 +18,7 @@ const DeletePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
       modelId={modelId}
       onDeleteSuccess={() => {
         Navigation.navigate(
-          RouteUtil.populateRouteParams(
-            RouteMap[PageMap.AI_AGENT_TASKS]!,
-          ),
+          RouteUtil.populateRouteParams(RouteMap[PageMap.AI_AGENT_TASKS]!),
         );
       }}
     />

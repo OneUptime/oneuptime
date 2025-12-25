@@ -29,8 +29,7 @@ const InProgressTasksPage: FunctionComponent<
       }}
       cardProps={{
         title: "In Progress Tasks",
-        description:
-          "Tasks that are currently being processed by an AI agent.",
+        description: "Tasks that are currently being processed by an AI agent.",
       }}
       showViewIdButton={true}
       filters={[
@@ -104,9 +103,12 @@ const InProgressTasksPage: FunctionComponent<
       ]}
       onViewPage={(item: AIAgentTask): Promise<Route> => {
         return Promise.resolve(
-          RouteUtil.populateRouteParams(RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route, {
-            modelId: item._id,
-          }),
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+            {
+              modelId: item._id,
+            },
+          ),
         );
       }}
     />

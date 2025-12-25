@@ -14,11 +14,8 @@ export interface FixExceptionTaskMetadata extends AIAgentTaskMetadataBase {
   errorMessage?: string;
 }
 
-
-
 // Union type for all task metadata types
-export type AIAgentTaskMetadata =
-  | FixExceptionTaskMetadata; // More tasks can be added here in the future
+export type AIAgentTaskMetadata = FixExceptionTaskMetadata; // More tasks can be added here in the future
 
 // Type guard functions
 export function isFixExceptionMetadata(

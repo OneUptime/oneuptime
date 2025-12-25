@@ -85,7 +85,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   const moreMenuItems: MoreMenuItem[] = [
     {
       title: "AI Agent",
-      description: "Manage tasks assigned to AI agents for automated operations.",
+      description:
+        "Manage tasks assigned to AI agents for automated operations.",
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.AI_AGENT_TASKS] as Route,
       ),

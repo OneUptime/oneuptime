@@ -104,9 +104,12 @@ const ScheduledTasksPage: FunctionComponent<
       ]}
       onViewPage={(item: AIAgentTask): Promise<Route> => {
         return Promise.resolve(
-          RouteUtil.populateRouteParams(RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route, {
-            modelId: item._id,
-          }),
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+            {
+              modelId: item._id,
+            },
+          ),
         );
       }}
     />

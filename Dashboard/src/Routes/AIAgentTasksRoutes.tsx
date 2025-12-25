@@ -3,10 +3,7 @@ import ComponentProps from "../Pages/PageComponentProps";
 import AIAgentTasksLayout from "../Pages/AIAgentTasks/Layout";
 import AIAgentTaskViewLayout from "../Pages/AIAgentTasks/View/Layout";
 import PageMap from "../Utils/PageMap";
-import RouteMap, {
-  RouteUtil,
-  AIAgentTasksRoutePath,
-} from "../Utils/RouteMap";
+import RouteMap, { RouteUtil, AIAgentTasksRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import React, {
   FunctionComponent,
@@ -97,7 +94,9 @@ const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
             <Suspense fallback={Loader}>
               <AIAgentTasksInProgress
                 {...props}
-                pageRoute={RouteMap[PageMap.AI_AGENT_TASKS_IN_PROGRESS] as Route}
+                pageRoute={
+                  RouteMap[PageMap.AI_AGENT_TASKS_IN_PROGRESS] as Route
+                }
               />
             </Suspense>
           }

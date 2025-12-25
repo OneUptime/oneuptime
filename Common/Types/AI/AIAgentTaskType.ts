@@ -1,5 +1,5 @@
 enum AIAgentTaskType {
-  FixException = "FixException"
+  FixException = "FixException",
 }
 
 export default AIAgentTaskType;
@@ -18,23 +18,23 @@ export class AIAgentTaskTypeHelper {
         title: "Fix Exception",
         description:
           "Analyze and fix an exception that occurred in your application.",
-      }
+      },
     ];
   }
 
   public static getDescription(taskType: AIAgentTaskType): string {
     const props: AIAgentTaskTypeProps | undefined =
-      this.getAllTaskTypeProps().find(
-        (p: AIAgentTaskTypeProps) => p.taskType === taskType,
-      );
+      this.getAllTaskTypeProps().find((p: AIAgentTaskTypeProps) => {
+        return p.taskType === taskType;
+      });
     return props?.description || "";
   }
 
   public static getTitle(taskType: AIAgentTaskType): string {
     const props: AIAgentTaskTypeProps | undefined =
-      this.getAllTaskTypeProps().find(
-        (p: AIAgentTaskTypeProps) => p.taskType === taskType,
-      );
+      this.getAllTaskTypeProps().find((p: AIAgentTaskTypeProps) => {
+        return p.taskType === taskType;
+      });
     return props?.title || "";
   }
 }

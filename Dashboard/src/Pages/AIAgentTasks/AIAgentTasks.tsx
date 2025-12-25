@@ -42,7 +42,8 @@ const AIAgentTasksPage: FunctionComponent<
           fieldType: FormFieldSchemaType.Dropdown,
           required: true,
           placeholder: "Select Task Type",
-          dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(AIAgentTaskType),
+          dropdownOptions:
+            DropdownUtil.getDropdownOptionsFromEnum(AIAgentTaskType),
         },
         {
           field: {
@@ -149,9 +150,12 @@ const AIAgentTasksPage: FunctionComponent<
       ]}
       onViewPage={(item: AIAgentTask): Promise<Route> => {
         return Promise.resolve(
-          RouteUtil.populateRouteParams(RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route, {
-            modelId: item._id,
-          }),
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+            {
+              modelId: item._id,
+            },
+          ),
         );
       }}
     />

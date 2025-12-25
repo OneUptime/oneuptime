@@ -19,7 +19,8 @@ export class AIAgentTaskStatusHelper {
       {
         status: AIAgentTaskStatus.Scheduled,
         title: "Scheduled",
-        description: "Task is scheduled and waiting to be picked up by an agent.",
+        description:
+          "Task is scheduled and waiting to be picked up by an agent.",
       },
       {
         status: AIAgentTaskStatus.InProgress,
@@ -41,17 +42,17 @@ export class AIAgentTaskStatusHelper {
 
   public static getDescription(status: AIAgentTaskStatus): string {
     const props: AIAgentTaskStatusProps | undefined =
-      this.getAllStatusProps().find(
-        (p: AIAgentTaskStatusProps) => p.status === status,
-      );
+      this.getAllStatusProps().find((p: AIAgentTaskStatusProps) => {
+        return p.status === status;
+      });
     return props?.description || "";
   }
 
   public static getTitle(status: AIAgentTaskStatus): string {
     const props: AIAgentTaskStatusProps | undefined =
-      this.getAllStatusProps().find(
-        (p: AIAgentTaskStatusProps) => p.status === status,
-      );
+      this.getAllStatusProps().find((p: AIAgentTaskStatusProps) => {
+        return p.status === status;
+      });
     return props?.title || "";
   }
 
