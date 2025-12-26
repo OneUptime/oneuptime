@@ -96,6 +96,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
           message: true,
           stackTrace: true,
           telemetryServiceId: true,
+          exceptionType: true,
         },
         props,
       });
@@ -136,6 +137,15 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     aiAgentTask.projectId = telemetryException.projectId;
     aiAgentTask.taskType = AIAgentTaskType.FixException;
     aiAgentTask.status = AIAgentTaskStatus.Scheduled;
+
+    // Set name and description based on exception details
+    const exceptionType: string =
+      telemetryException.exceptionType || "Exception";
+    const exceptionMessage: string =
+      telemetryException.message || "No message available";
+
+    aiAgentTask.name = `Fix ${exceptionType}: ${exceptionMessage}`;
+    aiAgentTask.description = `AI Agent task to fix the exception: ${exceptionMessage}`;
 
     // Build metadata
     const metadata: FixExceptionTaskMetadata = {
