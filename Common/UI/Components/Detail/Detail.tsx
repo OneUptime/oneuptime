@@ -7,6 +7,7 @@ import DictionaryOfStringsViewer from "../Dictionary/DictionaryOfStingsViewer";
 import { DropdownOption } from "../Dropdown/Dropdown";
 import HiddenText from "../HiddenText/HiddenText";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
+import ObjectIDView from "../ObjectID/ObjectIDView";
 import FieldType from "../Types/FieldType";
 import Field from "./Field";
 import FieldLabelElement from "./FieldLabel";
@@ -489,11 +490,8 @@ const Detail: DetailFunction = <T extends GenericObject>(
     }
 
     if (data && field.fieldType === FieldType.ObjectID) {
-      data = (
-        <code className="px-2 py-1 bg-gray-100 text-gray-800 rounded font-mono text-sm border border-gray-200 break-all">
-          {data.toString()}
-        </code>
-      );
+      const objectIdValue: string = data.toString();
+      data = <ObjectIDView objectId={objectIdValue} />;
     }
 
     if (field.getElement) {
