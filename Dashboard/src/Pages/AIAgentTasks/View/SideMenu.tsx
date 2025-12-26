@@ -46,7 +46,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Git}
+          icon={IconProp.Code}
         />
       </SideMenuSection>
 

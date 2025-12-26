@@ -21,7 +21,7 @@ import {
 } from "Common/Types/AI/AIAgentTaskLog";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red, Yellow, Blue, Gray } from "Common/Types/BrandColors";
+import { Green, Red, Yellow, Blue, Gray500 } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 
 const AIAgentTaskLogsPage: FunctionComponent<
@@ -46,7 +46,7 @@ const AIAgentTaskLogsPage: FunctionComponent<
       case LogSeverity.Trace:
         return <Pill text={severity} color={Blue} />;
       default:
-        return <Pill text={severity} color={Gray} />;
+        return <Pill text={severity} color={Gray500} />;
     }
   };
 
@@ -59,6 +59,7 @@ const AIAgentTaskLogsPage: FunctionComponent<
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}
+          userPreferencesKey="ai-agent-task-logs-table"
           name="AI Agent Task Logs"
           query={{
             aiAgentTaskId: modelId,

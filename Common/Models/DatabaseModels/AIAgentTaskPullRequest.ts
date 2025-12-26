@@ -40,7 +40,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
   tableName: "AIAgentTaskPullRequest",
   singularName: "AI Agent Task Pull Request",
   pluralName: "AI Agent Task Pull Requests",
-  icon: IconProp.Git,
+  icon: IconProp.Code,
   tableDescription:
     "Pull requests created by AI agents during task execution.",
 })

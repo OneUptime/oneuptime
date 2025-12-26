@@ -10,7 +10,6 @@ import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
 import PullRequestStatusElement from "../../../Components/CodeRepository/PullRequestStatus";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Link from "Common/UI/Components/Link/Link";
-import URL from "Common/Types/API/URL";
 
 const AIAgentTaskPullRequestsPage: FunctionComponent<
   PageComponentProps
@@ -25,6 +24,7 @@ const AIAgentTaskPullRequestsPage: FunctionComponent<
       isDeleteable={false}
       isEditable={false}
       isCreateable={false}
+      userPreferencesKey="ai-agent-task-pull-requests-table"
       name="Pull Requests"
       query={{
         aiAgentTaskId: modelId,
