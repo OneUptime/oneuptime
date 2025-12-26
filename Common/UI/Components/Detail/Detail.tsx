@@ -461,6 +461,19 @@ const Detail: DetailFunction = <T extends GenericObject>(
                 e,
             );
           }
+        } else if (typeof data === "object" && data !== null) {
+          // If data is already an object, convert it to a formatted JSON string
+          try {
+            data = JSON.stringify(data, null, 2);
+          } catch (e) {
+            Logger.error(
+              "Cant stringify json object for field: " +
+                field.title +
+                " Error: " +
+                e,
+            );
+            data = String(data);
+          }
         }
       }
 
