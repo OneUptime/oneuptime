@@ -116,7 +116,7 @@ const Card: FunctionComponent<ComponentProps> = (
             {props.children && (
               <div
                 className={
-                  props.bodyClassName || "mt-6 pt-5 border-t border-gray-100"
+                  props.bodyClassName || "mt-4"
                 }
               >
                 {props.children}
