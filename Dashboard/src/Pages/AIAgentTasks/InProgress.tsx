@@ -4,6 +4,8 @@ import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import AIAgentTaskTable from "../../Components/AIAgentTask/AIAgentTaskTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Yellow } from "Common/Types/BrandColors";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import IconProp from "Common/Types/Icon/IconProp";
 
 const InProgressTasksPage: FunctionComponent<
   PageComponentProps
@@ -22,6 +24,14 @@ const InProgressTasksPage: FunctionComponent<
       getStatusElement={(): ReactElement => {
         return <Pill text="In Progress" color={Yellow} />;
       }}
+      noItemsMessage={
+        <EmptyState
+          id="no-in-progress-tasks"
+          icon={IconProp.Play}
+          title="No Tasks In Progress"
+          description="There are no tasks currently being processed. When an AI Agent picks up a scheduled task, it will appear here."
+        />
+      }
     />
   );
 };

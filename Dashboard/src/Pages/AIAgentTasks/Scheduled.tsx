@@ -4,6 +4,8 @@ import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import AIAgentTaskTable from "../../Components/AIAgentTask/AIAgentTaskTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Blue } from "Common/Types/BrandColors";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import IconProp from "Common/Types/Icon/IconProp";
 
 const ScheduledTasksPage: FunctionComponent<
   PageComponentProps
@@ -22,6 +24,14 @@ const ScheduledTasksPage: FunctionComponent<
       getStatusElement={(): ReactElement => {
         return <Pill text="Scheduled" color={Blue} />;
       }}
+      noItemsMessage={
+        <EmptyState
+          id="no-scheduled-tasks"
+          icon={IconProp.Clock}
+          title="No Scheduled Tasks"
+          description="There are no tasks waiting to be picked up. New tasks will appear here when incidents, alerts, or code issues trigger AI Agent work."
+        />
+      }
     />
   );
 };

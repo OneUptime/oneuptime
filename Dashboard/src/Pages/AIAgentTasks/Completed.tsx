@@ -4,6 +4,8 @@ import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import AIAgentTaskTable from "../../Components/AIAgentTask/AIAgentTaskTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import IconProp from "Common/Types/Icon/IconProp";
 
 const CompletedTasksPage: FunctionComponent<
   PageComponentProps
@@ -22,6 +24,14 @@ const CompletedTasksPage: FunctionComponent<
       getStatusElement={(): ReactElement => {
         return <Pill text="Completed" color={Green} />;
       }}
+      noItemsMessage={
+        <EmptyState
+          id="no-completed-tasks"
+          icon={IconProp.CheckCircle}
+          title="No Completed Tasks"
+          description="There are no completed tasks yet. Tasks will appear here once AI Agents finish processing them."
+        />
+      }
     />
   );
 };

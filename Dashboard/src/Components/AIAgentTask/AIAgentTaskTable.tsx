@@ -12,6 +12,8 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow, Blue } from "Common/Types/BrandColors";
 import Query from "Common/Types/BaseDatabase/Query";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import IconProp from "Common/Types/Icon/IconProp";
 
 export interface AIAgentTaskTableProps {
   id: string;
@@ -23,6 +25,7 @@ export interface AIAgentTaskTableProps {
   dateField: "createdAt" | "startedAt" | "completedAt";
   dateFieldTitle: string;
   getStatusElement?: (item: AIAgentTask) => ReactElement;
+  noItemsMessage?: string | ReactElement;
 }
 
 type GetStatusElementFunction = (item: AIAgentTask) => ReactElement;
@@ -94,6 +97,32 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
   const getStatusElement: GetStatusElementFunction =
     props.getStatusElement || getDefaultStatusElement;
 
+  const defaultNoItemsMessage: ReactElement = (
+    <EmptyState
+      id="no-ai-agent-tasks"
+      icon={IconProp.Bolt}
+      title="No AI Agent Tasks"
+      description={
+        <div className="text-left max-w-md">
+          <p className="mb-3">
+            AI Agent Tasks are automatically created when AI Agents work on your
+            project. Tasks can be triggered by:
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-gray-600">
+            <li>Incidents that need automated remediation</li>
+            <li>Code issues detected in your repositories</li>
+            <li>Alerts requiring AI-assisted investigation</li>
+            <li>Scheduled maintenance operations</li>
+          </ul>
+          <p className="mt-3">
+            To get started, configure an AI Agent in Settings and connect it to
+            your code repositories or monitoring services.
+          </p>
+        </div>
+      }
+    />
+  );
+
   return (
     <ModelTable<AIAgentTask>
       modelType={AIAgentTask}
@@ -111,6 +140,7 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
         description: props.description,
       }}
       showViewIdButton={true}
+      noItemsMessage={props.noItemsMessage || defaultNoItemsMessage}
       filters={filters}
       columns={[
         {
