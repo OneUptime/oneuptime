@@ -1,7 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
-import AIAgentTaskTable from "./AIAgentTaskTable";
+import AIAgentTaskTable from "../../Components/AIAgentTask/AIAgentTaskTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Blue } from "Common/Types/BrandColors";
 

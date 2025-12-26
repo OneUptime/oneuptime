@@ -1,6 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
-import AIAgentTaskTable from "./AIAgentTaskTable";
+import AIAgentTaskTable from "../../Components/AIAgentTask/AIAgentTaskTable";
 
 const AIAgentTasksPage: FunctionComponent<
   PageComponentProps
