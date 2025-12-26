@@ -9,10 +9,9 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import Navigation from "Common/UI/Utils/Navigation";
-import RouteMap from "../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
-import RouteParams from "../../Utils/RouteParams";
 import ActionCard from "Common/UI/Components/ActionCard/ActionCard";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
@@ -288,9 +287,11 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         if (aiAgentTaskId) {
           // Navigate to the AI Agent Task view page
           Navigation.navigate(
-            RouteMap[PageMap.AI_AGENT_TASK_VIEW]!.addRouteParam(
-              RouteParams.ModelID,
-              aiAgentTaskId,
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+              {
+                modelId: aiAgentTaskId,
+              },
             ),
           );
         }
@@ -350,9 +351,11 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
                 buttonStyle={ButtonStyleType.OUTLINE}
                 onClick={() => {
                   Navigation.navigate(
-                    RouteMap[PageMap.AI_AGENT_TASK_VIEW]!.addRouteParam(
-                      RouteParams.ModelID,
-                      aiAgentTask._id,
+                    RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+                      {
+                        modelId: aiAgentTask._id,
+                      },
                     ),
                   );
                 }}
