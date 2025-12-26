@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 import AIAgentTask from "Common/Models/DatabaseModels/AIAgentTask";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
@@ -104,6 +105,7 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
       name={props.name}
       isViewable={true}
       query={props.query}
+      showAs={ShowAs.List}
       cardProps={{
         title: props.title,
         description: props.description,
