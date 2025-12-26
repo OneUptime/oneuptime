@@ -226,7 +226,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       {!isResolved && (
         <ActionCard
           title="Fix this exception with AI Agent"
-          description="Create an AI Agent task to analyze and fix this exception automatically."
+          description="AI Agent will analyze this exception, identify the root cause, and submit a Pull Request with the fix to your code repository."
           actions={[
             {
               actionName: "Fix with AI Agent",
