@@ -19,7 +19,7 @@ const ScheduledTasksPage: FunctionComponent<
       modelType={AIAgentTask}
       id="scheduled-tasks-table"
       userPreferencesKey="scheduled-tasks-table"
-      isDeleteable={true}
+      isDeleteable={false}
       isEditable={false}
       isCreateable={false}
       name="Scheduled Tasks"

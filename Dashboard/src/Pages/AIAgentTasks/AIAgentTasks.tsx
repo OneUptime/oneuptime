@@ -19,7 +19,7 @@ const AIAgentTasksPage: FunctionComponent<
       modelType={AIAgentTask}
       id="ai-agent-tasks-table"
       userPreferencesKey="ai-agent-tasks-table"
-      isDeleteable={true}
+      isDeleteable={false}
       isEditable={false}
       isCreateable={false}
       name="AI Agent Tasks"

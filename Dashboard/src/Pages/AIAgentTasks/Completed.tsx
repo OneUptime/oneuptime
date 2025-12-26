@@ -19,7 +19,7 @@ const CompletedTasksPage: FunctionComponent<
       modelType={AIAgentTask}
       id="completed-tasks-table"
       userPreferencesKey="completed-tasks-table"
-      isDeleteable={true}
+      isDeleteable={false}
       isEditable={false}
       isCreateable={false}
       name="Completed Tasks"
