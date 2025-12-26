@@ -49,6 +49,20 @@ const AIAgentTaskViewPage: FunctionComponent<
           },
           {
             field: {
+              name: true,
+            },
+            title: "Name",
+            fieldType: FieldType.LongText,
+          },
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            fieldType: FieldType.LongText,
+          },
+          {
+            field: {
               taskType: true,
             },
             title: "Task Type",
@@ -94,13 +108,6 @@ const AIAgentTaskViewPage: FunctionComponent<
             getElement: (item: AIAgentTask): ReactElement => {
               return <>{item.aiAgent?.name || "Not Assigned"}</>;
             },
-          },
-          {
-            field: {
-              metadata: true,
-            },
-            title: "Metadata",
-            fieldType: FieldType.JSON,
           },
           {
             field: {
