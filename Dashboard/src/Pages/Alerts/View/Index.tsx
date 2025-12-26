@@ -367,15 +367,25 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 }
 
                 return (
-                  <div className="inline-flex items-center gap-2">
-                    <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100">
-                      <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider mr-2">
-                        ALT
-                      </span>
-                      <span className="text-xl font-bold text-amber-600">
-                        {item.alertNumber}
-                      </span>
+                  <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-md bg-gray-100">
+                      <svg
+                        className="w-3.5 h-3.5 text-gray-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+                        />
+                      </svg>
                     </div>
+                    <span className="text-lg font-semibold text-gray-700">
+                      #{item.alertNumber}
+                    </span>
                   </div>
                 );
               },
