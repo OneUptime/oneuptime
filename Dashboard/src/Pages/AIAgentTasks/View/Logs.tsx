@@ -33,7 +33,9 @@ const AIAgentTaskLogsPage: FunctionComponent<
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
   const [logEntries, setLogEntries] = useState<AIAgentTaskLogEntries>([]);
 
-  const getSeverityPill = (severity: LogSeverity): ReactElement => {
+  const getSeverityPill: (severity: LogSeverity) => ReactElement = (
+    severity: LogSeverity,
+  ): ReactElement => {
     switch (severity) {
       case LogSeverity.Error:
       case LogSeverity.Fatal:
