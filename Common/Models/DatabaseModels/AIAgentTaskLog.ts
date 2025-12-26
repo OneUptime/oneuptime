@@ -1,3 +1,4 @@
+import AIAgent from "./AIAgent";
 import AIAgentTask from "./AIAgentTask";
 import Project from "./Project";
 import User from "./User";
@@ -202,6 +203,74 @@ export default class AIAgentTaskLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public aiAgentTaskId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectAIAgentTask,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Entity,
+    required: true,
+    modelType: AIAgent,
+    manyToOneRelationColumn: "aiAgentId",
+    title: "AI Agent",
+    description: "AI Agent that generated this log.",
+  })
+  @ManyToOne(
+    () => {
+      return AIAgent;
+    },
+    {
+      cascade: false,
+      eager: false,
+      nullable: false,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "aiAgentId" })
+  public aiAgent?: AIAgent = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectAIAgentTask,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "AI Agent ID",
+    description: "ID of the AI Agent that generated this log.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: false,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiAgentId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
