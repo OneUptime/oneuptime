@@ -76,6 +76,7 @@ import AIAgent from "./AIAgent";
 import AIAgentOwnerTeam from "./AIAgentOwnerTeam";
 import AIAgentOwnerUser from "./AIAgentOwnerUser";
 import AIAgentTask from "./AIAgentTask";
+import AIAgentTaskTelemetryException from "./AIAgentTaskTelemetryException";
 import LlmProvider from "./LlmProvider";
 import LlmLog from "./LlmLog";
 import Project from "./Project";
@@ -387,6 +388,7 @@ const AllModelTypes: Array<{
   AIAgentOwnerTeam,
   AIAgentOwnerUser,
   AIAgentTask,
+  AIAgentTaskTelemetryException,
 
   LlmProvider,
   LlmLog,
