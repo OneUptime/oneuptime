@@ -1,6 +1,6 @@
 import AlignItem from "../../Types/AlignItem";
 import { Logger } from "../../Utils/Logger";
-import CodeEditor from "../CodeEditor/CodeEditor";
+import CodeBlock from "../CodeBlock/CodeBlock";
 import ColorViewer from "../ColorViewer/ColorViewer";
 import CopyableButton from "../CopyableButton/CopyableButton";
 import DictionaryOfStringsViewer from "../Dictionary/DictionaryOfStingsViewer";
@@ -12,7 +12,6 @@ import Field from "./Field";
 import FieldLabelElement from "./FieldLabel";
 import PlaceholderText from "./PlaceholderText";
 import FileModel from "../../../Models/DatabaseModels/DatabaseBaseModel/FileModel";
-import CodeType from "../../../Types/Code/CodeType";
 import Color from "../../../Types/Color";
 import DatabaseProperty from "../../../Types/Database/DatabaseProperty";
 import OneUptimeDate from "../../../Types/Date";
@@ -101,8 +100,18 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm font-medium">
-        <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        <svg
+          className="w-3.5 h-3.5 text-indigo-500"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5l7 7-7 7"
+          />
         </svg>
         {selectedOption.label as string}
       </span>
@@ -141,10 +150,22 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
     return (
       <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100">
-        <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg
+          className="w-4 h-4 text-emerald-600"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
-        <span className="font-semibold text-emerald-700">${formattedAmount}</span>
+        <span className="font-semibold text-emerald-700">
+          ${formattedAmount}
+        </span>
         <span className="text-xs text-emerald-600 uppercase tracking-wide font-medium">
           USD
         </span>
@@ -163,8 +184,18 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
     return (
       <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-100">
-        <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg
+          className="w-4 h-4 text-blue-600"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
         <span className="font-semibold text-blue-700">{minutes}</span>
         <span className="text-xs text-blue-600 font-medium">
@@ -211,14 +242,25 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
     if (field.fieldType === FieldType.Date) {
       if (data) {
-        const formattedDate: string = OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          data as string,
-          true,
-        );
+        const formattedDate: string =
+          OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            data as string,
+            true,
+          );
         data = (
           <span className="inline-flex items-center gap-2 text-gray-700">
-            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <svg
+              className="w-4 h-4 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
             </svg>
             <span className="font-medium">{formattedDate}</span>
           </span>
@@ -248,14 +290,25 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
     if (field.fieldType === FieldType.DateTime) {
       if (data) {
-        const formattedDateTime: string = OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          data as string,
-          false,
-        );
+        const formattedDateTime: string =
+          OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            data as string,
+            false,
+          );
         data = (
           <span className="inline-flex items-center gap-2 text-gray-700">
-            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-4 h-4 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <span className="font-medium">{formattedDateTime}</span>
           </span>
@@ -382,14 +435,14 @@ const Detail: DetailFunction = <T extends GenericObject>(
         field.fieldType === FieldType.JavaScript ||
         field.fieldType === FieldType.Code)
     ) {
-      let codeType: CodeType = CodeType.HTML;
+      let language: string = "html";
 
       if (field.fieldType === FieldType.CSS) {
-        codeType = CodeType.CSS;
+        language = "css";
       }
 
       if (field.fieldType === FieldType.JSON) {
-        codeType = CodeType.JSON;
+        language = "json";
 
         //make sure json is well formatted.
 
@@ -411,18 +464,18 @@ const Detail: DetailFunction = <T extends GenericObject>(
       }
 
       if (field.fieldType === FieldType.JavaScript) {
-        codeType = CodeType.JavaScript;
+        language = "javascript";
       }
 
       if (field.fieldType === FieldType.Code) {
-        codeType = CodeType.Text;
+        language = "plaintext";
       }
 
       data = (
-        <CodeEditor
-          type={codeType}
-          readOnly={true}
-          initialValue={data as string}
+        <CodeBlock
+          code={data as string}
+          language={language}
+          maxHeight="400px"
         />
       );
     }
@@ -461,7 +514,8 @@ const Detail: DetailFunction = <T extends GenericObject>(
       "group transition-all duration-200 ease-in-out";
 
     if (isCardStyle) {
-      containerClasses += " bg-gradient-to-br from-white to-gray-50/50 rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md hover:border-gray-200";
+      containerClasses +=
+        " bg-gradient-to-br from-white to-gray-50/50 rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md hover:border-gray-200";
     } else if (isMinimalStyle) {
       containerClasses +=
         " py-3 first:pt-0 last:pb-0 border-b border-gray-50 last:border-b-0 hover:bg-gray-50/50 px-2 -mx-2 rounded-lg";
