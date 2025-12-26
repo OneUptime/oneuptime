@@ -221,6 +221,26 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="space-y-4 mb-10">
+      {/** Fix with AI Agent Button */}
+
+      {!isResolved && (
+        <ActionCard
+          title="Fix this exception with AI Agent"
+          description="Create an AI Agent task to analyze and fix this exception automatically."
+          actions={[
+            {
+              actionName: "Fix with AI Agent",
+              actionIcon: IconProp.Bolt,
+              actionButtonStyle: ButtonStyleType.PRIMARY,
+              isLoading: isCreateAITaskLoading,
+              onConfirmAction: async () => {
+                await createAIAgentTask();
+              },
+            },
+          ]}
+        />
+      )}
+
       {/** Resolve / Unresolve Button */}
 
       {!isResolved && (
@@ -265,26 +285,6 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       {/** Exception Details */}
 
       <ExceptionDetail {...telemetryException} />
-
-      {/** Fix with AI Agent Button */}
-
-      {!isResolved && (
-        <ActionCard
-          title="Fix this exception with AI Agent"
-          description="Create an AI Agent task to analyze and fix this exception automatically."
-          actions={[
-            {
-              actionName: "Fix with AI Agent",
-              actionIcon: IconProp.Bolt,
-              actionButtonStyle: ButtonStyleType.PRIMARY,
-              isLoading: isCreateAITaskLoading,
-              onConfirmAction: async () => {
-                await createAIAgentTask();
-              },
-            },
-          ]}
-        />
-      )}
 
       {/** Assign / Unassign Button */}
 
