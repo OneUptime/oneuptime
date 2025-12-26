@@ -33,7 +33,7 @@ const Card: FunctionComponent<ComponentProps> = (
   return (
     <React.Fragment>
       <div data-testid="card" className={`mb-5 ${props.className || ""}`}>
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
           <div className="py-6 px-5 md:px-6">
             <div className="flex flex-col md:flex-row md:justify-between md:items-start">
               <div
