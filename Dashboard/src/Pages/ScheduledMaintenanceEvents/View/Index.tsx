@@ -303,7 +303,18 @@ const ScheduledMaintenanceView: FunctionComponent<
                   return <>-</>;
                 }
 
-                return <>#{item.scheduledMaintenanceNumber}</>;
+                return (
+                  <div className="inline-flex items-center gap-2">
+                    <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
+                      <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider mr-2">
+                        SM
+                      </span>
+                      <span className="text-xl font-bold text-blue-600">
+                        {item.scheduledMaintenanceNumber}
+                      </span>
+                    </div>
+                  </div>
+                );
               },
             },
             {

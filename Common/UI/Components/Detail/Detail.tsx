@@ -494,6 +494,16 @@ const Detail: DetailFunction = <T extends GenericObject>(
       data = <ObjectIDView objectId={objectIdValue} />;
     }
 
+    if (data && field.fieldType === FieldType.Heading) {
+      data = (
+        <div className="inline-flex items-center">
+          <span className="text-2xl font-bold text-gray-900 tracking-tight">
+            {data.toString()}
+          </span>
+        </div>
+      );
+    }
+
     if (field.getElement) {
       data = field.getElement(props.item);
     }

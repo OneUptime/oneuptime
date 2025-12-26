@@ -1,5 +1,6 @@
 enum FieldType {
   ObjectID = "ObjectID",
+  Heading = "Heading",
   Name = "Name",
   File = "File",
   Percent = "Percent",

@@ -440,7 +440,18 @@ const IncidentView: FunctionComponent<
                   return <>-</>;
                 }
 
-                return <>#{item.incidentNumber}</>;
+                return (
+                  <div className="inline-flex items-center gap-2">
+                    <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-gradient-to-r from-red-50 to-orange-50 border border-red-100">
+                      <span className="text-xs font-semibold text-red-400 uppercase tracking-wider mr-2">
+                        INC
+                      </span>
+                      <span className="text-xl font-bold text-red-600">
+                        {item.incidentNumber}
+                      </span>
+                    </div>
+                  </div>
+                );
               },
             },
             {
