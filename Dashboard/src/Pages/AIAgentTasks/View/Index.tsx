@@ -4,7 +4,6 @@ import ObjectID from "Common/Types/ObjectID";
 import AIAgentTask from "Common/Models/DatabaseModels/AIAgentTask";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { useParams } from "react-router-dom";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -23,19 +22,7 @@ const AIAgentTaskViewPage: FunctionComponent<
         title: "Task Details",
         description: "View details about this AI agent task.",
       }}
-      isEditable={true}
-      editButtonText="Edit Task"
-      formFields={[
-        {
-          field: {
-            statusMessage: true,
-          },
-          title: "Status Message",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "Status message",
-        },
-      ]}
+      isEditable={false}
       modelDetailProps={{
         modelType: AIAgentTask,
         id: "model-detail-ai-agent-task",
