@@ -49,6 +49,12 @@ const AIAgentTaskViewDelete: LazyExoticComponent<
   return import("../Pages/AIAgentTasks/View/Delete");
 });
 
+const AIAgentTaskViewLogs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/AIAgentTasks/View/Logs");
+});
+
 const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -125,6 +131,17 @@ const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
               <AIAgentTaskView
                 {...props}
                 pageRoute={RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.AI_AGENT_TASK_VIEW_LOGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <AIAgentTaskViewLogs
+                {...props}
+                pageRoute={RouteMap[PageMap.AI_AGENT_TASK_VIEW_LOGS] as Route}
               />
             </Suspense>
           }

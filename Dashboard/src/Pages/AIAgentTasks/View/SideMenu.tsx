@@ -28,6 +28,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.AI_AGENT_TASK_VIEW_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Logs}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
