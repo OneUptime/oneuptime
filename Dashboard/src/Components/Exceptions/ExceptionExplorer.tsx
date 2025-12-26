@@ -12,6 +12,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
+import RouteParams from "../../Utils/RouteParams";
 import ActionCard from "Common/UI/Components/ActionCard/ActionCard";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
@@ -288,7 +289,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           // Navigate to the AI Agent Task view page
           Navigation.navigate(
             RouteMap[PageMap.AI_AGENT_TASK_VIEW]!.addRouteParam(
-              "modelId",
+              RouteParams.ModelID,
               aiAgentTaskId,
             ),
           );
@@ -350,7 +351,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
                 onClick={() => {
                   Navigation.navigate(
                     RouteMap[PageMap.AI_AGENT_TASK_VIEW]!.addRouteParam(
-                      "modelId",
+                      RouteParams.ModelID,
                       aiAgentTask._id,
                     ),
                   );
