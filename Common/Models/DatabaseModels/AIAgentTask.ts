@@ -139,6 +139,72 @@ export default class AIAgentTask extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectAIAgentTask,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectAIAgentTask,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.VeryLongText,
+    title: "Name",
+    description: "Name of the AI Agent Task.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.VeryLongText,
+  })
+  public name?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectAIAgentTask,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectAIAgentTask,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.VeryLongText,
+    title: "Description",
+    description: "Description of the AI Agent Task.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.VeryLongText,
+  })
+  public description?: string = undefined;
+
+  @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,

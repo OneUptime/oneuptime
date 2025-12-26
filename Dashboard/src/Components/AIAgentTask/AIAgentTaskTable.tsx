@@ -50,6 +50,13 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
   const filters: Array<Filter<AIAgentTask>> = [
     {
       field: {
+        name: true,
+      },
+      title: "Name",
+      type: FieldType.Text,
+    },
+    {
+      field: {
         taskType: true,
       },
       title: "Task Type",
@@ -106,9 +113,16 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
       columns={[
         {
           field: {
-            _id: true,
+            name: true,
           },
-          title: "Task ID",
+          title: "Name",
+          type: FieldType.Text,
+        },
+        {
+          field: {
+            description: true,
+          },
+          title: "Description",
           type: FieldType.Text,
         },
         {
