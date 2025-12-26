@@ -89,6 +89,7 @@ export default class AIAgentTask extends BaseModel {
     type: TableColumnType.Entity,
     required: true,
     modelType: Project,
+    manyToOneRelationColumn: "projectId",
     title: "Project",
     description: "Project this task belongs to.",
   })
