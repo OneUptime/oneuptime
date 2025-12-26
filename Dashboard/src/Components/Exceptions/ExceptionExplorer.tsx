@@ -193,6 +193,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
               `/telemetry-exception/create-ai-agent-task/${props.telemetryExceptionId.toString()}`,
             ),
             data: {},
+            headers: ModelAPI.getCommonHeaders(),
           });
 
         if (response instanceof HTTPErrorResponse) {
