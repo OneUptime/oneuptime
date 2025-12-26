@@ -13,6 +13,7 @@ import ProbeAPI from "Common/Server/API/ProbeAPI";
 import AIAgentAPI from "Common/Server/API/AIAgentAPI";
 import AIAgentTaskAPI from "Common/Server/API/AIAgentTaskAPI";
 import AIAgentTaskLogAPI from "Common/Server/API/AIAgentTaskLogAPI";
+import AIAgentTaskPullRequestAPI from "Common/Server/API/AIAgentTaskPullRequestAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
@@ -1711,6 +1712,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new AIAgentTaskLogAPI().getRouter(),
+    );
+
+    // AI Agent Task Pull Request
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AIAgentTaskPullRequestAPI().getRouter(),
     );
 
     // AI Agent Task Telemetry Exception (linking table)

@@ -38,6 +38,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Logs}
         />
+        <SideMenuItem
+          link={{
+            title: "Pull Requests",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Git}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">

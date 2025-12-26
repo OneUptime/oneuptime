@@ -37,6 +37,12 @@ export function getAIAgentTasksBreadcrumbs(
       "View Task",
       "Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS, [
+      "Project",
+      "AI Agent Tasks",
+      "View Task",
+      "Pull Requests",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENT_TASK_VIEW_DELETE, [
       "Project",
       "AI Agent Tasks",

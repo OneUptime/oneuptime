@@ -71,6 +71,7 @@ export const AIAgentTasksRoutePath: Dictionary<string> = {
   [PageMap.AI_AGENT_TASKS_COMPLETED]: "completed",
   [PageMap.AI_AGENT_TASK_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.AI_AGENT_TASK_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS]: `${RouteParams.ModelID}/pull-requests`,
   [PageMap.AI_AGENT_TASK_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
 
@@ -2151,6 +2152,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.AI_AGENT_TASK_VIEW_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
       AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
+      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS]
     }`,
   ),
 

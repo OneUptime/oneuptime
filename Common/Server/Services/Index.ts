@@ -68,6 +68,7 @@ import AIAgentService from "./AIAgentService";
 import AIAgentOwnerUserService from "./AIAgentOwnerUserService";
 import AIAgentOwnerTeamService from "./AIAgentOwnerTeamService";
 import AIAgentTaskLogService from "./AIAgentTaskLogService";
+import AIAgentTaskPullRequestService from "./AIAgentTaskPullRequestService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService from "./ProjectService";
 // Project SMTP Config.
@@ -249,6 +250,7 @@ const services: Array<BaseService> = [
   AIAgentOwnerUserService,
   AIAgentOwnerTeamService,
   AIAgentTaskLogService,
+  AIAgentTaskPullRequestService,
   ProjectSsoService,
 
   ScheduledMaintenanceCustomFieldService,
