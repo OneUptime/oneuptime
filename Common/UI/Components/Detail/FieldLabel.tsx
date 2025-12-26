@@ -31,8 +31,8 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
           } flex items-center gap-2`}
         >
           <span className={`${props.alignClassName} flex items-center gap-1.5`}>
-            <span className="w-1 h-1 rounded-full bg-gray-300"></span>
             {props.title}
+            <span className="w-1 h-1 rounded-full bg-gray-300"></span>
           </span>
           {props.sideLink && props.sideLink?.text && props.sideLink?.url && (
             <Link
