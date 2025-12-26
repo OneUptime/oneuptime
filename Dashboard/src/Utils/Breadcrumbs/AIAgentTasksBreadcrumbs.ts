@@ -11,21 +11,6 @@ export function getAIAgentTasksBreadcrumbs(
       "Project",
       "AI Agent Tasks",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENT_TASKS_SCHEDULED, [
-      "Project",
-      "AI Agent Tasks",
-      "Scheduled",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENT_TASKS_IN_PROGRESS, [
-      "Project",
-      "AI Agent Tasks",
-      "In Progress",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENT_TASKS_COMPLETED, [
-      "Project",
-      "AI Agent Tasks",
-      "Completed",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENT_TASK_VIEW, [
       "Project",
       "AI Agent Tasks",

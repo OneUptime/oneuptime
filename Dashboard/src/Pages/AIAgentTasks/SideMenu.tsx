@@ -13,44 +13,12 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
       <SideMenuSection title="Overview">
         <SideMenuItem
           link={{
-            title: "All Tasks",
+            title: "Tasks",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.AI_AGENT_TASKS] as Route,
             ),
           }}
           icon={IconProp.List}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="By Status">
-        <SideMenuItem
-          link={{
-            title: "Scheduled",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.AI_AGENT_TASKS_SCHEDULED] as Route,
-            ),
-          }}
-          icon={IconProp.Clock}
-        />
-
-        <SideMenuItem
-          link={{
-            title: "In Progress",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.AI_AGENT_TASKS_IN_PROGRESS] as Route,
-            ),
-          }}
-          icon={IconProp.Activity}
-        />
-
-        <SideMenuItem
-          link={{
-            title: "Completed",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.AI_AGENT_TASKS_COMPLETED] as Route,
-            ),
-          }}
-          icon={IconProp.Check}
         />
       </SideMenuSection>
     </SideMenu>

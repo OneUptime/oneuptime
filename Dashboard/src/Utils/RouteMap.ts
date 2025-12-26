@@ -66,9 +66,6 @@ export const WorkflowRoutePath: Dictionary<string> = {
 };
 
 export const AIAgentTasksRoutePath: Dictionary<string> = {
-  [PageMap.AI_AGENT_TASKS_SCHEDULED]: "scheduled",
-  [PageMap.AI_AGENT_TASKS_IN_PROGRESS]: "in-progress",
-  [PageMap.AI_AGENT_TASKS_COMPLETED]: "completed",
   [PageMap.AI_AGENT_TASK_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.AI_AGENT_TASK_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS]: `${RouteParams.ModelID}/pull-requests`,
@@ -2123,24 +2120,6 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.AI_AGENT_TASKS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks`,
-  ),
-
-  [PageMap.AI_AGENT_TASKS_SCHEDULED]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
-      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASKS_SCHEDULED]
-    }`,
-  ),
-
-  [PageMap.AI_AGENT_TASKS_IN_PROGRESS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
-      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASKS_IN_PROGRESS]
-    }`,
-  ),
-
-  [PageMap.AI_AGENT_TASKS_COMPLETED]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
-      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASKS_COMPLETED]
-    }`,
   ),
 
   [PageMap.AI_AGENT_TASK_VIEW]: new Route(

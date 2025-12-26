@@ -20,24 +20,6 @@ const AIAgentTasks: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/AIAgentTasks/AIAgentTasks");
   });
 
-const AIAgentTasksScheduled: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/AIAgentTasks/Scheduled");
-});
-
-const AIAgentTasksInProgress: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/AIAgentTasks/InProgress");
-});
-
-const AIAgentTasksCompleted: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/AIAgentTasks/Completed");
-});
-
 const AIAgentTaskView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/AIAgentTasks/View/Index");
@@ -85,41 +67,6 @@ const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
               <AIAgentTasks
                 {...props}
                 pageRoute={RouteMap[PageMap.AI_AGENT_TASKS] as Route}
-              />
-            </Suspense>
-          }
-        />
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.AI_AGENT_TASKS_SCHEDULED)}
-          element={
-            <Suspense fallback={Loader}>
-              <AIAgentTasksScheduled
-                {...props}
-                pageRoute={RouteMap[PageMap.AI_AGENT_TASKS_SCHEDULED] as Route}
-              />
-            </Suspense>
-          }
-        />
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.AI_AGENT_TASKS_IN_PROGRESS)}
-          element={
-            <Suspense fallback={Loader}>
-              <AIAgentTasksInProgress
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.AI_AGENT_TASKS_IN_PROGRESS] as Route
-                }
-              />
-            </Suspense>
-          }
-        />
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.AI_AGENT_TASKS_COMPLETED)}
-          element={
-            <Suspense fallback={Loader}>
-              <AIAgentTasksCompleted
-                {...props}
-                pageRoute={RouteMap[PageMap.AI_AGENT_TASKS_COMPLETED] as Route}
               />
             </Suspense>
           }
