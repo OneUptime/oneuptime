@@ -114,11 +114,7 @@ const Card: FunctionComponent<ComponentProps> = (
             </div>
 
             {props.children && (
-              <div
-                className={
-                  props.bodyClassName || "mt-4"
-                }
-              >
+              <div className={props.bodyClassName || "mt-4"}>
                 {props.children}
               </div>
             )}

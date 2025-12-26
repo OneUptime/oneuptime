@@ -41,8 +41,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
   singularName: "AI Agent Task Pull Request",
   pluralName: "AI Agent Task Pull Requests",
   icon: IconProp.Code,
-  tableDescription:
-    "Pull requests created by AI agents during task execution.",
+  tableDescription: "Pull requests created by AI agents during task execution.",
 })
 @TableAccessControl({
   create: [

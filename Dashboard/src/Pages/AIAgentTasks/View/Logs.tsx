@@ -76,9 +76,7 @@ const AIAgentTaskLogsPage: FunctionComponent<
                 item: AIAgentTaskLog,
                 onCompleteAction: VoidFunction,
               ) => {
-                setLogEntries(
-                  (item.logs as AIAgentTaskLogEntries) || [],
-                );
+                setLogEntries((item.logs as AIAgentTaskLogEntries) || []);
                 setShowViewLogsModal(true);
                 onCompleteAction();
               },
