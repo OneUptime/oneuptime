@@ -35,6 +35,7 @@ enum FieldType {
   Minutes = "Minutes",
   ArrayOfText = "ArrayOfText",
   Code = "Code",
+  InlineCode = "InlineCode",
 }
 
 export default FieldType;

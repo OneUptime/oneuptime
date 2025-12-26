@@ -29,7 +29,7 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
       key: "message",
       title: "Message",
       description: "The message of the exception.",
-      fieldType: FieldType.Text,
+      fieldType: FieldType.InlineCode,
     });
   }
 
@@ -83,7 +83,7 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
       key: "fingerprint",
       title: "Fingerprint",
       description: "SHA256 hash of this exception.",
-      fieldType: FieldType.Text,
+      fieldType: FieldType.InlineCode,
     });
   }
 
