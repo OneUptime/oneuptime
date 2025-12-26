@@ -291,7 +291,7 @@ const IncidentPostmortem: FunctionComponent<
             "Document the summary, learnings, and follow-ups for this incident.",
           buttons: [
             {
-              title: "Generate from AI",
+              title: "Generate with AI",
               icon: IconProp.Bolt,
               buttonStyle: ButtonStyleType.OUTLINE,
               onClick: () => {
