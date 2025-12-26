@@ -1,6 +1,6 @@
 import { PORT } from "./Config";
 import AliveJob from "./Jobs/Alive";
-import ProcessScheduledTasksJob from "./Jobs/ProcessScheduledTasks";
+import startTaskProcessingLoop from "./Jobs/ProcessScheduledTasks";
 import Register from "./Services/Register";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger from "Common/Server/Utils/Logger";
@@ -40,7 +40,12 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       logger.debug("AI Agent registered");
 
       AliveJob();
-      ProcessScheduledTasksJob();
+
+      // Start task processing loop (runs in background)
+      startTaskProcessingLoop().catch((err: Error) => {
+        logger.error("Task processing loop failed:");
+        logger.error(err);
+      });
     } catch (err) {
       logger.error("Register AI Agent failed");
       logger.error(err);
