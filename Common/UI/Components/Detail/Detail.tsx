@@ -488,6 +488,14 @@ const Detail: DetailFunction = <T extends GenericObject>(
       );
     }
 
+    if (data && field.fieldType === FieldType.ObjectID) {
+      data = (
+        <code className="px-2 py-1 bg-gray-100 text-gray-800 rounded font-mono text-sm border border-gray-200 break-all">
+          {data.toString()}
+        </code>
+      );
+    }
+
     if (field.getElement) {
       data = field.getElement(props.item);
     }

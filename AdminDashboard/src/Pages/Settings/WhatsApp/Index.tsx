@@ -342,7 +342,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
                 metaWhatsAppPhoneNumberId: true,
               },
               title: "Phone Number ID",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.ObjectID,
               placeholder: "Not Configured",
             },
             {
@@ -350,7 +350,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
                 metaWhatsAppBusinessAccountId: true,
               },
               title: "Business Account ID",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.ObjectID,
               placeholder: "Not Configured",
             },
             {
@@ -366,7 +366,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
                 metaWhatsAppAppId: true,
               },
               title: "App ID",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.ObjectID,
               placeholder: "Not Configured",
             },
             {

@@ -141,6 +141,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 _id: true,
               },
               title: "Probe ID",
+              fieldType: FieldType.ObjectID,
             },
             {
               field: {

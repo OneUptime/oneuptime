@@ -466,6 +466,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 _id: true,
               },
               title: "Monitor ID",
+              fieldType: FieldType.ObjectID,
             },
             {
               field: {

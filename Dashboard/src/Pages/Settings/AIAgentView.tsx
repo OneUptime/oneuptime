@@ -132,6 +132,7 @@ const AIAgentView: FunctionComponent<PageComponentProps> = (
                 _id: true,
               },
               title: "AI Agent ID",
+              fieldType: FieldType.ObjectID,
             },
             {
               field: {

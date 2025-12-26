@@ -238,6 +238,7 @@ const MonitorGroupView: FunctionComponent<
                 _id: true,
               },
               title: "Monitor Group ID",
+              fieldType: FieldType.ObjectID,
             },
             {
               field: {

@@ -135,6 +135,7 @@ const CodeRepositoryView: FunctionComponent<
                 _id: true,
               },
               title: "Repository ID",
+              fieldType: FieldType.ObjectID,
             },
             {
               field: {

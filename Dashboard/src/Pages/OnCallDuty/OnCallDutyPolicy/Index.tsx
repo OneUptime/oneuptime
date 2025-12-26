@@ -87,6 +87,7 @@ const OnCallDutyPolicyView: FunctionComponent<
                 _id: true,
               },
               title: "On-Call Policy ID",
+              fieldType: FieldType.ObjectID,
             },
             {
               field: {

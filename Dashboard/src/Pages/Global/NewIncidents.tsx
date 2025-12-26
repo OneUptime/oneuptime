@@ -114,7 +114,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               _id: true,
             },
             title: "Incident ID",
-            type: FieldType.Text,
+            type: FieldType.ObjectID,
           },
           {
             field: {
