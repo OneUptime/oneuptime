@@ -19,11 +19,9 @@ import {
 } from "../Utils/Express";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import AIAgentTaskType from "../../Types/AI/AIAgentTaskType";
 import AIAgentTaskStatus, {
   AIAgentTaskStatusHelper,
 } from "../../Types/AI/AIAgentTaskStatus";
-import { FixExceptionTaskMetadata } from "../../Types/AI/AIAgentTaskMetadata";
 import QueryHelper from "../Types/Database/QueryHelper";
 
 export default class TelemetryExceptionAPI extends BaseAPI<
@@ -105,97 +103,16 @@ export default class TelemetryExceptionAPI extends BaseAPI<
       throw new NotFoundException("Telemetry Exception not found");
     }
 
-    // Check if an active AI agent task already exists for this exception
-    const existingTaskLink: AIAgentTaskTelemetryException | null =
-      await AIAgentTaskTelemetryExceptionService.findOneBy({
-        query: {
-          telemetryExceptionId: telemetryExceptionId,
-          aiAgentTask: {
-            status: QueryHelper.notIn([
-              AIAgentTaskStatus.Completed,
-              AIAgentTaskStatus.Error,
-            ]),
-          },
-        },
-        select: {
-          _id: true,
-          aiAgentTaskId: true,
-        },
-        props: {
-          isRoot: true,
-        },
+    // Create the AI Agent Task using the service
+    const createdTask: AIAgentTask =
+      await AIAgentTaskService.createTaskForTelemetryException({
+        telemetryException,
+        telemetryExceptionId,
+        props,
       });
 
-    if (existingTaskLink) {
-      throw new BadDataException(
-        "An AI agent task is already in progress for this exception. Please wait for it to complete before creating a new one.",
-      );
-    }
-
-    // Create the AI Agent Task
-    const aiAgentTask: AIAgentTask = new AIAgentTask();
-    aiAgentTask.projectId = telemetryException.projectId;
-    aiAgentTask.taskType = AIAgentTaskType.FixException;
-    aiAgentTask.status = AIAgentTaskStatus.Scheduled;
-
-    // Set name and description based on exception details
-    const exceptionType: string =
-      telemetryException.exceptionType || "Exception";
-    const exceptionMessage: string =
-      telemetryException.message || "No message available";
-
-    aiAgentTask.name = `Fix ${exceptionType}: ${exceptionMessage}`;
-    aiAgentTask.description = `AI Agent task to fix the exception: ${exceptionMessage}`;
-
-    // Build metadata
-    const metadata: FixExceptionTaskMetadata = {
-      taskType: AIAgentTaskType.FixException,
-      exceptionId: telemetryExceptionId.toString(),
-    };
-
-    if (telemetryException.stackTrace) {
-      metadata.stackTrace = telemetryException.stackTrace;
-    }
-
-    if (telemetryException.message) {
-      metadata.errorMessage = telemetryException.message;
-    }
-
-    if (telemetryException.telemetryServiceId) {
-      metadata.telemetryServiceId =
-        telemetryException.telemetryServiceId.toString();
-    }
-
-    aiAgentTask.metadata = metadata;
-
-    // Create the task
-    const createdTask: AIAgentTask = await AIAgentTaskService.create({
-      data: aiAgentTask,
-      props: {
-        ...props,
-      },
-    });
-
-    if (!createdTask.id) {
-      throw new BadDataException("Failed to create AI Agent Task");
-    }
-
-    // Create the link between the task and exception
-    const taskExceptionLink: AIAgentTaskTelemetryException =
-      new AIAgentTaskTelemetryException();
-    taskExceptionLink.projectId = telemetryException.projectId;
-    taskExceptionLink.aiAgentTaskId = createdTask.id;
-    taskExceptionLink.telemetryExceptionId = telemetryExceptionId;
-
-    await AIAgentTaskTelemetryExceptionService.create({
-      data: taskExceptionLink,
-      props: {
-        ...props,
-      },
-    });
-
     return Response.sendJsonObjectResponse(req, res, {
-      aiAgentTaskId: createdTask.id.toString(),
+      aiAgentTaskId: createdTask.id!.toString(),
     });
   }
 
