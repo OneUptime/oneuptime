@@ -136,6 +136,7 @@ const GitHubRepoSelectorModal: FunctionComponent<ComponentProps> = (
             name: customName || selectedRepository.fullName,
             defaultBranch: selectedRepository.defaultBranch,
             repositoryUrl: selectedRepository.htmlUrl,
+            description: selectedRepository.description || "",
           } as JSONObject,
         });
 

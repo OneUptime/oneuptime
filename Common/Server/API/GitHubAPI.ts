@@ -232,6 +232,8 @@ export default class GitHubAPI {
             body["defaultBranch"]?.toString();
           const repositoryUrl: string | undefined =
             body["repositoryUrl"]?.toString();
+          const description: string | undefined =
+            body["description"]?.toString();
 
           if (!projectId) {
             return Response.sendErrorResponse(
@@ -277,6 +279,10 @@ export default class GitHubAPI {
 
           if (repositoryUrl) {
             codeRepository.repositoryUrl = URL.fromString(repositoryUrl);
+          }
+
+          if (description) {
+            codeRepository.description = description;
           }
 
           const createdRepository: CodeRepository =
