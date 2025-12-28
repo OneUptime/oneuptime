@@ -2,7 +2,6 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -15,19 +14,22 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
-import { GitHubAppName, HOME_URL } from "Common/UI/Config";
+import { env, HOME_URL } from "Common/UI/Config";
 import UserUtil from "Common/UI/Utils/User";
 import GitHubRepoSelectorModal from "../../Components/CodeRepository/GitHubRepoSelectorModal";
+import GitRepoConnectionModal from "../../Components/CodeRepository/GitRepoConnectionModal";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
 import ObjectID from "Common/Types/ObjectID";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Green } from "Common/Types/BrandColors";
 
 const CodeRepositoryPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const [showGitHubModal, setShowGitHubModal] = useState<boolean>(false);
+  const [showGitModal, setShowGitModal] = useState<boolean>(false);
   const [gitHubInstallationId, setGitHubInstallationId] = useState<
     string | null
   >(null);
@@ -64,42 +66,60 @@ const CodeRepositoryPage: FunctionComponent<
     window.location.href = installUrl;
   };
 
+  const handleConnectWithGit: () => void = (): void => {
+    setShowGitModal(true);
+  };
+
   const handleGitHubModalClose: () => void = (): void => {
     setShowGitHubModal(false);
     setGitHubInstallationId(null);
   };
 
-  const handleGitHubRepoConnected: () => void = (): void => {
+  const handleGitModalClose: () => void = (): void => {
+    setShowGitModal(false);
+  };
+
+  const handleRepoConnected: () => void = (): void => {
     setShowGitHubModal(false);
+    setShowGitModal(false);
     setGitHubInstallationId(null);
     // Refresh the table
     setRefreshToggle(Date.now().toString());
   };
 
-  const isGitHubAppConfigured: boolean = Boolean(GitHubAppName);
+  // Read GitHub App Name fresh on each render to avoid module initialization timing issues
+  const gitHubAppName: string | null = env("GITHUB_APP_NAME") || null;
+  const isGitHubAppConfigured: boolean = Boolean(gitHubAppName);
 
   return (
     <>
-      {/* GitHub Connect Button */}
-      {isGitHubAppConfigured && (
-        <Card
-          title="Connect with GitHub"
-          description="Install the OneUptime GitHub App to automatically import repositories with full access for code analysis and automatic improvements."
-        >
-          <div className="flex items-center gap-4">
+      {/* Connect Repository Card */}
+      <Card
+        title="Connect Repository"
+        description="Connect your code repositories to enable code analysis, automatic improvements, and CI/CD integration."
+      >
+        <div className="flex flex-wrap items-center gap-4">
+          {isGitHubAppConfigured && (
             <Button
-              title="Connect with GitHub"
+              title="Connect GitHub Repository"
               icon={IconProp.Link}
               buttonStyle={ButtonStyleType.PRIMARY}
               onClick={handleConnectWithGitHub}
             />
-            <span className="text-sm text-gray-500">
-              Or use the manual form below to add a repository without GitHub
-              App access.
-            </span>
-          </div>
-        </Card>
-      )}
+          )}
+          <Button
+            title="Connect Git Repository"
+            icon={IconProp.Code}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            onClick={handleConnectWithGit}
+          />
+        </div>
+        <p className="mt-3 text-sm text-gray-500">
+          {isGitHubAppConfigured
+            ? "Use the GitHub App for seamless integration, or connect any Git repository with an access token."
+            : "Connect any Git repository using an access token for authentication."}
+        </p>
+      </Card>
 
       <ModelTable<CodeRepository>
         modelType={CodeRepository}
@@ -107,121 +127,17 @@ const CodeRepositoryPage: FunctionComponent<
         userPreferencesKey="code-repository-table"
         isDeleteable={false}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={false}
         name="Code Repositories"
         isViewable={true}
         refreshToggle={refreshToggle}
         cardProps={{
           title: "Code Repositories",
           description:
-            "Connect and manage your GitHub and GitLab repositories here.",
+            "Your connected code repositories for code analysis and improvements.",
         }}
         showViewIdButton={true}
-        noItemsMessage={"No repositories connected."}
-        formSteps={[
-          {
-            title: "Basic Info",
-            id: "basic-info",
-          } as FormStep<CodeRepository>,
-          {
-            title: "Repository Details",
-            id: "repository-details",
-          } as FormStep<CodeRepository>,
-          {
-            title: "Labels",
-            id: "labels",
-          } as FormStep<CodeRepository>,
-        ]}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Repository Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-          {
-            field: {
-              repositoryHostedAt: true,
-            },
-            title: "Repository Host",
-            stepId: "repository-details",
-            description: "Where is this repository hosted?",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            placeholder: "Select Host",
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(CodeRepositoryType),
-          },
-          {
-            field: {
-              organizationName: true,
-            },
-            title: "Organization / Username",
-            stepId: "repository-details",
-            description:
-              "The GitHub organization or username that owns the repository.",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Organization Name",
-          },
-          {
-            field: {
-              repositoryName: true,
-            },
-            title: "Repository Name",
-            stepId: "repository-details",
-            description: "The name of the repository.",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Repository Name",
-          },
-          {
-            field: {
-              mainBranchName: true,
-            },
-            title: "Main Branch",
-            stepId: "repository-details",
-            description:
-              "The main branch of the repository (e.g., main, master).",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "main",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
+        noItemsMessage={"No repositories connected. Use the buttons above to connect a repository."}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
@@ -312,6 +228,23 @@ const CodeRepositoryPage: FunctionComponent<
           },
           {
             field: {
+              gitHubAppInstallationId: true,
+            },
+            title: "Connection",
+            type: FieldType.Element,
+            getElement: (item: CodeRepository): ReactElement => {
+              if (item.gitHubAppInstallationId) {
+                return (
+                  <Pill color={Green} text="GitHub App" />
+                );
+              }
+              // If not connected via GitHub App, it's either via token or manual
+              // We can't check secretToken directly due to read permissions
+              return <span className="text-gray-500">Token / Manual</span>;
+            },
+          },
+          {
+            field: {
               labels: {
                 name: true,
                 color: true,
@@ -332,7 +265,16 @@ const CodeRepositoryPage: FunctionComponent<
           projectId={projectId}
           installationId={gitHubInstallationId}
           onClose={handleGitHubModalClose}
-          onSuccess={handleGitHubRepoConnected}
+          onSuccess={handleRepoConnected}
+        />
+      )}
+
+      {/* Git Repository Connection Modal */}
+      {showGitModal && projectId && (
+        <GitRepoConnectionModal
+          projectId={projectId}
+          onClose={handleGitModalClose}
+          onSuccess={handleRepoConnected}
         />
       )}
     </>

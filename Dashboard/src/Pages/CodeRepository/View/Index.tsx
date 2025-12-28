@@ -10,6 +10,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Green } from "Common/Types/BrandColors";
 
 const CodeRepositoryView: FunctionComponent<
   PageComponentProps
@@ -129,6 +131,9 @@ const CodeRepositoryView: FunctionComponent<
           showDetailsInNumberOfColumns: 2,
           modelType: CodeRepository,
           id: "model-detail-code-repository",
+          selectMoreFields: {
+            gitHubAppInstallationId: true,
+          },
           fields: [
             {
               field: {
@@ -166,6 +171,31 @@ const CodeRepositoryView: FunctionComponent<
                 mainBranchName: true,
               },
               title: "Main Branch",
+            },
+            {
+              field: {
+                gitHubAppInstallationId: true,
+              },
+              title: "Connection Type",
+              fieldType: FieldType.Element,
+              getElement: (item: CodeRepository): ReactElement => {
+                if (item.gitHubAppInstallationId) {
+                  return (
+                    <div className="flex items-center gap-2">
+                      <Pill color={Green} text="GitHub App" />
+                      <span className="text-sm text-gray-500">
+                        Connected via GitHub App integration
+                      </span>
+                    </div>
+                  );
+                }
+                // If not connected via GitHub App, it's either via token or manual entry
+                return (
+                  <span className="text-sm text-gray-500">
+                    Connected via access token or manual entry
+                  </span>
+                );
+              },
             },
             {
               field: {
