@@ -10,8 +10,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import Pill from "Common/UI/Components/Pill/Pill";
-import { Green } from "Common/Types/BrandColors";
+import RepositoryConnectionStatus from "../../../Components/CodeRepository/RepositoryConnectionStatus";
 
 const CodeRepositoryView: FunctionComponent<
   PageComponentProps
@@ -179,21 +178,11 @@ const CodeRepositoryView: FunctionComponent<
               title: "Connection Type",
               fieldType: FieldType.Element,
               getElement: (item: CodeRepository): ReactElement => {
-                if (item.gitHubAppInstallationId) {
-                  return (
-                    <div className="flex items-center gap-2">
-                      <Pill color={Green} text="GitHub App" />
-                      <span className="text-sm text-gray-500">
-                        Connected via GitHub App integration
-                      </span>
-                    </div>
-                  );
-                }
-                // If not connected via GitHub App, it's either via token or manual entry
                 return (
-                  <span className="text-sm text-gray-500">
-                    Connected via access token or manual entry
-                  </span>
+                  <RepositoryConnectionStatus
+                    gitHubAppInstallationId={item.gitHubAppInstallationId}
+                    showDescription={true}
+                  />
                 );
               },
             },
