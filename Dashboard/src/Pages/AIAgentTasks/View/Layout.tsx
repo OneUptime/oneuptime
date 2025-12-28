@@ -21,7 +21,7 @@ const AIAgentTaskViewLayout: FunctionComponent<
       title="AI Agent Task"
       modelType={AIAgentTask}
       modelId={modelId}
-      modelNameField="_id"
+      modelNameField="name"
       breadcrumbLinks={getAIAgentTasksBreadcrumbs(path)}
       sideMenu={<SideMenu modelId={modelId} />}
     >

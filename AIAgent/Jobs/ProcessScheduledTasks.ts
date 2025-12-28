@@ -1,5 +1,6 @@
 import { ONEUPTIME_URL } from "../Config";
 import AIAgentAPIRequest from "../Utils/AIAgentAPIRequest";
+import AIAgentTaskLog from "../Utils/AIAgentTaskLog";
 import URL from "Common/Types/API/URL";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
@@ -86,6 +87,9 @@ const startTaskProcessingLoop: () => Promise<void> =
             continue;
           }
 
+          /* Send task started log */
+          await AIAgentTaskLog.sendTaskStartedLog(taskId);
+
           /* Execute the task (empty function for now) */
           await executeTask(task);
 
@@ -102,6 +106,8 @@ const startTaskProcessingLoop: () => Promise<void> =
           if (!completedResult.isSuccess()) {
             logger.error(`Failed to mark task ${taskId} as Completed`);
           } else {
+            /* Send task completed log */
+            await AIAgentTaskLog.sendTaskCompletedLog(taskId);
             logger.info(`Task completed successfully: ${taskId}`);
           }
         } catch (error) {
@@ -124,6 +130,9 @@ const startTaskProcessingLoop: () => Promise<void> =
               `Failed to mark task ${taskId} as Error: ${errorMessage}`,
             );
           }
+
+          /* Send task error log */
+          await AIAgentTaskLog.sendTaskErrorLog(taskId, errorMessage);
 
           logger.error(`Task failed: ${taskId} - ${errorMessage}`);
           logger.error(error);
