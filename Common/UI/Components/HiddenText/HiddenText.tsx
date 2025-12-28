@@ -79,6 +79,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
                   ? "text-green-500"
                   : "text-amber-400 hover:text-amber-600 hover:bg-amber-100"
               }`}
+              data-testid="copy-to-clipboard-icon"
               onClick={handleCopy}
             >
               {copied ? (
