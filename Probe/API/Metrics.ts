@@ -19,6 +19,7 @@ import ProxyConfig from "../Utils/ProxyConfig";
 const router: ExpressRouter = Express.getRouter();
 
 // Metrics endpoint for Keda autoscaling
+// Returns the number of monitors pending to be probed by this probe
 router.get(
   "/queue-size",
   async (
@@ -28,11 +29,14 @@ router.get(
   ): Promise<void> => {
     try {
       // Get the pending monitor count for this specific probe from ProbeIngest API
-      const queueSizeUrl: URL = URL.fromString(
+      // This is the correct metric - the number of monitors waiting to be probed
+      const pendingMonitorsUrl: URL = URL.fromString(
         PROBE_INGEST_URL.toString(),
-      ).addRoute("/metrics/queue-size");
+      ).addRoute("/monitor/pending-count");
 
-      logger.debug("Fetching queue size from ProbeIngest API");
+      logger.debug(
+        "Fetching pending monitor count from ProbeIngest API for KEDA scaling",
+      );
 
       // Use probe authentication (probe key and probe ID)
       const requestBody: JSONObject = ProbeAPIRequest.getDefaultRequestBody();
@@ -40,37 +44,40 @@ router.get(
       const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.fetch<JSONObject>({
           method: HTTPMethod.POST,
-          url: queueSizeUrl,
+          url: pendingMonitorsUrl,
           data: requestBody,
           headers: {},
-          options: { ...ProxyConfig.getRequestProxyAgents(queueSizeUrl) },
+          options: { ...ProxyConfig.getRequestProxyAgents(pendingMonitorsUrl) },
         });
 
       if (result instanceof HTTPErrorResponse) {
-        logger.error("Error fetching queue size from ProbeIngest API");
+        logger.error("Error fetching pending monitor count from ProbeIngest API");
         logger.error(result);
         throw result;
       }
 
-      logger.debug("Queue size fetched successfully from ProbeIngest API");
+      logger.debug(
+        "Pending monitor count fetched successfully from ProbeIngest API",
+      );
       logger.debug(result.data);
 
-      // Extract queueSize from the response
-      let queueSize: number = (result.data["queueSize"] as number) || 0;
+      // Extract count from the response - this is the number of monitors pending to be probed
+      let queueSize: number = (result.data["count"] as number) || 0;
 
       // if string then convert to number
-
       if (typeof queueSize === "string") {
         const parsedQueueSize: number = parseInt(queueSize, 10);
         if (!isNaN(parsedQueueSize)) {
           queueSize = parsedQueueSize;
         } else {
-          logger.warn("Queue size is not a valid number, defaulting to 0");
+          logger.warn(
+            "Pending monitor count is not a valid number, defaulting to 0",
+          );
           queueSize = 0;
         }
       }
 
-      logger.debug(`Queue size fetched: ${queueSize}`);
+      logger.debug(`Pending monitor count for KEDA: ${queueSize}`);
 
       return Response.sendJsonObjectResponse(req, res, {
         queueSize: queueSize,
