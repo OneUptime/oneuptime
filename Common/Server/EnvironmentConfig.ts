@@ -45,6 +45,7 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "SLACK_APP_CLIENT_ID",
   "MICROSOFT_TEAMS_APP_CLIENT_ID",
   "GITHUB_APP_CLIENT_ID",
+  "GITHUB_APP_NAME",
   "CAPTCHA_ENABLED",
   "CAPTCHA_SITE_KEY",
 ];
@@ -461,6 +462,8 @@ export const MicrosoftTeamsAppTenantId: string | null =
 
 // GitHub App Configuration
 export const GitHubAppId: string | null = process.env["GITHUB_APP_ID"] || null;
+export const GitHubAppName: string | null =
+  process.env["GITHUB_APP_NAME"] || null;
 export const GitHubAppClientId: string | null =
   process.env["GITHUB_APP_CLIENT_ID"] || null;
 export const GitHubAppClientSecret: string | null =

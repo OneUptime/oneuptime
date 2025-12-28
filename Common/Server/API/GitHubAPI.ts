@@ -7,7 +7,7 @@ import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
 import logger from "../Utils/Logger";
 import { JSONObject } from "../../Types/JSON";
-import { DashboardClientUrl, GitHubAppClientId } from "../EnvironmentConfig";
+import { DashboardClientUrl, GitHubAppName } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import GitHubUtil, {
   GitHubRepository,
@@ -116,12 +116,12 @@ export default class GitHubAPI {
       "/github/auth/install",
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          if (!GitHubAppClientId) {
+          if (!GitHubAppName) {
             return Response.sendErrorResponse(
               req,
               res,
               new BadDataException(
-                "GitHub App is not configured. Please set GITHUB_APP_CLIENT_ID.",
+                "GitHub App is not configured. Please set GITHUB_APP_NAME.",
               ),
             );
           }
@@ -146,7 +146,7 @@ export default class GitHubAPI {
             JSON.stringify({ projectId, userId }),
           ).toString("base64");
 
-          const installUrl: string = `https://github.com/apps/${GitHubAppClientId}/installations/new?state=${state}`;
+          const installUrl: string = `https://github.com/apps/${GitHubAppName}/installations/new?state=${state}`;
 
           return Response.redirect(req, res, URL.fromString(installUrl));
         } catch (error) {

@@ -833,16 +833,18 @@ microsoftTeamsApp:
 # GitHub Example Configuration
 # gitHubApp:
 #   id: "123456"
+#   name: "my-github-app"
 #   clientId: "Iv1.abc123"
 #   clientSecret: "your-client-secret"
 #   privateKey: |
 #     -----BEGIN RSA PRIVATE KEY-----
 #     ...
 #     -----END RSA PRIVATE KEY-----
-#   webhookSecret: "your-webhook-secret"    
+#   webhookSecret: "your-webhook-secret"
 
 gitHubApp:
   id:
+  name:
   clientId:
   clientSecret:
   privateKey:

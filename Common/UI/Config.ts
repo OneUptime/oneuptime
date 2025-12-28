@@ -256,3 +256,5 @@ export const MicrosoftTeamsAppClientId: string | null =
 
 export const GitHubAppClientId: string | null =
   env("GITHUB_APP_CLIENT_ID") || null;
+
+export const GitHubAppName: string | null = env("GITHUB_APP_NAME") || null;

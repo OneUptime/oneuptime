@@ -16,7 +16,7 @@ import React, {
   useState,
 } from "react";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
-import { GitHubAppClientId, HOME_URL } from "Common/UI/Config";
+import { GitHubAppName, HOME_URL } from "Common/UI/Config";
 import UserUtil from "Common/UI/Utils/User";
 import GitHubRepoSelectorModal from "../../Components/CodeRepository/GitHubRepoSelectorModal";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -76,7 +76,7 @@ const CodeRepositoryPage: FunctionComponent<
     setRefreshToggle(Date.now().toString());
   };
 
-  const isGitHubAppConfigured: boolean = Boolean(GitHubAppClientId);
+  const isGitHubAppConfigured: boolean = Boolean(GitHubAppName);
 
   return (
     <>

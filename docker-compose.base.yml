@@ -142,6 +142,7 @@ x-common-runtime-variables: &common-runtime-variables
 
     # GitHub App Configuration
     GITHUB_APP_ID: ${GITHUB_APP_ID}
+    GITHUB_APP_NAME: ${GITHUB_APP_NAME}
     GITHUB_APP_CLIENT_ID: ${GITHUB_APP_CLIENT_ID}
     GITHUB_APP_CLIENT_SECRET: ${GITHUB_APP_CLIENT_SECRET}
     GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY}

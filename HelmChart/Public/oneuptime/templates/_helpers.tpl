@@ -55,6 +55,8 @@ Usage:
   value: {{ $.Values.slackApp.clientId | quote }}
 - name: GITHUB_APP_ID
   value: {{ $.Values.gitHubApp.id | quote }}
+- name: GITHUB_APP_NAME
+  value: {{ $.Values.gitHubApp.name | quote }}
 - name: GITHUB_APP_CLIENT_ID
   value: {{ $.Values.gitHubApp.clientId | quote }}
 - name: HOST
