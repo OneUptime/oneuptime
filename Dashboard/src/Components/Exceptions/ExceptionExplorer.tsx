@@ -393,9 +393,9 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           description="If you have fixed this exception, mark this exception as resolved."
           actions={[
             {
-              actionName: "Resolve",
+              actionName: "Mark as Resolved",
               actionIcon: IconProp.Check,
-              actionButtonStyle: ButtonStyleType.SUCCESS,
+              actionButtonStyle: ButtonStyleType.SUCCESS_OUTLINE,
               isLoading: isResolveUnresolveLoading,
               onConfirmAction: async () => {
                 // Mark the exception as unresolved
