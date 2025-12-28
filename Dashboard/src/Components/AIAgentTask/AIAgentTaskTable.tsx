@@ -134,6 +134,7 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
       showViewIdButton={true}
       noItemsMessage={props.noItemsMessage || defaultNoItemsMessage}
       filters={filters}
+      showRefreshButton={true}
       columns={[
         {
           field: {
