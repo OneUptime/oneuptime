@@ -34,6 +34,30 @@ export class Service extends DatabaseService<Model> {
     }
 
     // Check if an active AI agent task already exists for this exception
+    await this.validateNoActiveTaskExists(telemetryExceptionId);
+
+    // Create the AI Agent Task
+    const createdTask: Model = await this.createFixExceptionTask({
+      telemetryException,
+      telemetryExceptionId,
+      props,
+    });
+
+    // Link the task to the telemetry exception
+    await AIAgentTaskTelemetryExceptionService.linkTaskToTelemetryException({
+      projectId: telemetryException.projectId,
+      aiAgentTaskId: createdTask.id!,
+      telemetryExceptionId,
+      props,
+    });
+
+    return createdTask;
+  }
+
+  @CaptureSpan()
+  private async validateNoActiveTaskExists(
+    telemetryExceptionId: ObjectID,
+  ): Promise<void> {
     const existingTaskLink: AIAgentTaskTelemetryException | null =
       await AIAgentTaskTelemetryExceptionService.findOneBy({
         query: {
@@ -59,10 +83,16 @@ export class Service extends DatabaseService<Model> {
         "An AI agent task is already in progress for this exception. Please wait for it to complete before creating a new one.",
       );
     }
+  }
 
-    // Create the AI Agent Task
+  @CaptureSpan()
+  private async createFixExceptionTask(
+    params: CreateTaskForTelemetryExceptionParams,
+  ): Promise<Model> {
+    const { telemetryException, telemetryExceptionId, props } = params;
+
     const aiAgentTask: Model = new Model();
-    aiAgentTask.projectId = telemetryException.projectId;
+    aiAgentTask.projectId = telemetryException.projectId!;
     aiAgentTask.taskType = AIAgentTaskType.FixException;
     aiAgentTask.status = AIAgentTaskStatus.Scheduled;
 
@@ -76,6 +106,31 @@ export class Service extends DatabaseService<Model> {
     aiAgentTask.description = `AI Agent task to fix the exception: ${exceptionMessage}`;
 
     // Build metadata
+    aiAgentTask.metadata = this.buildFixExceptionMetadata({
+      telemetryException,
+      telemetryExceptionId,
+    });
+
+    const createdTask: Model = await this.create({
+      data: aiAgentTask,
+      props: {
+        ...props,
+      },
+    });
+
+    if (!createdTask.id) {
+      throw new BadDataException("Failed to create AI Agent Task");
+    }
+
+    return createdTask;
+  }
+
+  private buildFixExceptionMetadata(params: {
+    telemetryException: TelemetryException;
+    telemetryExceptionId: ObjectID;
+  }): FixExceptionTaskMetadata {
+    const { telemetryException, telemetryExceptionId } = params;
+
     const metadata: FixExceptionTaskMetadata = {
       taskType: AIAgentTaskType.FixException,
       exceptionId: telemetryExceptionId.toString(),
@@ -94,35 +149,7 @@ export class Service extends DatabaseService<Model> {
         telemetryException.telemetryServiceId.toString();
     }
 
-    aiAgentTask.metadata = metadata;
-
-    // Create the task
-    const createdTask: Model = await this.create({
-      data: aiAgentTask,
-      props: {
-        ...props,
-      },
-    });
-
-    if (!createdTask.id) {
-      throw new BadDataException("Failed to create AI Agent Task");
-    }
-
-    // Create the link between the task and exception
-    const taskExceptionLink: AIAgentTaskTelemetryException =
-      new AIAgentTaskTelemetryException();
-    taskExceptionLink.projectId = telemetryException.projectId;
-    taskExceptionLink.aiAgentTaskId = createdTask.id;
-    taskExceptionLink.telemetryExceptionId = telemetryExceptionId;
-
-    await AIAgentTaskTelemetryExceptionService.create({
-      data: taskExceptionLink,
-      props: {
-        ...props,
-      },
-    });
-
-    return createdTask;
+    return metadata;
   }
 }
 
