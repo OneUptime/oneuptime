@@ -181,7 +181,6 @@ const CodeRepositoryView: FunctionComponent<
                 return (
                   <RepositoryConnectionStatus
                     gitHubAppInstallationId={item.gitHubAppInstallationId}
-                    showDescription={true}
                   />
                 );
               },

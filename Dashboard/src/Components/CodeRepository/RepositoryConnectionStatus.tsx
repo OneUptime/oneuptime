@@ -2,7 +2,6 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   gitHubAppInstallationId?: string | null | undefined;
-  showDescription?: boolean;
 }
 
 const RepositoryConnectionStatus: FunctionComponent<ComponentProps> = (
@@ -20,16 +19,9 @@ const RepositoryConnectionStatus: FunctionComponent<ComponentProps> = (
             />
           </svg>
         </div>
-        <div className="flex flex-col">
-          <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-            GitHub App
-          </span>
-          {props.showDescription && (
-            <span className="mt-1 text-xs text-gray-500">
-              Connected via GitHub App integration
-            </span>
-          )}
-        </div>
+        <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+          GitHub App
+        </span>
       </div>
     );
   }
@@ -52,16 +44,9 @@ const RepositoryConnectionStatus: FunctionComponent<ComponentProps> = (
           />
         </svg>
       </div>
-      <div className="flex flex-col">
-        <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
-          Access Token
-        </span>
-        {props.showDescription && (
-          <span className="mt-1 text-xs text-gray-500">
-            Connected via personal access token
-          </span>
-        )}
-      </div>
+      <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
+        Access Token
+      </span>
     </div>
   );
 };
