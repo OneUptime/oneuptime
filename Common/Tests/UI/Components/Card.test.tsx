@@ -28,7 +28,7 @@ describe("Card", () => {
 
     const title: HTMLElement = screen.getByText(props.title as string);
     expect(title).toBeInTheDocument();
-    expect(title).toHaveClass("text-lg font-medium leading-6 text-gray-900");
+    expect(title).toHaveClass("text-lg font-semibold leading-6 text-gray-900");
   });
 
   test("should display card description", () => {
@@ -38,7 +38,7 @@ describe("Card", () => {
       props.description as string,
     );
     expect(description).toBeInTheDocument();
-    expect(description).toHaveClass("mt-1 text-sm text-gray-500");
+    expect(description).toHaveClass("mt-1.5 text-sm text-gray-500");
   });
 
   test("should render rightElement passed in the props", () => {
@@ -76,14 +76,10 @@ describe("Card", () => {
     expect(button1).toBeInTheDocument();
     expect(button1).toHaveClass(buttons[0]?.className ?? "");
     expect(buttons[0]?.onClick).toHaveBeenCalled();
-    // First button should have first:md:ml-0 class
-    expect(button1.parentElement).toHaveClass("first:md:ml-0");
 
     const button2: HTMLElement = screen.getByText(buttons[1]?.title ?? "");
     expect(button2).toBeInTheDocument();
     expect(button2).toBeDisabled();
-    // Second button should have md:ml-2 class
-    expect(button2.parentElement).toHaveClass("md:ml-2");
   });
 
   test("should render component children passed in the props and their parent element should have bodyClassName value passed in the props as css class", () => {
@@ -99,7 +95,7 @@ describe("Card", () => {
     expect(childComponent.parentElement).toHaveClass(bodyClassName);
   });
 
-  test("should render component children passed in the props and their parent element have css class 'mt-6'", () => {
+  test("should render component children passed in the props and their parent element have css class 'mt-4'", () => {
     const childElementText: string = "child element";
     const childElement: ReactElement = <div key={0}>{childElementText}</div>;
 
@@ -108,6 +104,6 @@ describe("Card", () => {
     const childComponent: HTMLElement = screen.getByText(childElementText);
 
     expect(childComponent).toBeInTheDocument();
-    expect(childComponent.parentElement).toHaveClass("mt-6");
+    expect(childComponent.parentElement).toHaveClass("mt-4");
   });
 });

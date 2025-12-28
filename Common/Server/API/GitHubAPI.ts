@@ -7,12 +7,13 @@ import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
 import logger from "../Utils/Logger";
 import { JSONObject } from "../../Types/JSON";
-import { DashboardClientUrl, GitHubAppClientId } from "../EnvironmentConfig";
+import { DashboardClientUrl, GitHubAppName } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import GitHubUtil, {
   GitHubRepository,
 } from "../Utils/CodeRepository/GitHub/GitHub";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
+import ProjectService from "../Services/ProjectService";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
 import URL from "../../Types/API/URL";
@@ -91,10 +92,21 @@ export default class GitHubAPI {
           }
 
           /*
-           * Store the installation ID - we'll create repositories when user selects them
-           * For now, redirect back to dashboard with installation ID
+           * Store the installation ID in the project
+           * This allows reuse when connecting additional repositories
            */
-          const redirectUrl: string = `${DashboardClientUrl.toString()}/dashboard/${projectId}/code-repository?installation_id=${installationId}`;
+          await ProjectService.updateOneById({
+            id: new ObjectID(projectId),
+            data: {
+              gitHubAppInstallationId: installationId,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          // Redirect back to dashboard with installation ID
+          const redirectUrl: string = `${DashboardClientUrl.toString()}/${projectId}/code-repository?installation_id=${installationId}`;
 
           return Response.redirect(req, res, URL.fromString(redirectUrl));
         } catch (error) {
@@ -116,12 +128,12 @@ export default class GitHubAPI {
       "/github/auth/install",
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          if (!GitHubAppClientId) {
+          if (!GitHubAppName) {
             return Response.sendErrorResponse(
               req,
               res,
               new BadDataException(
-                "GitHub App is not configured. Please set GITHUB_APP_CLIENT_ID.",
+                "GitHub App is not configured. Please set GITHUB_APP_NAME.",
               ),
             );
           }
@@ -146,7 +158,7 @@ export default class GitHubAPI {
             JSON.stringify({ projectId, userId }),
           ).toString("base64");
 
-          const installUrl: string = `https://github.com/apps/${GitHubAppClientId}/installations/new?state=${state}`;
+          const installUrl: string = `https://github.com/apps/${GitHubAppName}/installations/new?state=${state}`;
 
           return Response.redirect(req, res, URL.fromString(installUrl));
         } catch (error) {
@@ -220,6 +232,8 @@ export default class GitHubAPI {
             body["defaultBranch"]?.toString();
           const repositoryUrl: string | undefined =
             body["repositoryUrl"]?.toString();
+          const description: string | undefined =
+            body["description"]?.toString();
 
           if (!projectId) {
             return Response.sendErrorResponse(
@@ -265,6 +279,10 @@ export default class GitHubAPI {
 
           if (repositoryUrl) {
             codeRepository.repositoryUrl = URL.fromString(repositoryUrl);
+          }
+
+          if (description) {
+            codeRepository.description = description;
           }
 
           const createdRepository: CodeRepository =

@@ -18,10 +18,11 @@ To integrate GitHub with your self-hosted OneUptime instance, you need to create
 2. Click **"New GitHub App"**
 
 3. Fill out the registration form:
-   - **GitHub App name:** OneUptime (or any unique name)
+   - **GitHub App name:** OneUptime (or any unique name) - **Save this name, you'll need it for the `GITHUB_APP_NAME` environment variable**
    - **Homepage URL:** `https://your-oneuptime-domain.com`
    - **Callback URL:** `https://your-oneuptime-domain.com/api/github/auth/callback`
-   - **Setup URL (optional):** Leave empty
+   - **Setup URL:** `https://your-oneuptime-domain.com/api/github/auth/callback` - **Important: This URL is where GitHub redirects users after they install the app. It must be set for the redirect to work.**
+   - **Redirect on update:** Check this option to redirect users after they update the app installation
    - **Webhook URL:** `https://your-oneuptime-domain.com/api/github/webhook`
    - **Webhook secret:** Generate a secure random string (save this for later)
 
@@ -96,6 +97,7 @@ If you are using Docker Compose, add these environment variables to your `config
 ```bash
 # GitHub App Configuration
 GITHUB_APP_ID=YOUR_APP_ID
+GITHUB_APP_NAME=YOUR_APP_NAME  # The exact name of your GitHub App (e.g., "OneUptime")
 GITHUB_APP_CLIENT_ID=YOUR_CLIENT_ID
 GITHUB_APP_CLIENT_SECRET=YOUR_CLIENT_SECRET
 GITHUB_APP_PRIVATE_KEY="<BASE64_ENCODED_PRIVATE_KEY_CONTENT>"
@@ -111,6 +113,7 @@ If you are using Kubernetes with Helm, add these to your `values.yaml` file:
 ```yaml
 gitHubApp:
   id: "YOUR_APP_ID"
+  name: "YOUR_APP_NAME"  # The exact name of your GitHub App
   clientId: "YOUR_CLIENT_ID"
   clientSecret: "YOUR_CLIENT_SECRET"
   privateKey: "<BASE64_ENCODED_PRIVATE_KEY_CONTENT>"
@@ -143,6 +146,7 @@ gitHubApp:
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `GITHUB_APP_ID` | The App ID from your GitHub App settings | Yes |
+| `GITHUB_APP_NAME` | The exact name of your GitHub App (used for installation URLs) | Yes |
 | `GITHUB_APP_CLIENT_ID` | The Client ID from your GitHub App settings | Yes |
 | `GITHUB_APP_CLIENT_SECRET` | The client secret you generated | Yes |
 | `GITHUB_APP_PRIVATE_KEY` | The contents of the private key (.pem file) | Yes |
@@ -151,6 +155,12 @@ gitHubApp:
 ## Troubleshooting
 
 ### Common Issues
+
+**Not redirected back to OneUptime after installing the GitHub App:**
+- Ensure the **Setup URL** is configured in your GitHub App settings to: `https://your-oneuptime-domain.com/api/github/auth/callback`
+- Go to your GitHub App settings > "Post installation" section and verify the Setup URL is set correctly
+- The "Redirect on update" option should also be checked
+- Note: The Setup URL is different from the Callback URL - both should point to the same `/api/github/auth/callback` endpoint
 
 **"GitHub App is not configured" error:**
 - Ensure `GITHUB_APP_CLIENT_ID` environment variable is set

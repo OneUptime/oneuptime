@@ -10,6 +10,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import RepositoryConnectionStatus from "../../../Components/CodeRepository/RepositoryConnectionStatus";
 
 const CodeRepositoryView: FunctionComponent<
   PageComponentProps
@@ -129,6 +130,9 @@ const CodeRepositoryView: FunctionComponent<
           showDetailsInNumberOfColumns: 2,
           modelType: CodeRepository,
           id: "model-detail-code-repository",
+          selectMoreFields: {
+            gitHubAppInstallationId: true,
+          },
           fields: [
             {
               field: {
@@ -166,6 +170,20 @@ const CodeRepositoryView: FunctionComponent<
                 mainBranchName: true,
               },
               title: "Main Branch",
+            },
+            {
+              field: {
+                gitHubAppInstallationId: true,
+              },
+              title: "Connection Type",
+              fieldType: FieldType.Element,
+              getElement: (item: CodeRepository): ReactElement => {
+                return (
+                  <RepositoryConnectionStatus
+                    gitHubAppInstallationId={item.gitHubAppInstallationId}
+                  />
+                );
+              },
             },
             {
               field: {
