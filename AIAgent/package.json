@@ -21,7 +21,6 @@
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0",
   "dependencies": {
-    "axios": "^1.13.1",
     "Common": "file:../Common",
     "ejs": "^3.1.10",
     "ts-node": "^10.9.1"
@@ -30,7 +29,6 @@
     "@types/jest": "^27.5.2",
     "@types/node": "^17.0.31",
     "jest": "^28.1.0",
-    "nodemon": "^2.0.20",
-    "ts-jest": "^28.0.2"
+    "nodemon": "^2.0.20"
   }
 }
