@@ -93,6 +93,9 @@ const AIAgentTaskViewPage: FunctionComponent<
             },
             title: "Status Message",
             fieldType: FieldType.LongText,
+            showIf: (item: AIAgentTask): boolean => {
+              return Boolean(item.statusMessage);
+            },
           },
           {
             field: {
