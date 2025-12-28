@@ -3,11 +3,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import Banner from "Common/UI/Components/Banner/Banner";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import AIAgentElement from "Common/UI/Components/AIAgent/AIAgent";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -15,12 +12,7 @@ import { APP_API_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import AIAgent from "Common/Models/DatabaseModels/AIAgent";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
@@ -28,10 +20,6 @@ import { Green } from "Common/Types/BrandColors";
 const AIAgentsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
-
-  const [currentAIAgent, setCurrentAIAgent] = useState<AIAgent | null>(null);
-
   return (
     <Fragment>
       <>
@@ -130,7 +118,6 @@ const AIAgentsPage: FunctionComponent<
               "Self-Hosted AI Agents run on your infrastructure and can be customized for your specific incident management needs.",
           }}
           selectMoreFields={{
-            key: true,
             iconFileId: true,
           }}
           noItemsMessage={"No AI agents found."}
@@ -213,27 +200,6 @@ const AIAgentsPage: FunctionComponent<
             },
           ]}
           showRefreshButton={true}
-          actionButtons={[
-            {
-              title: "Show ID and Key",
-              buttonStyleType: ButtonStyleType.NORMAL,
-              onClick: async (
-                item: AIAgent,
-                onCompleteAction: VoidFunction,
-                onError: ErrorFunction,
-              ) => {
-                try {
-                  setCurrentAIAgent(item);
-                  setShowKeyModal(true);
-
-                  onCompleteAction();
-                } catch (err) {
-                  onCompleteAction();
-                  onError(err as Error);
-                }
-              },
-            },
-          ]}
           filters={[
             {
               field: {
@@ -334,36 +300,6 @@ const AIAgentsPage: FunctionComponent<
             },
           ]}
         />
-
-        {showKeyModal && currentAIAgent ? (
-          <ConfirmModal
-            title={`AI Agent Key`}
-            description={
-              <div>
-                <span>
-                  Here is your AI agent key. Please keep this a secret.
-                </span>
-                <br />
-                <br />
-                <span>
-                  <b>AI Agent ID: </b> {currentAIAgent["_id"]?.toString()}
-                </span>
-                <br />
-                <br />
-                <span>
-                  <b>AI Agent Key: </b> {currentAIAgent["key"]?.toString()}
-                </span>
-              </div>
-            }
-            submitButtonText={"Close"}
-            submitButtonType={ButtonStyleType.NORMAL}
-            onSubmit={async () => {
-              setShowKeyModal(false);
-            }}
-          />
-        ) : (
-          <></>
-        )}
       </>
     </Fragment>
   );
