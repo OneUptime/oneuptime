@@ -30,6 +30,8 @@ import Team from "Common/Models/DatabaseModels/Team";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import AIAgentStatusElement from "../../Components/AIAgent/AIAgentStatus";
 import CustomAIAgentDocumentation from "../../Components/AIAgent/CustomAIAgentDocumentation";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Green } from "Common/Types/BrandColors";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
@@ -101,6 +103,17 @@ const AIAgentView: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              isDefault: true,
+            },
+            title: "Set as Default",
+            stepId: "more",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Set this as the default AI Agent for the project. When a default is set, this agent will be used for automated tasks.",
+          },
+          {
+            field: {
               labels: true,
             },
 
@@ -152,6 +165,19 @@ const AIAgentView: FunctionComponent<PageComponentProps> = (
               },
               title: "AI Agent Key",
               fieldType: FieldType.HiddenText,
+            },
+            {
+              field: {
+                isDefault: true,
+              },
+              title: "Default",
+              fieldType: FieldType.Boolean,
+              getElement: (item: AIAgent): ReactElement => {
+                if (item.isDefault) {
+                  return <Pill text="Default" color={Green} />;
+                }
+                return <span className="text-gray-400">-</span>;
+              },
             },
             {
               field: {

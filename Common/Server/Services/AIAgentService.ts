@@ -34,6 +34,7 @@ import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import QueryHelper from "../Types/Database/QueryHelper";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -136,6 +137,29 @@ export class Service extends DatabaseService<Model> {
 
     if (!createBy.data.aiAgentVersion) {
       createBy.data.aiAgentVersion = new Version("1.0.0");
+    }
+
+    // When creating a new AI Agent, set it as default by default
+    if (createBy.data.isDefault === undefined) {
+      createBy.data.isDefault = true;
+    }
+
+    // If this agent is being set as default, unset other defaults in the same project
+    if (createBy.data.isDefault && createBy.data.projectId) {
+      await this.updateBy({
+        query: {
+          projectId: createBy.data.projectId,
+          isDefault: true,
+        },
+        data: {
+          isDefault: false,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+      });
     }
 
     return { createBy: createBy, carryForward: [] };
@@ -247,6 +271,55 @@ export class Service extends DatabaseService<Model> {
       );
 
       carryForward.aiAgentsToNotifyOwners = aiAgentsToNotifyOwners;
+    }
+
+    // If setting isDefault to true, we need to unset other defaults in the same project
+    if (updateBy.data.isDefault === true) {
+      // Get the items being updated to find their project IDs
+      const itemsToUpdate: Array<Model> = await this.findBy({
+        query: updateBy.query,
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+      });
+
+      // Collect unique project IDs
+      const projectIds: Set<string> = new Set();
+      const itemIds: Set<string> = new Set();
+      for (const item of itemsToUpdate) {
+        if (item.projectId) {
+          projectIds.add(item.projectId.toString());
+        }
+        if (item._id) {
+          itemIds.add(item._id);
+        }
+      }
+
+      // For each project, unset the default on other agents
+      for (const projectIdStr of projectIds) {
+        const projectId: ObjectID = new ObjectID(projectIdStr);
+        await this.updateBy({
+          query: {
+            projectId: projectId,
+            isDefault: true,
+            _id: QueryHelper.notInOrNull(Array.from(itemIds)),
+          },
+          data: {
+            isDefault: false,
+          },
+          props: {
+            isRoot: true,
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+        });
+      }
     }
 
     return { updateBy: updateBy, carryForward };
@@ -428,6 +501,63 @@ export class Service extends DatabaseService<Model> {
     return URL.fromString(dashboardUrl.toString()).addRoute(
       `/${projectId.toString()}/settings/ai-agents/${aiAgentId.toString()}`,
     );
+  }
+
+  @CaptureSpan()
+  public async getAIAgentForProject(
+    projectId: ObjectID,
+  ): Promise<Model | null> {
+    // First try to get the default AI agent for the project
+    let agent: Model | null = await this.findOneBy({
+      query: {
+        projectId: projectId,
+        isDefault: true,
+      },
+      select: {
+        _id: true,
+        name: true,
+        description: true,
+        key: true,
+        aiAgentVersion: true,
+        connectionStatus: true,
+        isGlobalAIAgent: true,
+        lastAlive: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (agent) {
+      return agent;
+    }
+
+    // If no default agent, get any global AI agent
+    agent = await this.findOneBy({
+      query: {
+        projectId: QueryHelper.isNull(),
+        isGlobalAIAgent: true,
+      },
+      select: {
+        _id: true,
+        name: true,
+        description: true,
+        key: true,
+        aiAgentVersion: true,
+        connectionStatus: true,
+        isGlobalAIAgent: true,
+        lastAlive: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (agent) {
+      return agent;
+    }
+
+    return null;
   }
 }
 

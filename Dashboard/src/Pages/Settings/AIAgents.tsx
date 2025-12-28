@@ -22,6 +22,8 @@ import React, {
   useState,
 } from "react";
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Green } from "Common/Types/BrandColors";
 
 const AIAgentsPage: FunctionComponent<
   PageComponentProps
@@ -182,6 +184,17 @@ const AIAgentsPage: FunctionComponent<
             },
             {
               field: {
+                isDefault: true,
+              },
+              title: "Set as Default",
+              stepId: "more",
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+              description:
+                "Set this as the default AI Agent for the project. When a default is set, this agent will be used for automated tasks.",
+            },
+            {
+              field: {
                 labels: true,
               },
 
@@ -237,6 +250,13 @@ const AIAgentsPage: FunctionComponent<
               type: FieldType.Text,
             },
             {
+              field: {
+                isDefault: true,
+              },
+              title: "Default",
+              type: FieldType.Boolean,
+            },
+            {
               title: "Labels",
               type: FieldType.EntityArray,
               field: {
@@ -283,6 +303,19 @@ const AIAgentsPage: FunctionComponent<
 
               getElement: (item: AIAgent): ReactElement => {
                 return <AIAgentStatusElement aiAgent={item} />;
+              },
+            },
+            {
+              field: {
+                isDefault: true,
+              },
+              title: "Default",
+              type: FieldType.Boolean,
+              getElement: (item: AIAgent): ReactElement => {
+                if (item.isDefault) {
+                  return <Pill text="Default" color={Green} />;
+                }
+                return <span className="text-gray-400">-</span>;
               },
             },
             {

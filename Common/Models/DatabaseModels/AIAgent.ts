@@ -515,6 +515,38 @@ export default class AIAgent extends BaseModel {
       Permission.ProjectMember,
       Permission.CreateProjectAIAgent,
     ],
+    read: [Permission.Public],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectAIAgent,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Is Default",
+    description:
+      "Is this the default AI Agent for the project? When set, this agent will be used for automated tasks.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public isDefault?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectAIAgent,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
