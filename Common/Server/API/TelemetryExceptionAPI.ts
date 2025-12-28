@@ -1,13 +1,11 @@
 import TelemetryException from "../../Models/DatabaseModels/TelemetryException";
 import AIAgentTask from "../../Models/DatabaseModels/AIAgentTask";
 import AIAgentTaskTelemetryException from "../../Models/DatabaseModels/AIAgentTaskTelemetryException";
-import NotFoundException from "../../Types/Exception/NotFoundException";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import TelemetryExceptionService, {
   Service as TelemetryExceptionServiceType,
 } from "../Services/TelemetryExceptionService";
-import AIAgentTaskService from "../Services/AIAgentTaskService";
 import AIAgentTaskTelemetryExceptionService from "../Services/AIAgentTaskTelemetryExceptionService";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import Response from "../Utils/Response";
@@ -84,29 +82,9 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    // Get the telemetry exception to verify it exists and get the details
-    const telemetryException: TelemetryException | null =
-      await this.service.findOneById({
-        id: telemetryExceptionId,
-        select: {
-          _id: true,
-          projectId: true,
-          message: true,
-          stackTrace: true,
-          telemetryServiceId: true,
-          exceptionType: true,
-        },
-        props,
-      });
-
-    if (!telemetryException || !telemetryException.projectId) {
-      throw new NotFoundException("Telemetry Exception not found");
-    }
-
     // Create the AI Agent Task using the service
     const createdTask: AIAgentTask =
-      await AIAgentTaskService.createTaskForTelemetryException({
-        telemetryException,
+      await this.service.createAIAgentTaskForException({
         telemetryExceptionId,
         props,
       });
