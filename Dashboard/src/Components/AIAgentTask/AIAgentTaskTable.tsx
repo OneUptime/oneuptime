@@ -126,7 +126,7 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
       isCreateable={false}
       name={props.name}
       isViewable={true}
-      query={props.query}
+      {...(props.query ? { query: props.query } : {})}
       showAs={ShowAs.List}
       cardProps={{
         title: props.title,
