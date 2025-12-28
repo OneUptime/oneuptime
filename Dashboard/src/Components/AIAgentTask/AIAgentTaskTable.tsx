@@ -4,12 +4,15 @@ import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 import AIAgentTask from "Common/Models/DatabaseModels/AIAgentTask";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
+import AIAgentTaskType, {
+  AIAgentTaskTypeHelper,
+} from "Common/Types/AI/AIAgentTaskType";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import AIAgent from "Common/Models/DatabaseModels/AIAgent";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red, Yellow, Blue } from "Common/Types/BrandColors";
+import { Green, Red, Yellow, Blue, Orange } from "Common/Types/BrandColors";
 import Query from "Common/Types/BaseDatabase/Query";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 
@@ -44,6 +47,26 @@ export const getDefaultStatusElement: GetStatusElementFunction = (
     return <Pill text="Error" color={Red} />;
   }
   return <Pill text={item.status || "Unknown"} color={Blue} />;
+};
+
+type GetTaskTypeElementFunction = (item: AIAgentTask) => ReactElement;
+
+export const getTaskTypeElement: GetTaskTypeElementFunction = (
+  item: AIAgentTask,
+): ReactElement => {
+  if (!item.taskType) {
+    return <Pill text="Unknown" color={Blue} />;
+  }
+
+  const title: string = AIAgentTaskTypeHelper.getTitle(
+    item.taskType as AIAgentTaskType,
+  );
+
+  if (item.taskType === AIAgentTaskType.FixException) {
+    return <Pill text={title || "Fix Exception"} color={Orange} />;
+  }
+
+  return <Pill text={title || item.taskType} color={Blue} />;
 };
 
 const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
@@ -144,7 +167,8 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
             taskType: true,
           },
           title: "Task Type",
-          type: FieldType.Text,
+          type: FieldType.Element,
+          getElement: getTaskTypeElement,
         },
         {
           field: {
