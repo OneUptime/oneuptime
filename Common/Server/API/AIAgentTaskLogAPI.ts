@@ -76,7 +76,8 @@ export default class AIAgentTaskLogAPI extends BaseAPI<
           const message: string = data["message"] as string;
 
           /* Validate severity value */
-          const validSeverities: Array<LogSeverity> = Object.values(LogSeverity);
+          const validSeverities: Array<LogSeverity> =
+            Object.values(LogSeverity);
           if (!validSeverities.includes(severity)) {
             return Response.sendErrorResponse(
               req,

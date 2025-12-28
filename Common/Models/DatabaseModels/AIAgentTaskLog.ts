@@ -296,7 +296,8 @@ export default class AIAgentTaskLog extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     title: "Severity",
-    description: "Severity level of this log entry (e.g., Information, Warning, Error).",
+    description:
+      "Severity level of this log entry (e.g., Information, Warning, Error).",
   })
   @Column({
     nullable: false,

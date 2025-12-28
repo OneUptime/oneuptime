@@ -49,16 +49,20 @@ export default class ExceptionUtil {
     // 2. MongoDB ObjectIDs (24 hex characters)
     normalized = normalized.replace(/\b[0-9a-f]{24}\b/gi, "<OBJECT_ID>");
 
-    // 3. Stripe-style IDs (e.g., sub_xxx, cus_xxx, pi_xxx, ch_xxx, etc.)
-    // These have a prefix followed by underscore and alphanumeric characters
+    /*
+     * 3. Stripe-style IDs (e.g., sub_xxx, cus_xxx, pi_xxx, ch_xxx, etc.)
+     * These have a prefix followed by underscore and alphanumeric characters
+     */
     normalized = normalized.replace(
       /\b(sub|cus|pi|ch|pm|card|price|prod|inv|txn|evt|req|acct|payout|ba|btok|src|tok|seti|si|cs|link|file|dp|icr|ii|il|is|isci|mbur|or|po|qt|rcpt|re|refund|sku|tax|txi|tr|us|wh)_[A-Za-z0-9]{10,32}\b/g,
       "<STRIPE_ID>",
     );
 
-    // 4. Generic API/Service IDs - alphanumeric strings that look like IDs
-    // Matches patterns like: prefix_alphanumeric or just long alphanumeric strings
-    // Common in many services (AWS, GCP, etc.)
+    /*
+     * 4. Generic API/Service IDs - alphanumeric strings that look like IDs
+     * Matches patterns like: prefix_alphanumeric or just long alphanumeric strings
+     * Common in many services (AWS, GCP, etc.)
+     */
     normalized = normalized.replace(
       /\b[a-z]{2,10}_[A-Za-z0-9]{8,}\b/g,
       "<SERVICE_ID>",
@@ -95,15 +99,19 @@ export default class ExceptionUtil {
       "<EMAIL>",
     );
 
-    // 10. URLs with dynamic paths/query params (normalize the dynamic parts)
-    // Keep the domain but normalize path segments that look like IDs
+    /*
+     * 10. URLs with dynamic paths/query params (normalize the dynamic parts)
+     * Keep the domain but normalize path segments that look like IDs
+     */
     normalized = normalized.replace(
       /\/[0-9a-f]{8,}(?=\/|$|\?|#|\s|'|")/gi,
       "/<ID>",
     );
 
-    // 11. Timestamps in various formats
-    // ISO 8601 timestamps
+    /*
+     * 11. Timestamps in various formats
+     * ISO 8601 timestamps
+     */
     normalized = normalized.replace(
       /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?/g,
       "<TIMESTAMP>",
@@ -112,20 +120,11 @@ export default class ExceptionUtil {
     normalized = normalized.replace(/\b1[0-9]{9,12}\b/g, "<TIMESTAMP>");
 
     // 12. Date formats (YYYY-MM-DD, MM/DD/YYYY, etc.)
-    normalized = normalized.replace(
-      /\b\d{4}[-/]\d{2}[-/]\d{2}\b/g,
-      "<DATE>",
-    );
-    normalized = normalized.replace(
-      /\b\d{2}[-/]\d{2}[-/]\d{4}\b/g,
-      "<DATE>",
-    );
+    normalized = normalized.replace(/\b\d{4}[-/]\d{2}[-/]\d{2}\b/g, "<DATE>");
+    normalized = normalized.replace(/\b\d{2}[-/]\d{2}[-/]\d{4}\b/g, "<DATE>");
 
     // 13. Time formats (HH:MM:SS, HH:MM)
-    normalized = normalized.replace(
-      /\b\d{2}:\d{2}(?::\d{2})?\b/g,
-      "<TIME>",
-    );
+    normalized = normalized.replace(/\b\d{2}:\d{2}(?::\d{2})?\b/g, "<TIME>");
 
     // 14. Memory addresses (0x followed by hex)
     normalized = normalized.replace(/\b0x[0-9a-fA-F]+\b/g, "<MEMORY_ADDR>");
@@ -157,22 +156,20 @@ export default class ExceptionUtil {
     // 19. Hex strings that are likely IDs (8+ chars)
     normalized = normalized.replace(/\b[0-9a-f]{8,}\b/gi, "<HEX_ID>");
 
-    // 20. Quoted strings containing IDs or dynamic values
-    // Match strings in single or double quotes that look like IDs
-    normalized = normalized.replace(
-      /'[A-Za-z0-9_-]{16,}'/g,
-      "'<ID>'",
-    );
-    normalized = normalized.replace(
-      /"[A-Za-z0-9_-]{16,}"/g,
-      '"<ID>"',
-    );
+    /*
+     * 20. Quoted strings containing IDs or dynamic values
+     * Match strings in single or double quotes that look like IDs
+     */
+    normalized = normalized.replace(/'[A-Za-z0-9_-]{16,}'/g, "'<ID>'");
+    normalized = normalized.replace(/"[A-Za-z0-9_-]{16,}"/g, '"<ID>"');
 
     // 21. Port numbers in URLs or connection strings
     normalized = normalized.replace(/:(\d{4,5})(?=\/|$|\s)/g, ":<PORT>");
 
-    // 22. Line numbers in stack traces (keep for context, but normalize large numbers)
-    // This normalizes specific line/column references that might vary
+    /*
+     * 22. Line numbers in stack traces (keep for context, but normalize large numbers)
+     * This normalizes specific line/column references that might vary
+     */
     normalized = normalized.replace(/:\d+:\d+\)?$/gm, ":<LINE>:<COL>)");
 
     // 23. Process/Thread IDs
@@ -180,10 +177,7 @@ export default class ExceptionUtil {
     normalized = normalized.replace(/\bTID[:\s]*\d+\b/gi, "TID:<TID>");
 
     // 24. Numeric IDs in common patterns (id=123, id: 123, etc.)
-    normalized = normalized.replace(
-      /\bid[=:\s]*['"]?\d+['"]?/gi,
-      "id=<ID>",
-    );
+    normalized = normalized.replace(/\bid[=:\s]*['"]?\d+['"]?/gi, "id=<ID>");
 
     // 25. Large numbers that are likely IDs (more than 6 digits)
     normalized = normalized.replace(/\b\d{7,}\b/g, "<NUMBER>");
@@ -198,8 +192,10 @@ export default class ExceptionUtil {
     const projectId: string = data.projectId?.toString() || "";
     const serviceId: string = data.serviceId?.toString() || "";
 
-    // Normalize message and stack trace to group similar exceptions together
-    // This replaces dynamic values like IDs, timestamps, etc. with placeholders
+    /*
+     * Normalize message and stack trace to group similar exceptions together
+     * This replaces dynamic values like IDs, timestamps, etc. with placeholders
+     */
     const normalizedMessage: string =
       ExceptionUtil.normalizeForFingerprint(message);
     const normalizedStackTrace: string =

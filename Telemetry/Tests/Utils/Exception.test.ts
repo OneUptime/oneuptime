@@ -47,10 +47,8 @@ describe("ExceptionUtil", () => {
     });
 
     test("normalizes MongoDB ObjectIDs", () => {
-      const message1: string =
-        "Document not found: 507f1f77bcf86cd799439011";
-      const message2: string =
-        "Document not found: 60a1b2c3d4e5f6a7b8c9d0e1";
+      const message1: string = "Document not found: 507f1f77bcf86cd799439011";
+      const message2: string = "Document not found: 60a1b2c3d4e5f6a7b8c9d0e1";
 
       const normalized1: string =
         ExceptionUtil.normalizeForFingerprint(message1);
@@ -88,10 +86,8 @@ describe("ExceptionUtil", () => {
     });
 
     test("normalizes timestamps", () => {
-      const message1: string =
-        "Request failed at 2024-03-15T14:30:00.000Z";
-      const message2: string =
-        "Request failed at 2024-12-01T09:15:30.500Z";
+      const message1: string = "Request failed at 2024-03-15T14:30:00.000Z";
+      const message2: string = "Request failed at 2024-12-01T09:15:30.500Z";
 
       const normalized1: string =
         ExceptionUtil.normalizeForFingerprint(message1);
@@ -155,8 +151,10 @@ describe("ExceptionUtil", () => {
     });
 
     test("normalizes large numbers", () => {
-      // Large numbers (8+ digits) may match hex pattern since 0-9 are valid hex
-      // The important thing is both normalize to the same value
+      /*
+       * Large numbers (8+ digits) may match hex pattern since 0-9 are valid hex
+       * The important thing is both normalize to the same value
+       */
       const message1: string = "User 8234567890 not found";
       const message2: string = "User 9876543210 not found";
 
@@ -190,9 +188,11 @@ describe("ExceptionUtil", () => {
 
     test("handles null/undefined gracefully", () => {
       // @ts-expect-error - testing edge case
-      const normalizedNull: string = ExceptionUtil.normalizeForFingerprint(null);
+      const normalizedNull: string =
+        ExceptionUtil.normalizeForFingerprint(null);
       // @ts-expect-error - testing edge case
-      const normalizedUndefined: string = ExceptionUtil.normalizeForFingerprint(undefined);
+      const normalizedUndefined: string =
+        ExceptionUtil.normalizeForFingerprint(undefined);
 
       expect(normalizedNull).toBe("");
       expect(normalizedUndefined).toBe("");
