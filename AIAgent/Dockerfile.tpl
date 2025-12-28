@@ -34,6 +34,9 @@ RUN apt-get update
 # Install bash.
 RUN apt-get install bash -y && apt-get install curl -y
 
+# Install OpenCode AI coding assistant
+RUN curl -fsSL https://opencode.ai/install | bash
+
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
