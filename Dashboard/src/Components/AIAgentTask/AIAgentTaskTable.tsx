@@ -4,17 +4,16 @@ import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 import AIAgentTask from "Common/Models/DatabaseModels/AIAgentTask";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
-import AIAgentTaskType, {
-  AIAgentTaskTypeHelper,
-} from "Common/Types/AI/AIAgentTaskType";
+import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import AIAgent from "Common/Models/DatabaseModels/AIAgent";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red, Yellow, Blue, Orange } from "Common/Types/BrandColors";
+import { Green, Red, Yellow, Blue } from "Common/Types/BrandColors";
 import Query from "Common/Types/BaseDatabase/Query";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
+import AIAgentTaskTypeElement from "./AIAgentTaskTypeElement";
 
 export interface AIAgentTaskTableProps {
   id: string;
@@ -54,19 +53,7 @@ type GetTaskTypeElementFunction = (item: AIAgentTask) => ReactElement;
 export const getTaskTypeElement: GetTaskTypeElementFunction = (
   item: AIAgentTask,
 ): ReactElement => {
-  if (!item.taskType) {
-    return <Pill text="Unknown" color={Blue} />;
-  }
-
-  const title: string = AIAgentTaskTypeHelper.getTitle(
-    item.taskType as AIAgentTaskType,
-  );
-
-  if (item.taskType === AIAgentTaskType.FixException) {
-    return <Pill text={title || "Fix Exception"} color={Orange} />;
-  }
-
-  return <Pill text={title || item.taskType} color={Blue} />;
+  return <AIAgentTaskTypeElement taskType={item.taskType as AIAgentTaskType} />;
 };
 
 const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (

@@ -6,11 +6,10 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { useParams } from "react-router-dom";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
+import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red, Yellow, Blue, Orange } from "Common/Types/BrandColors";
-import AIAgentTaskType, {
-  AIAgentTaskTypeHelper,
-} from "Common/Types/AI/AIAgentTaskType";
+import { Green, Red, Yellow, Blue } from "Common/Types/BrandColors";
+import AIAgentTaskTypeElement from "../../../Components/AIAgentTask/AIAgentTaskTypeElement";
 
 const AIAgentTaskViewPage: FunctionComponent<
   PageComponentProps
@@ -58,16 +57,11 @@ const AIAgentTaskViewPage: FunctionComponent<
             title: "Task Type",
             fieldType: FieldType.Element,
             getElement: (item: AIAgentTask): ReactElement => {
-              if (!item.taskType) {
-                return <Pill text="Unknown" color={Blue} />;
-              }
-              const title: string = AIAgentTaskTypeHelper.getTitle(
-                item.taskType as AIAgentTaskType,
+              return (
+                <AIAgentTaskTypeElement
+                  taskType={item.taskType as AIAgentTaskType}
+                />
               );
-              if (item.taskType === AIAgentTaskType.FixException) {
-                return <Pill text={title || "Fix Exception"} color={Orange} />;
-              }
-              return <Pill text={title || item.taskType} color={Blue} />;
             },
           },
           {
