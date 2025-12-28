@@ -19,7 +19,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
-import { AIAgentTaskLogEntries } from "../../Types/AI/AIAgentTaskLog";
+import LogSeverity from "../../Types/Log/LogSeverity";
 
 @EnableDocumentation()
 @TableBillingAccessControl({
@@ -293,17 +293,49 @@ export default class AIAgentTaskLog extends BaseModel {
     ],
   })
   @TableColumn({
-    required: false,
-    type: TableColumnType.JSON,
-    title: "Logs",
-    description:
-      "Array of log entries containing severity, timestamp, and message for each log event.",
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "Severity",
+    description: "Severity level of this log entry (e.g., Information, Warning, Error).",
   })
   @Column({
-    nullable: true,
-    type: ColumnType.JSON,
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: 50,
   })
-  public logs?: AIAgentTaskLogEntries = undefined;
+  public severity?: LogSeverity = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectAIAgentTask,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectAIAgentTask,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.VeryLongText,
+    title: "Message",
+    description: "The log message content.",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.VeryLongText,
+  })
+  public message?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

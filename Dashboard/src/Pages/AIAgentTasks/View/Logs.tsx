@@ -1,37 +1,20 @@
 import PageComponentProps from "../../PageComponentProps";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { useParams } from "react-router-dom";
 import ObjectID from "Common/Types/ObjectID";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import AIAgentTaskLog from "Common/Models/DatabaseModels/AIAgentTaskLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import IconProp from "Common/Types/Icon/IconProp";
-import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
-import {
-  AIAgentTaskLogEntries,
-  AIAgentTaskLogEntry,
-} from "Common/Types/AI/AIAgentTaskLog";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow, Blue, Gray500 } from "Common/Types/BrandColors";
-import OneUptimeDate from "Common/Types/Date";
 
 const AIAgentTaskLogsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const { id } = useParams();
   const modelId: ObjectID = new ObjectID(id || "");
-
-  const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
-  const [logEntries, setLogEntries] = useState<AIAgentTaskLogEntries>([]);
 
   const getSeverityPill: (severity: LogSeverity) => ReactElement = (
     severity: LogSeverity,
@@ -66,24 +49,6 @@ const AIAgentTaskLogsPage: FunctionComponent<
           query={{
             aiAgentTaskId: modelId,
           }}
-          selectMoreFields={{
-            logs: true,
-          }}
-          actionButtons={[
-            {
-              title: "View Logs",
-              buttonStyleType: ButtonStyleType.NORMAL,
-              icon: IconProp.List,
-              onClick: async (
-                item: AIAgentTaskLog,
-                onCompleteAction: VoidFunction,
-              ) => {
-                setLogEntries((item.logs as AIAgentTaskLogEntries) || []);
-                setShowViewLogsModal(true);
-                onCompleteAction();
-              },
-            },
-          ]}
           isViewable={false}
           cardProps={{
             title: "Task Logs",
@@ -103,6 +68,13 @@ const AIAgentTaskLogsPage: FunctionComponent<
             },
             {
               field: {
+                severity: true,
+              },
+              title: "Severity",
+              type: FieldType.Text,
+            },
+            {
+              field: {
                 aiAgent: {
                   name: true,
                 },
@@ -114,10 +86,27 @@ const AIAgentTaskLogsPage: FunctionComponent<
           columns={[
             {
               field: {
-                _id: true,
+                createdAt: true,
               },
-              title: "Log ID",
-              type: FieldType.ObjectID,
+              title: "Timestamp",
+              type: FieldType.DateTime,
+            },
+            {
+              field: {
+                severity: true,
+              },
+              title: "Severity",
+              type: FieldType.Text,
+              getElement: (item: AIAgentTaskLog): ReactElement => {
+                return getSeverityPill(item.severity as LogSeverity);
+              },
+            },
+            {
+              field: {
+                message: true,
+              },
+              title: "Message",
+              type: FieldType.Text,
             },
             {
               field: {
@@ -131,53 +120,8 @@ const AIAgentTaskLogsPage: FunctionComponent<
                 return <>{item.aiAgent?.name || "Unknown"}</>;
               },
             },
-            {
-              field: {
-                createdAt: true,
-              },
-              title: "Created At",
-              type: FieldType.DateTime,
-            },
           ]}
         />
-
-        {showViewLogsModal && (
-          <Modal
-            title={"Task Logs"}
-            description="Log entries from this task execution"
-            isLoading={false}
-            modalWidth={ModalWidth.Large}
-            onSubmit={() => {
-              setShowViewLogsModal(false);
-            }}
-            submitButtonText={"Close"}
-            submitButtonStyleType={ButtonStyleType.NORMAL}
-          >
-            <SimpleLogViewer>
-              {logEntries.length === 0 ? (
-                <div>No log entries found.</div>
-              ) : (
-                logEntries.map((entry: AIAgentTaskLogEntry, i: number) => {
-                  return (
-                    <div
-                      key={i}
-                      className="flex items-start space-x-2 py-1 border-b border-gray-700"
-                    >
-                      <span className="text-gray-400 text-xs whitespace-nowrap">
-                        {OneUptimeDate.getDateAsLocalFormattedString(
-                          entry.logAt,
-                          true,
-                        )}
-                      </span>
-                      <span>{getSeverityPill(entry.severity)}</span>
-                      <span className="flex-1">{entry.message}</span>
-                    </div>
-                  );
-                })
-              )}
-            </SimpleLogViewer>
-          </Modal>
-        )}
       </>
     </Fragment>
   );
