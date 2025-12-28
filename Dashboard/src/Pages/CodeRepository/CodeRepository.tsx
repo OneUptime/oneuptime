@@ -8,6 +8,7 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
+import Project from "Common/Models/DatabaseModels/Project";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -22,6 +23,8 @@ import Card from "Common/UI/Components/Card/Card";
 import ObjectID from "Common/Types/ObjectID";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
 
 const CodeRepositoryPage: FunctionComponent<
   PageComponentProps
@@ -31,9 +34,37 @@ const CodeRepositoryPage: FunctionComponent<
   const [gitHubInstallationId, setGitHubInstallationId] = useState<
     string | null
   >(null);
+  const [projectInstallationId, setProjectInstallationId] = useState<
+    string | null
+  >(null);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  // Fetch GitHub installation ID from project
+  const fetchProjectInstallationId: () => Promise<void> =
+    async (): Promise<void> => {
+      if (!projectId) {
+        return;
+      }
+
+      try {
+        const project: Project | null = await ModelAPI.getItem({
+          modelType: Project,
+          id: projectId,
+          select: {
+            gitHubAppInstallationId: true,
+          },
+        });
+
+        if (project?.gitHubAppInstallationId) {
+          setProjectInstallationId(project.gitHubAppInstallationId);
+        }
+      } catch (err: unknown) {
+        // Silently fail - we'll just redirect to GitHub if we can't get the installation ID
+        API.getFriendlyErrorMessage(err as Error);
+      }
+    };
 
   useEffect(() => {
     // Check for installation_id in URL query params (returned from GitHub OAuth)
@@ -44,12 +75,16 @@ const CodeRepositoryPage: FunctionComponent<
 
     if (installationId) {
       setGitHubInstallationId(installationId);
+      setProjectInstallationId(installationId); // Also update the project installation ID
       setShowGitHubModal(true);
 
       // Clean up the URL
       const newUrl: string = window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
     }
+
+    // Fetch installation ID from project
+    fetchProjectInstallationId();
   }, []);
 
   const handleConnectWithGitHub: () => void = (): void => {
@@ -57,9 +92,15 @@ const CodeRepositoryPage: FunctionComponent<
       return;
     }
 
-    const userId: ObjectID = UserUtil.getUserId();
+    // If project already has an installation ID, show the modal directly
+    if (projectInstallationId) {
+      setGitHubInstallationId(projectInstallationId);
+      setShowGitHubModal(true);
+      return;
+    }
 
-    // Redirect to GitHub App installation
+    // Otherwise, redirect to GitHub for fresh installation
+    const userId: ObjectID = UserUtil.getUserId();
     const installUrl: string = `${HOME_URL.toString()}/api/github/auth/install?projectId=${projectId.toString()}&userId=${userId.toString()}`;
     window.location.href = installUrl;
   };

@@ -13,6 +13,7 @@ import GitHubUtil, {
   GitHubRepository,
 } from "../Utils/CodeRepository/GitHub/GitHub";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
+import ProjectService from "../Services/ProjectService";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
 import URL from "../../Types/API/URL";
@@ -91,9 +92,20 @@ export default class GitHubAPI {
           }
 
           /*
-           * Store the installation ID - we'll create repositories when user selects them
-           * For now, redirect back to dashboard with installation ID
+           * Store the installation ID in the project
+           * This allows reuse when connecting additional repositories
            */
+          await ProjectService.updateOneById({
+            id: new ObjectID(projectId),
+            data: {
+              gitHubAppInstallationId: installationId,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          // Redirect back to dashboard with installation ID
           const redirectUrl: string = `${DashboardClientUrl.toString()}/${projectId}/code-repository?installation_id=${installationId}`;
 
           return Response.redirect(req, res, URL.fromString(redirectUrl));
