@@ -33,12 +33,27 @@ const GitRepoConnectionModal: FunctionComponent<ComponentProps> = (
         name: "Connect Git Repository",
         modelType: CodeRepository,
         id: "connect-git-repository",
+        steps: [
+          {
+            title: "Basic Info",
+            id: "basic-info",
+          },
+          {
+            title: "Repository Details",
+            id: "repository-details",
+          },
+          {
+            title: "Authentication",
+            id: "authentication",
+          },
+        ],
         fields: [
           {
             field: {
               name: true,
             },
             title: "Display Name",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "My Backend API",
@@ -49,6 +64,7 @@ const GitRepoConnectionModal: FunctionComponent<ComponentProps> = (
               repositoryHostedAt: true,
             },
             title: "Repository Host",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             placeholder: "Select Host",
@@ -60,6 +76,7 @@ const GitRepoConnectionModal: FunctionComponent<ComponentProps> = (
               organizationName: true,
             },
             title: "Organization / Username",
+            stepId: "repository-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "my-organization",
@@ -70,6 +87,7 @@ const GitRepoConnectionModal: FunctionComponent<ComponentProps> = (
               repositoryName: true,
             },
             title: "Repository Name",
+            stepId: "repository-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "my-backend-api",
@@ -79,6 +97,7 @@ const GitRepoConnectionModal: FunctionComponent<ComponentProps> = (
               mainBranchName: true,
             },
             title: "Main Branch",
+            stepId: "repository-details",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "main",
@@ -89,6 +108,7 @@ const GitRepoConnectionModal: FunctionComponent<ComponentProps> = (
               secretToken: true,
             },
             title: "Access Token",
+            stepId: "authentication",
             fieldType: FormFieldSchemaType.Password,
             required: true,
             placeholder: "Enter your access token",
