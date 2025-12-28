@@ -94,7 +94,7 @@ export default class GitHubAPI {
            * Store the installation ID - we'll create repositories when user selects them
            * For now, redirect back to dashboard with installation ID
            */
-          const redirectUrl: string = `${DashboardClientUrl.toString()}/dashboard/${projectId}/code-repository?installation_id=${installationId}`;
+          const redirectUrl: string = `${DashboardClientUrl.toString()}/${projectId}/code-repository?installation_id=${installationId}`;
 
           return Response.redirect(req, res, URL.fromString(redirectUrl));
         } catch (error) {
