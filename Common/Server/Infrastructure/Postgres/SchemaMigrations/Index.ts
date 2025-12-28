@@ -210,6 +210,7 @@ import { MigrationName1766754182870 } from "./1766754182870-MigrationName";
 import { MigrationName1766774689743 } from "./1766774689743-MigrationName";
 import { MigrationName1766777986427 } from "./1766777986427-MigrationName";
 import { AddAIAgentIsDefault1766918848434 } from "./1766918848434-AddAIAgentIsDefault";
+import { MigrationName1766923324521 } from "./1766923324521-MigrationName";
 
 export default [
   InitialMigration,
@@ -424,4 +425,5 @@ export default [
   MigrationName1766774689743,
   MigrationName1766777986427,
   AddAIAgentIsDefault1766918848434,
+  MigrationName1766923324521
 ];
