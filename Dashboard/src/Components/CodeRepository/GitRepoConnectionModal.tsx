@@ -80,7 +80,8 @@ const GitRepoConnectionModal: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "my-organization",
-            description: "The organization or username that owns the repository",
+            description:
+              "The organization or username that owns the repository",
           },
           {
             field: {
@@ -101,7 +102,8 @@ const GitRepoConnectionModal: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "main",
-            description: "The main branch of the repository (defaults to 'main')",
+            description:
+              "The main branch of the repository (defaults to 'main')",
           },
           {
             field: {

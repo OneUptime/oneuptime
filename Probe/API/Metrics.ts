@@ -18,8 +18,10 @@ import ProxyConfig from "../Utils/ProxyConfig";
 
 const router: ExpressRouter = Express.getRouter();
 
-// Metrics endpoint for Keda autoscaling
-// Returns the number of monitors pending to be probed by this probe
+/*
+ * Metrics endpoint for Keda autoscaling
+ * Returns the number of monitors pending to be probed by this probe
+ */
 router.get(
   "/queue-size",
   async (
@@ -28,8 +30,10 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      // Get the pending monitor count for this specific probe from ProbeIngest API
-      // This is the correct metric - the number of monitors waiting to be probed
+      /*
+       * Get the pending monitor count for this specific probe from ProbeIngest API
+       * This is the correct metric - the number of monitors waiting to be probed
+       */
       const pendingMonitorsUrl: URL = URL.fromString(
         PROBE_INGEST_URL.toString(),
       ).addRoute("/monitor/pending-count");
@@ -51,7 +55,9 @@ router.get(
         });
 
       if (result instanceof HTTPErrorResponse) {
-        logger.error("Error fetching pending monitor count from ProbeIngest API");
+        logger.error(
+          "Error fetching pending monitor count from ProbeIngest API",
+        );
         logger.error(result);
         throw result;
       }

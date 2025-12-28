@@ -277,8 +277,10 @@ router.get(
   },
 );
 
-// This API returns the count of monitors pending to be probed for the authenticated probe.
-// Used by KEDA for autoscaling probes based on pending monitor count.
+/*
+ * This API returns the count of monitors pending to be probed for the authenticated probe.
+ * Used by KEDA for autoscaling probes based on pending monitor count.
+ */
 router.post(
   "/monitor/pending-count",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
