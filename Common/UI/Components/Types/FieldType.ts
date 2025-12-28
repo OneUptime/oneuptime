@@ -1,5 +1,6 @@
 enum FieldType {
   ObjectID = "ObjectID",
+  Heading = "Heading",
   Name = "Name",
   File = "File",
   Percent = "Percent",
@@ -35,6 +36,7 @@ enum FieldType {
   Minutes = "Minutes",
   ArrayOfText = "ArrayOfText",
   Code = "Code",
+  InlineCode = "InlineCode",
 }
 
 export default FieldType;

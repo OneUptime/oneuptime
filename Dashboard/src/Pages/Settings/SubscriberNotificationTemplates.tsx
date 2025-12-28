@@ -173,6 +173,7 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
                   <MarkdownViewer
                     text={getSubscriberNotificationTemplateVariablesDocumentation(
                       eventType,
+                      notificationMethod,
                     )}
                   />
                 </div>

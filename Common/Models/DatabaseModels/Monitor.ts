@@ -11,6 +11,7 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
+import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -37,6 +38,7 @@ import {
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 
 @EnableDocumentation()
+@EnableMCP()
 @AccessControlColumn("labels")
 @TenantColumn("projectId")
 @TableAccessControl({
@@ -1026,6 +1028,39 @@ export default class Monitor extends BaseModel {
     default: false,
   })
   public isNoProbeEnabledOnThisMonitor?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Minimum Probe Agreement",
+    description:
+      "Minimum number of probes that must agree on a status before the monitor status changes. If null, all enabled and connected probes must agree.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public minimumProbeAgreement?: number = undefined;
 
   @ColumnAccessControl({
     create: [],

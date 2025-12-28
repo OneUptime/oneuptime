@@ -933,7 +933,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_pass http://app/api/workers;
     }
 
-    location /mcp/ {
+    location /mcp {
         # This is for nginx not to crash when service is not available.
         resolver 127.0.0.1 valid=30s;
         proxy_set_header Host $host;
@@ -953,10 +953,6 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_send_timeout 86400s;
         chunked_transfer_encoding on;
 
-        proxy_pass http://mcp/;
-    }
-
-    location = /mcp {
-        return 301 /mcp/;
+        proxy_pass http://mcp;
     }
 }

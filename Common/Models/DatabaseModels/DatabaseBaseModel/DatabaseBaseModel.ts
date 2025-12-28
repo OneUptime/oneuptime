@@ -124,6 +124,8 @@ export default class DatabaseBaseModel extends BaseEntity {
   public enableDocumentation!: boolean;
   public isMasterAdminApiDocs!: boolean;
 
+  public enableMCP!: boolean;
+
   public currentUserCanAccessColumnBy!: string | null;
   public slugifyColumn!: string | null;
   public saveSlugToColumn!: string | null;

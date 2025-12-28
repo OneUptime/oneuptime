@@ -4,82 +4,791 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-  <title>OneUptime | One Complete Observability platform. </title>
+  <title>Request Demo | OneUptime</title>
   <meta name="description"
-    content="OneUptime monitors websites, APIs, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+    content="Schedule a personalized demo of OneUptime. See how our complete observability platform can help you monitor, observe, debug, and resolve issues faster.">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
 
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
 </head>
 
-<body>
+<body class="antialiased bg-white">
   <%- include('nav') -%>
+
   <main id="main-content">
-    <div class="bg-white">
-      <div class="mx-auto max-w-7xl py-24 px-6 lg:px-8">
-        <div class="sm:align-center sm:flex sm:flex-col">
-          <h1 class="text-5xl font-bold tracking-tight text-gray-900 sm:text-center">Request Demo</h1>
-          <p class="mt-5 text-xl text-gray-500 sm:text-center">Our team is happy to give you a personalized demo. Pick
-            any time slot that works for you.</p>
 
+    <!-- Hero Section -->
+    <section class="relative isolate overflow-hidden">
+      <!-- Background - dot pattern (same as OSS friends) -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-[size:2rem_2rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Badge -->
+            <a href="#book-demo" class="group mb-8 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100 hover:ring-gray-300">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z"></path>
+              </svg>
+              <span>Schedule a demo</span>
+              <svg class="h-3.5 w-3.5 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+            </a>
+
+            <!-- Main headline -->
+            <h1 class="text-3xl font-medium tracking-tight text-gray-900 sm:text-4xl lg:text-5xl xl:text-[3.5rem] xl:leading-[1.15]">
+              Let's solve your <br class="hidden sm:block" />software-ops challenges
+            </h1>
+
+            <!-- Subheadline -->
+            <p class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-xl mx-auto">
+              Get a personalized demo (30 mins to 1 hour). We'll show you how OneUptime can replace your fragmented toolchain with one unified platform.
+            </p>
+
+            <!-- CTA buttons -->
+            <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+              <a href="#book-demo" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+                Schedule the call
+                <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+              </a>
+            </div>
+          </div>
         </div>
-
-
-        <div style="margin-top: 50px;">
-          <!-- Cal inline embed code begins -->
-          <div style="width:100%;height:100%;overflow:scroll" id="my-cal-inline"></div>
-          <script type="text/javascript">
-            (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; typeof namespace === "string" ? (cal.ns[namespace] = api) && p(api, ar) : p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
-            Cal("init", { origin: "https://cal.com" });
-
-            Cal("inline", {
-              elementOrSelector: "#my-cal-inline",
-              calLink: "oneuptimehq/demo",
-              layout: "month_view"
-            });
-
-            Cal("ui", { "styles": { "branding": { "brandColor": "#6366f1" } }, "hideEventTypeDetails": false, "layout": "month_view" });
-
-            Cal("on", {
-              action: "bookingSuccessful",
-              callback: (e) => {
-                // `data` is properties for the event.
-                // `type` is the name of the action(You can also call it type of the action.) This would be same as "ANY_ACTION_NAME" except when ANY_ACTION_NAME="*" which listens to all the events.
-                // `namespace` tells you the Cal namespace for which the event is fired/
-                const { data, type, namespace } = e.detail;
-
-                if (posthog) {
-                  posthog.capture('home/demo-booked', {
-                    'page': {
-                      'path': window.location.pathname,
-                      'referrer': document.referrer,
-                      'search': window.location.search,
-                      'url': window.location.href,
-                      'title': document.title,
-                    },
-                    'data': data,
-                    'type': type,
-                    'namespace': namespace
-                  });
-                }
-              }
-            })
-
-          </script>
-          <!-- Cal inline embed code ends -->
-        </div>
-
-
       </div>
-    </div>
 
+      <!-- Calendar Widget -->
+      <div class="mx-auto max-w-5xl px-6 lg:px-8 pb-20" id="book-demo">
+        <!-- Section header -->
+        <div class="text-center mb-8">
+          <h2 class="text-xl font-semibold text-gray-900">Pick a time that works for you</h2>
+          <p class="mt-2 text-sm text-gray-500">30 mins to 1 hour call. Speak to an engineer, never a salesperson.</p>
+        </div>
+
+        <!-- Calendar container -->
+        <div class="relative">
+          <div class="">
+            <div class="w-full overflow-hidden h-[500px] sm:h-[600px] lg:h-[680px]" id="my-cal-inline"></div>
+          </div>
+        </div>
+
+        <!-- Helper text -->
+        <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-sm text-gray-500">
+          <div class="flex items-center gap-2">
+            <svg class="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+            </svg>
+            <span>No commitment required</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <svg class="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+            </svg>
+            <span>Cancel or reschedule anytime</span>
+          </div>
+        </div>
+
+        <p class="mt-4 text-center text-sm text-gray-400">
+          Prefer email? <a href="mailto:sales@oneuptime.com" class="text-gray-600 hover:text-gray-900 underline underline-offset-2">sales@oneuptime.com</a>
+        </p>
+      </div>
+    </section>
+
+    <!-- What will we do -->
+    <section class="py-12 sm:py-16 lg:py-20 bg-gray-50 border-t border-gray-100">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="text-center mb-8 sm:mb-12">
+          <h2 class="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight text-gray-900">What to expect</h2>
+          <p class="mt-2 sm:mt-3 text-sm sm:text-base text-gray-500">Your demo, your agenda. We listen first, then show you what matters most.</p>
+        </div>
+        <div class="grid sm:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
+          <div class="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 ring-1 ring-gray-200 hover:shadow-lg transition-all">
+            <div class="mb-3 sm:mb-4 inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg sm:rounded-xl bg-gray-900">
+              <svg class="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"></path>
+              </svg>
+            </div>
+            <p class="font-semibold text-gray-900 text-sm sm:text-base">Understand your requirements</p>
+            <p class="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-500 leading-relaxed">We'll learn about your infrastructure, challenges, and goals to tailor the demo</p>
+          </div>
+          <div class="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 ring-1 ring-gray-200 hover:shadow-lg transition-all">
+            <div class="mb-3 sm:mb-4 inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg sm:rounded-xl bg-gray-900">
+              <svg class="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"></path>
+              </svg>
+            </div>
+            <p class="font-semibold text-gray-900 text-sm sm:text-base">Customer guides the demo</p>
+            <p class="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-500 leading-relaxed">You're in control - tell us what you want to see and we'll show you exactly that</p>
+          </div>
+          <div class="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 ring-1 ring-gray-200 hover:shadow-lg transition-all">
+            <div class="mb-3 sm:mb-4 inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg sm:rounded-xl bg-gray-900">
+              <svg class="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"></path>
+              </svg>
+            </div>
+            <p class="font-semibold text-gray-900 text-sm sm:text-base">We answer all of your questions</p>
+            <p class="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-500 leading-relaxed">No question is too small - we're here to help you make the right decision</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cal.com Script -->
+      <script type="text/javascript">
+        (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; typeof namespace === "string" ? (cal.ns[namespace] = api) && p(api, ar) : p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
+        Cal("init", { origin: "https://cal.com" });
+        Cal("inline", {
+          elementOrSelector: "#my-cal-inline",
+          calLink: "oneuptimehq/demo",
+          layout: "month_view"
+        });
+        Cal("ui", { "styles": { "branding": { "brandColor": "#4f46e5" } }, "hideEventTypeDetails": false, "layout": "month_view" });
+        Cal("on", {
+          action: "bookingSuccessful",
+          callback: (e) => {
+            const { data, type, namespace } = e.detail;
+            if (typeof posthog !== 'undefined' && posthog) {
+              posthog.capture('home/demo-booked', {
+                'page': {
+                  'path': window.location.pathname,
+                  'referrer': document.referrer,
+                  'search': window.location.search,
+                  'url': window.location.href,
+                  'title': document.title,
+                },
+                'data': data,
+                'type': type,
+                'namespace': namespace
+              });
+            }
+          }
+        });
+      </script>
+    </section>
+
+    <!-- Logo Roll -->
     <%- include('logo-roll') -%>
 
-      <%- include('features-table') -%>
-        <%- include('cta') -%>
+    <!-- Platform Overview -->
+    <section class="py-16 sm:py-20 lg:py-28 bg-gray-50 border-t border-gray-100">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-2xl mb-10 sm:mb-16">
+          <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">
+            The complete observability platform
+          </h2>
+          <p class="mt-3 sm:mt-4 text-base sm:text-lg text-gray-500">
+            Replace your fragmented toolchain with one unified platform. Monitor, observe, debug, and resolve faster.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 sm:gap-x-8 gap-y-8 sm:gap-y-10">
+          <a href="/product/status-page" class="group block">
+            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-3 sm:mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors text-sm sm:text-base">Status Pages</p>
+            <p class="mt-1 text-xs sm:text-sm text-gray-500">Beautiful public and private status pages with custom domains and branding.</p>
+          </a>
+
+          <a href="/product/monitoring" class="group block">
+            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-3 sm:mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors text-sm sm:text-base">Monitoring</p>
+            <p class="mt-1 text-xs sm:text-sm text-gray-500">Monitor websites, APIs, servers, containers, and Kubernetes clusters.</p>
+          </a>
+
+          <a href="/product/incident-management" class="group block">
+            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-3 sm:mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors text-sm sm:text-base">Incident Management</p>
+            <p class="mt-1 text-xs sm:text-sm text-gray-500">Detect, respond, and resolve incidents faster with automated workflows.</p>
+          </a>
+
+          <a href="/product/on-call" class="group block">
+            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-3 sm:mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors text-sm sm:text-base">On-Call & Alerts</p>
+            <p class="mt-1 text-xs sm:text-sm text-gray-500">Smart escalations, rotations, and multi-channel alerting.</p>
+          </a>
+
+          <a href="/product/logs-management" class="group block">
+            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-3 sm:mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors text-sm sm:text-base">Logs Management</p>
+            <p class="mt-1 text-xs sm:text-sm text-gray-500">Centralize logs from any source and search in milliseconds.</p>
+          </a>
+
+          <a href="/product/apm" class="group block">
+            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-3 sm:mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l3-9 4 18 3-9h4"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors text-sm sm:text-base">APM & Traces</p>
+            <p class="mt-1 text-xs sm:text-sm text-gray-500">Distributed tracing and performance monitoring for any stack.</p>
+          </a>
+
+          <a href="/product/workflows" class="group block">
+            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-3 sm:mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors text-sm sm:text-base">Workflows</p>
+            <p class="mt-1 text-xs sm:text-sm text-gray-500">Automate incident response with 5000+ integrations.</p>
+          </a>
+
+          <a href="/product/ai-agent" class="group block">
+            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mb-3 sm:mb-4 group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-colors">
+              <svg class="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"></path>
+              </svg>
+            </div>
+            <p class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors text-sm sm:text-base">AI Copilot</p>
+            <p class="mt-1 text-xs sm:text-sm text-gray-500">Automatically fix errors with AI-generated pull requests.</p>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Why OneUptime -->
+    <section class="py-16 sm:py-20 lg:py-28 border-t border-gray-100">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-2xl mb-10 sm:mb-16">
+          <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">
+            Why teams choose OneUptime
+          </h2>
+          <p class="mt-3 sm:mt-4 text-base sm:text-lg text-gray-500">
+            Built for modern engineering teams who want simplicity without compromising on power.
+          </p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 lg:gap-x-12 gap-y-10 sm:gap-y-16">
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center mb-4">
+              <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"></path>
+              </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">All-in-one platform</h3>
+            <p class="text-sm text-gray-500 leading-relaxed">
+              Replace StatusPage.io, PagerDuty, Datadog, and Sentry with one unified platform. One dashboard, one bill, one vendor.
+            </p>
+          </div>
+
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center mb-4">
+              <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">Open source</h3>
+            <p class="text-sm text-gray-500 leading-relaxed">
+              Self-host on your infrastructure or use our managed cloud. Full transparency, no vendor lock-in, and your data stays yours.
+            </p>
+          </div>
+
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center mb-4">
+              <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+              </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">Enterprise ready</h3>
+            <p class="text-sm text-gray-500 leading-relaxed">
+              SOC 2 Type II, ISO 27001, HIPAA, and GDPR compliant. SSO, SAML, SCIM, custom data residency, and dedicated support.
+            </p>
+          </div>
+
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center mb-4">
+              <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"></path>
+              </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">AI-powered remediation</h3>
+            <p class="text-sm text-gray-500 leading-relaxed">
+              Our AI copilot automatically identifies root causes and creates pull requests to fix issues in your codebase.
+            </p>
+          </div>
+
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center mb-4">
+              <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"></path>
+              </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">OpenTelemetry native</h3>
+            <p class="text-sm text-gray-500 leading-relaxed">
+              Built on open standards. Ingest traces, metrics, and logs from any source without proprietary agents or SDKs.
+            </p>
+          </div>
+
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center mb-4">
+              <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">Predictable pricing</h3>
+            <p class="text-sm text-gray-500 leading-relaxed">
+              No surprise bills. Simple, transparent pricing based on your needs. Free tier available for small teams.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="py-16 sm:py-20 lg:py-28 bg-gray-50 border-t border-gray-100">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-2xl mb-10 sm:mb-16">
+          <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">
+            What our customers say
+          </h2>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+          <div class="bg-white rounded-xl p-5 sm:p-8 border border-gray-200">
+            <blockquote>
+              <p class="text-sm sm:text-base text-gray-700 leading-relaxed">
+                "OneUptime replaced three separate tools for us. Having everything unified has cut our incident response time in half and saved us over $50k annually."
+              </p>
+            </blockquote>
+            <div class="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-100">
+              <p class="font-medium text-gray-900 text-sm sm:text-base">Engineering Lead</p>
+              <p class="text-xs sm:text-sm text-gray-500">Fortune 500 Technology Company</p>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl p-5 sm:p-8 border border-gray-200">
+            <blockquote>
+              <p class="text-sm sm:text-base text-gray-700 leading-relaxed">
+                "The AI copilot is a game changer. It automatically fixed a memory leak that had been plaguing us for weeks. Just created a PR and we merged it."
+              </p>
+            </blockquote>
+            <div class="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-100">
+              <p class="font-medium text-gray-900 text-sm sm:text-base">Senior SRE</p>
+              <p class="text-xs sm:text-sm text-gray-500">Series B Startup</p>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl p-5 sm:p-8 border border-gray-200">
+            <blockquote>
+              <p class="text-sm sm:text-base text-gray-700 leading-relaxed">
+                "We self-host OneUptime in our private cloud. Having full control over our observability data while getting enterprise features is exactly what we needed."
+              </p>
+            </blockquote>
+            <div class="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-100">
+              <p class="font-medium text-gray-900 text-sm sm:text-base">VP of Engineering</p>
+              <p class="text-xs sm:text-sm text-gray-500">Healthcare SaaS Company</p>
+            </div>
+          </div>
+        </div>
+
+        <p class="mt-10 text-center text-sm text-gray-500 flex items-center justify-center gap-2">
+          <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"></path>
+          </svg>
+          Want to speak with one of our customers? <a href="mailto:sales@oneuptime.com" class="text-indigo-600 hover:text-indigo-700 font-medium">Contact us</a> to arrange a reference call.
+        </p>
+      </div>
+    </section>
+
+    <!-- Security & Compliance -->
+    <section class="py-16 sm:py-24 lg:py-32 border-t border-gray-100 relative overflow-hidden">
+      <!-- Subtle background -->
+      <div class="absolute inset-0 -z-10 bg-gradient-to-b from-gray-50 to-white"></div>
+      <div class="absolute top-0 left-1/2 -translate-x-1/2 -z-10 w-[800px] h-[400px] bg-gradient-to-b from-indigo-50/50 to-transparent rounded-full blur-3xl"></div>
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Header -->
+        <div class="text-center max-w-3xl mx-auto mb-10 sm:mb-16 lg:mb-20">
+          <h2 class="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-gray-900">
+            Enterprise-grade security & compliance
+          </h2>
+          <p class="mt-3 sm:mt-4 text-base sm:text-lg text-gray-500 leading-relaxed">
+            Your data deserves the highest level of protection. We maintain rigorous security standards and compliance certifications trusted by Fortune 500 companies.
+          </p>
+        </div>
+
+        <!-- Compliance Certifications - Clean grid -->
+        <div class="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-4 mb-12 sm:mb-20">
+          <!-- SOC 2 Type II -->
+          <a href="/legal/soc-2" class="group bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 ring-1 ring-gray-200 hover:ring-gray-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center block">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-900 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+              </svg>
+            </div>
+            <p class="font-semibold text-gray-900 text-sm">SOC 2 Type II</p>
+            <p class="text-xs text-gray-500 mt-1">Security & availability</p>
+          </a>
+
+          <!-- ISO 27001 -->
+          <a href="/legal/iso-27001" class="group bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 ring-1 ring-gray-200 hover:ring-gray-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center block">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-900 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5a17.92 17.92 0 01-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"></path>
+              </svg>
+            </div>
+            <p class="font-semibold text-gray-900 text-sm">ISO 27001</p>
+            <p class="text-xs text-gray-500 mt-1">Information security</p>
+          </a>
+
+          <!-- HIPAA -->
+          <a href="/legal/hipaa" class="group bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 ring-1 ring-gray-200 hover:ring-gray-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center block">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-900 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"></path>
+              </svg>
+            </div>
+            <p class="font-semibold text-gray-900 text-sm">HIPAA</p>
+            <p class="text-xs text-gray-500 mt-1">Healthcare compliance</p>
+          </a>
+
+          <!-- GDPR -->
+          <a href="/legal/gdpr" class="group bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 ring-1 ring-gray-200 hover:ring-gray-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center block">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-900 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"></path>
+              </svg>
+            </div>
+            <p class="font-semibold text-gray-900 text-sm">GDPR</p>
+            <p class="text-xs text-gray-500 mt-1">Data privacy</p>
+          </a>
+
+          <!-- PCI DSS -->
+          <a href="/legal/pci" class="group bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 ring-1 ring-gray-200 hover:ring-gray-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center block">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-900 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"></path>
+              </svg>
+            </div>
+            <p class="font-semibold text-gray-900 text-sm">PCI DSS</p>
+            <p class="text-xs text-gray-500 mt-1">Payment security</p>
+          </a>
+
+          <!-- SOC 3 -->
+          <a href="/legal/soc-3" class="group bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 ring-1 ring-gray-200 hover:ring-gray-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center block">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-900 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path>
+              </svg>
+            </div>
+            <p class="font-semibold text-gray-900 text-sm">SOC 3</p>
+            <p class="text-xs text-gray-500 mt-1">Public trust report</p>
+          </a>
+        </div>
+
+        <!-- Security Features - Grid layout for proper alignment -->
+        <div class="bg-white rounded-2xl sm:rounded-3xl ring-1 ring-gray-200 p-5 sm:p-8 lg:p-12">
+          <div class="grid sm:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-6 sm:gap-y-8">
+            <!-- Row 1 -->
+            <div class="flex gap-3 sm:gap-5">
+              <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-100 flex items-center justify-center">
+                <svg class="h-5 w-5 sm:h-6 sm:w-6 text-gray-900" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"></path>
+                </svg>
+              </div>
+              <div>
+                <p class="font-semibold text-gray-900 text-sm sm:text-base">End-to-end encryption</p>
+                <p class="text-xs sm:text-sm text-gray-500 mt-1 leading-relaxed">AES-256 encryption protects your data at rest and TLS 1.3 secures data in transit.</p>
+              </div>
+            </div>
+            <div class="flex gap-3 sm:gap-5">
+              <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-100 flex items-center justify-center">
+                <svg class="h-5 w-5 sm:h-6 sm:w-6 text-gray-900" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"></path>
+                </svg>
+              </div>
+              <div>
+                <p class="font-semibold text-gray-900 text-sm sm:text-base">Complete audit logs</p>
+                <p class="text-xs sm:text-sm text-gray-500 mt-1 leading-relaxed">Every action is logged with timestamps, user info, and IP addresses.</p>
+              </div>
+            </div>
+
+            <!-- Row 2 -->
+            <div class="flex gap-3 sm:gap-5">
+              <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-100 flex items-center justify-center">
+                <svg class="h-5 w-5 sm:h-6 sm:w-6 text-gray-900" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"></path>
+                </svg>
+              </div>
+              <div>
+                <p class="font-semibold text-gray-900 text-sm sm:text-base">SSO, SAML & SCIM</p>
+                <p class="text-xs sm:text-sm text-gray-500 mt-1 leading-relaxed">Integrate with Okta, Azure AD, Google Workspace, and other identity providers.</p>
+              </div>
+            </div>
+            <div class="flex gap-3 sm:gap-5">
+              <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-100 flex items-center justify-center">
+                <svg class="h-5 w-5 sm:h-6 sm:w-6 text-gray-900" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path>
+                </svg>
+              </div>
+              <div>
+                <p class="font-semibold text-gray-900 text-sm sm:text-base">Role-based access control</p>
+                <p class="text-xs sm:text-sm text-gray-500 mt-1 leading-relaxed">Granular permissions let you control exactly who can see and do what.</p>
+              </div>
+            </div>
+
+            <!-- Row 3 -->
+            <div class="flex gap-3 sm:gap-5">
+              <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-100 flex items-center justify-center">
+                <svg class="h-5 w-5 sm:h-6 sm:w-6 text-gray-900" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"></path>
+                </svg>
+              </div>
+              <div>
+                <p class="font-semibold text-gray-900 text-sm sm:text-base">Custom data residency</p>
+                <p class="text-xs sm:text-sm text-gray-500 mt-1 leading-relaxed">Choose where your data lives - US, EU, APAC, or your own infrastructure.</p>
+              </div>
+            </div>
+            <div class="flex gap-3 sm:gap-5">
+              <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gray-100 flex items-center justify-center">
+                <svg class="h-5 w-5 sm:h-6 sm:w-6 text-gray-900" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z"></path>
+                </svg>
+              </div>
+              <div>
+                <p class="font-semibold text-gray-900 text-sm sm:text-base">Self-hosted option</p>
+                <p class="text-xs sm:text-sm text-gray-500 mt-1 leading-relaxed">Deploy on your own infrastructure with Docker, Kubernetes, or Helm.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="py-16 sm:py-20 lg:py-28 border-t border-gray-100">
+      <div class="mx-auto max-w-3xl px-6 lg:px-8">
+        <div class="text-center mb-8 sm:mb-12">
+          <p class="text-sm font-medium text-indigo-600 mb-2 sm:mb-3">FAQ</p>
+          <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">
+            Common questions
+          </h2>
+        </div>
+
+        <div class="divide-y divide-gray-200">
+          <!-- FAQ Item 1 -->
+          <div class="faq-item">
+            <button class="faq-trigger w-full flex items-center justify-between py-5 text-left group" onclick="toggleFaq(this)">
+              <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors pr-8">What security certifications does OneUptime have?</span>
+              <span class="faq-icon flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-indigo-50 flex items-center justify-center transition-all">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"></path>
+                </svg>
+              </span>
+            </button>
+            <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
+              <p class="pb-5 text-gray-500 text-sm leading-relaxed">
+                OneUptime is SOC 2 Type II, ISO 27001, HIPAA, GDPR, and PCI DSS compliant. We undergo annual third-party security audits and can provide detailed security documentation, penetration test reports, and vendor security questionnaires upon request.
+              </p>
+            </div>
+          </div>
+
+          <!-- FAQ Item 2 -->
+          <div class="faq-item">
+            <button class="faq-trigger w-full flex items-center justify-between py-5 text-left group" onclick="toggleFaq(this)">
+              <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors pr-8">Can we deploy OneUptime in our own cloud or on-premises?</span>
+              <span class="faq-icon flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-indigo-50 flex items-center justify-center transition-all">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"></path>
+                </svg>
+              </span>
+            </button>
+            <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
+              <p class="pb-5 text-gray-500 text-sm leading-relaxed">
+                Yes. OneUptime is fully open source and can be deployed on your own infrastructure using Docker, Kubernetes, or Helm charts. Enterprise customers get dedicated deployment support, custom SLAs, and the option to deploy in air-gapped environments. We also offer managed hosting with custom data residency in US, EU, or APAC regions.
+              </p>
+            </div>
+          </div>
+
+          <!-- FAQ Item 3 -->
+          <div class="faq-item">
+            <button class="faq-trigger w-full flex items-center justify-between py-5 text-left group" onclick="toggleFaq(this)">
+              <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors pr-8">Do you support SSO and enterprise identity providers?</span>
+              <span class="faq-icon flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-indigo-50 flex items-center justify-center transition-all">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"></path>
+                </svg>
+              </span>
+            </button>
+            <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
+              <p class="pb-5 text-gray-500 text-sm leading-relaxed">
+                Yes. We support SAML 2.0, OIDC, and SCIM for automated user provisioning. OneUptime integrates with Okta, Azure AD, Google Workspace, OneLogin, Ping Identity, and other enterprise identity providers. Role-based access control (RBAC) allows granular permissions management across teams.
+              </p>
+            </div>
+          </div>
+
+          <!-- FAQ Item 4 -->
+          <div class="faq-item">
+            <button class="faq-trigger w-full flex items-center justify-between py-5 text-left group" onclick="toggleFaq(this)">
+              <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors pr-8">What SLAs do you offer for enterprise customers?</span>
+              <span class="faq-icon flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-indigo-50 flex items-center justify-center transition-all">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"></path>
+                </svg>
+              </span>
+            </button>
+            <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
+              <p class="pb-5 text-gray-500 text-sm leading-relaxed">
+                Enterprise plans include 99.99% uptime SLA with financial credits, 24/7 priority support with dedicated account managers, and guaranteed response times (15 minutes for critical issues). We also offer custom SLAs tailored to your organization's requirements.
+              </p>
+            </div>
+          </div>
+
+          <!-- FAQ Item 5 -->
+          <div class="faq-item">
+            <button class="faq-trigger w-full flex items-center justify-between py-5 text-left group" onclick="toggleFaq(this)">
+              <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors pr-8">How do you handle data privacy and retention?</span>
+              <span class="faq-icon flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-indigo-50 flex items-center justify-center transition-all">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"></path>
+                </svg>
+              </span>
+            </button>
+            <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
+              <p class="pb-5 text-gray-500 text-sm leading-relaxed">
+                All data is encrypted at rest (AES-256) and in transit (TLS 1.3). Enterprise customers can configure custom data retention policies, choose their data residency region, and request data export or deletion at any time. We sign DPAs, BAAs, and custom contractual agreements as needed.
+              </p>
+            </div>
+          </div>
+
+          <!-- FAQ Item 6 -->
+          <div class="faq-item">
+            <button class="faq-trigger w-full flex items-center justify-between py-5 text-left group" onclick="toggleFaq(this)">
+              <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors pr-8">Can you help us migrate from our existing tools?</span>
+              <span class="faq-icon flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-indigo-50 flex items-center justify-center transition-all">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"></path>
+                </svg>
+              </span>
+            </button>
+            <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
+              <p class="pb-5 text-gray-500 text-sm leading-relaxed">
+                Yes. Our enterprise team provides white-glove migration support to help you transition from tools like PagerDuty, Datadog, Splunk, New Relic, or StatusPage. We'll help import your existing monitors, alert rules, on-call schedules, and historical data with zero downtime.
+              </p>
+            </div>
+          </div>
+
+          <!-- FAQ Item 7 -->
+          <div class="faq-item">
+            <button class="faq-trigger w-full flex items-center justify-between py-5 text-left group" onclick="toggleFaq(this)">
+              <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors pr-8">How does enterprise pricing work?</span>
+              <span class="faq-icon flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-indigo-50 flex items-center justify-center transition-all">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"></path>
+                </svg>
+              </span>
+            </button>
+            <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
+              <p class="pb-5 text-gray-500 text-sm leading-relaxed">
+                Enterprise pricing is based on your usage and requirements. We offer annual contracts with volume discounts, custom invoicing (NET 30/60/90), and flexible terms. Unlike competitors, we don't charge per-host fees that can lead to surprise bills. Book a demo to get a custom quote for your organization.
+              </p>
+            </div>
+          </div>
+
+          <!-- FAQ Item 8 -->
+          <div class="faq-item">
+            <button class="faq-trigger w-full flex items-center justify-between py-5 text-left group" onclick="toggleFaq(this)">
+              <span class="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors pr-8">What scale can OneUptime handle?</span>
+              <span class="faq-icon flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 group-hover:bg-indigo-50 flex items-center justify-center transition-all">
+                <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"></path>
+                </svg>
+              </span>
+            </button>
+            <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
+              <p class="pb-5 text-gray-500 text-sm leading-relaxed">
+                OneUptime is built to handle enterprise scale. Our platform processes billions of data points daily, supports thousands of concurrent monitors, and handles millions of log events per second. Fortune 500 companies trust us to monitor their most critical infrastructure.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-10 text-center">
+          <p class="text-sm text-gray-500">
+            Have more questions? <a href="mailto:support@oneuptime.com" class="text-indigo-600 hover:text-indigo-700 font-medium">Contact us</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      function toggleFaq(button) {
+        const item = button.closest('.faq-item');
+        const content = item.querySelector('.faq-content');
+        const icon = button.querySelector('.faq-icon svg');
+        const isOpen = item.classList.contains('open');
+
+        // Close all other items
+        document.querySelectorAll('.faq-item.open').forEach(openItem => {
+          if (openItem !== item) {
+            openItem.classList.remove('open');
+            openItem.querySelector('.faq-content').style.maxHeight = '0';
+            openItem.querySelector('.faq-icon svg').style.transform = 'rotate(0deg)';
+          }
+        });
+
+        // Toggle current item
+        if (isOpen) {
+          item.classList.remove('open');
+          content.style.maxHeight = '0';
+          icon.style.transform = 'rotate(0deg)';
+        } else {
+          item.classList.add('open');
+          content.style.maxHeight = content.scrollHeight + 'px';
+          icon.style.transform = 'rotate(45deg)';
+        }
+      }
+    </script>
+
+    <!-- Final CTA -->
+    <section class="py-16 sm:py-20 lg:py-28 border-t border-gray-100">
+      <div class="mx-auto max-w-3xl px-6 lg:px-8 text-center">
+        <h2 class="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-gray-900">
+          Ready to get started?
+        </h2>
+        <p class="mt-3 sm:mt-4 text-base sm:text-lg text-gray-500">
+          Book a demo with our team or start using OneUptime for free today.
+        </p>
+        <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a href="#book-demo" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-colors">
+            Schedule a demo
+          </a>
+          <a href="/accounts/register" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-medium text-gray-700 border border-gray-200 hover:bg-gray-50 transition-colors">
+            Start free
+          </a>
+        </div>
+        <p class="mt-6 text-sm text-gray-400">
+          No credit card required. Free tier available.
+        </p>
+      </div>
+    </section>
+
   </main>
-          <%- include('footer') -%>
+
+  <%- include('footer') -%>
 </body>
 
 </html>

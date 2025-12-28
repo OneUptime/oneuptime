@@ -1,33 +1,150 @@
+<style>
+  @keyframes scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .logo-marquee {
+    display: flex;
+    width: max-content;
+    animation: scroll 45s linear infinite;
+  }
+
+  .logo-marquee:hover {
+    animation-play-state: paused;
+  }
+
+  .logo-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 160px;
+    height: 60px;
+    padding: 0 20px;
+    flex-shrink: 0;
+  }
+
+  .logo-item img {
+    max-height: 36px;
+    max-width: 140px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+  }
+
+  .logo-item img:hover {
+    opacity: 1;
+  }
+
+  .marquee-container {
+    overflow: hidden;
+    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  }
+</style>
+
 <div class="bg-indigo-700">
-  <div class="mx-auto max-w-7xl py-16 px-6 sm:py-20 lg:px-8">
-    <h2 class="text-2xl font-medium tracking-tight text-white text-center text-indigo-300">Thousands of world's most
-      innovative companies use OneUptime to build reliable software.</h2>
-    <div class="grid grid-cols-4 gap-4 mt-10">
+  <div class="mx-auto max-w-7xl py-12 px-6 sm:py-16 lg:px-8">
+    <p class="text-center text-sm font-medium uppercase tracking-wider text-indigo-200 mb-8">
+      Powering thousands of teams from startups to the Fortune 500
+    </p>
 
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-8" src="/img/securonix-blue.svg" alt="Securonix">
-      </div>
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-6 mt-2" src="/img/viewsonic.svg" alt="ViewSonic">
-      </div>
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-12 -mt-4" src="/img/skillable-logo.svg" alt="Skillable">
-      </div>
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-11 -mt-2" src="/img/sodexo.svg" alt="Sodexo">
-      </div>
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-10 mt-0" src="/img/Dotdash_Meredith.svg" alt="Dotdash">
-      </div>
+    <div class="marquee-container">
+      <div class="logo-marquee">
+        <!-- First set of logos -->
+        <div class="logo-item">
+          <img src="/img/mistral-ai-full.png" alt="Mistral AI">
+        </div>
+        <div class="logo-item">
+          <img src="/img/securonix-blue.svg" alt="Securonix">
+        </div>
+        <div class="logo-item">
+          <img src="/img/aareon.svg" alt="Aareon">
+        </div>
+        <div class="logo-item">
+          <img src="/img/viewsonic.svg" alt="ViewSonic">
+        </div>
+        <div class="logo-item">
+          <img src="/img/syniti.png" alt="Syniti" style="transform: translateY(4px);">
+        </div>
+        <div class="logo-item">
+          <img src="/img/skillable-logo.svg" alt="Skillable" style="max-height: 46px; transform: translateY(-8px);">
+        </div>
+        <div class="logo-item">
+          <img src="/img/nt-ware.png" alt="NT-ware" style="max-height: 26px;">
+        </div>
+        <div class="logo-item">
+          <img src="/img/sodexo.svg" alt="Sodexo" style="max-height: 40px; transform: translateY(-4px);">
+        </div>
+        <div class="logo-item">
+          <img src="/img/avolve.webp" alt="Avolve Software" style="transform: translateY(-4px);">
+        </div>
+        <div class="logo-item">
+          <img src="/img/Dotdash_Meredith.svg" alt="Dotdash Meredith">
+        </div>
+        <div class="logo-item">
+          <img src="/img/trustify.svg" alt="Trustify" style="max-height: 46px;">
+        </div>
+        <div class="logo-item">
+          <img src="/img/bowie.svg" alt="Bowie" style="max-height: 66px; transform: translateY(-8px);">
+        </div>
+        <div class="logo-item">
+          <img src="/img/talkwalker.svg" alt="Talkwalker" style="max-height: 56px;">
+        </div>
+        <div class="logo-item">
+          <img src="/img/cscs.svg" alt="CSCS">
+        </div>
 
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-12" src="/img/trustify.svg" alt="Securonix">
-      </div>
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-24 -mt-8" src="/img/bowie.svg" alt="ViewSonic">
-      </div>
-      <div class="mt-4 ml-8 flex justify-center flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
-        <img class="h-12 mt-2 -ml-10" src="/img/talkwalker.svg" alt="Siemens">
+        <!-- Duplicate set for seamless loop -->
+        <div class="logo-item">
+          <img src="/img/mistral-ai-full.png" alt="Mistral AI">
+        </div>
+        <div class="logo-item">
+          <img src="/img/securonix-blue.svg" alt="Securonix">
+        </div>
+        <div class="logo-item">
+          <img src="/img/aareon.svg" alt="Aareon">
+        </div>
+        <div class="logo-item">
+          <img src="/img/viewsonic.svg" alt="ViewSonic">
+        </div>
+        <div class="logo-item">
+          <img src="/img/syniti.png" alt="Syniti" style="transform: translateY(4px);">
+        </div>
+        <div class="logo-item">
+          <img src="/img/skillable-logo.svg" alt="Skillable" style="max-height: 46px; transform: translateY(-8px);">
+        </div>
+        <div class="logo-item">
+          <img src="/img/nt-ware.png" alt="NT-ware" style="max-height: 26px;">
+        </div>
+        <div class="logo-item">
+          <img src="/img/sodexo.svg" alt="Sodexo" style="max-height: 40px; transform: translateY(-4px);">
+        </div>
+        <div class="logo-item">
+          <img src="/img/avolve.webp" alt="Avolve Software" style="transform: translateY(-4px);">
+        </div>
+        <div class="logo-item">
+          <img src="/img/Dotdash_Meredith.svg" alt="Dotdash Meredith">
+        </div>
+        <div class="logo-item">
+          <img src="/img/trustify.svg" alt="Trustify" style="max-height: 46px;">
+        </div>
+        <div class="logo-item">
+          <img src="/img/bowie.svg" alt="Bowie" style="max-height: 66px; transform: translateY(-8px);">
+        </div>
+        <div class="logo-item">
+          <img src="/img/talkwalker.svg" alt="Talkwalker" style="max-height: 56px;">
+        </div>
+        <div class="logo-item">
+          <img src="/img/cscs.svg" alt="CSCS">
+        </div>
       </div>
     </div>
   </div>

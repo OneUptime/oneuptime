@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" id="contact">
+<html lang="en" id="oss-friends">
 
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
     <title>OneUptime | Our Open Source Friends</title>
     <meta name="description"
-        content="OneUptime monitors websites, APIs, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+        content="Discover amazing open-source projects and companies that are building the future of software. From observability to AI, these are the tools we love and recommend.">
         <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
@@ -15,43 +15,212 @@
 <body>
   <%- include('nav') -%>
   <main id="main-content">
-  <div class="relative isolate overflow-hidden bg-white">
-    <div class="py-24 sm:py-32 sm:pb-24">
+
+  <!-- Hero Section -->
+  <div class="relative isolate bg-white overflow-hidden">
+    <!-- Subtle grid pattern background (different from homepage - using dots pattern) -->
+    <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-[size:2rem_2rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+    <div class="py-24 sm:py-32 lg:py-40">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto max-w-2xl text-center">
-          <h1 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-            Our Open Source Friends
+        <div class="mx-auto max-w-3xl text-center">
+          <!-- Badge -->
+          <div class="mb-8 inline-flex items-center gap-2 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200">
+            <svg class="h-4 w-4 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+            </svg>
+            <span>Tools we love and use</span>
+          </div>
+
+          <!-- Main headline -->
+          <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
+            Our Open Source <br class="hidden sm:block" />Friends
           </h1>
-          <p class="mt-6 text-xl sm:text-2xl leading-8 text-gray-600">
-            We are proud to be part of the open-source community. Here are some of our friends who are doing amazing work.
+
+          <!-- Subheadline -->
+          <p class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-xl mx-auto">
+            We believe in the power of open source. These amazing projects inspire us and are building the future of software together.
           </p>
+
+          <!-- CTA buttons -->
+          <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <a href="https://github.com/oneuptime/oneuptime" target="_blank"
+              class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+              Star us on GitHub
+              <svg class="ml-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" /></svg>
+            </a>
+            <a href="#projects" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-2.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">
+              Explore projects
+            </a>
+          </div>
         </div>
       </div>
     </div>
   </div>
-  <div class="mx-auto max-w-5xl">
-    <ul role="list" class="divide-y divide-gray-100">
-        <% for(var i=0; i<ossFriends.length; i++) {%>
-        <li class="flex items-center justify-between gap-x-6 py-5">
-          <div class="min-w-0">
-            <div class="flex items-start gap-x-3">
-              <p class="text-xl font-semibold leading-6 text-gray-900">
-                <%= ossFriends[i].name %>
-              </p>
-            </div>
-            <div class="mt-1 flex items-center gap-x-2 leading-5 text-gray-500">
-              <p>
-                <%= ossFriends[i].description %>
-              </p>
-            </div>
-          </div>
-          <div class="flex flex-none items-center gap-x-4">
-            <a href="<%= ossFriends[i].repositoryUrl %>" type="_blank" class="hidden rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:block">View Repository</a>
-          </div>
-        </li>
-        <% } %>
-      </ul>
+
+  <!-- Category Navigation -->
+  <div class="sticky top-0 z-10 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="flex items-center justify-between py-4">
+        <div class="flex items-center gap-2 text-sm text-gray-500">
+          <span class="font-medium text-gray-900"><%= ossFriends.length %></span> projects across
+          <span class="font-medium text-gray-900"><%= categories.length %></span> categories
+        </div>
+        <nav class="hidden sm:flex items-center gap-1">
+          <% for(var c=0; c<categories.length; c++) { %>
+            <% var cat = categories[c]; %>
+            <% var catId = cat.toLowerCase().replace(/[^a-z0-9]+/g, '-'); %>
+            <a href="#category-<%= catId %>" class="rounded-full px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900">
+              <%= cat.split(' & ')[0] %>
+            </a>
+          <% } %>
+        </nav>
+      </div>
+    </div>
   </div>
+
+  <!-- Projects by Category -->
+  <div id="projects" class="bg-white py-16 sm:py-24">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+
+      <% for(var c=0; c<categories.length; c++) { %>
+        <% var category = categories[c]; %>
+        <% var categoryId = category.toLowerCase().replace(/[^a-z0-9]+/g, '-'); %>
+        <% var categoryFriends = ossFriends.filter(function(friend) { return friend.category === category; }); %>
+
+        <div id="category-<%= categoryId %>" class="<%= c > 0 ? 'mt-20' : '' %> scroll-mt-20">
+          <!-- Category Header -->
+          <div class="flex items-center gap-x-4 mb-8">
+            <% if(category === 'Data & Analytics') { %>
+              <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600">
+                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+                </svg>
+              </div>
+            <% } else if(category === 'Developer Tools') { %>
+              <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600">
+                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                </svg>
+              </div>
+            <% } else if(category === 'Productivity & Collaboration') { %>
+              <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600">
+                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                </svg>
+              </div>
+            <% } else if(category === 'Infrastructure & DevOps') { %>
+              <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600">
+                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z" />
+                </svg>
+              </div>
+            <% } else if(category === 'Security') { %>
+              <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600">
+                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                </svg>
+              </div>
+            <% } else if(category === 'AI & Machine Learning') { %>
+              <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600">
+                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                </svg>
+              </div>
+            <% } %>
+            <div>
+              <h2 class="text-2xl font-bold tracking-tight text-gray-900"><%= category %></h2>
+              <p class="text-sm text-gray-500"><%= categoryFriends.length %> projects</p>
+            </div>
+          </div>
+
+          <!-- Cards Grid -->
+          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <% for(var i=0; i<categoryFriends.length; i++) { %>
+              <% var friend = categoryFriends[i]; %>
+              <div class="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 hover:shadow-lg hover:ring-gray-300 transition-all duration-200">
+                <div class="flex flex-1 flex-col p-6">
+                  <div class="flex items-center gap-x-3">
+                    <h3 class="text-lg font-semibold leading-7 text-gray-900 group-hover:text-indigo-600 transition-colors">
+                      <%= friend.name %>
+                    </h3>
+                  </div>
+                  <p class="mt-3 text-sm leading-6 text-gray-600 flex-1">
+                    <%= friend.description %>
+                  </p>
+                  <div class="mt-6 flex items-center gap-x-3">
+                    <a href="<%= friend.websiteUrl %>" target="_blank" rel="noopener noreferrer"
+                       class="inline-flex items-center gap-x-1.5 rounded-md bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-100 transition-colors">
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+                      </svg>
+                      Website
+                    </a>
+                    <a href="<%= friend.repositoryUrl %>" target="_blank" rel="noopener noreferrer"
+                       class="inline-flex items-center gap-x-1.5 rounded-md bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200 transition-colors">
+                      <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+                      </svg>
+                      GitHub
+                    </a>
+                  </div>
+                </div>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Want to be listed section -->
+  <div class="bg-gray-50 py-16 sm:py-24">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center">
+        <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+          Want to be listed here?
+        </h2>
+        <p class="mt-6 text-lg leading-8 text-gray-600">
+          Are you building an amazing open-source project? We'd love to feature you on this page.
+          Submit a pull request to our GitHub repository and join our community of open-source friends.
+        </p>
+        <div class="mt-10 flex items-center justify-center gap-x-6">
+          <a href="https://github.com/oneuptime/oneuptime" target="_blank"
+             class="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+            Submit a PR
+          </a>
+          <a href="/contact" class="text-sm font-semibold leading-6 text-gray-900">
+            Contact us <span aria-hidden="true">-></span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA Section -->
+  <div class="bg-indigo-600">
+    <div class="px-6 py-24 sm:px-6 sm:py-32 lg:px-8">
+      <div class="mx-auto max-w-2xl text-center">
+        <h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          Join the Open Source Movement
+        </h2>
+        <p class="mx-auto mt-6 max-w-xl text-lg leading-8 text-indigo-100">
+          OneUptime is fully open-source. Monitor your applications, manage incidents,
+          and keep your customers informed - all with the power of open source.
+        </p>
+        <div class="mt-10 flex items-center justify-center gap-x-6">
+          <a href="https://github.com/oneuptime/oneuptime" target="_blank"
+             class="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-indigo-600 shadow-sm hover:bg-indigo-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+            View on GitHub
+          </a>
+          <a href="/pricing" class="text-sm font-semibold leading-6 text-white">
+            Get started <span aria-hidden="true">-></span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
   </main>
   <%- include('footer') -%>
 </body>

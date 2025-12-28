@@ -300,6 +300,41 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/ai-agent": {
+    title: "AI Agent | Automatic Code Fixes & PRs | OneUptime",
+    description:
+      "AI Agent automatically fixes errors, performance issues, and database queries in your codebase. Creates ready-to-merge pull requests. Supports OpenAI, Anthropic, Ollama, and self-hosted LLMs. Privacy-first: no code stored or trained on.",
+    canonicalPath: "/product/ai-agent",
+    ogImage: "/img/ai-agent.png",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "AI Agent", url: "/product/ai-agent" },
+    ],
+    softwareApplication: {
+      name: "OneUptime AI Agent",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "AI-powered agent that automatically detects and fixes code issues, creating ready-to-merge pull requests.",
+      features: [
+        "Automatic error fixes",
+        "Performance issue resolution",
+        "Database query optimization",
+        "Frontend issue fixes",
+        "GitHub and GitLab integration",
+        "CI/CD pipeline integration",
+        "Terraform support",
+        "Issue tracker integration",
+        "Multiple LLM provider support",
+        "Self-hosted LLM option",
+        "Privacy-first: no code storage",
+      ],
+    },
+  },
+
   // Pricing
   "/pricing": {
     title: "Pricing | Free Tier & Paid Plans | OneUptime",

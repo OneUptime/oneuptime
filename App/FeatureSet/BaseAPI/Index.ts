@@ -10,6 +10,10 @@ import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
+import AIAgentAPI from "Common/Server/API/AIAgentAPI";
+import AIAgentTaskAPI from "Common/Server/API/AIAgentTaskAPI";
+import AIAgentTaskLogAPI from "Common/Server/API/AIAgentTaskLogAPI";
+import AIAgentTaskPullRequestAPI from "Common/Server/API/AIAgentTaskPullRequestAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
@@ -68,6 +72,7 @@ import AlertCustomFieldService, {
   Service as AlertCustomFieldServiceType,
 } from "Common/Server/Services/AlertCustomFieldService";
 import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
+import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import AlertNoteTemplateService, {
   Service as AlertNoteTemplateServiceType,
 } from "Common/Server/Services/AlertNoteTemplateService";
@@ -356,13 +361,22 @@ import ProbeOwnerUserService, {
   Service as ProbeOwnerUserServiceType,
 } from "Common/Server/Services/ProbeOwnerUserService";
 
+import AIAgentOwnerTeamService, {
+  Service as AIAgentOwnerTeamServiceType,
+} from "Common/Server/Services/AIAgentOwnerTeamService";
+
+import AIAgentOwnerUserService, {
+  Service as AIAgentOwnerUserServiceType,
+} from "Common/Server/Services/AIAgentOwnerUserService";
+
+import AIAgentTaskTelemetryException from "Common/Models/DatabaseModels/AIAgentTaskTelemetryException";
+import AIAgentTaskTelemetryExceptionService, {
+  Service as AIAgentTaskTelemetryExceptionServiceType,
+} from "Common/Server/Services/AIAgentTaskTelemetryExceptionService";
+
 import LlmLogService, {
   Service as LlmLogServiceType,
 } from "Common/Server/Services/LlmLogService";
-
-import TelemetryExceptionService, {
-  Service as TelemetryExceptionServiceType,
-} from "Common/Server/Services/TelemetryExceptionService";
 
 import ExceptionInstanceService, {
   ExceptionInstanceService as ExceptionInstanceServiceType,
@@ -467,10 +481,11 @@ import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
+import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
+import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
 import LlmLog from "Common/Models/DatabaseModels/LlmLog";
 import ServiceCatalogDependency from "Common/Models/DatabaseModels/ServiceCatalogDependency";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
-import TelemetyException from "Common/Models/DatabaseModels/TelemetryException";
 import WorkspaceNotificationLogService, {
   Service as WorkspaceNotificationLogServiceType,
 } from "Common/Server/Services/WorkspaceNotificationLogService";
@@ -879,10 +894,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TelemetyException, TelemetryExceptionServiceType>(
-        TelemetyException,
-        TelemetryExceptionService,
-      ).getRouter(),
+      new TelemetryExceptionAPI().getRouter(),
     );
 
     // scheduled maintenance template
@@ -1672,6 +1684,54 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserPushAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProbeAPI().getRouter());
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new AIAgentAPI().getRouter());
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AIAgentOwnerUser, AIAgentOwnerUserServiceType>(
+        AIAgentOwnerUser,
+        AIAgentOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AIAgentOwnerTeam, AIAgentOwnerTeamServiceType>(
+        AIAgentOwnerTeam,
+        AIAgentOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // AI Agent Task
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AIAgentTaskAPI().getRouter(),
+    );
+
+    // AI Agent Task Log
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AIAgentTaskLogAPI().getRouter(),
+    );
+
+    // AI Agent Task Pull Request
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AIAgentTaskPullRequestAPI().getRouter(),
+    );
+
+    // AI Agent Task Telemetry Exception (linking table)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        AIAgentTaskTelemetryException,
+        AIAgentTaskTelemetryExceptionServiceType
+      >(
+        AIAgentTaskTelemetryException,
+        AIAgentTaskTelemetryExceptionService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new LlmProviderAPI().getRouter(),

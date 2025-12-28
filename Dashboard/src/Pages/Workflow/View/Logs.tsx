@@ -115,7 +115,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 _id: true,
               },
               title: "Run ID",
-              type: FieldType.Text,
+              type: FieldType.ObjectID,
             },
             {
               field: {

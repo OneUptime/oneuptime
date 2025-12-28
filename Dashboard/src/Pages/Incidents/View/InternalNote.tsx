@@ -187,7 +187,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
           description: "Here are private notes for this incident.",
           buttons: [
             {
-              title: "Generate from AI",
+              title: "Generate with AI",
               icon: IconProp.Bolt,
               buttonStyle: ButtonStyleType.OUTLINE,
               onClick: async (): Promise<void> => {

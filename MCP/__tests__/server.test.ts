@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 import OneUptimeApiService from "../Services/OneUptimeApiService";
-import DynamicToolGenerator from "../Utils/DynamicToolGenerator";
+import * as ToolGenerator from "../Tools/ToolGenerator";
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
 import { McpToolInfo } from "../Types/McpTypes";
 
 // Mock the dependencies
 jest.mock("../Services/OneUptimeApiService");
-jest.mock("../Utils/DynamicToolGenerator");
+jest.mock("../Tools/ToolGenerator");
 jest.mock("../Utils/MCPLogger");
 
 describe("OneUptime MCP Server", () => {
@@ -34,22 +34,20 @@ describe("OneUptime MCP Server", () => {
         },
       ];
 
-      (DynamicToolGenerator.generateAllTools as jest.Mock).mockReturnValue(
-        mockTools,
-      );
+      (ToolGenerator.generateAllTools as jest.Mock).mockReturnValue(mockTools);
       (OneUptimeApiService.initialize as jest.Mock).mockImplementation(
         () => {},
       );
 
       // Call the mocked functions to simulate server initialization
-      DynamicToolGenerator.generateAllTools();
+      ToolGenerator.generateAllTools();
       OneUptimeApiService.initialize({
         url: "https://test.oneuptime.com",
         apiKey: "test-api-key",
       });
 
       // Test that the functions were called
-      expect(DynamicToolGenerator.generateAllTools).toHaveBeenCalled();
+      expect(ToolGenerator.generateAllTools).toHaveBeenCalled();
       expect(OneUptimeApiService.initialize).toHaveBeenCalledWith({
         url: "https://test.oneuptime.com",
         apiKey: "test-api-key",
@@ -59,8 +57,12 @@ describe("OneUptime MCP Server", () => {
     it("should throw error when API key is missing", () => {
       // Mock the service to throw error for missing API key
       (OneUptimeApiService.initialize as jest.Mock).mockImplementation(
-        (config: any) => {
-          if (!config.apiKey) {
+        (config: unknown) => {
+          const typedConfig: { url: string; apiKey: string } = config as {
+            url: string;
+            apiKey: string;
+          };
+          if (!typedConfig.apiKey) {
             throw new Error("OneUptime API key is required");
           }
         },
@@ -117,11 +119,9 @@ describe("OneUptime MCP Server", () => {
         },
       ];
 
-      (DynamicToolGenerator.generateAllTools as jest.Mock).mockReturnValue(
-        mockTools,
-      );
+      (ToolGenerator.generateAllTools as jest.Mock).mockReturnValue(mockTools);
 
-      const tools: any[] = DynamicToolGenerator.generateAllTools();
+      const tools: McpToolInfo[] = ToolGenerator.generateAllTools();
 
       expect(tools).toHaveLength(2);
       expect(tools[0]?.name).toBe("create_monitor");
@@ -131,14 +131,12 @@ describe("OneUptime MCP Server", () => {
     });
 
     it("should handle tool generation errors", () => {
-      (DynamicToolGenerator.generateAllTools as jest.Mock).mockImplementation(
-        () => {
-          throw new Error("Failed to generate tools");
-        },
-      );
+      (ToolGenerator.generateAllTools as jest.Mock).mockImplementation(() => {
+        throw new Error("Failed to generate tools");
+      });
 
       expect(() => {
-        DynamicToolGenerator.generateAllTools();
+        ToolGenerator.generateAllTools();
       }).toThrow("Failed to generate tools");
     });
   });

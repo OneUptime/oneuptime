@@ -68,7 +68,7 @@ const Projects: FunctionComponent = (): ReactElement => {
                   _id: true,
                 },
                 title: "Project ID",
-                fieldType: FieldType.Text,
+                fieldType: FieldType.ObjectID,
                 placeholder: "-",
               },
               {

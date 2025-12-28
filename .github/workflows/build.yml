@@ -433,10 +433,10 @@ jobs:
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
-      - name: Checkout 
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Preinstall 
+      - name: Preinstall
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 10
@@ -450,3 +450,26 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: sudo docker build --no-cache -f ./TestServer/Dockerfile .
+
+  docker-build-ai-agent:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Preinstall
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: npm run prerun
+
+      # build image for ai agent service
+      - name: build docker image
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build --no-cache -f ./AIAgent/Dockerfile .

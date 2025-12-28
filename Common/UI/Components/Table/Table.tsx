@@ -321,7 +321,7 @@ const Table: TableFunction = <T extends GenericObject>(
             </div>
           </div>
         </div>
-        <div className="bg-gray-50 text-right md:-mx-6 -mb-6">
+        <div className="bg-gray-50 text-right md:-mx-6 -mb-6 rounded-b-xl">
           {!props.disablePagination && (
             <Pagination
               singularLabel={props.singularLabel}

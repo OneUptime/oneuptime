@@ -86,6 +86,7 @@ const ServiceDelete: FunctionComponent<
                 _id: true,
               },
               title: "Service ID",
+              fieldType: FieldType.ObjectID,
             },
             {
               field: {

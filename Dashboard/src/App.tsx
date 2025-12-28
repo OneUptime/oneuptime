@@ -173,6 +173,11 @@ const MonitorGroupRoutes: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Routes/MonitorGroupRoutes");
 });
+const AIAgentTasksRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/AIAgentTasksRoutes");
+});
 const PageNotFound: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
@@ -596,6 +601,13 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.MONITOR_GROUPS_ROOT]?.toString() || ""}
             element={<MonitorGroupRoutes {...commonPageProps} />}
+          />
+
+          {/** AI Agent Tasks */}
+
+          <PageRoute
+            path={RouteMap[PageMap.AI_AGENT_TASKS_ROOT]?.toString() || ""}
+            element={<AIAgentTasksRoutes {...commonPageProps} />}
           />
 
           {/* 👇️ only match this when no other routes match */}

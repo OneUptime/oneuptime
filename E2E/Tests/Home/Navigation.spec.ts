@@ -1,5 +1,5 @@
 import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
-import { Page, expect, test } from "@playwright/test";
+import { Locator, Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 
 test.beforeEach(async ({ page }: { page: Page }) => {
@@ -30,13 +30,14 @@ test.describe("navigation bar", () => {
     if (!IS_BILLING_ENABLED) {
       return;
     }
-    await page.getByRole("link", { name: "Pricing" }).click();
-    await page.getByRole("link", { name: "Pricing" }).hover();
-    await expect(page.getByRole("link", { name: "Pricing" })).toHaveText(
-      /Pricing/,
-    );
-    await expect(page.getByRole("link", { name: "Pricing" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Pricing" })).toBeInViewport();
+    const navPricingLink: Locator = page
+      .getByRole("navigation")
+      .getByRole("link", { name: "Pricing" });
+    await navPricingLink.click();
+    await navPricingLink.hover();
+    await expect(navPricingLink).toHaveText(/Pricing/);
+    await expect(navPricingLink).toBeVisible();
+    await expect(navPricingLink).toBeInViewport();
     await expect(page).toHaveURL(/.*pricing/);
   });
 
@@ -44,15 +45,14 @@ test.describe("navigation bar", () => {
     if (!IS_BILLING_ENABLED) {
       return;
     }
-    await page.getByRole("link", { name: "Enterprise" }).click();
-    await page.getByRole("link", { name: "Enterprise" }).hover();
-    await expect(page.getByRole("link", { name: "Enterprise" })).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: "Enterprise" }),
-    ).toBeInViewport();
-    await expect(page.getByRole("link", { name: "Enterprise" })).toHaveText(
-      /Enterprise/,
-    );
+    const navEnterpriseLink: Locator = page
+      .getByRole("navigation")
+      .getByRole("link", { name: "Enterprise" });
+    await navEnterpriseLink.click();
+    await navEnterpriseLink.hover();
+    await expect(navEnterpriseLink).toBeVisible();
+    await expect(navEnterpriseLink).toBeInViewport();
+    await expect(navEnterpriseLink).toHaveText(/Enterprise/);
     await expect(page).toHaveURL(/.*enterprise\/overview/);
   });
 

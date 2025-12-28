@@ -1,0 +1,11 @@
+{
+    "watch": [
+        "./",
+        "../Common"
+    ],
+    "ext": "ts,tsx",
+    "ignore": ["./node_modules/**", "./public/**", "./bin/**", "./build/**"],
+    "watchOptions": {"useFsEvents": false, "interval": 500},
+    "env": {"TS_NODE_TRANSPILE_ONLY": "1", "TS_NODE_FILES": "false"},
+    "exec": "node  -r ts-node/register/transpile-only Index.ts"
+}

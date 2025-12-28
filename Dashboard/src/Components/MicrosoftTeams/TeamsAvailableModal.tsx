@@ -32,7 +32,7 @@ const TeamsAvailableModal: FunctionComponent<TeamsAvailableModalProps> = (
 
   return (
     <Modal
-      title="Microsoft Teams — Available Teams"
+      title="Microsoft Teams - Available Teams"
       description="Teams that OneUptime can access in your tenant. Use Refresh if you recently added or changed teams."
       modalWidth={ModalWidth.Large}
       submitButtonStyleType={ButtonStyleType.NORMAL}

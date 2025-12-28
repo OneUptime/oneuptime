@@ -196,7 +196,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
           title: "Private Notes",
           buttons: [
             {
-              title: "Generate from AI",
+              title: "Generate with AI",
               icon: IconProp.Bolt,
               buttonStyle: ButtonStyleType.OUTLINE,
               onClick: async (): Promise<void> => {

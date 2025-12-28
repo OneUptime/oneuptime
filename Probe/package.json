@@ -28,7 +28,7 @@
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.5",
     "ping": "^0.4.4",
-    "playwright": "^1.55.1",
+    "playwright": "^1.57.0",
     "ts-node": "^10.9.1"
   },
   "devDependencies": {

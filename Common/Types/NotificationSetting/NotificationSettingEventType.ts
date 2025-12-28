@@ -34,6 +34,10 @@ enum NotificationSettingEventType {
   SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION = "Send probe status changed notification when I am the owner of the probe",
   SEND_PROBE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the probe",
 
+  // AI Agent Status change Notification
+  SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION = "Send AI agent status changed notification when I am the owner of the AI agent",
+  SEND_AI_AGENT_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the AI agent",
+
   // On Call Notifications
   SEND_WHEN_USER_IS_ON_CALL_ROSTER = "When user is on-call roster",
   SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER = "When user is next on-call roster",

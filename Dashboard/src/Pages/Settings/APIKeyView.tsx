@@ -310,7 +310,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 projectId: true,
               },
               title: "Project ID",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.ObjectID,
               opts: {
                 isCopyable: true,
               },

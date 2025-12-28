@@ -208,6 +208,7 @@ const OnCallDutyScheduleView: FunctionComponent<
                 _id: true,
               },
               title: "On-Call Schedule ID",
+              fieldType: FieldType.ObjectID,
             },
             {
               field: {

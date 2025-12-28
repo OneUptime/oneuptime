@@ -45,6 +45,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 _id: true,
               },
               title: "Project ID",
+              fieldType: FieldType.ObjectID,
             },
             {
               field: {

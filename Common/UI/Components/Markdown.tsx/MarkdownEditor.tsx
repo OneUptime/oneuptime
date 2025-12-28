@@ -538,7 +538,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               title="Horizontal Rule"
               className="p-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
             >
-              <span className="font-bold text-sm">—</span>
+              <span className="font-bold text-sm">-</span>
             </button>
             <button
               type="button"

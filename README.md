@@ -104,10 +104,10 @@ By using OneUptime Cloud, you also support the continued development of the open
 
 ### Self-Hosted Installation
 
-- **[Kubernetes with Helm](https://artifacthub.io/packages/helm/oneuptime/oneuptime)** — Recommended for production
-- **[Docker Compose](/Docs/Content/installation/docker-compose.md)** — Single-node install (not recommended for production)
-- **[Local Development](/Docs/Content/installation/local-development.md)** — For contributors
-- **[Upgrade Guide](/Docs/Content/installation/upgrading.md)** — Upgrade existing installations
+- **[Kubernetes with Helm](https://artifacthub.io/packages/helm/oneuptime/oneuptime)** - Recommended for production
+- **[Docker Compose](/Docs/Content/installation/docker-compose.md)** - Single-node install (not recommended for production)
+- **[Local Development](/Docs/Content/installation/local-development.md)** - For contributors
+- **[Upgrade Guide](/Docs/Content/installation/upgrading.md)** - Upgrade existing installations
 
 ---
 
@@ -165,9 +165,9 @@ We love contributions big and small! Here's how you can help:
 
 If you find OneUptime useful, consider supporting its development:
 
-- ⭐ **Star this repo** — It helps others discover OneUptime
-- 💵 **[Sponsor us](https://github.com/sponsors/OneUptime)** — Every dollar goes to shipping new features
-- 🛍️ **[Shop merch](https://shop.oneuptime.com)** — All revenue supports open-source development
+- ⭐ **Star this repo** - It helps others discover OneUptime
+- 💵 **[Sponsor us](https://github.com/sponsors/OneUptime)** - Every dollar goes to shipping new features
+- 🛍️ **[Shop merch](https://shop.oneuptime.com)** - All revenue supports open-source development
 
 ---
 
