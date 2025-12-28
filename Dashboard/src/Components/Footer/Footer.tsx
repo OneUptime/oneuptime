@@ -79,10 +79,7 @@ const DashboardFooter: () => JSX.Element = () => {
           {
             title: (
               <span className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-500">
-                <Icon
-                  icon={IconProp.Help}
-                  className="h-3.5 w-3.5"
-                />
+                <Icon icon={IconProp.Help} className="h-3.5 w-3.5" />
                 Help and Support
               </span>
             ),
@@ -92,10 +89,7 @@ const DashboardFooter: () => JSX.Element = () => {
           {
             title: (
               <span className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-500">
-                <Icon
-                  icon={IconProp.ShieldCheck}
-                  className="h-3.5 w-3.5"
-                />
+                <Icon icon={IconProp.ShieldCheck} className="h-3.5 w-3.5" />
                 Legal
               </span>
             ),
@@ -105,10 +99,7 @@ const DashboardFooter: () => JSX.Element = () => {
           {
             title: (
               <span className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-500">
-                <Icon
-                  icon={IconProp.Info}
-                  className="h-3.5 w-3.5"
-                />
+                <Icon icon={IconProp.Info} className="h-3.5 w-3.5" />
                 Version
               </span>
             ),

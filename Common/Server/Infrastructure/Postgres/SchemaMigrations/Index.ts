@@ -423,5 +423,5 @@ export default [
   MigrationName1766754182870,
   MigrationName1766774689743,
   MigrationName1766777986427,
-  AddAIAgentIsDefault1766918848434
+  AddAIAgentIsDefault1766918848434,
 ];

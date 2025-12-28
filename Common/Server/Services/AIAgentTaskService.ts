@@ -29,7 +29,9 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-  private async getDefaultAgentId(createBy: CreateBy<Model>): Promise<ObjectID> {
+  private async getDefaultAgentId(
+    createBy: CreateBy<Model>,
+  ): Promise<ObjectID> {
     if (!createBy.data.projectId) {
       throw new BadDataException(
         "Project ID is required to assign an AI Agent",
