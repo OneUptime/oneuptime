@@ -10,6 +10,7 @@ import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow, Blue } from "Common/Types/BrandColors";
 import AIAgentTaskTypeElement from "../../../Components/AIAgentTask/AIAgentTaskTypeElement";
+import AIAgentElement from "Common/UI/Components/AIAgent/AIAgent";
 
 const AIAgentTaskViewPage: FunctionComponent<
   PageComponentProps
@@ -97,12 +98,16 @@ const AIAgentTaskViewPage: FunctionComponent<
             field: {
               aiAgent: {
                 name: true,
+                iconFileId: true,
               },
             },
             title: "AI Agent",
-            fieldType: FieldType.Entity,
+            fieldType: FieldType.Element,
             getElement: (item: AIAgentTask): ReactElement => {
-              return <>{item.aiAgent?.name || "Not Assigned"}</>;
+              if (!item.aiAgent) {
+                return <span className="text-gray-400">Not Assigned</span>;
+              }
+              return <AIAgentElement aiAgent={item.aiAgent} />;
             },
           },
           {
