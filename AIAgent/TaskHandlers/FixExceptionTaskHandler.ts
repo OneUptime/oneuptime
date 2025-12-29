@@ -191,7 +191,8 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
       const errorMessage: string =
         error instanceof Error ? error.message : String(error);
       await this.log(context, `Task failed: ${errorMessage}`, "error");
-      return this.createFailureResult(errorMessage);
+      // Mark as an actual error (not just "no action taken") so task gets Error status
+      return this.createFailureResult(errorMessage, { isError: true });
     } finally {
       // Cleanup workspace
       if (workspace) {
