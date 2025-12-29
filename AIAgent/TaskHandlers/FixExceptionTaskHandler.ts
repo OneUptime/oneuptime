@@ -72,10 +72,11 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
         await this.log(
           context,
           "No telemetry service linked to this exception",
-          "warning",
+          "error",
         );
-        return this.createNoActionResult(
+        return this.createFailureResult(
           "No telemetry service linked to this exception",
+          { isError: true },
         );
       }
 
@@ -99,10 +100,11 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
         await this.log(
           context,
           "No code repositories linked to this service",
-          "warning",
+          "error",
         );
-        return this.createNoActionResult(
+        return this.createFailureResult(
           "No code repositories linked to this service via Service Catalog",
+          { isError: true },
         );
       }
 
@@ -176,16 +178,17 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
         };
       }
 
-      // No PRs created but no fatal errors either
+      // No PRs created - mark as error
       await this.log(
         context,
         "No fixes could be applied to any repository",
-        "warning",
+        "error",
       );
-      return this.createNoActionResult(
+      return this.createFailureResult(
         errors.length > 0
           ? `No fixes could be applied. Errors: ${errors.join("; ")}`
           : "No fixes could be applied to any repository",
+        { isError: true },
       );
     } catch (error) {
       const errorMessage: string =
