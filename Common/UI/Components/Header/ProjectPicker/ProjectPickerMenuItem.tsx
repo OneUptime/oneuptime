@@ -19,7 +19,7 @@ const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
 
   return (
     <li
-      className="text-gray-900 relative cursor-default select-none py-2 pl-3 pr-9 cursor-pointer hover:bg-gray-50"
+      className="text-gray-700 relative select-none py-2.5 px-3 mx-2 cursor-pointer hover:bg-gray-50 rounded-lg transition-colors duration-150"
       id="listbox-option-0"
       role="option"
       onClick={() => {
@@ -27,12 +27,12 @@ const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
         Navigation.navigate(route);
       }}
     >
-      <div className="flex items-center">
+      <div className="flex items-center gap-3">
         <Icon
           icon={props.icon}
-          className="h-6 w-6 flex-shrink-0 rounded-full"
+          className="h-5 w-5 flex-shrink-0 text-gray-400"
         />
-        <span className="cursor-pointer text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium block truncate">
+        <span className="text-sm font-medium text-gray-700 truncate">
           {title}
         </span>
       </div>

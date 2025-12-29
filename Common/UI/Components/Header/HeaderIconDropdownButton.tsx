@@ -38,11 +38,11 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
   }, [props.showDropdown]);
 
   return (
-    <div className="relative ml-4 flex-shrink-0">
+    <div className="relative ml-1 flex-shrink-0">
       <div>
         <button
           type="button"
-          className="flex rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          className="flex items-center justify-center h-9 w-9 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition-all duration-150"
           id="user-menu-button"
           aria-expanded="false"
           aria-haspopup="true"
@@ -54,7 +54,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
           <span className="sr-only">{props.name}</span>
           {props.iconImageUrl && (
             <Image
-              className="h-8 w-8 rounded-full"
+              className="h-7 w-7 rounded-md object-cover"
               onClick={() => {
                 props.onClick?.();
               }}
@@ -64,15 +64,21 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
           )}
           {props.icon && (
             <Icon
-              className="text-gray-400 hover:text-indigo-500"
+              className="text-gray-500 hover:text-gray-700 transition-colors"
               icon={props.icon}
-              size={SizeProp.Large}
+              size={SizeProp.Regular}
             />
           )}
         </button>
-        {props.title}
+        {props.title && (
+          <span className="ml-2 text-sm font-medium text-gray-700">
+            {props.title}
+          </span>
+        )}
         {props.badge && props.badge > 0 && (
-          <span className="badge bg-danger rounded-pill">{props.badge}</span>
+          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white ring-2 ring-white">
+            {props.badge}
+          </span>
         )}
       </div>
 

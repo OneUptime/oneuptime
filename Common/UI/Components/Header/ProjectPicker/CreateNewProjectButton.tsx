@@ -11,19 +11,19 @@ const CreateNewProjectButton: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <li
-      className="text-gray-900 relative cursor-default select-none py-2 pl-3 pr-9 bg-gray-100 cursor-pointer hover:bg-gray-200 hover:text-gray-900 text-gray-500 -mb-1"
+      className="relative select-none py-2.5 px-3 mx-2 mt-2 cursor-pointer bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors duration-150 border border-indigo-200"
       id="listbox-option-0"
       role="option"
       onClick={() => {
         props.onCreateButtonClicked();
       }}
     >
-      <div className="flex items-center">
+      <div className="flex items-center gap-3">
         <Icon
           icon={IconProp.Add}
-          className="h-6 w-6 flex-shrink-0 rounded-full"
+          className="h-5 w-5 flex-shrink-0 text-indigo-500"
         />
-        <span className="cursor-pointer rounded-md py-2 px-3 inline-flex items-center text-sm font-medium block truncate">
+        <span className="text-sm font-medium text-indigo-600">
           Create New Project
         </span>
       </div>

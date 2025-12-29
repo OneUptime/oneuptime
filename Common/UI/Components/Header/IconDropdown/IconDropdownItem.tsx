@@ -18,15 +18,15 @@ const IconDropdown: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Link
-      className="block py-2 px-4 text-sm text-gray-700 flex hover:bg-gray-100"
+      className="flex items-center gap-3 py-2.5 px-4 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-150 mx-2 rounded-lg"
       to={props.url}
       openInNewTab={props.openInNewTab}
       onClick={props.onClick}
     >
-      <div className="mr-1 h-5 w-5">
+      <div className="flex-shrink-0 h-5 w-5 text-gray-400">
         {props.icon ? <Icon icon={props.icon} /> : <></>}
       </div>
-      <span className="">{props.title}</span>
+      <span className="font-medium">{props.title}</span>
     </Link>
   );
 };
