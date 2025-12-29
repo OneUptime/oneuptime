@@ -12,7 +12,7 @@ const Logo: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <div className="relative z-10 flex items-center pr-4 mr-4 -ml-2 border-r border-gray-200">
+    <div className="relative z-10 flex items-center pr-4 mr-4 -ml-5 border-r border-gray-200">
       <div className="flex flex-shrink-0 items-center">
         <Image
           className="block h-8 w-auto cursor-pointer hover:opacity-80 transition-opacity"
