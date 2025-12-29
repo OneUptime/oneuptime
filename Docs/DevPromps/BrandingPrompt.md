@@ -1,0 +1,1 @@
+We have the whole branding guide at Internal/Docs/ProductBranding.md and we have implemented this in the hero section of the home page. Can you please follow the same design principles and implement <PROMPT>
