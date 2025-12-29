@@ -13,6 +13,7 @@ import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
+import ObjectID from "Common/Types/ObjectID";
 import Sleep from "Common/Types/Sleep";
 
 // Type for task data from the API
@@ -40,8 +41,10 @@ type ExecuteTaskFunction = (task: AIAgentTaskData) => Promise<void>;
 const executeTask: ExecuteTaskFunction = async (
   task: AIAgentTaskData,
 ): Promise<void> => {
-  const taskId: string = task._id;
-  const projectId: string = task.projectId;
+  const taskIdString: string = task._id;
+  const projectIdString: string = task.projectId;
+  const taskId: ObjectID = new ObjectID(taskIdString);
+  const projectId: ObjectID = new ObjectID(projectIdString);
   const taskType: AIAgentTaskType = task.taskType;
   const metadata: TaskMetadata = task.metadata || {};
   const createdAt: Date = new Date(task.createdAt);
@@ -56,7 +59,7 @@ const executeTask: ExecuteTaskFunction = async (
 
   // Create task logger
   const taskLogger = new TaskLogger({
-    taskId,
+    taskId: taskIdString,
     context: `${handler.name}`,
   });
 

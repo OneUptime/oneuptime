@@ -1,4 +1,5 @@
 import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
+import ObjectID from "Common/Types/ObjectID";
 import TaskLogger from "../Utils/TaskLogger";
 import BackendAPI from "../Utils/BackendAPI";
 
@@ -23,8 +24,8 @@ export interface TaskResultData {
 // Context provided to task handlers
 export interface TaskContext<TMetadata extends TaskMetadata = TaskMetadata> {
   // Task identification
-  taskId: string;
-  projectId: string;
+  taskId: ObjectID;
+  projectId: ObjectID;
   taskType: AIAgentTaskType;
 
   // Task metadata (varies by task type)

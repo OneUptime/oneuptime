@@ -48,7 +48,7 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
   ): Promise<TaskResult> {
     const metadata: FixExceptionMetadata = context.metadata;
 
-    await this.log(context, `Starting Fix Exception task for exception: ${metadata.exceptionId}`);
+    await this.log(context, `Starting Fix Exception task for exception: ${metadata.exceptionId} (taskId: ${context.taskId.toString()})`);
 
     let workspace: WorkspaceInfo | null = null;
 
@@ -56,7 +56,7 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
       // Step 1: Get LLM configuration for the project
       await this.log(context, "Fetching LLM provider configuration...");
       const llmConfig: LLMConfig = await context.backendAPI.getLLMConfig(
-        context.projectId,
+        context.projectId.toString(),
       );
       await this.log(
         context,
@@ -112,7 +112,7 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
       );
 
       // Step 4: Create workspace for the task
-      workspace = await WorkspaceManager.createWorkspace(context.taskId);
+      workspace = await WorkspaceManager.createWorkspace(context.taskId.toString());
       await this.log(context, `Created workspace: ${workspace.workspacePath}`);
 
       // Step 5: Process each repository
@@ -242,7 +242,7 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
     );
 
     // Create a fix branch
-    const branchName: string = `oneuptime-fix-exception-${context.taskId.substring(0, 8)}`;
+    const branchName: string = `oneuptime-fix-exception-${context.taskId.toString().substring(0, 8)}`;
     await this.log(context, `Creating branch: ${branchName}`);
     await repoManager.createBranch(cloneResult.repositoryPath, branchName);
 
@@ -349,7 +349,7 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
 
     // Record the PR in the backend
     await context.backendAPI.recordPullRequest({
-      taskId: context.taskId,
+      taskId: context.taskId.toString(),
       codeRepositoryId: repo.id,
       pullRequestUrl: prResult.htmlUrl,
       pullRequestNumber: prResult.number,
