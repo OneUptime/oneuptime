@@ -16,7 +16,9 @@ import RepositoryManager, {
   RepositoryConfig,
   CloneResult,
 } from "../Utils/RepositoryManager";
-import PullRequestCreator, { PullRequestResult } from "../Utils/PullRequestCreator";
+import PullRequestCreator, {
+  PullRequestResult,
+} from "../Utils/PullRequestCreator";
 import WorkspaceManager, { WorkspaceInfo } from "../Utils/WorkspaceManager";
 import {
   CodeAgentFactory,
@@ -48,7 +50,10 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
   ): Promise<TaskResult> {
     const metadata: FixExceptionMetadata = context.metadata;
 
-    await this.log(context, `Starting Fix Exception task for exception: ${metadata.exceptionId} (taskId: ${context.taskId.toString()})`);
+    await this.log(
+      context,
+      `Starting Fix Exception task for exception: ${metadata.exceptionId} (taskId: ${context.taskId.toString()})`,
+    );
 
     let workspace: WorkspaceInfo | null = null;
 
@@ -114,7 +119,9 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
       );
 
       // Step 4: Create workspace for the task
-      workspace = await WorkspaceManager.createWorkspace(context.taskId.toString());
+      workspace = await WorkspaceManager.createWorkspace(
+        context.taskId.toString(),
+      );
       await this.log(context, `Created workspace: ${workspace.workspacePath}`);
 
       // Step 5: Process each repository
@@ -222,9 +229,8 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
       `Getting access token for ${repo.organizationName}/${repo.repositoryName}...`,
     );
 
-    const tokenData: RepositoryToken = await context.backendAPI.getRepositoryToken(
-      repo.id,
-    );
+    const tokenData: RepositoryToken =
+      await context.backendAPI.getRepositoryToken(repo.id);
 
     // Clone the repository
     await this.log(
@@ -239,7 +245,9 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
       repositoryUrl: tokenData.repositoryUrl,
     };
 
-    const repoManager: RepositoryManager = new RepositoryManager(context.logger);
+    const repoManager: RepositoryManager = new RepositoryManager(
+      context.logger,
+    );
     const cloneResult: CloneResult = await repoManager.cloneRepository(
       repoConfig,
       workspace.workspacePath,
@@ -258,7 +266,9 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
 
     // Initialize code agent
     await this.log(context, "Initializing code agent...");
-    const agent: CodeAgent = CodeAgentFactory.createAgent(CodeAgentType.OpenCode);
+    const agent: CodeAgent = CodeAgentFactory.createAgent(
+      CodeAgentType.OpenCode,
+    );
     const agentConfig: CodeAgentLLMConfig = {
       llmType: llmConfig.llmType,
     };
@@ -321,11 +331,17 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
 
     // Push the branch
     await this.log(context, `Pushing branch ${branchName}...`);
-    await repoManager.pushBranch(cloneResult.repositoryPath, branchName, repoConfig);
+    await repoManager.pushBranch(
+      cloneResult.repositoryPath,
+      branchName,
+      repoConfig,
+    );
 
     // Create pull request
     await this.log(context, "Creating pull request...");
-    const prCreator: PullRequestCreator = new PullRequestCreator(context.logger);
+    const prCreator: PullRequestCreator = new PullRequestCreator(
+      context.logger,
+    );
 
     const prTitle: string = PullRequestCreator.generatePRTitle(
       exceptionDetails.exception.message,

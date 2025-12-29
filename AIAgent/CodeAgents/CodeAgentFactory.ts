@@ -1,4 +1,8 @@
-import { CodeAgent, CodeAgentType, getCodeAgentDisplayName } from "./CodeAgentInterface";
+import {
+  CodeAgent,
+  CodeAgentType,
+  getCodeAgentDisplayName,
+} from "./CodeAgentInterface";
 import OpenCodeAgent from "./OpenCodeAgent";
 import logger from "Common/Server/Utils/Logger";
 
@@ -15,11 +19,13 @@ export default class CodeAgentFactory {
       case CodeAgentType.OpenCode:
         return new OpenCodeAgent();
 
-      // Future agents can be added here:
-      // case CodeAgentType.Goose:
-      //   return new GooseAgent();
-      // case CodeAgentType.ClaudeCode:
-      //   return new ClaudeCodeAgent();
+      /*
+       * Future agents can be added here:
+       * case CodeAgentType.Goose:
+       *   return new GooseAgent();
+       * case CodeAgentType.ClaudeCode:
+       *   return new ClaudeCodeAgent();
+       */
 
       default:
         throw new Error(`Unknown code agent type: ${type}`);
@@ -68,8 +74,10 @@ export default class CodeAgentFactory {
     return null;
   }
 
-  // Create agent with fallback
-  // Tries to create the specified type, falls back to first available
+  /*
+   * Create agent with fallback
+   * Tries to create the specified type, falls back to first available
+   */
   public static async createAgentWithFallback(
     preferredType?: CodeAgentType,
   ): Promise<CodeAgent> {

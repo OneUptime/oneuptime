@@ -80,7 +80,9 @@ const executeTask: ExecuteTaskFunction = async (
 
   try {
     // Log handler starting
-    await taskLogger.info(`Starting ${handler.name} for task type: ${taskType}`);
+    await taskLogger.info(
+      `Starting ${handler.name} for task type: ${taskType}`,
+    );
 
     // Validate metadata if the handler supports it
     if (handler.validateMetadata && !handler.validateMetadata(metadata)) {
@@ -106,9 +108,11 @@ const executeTask: ExecuteTaskFunction = async (
     // Flush all pending logs
     await taskLogger.flush();
 
-    // If the task was not successful and we want to report it as an error
-    // Note: Based on user requirements, "no fix found" should be Completed, not Error
-    // Only throw if there was an actual error (not just "no action taken")
+    /*
+     * If the task was not successful and we want to report it as an error
+     * Note: Based on user requirements, "no fix found" should be Completed, not Error
+     * Only throw if there was an actual error (not just "no action taken")
+     */
     if (!result.success && result.data?.["isError"]) {
       throw new Error(result.message);
     }

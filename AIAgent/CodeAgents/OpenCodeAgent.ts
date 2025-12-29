@@ -51,12 +51,15 @@ export default class OpenCodeAgent implements CodeAgent {
 
   public async executeTask(task: CodeAgentTask): Promise<CodeAgentResult> {
     if (!this.config) {
-      return this.createErrorResult("Agent not initialized. Call initialize() first.");
+      return this.createErrorResult(
+        "Agent not initialized. Call initialize() first.",
+      );
     }
 
     this.aborted = false;
     const logs: Array<string> = [];
-    const timeoutMs: number = task.timeoutMs || OpenCodeAgent.DEFAULT_TIMEOUT_MS;
+    const timeoutMs: number =
+      task.timeoutMs || OpenCodeAgent.DEFAULT_TIMEOUT_MS;
 
     try {
       await this.log(`Executing task in directory: ${task.workingDirectory}`);
@@ -83,7 +86,9 @@ export default class OpenCodeAgent implements CodeAgent {
         },
       );
 
-      logs.push(`Output: ${output.substring(0, 1000)}${output.length > 1000 ? "..." : ""}`);
+      logs.push(
+        `Output: ${output.substring(0, 1000)}${output.length > 1000 ? "..." : ""}`,
+      );
 
       if (this.aborted) {
         return this.createErrorResult("Task was aborted", logs);
@@ -94,7 +99,9 @@ export default class OpenCodeAgent implements CodeAgent {
         task.workingDirectory,
       );
 
-      await this.log(`OpenCode completed. ${modifiedFiles.length} files modified.`);
+      await this.log(
+        `OpenCode completed. ${modifiedFiles.length} files modified.`,
+      );
 
       return {
         success: true,
@@ -308,7 +315,13 @@ export default class OpenCodeAgent implements CodeAgent {
 
       const args: Array<string> = ["run", prompt];
 
-      logger.debug(`Running: opencode ${args.map((a: string) => a.includes(" ") ? `"${a.substring(0, 50)}..."` : a).join(" ")}`);
+      logger.debug(
+        `Running: opencode ${args
+          .map((a: string) => {
+            return a.includes(" ") ? `"${a.substring(0, 50)}..."` : a;
+          })
+          .join(" ")}`,
+      );
 
       const child: ChildProcess = spawn("opencode", args, {
         cwd: workingDirectory,
@@ -325,7 +338,11 @@ export default class OpenCodeAgent implements CodeAgent {
       const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
         if (child.pid) {
           child.kill("SIGTERM");
-          reject(new Error(`OpenCode execution timed out after ${timeoutMs / 1000} seconds`));
+          reject(
+            new Error(
+              `OpenCode execution timed out after ${timeoutMs / 1000} seconds`,
+            ),
+          );
         }
       }, timeoutMs);
 
@@ -340,9 +357,11 @@ export default class OpenCodeAgent implements CodeAgent {
 
           // Stream to task logger for server-side logging
           if (this.taskLogger) {
-            this.taskLogger.info(`[OpenCode] ${trimmedText}`).catch((err: Error) => {
-              logger.error(`Failed to log OpenCode output: ${err.message}`);
-            });
+            this.taskLogger
+              .info(`[OpenCode] ${trimmedText}`)
+              .catch((err: Error) => {
+                logger.error(`Failed to log OpenCode output: ${err.message}`);
+              });
           }
         }
 
@@ -364,9 +383,11 @@ export default class OpenCodeAgent implements CodeAgent {
 
           // Stream to task logger for server-side logging
           if (this.taskLogger) {
-            this.taskLogger.warning(`[OpenCode stderr] ${trimmedText}`).catch((err: Error) => {
-              logger.error(`Failed to log OpenCode stderr: ${err.message}`);
-            });
+            this.taskLogger
+              .warning(`[OpenCode stderr] ${trimmedText}`)
+              .catch((err: Error) => {
+                logger.error(`Failed to log OpenCode stderr: ${err.message}`);
+              });
           }
         }
 

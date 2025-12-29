@@ -543,7 +543,7 @@ export default class AIAgentTask extends BaseModel {
   @Column({
     type: ColumnType.Number,
     nullable: false,
-    default: 1
+    default: 1,
   })
   public taskNumber?: number = undefined;
 }

@@ -30,7 +30,9 @@ export default class RepositoryManager {
     config: RepositoryConfig,
     workDir: string,
   ): Promise<CloneResult> {
-    await this.log(`Cloning repository ${config.organizationName}/${config.repositoryName}...`);
+    await this.log(
+      `Cloning repository ${config.organizationName}/${config.repositoryName}...`,
+    );
 
     // Build the authenticated URL
     const authUrl: string = this.buildAuthenticatedUrl(config);
@@ -112,11 +114,7 @@ export default class RepositoryManager {
   ): Promise<void> {
     try {
       // Check if branch exists locally
-      await this.runGitCommand(repoPath, [
-        "rev-parse",
-        "--verify",
-        branchName,
-      ]);
+      await this.runGitCommand(repoPath, ["rev-parse", "--verify", branchName]);
       await this.checkoutBranch(repoPath, branchName);
     } catch (error) {
       // Branch doesn't exist, create it
@@ -169,10 +167,7 @@ export default class RepositoryManager {
   }
 
   // Commit changes
-  public async commitChanges(
-    repoPath: string,
-    message: string,
-  ): Promise<void> {
+  public async commitChanges(repoPath: string, message: string): Promise<void> {
     await this.log(`Committing changes: ${message.substring(0, 50)}...`);
 
     await Execute.executeCommandFile({
@@ -196,15 +191,15 @@ export default class RepositoryManager {
     const authUrl: string = this.buildAuthenticatedUrl(config);
 
     // Update the remote URL
-    await this.runGitCommand(repoPath, ["remote", "set-url", "origin", authUrl]);
+    await this.runGitCommand(repoPath, [
+      "remote",
+      "set-url",
+      "origin",
+      authUrl,
+    ]);
 
     // Push with tracking
-    await this.runGitCommand(repoPath, [
-      "push",
-      "-u",
-      "origin",
-      branchName,
-    ]);
+    await this.runGitCommand(repoPath, ["push", "-u", "origin", branchName]);
 
     await this.log(`Branch ${branchName} pushed to remote`);
   }

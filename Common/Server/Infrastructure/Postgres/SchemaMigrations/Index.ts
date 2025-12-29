@@ -429,5 +429,5 @@ export default [
   AddAIAgentIsDefault1766918848434,
   MigrationName1766923324521,
   AddGitHubAppInstallationIdToProject1766958924188,
-  MigrationName1767009661768
+  MigrationName1767009661768,
 ];

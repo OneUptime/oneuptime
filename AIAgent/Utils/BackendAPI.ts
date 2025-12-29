@@ -139,7 +139,9 @@ export default class BackendAPI {
 
   // Get LLM configuration for a project
   public async getLLMConfig(projectId: string): Promise<LLMConfig> {
-    const url: URL = URL.fromURL(this.baseUrl).addRoute("/api/ai-agent-data/get-llm-config");
+    const url: URL = URL.fromURL(this.baseUrl).addRoute(
+      "/api/ai-agent-data/get-llm-config",
+    );
 
     const response = await API.post({
       url,

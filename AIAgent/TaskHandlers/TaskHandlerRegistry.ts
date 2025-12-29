@@ -2,8 +2,10 @@ import { TaskHandler } from "./TaskHandlerInterface";
 import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
 import logger from "Common/Server/Utils/Logger";
 
-// Registry for task handlers
-// Allows dynamic registration and lookup of handlers by task type
+/*
+ * Registry for task handlers
+ * Allows dynamic registration and lookup of handlers by task type
+ */
 export default class TaskHandlerRegistry {
   private static instance: TaskHandlerRegistry | null = null;
   private handlers: Map<AIAgentTaskType, TaskHandler> = new Map();

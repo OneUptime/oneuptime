@@ -40,17 +40,16 @@ export type CodeAgentProgressCallback = (
   event: CodeAgentProgressEvent,
 ) => void | Promise<void>;
 
-// Abstract interface for code agents
-// This allows us to support multiple agents (OpenCode, Goose, Claude Code, etc.)
+/*
+ * Abstract interface for code agents
+ * This allows us to support multiple agents (OpenCode, Goose, Claude Code, etc.)
+ */
 export interface CodeAgent {
   // Name of the agent (e.g., "OpenCode", "Goose", "ClaudeCode")
   readonly name: string;
 
   // Initialize the agent with LLM configuration
-  initialize(
-    config: CodeAgentLLMConfig,
-    logger?: TaskLogger,
-  ): Promise<void>;
+  initialize(config: CodeAgentLLMConfig, logger?: TaskLogger): Promise<void>;
 
   // Execute a task and return the result
   executeTask(task: CodeAgentTask): Promise<CodeAgentResult>;
@@ -71,10 +70,12 @@ export interface CodeAgent {
 // Enum for supported code agent types
 export enum CodeAgentType {
   OpenCode = "OpenCode",
-  // Future agents:
-  // Goose = "Goose",
-  // ClaudeCode = "ClaudeCode",
-  // Aider = "Aider",
+  /*
+   * Future agents:
+   * Goose = "Goose",
+   * ClaudeCode = "ClaudeCode",
+   * Aider = "Aider",
+   */
 }
 
 // Helper function to get display name for agent type

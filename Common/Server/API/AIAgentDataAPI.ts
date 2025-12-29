@@ -81,7 +81,8 @@ export default class AIAgentDataAPI {
           const projectId: ObjectID = new ObjectID(data["projectId"] as string);
 
           // Check if this is a Project AI Agent (has a projectId)
-          const isProjectAIAgent: boolean = aiAgent.projectId !== null && aiAgent.projectId !== undefined;
+          const isProjectAIAgent: boolean =
+            aiAgent.projectId !== null && aiAgent.projectId !== undefined;
 
           // Get LLM provider for the project
           const llmProvider: LlmProvider | null =
@@ -97,8 +98,10 @@ export default class AIAgentDataAPI {
             );
           }
 
-          // Security check: Project AI Agents cannot access Global LLM Providers
-          // Only Global AI Agents (projectId is null) can access Global LLM Providers
+          /*
+           * Security check: Project AI Agents cannot access Global LLM Providers
+           * Only Global AI Agents (projectId is null) can access Global LLM Providers
+           */
           const isGlobalLLMProvider: boolean = llmProvider.isGlobalLlm === true;
 
           if (isProjectAIAgent && isGlobalLLMProvider) {
@@ -281,11 +284,12 @@ export default class AIAgentDataAPI {
           // Extract service catalog IDs
           const serviceCatalogIds: Array<ObjectID> =
             serviceCatalogTelemetryServices
-              .filter((s: ServiceCatalogTelemetryService) => s.serviceCatalogId)
-              .map(
-                (s: ServiceCatalogTelemetryService) =>
-                  s.serviceCatalogId as ObjectID,
-              );
+              .filter((s: ServiceCatalogTelemetryService) => {
+                return s.serviceCatalogId;
+              })
+              .map((s: ServiceCatalogTelemetryService) => {
+                return s.serviceCatalogId as ObjectID;
+              });
 
           // Step 2: Find CodeRepositories linked to these ServiceCatalogs
           const repositories: Array<{
@@ -338,7 +342,9 @@ export default class AIAgentDataAPI {
                     mainBranchName: string;
                     servicePathInRepository: string | null;
                     gitHubAppInstallationId: string | null;
-                  }) => r.id === scr.codeRepository?._id?.toString(),
+                  }) => {
+                    return r.id === scr.codeRepository?._id?.toString();
+                  },
                 );
                 if (!existingRepo) {
                   repositories.push({
@@ -346,11 +352,9 @@ export default class AIAgentDataAPI {
                     name: scr.codeRepository.name || "",
                     repositoryHostedAt:
                       scr.codeRepository.repositoryHostedAt || "",
-                    organizationName:
-                      scr.codeRepository.organizationName || "",
+                    organizationName: scr.codeRepository.organizationName || "",
                     repositoryName: scr.codeRepository.repositoryName || "",
-                    mainBranchName:
-                      scr.codeRepository.mainBranchName || "main",
+                    mainBranchName: scr.codeRepository.mainBranchName || "main",
                     servicePathInRepository:
                       scr.servicePathInRepository || null,
                     gitHubAppInstallationId:

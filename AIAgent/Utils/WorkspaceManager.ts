@@ -174,8 +174,10 @@ export default class WorkspaceManager {
 
         const workspacePath: string = path.join(this.BASE_TEMP_DIR, entry.name);
 
-        // Try to extract timestamp from directory name
-        // Format: task-{taskId}-{timestamp}-{uniqueId}
+        /*
+         * Try to extract timestamp from directory name
+         * Format: task-{taskId}-{timestamp}-{uniqueId}
+         */
         const match: RegExpMatchArray | null = entry.name.match(
           /task-[^-]+-(\d+)-[^-]+/,
         );
@@ -203,7 +205,9 @@ export default class WorkspaceManager {
   public static async initialize(): Promise<void> {
     try {
       await LocalFile.makeDirectory(this.BASE_TEMP_DIR);
-      logger.debug(`Workspace base directory initialized: ${this.BASE_TEMP_DIR}`);
+      logger.debug(
+        `Workspace base directory initialized: ${this.BASE_TEMP_DIR}`,
+      );
     } catch (error) {
       logger.error("Error initializing workspace manager:");
       logger.error(error);

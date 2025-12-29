@@ -63,10 +63,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
             />
           )}
           {props.icon && (
-            <Icon
-              className="h-5 w-5 text-gray-500"
-              icon={props.icon}
-            />
+            <Icon className="h-5 w-5 text-gray-500" icon={props.icon} />
           )}
         </button>
         {props.title && (
