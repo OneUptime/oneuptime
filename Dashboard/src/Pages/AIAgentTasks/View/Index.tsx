@@ -59,7 +59,7 @@ const AIAgentTaskViewPage: FunctionComponent<
                     </svg>
                   </div>
                   <span className="text-lg font-semibold text-gray-700">
-                    #{item.taskNumber}
+                    {item.taskNumber}
                   </span>
                 </div>
               );
