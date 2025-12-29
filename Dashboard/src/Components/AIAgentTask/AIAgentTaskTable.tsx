@@ -163,6 +163,7 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
           },
           title: "Name",
           type: FieldType.Text,
+          contentClassName: "whitespace-normal max-w-md",
         },
         {
           field: {
