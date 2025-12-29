@@ -32,7 +32,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
-            title: "Inoperational Monitors",
+            title: "Inoperational",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MONITORS_INOPERATIONAL] as Route,
             ),
