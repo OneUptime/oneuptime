@@ -33,7 +33,7 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
         className={`
           ${props.className || ""}
           group relative flex items-center justify-between
-          px-3 py-2.5 rounded-lg
+          px-2 py-1.5 rounded-lg
           text-sm font-medium
           transition-all duration-200 ease-out
           ${
@@ -51,20 +51,20 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
         <div
           className={`
             absolute left-0 top-1/2 -translate-y-1/2
-            w-1 rounded-full
+            w-0.5 rounded-full
             transition-all duration-200 ease-out
-            ${isActive ? "h-6 bg-indigo-600" : "h-0 bg-transparent"}
+            ${isActive ? "h-5 bg-indigo-600" : "h-0 bg-transparent"}
           `}
         />
 
         {/* Content Container */}
-        <div className="flex items-center min-w-0 gap-3">
+        <div className="flex items-center min-w-0 gap-2">
           {/* Icon with background on active */}
           {props.icon && (
             <div
               className={`
                 flex items-center justify-center
-                w-8 h-8 rounded-lg
+                w-6 h-6 rounded-md
                 transition-all duration-200
                 ${
                   isActive
@@ -73,7 +73,7 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
                 }
               `}
             >
-              <Icon icon={props.icon} className="h-4 w-4" />
+              <Icon icon={props.icon} className="h-3.5 w-3.5" />
             </div>
           )}
 
@@ -130,7 +130,7 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
           className={`
             ${props.className || ""}
             group relative flex items-center justify-between
-            ml-11 px-3 py-2 rounded-lg
+            ml-8 px-2 py-1.5 rounded-lg
             text-sm font-medium
             transition-all duration-200 ease-out
             ${
@@ -145,7 +145,7 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
           }}
         >
           {/* Connector Line */}
-          <div className="absolute -left-4 top-1/2 w-3 h-px bg-gray-200" />
+          <div className="absolute -left-3 top-1/2 w-2 h-px bg-gray-200" />
 
           {/* Sub Item Icon */}
           <div className="flex items-center min-w-0 gap-2">

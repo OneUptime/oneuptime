@@ -299,7 +299,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           }}
           className={`
             w-full flex items-center justify-between
-            px-4 py-3.5
+            px-3 py-2.5
             bg-white rounded-xl
             border border-gray-200
             shadow-sm
@@ -314,10 +314,10 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           }
           data-testid="mobile-sidemenu-toggle"
         >
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             {activeItem.icon && (
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex-shrink-0">
-                <Icon icon={activeItem.icon} className="h-4 w-4" />
+              <div className="flex items-center justify-center w-6 h-6 rounded-md bg-indigo-50 text-indigo-600 flex-shrink-0">
+                <Icon icon={activeItem.icon} className="h-3.5 w-3.5" />
               </div>
             )}
             <div className="min-w-0">
@@ -330,14 +330,14 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           <div
             className={`
               flex items-center justify-center
-              w-8 h-8 rounded-lg
+              w-6 h-6 rounded-md
               transition-all duration-200
               ${isMobileMenuVisible ? "bg-indigo-100 text-indigo-600" : "bg-gray-100 text-gray-500"}
             `}
           >
             <Icon
               icon={isMobileMenuVisible ? IconProp.Close : IconProp.Bars3}
-              className="h-4 w-4"
+              className="h-3.5 w-3.5"
             />
           </div>
         </button>
@@ -370,22 +370,22 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             >
               {/* Optional Header */}
               {props.header && (
-                <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                <div className="px-3 py-2 border-b border-gray-100 bg-gray-50/50">
                   {props.header}
                 </div>
               )}
 
               {/* Menu Items */}
               <nav
-                className="p-3 max-h-[60vh] overflow-y-auto"
+                className="p-2 max-h-[60vh] overflow-y-auto"
                 onClick={handleMenuItemClick}
               >
-                <div className="space-y-1">{renderMenuContent()}</div>
+                <div className="space-y-0.5">{renderMenuContent()}</div>
               </nav>
 
               {/* Optional Footer */}
               {props.footer && (
-                <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50">
+                <div className="px-3 py-2 border-t border-gray-100 bg-gray-50/50">
                   {props.footer}
                 </div>
               )}
@@ -414,19 +414,19 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         >
           {/* Optional Header */}
           {props.header && (
-            <div className="px-4 py-4 border-b border-gray-100 bg-gradient-to-b from-gray-50 to-white">
+            <div className="px-3 py-3 border-b border-gray-100 bg-gradient-to-b from-gray-50 to-white">
               {props.header}
             </div>
           )}
 
           {/* Menu Content */}
-          <nav className="p-3">
-            <div className="space-y-1">{renderMenuContent()}</div>
+          <nav className="p-2">
+            <div className="space-y-0.5">{renderMenuContent()}</div>
           </nav>
 
           {/* Optional Footer */}
           {props.footer && (
-            <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50">
+            <div className="px-3 py-2 border-t border-gray-100 bg-gray-50/50">
               {props.footer}
             </div>
           )}

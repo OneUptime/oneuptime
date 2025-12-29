@@ -26,24 +26,19 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="mb-4">
+    <div className="mb-2">
       {/* Section Header */}
       <button
         type="button"
         onClick={handleToggle}
-        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors duration-150 ${
-          isCollapsible
-            ? "hover:bg-gray-50 cursor-pointer"
-            : "cursor-default"
+        className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg transition-colors duration-150 ${
+          isCollapsible ? "hover:bg-gray-50 cursor-pointer" : "cursor-default"
         }`}
         aria-expanded={!isCollapsed}
       >
         <div className="flex items-center gap-2">
           {props.icon && (
-            <Icon
-              icon={props.icon}
-              className="h-4 w-4 text-gray-400"
-            />
+            <Icon icon={props.icon} className="h-4 w-4 text-gray-400" />
           )}
           <h6 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
             {props.title}
@@ -65,7 +60,7 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
           isCollapsed ? "max-h-0 opacity-0" : "max-h-[2000px] opacity-100"
         }`}
       >
-        <div className="mt-1 space-y-0.5 px-1">{props.children}</div>
+        <div className="mt-0.5 space-y-0">{props.children}</div>
       </div>
     </div>
   );
