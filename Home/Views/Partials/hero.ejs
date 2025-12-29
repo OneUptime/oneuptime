@@ -1,0 +1,240 @@
+<style>
+  /* Hero Product Card Glow Styles */
+  .hero-card-wrapper {
+      position: relative;
+  }
+  .hero-card-wrapper::before {
+      content: '';
+      position: absolute;
+      inset: -30px;
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+      z-index: 0;
+  }
+  .hero-card-wrapper:hover::before {
+      opacity: 1;
+  }
+  .hero-card {
+      position: relative;
+      z-index: 1;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .hero-card:hover {
+      transform: translateY(-2px);
+  }
+  /* Emerald - Status Page */
+  .hero-glow-emerald-wrapper::before {
+      background: radial-gradient(ellipse at center, rgb(16 185 129 / 0.06) 0%, rgb(16 185 129 / 0.02) 40%, transparent 70%);
+  }
+  .hero-glow-emerald:hover {
+      background-color: rgb(255 255 255) !important;
+      box-shadow: 0 0 0 2px rgb(16 185 129 / 0.3), 0 4px 12px -4px rgb(16 185 129 / 0.15), 0 0 30px -8px rgb(16 185 129 / 0.1);
+  }
+  /* Rose - Incident Management & Error Tracking */
+  .hero-glow-rose-wrapper::before {
+      background: radial-gradient(ellipse at center, rgb(244 63 94 / 0.06) 0%, rgb(244 63 94 / 0.02) 40%, transparent 70%);
+  }
+  .hero-glow-rose:hover {
+      background-color: rgb(255 255 255) !important;
+      box-shadow: 0 0 0 2px rgb(244 63 94 / 0.3), 0 4px 12px -4px rgb(244 63 94 / 0.15), 0 0 30px -8px rgb(244 63 94 / 0.1);
+  }
+  /* Blue - Monitoring */
+  .hero-glow-blue-wrapper::before {
+      background: radial-gradient(ellipse at center, rgb(59 130 246 / 0.06) 0%, rgb(59 130 246 / 0.02) 40%, transparent 70%);
+  }
+  .hero-glow-blue:hover {
+      background-color: rgb(255 255 255) !important;
+      box-shadow: 0 0 0 2px rgb(59 130 246 / 0.3), 0 4px 12px -4px rgb(59 130 246 / 0.15), 0 0 30px -8px rgb(59 130 246 / 0.1);
+  }
+  /* Amber - Logs */
+  .hero-glow-amber-wrapper::before {
+      background: radial-gradient(ellipse at center, rgb(245 158 11 / 0.06) 0%, rgb(245 158 11 / 0.02) 40%, transparent 70%);
+  }
+  .hero-glow-amber:hover {
+      background-color: rgb(255 255 255) !important;
+      box-shadow: 0 0 0 2px rgb(245 158 11 / 0.3), 0 4px 12px -4px rgb(245 158 11 / 0.15), 0 0 30px -8px rgb(245 158 11 / 0.1);
+  }
+  /* Stone - On-Call */
+  .hero-glow-stone-wrapper::before {
+      background: radial-gradient(ellipse at center, rgb(120 113 108 / 0.06) 0%, rgb(120 113 108 / 0.02) 40%, transparent 70%);
+  }
+  .hero-glow-stone:hover {
+      background-color: rgb(255 255 255) !important;
+      box-shadow: 0 0 0 2px rgb(120 113 108 / 0.3), 0 4px 12px -4px rgb(120 113 108 / 0.15), 0 0 30px -8px rgb(120 113 108 / 0.1);
+  }
+  /* Purple - Metrics */
+  .hero-glow-purple-wrapper::before {
+      background: radial-gradient(ellipse at center, rgb(168 85 247 / 0.06) 0%, rgb(168 85 247 / 0.02) 40%, transparent 70%);
+  }
+  .hero-glow-purple:hover {
+      background-color: rgb(255 255 255) !important;
+      box-shadow: 0 0 0 2px rgb(168 85 247 / 0.3), 0 4px 12px -4px rgb(168 85 247 / 0.15), 0 0 30px -8px rgb(168 85 247 / 0.1);
+  }
+  /* Yellow - Traces */
+  .hero-glow-yellow-wrapper::before {
+      background: radial-gradient(ellipse at center, rgb(234 179 8 / 0.06) 0%, rgb(234 179 8 / 0.02) 40%, transparent 70%);
+  }
+  .hero-glow-yellow:hover {
+      background-color: rgb(255 255 255) !important;
+      box-shadow: 0 0 0 2px rgb(234 179 8 / 0.3), 0 4px 12px -4px rgb(234 179 8 / 0.15), 0 0 30px -8px rgb(234 179 8 / 0.1);
+  }
+  /* Sky - Workflows */
+  .hero-glow-sky-wrapper::before {
+      background: radial-gradient(ellipse at center, rgb(14 165 233 / 0.06) 0%, rgb(14 165 233 / 0.02) 40%, transparent 70%);
+  }
+  .hero-glow-sky:hover {
+      background-color: rgb(255 255 255) !important;
+      box-shadow: 0 0 0 2px rgb(14 165 233 / 0.3), 0 4px 12px -4px rgb(14 165 233 / 0.15), 0 0 30px -8px rgb(14 165 233 / 0.1);
+  }
+  /* Indigo - Dashboards */
+  .hero-glow-indigo-wrapper::before {
+      background: radial-gradient(ellipse at center, rgb(99 102 241 / 0.06) 0%, rgb(99 102 241 / 0.02) 40%, transparent 70%);
+  }
+  .hero-glow-indigo:hover {
+      background-color: rgb(255 255 255) !important;
+      box-shadow: 0 0 0 2px rgb(99 102 241 / 0.3), 0 4px 12px -4px rgb(99 102 241 / 0.15), 0 0 30px -8px rgb(99 102 241 / 0.1);
+  }
+  /* Violet - AI Agent */
+  .hero-glow-violet-wrapper::before {
+      background: radial-gradient(ellipse at center, rgb(139 92 246 / 0.06) 0%, rgb(139 92 246 / 0.02) 40%, transparent 70%);
+  }
+  .hero-glow-violet:hover {
+      background-color: rgb(255 255 255) !important;
+      box-shadow: 0 0 0 2px rgb(139 92 246 / 0.3), 0 4px 12px -4px rgb(139 92 246 / 0.15), 0 0 30px -8px rgb(139 92 246 / 0.1);
+  }
+</style>
+
+<div class="relative isolate bg-white overflow-hidden">
+  <!-- Subtle grid pattern background -->
+  <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+  <!-- Hero ambient glow -->
+  <div id="hero-ambient-glow" class="absolute top-1/2 left-1/2 -trangray-x-1/2 -trangray-y-1/4 w-[800px] h-[600px] pointer-events-none" style="background: transparent; opacity: 0; transition: opacity 0.35s ease-out;"></div>
+
+  <div class="py-24 sm:py-32 lg:py-40">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-3xl text-center">
+        <!-- Subtle open-source indicator -->
+        <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group mb-8 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100 hover:ring-gray-300">
+          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+          </svg>
+          <span>Open source</span>
+          <% if (githubStars) { %>
+          <span class="h-1 w-1 rounded-full bg-gray-300"></span>
+          <span class="tabular-nums"><%= githubStars %> stars</span>
+          <% } %>
+          <svg class="h-3.5 w-3.5 text-gray-400 transition-transform group-hover:trangray-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+        </a>
+
+        <!-- Main headline -->
+        <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
+          Complete Monitoring <br class="hidden sm:block" />& Observability Platform
+        </h1>
+
+        <!-- Subheadline -->
+        <p class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-xl mx-auto">
+          Monitor, Observe, Debug, Resolve. Everything you need to build reliable software in one open-source platform.
+        </p>
+
+        <!-- CTA buttons -->
+        <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+          <a href="/accounts/register"
+            class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+            Get started
+            <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+          </a>
+          <a href="/enterprise/demo" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-2.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">
+            Request a demo
+          </a>
+        </div>
+
+        <!-- Feature grid -->
+        <div class="mt-16 grid grid-cols-2 gap-4 sm:grid-cols-5 sm:gap-5 auto-rows-fr" id="hero-feature-grid">
+          <%- include('./hero-cards/status-page') -%>
+          <%- include('./hero-cards/incidents') -%>
+          <%- include('./hero-cards/monitoring') -%>
+          <%- include('./hero-cards/on-call') -%>
+          <%- include('./hero-cards/logs') -%>
+          <%- include('./hero-cards/metrics') -%>
+          <%- include('./hero-cards/traces') -%>
+          <%- include('./hero-cards/exceptions') -%>
+          <%- include('./hero-cards/workflows') -%>
+          <%- include('./hero-cards/dashboards') -%>
+        </div>
+
+        <%- include('./hero-cards/ai-agent') -%>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+    const heroAmbientGlow = document.getElementById('hero-ambient-glow');
+    const heroCardWrappers = document.querySelectorAll('.hero-card-wrapper');
+    let currentHeroColor = null;
+    let heroFadeTimeout = null;
+
+    const heroGlowColors = {
+        'hero-glow-emerald-wrapper': 'radial-gradient(ellipse at center, rgb(16 185 129 / 0.08) 0%, rgb(16 185 129 / 0.03) 35%, rgb(16 185 129 / 0.01) 55%, transparent 75%)',
+        'hero-glow-rose-wrapper': 'radial-gradient(ellipse at center, rgb(244 63 94 / 0.08) 0%, rgb(244 63 94 / 0.03) 35%, rgb(244 63 94 / 0.01) 55%, transparent 75%)',
+        'hero-glow-blue-wrapper': 'radial-gradient(ellipse at center, rgb(59 130 246 / 0.08) 0%, rgb(59 130 246 / 0.03) 35%, rgb(59 130 246 / 0.01) 55%, transparent 75%)',
+        'hero-glow-amber-wrapper': 'radial-gradient(ellipse at center, rgb(245 158 11 / 0.08) 0%, rgb(245 158 11 / 0.03) 35%, rgb(245 158 11 / 0.01) 55%, transparent 75%)',
+        'hero-glow-stone-wrapper': 'radial-gradient(ellipse at center, rgb(120 113 108 / 0.08) 0%, rgb(120 113 108 / 0.03) 35%, rgb(120 113 108 / 0.01) 55%, transparent 75%)',
+        'hero-glow-purple-wrapper': 'radial-gradient(ellipse at center, rgb(168 85 247 / 0.08) 0%, rgb(168 85 247 / 0.03) 35%, rgb(168 85 247 / 0.01) 55%, transparent 75%)',
+        'hero-glow-yellow-wrapper': 'radial-gradient(ellipse at center, rgb(234 179 8 / 0.08) 0%, rgb(234 179 8 / 0.03) 35%, rgb(234 179 8 / 0.01) 55%, transparent 75%)',
+        'hero-glow-sky-wrapper': 'radial-gradient(ellipse at center, rgb(14 165 233 / 0.08) 0%, rgb(14 165 233 / 0.03) 35%, rgb(14 165 233 / 0.01) 55%, transparent 75%)',
+        'hero-glow-indigo-wrapper': 'radial-gradient(ellipse at center, rgb(99 102 241 / 0.08) 0%, rgb(99 102 241 / 0.03) 35%, rgb(99 102 241 / 0.01) 55%, transparent 75%)',
+        'hero-glow-violet-wrapper': 'radial-gradient(ellipse at center, rgb(139 92 246 / 0.08) 0%, rgb(139 92 246 / 0.03) 35%, rgb(139 92 246 / 0.01) 55%, transparent 75%)'
+    };
+
+    function getHeroGlowColor(wrapper) {
+        const wrapperClasses = wrapper.className.split(' ');
+        for (var i = 0; i < wrapperClasses.length; i++) {
+            if (heroGlowColors[wrapperClasses[i]]) {
+                return heroGlowColors[wrapperClasses[i]];
+            }
+        }
+        return null;
+    }
+
+    heroCardWrappers.forEach(function(wrapper) {
+        wrapper.addEventListener('mouseenter', function() {
+            const newColor = getHeroGlowColor(wrapper);
+
+            if (heroFadeTimeout) {
+                clearTimeout(heroFadeTimeout);
+                heroFadeTimeout = null;
+            }
+
+            if (currentHeroColor && currentHeroColor !== newColor) {
+                heroAmbientGlow.style.opacity = '0';
+                heroFadeTimeout = setTimeout(function() {
+                    heroAmbientGlow.style.background = newColor;
+                    heroAmbientGlow.style.opacity = '1';
+                    currentHeroColor = newColor;
+                }, 250);
+            } else if (!currentHeroColor) {
+                heroAmbientGlow.style.background = newColor;
+                heroAmbientGlow.style.opacity = '1';
+                currentHeroColor = newColor;
+            }
+        });
+
+        wrapper.addEventListener('mouseleave', function() {
+            if (heroFadeTimeout) {
+                clearTimeout(heroFadeTimeout);
+                heroFadeTimeout = null;
+            }
+
+            heroFadeTimeout = setTimeout(function() {
+                heroAmbientGlow.style.opacity = '0';
+                currentHeroColor = null;
+            }, 100);
+        });
+    });
+})();
+</script>
