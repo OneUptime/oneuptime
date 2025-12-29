@@ -1,6 +1,9 @@
-<section class="relative py-24 sm:py-32 bg-gray-900 overflow-hidden">
+<section id="proudly-open-source-section" class="relative py-24 sm:py-32 bg-gray-900 overflow-hidden">
     <!-- Subtle background gradient -->
     <div class="absolute inset-0 bg-gradient-to-b from-gray-900 via-gray-800/50 to-gray-900"></div>
+
+    <!-- Mouse-following glow -->
+    <div id="oss-mouse-glow" class="pointer-events-none absolute w-[800px] h-[800px] rounded-full opacity-0 transition-opacity duration-300" style="background: radial-gradient(circle at center, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 30%, rgba(255, 255, 255, 0.02) 50%, transparent 70%); transform: translate(-50%, -50%);"></div>
 
     <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
         <!-- Header -->
@@ -78,3 +81,58 @@
         </div>
     </div>
 </section>
+
+<script>
+(function() {
+    const ossSection = document.getElementById('proudly-open-source-section');
+    const ossGlow = document.getElementById('oss-mouse-glow');
+
+    if (!ossSection || !ossGlow) return;
+
+    let rafId = null;
+    let targetX = 0;
+    let targetY = 0;
+    let currentX = 0;
+    let currentY = 0;
+
+    function lerp(start, end, factor) {
+        return start + (end - start) * factor;
+    }
+
+    function animate() {
+        currentX = lerp(currentX, targetX, 0.15);
+        currentY = lerp(currentY, targetY, 0.15);
+
+        ossGlow.style.left = currentX + 'px';
+        ossGlow.style.top = currentY + 'px';
+
+        if (Math.abs(targetX - currentX) > 0.1 || Math.abs(targetY - currentY) > 0.1) {
+            rafId = requestAnimationFrame(animate);
+        } else {
+            rafId = null;
+        }
+    }
+
+    ossSection.addEventListener('mousemove', function(e) {
+        const rect = ossSection.getBoundingClientRect();
+        targetX = e.clientX - rect.left;
+        targetY = e.clientY - rect.top;
+
+        if (!rafId) {
+            rafId = requestAnimationFrame(animate);
+        }
+    });
+
+    ossSection.addEventListener('mouseenter', function() {
+        ossGlow.style.opacity = '1';
+    });
+
+    ossSection.addEventListener('mouseleave', function() {
+        ossGlow.style.opacity = '0';
+        if (rafId) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+        }
+    });
+})();
+</script>
