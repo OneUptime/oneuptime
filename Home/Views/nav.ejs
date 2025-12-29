@@ -55,7 +55,7 @@
                 To: "opacity-0 trangray-y-1"
             -->
           <div onmouseenter="showProductMenu()" onmouseover="showProductMenu()" onmouseleave="hideProductMenu()"
-            class="absolute z-20 -ml-4 mt-3 w-screen max-w-6xl transform px-2 sm:px-0 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2"
+            class="absolute z-20 -ml-4 pt-3 w-screen max-w-6xl transform px-2 sm:px-0 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2"
             id="product-menu" style="visibility: collapse;">
             <div class="overflow-hidden rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5">
               <div class="relative bg-white">
@@ -68,7 +68,7 @@
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Essentials</h3>
                         <div class="space-y-1">
                           <!-- Monitoring - Blue -->
-                          <a href="/product/monitoring" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-blue-50">
+                          <a href="/product/monitoring" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-blue-50">
                             <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200 group-hover:bg-blue-100 group-hover:ring-blue-300">
                               <%- include('./Partials/icons/monitoring', {iconClass: 'h-4 w-4'}) %>
                             </div>
@@ -78,7 +78,7 @@
                             </div>
                           </a>
                           <!-- Status Page - Emerald -->
-                          <a href="/product/status-page" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-emerald-50">
+                          <a href="/product/status-page" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-emerald-50">
                             <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50 ring-1 ring-emerald-200 group-hover:bg-emerald-100 group-hover:ring-emerald-300">
                               <%- include('./Partials/icons/status-page', {iconClass: 'h-4 w-4'}) %>
                             </div>
@@ -89,7 +89,7 @@
                           </a>
 
                           <!-- Incidents - Rose -->
-                          <a href="/product/incident-management" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-rose-50">
+                          <a href="/product/incident-management" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-rose-50">
                             <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200 group-hover:bg-rose-100 group-hover:ring-rose-300">
                               <%- include('./Partials/icons/incidents', {iconClass: 'h-4 w-4'}) %>
                             </div>
@@ -100,7 +100,7 @@
                           </a>
 
                           <!-- On-Call - Stone -->
-                          <a href="/product/on-call" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-stone-50">
+                          <a href="/product/on-call" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-stone-50">
                             <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-stone-50 ring-1 ring-stone-200 group-hover:bg-stone-100 group-hover:ring-stone-300">
                               <%- include('./Partials/icons/on-call', {iconClass: 'h-4 w-4'}) %>
                             </div>
@@ -119,7 +119,7 @@
                           
 
                           <!-- Logs - Amber -->
-                          <a href="/product/logs-management" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-amber-50">
+                          <a href="/product/logs-management" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-amber-50">
                             <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-amber-200 group-hover:bg-amber-100 group-hover:ring-amber-300">
                               <%- include('./Partials/icons/logs', {iconClass: 'h-4 w-4'}) %>
                             </div>
@@ -130,7 +130,7 @@
                           </a>
 
                           <!-- Metrics - Purple -->
-                          <a href="/product/metrics" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-purple-50">
+                          <a href="/product/metrics" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-purple-50">
                             <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-purple-50 ring-1 ring-purple-200 group-hover:bg-purple-100 group-hover:ring-purple-300">
                               <%- include('./Partials/icons/metrics', {iconClass: 'h-4 w-4'}) %>
                             </div>
@@ -141,7 +141,7 @@
                           </a>
 
                           <!-- Traces - Yellow -->
-                          <a href="/product/traces" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-yellow-50">
+                          <a href="/product/traces" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-yellow-50">
                             <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-yellow-50 ring-1 ring-yellow-200 group-hover:bg-yellow-100 group-hover:ring-yellow-300">
                               <%- include('./Partials/icons/traces', {iconClass: 'h-4 w-4'}) %>
                             </div>
@@ -152,7 +152,7 @@
                           </a>
 
                           <!-- Exceptions - Orange -->
-                          <a href="/product/exceptions" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-orange-50">
+                          <a href="/product/exceptions" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-orange-50">
                             <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200 group-hover:bg-orange-100 group-hover:ring-orange-300">
                               <%- include('./Partials/icons/exceptions', {iconClass: 'h-4 w-4'}) %>
                             </div>
@@ -169,7 +169,7 @@
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Automation & Analytics</h3>
                         <div class="space-y-1">
                           <!-- Workflows - Sky -->
-                          <a href="/product/workflows" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-sky-50">
+                          <a href="/product/workflows" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-sky-50">
                             <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200 group-hover:bg-sky-100 group-hover:ring-sky-300">
                               <%- include('./Partials/icons/workflows', {iconClass: 'h-4 w-4'}) %>
                             </div>
@@ -180,7 +180,7 @@
                           </a>
 
                           <!-- Dashboards - Indigo -->
-                          <a href="/product/dashboards" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-indigo-50">
+                          <a href="/product/dashboards" class="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-indigo-50">
                             <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200 group-hover:bg-indigo-100 group-hover:ring-indigo-300">
                               <%- include('./Partials/icons/dashboards', {iconClass: 'h-4 w-4'}) %>
                             </div>
@@ -193,7 +193,7 @@
 
                         <!-- AI Agent Featured -->
                         <div class="mt-4 pt-4 border-t border-gray-100">
-                          <a href="/product/ai-agent" class="group flex items-center gap-3 rounded-xl p-3 transition-all bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 ring-1 ring-violet-200 hover:ring-violet-300 hover:shadow-md">
+                          <a href="/product/ai-agent" class="group flex items-center gap-3 rounded-xl p-3 transition-colors bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 ring-1 ring-violet-200 hover:ring-violet-300">
                             <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 ring-1 ring-violet-300 group-hover:from-violet-200 group-hover:to-purple-200">
                               <%- include('./Partials/icons/ai-agent') %>
                             </div>
@@ -212,25 +212,25 @@
                     <!-- Resources Section -->
                     <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Resources</h3>
                     <div class="space-y-2">
-                      <a href="/docs" class="group flex items-center gap-2.5 rounded-lg p-2 transition-all hover:bg-white hover:shadow-sm">
+                      <a href="/docs" class="group flex items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-white">
                         <svg class="h-5 w-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
                         </svg>
                         <span class="text-sm text-gray-700 group-hover:text-gray-900">Documentation</span>
                       </a>
-                      <a href="/reference" class="group flex items-center gap-2.5 rounded-lg p-2 transition-all hover:bg-white hover:shadow-sm">
+                      <a href="/reference" class="group flex items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-white">
                         <svg class="h-5 w-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"></path>
                         </svg>
                         <span class="text-sm text-gray-700 group-hover:text-gray-900">API Reference</span>
                       </a>
-                      <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group flex items-center gap-2.5 rounded-lg p-2 transition-all hover:bg-white hover:shadow-sm">
+                      <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group flex items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-white">
                         <svg class="h-5 w-5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 24 24">
                           <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
                         </svg>
                         <span class="text-sm text-gray-700 group-hover:text-gray-900">GitHub</span>
                       </a>
-                      <a href="/blog" class="group flex items-center gap-2.5 rounded-lg p-2 transition-all hover:bg-white hover:shadow-sm">
+                      <a href="/blog" class="group flex items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-white">
                         <svg class="h-5 w-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"></path>
                         </svg>
@@ -242,13 +242,13 @@
                     <div class="mt-6 pt-6 border-t border-gray-200">
                       <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Get Started</h3>
                       <div class="space-y-2">
-                        <a href="/accounts/register" class="flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-gray-800">
+                        <a href="/accounts/register" class="flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800">
                           Start Free Trial
                           <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
                           </svg>
                         </a>
-                        <a href="/enterprise/demo" class="flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-gray-700 ring-1 ring-gray-200 transition-all hover:bg-gray-50 hover:ring-gray-300">
+                        <a href="/enterprise/demo" class="flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-gray-700 ring-1 ring-gray-200 transition-colors hover:bg-gray-50">
                           <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"></path>
                           </svg>
@@ -329,7 +329,7 @@
                 To: "opacity-0 trangray-y-1"
             -->
           <div onmouseenter="showMoreMenu()" onmouseover="showMoreMenu()" onmouseleave="hideMoreMenu()" id="more-menu"
-            class="absolute left-1/2 z-20 mt-3 w-screen max-w-md -trangray-x-1/2 transform px-2 sm:px-0"
+            class="absolute left-1/2 z-20 pt-3 w-screen max-w-md -translate-x-1/2 transform px-2 sm:px-0"
             style="visibility:collapse;">
             <div class="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5">
               <div class="relative grid gap-6 bg-white px-5 py-6 sm:gap-8 sm:p-8">
@@ -656,41 +656,39 @@
 
 
   function showProductMenu() {
-
-    document.getElementById("product-menu").style.visibility = "visible";
     if (productMenuTimer) {
-      clearInterval(productMenuTimer)
+      clearTimeout(productMenuTimer);
+      productMenuTimer = null;
     }
+    document.getElementById("product-menu").style.visibility = "visible";
   }
 
   function hideProductMenu() {
-
     if (productMenuTimer) {
-      clearInterval(productMenuTimer)
+      clearTimeout(productMenuTimer);
     }
-    productMenuTimer = setInterval(() => {
+    productMenuTimer = setTimeout(() => {
       document.getElementById("product-menu").style.visibility = "collapse";
-    }, 500);
-
+      productMenuTimer = null;
+    }, 150);
   }
 
   function showMoreMenu() {
-
-    document.getElementById("more-menu").style.visibility = "visible";
     if (moreMenuTimer) {
-      clearInterval(moreMenuTimer)
+      clearTimeout(moreMenuTimer);
+      moreMenuTimer = null;
     }
+    document.getElementById("more-menu").style.visibility = "visible";
   }
 
   function hideMoreMenu() {
-
     if (moreMenuTimer) {
-      clearInterval(moreMenuTimer)
+      clearTimeout(moreMenuTimer);
     }
-    moreMenuTimer = setInterval(() => {
+    moreMenuTimer = setTimeout(() => {
       document.getElementById("more-menu").style.visibility = "collapse";
-    }, 500);
-
+      moreMenuTimer = null;
+    }, 150);
   }
 
 </script>
