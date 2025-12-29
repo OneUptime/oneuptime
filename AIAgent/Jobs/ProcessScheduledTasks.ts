@@ -7,9 +7,14 @@ import {
   getTaskHandlerRegistry,
   TaskContext,
   TaskMetadata,
+  TaskHandler,
+  TaskResult,
 } from "../TaskHandlers/Index";
+import TaskHandlerRegistry from "../TaskHandlers/TaskHandlerRegistry";
 import URL from "Common/Types/API/URL";
 import API from "Common/Utils/API";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
@@ -50,21 +55,21 @@ const executeTask: ExecuteTaskFunction = async (
   const createdAt: Date = new Date(task.createdAt);
 
   // Get the task handler from the registry
-  const registry = getTaskHandlerRegistry();
-  const handler = registry.getHandler(taskType);
+  const registry: TaskHandlerRegistry = getTaskHandlerRegistry();
+  const handler: TaskHandler | undefined = registry.getHandler(taskType);
 
   if (!handler) {
     throw new Error(`No handler registered for task type: ${taskType}`);
   }
 
   // Create task logger
-  const taskLogger = new TaskLogger({
+  const taskLogger: TaskLogger = new TaskLogger({
     taskId: taskIdString,
     context: `${handler.name}`,
   });
 
   // Create backend API client
-  const backendAPI = new BackendAPI();
+  const backendAPI: BackendAPI = new BackendAPI();
 
   // Build task context
   const context: TaskContext = {
@@ -90,7 +95,7 @@ const executeTask: ExecuteTaskFunction = async (
     }
 
     // Execute the task handler
-    const result = await handler.execute(context);
+    const result: TaskResult = await handler.execute(context);
 
     // Log result
     if (result.success) {
@@ -139,7 +144,7 @@ const startTaskProcessingLoop: () => Promise<void> =
     while (true) {
       try {
         /* Fetch one scheduled task */
-        const getPendingTaskResult = await API.post({
+        const getPendingTaskResult: HTTPResponse<JSONObject> = await API.post({
           url: getPendingTaskUrl,
           data: AIAgentAPIRequest.getDefaultRequestBody(),
         });
@@ -172,7 +177,7 @@ const startTaskProcessingLoop: () => Promise<void> =
 
         try {
           /* Mark task as InProgress */
-          const inProgressResult = await API.post({
+          const inProgressResult: HTTPResponse<JSONObject> = await API.post({
             url: updateTaskStatusUrl,
             data: {
               ...AIAgentAPIRequest.getDefaultRequestBody(),
@@ -195,7 +200,7 @@ const startTaskProcessingLoop: () => Promise<void> =
           await executeTask(task);
 
           /* Mark task as Completed */
-          const completedResult = await API.post({
+          const completedResult: HTTPResponse<JSONObject> = await API.post({
             url: updateTaskStatusUrl,
             data: {
               ...AIAgentAPIRequest.getDefaultRequestBody(),
@@ -216,7 +221,7 @@ const startTaskProcessingLoop: () => Promise<void> =
           const errorMessage: string =
             error instanceof Error ? error.message : "Unknown error occurred";
 
-          const errorResult = await API.post({
+          const errorResult: HTTPResponse<JSONObject> = await API.post({
             url: updateTaskStatusUrl,
             data: {
               ...AIAgentAPIRequest.getDefaultRequestBody(),

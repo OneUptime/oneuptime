@@ -47,7 +47,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
       // Register task handlers
       logger.debug("Registering task handlers...");
-      const taskHandlerRegistry = getTaskHandlerRegistry();
+      const taskHandlerRegistry: ReturnType<typeof getTaskHandlerRegistry> =
+        getTaskHandlerRegistry();
       taskHandlerRegistry.register(new FixExceptionTaskHandler());
       logger.debug(
         `Registered ${taskHandlerRegistry.getHandlerCount()} task handler(s): ${taskHandlerRegistry.getRegisteredTaskTypes().join(", ")}`,

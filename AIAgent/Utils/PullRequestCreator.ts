@@ -136,7 +136,7 @@ export default class PullRequestCreator {
 
     const headers: Headers = this.getHeaders(token);
 
-    const response = await API.get({
+    const response: HTTPResponse<JSONArray> = await API.get({
       url,
       headers,
       params: {
@@ -222,7 +222,7 @@ export default class PullRequestCreator {
 
     const headers: Headers = this.getHeaders(token);
 
-    const response = await API.post({
+    const response: HTTPResponse<JSONObject> = await API.post({
       url,
       data: { labels },
       headers,

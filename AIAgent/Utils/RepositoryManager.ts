@@ -116,7 +116,7 @@ export default class RepositoryManager {
       // Check if branch exists locally
       await this.runGitCommand(repoPath, ["rev-parse", "--verify", branchName]);
       await this.checkoutBranch(repoPath, branchName);
-    } catch (error) {
+    } catch {
       // Branch doesn't exist, create it
       await this.createBranch(repoPath, branchName);
     }

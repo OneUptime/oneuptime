@@ -17,7 +17,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 
 // OpenCode configuration file structure
 interface OpenCodeConfig {
-  provider?: object;
+  provider?: Record<string, unknown>;
   model?: string;
   small_model?: string;
   disabled_providers?: Array<string>;
@@ -288,142 +288,144 @@ export default class OpenCodeAgent implements CodeAgent {
     timeoutMs: number,
     onOutput: (event: CodeAgentProgressEvent) => void,
   ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      if (!this.config) {
-        reject(new Error("Config not initialized"));
-        return;
-      }
-
-      // Set environment variables for API key
-      const env: NodeJS.ProcessEnv = { ...process.env };
-
-      if (this.config.apiKey) {
-        switch (this.config.llmType) {
-          case LlmType.Anthropic:
-            env["ANTHROPIC_API_KEY"] = this.config.apiKey;
-            break;
-          case LlmType.OpenAI:
-            env["OPENAI_API_KEY"] = this.config.apiKey;
-            break;
-          case LlmType.Ollama:
-            if (this.config.baseUrl) {
-              env["OLLAMA_HOST"] = this.config.baseUrl;
-            }
-            break;
-        }
-      }
-
-      const args: Array<string> = ["run", prompt];
-
-      logger.debug(
-        `Running: opencode ${args
-          .map((a: string) => {
-            return a.includes(" ") ? `"${a.substring(0, 50)}..."` : a;
-          })
-          .join(" ")}`,
-      );
-
-      const child: ChildProcess = spawn("opencode", args, {
-        cwd: workingDirectory,
-        env,
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-
-      this.currentProcess = child;
-
-      let stdout: string = "";
-      let stderr: string = "";
-
-      // Set timeout
-      const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
-        if (child.pid) {
-          child.kill("SIGTERM");
-          reject(
-            new Error(
-              `OpenCode execution timed out after ${timeoutMs / 1000} seconds`,
-            ),
-          );
-        }
-      }, timeoutMs);
-
-      child.stdout?.on("data", (data: Buffer) => {
-        const text: string = data.toString();
-        stdout += text;
-
-        // Stream to console immediately
-        const trimmedText: string = text.trim();
-        if (trimmedText) {
-          logger.info(`[OpenCode stdout] ${trimmedText}`);
-
-          // Stream to task logger for server-side logging
-          if (this.taskLogger) {
-            this.taskLogger
-              .info(`[OpenCode] ${trimmedText}`)
-              .catch((err: Error) => {
-                logger.error(`Failed to log OpenCode output: ${err.message}`);
-              });
-          }
-        }
-
-        onOutput({
-          type: "stdout",
-          message: trimmedText,
-          timestamp: new Date(),
-        });
-      });
-
-      child.stderr?.on("data", (data: Buffer) => {
-        const text: string = data.toString();
-        stderr += text;
-
-        // Stream to console immediately
-        const trimmedText: string = text.trim();
-        if (trimmedText) {
-          logger.warn(`[OpenCode stderr] ${trimmedText}`);
-
-          // Stream to task logger for server-side logging
-          if (this.taskLogger) {
-            this.taskLogger
-              .warning(`[OpenCode stderr] ${trimmedText}`)
-              .catch((err: Error) => {
-                logger.error(`Failed to log OpenCode stderr: ${err.message}`);
-              });
-          }
-        }
-
-        onOutput({
-          type: "stderr",
-          message: trimmedText,
-          timestamp: new Date(),
-        });
-      });
-
-      child.on("close", (code: number | null) => {
-        clearTimeout(timeout);
-        this.currentProcess = null;
-
-        if (this.aborted) {
-          reject(new Error("Execution aborted"));
+    return new Promise(
+      (resolve: (value: string) => void, reject: (reason: Error) => void) => {
+        if (!this.config) {
+          reject(new Error("Config not initialized"));
           return;
         }
 
-        if (code === 0 || code === null) {
-          resolve(stdout);
-        } else {
-          reject(
-            new Error(
-              `OpenCode exited with code ${code}. stderr: ${stderr.substring(0, 500)}`,
-            ),
-          );
-        }
-      });
+        // Set environment variables for API key
+        const env: NodeJS.ProcessEnv = { ...process.env };
 
-      child.on("error", (error: Error) => {
-        clearTimeout(timeout);
-        this.currentProcess = null;
-        reject(error);
-      });
-    });
+        if (this.config.apiKey) {
+          switch (this.config.llmType) {
+            case LlmType.Anthropic:
+              env["ANTHROPIC_API_KEY"] = this.config.apiKey;
+              break;
+            case LlmType.OpenAI:
+              env["OPENAI_API_KEY"] = this.config.apiKey;
+              break;
+            case LlmType.Ollama:
+              if (this.config.baseUrl) {
+                env["OLLAMA_HOST"] = this.config.baseUrl;
+              }
+              break;
+          }
+        }
+
+        const args: Array<string> = ["run", prompt];
+
+        logger.debug(
+          `Running: opencode ${args
+            .map((a: string) => {
+              return a.includes(" ") ? `"${a.substring(0, 50)}..."` : a;
+            })
+            .join(" ")}`,
+        );
+
+        const child: ChildProcess = spawn("opencode", args, {
+          cwd: workingDirectory,
+          env,
+          stdio: ["pipe", "pipe", "pipe"],
+        });
+
+        this.currentProcess = child;
+
+        let stdout: string = "";
+        let stderr: string = "";
+
+        // Set timeout
+        const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
+          if (child.pid) {
+            child.kill("SIGTERM");
+            reject(
+              new Error(
+                `OpenCode execution timed out after ${timeoutMs / 1000} seconds`,
+              ),
+            );
+          }
+        }, timeoutMs);
+
+        child.stdout?.on("data", (data: Buffer) => {
+          const text: string = data.toString();
+          stdout += text;
+
+          // Stream to console immediately
+          const trimmedText: string = text.trim();
+          if (trimmedText) {
+            logger.info(`[OpenCode stdout] ${trimmedText}`);
+
+            // Stream to task logger for server-side logging
+            if (this.taskLogger) {
+              this.taskLogger
+                .info(`[OpenCode] ${trimmedText}`)
+                .catch((err: Error) => {
+                  logger.error(`Failed to log OpenCode output: ${err.message}`);
+                });
+            }
+          }
+
+          onOutput({
+            type: "stdout",
+            message: trimmedText,
+            timestamp: new Date(),
+          });
+        });
+
+        child.stderr?.on("data", (data: Buffer) => {
+          const text: string = data.toString();
+          stderr += text;
+
+          // Stream to console immediately
+          const trimmedText: string = text.trim();
+          if (trimmedText) {
+            logger.warn(`[OpenCode stderr] ${trimmedText}`);
+
+            // Stream to task logger for server-side logging
+            if (this.taskLogger) {
+              this.taskLogger
+                .warning(`[OpenCode stderr] ${trimmedText}`)
+                .catch((err: Error) => {
+                  logger.error(`Failed to log OpenCode stderr: ${err.message}`);
+                });
+            }
+          }
+
+          onOutput({
+            type: "stderr",
+            message: trimmedText,
+            timestamp: new Date(),
+          });
+        });
+
+        child.on("close", (code: number | null) => {
+          clearTimeout(timeout);
+          this.currentProcess = null;
+
+          if (this.aborted) {
+            reject(new Error("Execution aborted"));
+            return;
+          }
+
+          if (code === 0 || code === null) {
+            resolve(stdout);
+          } else {
+            reject(
+              new Error(
+                `OpenCode exited with code ${code}. stderr: ${stderr.substring(0, 500)}`,
+              ),
+            );
+          }
+        });
+
+        child.on("error", (error: Error) => {
+          clearTimeout(timeout);
+          this.currentProcess = null;
+          reject(error);
+        });
+      },
+    );
   }
 
   // Get list of modified files using git

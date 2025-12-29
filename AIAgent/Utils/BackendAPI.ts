@@ -2,6 +2,8 @@ import { ONEUPTIME_URL } from "../Config";
 import AIAgentAPIRequest from "./AIAgentAPIRequest";
 import URL from "Common/Types/API/URL";
 import API from "Common/Utils/API";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
 import LlmType from "Common/Types/LLM/LlmType";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import logger from "Common/Server/Utils/Logger";
@@ -143,7 +145,7 @@ export default class BackendAPI {
       "/api/ai-agent-data/get-llm-config",
     );
 
-    const response = await API.post({
+    const response: HTTPResponse<JSONObject> = await API.post({
       url,
       data: {
         ...AIAgentAPIRequest.getDefaultRequestBody(),
@@ -152,7 +154,8 @@ export default class BackendAPI {
     });
 
     if (!response.isSuccess()) {
-      const data = response.data as unknown as LLMConfigResponse;
+      const data: LLMConfigResponse =
+        response.data as unknown as LLMConfigResponse;
       const errorMessage: string = data?.message || "Failed to get LLM config";
       throw new Error(errorMessage);
     }
@@ -189,7 +192,7 @@ export default class BackendAPI {
       "/api/ai-agent-data/get-exception-details",
     );
 
-    const response = await API.post({
+    const response: HTTPResponse<JSONObject> = await API.post({
       url,
       data: {
         ...AIAgentAPIRequest.getDefaultRequestBody(),
@@ -198,7 +201,8 @@ export default class BackendAPI {
     });
 
     if (!response.isSuccess()) {
-      const data = response.data as unknown as ExceptionDetailsResponse;
+      const data: ExceptionDetailsResponse =
+        response.data as unknown as ExceptionDetailsResponse;
       const errorMessage: string =
         data?.message || "Failed to get exception details";
       throw new Error(errorMessage);
@@ -237,7 +241,7 @@ export default class BackendAPI {
       "/api/ai-agent-data/get-code-repositories",
     );
 
-    const response = await API.post({
+    const response: HTTPResponse<JSONObject> = await API.post({
       url,
       data: {
         ...AIAgentAPIRequest.getDefaultRequestBody(),
@@ -246,7 +250,8 @@ export default class BackendAPI {
     });
 
     if (!response.isSuccess()) {
-      const data = response.data as unknown as CodeRepositoriesResponse;
+      const data: CodeRepositoriesResponse =
+        response.data as unknown as CodeRepositoriesResponse;
       const errorMessage: string =
         data?.message || "Failed to get code repositories";
       throw new Error(errorMessage);
@@ -281,7 +286,7 @@ export default class BackendAPI {
       "/api/ai-agent-data/get-repository-token",
     );
 
-    const response = await API.post({
+    const response: HTTPResponse<JSONObject> = await API.post({
       url,
       data: {
         ...AIAgentAPIRequest.getDefaultRequestBody(),
@@ -290,7 +295,8 @@ export default class BackendAPI {
     });
 
     if (!response.isSuccess()) {
-      const data = response.data as unknown as RepositoryTokenResponse;
+      const data: RepositoryTokenResponse =
+        response.data as unknown as RepositoryTokenResponse;
       const errorMessage: string =
         data?.message || "Failed to get repository token";
       throw new Error(errorMessage);
@@ -320,7 +326,7 @@ export default class BackendAPI {
       "/api/ai-agent-data/record-pull-request",
     );
 
-    const response = await API.post({
+    const response: HTTPResponse<JSONObject> = await API.post({
       url,
       data: {
         ...AIAgentAPIRequest.getDefaultRequestBody(),
@@ -337,7 +343,8 @@ export default class BackendAPI {
     });
 
     if (!response.isSuccess()) {
-      const data = response.data as unknown as RecordPullRequestResponse;
+      const data: RecordPullRequestResponse =
+        response.data as unknown as RecordPullRequestResponse;
       const errorMessage: string =
         data?.message || "Failed to record pull request";
       throw new Error(errorMessage);
@@ -364,7 +371,7 @@ export default class BackendAPI {
       "/api/ai-agent-task/update-task-status",
     );
 
-    const response = await API.post({
+    const response: HTTPResponse<JSONObject> = await API.post({
       url,
       data: {
         ...AIAgentAPIRequest.getDefaultRequestBody(),
@@ -375,7 +382,8 @@ export default class BackendAPI {
     });
 
     if (!response.isSuccess()) {
-      const data = response.data as unknown as UpdateTaskStatusResponse;
+      const data: UpdateTaskStatusResponse =
+        response.data as unknown as UpdateTaskStatusResponse;
       const errorMessage: string =
         data?.message || "Failed to update task status";
       throw new Error(errorMessage);

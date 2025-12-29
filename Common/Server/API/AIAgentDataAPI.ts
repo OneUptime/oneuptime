@@ -6,13 +6,12 @@ import ServiceCatalogCodeRepositoryService from "../Services/ServiceCatalogCodeR
 import CodeRepositoryService from "../Services/CodeRepositoryService";
 import AIAgentTaskPullRequestService from "../Services/AIAgentTaskPullRequestService";
 import AIAgentTaskService from "../Services/AIAgentTaskService";
-import {
+import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
 } from "../Utils/Express";
-import Express from "../Utils/Express";
 import Response from "../Utils/Response";
 import AIAgent from "../../Models/DatabaseModels/AIAgent";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";

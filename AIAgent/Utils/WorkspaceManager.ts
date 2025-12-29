@@ -50,7 +50,7 @@ export default class WorkspaceManager {
     try {
       await LocalFile.readDirectory(workspacePath);
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -113,7 +113,7 @@ export default class WorkspaceManager {
       const filePath: string = path.join(workspacePath, relativePath);
       await LocalFile.read(filePath);
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -156,7 +156,7 @@ export default class WorkspaceManager {
       // Ensure base directory exists
       try {
         await LocalFile.readDirectory(this.BASE_TEMP_DIR);
-      } catch (error) {
+      } catch {
         // Base directory doesn't exist, nothing to clean
         return 0;
       }
