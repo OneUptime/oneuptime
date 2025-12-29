@@ -1,7 +1,7 @@
 import LocalFile from "Common/Server/Utils/LocalFile";
 import logger from "Common/Server/Utils/Logger";
+import ObjectID from "Common/Types/ObjectID";
 import path from "path";
-import { v4 as uuidv4 } from "uuid";
 import os from "os";
 
 export interface WorkspaceInfo {
@@ -19,7 +19,7 @@ export default class WorkspaceManager {
   // Create a new workspace for a task
   public static async createWorkspace(taskId: string): Promise<WorkspaceInfo> {
     const timestamp: number = Date.now();
-    const uniqueId: string = uuidv4().substring(0, 8);
+    const uniqueId: string = ObjectID.generate().toString().substring(0, 8);
     const workspaceName: string = `task-${taskId}-${timestamp}-${uniqueId}`;
     const workspacePath: string = path.join(this.BASE_TEMP_DIR, workspaceName);
 

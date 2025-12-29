@@ -188,11 +188,9 @@ describe("ExceptionUtil", () => {
 
     test("handles null/undefined gracefully", () => {
       // @ts-expect-error - testing edge case
-      const normalizedNull: string =
-        ExceptionUtil.normalizeForFingerprint(null);
+      const normalizedNull: string = ExceptionUtil.normalizeForFingerprint(null);
       // @ts-expect-error - testing edge case
-      const normalizedUndefined: string =
-        ExceptionUtil.normalizeForFingerprint(undefined);
+      const normalizedUndefined: string = ExceptionUtil.normalizeForFingerprint(undefined);
 
       expect(normalizedNull).toBe("");
       expect(normalizedUndefined).toBe("");
