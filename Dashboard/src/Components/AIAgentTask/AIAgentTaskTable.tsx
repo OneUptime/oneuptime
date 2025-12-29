@@ -14,7 +14,6 @@ import { Green, Red, Yellow, Blue } from "Common/Types/BrandColors";
 import Query from "Common/Types/BaseDatabase/Query";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import AIAgentTaskTypeElement from "./AIAgentTaskTypeElement";
-import AIAgentElement from "Common/UI/Components/AIAgent/AIAgent";
 
 export interface AIAgentTaskTableProps {
   id: string;
@@ -61,6 +60,13 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
   props: AIAgentTaskTableProps,
 ): ReactElement => {
   const filters: Array<Filter<AIAgentTask>> = [
+    {
+      field: {
+        taskNumber: true,
+      },
+      title: "Task Number",
+      type: FieldType.Number,
+    },
     {
       field: {
         name: true,
@@ -127,29 +133,37 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
       name={props.name}
       isViewable={true}
       {...(props.query ? { query: props.query } : {})}
-      showAs={ShowAs.List}
+      showAs={ShowAs.Table}
       cardProps={{
         title: props.title,
         description: props.description,
       }}
-      showViewIdButton={true}
+      showViewIdButton={false}
       noItemsMessage={props.noItemsMessage || defaultNoItemsMessage}
       filters={filters}
       showRefreshButton={true}
       columns={[
         {
           field: {
+            taskNumber: true,
+          },
+          title: "Task Number",
+          type: FieldType.Element,
+          getElement: (item: AIAgentTask): ReactElement => {
+            if (!item.taskNumber) {
+              return <>-</>;
+            }
+
+            return <>#{item.taskNumber}</>;
+          },
+        },
+        {
+          field: {
             name: true,
           },
           title: "Name",
           type: FieldType.Text,
-        },
-        {
-          field: {
-            description: true,
-          },
-          title: "Description",
-          type: FieldType.Text,
+          contentClassName: "whitespace-normal max-w-md",
         },
         {
           field: {
@@ -166,29 +180,6 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
           title: "Status",
           type: FieldType.Element,
           getElement: getStatusElement,
-        },
-        {
-          field: {
-            aiAgent: {
-              name: true,
-              iconFileId: true,
-            },
-          },
-          title: "AI Agent",
-          type: FieldType.Entity,
-          getElement: (item: AIAgentTask): ReactElement => {
-            if (!item.aiAgent) {
-              return <span className="text-gray-400">Not Assigned</span>;
-            }
-            return <AIAgentElement aiAgent={item.aiAgent} />;
-          },
-        },
-        {
-          field: {
-            [props.dateField]: true,
-          },
-          title: props.dateFieldTitle,
-          type: FieldType.DateTime,
         },
       ]}
       onViewPage={(item: AIAgentTask): Promise<Route> => {

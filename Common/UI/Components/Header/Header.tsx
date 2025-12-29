@@ -14,10 +14,11 @@ const Header: FunctionComponent<ComponentProps> = (
     <React.Fragment>
       <div
         className={
-          props.className || "relative flex h-16 justify-between bg-white"
+          props.className ||
+          "relative flex h-16 justify-between bg-white shadow-sm px-4"
         }
       >
-        <div className="relative z-20 flex px-2 lg:px-0">
+        <div className="relative z-20 flex items-center">
           {props.leftComponents}
         </div>
 
@@ -27,7 +28,7 @@ const Header: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        <div className="hidden lg:relative lg:z-10 lg:ml-4 lg:flex lg:items-center">
+        <div className="hidden lg:relative lg:z-10 lg:ml-4 lg:flex lg:items-center lg:gap-2">
           {props.rightComponents}
         </div>
       </div>

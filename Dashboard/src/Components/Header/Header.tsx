@@ -14,14 +14,14 @@ import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Header from "Common/UI/Components/Header/Header";
 import HeaderAlert, {
   HeaderAlertType,
 } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import HeaderModelAlert from "Common/UI/Components/HeaderAlert/HeaderModelAlert";
 import HeaderAlertGroup from "Common/UI/Components/HeaderAlert/HeaderAlertGroup";
-import { SizeProp } from "Common/UI/Components/Icon/Icon";
+import Icon from "Common/UI/Components/Icon/Icon";
 import { APP_API_URL, BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/UI/Utils/User";
@@ -379,7 +379,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       <Header
         leftComponents={
           <>
-            {props.projects.length === 0 && <Logo onClick={() => {}} />}
+            <Logo onClick={() => {}} />
 
             <ProjectPicker
               showProjectModal={props.showProjectModal}
@@ -521,8 +521,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
           <>
             {/* <Notifications /> */}
             {showAddCardButton ? (
-              <Button
-                title="Add Card Details"
+              <div
                 onClick={() => {
                   Navigation.navigate(
                     RouteUtil.populateRouteParams(
@@ -530,10 +529,16 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     ),
                   );
                 }}
-                buttonStyle={ButtonStyleType.LINK}
-                icon={IconProp.Billing}
-                iconSize={SizeProp.Larger}
-              ></Button>
+                className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg cursor-pointer transition-all duration-150 mr-1"
+              >
+                <Icon
+                  icon={IconProp.Billing}
+                  className="h-4 w-4 text-amber-600"
+                />
+                <span className="text-sm font-medium text-amber-700">
+                  Add Card Details
+                </span>
+              </div>
             ) : (
               <></>
             )}

@@ -520,4 +520,30 @@ export default class AIAgentTask extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: true,
+    type: TableColumnType.Number,
+    title: "Task Number",
+    description:
+      "A unique, sequential number assigned to each AI Agent Task within a project.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 1,
+  })
+  public taskNumber?: number = undefined;
 }

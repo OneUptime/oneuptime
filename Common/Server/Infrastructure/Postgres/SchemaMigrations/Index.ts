@@ -212,6 +212,7 @@ import { MigrationName1766777986427 } from "./1766777986427-MigrationName";
 import { AddAIAgentIsDefault1766918848434 } from "./1766918848434-AddAIAgentIsDefault";
 import { MigrationName1766923324521 } from "./1766923324521-MigrationName";
 import { AddGitHubAppInstallationIdToProject1766958924188 } from "./1766958924188-AddGitHubAppInstallationIdToProject";
+import { MigrationName1767009661768 } from "./1767009661768-MigrationName";
 
 export default [
   InitialMigration,
@@ -428,4 +429,5 @@ export default [
   AddAIAgentIsDefault1766918848434,
   MigrationName1766923324521,
   AddGitHubAppInstallationIdToProject1766958924188,
+  MigrationName1767009661768,
 ];

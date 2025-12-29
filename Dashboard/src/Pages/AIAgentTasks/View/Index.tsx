@@ -32,6 +32,41 @@ const AIAgentTaskViewPage: FunctionComponent<
         fields: [
           {
             field: {
+              taskNumber: true,
+            },
+            title: "Task Number",
+            fieldType: FieldType.Element,
+            getElement: (item: AIAgentTask): ReactElement => {
+              if (!item.taskNumber) {
+                return <>-</>;
+              }
+
+              return (
+                <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-md bg-gray-100">
+                    <svg
+                      className="w-3.5 h-3.5 text-gray-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5.25 8.25h15m-16.5 7.5h15m-1.8-13.5l-3.9 19.5m-2.1-19.5l-3.9 19.5"
+                      />
+                    </svg>
+                  </div>
+                  <span className="text-lg font-semibold text-gray-700">
+                    {item.taskNumber}
+                  </span>
+                </div>
+              );
+            },
+          },
+          {
+            field: {
               _id: true,
             },
             title: "Task ID",

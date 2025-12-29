@@ -7,6 +7,10 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import AIAgentService from "./AIAgentService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import logger from "../Utils/Logger";
+import OneUptimeDate from "../../Types/Date";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -25,7 +29,82 @@ export class Service extends DatabaseService<Model> {
       await this.validateAgentBelongsToProject(createBy);
     }
 
+    // Generate task number
+    if (!createBy.data.projectId) {
+      throw new BadDataException(
+        "Project ID is required to create an AI Agent Task",
+      );
+    }
+
+    const projectId: ObjectID = createBy.data.projectId;
+
+    let mutex: SemaphoreMutex | null = null;
+
+    try {
+      mutex = await Semaphore.lock({
+        key: projectId.toString(),
+        namespace: "AIAgentTaskService.task-create",
+        lockTimeout: 15000,
+        acquireTimeout: 20000,
+      });
+
+      logger.debug(
+        "Mutex acquired - AIAgentTaskService.task-create " +
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
+      );
+    } catch (err) {
+      logger.debug(
+        "Mutex acquire failed - AIAgentTaskService.task-create " +
+          projectId.toString() +
+          " at " +
+          OneUptimeDate.getCurrentDateAsFormattedString(),
+      );
+      logger.error(err);
+    }
+
+    try {
+      const taskNumberForThisTask: number =
+        (await this.getExistingTaskNumberForProject({
+          projectId: projectId,
+        })) + 1;
+
+      createBy.data.taskNumber = taskNumberForThisTask;
+    } finally {
+      if (mutex) {
+        await Semaphore.release(mutex);
+      }
+    }
+
     return { createBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public async getExistingTaskNumberForProject(data: {
+    projectId: ObjectID;
+  }): Promise<number> {
+    // get last task number.
+    const lastTask: Model | null = await this.findOneBy({
+      query: {
+        projectId: data.projectId,
+      },
+      select: {
+        taskNumber: true,
+      },
+      sort: {
+        createdAt: SortOrder.Descending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!lastTask) {
+      return 0;
+    }
+
+    return lastTask.taskNumber ? Number(lastTask.taskNumber) : 0;
   }
 
   @CaptureSpan()

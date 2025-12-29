@@ -37,6 +37,9 @@ RUN apt-get install bash -y && apt-get install curl -y
 # Install OpenCode AI coding assistant
 RUN curl -fsSL https://opencode.ai/install | bash
 
+# Add OpenCode to PATH (installed to $HOME/.opencode/bin by default)
+ENV PATH="/root/.opencode/bin:${PATH}"
+
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
