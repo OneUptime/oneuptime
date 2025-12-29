@@ -1,5 +1,6 @@
 import API from "Common/Utils/API";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject, JSONArray } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
@@ -136,7 +137,7 @@ export default class PullRequestCreator {
 
     const headers: Headers = this.getHeaders(token);
 
-    const response: HTTPResponse<JSONArray> = await API.get({
+    const response: HTTPResponse<JSONArray> | HTTPErrorResponse = await API.get({
       url,
       headers,
       params: {
