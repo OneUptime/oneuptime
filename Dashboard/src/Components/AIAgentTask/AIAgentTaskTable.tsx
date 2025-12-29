@@ -63,6 +63,13 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
   const filters: Array<Filter<AIAgentTask>> = [
     {
       field: {
+        taskNumber: true,
+      },
+      title: "Task Number",
+      type: FieldType.Number,
+    },
+    {
+      field: {
         name: true,
       },
       title: "Name",
@@ -137,6 +144,20 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
       filters={filters}
       showRefreshButton={true}
       columns={[
+        {
+          field: {
+            taskNumber: true,
+          },
+          title: "Task Number",
+          type: FieldType.Element,
+          getElement: (item: AIAgentTask): ReactElement => {
+            if (!item.taskNumber) {
+              return <>-</>;
+            }
+
+            return <>#{item.taskNumber}</>;
+          },
+        },
         {
           field: {
             name: true,
