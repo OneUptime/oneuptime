@@ -1956,7 +1956,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   return (
     <>
-      <div className="mb-5 mt-5">{getCardComponent()}</div>
+      <div className="">{getCardComponent()}</div>
 
       {showModel ? (
         props.callbacks.showCreateEditModal({

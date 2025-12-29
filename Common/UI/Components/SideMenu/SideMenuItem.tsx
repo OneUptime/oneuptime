@@ -92,20 +92,20 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
         {(props.badge !== undefined ||
           props.showAlert ||
           props.showWarning) && (
-          <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+          <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
             {props.badge !== undefined && (
               <Badge badgeCount={props.badge} badgeType={props.badgeType} />
             )}
             {props.showAlert && (
-              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-red-50">
-                <Icon icon={IconProp.Error} className="text-red-500 h-4 w-4" />
+              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-red-50 to-red-100 ring-1 ring-inset ring-red-200/60 shadow-sm">
+                <Icon icon={IconProp.Error} className="text-red-600 h-3 w-3" />
               </div>
             )}
             {props.showWarning && (
-              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-50">
+              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-amber-50 to-amber-100 ring-1 ring-inset ring-amber-200/60 shadow-sm">
                 <Icon
                   icon={IconProp.Alert}
-                  className="text-amber-500 h-4 w-4"
+                  className="text-amber-600 h-3 w-3"
                 />
               </div>
             )}
