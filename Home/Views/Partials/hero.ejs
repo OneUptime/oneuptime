@@ -106,9 +106,12 @@
   }
 </style>
 
-<div class="relative isolate bg-white overflow-hidden">
+<div class="relative isolate bg-white overflow-hidden" id="hero-section">
   <!-- Subtle grid pattern background -->
   <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+  <!-- Grid glow effect that follows cursor - glowing grid lines -->
+  <div id="grid-glow-effect" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(59, 130, 246, 0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.4) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 200px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 200px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
 
   <!-- Hero ambient glow -->
   <div id="hero-ambient-glow" class="absolute top-1/2 left-1/2 -trangray-x-1/2 -trangray-y-1/4 w-[800px] h-[600px] pointer-events-none" style="background: transparent; opacity: 0; transition: opacity 0.35s ease-out;"></div>
@@ -221,6 +224,64 @@
                 currentHeroColor = null;
             }, 100);
         });
+    });
+})();
+
+// Grid glow effect that follows cursor
+(function() {
+    const heroSection = document.getElementById('hero-section');
+    const gridGlowEffect = document.getElementById('grid-glow-effect');
+
+    if (!heroSection || !gridGlowEffect) return;
+
+    let isHovering = false;
+    let animationFrame = null;
+    let currentX = 0;
+    let currentY = 0;
+    let targetX = 0;
+    let targetY = 0;
+
+    function lerp(start, end, factor) {
+        return start + (end - start) * factor;
+    }
+
+    function animate() {
+        if (!isHovering) return;
+
+        // Smooth interpolation for fluid movement
+        currentX = lerp(currentX, targetX, 0.12);
+        currentY = lerp(currentY, targetY, 0.12);
+
+        gridGlowEffect.style.setProperty('--mouse-x', currentX + 'px');
+        gridGlowEffect.style.setProperty('--mouse-y', currentY + 'px');
+
+        animationFrame = requestAnimationFrame(animate);
+    }
+
+    heroSection.addEventListener('mouseenter', function() {
+        isHovering = true;
+        gridGlowEffect.style.opacity = '1';
+        animate();
+    });
+
+    heroSection.addEventListener('mousemove', function(e) {
+        const rect = heroSection.getBoundingClientRect();
+        targetX = e.clientX - rect.left;
+        targetY = e.clientY - rect.top;
+
+        if (!isHovering) {
+            currentX = targetX;
+            currentY = targetY;
+        }
+    });
+
+    heroSection.addEventListener('mouseleave', function() {
+        isHovering = false;
+        gridGlowEffect.style.opacity = '0';
+        if (animationFrame) {
+            cancelAnimationFrame(animationFrame);
+            animationFrame = null;
+        }
     });
 })();
 </script>
