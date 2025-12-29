@@ -42,9 +42,9 @@
 
         <!-- Terminal -->
         <div class="max-w-2xl mx-auto mb-12">
-            <div id="oss-terminal" class="rounded-2xl bg-black/40 border border-white/[0.06] overflow-hidden cursor-pointer transition-all duration-300 hover:border-white/[0.12]">
+            <div id="oss-terminal" class="rounded-2xl bg-black/40 border border-white/[0.06] overflow-hidden transition-all duration-300">
                 <div class="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
-                    <div class="flex gap-1.5">
+                    <div id="oss-terminal-dots" class="flex gap-1.5 cursor-pointer hover:opacity-80 transition-opacity">
                         <div class="w-3 h-3 rounded-full bg-white/10"></div>
                         <div class="w-3 h-3 rounded-full bg-white/10"></div>
                         <div class="w-3 h-3 rounded-full bg-white/10"></div>
@@ -158,29 +158,18 @@
     console.log('%c👋 Hey there, curious developer!', 'font-size: 16px; font-weight: bold; color: #60a5fa;');
     console.log('%cWe\'re always looking for builders. Check out our open issues: https://github.com/oneuptime/oneuptime/issues', 'color: #94a3b8;');
 
-    // Terminal Easter Egg - Triple click to reveal
+    // Terminal Easter Egg - Click dots to reveal
     const terminal = document.getElementById('oss-terminal');
+    const terminalDots = document.getElementById('oss-terminal-dots');
     const terminalContent = document.getElementById('oss-terminal-content');
     const terminalTitle = document.getElementById('oss-terminal-title');
-    let clickCount = 0;
-    let clickTimer = null;
     let easterEggActive = false;
 
-    if (terminal && terminalContent && terminalTitle) {
-        terminal.addEventListener('click', function() {
+    if (terminalDots && terminalContent && terminalTitle) {
+        terminalDots.addEventListener('click', function(e) {
+            e.stopPropagation();
             if (easterEggActive) return;
-
-            clickCount++;
-
-            if (clickTimer) clearTimeout(clickTimer);
-
-            clickTimer = setTimeout(() => {
-                clickCount = 0;
-            }, 500);
-
-            if (clickCount >= 3) {
-                easterEggActive = true;
-                clickCount = 0;
+            easterEggActive = true;
 
                 // Change terminal title
                 terminalTitle.textContent = 'builder_tribute.sh';
@@ -251,7 +240,6 @@
                 }
 
                 typeLine();
-            }
         });
     }
 })();
