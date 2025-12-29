@@ -15,19 +15,23 @@ export interface ComponentProps {
 const Badge: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // Base styling for all badges
   let className: string =
-    "bg-white text-gray-600 ring-1 ring-inset ring-gray-300";
+    "bg-gradient-to-r from-gray-50 to-gray-100 text-gray-600 ring-1 ring-inset ring-gray-200 shadow-sm";
 
   if (props.badgeType === BadgeType.DANGER) {
-    className = "bg-white text-red-600 ring-1 ring-inset ring-red-300";
+    className =
+      "bg-gradient-to-r from-red-50 to-red-100 text-red-700 ring-1 ring-inset ring-red-200/80 shadow-sm shadow-red-100";
   }
 
   if (props.badgeType === BadgeType.WARNING) {
-    className = "bg-white text-yellow-600 ring-1 ring-inset ring-yellow-300";
+    className =
+      "bg-gradient-to-r from-amber-50 to-amber-100 text-amber-700 ring-1 ring-inset ring-amber-200/80 shadow-sm shadow-amber-100";
   }
 
   if (props.badgeType === BadgeType.SUCCESS) {
-    className = "bg-white text-emerald-600 ring-1 ring-inset ring-emerald-300";
+    className =
+      "bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700 ring-1 ring-inset ring-emerald-200/80 shadow-sm shadow-emerald-100";
   }
 
   if (props.badgeCount) {
@@ -35,7 +39,7 @@ const Badge: FunctionComponent<ComponentProps> = (
       <span
         id={props.id}
         data-testid={props.id}
-        className={`${className} ml-auto w-11 min-w-max whitespace-nowrap rounded-full  px-2.5 py-0.5 text-center text-sm font-medium leading-5 `}
+        className={`${className} ml-auto min-w-[1.75rem] whitespace-nowrap rounded-full px-2 py-0.5 text-center text-xs font-semibold leading-4 tabular-nums transition-all duration-200`}
         aria-hidden="true"
       >
         {props.badgeCount}

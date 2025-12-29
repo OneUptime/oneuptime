@@ -10,3 +10,4 @@ export * from "./MonitorGroupBreadcrumbs";
 export * from "./ServiceCatalogBreadcrumbs";
 export * from "./CodeRepositoryBreadcrumbs";
 export * from "./DashboardBreadCrumbs";
+export * from "./AIAgentTasksBreadcrumbs";

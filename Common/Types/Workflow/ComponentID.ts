@@ -4,6 +4,7 @@ enum ComponentID {
   SlackSendMessageToChannel = "slack-send-message-to-channel",
   MicrosoftTeamsSendMessageToChannel = "microsoft-teams-send-message-to-channel",
   DiscordSendMessageToChannel = "discord-send-message-to-channel",
+  TelegramSendMessageToChat = "telegram-send-message-to-chat",
   Schedule = "schedule",
   JavaScriptCode = "javascript",
   Manual = "manual",

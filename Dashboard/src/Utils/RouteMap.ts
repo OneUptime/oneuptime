@@ -65,6 +65,13 @@ export const WorkflowRoutePath: Dictionary<string> = {
   [PageMap.WORKFLOW_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
 };
 
+export const AIAgentTasksRoutePath: Dictionary<string> = {
+  [PageMap.AI_AGENT_TASK_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.AI_AGENT_TASK_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS]: `${RouteParams.ModelID}/pull-requests`,
+  [PageMap.AI_AGENT_TASK_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+};
+
 export const TelemetryRoutePath: Dictionary<string> = {
   [PageMap.TELEMETRY_SERVICES]: "services",
   [PageMap.TELEMETRY_DOCUMENTATION]: "documentation",
@@ -281,6 +288,8 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_PROBE_VIEW]: `probes/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_LABELS]: "labels",
   [PageMap.SETTINGS_PROBES]: "probes",
+  [PageMap.SETTINGS_AI_AGENTS]: "ai-agents",
+  [PageMap.SETTINGS_AI_AGENT_VIEW]: `ai-agents/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_LLM_PROVIDERS]: "llm-provider",
   [PageMap.SETTINGS_LLM_PROVIDER_VIEW]: `llm-provider/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_AI_BILLING]: "ai-credits",
@@ -1939,6 +1948,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // AI Agents.
+  [PageMap.SETTINGS_AI_AGENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AI_AGENTS]
+    }`,
+  ),
+  [PageMap.SETTINGS_AI_AGENT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AI_AGENT_VIEW]
+    }`,
+  ),
+
   // LLM Providers.
   [PageMap.SETTINGS_LLM_PROVIDERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
@@ -2089,6 +2110,39 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITOR_GROUP_VIEW_ALERTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitor-groups/${
       MonitorGroupRoutePath[PageMap.MONITOR_GROUP_VIEW_ALERTS]
+    }`,
+  ),
+
+  // AI Agent Tasks
+  [PageMap.AI_AGENT_TASKS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/*`,
+  ),
+
+  [PageMap.AI_AGENT_TASKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks`,
+  ),
+
+  [PageMap.AI_AGENT_TASK_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
+      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW]
+    }`,
+  ),
+
+  [PageMap.AI_AGENT_TASK_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
+      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
+      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS]
+    }`,
+  ),
+
+  [PageMap.AI_AGENT_TASK_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
+      AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_DELETE]
     }`,
   ),
 };

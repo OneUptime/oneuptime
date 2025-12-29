@@ -90,7 +90,7 @@ const Users: FunctionComponent = (): ReactElement => {
                   _id: true,
                 },
                 title: "User ID",
-                fieldType: FieldType.Text,
+                fieldType: FieldType.ObjectID,
                 placeholder: "-",
               },
               {

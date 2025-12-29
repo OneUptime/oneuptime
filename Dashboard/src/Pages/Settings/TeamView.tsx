@@ -309,6 +309,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 _id: true,
               },
               title: "Team ID",
+              fieldType: FieldType.ObjectID,
             },
             {
               field: {

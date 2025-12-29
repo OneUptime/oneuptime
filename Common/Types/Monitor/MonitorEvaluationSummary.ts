@@ -10,7 +10,8 @@ export type MonitorEvaluationEventType =
   | "alert-created"
   | "alert-resolved"
   | "alert-skipped"
-  | "monitor-status-changed";
+  | "monitor-status-changed"
+  | "probe-agreement";
 
 export interface MonitorEvaluationFilterResult {
   checkOn: CheckOn;

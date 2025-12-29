@@ -102,6 +102,7 @@ const StatusPageView: FunctionComponent<
                 _id: true,
               },
               title: "Service ID",
+              fieldType: FieldType.ObjectID,
             },
             {
               field: {

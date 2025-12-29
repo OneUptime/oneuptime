@@ -138,6 +138,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
                 _id: true,
               },
               title: "LLM Provider ID",
+              fieldType: FieldType.ObjectID,
             },
             {
               field: {

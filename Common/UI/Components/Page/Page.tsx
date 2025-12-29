@@ -96,16 +96,14 @@ const Page: FunctionComponent<ComponentProps> = (
 
       {props.sideMenu && (
         <main className="mx-auto max-w-full pb-10">
-          <div className="lg:grid lg:grid-cols-12 lg:gap-x-5">
+          <div className="flex flex-col md:flex-row md:gap-4 lg:gap-5">
             {props.sideMenu}
 
             {!props.isLoading && (
-              <div className="space-y-6 md:px-6 lg:col-span-10 md:col-span-9 lg:px-0">
-                {props.children}
-              </div>
+              <div className="space-y-6 flex-1 min-w-0">{props.children}</div>
             )}
             {props.isLoading && (
-              <div className="lg:col-span-10 md:col-span-9">
+              <div className="flex-1 min-w-0">
                 <PageLoader isVisible={true} />
               </div>
             )}

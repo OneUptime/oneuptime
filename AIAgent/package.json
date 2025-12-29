@@ -1,0 +1,34 @@
+{
+  "name": "@oneuptime/ai-agent",
+  "version": "1.0.0",
+  "description": "OneUptime AI Agent",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OneUptime/oneuptime"
+  },
+  "main": "index.js",
+  "scripts": {
+    "start": "export NODE_OPTIONS='--max-old-space-size=8096' && node --require ts-node/register Index.ts",
+    "compile": "tsc",
+    "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
+    "dev": "npx nodemon",
+    "audit": "npm audit --audit-level=low",
+    "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
+    "test": "jest --detectOpenHandles --passWithNoTests",
+    "coverage": "jest --detectOpenHandles --coverage",
+    "debug:test": "node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles"
+  },
+  "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "Common": "file:../Common",
+    "ejs": "^3.1.10",
+    "ts-node": "^10.9.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.5.2",
+    "@types/node": "^17.0.31",
+    "jest": "^28.1.0",
+    "nodemon": "^2.0.20"
+  }
+}

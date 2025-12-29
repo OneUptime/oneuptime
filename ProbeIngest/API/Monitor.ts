@@ -277,6 +277,66 @@ router.get(
   },
 );
 
+/*
+ * This API returns the count of monitors pending to be probed for the authenticated probe.
+ * Used by KEDA for autoscaling probes based on pending monitor count.
+ */
+router.post(
+  "/monitor/pending-count",
+  ProbeAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (
+        !(req as ProbeExpressRequest).probe ||
+        !(req as ProbeExpressRequest).probe?.id
+      ) {
+        logger.error("Probe not found for pending-count request");
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Probe not found"),
+        );
+      }
+
+      const probeId: ObjectID = (req as ProbeExpressRequest).probe!.id!;
+
+      if (!probeId) {
+        logger.error("Probe ID not found for pending-count request");
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Probe not found"),
+        );
+      }
+
+      // Get count of monitors pending to be probed
+      const monitorProbesCount: PositiveNumber =
+        await MonitorProbeService.countBy({
+          query: getMonitorFetchQuery(probeId),
+          props: {
+            isRoot: true,
+          },
+        });
+
+      logger.debug(
+        `Pending monitor count for probe ${probeId.toString()}: ${monitorProbesCount.toNumber()}`,
+      );
+
+      return Response.sendJsonObjectResponse(req, res, {
+        count: monitorProbesCount.toNumber(),
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 router.post(
   "/monitor/list",
   ProbeAuthorization.isAuthorizedServiceMiddleware,

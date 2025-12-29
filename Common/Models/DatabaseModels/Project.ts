@@ -1603,4 +1603,29 @@ export default class Project extends TenantModel {
     default: false,
   })
   public doNotAddGlobalProbesByDefaultOnNewMonitors?: boolean = undefined;
+
+  // GitHub App Installation ID for this project
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProject,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "GitHub App Installation ID",
+    description:
+      "The GitHub App installation ID for this project. This is set when the GitHub App is installed on the organization.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public gitHubAppInstallationId?: string = undefined;
 }

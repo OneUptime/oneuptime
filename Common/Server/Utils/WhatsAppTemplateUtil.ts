@@ -42,6 +42,8 @@ const templateDashboardLinkVariableMap: Partial<
   [WhatsAppTemplateIds.StatusPageOwnerAddedNotification]: "status_page_link",
   [WhatsAppTemplateIds.ProbeStatusChangedOwnerNotification]: "probe_link",
   [WhatsAppTemplateIds.ProbeOwnerAddedNotification]: "probe_link",
+  [WhatsAppTemplateIds.AIAgentStatusChangedOwnerNotification]: "ai_agent_link",
+  [WhatsAppTemplateIds.AIAgentOwnerAddedNotification]: "ai_agent_link",
   [WhatsAppTemplateIds.OnCallUserIsOnRosterNotification]: "schedule_link",
   [WhatsAppTemplateIds.OnCallUserIsNextNotification]: "schedule_link",
   [WhatsAppTemplateIds.OnCallUserNoLongerActiveNotification]: "schedule_link",
@@ -98,6 +100,10 @@ const templateIdByEventType: Record<
     WhatsAppTemplateIds.ProbeStatusChangedOwnerNotification,
   [NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION]:
     WhatsAppTemplateIds.ProbeOwnerAddedNotification,
+  [NotificationSettingEventType.SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION]:
+    WhatsAppTemplateIds.AIAgentStatusChangedOwnerNotification,
+  [NotificationSettingEventType.SEND_AI_AGENT_OWNER_ADDED_NOTIFICATION]:
+    WhatsAppTemplateIds.AIAgentOwnerAddedNotification,
   [NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER]:
     WhatsAppTemplateIds.OnCallUserIsOnRosterNotification,
   [NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER]:

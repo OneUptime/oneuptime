@@ -87,6 +87,11 @@ import "./Jobs/Workflow/TimeoutJobs";
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";
 
+// AI Agents
+import "./Jobs/AIAgent/SendOwnerAddedNotification";
+import "./Jobs/AIAgent/UpdateConnectionStatus";
+import "./Jobs/AIAgent/TimeoutStuckTasks";
+
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 

@@ -1,18 +1,18 @@
 import AlignItem from "../../Types/AlignItem";
 import { Logger } from "../../Utils/Logger";
-import CodeEditor from "../CodeEditor/CodeEditor";
+import CodeBlock from "../CodeBlock/CodeBlock";
 import ColorViewer from "../ColorViewer/ColorViewer";
 import CopyableButton from "../CopyableButton/CopyableButton";
 import DictionaryOfStringsViewer from "../Dictionary/DictionaryOfStingsViewer";
 import { DropdownOption } from "../Dropdown/Dropdown";
 import HiddenText from "../HiddenText/HiddenText";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
+import ObjectIDView from "../ObjectID/ObjectIDView";
 import FieldType from "../Types/FieldType";
 import Field from "./Field";
 import FieldLabelElement from "./FieldLabel";
 import PlaceholderText from "./PlaceholderText";
 import FileModel from "../../../Models/DatabaseModels/DatabaseBaseModel/FileModel";
-import CodeType from "../../../Types/Code/CodeType";
 import Color from "../../../Types/Color";
 import DatabaseProperty from "../../../Types/Database/DatabaseProperty";
 import OneUptimeDate from "../../../Types/Date";
@@ -21,11 +21,18 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement, useEffect, useState } from "react";
 
+export enum DetailStyle {
+  Default = "default",
+  Card = "card",
+  Minimal = "minimal",
+}
+
 export interface ComponentProps<T extends GenericObject> {
   item: T;
   fields: Array<Field<T>>;
   id?: string | undefined;
   showDetailsInNumberOfColumns?: number | undefined;
+  style?: DetailStyle | undefined;
 }
 
 type DetailFunction = <T extends GenericObject>(
@@ -75,25 +82,40 @@ const Detail: DetailFunction = <T extends GenericObject>(
     placeholder: string,
   ): ReactElement => {
     if (!options) {
-      return <div>No options found</div>;
+      return (
+        <span className="text-gray-400 italic text-sm">No options found</span>
+      );
     }
 
-    if (
-      !options.find((i: DropdownOption) => {
+    const selectedOption: DropdownOption | undefined = options.find(
+      (i: DropdownOption) => {
         return i.value === data;
-      })
-    ) {
-      return <div>{placeholder}</div>;
+      },
+    );
+
+    if (!selectedOption) {
+      return (
+        <span className="text-gray-400 italic text-sm">{placeholder}</span>
+      );
     }
 
     return (
-      <div>
-        {
-          options.find((i: DropdownOption) => {
-            return i.value === data;
-          })?.label as string
-        }
-      </div>
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm font-medium">
+        <svg
+          className="w-3.5 h-3.5 text-indigo-500"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5l7 7-7 7"
+          />
+        </svg>
+        {selectedOption.label as string}
+      </span>
     );
   };
 
@@ -122,7 +144,34 @@ const Detail: DetailFunction = <T extends GenericObject>(
       return <></>;
     }
 
-    return <div className="text-gray-900">{usdCents / 100} USD</div>;
+    const formattedAmount: string = (usdCents / 100).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+    return (
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100">
+        <svg
+          className="w-4 h-4 text-emerald-600"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        <span className="font-semibold text-emerald-700">
+          ${formattedAmount}
+        </span>
+        <span className="text-xs text-emerald-600 uppercase tracking-wide font-medium">
+          USD
+        </span>
+      </div>
+    );
   };
 
   type GetMinutesFieldFunction = (minutes: number | null) => ReactElement;
@@ -135,8 +184,24 @@ const Detail: DetailFunction = <T extends GenericObject>(
     }
 
     return (
-      <div className="text-gray-900">
-        {minutes} {minutes > 1 ? "minutes" : "minute"}
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-100">
+        <svg
+          className="w-4 h-4 text-blue-600"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        <span className="font-semibold text-blue-700">{minutes}</span>
+        <span className="text-xs text-blue-600 font-medium">
+          {minutes > 1 ? "minutes" : "minute"}
+        </span>
       </div>
     );
   };
@@ -178,9 +243,28 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
     if (field.fieldType === FieldType.Date) {
       if (data) {
-        data = OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          data as string,
-          true,
+        const formattedDate: string =
+          OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            data as string,
+            true,
+          );
+        data = (
+          <span className="inline-flex items-center gap-2 text-gray-700">
+            <svg
+              className="w-4 h-4 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+            <span className="font-medium">{formattedDate}</span>
+          </span>
         );
       } else {
         data = field.placeholder || "-";
@@ -189,17 +273,46 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
     if (field.fieldType === FieldType.Boolean) {
       if (data) {
-        data = "Yes";
+        data = (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-sm font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+            Yes
+          </span>
+        );
       } else {
-        data = "No";
+        data = (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-sm font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+            No
+          </span>
+        );
       }
     }
 
     if (field.fieldType === FieldType.DateTime) {
       if (data) {
-        data = OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          data as string,
-          false,
+        const formattedDateTime: string =
+          OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            data as string,
+            false,
+          );
+        data = (
+          <span className="inline-flex items-center gap-2 text-gray-700">
+            <svg
+              className="w-4 h-4 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span className="font-medium">{formattedDateTime}</span>
+          </span>
         );
       } else {
         data = field.placeholder || "-";
@@ -274,13 +387,18 @@ const Detail: DetailFunction = <T extends GenericObject>(
         const url: string = URL.createObjectURL(blob);
 
         data = (
-          <img
-            src={url}
-            className={"rounded"}
-            style={{
-              height: "100px",
-            }}
-          />
+          <div className="group/image relative inline-block">
+            <div className="overflow-hidden rounded-xl shadow-md border border-gray-200 bg-white p-1">
+              <img
+                src={url}
+                className="rounded-lg object-cover transition-all duration-300 hover:scale-105"
+                style={{
+                  height: "100px",
+                }}
+                alt=""
+              />
+            </div>
+          </div>
         );
       } else {
         data = "";
@@ -318,14 +436,14 @@ const Detail: DetailFunction = <T extends GenericObject>(
         field.fieldType === FieldType.JavaScript ||
         field.fieldType === FieldType.Code)
     ) {
-      let codeType: CodeType = CodeType.HTML;
+      let language: string = "html";
 
       if (field.fieldType === FieldType.CSS) {
-        codeType = CodeType.CSS;
+        language = "css";
       }
 
       if (field.fieldType === FieldType.JSON) {
-        codeType = CodeType.JSON;
+        language = "json";
 
         //make sure json is well formatted.
 
@@ -343,23 +461,59 @@ const Detail: DetailFunction = <T extends GenericObject>(
                 e,
             );
           }
+        } else if (typeof data === "object" && data !== null) {
+          // If data is already an object, convert it to a formatted JSON string
+          try {
+            data = JSON.stringify(data, null, 2);
+          } catch (e) {
+            Logger.error(
+              "Cant stringify json object for field: " +
+                field.title +
+                " Error: " +
+                e,
+            );
+            data = String(data);
+          }
         }
       }
 
       if (field.fieldType === FieldType.JavaScript) {
-        codeType = CodeType.JavaScript;
+        language = "javascript";
       }
 
       if (field.fieldType === FieldType.Code) {
-        codeType = CodeType.Text;
+        language = "plaintext";
       }
 
       data = (
-        <CodeEditor
-          type={codeType}
-          readOnly={true}
-          initialValue={data as string}
+        <CodeBlock
+          code={data as string}
+          language={language}
+          maxHeight="400px"
         />
+      );
+    }
+
+    if (data && field.fieldType === FieldType.InlineCode) {
+      data = (
+        <code className="px-2 py-1 bg-gray-100 text-gray-800 rounded font-mono text-sm border border-gray-200 break-all">
+          {data as string}
+        </code>
+      );
+    }
+
+    if (data && field.fieldType === FieldType.ObjectID) {
+      const objectIdValue: string = data.toString();
+      data = <ObjectIDView objectId={objectIdValue} />;
+    }
+
+    if (data && field.fieldType === FieldType.Heading) {
+      data = (
+        <div className="inline-flex items-center">
+          <span className="text-2xl font-bold text-gray-900 tracking-tight">
+            {data.toString()}
+          </span>
+        </div>
       );
     }
 
@@ -387,9 +541,29 @@ const Detail: DetailFunction = <T extends GenericObject>(
       data = data.toString();
     }
 
+    // Determine style-based classes
+    const styleType: DetailStyle = props.style || DetailStyle.Default;
+    const isCardStyle: boolean = styleType === DetailStyle.Card;
+    const isMinimalStyle: boolean = styleType === DetailStyle.Minimal;
+
+    /* Container classes based on style - uses first:pt-0 to remove top padding from first field */
+    let containerClasses: string =
+      "group transition-all duration-200 ease-in-out";
+
+    if (isCardStyle) {
+      containerClasses +=
+        " bg-gradient-to-br from-white to-gray-50/50 rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md hover:border-gray-200";
+    } else if (isMinimalStyle) {
+      containerClasses +=
+        " py-3 first:pt-0 last:pb-0 border-b border-gray-50 last:border-b-0 hover:bg-gray-50/50 px-2 -mx-2 rounded-lg";
+    } else {
+      containerClasses +=
+        " py-5 first:pt-0 last:pb-0 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/30 px-3 -mx-3 rounded-lg";
+    }
+
     return (
       <div
-        className={className}
+        className={`${className} ${containerClasses}`}
         key={index}
         id={props.id}
         style={
@@ -406,20 +580,29 @@ const Detail: DetailFunction = <T extends GenericObject>(
           description={field.description}
           sideLink={field.sideLink}
           alignClassName={alignClassName}
+          isCardStyle={isCardStyle}
         />
 
-        <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>
+        <div
+          className={`mt-3 text-sm leading-relaxed ${alignClassName} ${
+            isCardStyle ? "text-gray-800" : "text-gray-700"
+          }`}
+        >
           {data && (
             <div
-              className={`${field.contentClassName} w-full ${
-                field.opts?.isCopyable ? "flex" : ""
+              className={`${field.contentClassName || ""} w-full ${
+                field.opts?.isCopyable
+                  ? "flex items-center gap-3 group/copyable"
+                  : ""
               }`}
             >
-              <div>{data}</div>
+              <div className="break-words leading-relaxed">{data}</div>
 
               {field.opts?.isCopyable &&
                 field.fieldType !== FieldType.HiddenText && (
-                  <CopyableButton textToBeCopied={data.toString()} />
+                  <div className="opacity-0 group-hover/copyable:opacity-100 transition-all duration-200 transform group-hover/copyable:translate-x-0 -translate-x-1">
+                    <CopyableButton textToBeCopied={data.toString()} />
+                  </div>
                 )}
             </div>
           )}
@@ -430,9 +613,16 @@ const Detail: DetailFunction = <T extends GenericObject>(
     );
   };
 
+  // Determine grid gap based on style
+  const styleType: DetailStyle = props.style || DetailStyle.Default;
+  const isCardStyle: boolean = styleType === DetailStyle.Card;
+
+  // Grid gap classes - cards need more gap, others less since they have internal padding
+  const gapClasses: string = isCardStyle ? "gap-4" : "gap-0";
+
   return (
     <div
-      className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-${
+      className={`grid grid-cols-1 ${gapClasses} sm:grid-cols-${
         props.showDetailsInNumberOfColumns || 1
       } w-full`}
     >

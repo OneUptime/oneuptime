@@ -28,6 +28,7 @@ import ManualTrigger from "./Manual";
 import MicrosoftTeamsSendMessageToChannel from "./MicrosoftTeams/SendMessageToChannel";
 import Schedule from "./Schedule";
 import SlackSendMessageToChannel from "./Slack/SendMessageToChannel";
+import TelegramSendMessageToChat from "./Telegram/SendMessageToChat";
 import WebhookTrigger from "./Webhook";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Dictionary from "../../../../Types/Dictionary";
@@ -41,6 +42,7 @@ const Components: Dictionary<ComponentCode> = {
   [ComponentID.DiscordSendMessageToChannel]: new DiscordSendMessageToChannel(),
   [ComponentID.MicrosoftTeamsSendMessageToChannel]:
     new MicrosoftTeamsSendMessageToChannel(),
+  [ComponentID.TelegramSendMessageToChat]: new TelegramSendMessageToChat(),
   [ComponentID.Log]: new Log(),
   [ComponentID.Schedule]: new Schedule(),
   [ComponentID.JavaScriptCode]: new JavaScriptCode(),

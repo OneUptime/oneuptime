@@ -93,6 +93,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 _id: true,
               },
               title: "Workflow ID",
+              fieldType: FieldType.ObjectID,
             },
             {
               field: {

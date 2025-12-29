@@ -777,6 +777,36 @@ mcp:
   podSecurityContext: {}
   containerSecurityContext: {}
 
+# AI Agent Configuration
+# Deploy this to run an AI Agent within your Kubernetes cluster
+# Note: This is disabled by default. To enable, set enabled to true and provide the AI Agent credentials
+aiAgent:
+  enabled: false
+  replicaCount: 1
+  disableTelemetryCollection: false
+  disableAutoscaler: false
+  # AI Agent ID from OneUptime dashboard (required when enabled)
+  id:
+  # AI Agent Key from OneUptime dashboard (will be stored in secrets if not provided)
+  key:
+  ports:
+    http: 3875
+  resources:
+  nodeSelector: {}
+  podSecurityContext: {}
+  containerSecurityContext: {}
+  # KEDA autoscaling configuration based on queue metrics
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    # Scale up when queue size exceeds this threshold
+    queueSizeThreshold: 5
+    # Polling interval for metrics (in seconds)
+    pollingInterval: 30
+    # Cooldown period after scaling (in seconds)
+    cooldownPeriod: 300
+
 serverMonitorIngest:
   enabled: true
   replicaCount: 1
@@ -814,16 +844,18 @@ microsoftTeamsApp:
 # GitHub Example Configuration
 # gitHubApp:
 #   id: "123456"
+#   name: "my-github-app"
 #   clientId: "Iv1.abc123"
 #   clientSecret: "your-client-secret"
 #   privateKey: |
 #     -----BEGIN RSA PRIVATE KEY-----
 #     ...
 #     -----END RSA PRIVATE KEY-----
-#   webhookSecret: "your-webhook-secret"    
+#   webhookSecret: "your-webhook-secret"
 
 gitHubApp:
   id:
+  name:
   clientId:
   clientSecret:
   privateKey:

@@ -202,6 +202,17 @@ import { MigrationName1765801357168 } from "./1765801357168-MigrationName";
 import { MigrationName1765810218488 } from "./1765810218488-MigrationName";
 import { MigrationName1765830758857 } from "./1765830758857-MigrationName";
 import { MigrationName1765834537501 } from "./1765834537501-MigrationName";
+import { MigrationName1766590916627 } from "./1766590916627-MigrationName";
+import { MigrationName1766600860972 } from "./1766600860972-MigrationName";
+import { MigrationName1766606720183 } from "./1766606720183-MigrationName";
+import { MigrationName1766688107858 } from "./1766688107858-MigrationName";
+import { MigrationName1766754182870 } from "./1766754182870-MigrationName";
+import { MigrationName1766774689743 } from "./1766774689743-MigrationName";
+import { MigrationName1766777986427 } from "./1766777986427-MigrationName";
+import { AddAIAgentIsDefault1766918848434 } from "./1766918848434-AddAIAgentIsDefault";
+import { MigrationName1766923324521 } from "./1766923324521-MigrationName";
+import { AddGitHubAppInstallationIdToProject1766958924188 } from "./1766958924188-AddGitHubAppInstallationIdToProject";
+import { MigrationName1767009661768 } from "./1767009661768-MigrationName";
 
 export default [
   InitialMigration,
@@ -408,4 +419,15 @@ export default [
   MigrationName1765810218488,
   MigrationName1765830758857,
   MigrationName1765834537501,
+  MigrationName1766590916627,
+  MigrationName1766600860972,
+  MigrationName1766606720183,
+  MigrationName1766688107858,
+  MigrationName1766754182870,
+  MigrationName1766774689743,
+  MigrationName1766777986427,
+  AddAIAgentIsDefault1766918848434,
+  MigrationName1766923324521,
+  AddGitHubAppInstallationIdToProject1766958924188,
+  MigrationName1767009661768,
 ];

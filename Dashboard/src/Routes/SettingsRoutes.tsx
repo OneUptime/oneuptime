@@ -79,6 +79,17 @@ const SettingProbes: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Settings/Probes");
   });
 
+const SettingAIAgents: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Settings/AIAgents");
+  });
+
+const SettingsAIAgentView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/AIAgentView");
+});
+
 const SettingLlmProviders: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -1056,6 +1067,30 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               <SettingProbes
                 {...props}
                 pageRoute={RouteMap[PageMap.SETTINGS_PROBES] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_AGENTS)}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingAIAgents
+                {...props}
+                pageRoute={RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_AGENT_VIEW, 2)}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingsAIAgentView
+                {...props}
+                pageRoute={RouteMap[PageMap.SETTINGS_AI_AGENT_VIEW] as Route}
               />
             </Suspense>
           }

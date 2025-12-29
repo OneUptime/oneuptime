@@ -86,6 +86,7 @@ const DashboardView: FunctionComponent<
                 _id: true,
               },
               title: "Dashboard ID",
+              fieldType: FieldType.ObjectID,
             },
             {
               field: {

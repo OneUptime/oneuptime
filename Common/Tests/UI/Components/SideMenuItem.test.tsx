@@ -15,7 +15,9 @@ import React from "react";
 import getJestMockFunction from "../../../Tests/MockType";
 
 const highlightClassList: string =
-  "bg-gray-100 text-indigo-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium";
+  "bg-gradient-to-r from-indigo-50 to-indigo-50/50 text-indigo-700 shadow-sm";
+
+const subItemHighlightClassList: string = "bg-indigo-50/70 text-indigo-700";
 
 jest.mock("../../../UI/Utils/Navigation.ts", () => {
   return {
@@ -148,6 +150,6 @@ describe("Side Menu Item", () => {
     const subLinkElement: HTMLAnchorElement | null = screen
       .getByText(subLink.title)
       .closest("a");
-    expect(subLinkElement).toHaveClass(highlightClassList);
+    expect(subLinkElement).toHaveClass(subItemHighlightClassList);
   });
 });
