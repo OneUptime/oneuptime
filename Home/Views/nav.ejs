@@ -55,160 +55,238 @@
                 To: "opacity-0 trangray-y-1"
             -->
           <div onmouseenter="showProductMenu()" onmouseover="showProductMenu()" onmouseleave="hideProductMenu()"
-            class="absolute z-20 -ml-4 mt-3 w-screen max-w-5xl transform px-2 sm:px-0 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2"
+            class="absolute z-20 -ml-4 mt-3 w-screen max-w-6xl transform px-2 sm:px-0 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2"
             id="product-menu" style="visibility: collapse;">
             <div class="overflow-hidden rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5">
-              <div class="relative bg-white px-6 py-6">
-                <!-- Product Grid -->
-                <div class="grid grid-cols-4 gap-3">
-                  <!-- Status Page - Emerald -->
-                  <a href="/product/status-page" class="group flex items-center gap-3 rounded-xl p-3 transition-all hover:bg-emerald-50 ring-1 ring-transparent hover:ring-emerald-200">
-                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50 ring-1 ring-emerald-200 group-hover:bg-emerald-100">
-                      <%- include('./Partials/icons/status-page') %>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">Status Page</p>
-                      <p class="text-xs text-gray-500">Real-time status updates</p>
-                    </div>
-                  </a>
+              <div class="relative bg-white">
+                <div class="grid grid-cols-12 divide-x divide-gray-100">
+                  <!-- Main Products Section -->
+                  <div class="col-span-9 p-6">
+                    <div class="grid grid-cols-3 gap-x-8 gap-y-1">
+                      <!-- Incident Response Column -->
+                      <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Essentials</h3>
+                        <div class="space-y-1">
+                          <!-- Monitoring - Blue -->
+                          <a href="/product/monitoring" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-blue-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200 group-hover:bg-blue-100 group-hover:ring-blue-300">
+                              <%- include('./Partials/icons/monitoring', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Monitoring</p>
+                              <p class="text-xs text-gray-500">Uptime & synthetic checks</p>
+                            </div>
+                          </a>
+                          <!-- Status Page - Emerald -->
+                          <a href="/product/status-page" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-emerald-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50 ring-1 ring-emerald-200 group-hover:bg-emerald-100 group-hover:ring-emerald-300">
+                              <%- include('./Partials/icons/status-page', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Status Page</p>
+                              <p class="text-xs text-gray-500">Communicate incidents to users</p>
+                            </div>
+                          </a>
 
-                  <!-- Incidents - Rose -->
-                  <a href="/product/incident-management" class="group flex items-center gap-3 rounded-xl p-3 transition-all hover:bg-rose-50 ring-1 ring-transparent hover:ring-rose-200">
-                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200 group-hover:bg-rose-100">
-                      <%- include('./Partials/icons/incidents') %>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">Incidents</p>
-                      <p class="text-xs text-gray-500">Detect and resolve fast</p>
-                    </div>
-                  </a>
+                          <!-- Incidents - Rose -->
+                          <a href="/product/incident-management" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-rose-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 ring-1 ring-rose-200 group-hover:bg-rose-100 group-hover:ring-rose-300">
+                              <%- include('./Partials/icons/incidents', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Incidents</p>
+                              <p class="text-xs text-gray-500">Detect, manage & resolve</p>
+                            </div>
+                          </a>
 
-                  <!-- Monitoring - Blue -->
-                  <a href="/product/monitoring" class="group flex items-center gap-3 rounded-xl p-3 transition-all hover:bg-blue-50 ring-1 ring-transparent hover:ring-blue-200">
-                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 ring-1 ring-blue-200 group-hover:bg-blue-100">
-                      <%- include('./Partials/icons/monitoring') %>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">Monitoring</p>
-                      <p class="text-xs text-gray-500">Monitor any resource</p>
-                    </div>
-                  </a>
+                          <!-- On-Call - Stone -->
+                          <a href="/product/on-call" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-stone-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-stone-50 ring-1 ring-stone-200 group-hover:bg-stone-100 group-hover:ring-stone-300">
+                              <%- include('./Partials/icons/on-call', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">On-Call & Alerts</p>
+                              <p class="text-xs text-gray-500">Smart routing & escalations</p>
+                            </div>
+                          </a>
+                        </div>
+                      </div>
 
-                  <!-- On-Call - Stone -->
-                  <a href="/product/on-call" class="group flex items-center gap-3 rounded-xl p-3 transition-all hover:bg-stone-50 ring-1 ring-transparent hover:ring-stone-200">
-                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-stone-50 ring-1 ring-stone-200 group-hover:bg-stone-100">
-                      <%- include('./Partials/icons/on-call') %>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">On-Call</p>
-                      <p class="text-xs text-gray-500">Alerts & escalations</p>
-                    </div>
-                  </a>
+                      <!-- Observability Column -->
+                      <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Observability</h3>
+                        <div class="space-y-1">
+                          
 
-                  <!-- Logs - Amber -->
-                  <a href="/product/logs-management" class="group flex items-center gap-3 rounded-xl p-3 transition-all hover:bg-amber-50 ring-1 ring-transparent hover:ring-amber-200">
-                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-amber-200 group-hover:bg-amber-100">
-                      <%- include('./Partials/icons/logs') %>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">Logs</p>
-                      <p class="text-xs text-gray-500">Fastest log ingest & search</p>
-                    </div>
-                  </a>
+                          <!-- Logs - Amber -->
+                          <a href="/product/logs-management" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-amber-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-amber-200 group-hover:bg-amber-100 group-hover:ring-amber-300">
+                              <%- include('./Partials/icons/logs', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Logs</p>
+                              <p class="text-xs text-gray-500">Fastest log ingest & search</p>
+                            </div>
+                          </a>
 
-                  <!-- Metrics - Purple -->
-                  <a href="/product/metrics" class="group flex items-center gap-3 rounded-xl p-3 transition-all hover:bg-purple-50 ring-1 ring-transparent hover:ring-purple-200">
-                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-purple-50 ring-1 ring-purple-200 group-hover:bg-purple-100">
-                      <%- include('./Partials/icons/metrics') %>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">Metrics</p>
-                      <p class="text-xs text-gray-500">Performance insights</p>
-                    </div>
-                  </a>
+                          <!-- Metrics - Purple -->
+                          <a href="/product/metrics" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-purple-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-purple-50 ring-1 ring-purple-200 group-hover:bg-purple-100 group-hover:ring-purple-300">
+                              <%- include('./Partials/icons/metrics', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Metrics</p>
+                              <p class="text-xs text-gray-500">Application & infra metrics</p>
+                            </div>
+                          </a>
 
-                  <!-- Traces - Yellow -->
-                  <a href="/product/traces" class="group flex items-center gap-3 rounded-xl p-3 transition-all hover:bg-yellow-50 ring-1 ring-transparent hover:ring-yellow-200">
-                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-yellow-50 ring-1 ring-yellow-200 group-hover:bg-yellow-100">
-                      <%- include('./Partials/icons/traces') %>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">Traces</p>
-                      <p class="text-xs text-gray-500">Distributed tracing</p>
-                    </div>
-                  </a>
+                          <!-- Traces - Yellow -->
+                          <a href="/product/traces" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-yellow-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-yellow-50 ring-1 ring-yellow-200 group-hover:bg-yellow-100 group-hover:ring-yellow-300">
+                              <%- include('./Partials/icons/traces', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Traces</p>
+                              <p class="text-xs text-gray-500">Distributed request tracing</p>
+                            </div>
+                          </a>
 
-                  <!-- Exceptions - Orange -->
-                  <a href="/product/exceptions" class="group flex items-center gap-3 rounded-xl p-3 transition-all hover:bg-orange-50 ring-1 ring-transparent hover:ring-orange-200">
-                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200 group-hover:bg-orange-100">
-                      <%- include('./Partials/icons/exceptions') %>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">Exceptions</p>
-                      <p class="text-xs text-gray-500">Catch and fix bugs</p>
-                    </div>
-                  </a>
+                          <!-- Exceptions - Orange -->
+                          <a href="/product/exceptions" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-orange-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200 group-hover:bg-orange-100 group-hover:ring-orange-300">
+                              <%- include('./Partials/icons/exceptions', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Exceptions</p>
+                              <p class="text-xs text-gray-500">Error tracking & debugging</p>
+                            </div>
+                          </a>
+                        </div>
+                      </div>
 
-                  <!-- Workflows - Sky -->
-                  <a href="/product/workflows" class="group flex items-center gap-3 rounded-xl p-3 transition-all hover:bg-sky-50 ring-1 ring-transparent hover:ring-sky-200">
-                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200 group-hover:bg-sky-100">
-                      <%- include('./Partials/icons/workflows') %>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">Workflows</p>
-                      <p class="text-xs text-gray-500">Automate any process</p>
-                    </div>
-                  </a>
+                      <!-- Automation & Analytics Column -->
+                      <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Automation & Analytics</h3>
+                        <div class="space-y-1">
+                          <!-- Workflows - Sky -->
+                          <a href="/product/workflows" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-sky-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200 group-hover:bg-sky-100 group-hover:ring-sky-300">
+                              <%- include('./Partials/icons/workflows', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Workflows</p>
+                              <p class="text-xs text-gray-500">No-code automation builder</p>
+                            </div>
+                          </a>
 
-                  <!-- Dashboards - Indigo -->
-                  <a href="/product/dashboards" class="group flex items-center gap-3 rounded-xl p-3 transition-all hover:bg-indigo-50 ring-1 ring-transparent hover:ring-indigo-200">
-                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200 group-hover:bg-indigo-100">
-                      <%- include('./Partials/icons/dashboards') %>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">Dashboards</p>
-                      <p class="text-xs text-gray-500">Visualize all your data</p>
-                    </div>
-                  </a>
+                          <!-- Dashboards - Indigo -->
+                          <a href="/product/dashboards" class="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-indigo-50">
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200 group-hover:bg-indigo-100 group-hover:ring-indigo-300">
+                              <%- include('./Partials/icons/dashboards', {iconClass: 'h-4 w-4'}) %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-medium text-gray-900">Dashboards</p>
+                              <p class="text-xs text-gray-500">Custom data visualizations</p>
+                            </div>
+                          </a>
+                        </div>
 
-                  <!-- AI Agent - Violet (Featured) -->
-                  <a href="/product/ai-agent" class="group col-span-2 flex items-center gap-3 rounded-xl p-3 transition-all bg-gradient-to-r from-violet-50 to-purple-50 ring-1 ring-violet-200 hover:ring-violet-300 hover:from-violet-100 hover:to-purple-100">
-                    <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-violet-100 ring-1 ring-violet-300 group-hover:bg-violet-200">
-                      <%- include('./Partials/icons/ai-agent') %>
+                        <!-- AI Agent Featured -->
+                        <div class="mt-4 pt-4 border-t border-gray-100">
+                          <a href="/product/ai-agent" class="group flex items-center gap-3 rounded-xl p-3 transition-all bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 ring-1 ring-violet-200 hover:ring-violet-300 hover:shadow-md">
+                            <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 ring-1 ring-violet-300 group-hover:from-violet-200 group-hover:to-purple-200">
+                              <%- include('./Partials/icons/ai-agent') %>
+                            </div>
+                            <div>
+                              <p class="text-sm font-semibold text-gray-900">AI Agent <span class="ml-1 inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">New</span></p>
+                              <p class="text-xs text-gray-600">Auto-fix issues with AI-powered PRs</p>
+                            </div>
+                          </a>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">AI Agent <span class="ml-1 inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">New</span></p>
-                      <p class="text-xs text-gray-500">Auto-fix errors with AI-powered pull requests</p>
+                  </div>
+
+                  <!-- Right Sidebar -->
+                  <div class="col-span-3 bg-gray-50 p-6">
+                    <!-- Resources Section -->
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Resources</h3>
+                    <div class="space-y-2">
+                      <a href="/docs" class="group flex items-center gap-2.5 rounded-lg p-2 transition-all hover:bg-white hover:shadow-sm">
+                        <svg class="h-5 w-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700 group-hover:text-gray-900">Documentation</span>
+                      </a>
+                      <a href="/reference" class="group flex items-center gap-2.5 rounded-lg p-2 transition-all hover:bg-white hover:shadow-sm">
+                        <svg class="h-5 w-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700 group-hover:text-gray-900">API Reference</span>
+                      </a>
+                      <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group flex items-center gap-2.5 rounded-lg p-2 transition-all hover:bg-white hover:shadow-sm">
+                        <svg class="h-5 w-5 text-gray-400 group-hover:text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                          <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700 group-hover:text-gray-900">GitHub</span>
+                      </a>
+                      <a href="/blog" class="group flex items-center gap-2.5 rounded-lg p-2 transition-all hover:bg-white hover:shadow-sm">
+                        <svg class="h-5 w-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700 group-hover:text-gray-900">Blog & Guides</span>
+                      </a>
                     </div>
-                  </a>
+
+                    <!-- CTA Section -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                      <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Get Started</h3>
+                      <div class="space-y-2">
+                        <a href="/accounts/register" class="flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-gray-800">
+                          Start Free Trial
+                          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+                          </svg>
+                        </a>
+                        <a href="/enterprise/demo" class="flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-gray-700 ring-1 ring-gray-200 transition-all hover:bg-gray-50 hover:ring-gray-300">
+                          <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"></path>
+                          </svg>
+                          Request Demo
+                        </a>
+                      </div>
+                    </div>
+
+                    <!-- Contact -->
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                      <a href="mailto:sales@oneuptime.com" class="group flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"></path>
+                        </svg>
+                        <span>sales@oneuptime.com</span>
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div class="space-y-6 bg-gray-50 px-5 py-5 sm:flex sm:space-y-0 sm:space-x-10 sm:px-8">
-                <div class="flow-root w-1/2">
-                  <a href="/enterprise/demo"
-                    class="-m-3 flex items-center rounded-md p-3 text-base font-medium text-gray-900 hover:bg-gray-100">
-                    <!-- Heroicon name: outline/play -->
-                    <svg class="h-6 w-6 flex-shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
-                      viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+
+              <!-- Bottom Bar -->
+              <div class="bg-gray-100 px-6 py-3 flex items-center justify-between">
+                <p class="text-xs text-gray-500">
+                  <span class="font-medium text-gray-700">Open Source</span> &mdash; Self-host or use our cloud. Your data, your choice.
+                </p>
+                <div class="flex items-center gap-4">
+                  <a href="/pricing" class="text-xs font-medium text-gray-600 hover:text-gray-900 flex items-center gap-1">
+                    View Pricing
+                    <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path>
                     </svg>
-                    <span class="ml-3">Request Demo</span>
                   </a>
-                </div>
-
-                <div class="flow-root  w-1/2">
-                  <a href="mailto:sales@oneuptime.com"
-                    class="-m-3 flex items-center rounded-md p-3 text-base font-medium text-gray-900 hover:bg-gray-100">
-                    <!-- Heroicon name: outline/phone -->
-
-                    <svg class="h-6 w-6 flex-shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
-                      viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                  <a href="/enterprise/overview" class="text-xs font-medium text-gray-600 hover:text-gray-900 flex items-center gap-1">
+                    Enterprise
+                    <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path>
                     </svg>
-
-                    <span class="ml-3">Contact Sales</span>
                   </a>
                 </div>
               </div>
