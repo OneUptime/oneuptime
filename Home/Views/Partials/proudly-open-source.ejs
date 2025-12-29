@@ -164,8 +164,28 @@
     const terminalContent = document.getElementById('oss-terminal-content');
     const terminalTitle = document.getElementById('oss-terminal-title');
     let easterEggActive = false;
+    let originalContent = '';
+    let originalTitle = '';
 
     if (terminalDots && terminalContent && terminalTitle) {
+        // Save original content
+        originalContent = terminalContent.innerHTML;
+        originalTitle = terminalTitle.textContent;
+
+        // Escape key to revert
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && easterEggActive) {
+                easterEggActive = false;
+                terminalTitle.textContent = originalTitle;
+                terminalContent.innerHTML = originalContent;
+                terminalContent.style.minHeight = '';
+                terminalContent.style.padding = '';
+                terminalContent.style.background = '';
+                terminal.style.boxShadow = '';
+                terminal.style.borderColor = '';
+            }
+        });
+
         terminalDots.addEventListener('click', function(e) {
             e.stopPropagation();
             if (easterEggActive) return;
