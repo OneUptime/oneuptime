@@ -202,7 +202,9 @@
                 ];
 
                 terminalContent.innerHTML = '';
-                terminalContent.style.minHeight = '200px';
+                terminalContent.style.minHeight = '220px';
+                terminalContent.style.padding = '20px 24px';
+                terminalContent.style.background = '#1e1e1e';
 
                 let lineIndex = 0;
 
@@ -214,24 +216,26 @@
                     lineEl.style.opacity = '0';
                     lineEl.style.transform = 'translateY(5px)';
                     lineEl.style.transition = 'all 0.3s ease-out';
-                    lineEl.style.fontFamily = "'SF Mono', 'Fira Code', 'Consolas', monospace";
-                    lineEl.style.fontSize = '14px';
-                    lineEl.style.marginBottom = '4px';
+                    lineEl.style.fontFamily = "'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace";
+                    lineEl.style.fontSize = '15px';
+                    lineEl.style.lineHeight = '1.6';
+                    lineEl.style.letterSpacing = '0.3px';
+                    lineEl.style.marginBottom = '2px';
 
                     if (line.type === 'command') {
-                        lineEl.innerHTML = '<span style="color: #4ade80;">$</span> <span style="color: #58a6ff;">echo</span> <span style="color: #a5d6ff;">"TO THE BUILDERS"</span>';
+                        lineEl.innerHTML = '<span style="color: #32d74b;">$</span> <span style="color: #ffffff;">echo "TO THE BUILDERS"</span>';
                     } else if (line.type === 'blank') {
                         lineEl.innerHTML = '&nbsp;';
                     } else if (line.type === 'output highlight') {
-                        lineEl.style.color = '#4ade80';
-                        lineEl.style.fontWeight = 'bold';
-                        lineEl.style.textShadow = '0 0 10px rgba(74, 222, 128, 0.5)';
+                        lineEl.style.color = '#32d74b';
+                        lineEl.style.fontWeight = '500';
                         lineEl.textContent = line.text;
                     } else if (line.type === 'signature') {
-                        lineEl.style.color = '#8b949e';
+                        lineEl.style.color = '#98989d';
+                        lineEl.style.marginTop = '4px';
                         lineEl.textContent = line.text;
                     } else {
-                        lineEl.style.color = '#c9d1d9';
+                        lineEl.style.color = '#ffffff';
                         lineEl.textContent = line.text;
                     }
 
