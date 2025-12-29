@@ -399,7 +399,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   // Desktop view
   return (
     <aside
-      className={`hidden md:block lg:col-span-2 md:col-span-3 mb-10 ${props.className || ""}`}
+      className={`hidden md:block w-52 lg:w-60 flex-shrink-0 mb-10 ${props.className || ""}`}
       role="navigation"
       aria-label="Main navigation"
     >
