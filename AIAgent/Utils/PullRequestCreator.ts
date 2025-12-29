@@ -137,15 +137,17 @@ export default class PullRequestCreator {
 
     const headers: Headers = this.getHeaders(token);
 
-    const response: HTTPResponse<JSONArray> | HTTPErrorResponse = await API.get({
-      url,
-      headers,
-      params: {
-        head: `${organizationName}:${headBranch}`,
-        base: baseBranch,
-        state: "open",
+    const response: HTTPResponse<JSONArray> | HTTPErrorResponse = await API.get(
+      {
+        url,
+        headers,
+        params: {
+          head: `${organizationName}:${headBranch}`,
+          base: baseBranch,
+          state: "open",
+        },
       },
-    });
+    );
 
     if (!response.isSuccess()) {
       return null;
