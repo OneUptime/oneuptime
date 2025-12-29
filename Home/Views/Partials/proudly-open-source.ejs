@@ -42,18 +42,20 @@
 
         <!-- Terminal -->
         <div class="max-w-2xl mx-auto mb-12">
-            <div id="oss-terminal" class="rounded-2xl bg-black/40 border border-white/[0.06] overflow-hidden transition-all duration-300">
-                <div class="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
-                    <div id="oss-terminal-dots" class="flex gap-1.5 cursor-pointer hover:opacity-80 transition-opacity">
-                        <div class="w-3 h-3 rounded-full bg-white/10"></div>
-                        <div class="w-3 h-3 rounded-full bg-white/10"></div>
-                        <div class="w-3 h-3 rounded-full bg-white/10"></div>
+            <div id="oss-terminal" class="rounded-xl overflow-hidden transition-all duration-500 shadow-2xl shadow-black/50" style="background: #1e1e1e; border: 1px solid rgba(255,255,255,0.1);">
+                <!-- Title Bar -->
+                <div class="flex items-center px-4 py-3 relative" style="background: #323233;">
+                    <div id="oss-terminal-dots" class="flex gap-2 cursor-pointer group">
+                        <div class="w-3 h-3 rounded-full transition-all duration-200 group-hover:brightness-110" style="background: #ff5f57; box-shadow: inset 0 -1px 1px rgba(0,0,0,0.2);"></div>
+                        <div class="w-3 h-3 rounded-full transition-all duration-200 group-hover:brightness-110" style="background: #febc2e; box-shadow: inset 0 -1px 1px rgba(0,0,0,0.2);"></div>
+                        <div class="w-3 h-3 rounded-full transition-all duration-200 group-hover:brightness-110" style="background: #28c840; box-shadow: inset 0 -1px 1px rgba(0,0,0,0.2);"></div>
                     </div>
-                    <span id="oss-terminal-title" class="ml-2 text-xs text-gray-500 font-mono">terminal</span>
+                    <span id="oss-terminal-title" class="absolute left-1/2 -translate-x-1/2 text-xs font-medium" style="color: #9b9b9b; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;">terminal</span>
                 </div>
-                <div id="oss-terminal-content" class="px-6 py-5">
-                    <code class="text-gray-300 font-mono text-sm sm:text-base">
-                        <span class="text-gray-500">$</span> curl <%= locals.homeUrl || 'https://oneuptime.com' %>/install.sh | bash
+                <!-- Content -->
+                <div id="oss-terminal-content" class="px-5 py-4" style="min-height: 60px;">
+                    <code style="font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace; font-size: 14px; color: #f5f5f5; line-height: 1.6;">
+                        <span style="color: #28c840;">$</span> curl <%= locals.homeUrl || 'https://oneuptime.com' %>/install.sh | bash
                     </code>
                 </div>
             </div>
@@ -180,9 +182,8 @@
                 terminalContent.innerHTML = originalContent;
                 terminalContent.style.minHeight = '';
                 terminalContent.style.padding = '';
-                terminalContent.style.background = '';
-                terminal.style.boxShadow = '';
-                terminal.style.borderColor = '';
+                terminal.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.5)';
+                terminal.style.borderColor = 'rgba(255,255,255,0.1)';
             }
         });
 
@@ -195,8 +196,8 @@
                 terminalTitle.textContent = 'builder_tribute.sh';
 
                 // Show Easter egg content
-                terminal.style.boxShadow = '0 0 40px rgba(74, 222, 128, 0.2)';
-                terminal.style.borderColor = 'rgba(74, 222, 128, 0.3)';
+                terminal.style.boxShadow = '0 0 60px rgba(40, 200, 64, 0.3), 0 25px 50px -12px rgba(0, 0, 0, 0.5)';
+                terminal.style.borderColor = 'rgba(40, 200, 64, 0.4)';
 
                 const lines = [
                     { text: '$ echo "TO THE BUILDERS"', type: 'command' },
@@ -213,7 +214,6 @@
                 terminalContent.innerHTML = '';
                 terminalContent.style.minHeight = '220px';
                 terminalContent.style.padding = '20px 24px';
-                terminalContent.style.background = '#1e1e1e';
 
                 let lineIndex = 0;
 
@@ -232,11 +232,11 @@
                     lineEl.style.marginBottom = '2px';
 
                     if (line.type === 'command') {
-                        lineEl.innerHTML = '<span style="color: #32d74b;">$</span> <span style="color: #ffffff;">echo "TO THE BUILDERS"</span>';
+                        lineEl.innerHTML = '<span style="color: #28c840;">$</span> <span style="color: #f5f5f5;">echo "TO THE BUILDERS"</span>';
                     } else if (line.type === 'blank') {
                         lineEl.innerHTML = '&nbsp;';
                     } else if (line.type === 'output highlight') {
-                        lineEl.style.color = '#32d74b';
+                        lineEl.style.color = '#28c840';
                         lineEl.style.fontWeight = '500';
                         lineEl.textContent = line.text;
                     } else if (line.type === 'signature') {
