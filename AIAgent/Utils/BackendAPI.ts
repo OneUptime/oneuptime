@@ -139,7 +139,7 @@ export default class BackendAPI {
 
   // Get LLM configuration for a project
   public async getLLMConfig(projectId: string): Promise<LLMConfig> {
-    const url: URL = this.baseUrl.addRoute("/api/ai-agent-data/get-llm-config");
+    const url: URL = URL.fromURL(this.baseUrl).addRoute("/api/ai-agent-data/get-llm-config");
 
     const response = await API.post({
       url,
@@ -183,7 +183,7 @@ export default class BackendAPI {
   public async getExceptionDetails(
     exceptionId: string,
   ): Promise<ExceptionDetails> {
-    const url: URL = this.baseUrl.addRoute(
+    const url: URL = URL.fromURL(this.baseUrl).addRoute(
       "/api/ai-agent-data/get-exception-details",
     );
 
@@ -231,7 +231,7 @@ export default class BackendAPI {
   public async getCodeRepositories(
     telemetryServiceId: string,
   ): Promise<Array<CodeRepositoryInfo>> {
-    const url: URL = this.baseUrl.addRoute(
+    const url: URL = URL.fromURL(this.baseUrl).addRoute(
       "/api/ai-agent-data/get-code-repositories",
     );
 
@@ -275,7 +275,7 @@ export default class BackendAPI {
   public async getRepositoryToken(
     codeRepositoryId: string,
   ): Promise<RepositoryToken> {
-    const url: URL = this.baseUrl.addRoute(
+    const url: URL = URL.fromURL(this.baseUrl).addRoute(
       "/api/ai-agent-data/get-repository-token",
     );
 
@@ -314,7 +314,7 @@ export default class BackendAPI {
   public async recordPullRequest(
     options: RecordPullRequestOptions,
   ): Promise<RecordPullRequestResult> {
-    const url: URL = this.baseUrl.addRoute(
+    const url: URL = URL.fromURL(this.baseUrl).addRoute(
       "/api/ai-agent-data/record-pull-request",
     );
 
@@ -358,7 +358,7 @@ export default class BackendAPI {
     status: AIAgentTaskStatus,
     statusMessage?: string,
   ): Promise<void> {
-    const url: URL = this.baseUrl.addRoute(
+    const url: URL = URL.fromURL(this.baseUrl).addRoute(
       "/api/ai-agent-task/update-task-status",
     );
 
