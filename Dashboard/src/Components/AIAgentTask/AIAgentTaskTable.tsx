@@ -134,12 +134,12 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
       name={props.name}
       isViewable={true}
       {...(props.query ? { query: props.query } : {})}
-      showAs={ShowAs.List}
+      showAs={ShowAs.Table}
       cardProps={{
         title: props.title,
         description: props.description,
       }}
-      showViewIdButton={true}
+      showViewIdButton={false}
       noItemsMessage={props.noItemsMessage || defaultNoItemsMessage}
       filters={filters}
       showRefreshButton={true}
