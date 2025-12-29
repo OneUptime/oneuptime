@@ -14,7 +14,6 @@ import { Green, Red, Yellow, Blue } from "Common/Types/BrandColors";
 import Query from "Common/Types/BaseDatabase/Query";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import AIAgentTaskTypeElement from "./AIAgentTaskTypeElement";
-import AIAgentElement from "Common/UI/Components/AIAgent/AIAgent";
 
 export interface AIAgentTaskTableProps {
   id: string;
@@ -167,13 +166,6 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
         },
         {
           field: {
-            description: true,
-          },
-          title: "Description",
-          type: FieldType.Text,
-        },
-        {
-          field: {
             taskType: true,
           },
           title: "Task Type",
@@ -187,29 +179,6 @@ const AIAgentTaskTable: FunctionComponent<AIAgentTaskTableProps> = (
           title: "Status",
           type: FieldType.Element,
           getElement: getStatusElement,
-        },
-        {
-          field: {
-            aiAgent: {
-              name: true,
-              iconFileId: true,
-            },
-          },
-          title: "AI Agent",
-          type: FieldType.Entity,
-          getElement: (item: AIAgentTask): ReactElement => {
-            if (!item.aiAgent) {
-              return <span className="text-gray-400">Not Assigned</span>;
-            }
-            return <AIAgentElement aiAgent={item.aiAgent} />;
-          },
-        },
-        {
-          field: {
-            [props.dateField]: true,
-          },
-          title: props.dateFieldTitle,
-          type: FieldType.DateTime,
         },
       ]}
       onViewPage={(item: AIAgentTask): Promise<Route> => {
