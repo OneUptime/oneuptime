@@ -2,13 +2,76 @@ import { ONEUPTIME_URL } from "../Config";
 import AIAgentAPIRequest from "./AIAgentAPIRequest";
 import URL from "Common/Types/API/URL";
 import API from "Common/Utils/API";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import { JSONObject } from "Common/Types/JSON";
 import LlmType from "Common/Types/LLM/LlmType";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import logger from "Common/Server/Utils/Logger";
 
-// Response types
+// API Response types
+interface LLMConfigResponse {
+  llmType: LlmType;
+  apiKey?: string;
+  baseUrl?: string;
+  modelName?: string;
+  message?: string;
+}
+
+interface ExceptionResponse {
+  id: string;
+  message: string;
+  stackTrace: string;
+  exceptionType: string;
+  fingerprint: string;
+}
+
+interface TelemetryServiceResponse {
+  id: string;
+  name: string;
+  description: string;
+}
+
+interface ExceptionDetailsResponse {
+  exception: ExceptionResponse;
+  telemetryService: TelemetryServiceResponse | null;
+  message?: string;
+}
+
+interface CodeRepositoryResponse {
+  id: string;
+  name: string;
+  repositoryHostedAt: string;
+  organizationName: string;
+  repositoryName: string;
+  mainBranchName: string;
+  servicePathInRepository: string | null;
+  gitHubAppInstallationId: string | null;
+}
+
+interface CodeRepositoriesResponse {
+  repositories: Array<CodeRepositoryResponse>;
+  message?: string;
+}
+
+interface RepositoryTokenResponse {
+  token: string;
+  expiresAt: string;
+  repositoryUrl: string;
+  organizationName: string;
+  repositoryName: string;
+  message?: string;
+}
+
+interface RecordPullRequestResponse {
+  success: boolean;
+  pullRequestId: string;
+  message?: string;
+}
+
+interface UpdateTaskStatusResponse {
+  success?: boolean;
+  message?: string;
+}
+
+// Exported types
 export interface LLMConfig {
   llmType: LlmType;
   apiKey?: string;
@@ -78,7 +141,7 @@ export default class BackendAPI {
   public async getLLMConfig(projectId: string): Promise<LLMConfig> {
     const url: URL = this.baseUrl.addRoute("/api/ai-agent-data/get-llm-config");
 
-    const response: HTTPResponse<JSONObject> = await API.post({
+    const response = await API.post({
       url,
       data: {
         ...AIAgentAPIRequest.getDefaultRequestBody(),
@@ -87,30 +150,30 @@ export default class BackendAPI {
     });
 
     if (!response.isSuccess()) {
-      const errorMessage: string =
-        (response.data as JSONObject)?.["message"]?.toString() ||
-        "Failed to get LLM config";
+      const data = response.data as unknown as LLMConfigResponse;
+      const errorMessage: string = data?.message || "Failed to get LLM config";
       throw new Error(errorMessage);
     }
 
-    const data: JSONObject = response.data as JSONObject;
+    const data: LLMConfigResponse =
+      response.data as unknown as LLMConfigResponse;
 
-    logger.debug(`Got LLM config for project ${projectId}: ${data["llmType"]}`);
+    logger.debug(`Got LLM config for project ${projectId}: ${data.llmType}`);
 
     const llmConfig: LLMConfig = {
-      llmType: data["llmType"] as LlmType,
+      llmType: data.llmType,
     };
 
-    if (data["apiKey"]) {
-      llmConfig.apiKey = data["apiKey"] as string;
+    if (data.apiKey) {
+      llmConfig.apiKey = data.apiKey;
     }
 
-    if (data["baseUrl"]) {
-      llmConfig.baseUrl = data["baseUrl"] as string;
+    if (data.baseUrl) {
+      llmConfig.baseUrl = data.baseUrl;
     }
 
-    if (data["modelName"]) {
-      llmConfig.modelName = data["modelName"] as string;
+    if (data.modelName) {
+      llmConfig.modelName = data.modelName;
     }
 
     return llmConfig;
@@ -124,7 +187,7 @@ export default class BackendAPI {
       "/api/ai-agent-data/get-exception-details",
     );
 
-    const response: HTTPResponse<JSONObject> = await API.post({
+    const response = await API.post({
       url,
       data: {
         ...AIAgentAPIRequest.getDefaultRequestBody(),
@@ -133,35 +196,32 @@ export default class BackendAPI {
     });
 
     if (!response.isSuccess()) {
+      const data = response.data as unknown as ExceptionDetailsResponse;
       const errorMessage: string =
-        (response.data as JSONObject)?.["message"]?.toString() ||
-        "Failed to get exception details";
+        data?.message || "Failed to get exception details";
       throw new Error(errorMessage);
     }
 
-    const data: JSONObject = response.data as JSONObject;
-    const exception: JSONObject = data["exception"] as JSONObject;
-    const telemetryService: JSONObject | null = data[
-      "telemetryService"
-    ] as JSONObject | null;
+    const data: ExceptionDetailsResponse =
+      response.data as unknown as ExceptionDetailsResponse;
 
     logger.debug(
-      `Got exception details for ${exceptionId}: ${exception["message"]?.toString().substring(0, 100)}`,
+      `Got exception details for ${exceptionId}: ${data.exception.message.substring(0, 100)}`,
     );
 
     return {
       exception: {
-        id: exception["id"] as string,
-        message: exception["message"] as string,
-        stackTrace: exception["stackTrace"] as string,
-        exceptionType: exception["exceptionType"] as string,
-        fingerprint: exception["fingerprint"] as string,
+        id: data.exception.id,
+        message: data.exception.message,
+        stackTrace: data.exception.stackTrace,
+        exceptionType: data.exception.exceptionType,
+        fingerprint: data.exception.fingerprint,
       },
-      telemetryService: telemetryService
+      telemetryService: data.telemetryService
         ? {
-            id: telemetryService["id"] as string,
-            name: telemetryService["name"] as string,
-            description: telemetryService["description"] as string,
+            id: data.telemetryService.id,
+            name: data.telemetryService.name,
+            description: data.telemetryService.description,
           }
         : null,
     };
@@ -175,7 +235,7 @@ export default class BackendAPI {
       "/api/ai-agent-data/get-code-repositories",
     );
 
-    const response: HTTPResponse<JSONObject> = await API.post({
+    const response = await API.post({
       url,
       data: {
         ...AIAgentAPIRequest.getDefaultRequestBody(),
@@ -184,33 +244,29 @@ export default class BackendAPI {
     });
 
     if (!response.isSuccess()) {
+      const data = response.data as unknown as CodeRepositoriesResponse;
       const errorMessage: string =
-        (response.data as JSONObject)?.["message"]?.toString() ||
-        "Failed to get code repositories";
+        data?.message || "Failed to get code repositories";
       throw new Error(errorMessage);
     }
 
-    const data: JSONObject = response.data as JSONObject;
-    const repositories: Array<JSONObject> = data[
-      "repositories"
-    ] as Array<JSONObject>;
+    const data: CodeRepositoriesResponse =
+      response.data as unknown as CodeRepositoriesResponse;
 
     logger.debug(
-      `Got ${repositories.length} code repositories for telemetry service ${telemetryServiceId}`,
+      `Got ${data.repositories.length} code repositories for telemetry service ${telemetryServiceId}`,
     );
 
-    return repositories.map((repo: JSONObject) => {
+    return data.repositories.map((repo: CodeRepositoryResponse) => {
       return {
-        id: repo["id"] as string,
-        name: repo["name"] as string,
-        repositoryHostedAt: repo["repositoryHostedAt"] as string,
-        organizationName: repo["organizationName"] as string,
-        repositoryName: repo["repositoryName"] as string,
-        mainBranchName: repo["mainBranchName"] as string,
-        servicePathInRepository:
-          (repo["servicePathInRepository"] as string) || null,
-        gitHubAppInstallationId:
-          (repo["gitHubAppInstallationId"] as string) || null,
+        id: repo.id,
+        name: repo.name,
+        repositoryHostedAt: repo.repositoryHostedAt,
+        organizationName: repo.organizationName,
+        repositoryName: repo.repositoryName,
+        mainBranchName: repo.mainBranchName,
+        servicePathInRepository: repo.servicePathInRepository,
+        gitHubAppInstallationId: repo.gitHubAppInstallationId,
       };
     });
   }
@@ -223,7 +279,7 @@ export default class BackendAPI {
       "/api/ai-agent-data/get-repository-token",
     );
 
-    const response: HTTPResponse<JSONObject> = await API.post({
+    const response = await API.post({
       url,
       data: {
         ...AIAgentAPIRequest.getDefaultRequestBody(),
@@ -232,24 +288,25 @@ export default class BackendAPI {
     });
 
     if (!response.isSuccess()) {
+      const data = response.data as unknown as RepositoryTokenResponse;
       const errorMessage: string =
-        (response.data as JSONObject)?.["message"]?.toString() ||
-        "Failed to get repository token";
+        data?.message || "Failed to get repository token";
       throw new Error(errorMessage);
     }
 
-    const data: JSONObject = response.data as JSONObject;
+    const data: RepositoryTokenResponse =
+      response.data as unknown as RepositoryTokenResponse;
 
     logger.debug(
-      `Got access token for repository ${data["organizationName"]}/${data["repositoryName"]}`,
+      `Got access token for repository ${data.organizationName}/${data.repositoryName}`,
     );
 
     return {
-      token: data["token"] as string,
-      expiresAt: new Date(data["expiresAt"] as string),
-      repositoryUrl: data["repositoryUrl"] as string,
-      organizationName: data["organizationName"] as string,
-      repositoryName: data["repositoryName"] as string,
+      token: data.token,
+      expiresAt: new Date(data.expiresAt),
+      repositoryUrl: data.repositoryUrl,
+      organizationName: data.organizationName,
+      repositoryName: data.repositoryName,
     };
   }
 
@@ -261,7 +318,7 @@ export default class BackendAPI {
       "/api/ai-agent-data/record-pull-request",
     );
 
-    const response: HTTPResponse<JSONObject> = await API.post({
+    const response = await API.post({
       url,
       data: {
         ...AIAgentAPIRequest.getDefaultRequestBody(),
@@ -278,19 +335,20 @@ export default class BackendAPI {
     });
 
     if (!response.isSuccess()) {
+      const data = response.data as unknown as RecordPullRequestResponse;
       const errorMessage: string =
-        (response.data as JSONObject)?.["message"]?.toString() ||
-        "Failed to record pull request";
+        data?.message || "Failed to record pull request";
       throw new Error(errorMessage);
     }
 
-    const data: JSONObject = response.data as JSONObject;
+    const data: RecordPullRequestResponse =
+      response.data as unknown as RecordPullRequestResponse;
 
     logger.debug(`Recorded pull request: ${options.pullRequestUrl}`);
 
     return {
-      success: data["success"] as boolean,
-      pullRequestId: data["pullRequestId"] as string,
+      success: data.success,
+      pullRequestId: data.pullRequestId,
     };
   }
 
@@ -304,7 +362,7 @@ export default class BackendAPI {
       "/api/ai-agent-task/update-task-status",
     );
 
-    const response: HTTPResponse<JSONObject> = await API.post({
+    const response = await API.post({
       url,
       data: {
         ...AIAgentAPIRequest.getDefaultRequestBody(),
@@ -315,9 +373,9 @@ export default class BackendAPI {
     });
 
     if (!response.isSuccess()) {
+      const data = response.data as unknown as UpdateTaskStatusResponse;
       const errorMessage: string =
-        (response.data as JSONObject)?.["message"]?.toString() ||
-        "Failed to update task status";
+        data?.message || "Failed to update task status";
       throw new Error(errorMessage);
     }
 

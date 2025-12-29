@@ -1,17 +1,34 @@
-import { JSONObject } from "Common/Types/JSON";
 import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
 import TaskLogger from "../Utils/TaskLogger";
 import BackendAPI from "../Utils/BackendAPI";
 
+// Base interface for task metadata - handlers should define their own specific metadata types
+export interface TaskMetadata {
+  // All metadata must have at least these optional fields for extensibility
+  [key: string]: unknown;
+}
+
+// Base interface for task result data
+export interface TaskResultData {
+  // Pull requests created (for Fix Exception tasks)
+  pullRequests?: Array<string>;
+  // Errors encountered during processing
+  errors?: Array<string>;
+  // Flag to indicate if this is an error result (not just "no action taken")
+  isError?: boolean;
+  // Additional data fields
+  [key: string]: unknown;
+}
+
 // Context provided to task handlers
-export interface TaskContext {
+export interface TaskContext<TMetadata extends TaskMetadata = TaskMetadata> {
   // Task identification
   taskId: string;
   projectId: string;
   taskType: AIAgentTaskType;
 
   // Task metadata (varies by task type)
-  metadata: JSONObject;
+  metadata: TMetadata;
 
   // Utilities
   logger: TaskLogger;
@@ -31,7 +48,7 @@ export interface TaskResult {
   message: string;
 
   // Additional data about the result (optional)
-  data?: JSONObject;
+  data?: TaskResultData;
 
   // Number of PRs created (for Fix Exception tasks)
   pullRequestsCreated?: number;
@@ -41,7 +58,7 @@ export interface TaskResult {
 }
 
 // Interface that all task handlers must implement
-export interface TaskHandler {
+export interface TaskHandler<TMetadata extends TaskMetadata = TaskMetadata> {
   // The type of task this handler processes
   readonly taskType: AIAgentTaskType;
 
@@ -49,24 +66,27 @@ export interface TaskHandler {
   readonly name: string;
 
   // Execute the task and return a result
-  execute(context: TaskContext): Promise<TaskResult>;
+  execute(context: TaskContext<TMetadata>): Promise<TaskResult>;
 
   // Check if this handler can process a given task
   canHandle(taskType: AIAgentTaskType): boolean;
 
   // Optional: Validate task metadata before execution
-  validateMetadata?(metadata: JSONObject): boolean;
+  validateMetadata?(metadata: TMetadata): boolean;
 
   // Optional: Get a description of what this handler does
   getDescription?(): string;
 }
 
 // Abstract base class that provides common functionality for task handlers
-export abstract class BaseTaskHandler implements TaskHandler {
+export abstract class BaseTaskHandler<
+  TMetadata extends TaskMetadata = TaskMetadata,
+> implements TaskHandler<TMetadata>
+{
   public abstract readonly taskType: AIAgentTaskType;
   public abstract readonly name: string;
 
-  public abstract execute(context: TaskContext): Promise<TaskResult>;
+  public abstract execute(context: TaskContext<TMetadata>): Promise<TaskResult>;
 
   public canHandle(taskType: AIAgentTaskType): boolean {
     return taskType === this.taskType;
@@ -75,7 +95,7 @@ export abstract class BaseTaskHandler implements TaskHandler {
   // Create a success result
   protected createSuccessResult(
     message: string,
-    data?: JSONObject,
+    data?: TaskResultData,
   ): TaskResult {
     const result: TaskResult = {
       success: true,
@@ -92,7 +112,7 @@ export abstract class BaseTaskHandler implements TaskHandler {
   // Create a failure result
   protected createFailureResult(
     message: string,
-    data?: JSONObject,
+    data?: TaskResultData,
   ): TaskResult {
     const result: TaskResult = {
       success: false,
@@ -117,7 +137,7 @@ export abstract class BaseTaskHandler implements TaskHandler {
 
   // Log to the task logger
   protected async log(
-    context: TaskContext,
+    context: TaskContext<TMetadata>,
     message: string,
     level: "info" | "debug" | "warning" | "error" = "info",
   ): Promise<void> {
