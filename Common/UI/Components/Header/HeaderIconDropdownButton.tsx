@@ -1,5 +1,5 @@
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
-import Icon, { SizeProp } from "../Icon/Icon";
+import Icon from "../Icon/Icon";
 import Image from "../Image/Image";
 import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -64,9 +64,8 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
           )}
           {props.icon && (
             <Icon
-              className="text-gray-500 hover:text-gray-700 transition-colors"
+              className="h-5 w-5 text-gray-500"
               icon={props.icon}
-              size={SizeProp.Regular}
             />
           )}
         </button>
