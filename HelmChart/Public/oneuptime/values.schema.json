@@ -2130,6 +2130,30 @@
         },
         "containerSecurityContext": {
           "type": "object"
+        },
+        "keda": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "minReplicas": {
+              "type": "integer"
+            },
+            "maxReplicas": {
+              "type": "integer"
+            },
+            "queueSizeThreshold": {
+              "type": "integer"
+            },
+            "pollingInterval": {
+              "type": "integer"
+            },
+            "cooldownPeriod": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
