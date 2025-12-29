@@ -14,6 +14,7 @@ import AIAgentAPI from "Common/Server/API/AIAgentAPI";
 import AIAgentTaskAPI from "Common/Server/API/AIAgentTaskAPI";
 import AIAgentTaskLogAPI from "Common/Server/API/AIAgentTaskLogAPI";
 import AIAgentTaskPullRequestAPI from "Common/Server/API/AIAgentTaskPullRequestAPI";
+import AIAgentDataAPI from "Common/Server/API/AIAgentDataAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
@@ -1718,6 +1719,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new AIAgentTaskPullRequestAPI().getRouter(),
+    );
+
+    // AI Agent Data API (for AI Agent to fetch data)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AIAgentDataAPI().getRouter(),
     );
 
     // AI Agent Task Telemetry Exception (linking table)

@@ -2,6 +2,10 @@ import { PORT } from "./Config";
 import AliveJob from "./Jobs/Alive";
 import startTaskProcessingLoop from "./Jobs/ProcessScheduledTasks";
 import Register from "./Services/Register";
+import {
+  getTaskHandlerRegistry,
+  FixExceptionTaskHandler,
+} from "./TaskHandlers/Index";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
@@ -40,6 +44,14 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       logger.debug("AI Agent registered");
 
       AliveJob();
+
+      // Register task handlers
+      logger.debug("Registering task handlers...");
+      const taskHandlerRegistry = getTaskHandlerRegistry();
+      taskHandlerRegistry.register(new FixExceptionTaskHandler());
+      logger.debug(
+        `Registered ${taskHandlerRegistry.getHandlerCount()} task handler(s): ${taskHandlerRegistry.getRegisteredTaskTypes().join(", ")}`,
+      );
 
       // Start task processing loop (runs in background)
       startTaskProcessingLoop().catch((err: Error) => {
