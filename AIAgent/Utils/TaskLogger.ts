@@ -183,39 +183,15 @@ export default class TaskLogger {
     const entries: Array<LogEntry> = [...this.logBuffer];
     this.logBuffer = [];
 
-    // Combine all messages into a single log entry
-    const combinedMessage: string = entries
-      .map((entry: LogEntry) => {
-        return this.formatMessage(entry.severity, entry.message, entry.timestamp);
-      })
-      .join("\n");
-
-    // Find the highest severity in the batch
-    const highestSeverity: LogSeverity = this.getHighestSeverity(entries);
-
-    // Send to server
-    await this.sendLogToServer(highestSeverity, combinedMessage);
-  }
-
-  private getHighestSeverity(entries: Array<LogEntry>): LogSeverity {
-    const severityOrder: Array<LogSeverity> = [
-      LogSeverity.Trace,
-      LogSeverity.Debug,
-      LogSeverity.Information,
-      LogSeverity.Warning,
-      LogSeverity.Error,
-    ];
-
-    let highestIndex: number = 0;
-
+    // Send each log entry separately to preserve individual log lines
     for (const entry of entries) {
-      const index: number = severityOrder.indexOf(entry.severity);
-      if (index > highestIndex) {
-        highestIndex = index;
-      }
+      const formattedMessage: string = this.formatMessage(
+        entry.severity,
+        entry.message,
+        entry.timestamp,
+      );
+      await this.sendLogToServer(entry.severity, formattedMessage);
     }
-
-    return severityOrder[highestIndex] || LogSeverity.Information;
   }
 
   // Cleanup method - call when task is done
