@@ -122,6 +122,38 @@
         background-color: rgb(255 255 255) !important;
         box-shadow: 0 0 0 1px rgb(236 72 153 / 0.08), 0 4px 12px -4px rgb(236 72 153 / 0.1), 0 0 30px -8px rgb(236 72 153 / 0.08);
     }
+    /* Lime - Logs */
+    .hero-glow-lime-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(132 204 22 / 0.06) 0%, rgb(132 204 22 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-lime:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 1px rgb(132 204 22 / 0.08), 0 4px 12px -4px rgb(132 204 22 / 0.1), 0 0 30px -8px rgb(132 204 22 / 0.08);
+    }
+    /* Purple - Metrics */
+    .hero-glow-purple-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(168 85 247 / 0.06) 0%, rgb(168 85 247 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-purple:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 1px rgb(168 85 247 / 0.08), 0 4px 12px -4px rgb(168 85 247 / 0.1), 0 0 30px -8px rgb(168 85 247 / 0.08);
+    }
+    /* Yellow - Traces */
+    .hero-glow-yellow-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(234 179 8 / 0.06) 0%, rgb(234 179 8 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-yellow:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 1px rgb(234 179 8 / 0.08), 0 4px 12px -4px rgb(234 179 8 / 0.1), 0 0 30px -8px rgb(234 179 8 / 0.08);
+    }
+    /* Sky - Workflows */
+    .hero-glow-sky-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(14 165 233 / 0.06) 0%, rgb(14 165 233 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-sky:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 1px rgb(14 165 233 / 0.08), 0 4px 12px -4px rgb(14 165 233 / 0.1), 0 0 30px -8px rgb(14 165 233 / 0.08);
+    }
   </style>
 
     <main id="main-content">
@@ -212,31 +244,31 @@
                   <div class="mt-1 text-xs text-gray-500">Smart alert routing &amp; escalations</div>
                 </a>
               </div>
-              <!-- Logs - Slate -->
-              <div class="hero-card-wrapper hero-glow-gray-wrapper h-full">
-                <a href="/product/logs-management" class="hero-card hero-glow-gray group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-gray-300 h-full">
-                  <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 ring-1 ring-slate-300">
-                    <svg class="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"></path></svg>
+              <!-- Logs - Lime -->
+              <div class="hero-card-wrapper hero-glow-lime-wrapper h-full">
+                <a href="/product/logs-management" class="hero-card hero-glow-lime group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-lime-300 h-full">
+                  <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-lime-50 ring-1 ring-lime-200">
+                    <svg class="h-5 w-5 text-lime-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"></path></svg>
                   </div>
                   <div class="mt-3 text-sm font-medium text-gray-900">Logs</div>
                   <div class="mt-1 text-xs text-gray-500">Centralized log search</div>
                 </a>
               </div>
-              <!-- Metrics - Cyan -->
-              <div class="hero-card-wrapper hero-glow-cyan-wrapper h-full">
-                <a href="/product/apm" class="hero-card hero-glow-cyan group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-gray-300 h-full">
-                  <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200">
-                    <svg class="h-5 w-5 text-cyan-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2 12h3l2-4 3 8 3-6 2 4h7"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2 20h20"></path></svg>
+              <!-- Metrics - Purple -->
+              <div class="hero-card-wrapper hero-glow-purple-wrapper h-full">
+                <a href="/product/apm" class="hero-card hero-glow-purple group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-purple-300 h-full">
+                  <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-50 ring-1 ring-purple-200">
+                    <svg class="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2 12h3l2-4 3 8 3-6 2 4h7"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2 20h20"></path></svg>
                   </div>
                   <div class="mt-3 text-sm font-medium text-gray-900">Metrics</div>
                   <div class="mt-1 text-xs text-gray-500">Performance insights</div>
                 </a>
               </div>
-              <!-- Traces - Teal -->
-              <div class="hero-card-wrapper hero-glow-teal-wrapper h-full">
-                <a href="/product/apm" class="hero-card hero-glow-teal group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-gray-300 h-full">
-                  <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 ring-1 ring-teal-200">
-                    <svg class="h-5 w-5 text-teal-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="4" rx="0.5"></rect><rect x="2" y="10" width="10" height="4" rx="0.5"></rect><rect x="2" y="17" width="5" height="4" rx="0.5"></rect><rect x="17" y="17" width="5" height="4" rx="0.5"></rect></svg>
+              <!-- Traces - Yellow -->
+              <div class="hero-card-wrapper hero-glow-yellow-wrapper h-full">
+                <a href="/product/apm" class="hero-card hero-glow-yellow group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-yellow-300 h-full">
+                  <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-yellow-50 ring-1 ring-yellow-200">
+                    <svg class="h-5 w-5 text-yellow-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="4" rx="0.5"></rect><rect x="2" y="10" width="10" height="4" rx="0.5"></rect><rect x="2" y="17" width="5" height="4" rx="0.5"></rect><rect x="17" y="17" width="5" height="4" rx="0.5"></rect></svg>
                   </div>
                   <div class="mt-3 text-sm font-medium text-gray-900">Traces</div>
                   <div class="mt-1 text-xs text-gray-500">End-to-end distributed tracing</div>
@@ -252,11 +284,11 @@
                   <div class="mt-1 text-xs text-gray-500">Catch and fix bugs early</div>
                 </a>
               </div>
-              <!-- Workflows - Pink -->
-              <div class="hero-card-wrapper hero-glow-pink-wrapper h-full">
-                <a href="/product/workflows" class="hero-card hero-glow-pink group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-gray-300 h-full">
-                  <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-pink-50 ring-1 ring-pink-200">
-                    <svg class="h-5 w-5 text-pink-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="6" height="4" rx="1" stroke-width="1.5"></rect><rect x="15" y="3" width="6" height="4" rx="1" stroke-width="1.5"></rect><rect x="9" y="17" width="6" height="4" rx="1" stroke-width="1.5"></rect><path stroke-linecap="round" d="M6 7v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7M12 12v5"></path></svg>
+              <!-- Workflows - Sky -->
+              <div class="hero-card-wrapper hero-glow-sky-wrapper h-full">
+                <a href="/product/workflows" class="hero-card hero-glow-sky group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-sky-300 h-full">
+                  <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                    <svg class="h-5 w-5 text-sky-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="6" height="4" rx="1" stroke-width="1.5"></rect><rect x="15" y="3" width="6" height="4" rx="1" stroke-width="1.5"></rect><rect x="9" y="17" width="6" height="4" rx="1" stroke-width="1.5"></rect><path stroke-linecap="round" d="M6 7v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7M12 12v5"></path></svg>
                   </div>
                   <div class="mt-3 text-sm font-medium text-gray-900">Workflows</div>
                   <div class="mt-1 text-xs text-gray-500">Automate your processes</div>
