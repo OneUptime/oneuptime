@@ -333,9 +333,22 @@ export default class OpenCodeAgent implements CodeAgent {
         const text: string = data.toString();
         stdout += text;
 
+        // Stream to console immediately
+        const trimmedText: string = text.trim();
+        if (trimmedText) {
+          logger.info(`[OpenCode stdout] ${trimmedText}`);
+
+          // Stream to task logger for server-side logging
+          if (this.taskLogger) {
+            this.taskLogger.info(`[OpenCode] ${trimmedText}`).catch((err: Error) => {
+              logger.error(`Failed to log OpenCode output: ${err.message}`);
+            });
+          }
+        }
+
         onOutput({
           type: "stdout",
-          message: text.trim(),
+          message: trimmedText,
           timestamp: new Date(),
         });
       });
@@ -344,9 +357,22 @@ export default class OpenCodeAgent implements CodeAgent {
         const text: string = data.toString();
         stderr += text;
 
+        // Stream to console immediately
+        const trimmedText: string = text.trim();
+        if (trimmedText) {
+          logger.warn(`[OpenCode stderr] ${trimmedText}`);
+
+          // Stream to task logger for server-side logging
+          if (this.taskLogger) {
+            this.taskLogger.warning(`[OpenCode stderr] ${trimmedText}`).catch((err: Error) => {
+              logger.error(`Failed to log OpenCode stderr: ${err.message}`);
+            });
+          }
+        }
+
         onOutput({
           type: "stderr",
-          message: text.trim(),
+          message: trimmedText,
           timestamp: new Date(),
         });
       });
