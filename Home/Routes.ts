@@ -1193,6 +1193,62 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get(
+      "/product/metrics",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/metrics",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/metrics`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/product/traces",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/traces",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/traces`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/product/exceptions",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/exceptions",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/exceptions`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/product/dashboards",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/dashboards",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/dashboards`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
       "/incident-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.redirect("/product/incident-management");

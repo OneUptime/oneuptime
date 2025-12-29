@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Exception Tracking - Catch and Fix Bugs Early</title>
+  <meta name="description"
+    content="Track exceptions and errors across your applications. Get stack traces, context, and alerts to fix bugs before they impact users.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-gradient-to-b from-gray-50 via-white to-white">
+      <!-- Background decorative elements -->
+      <div class="absolute inset-0 -z-10 overflow-hidden">
+        <div class="absolute -top-40 -right-32 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-orange-100/60 to-red-100/40 blur-3xl"></div>
+        <div class="absolute -bottom-40 -left-32 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-red-100/60 to-orange-100/40 blur-3xl"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-gradient-to-br from-orange-50/40 to-red-50/30 blur-3xl"></div>
+      </div>
+
+      <!-- Grid pattern overlay -->
+      <div class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#8882_1px,transparent_1px),linear-gradient(to_bottom,#8882_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+
+      <div class="py-24 sm:py-32 lg:py-40">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-4xl text-center">
+            <!-- Badge -->
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-50 border border-orange-100 mb-8">
+              <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+              </span>
+              <span class="text-sm font-medium text-orange-700">Error Tracking</span>
+            </div>
+
+            <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl lg:text-7xl">
+              Catch and fix <span class="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">bugs early</span>
+            </h1>
+            <p class="mt-6 text-xl sm:text-2xl leading-8 text-gray-600 max-w-3xl mx-auto">
+              Track exceptions across your entire stack. Get detailed stack traces, context, and intelligent grouping to fix issues faster.
+            </p>
+
+            <!-- Feature highlights row -->
+            <div class="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-600">
+              <div class="flex items-center gap-2">
+                <svg class="h-5 w-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Stack traces
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="h-5 w-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Smart grouping
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="h-5 w-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Release tracking
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="h-5 w-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Real-time alerts
+              </div>
+            </div>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-all duration-300 shadow-lg shadow-gray-900/20 hover:shadow-xl hover:-translate-y-0.5">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+              <a href="/enterprise/demo" class="group inline-flex items-center gap-2 text-sm font-semibold text-gray-900 hover:text-orange-600 transition-colors">
+                Request Demo
+                <span aria-hidden="true" class="group-hover:translate-x-1 transition-transform">&rarr;</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Hero image -->
+          <div class="mt-16 flow-root sm:mt-24">
+            <div class="relative">
+              <div class="absolute -inset-4 bg-gradient-to-r from-orange-500/20 via-red-500/20 to-orange-500/20 rounded-2xl blur-2xl"></div>
+              <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                <img src="/img/apm-3.png" alt="OneUptime Exception tracking dashboard" width="2432" height="1442"
+                  class="rounded-md shadow-2xl ring-1 ring-gray-900/10">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('logo-roll') -%>
+
+    <!-- Features Section -->
+    <div class="relative bg-gradient-to-b from-white via-orange-50/30 to-white py-24 sm:py-32 overflow-hidden">
+      <div class="absolute inset-0 -z-10">
+        <div class="absolute top-0 left-1/4 h-[400px] w-[400px] rounded-full bg-gradient-to-br from-orange-100/40 to-red-100/30 blur-3xl"></div>
+        <div class="absolute bottom-0 right-1/4 h-[400px] w-[400px] rounded-full bg-gradient-to-br from-red-100/40 to-orange-100/30 blur-3xl"></div>
+      </div>
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-50 border border-orange-100 mb-6">
+            <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="text-sm font-medium text-orange-700">Exception Tracking</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            Never miss a <span class="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">critical error</span>
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Get notified the moment errors occur. Understand the impact, identify the root cause, and deploy fixes with confidence.
+          </p>
+        </div>
+
+        <!-- Feature Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <!-- Feature 1 -->
+          <div class="relative p-8 bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 hover:shadow-lg transition-shadow">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200 mb-6">
+              <svg class="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">Full Stack Traces</h3>
+            <p class="text-gray-600">Get complete stack traces with source code context. See exactly where errors occur and why.</p>
+          </div>
+
+          <!-- Feature 2 -->
+          <div class="relative p-8 bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 hover:shadow-lg transition-shadow">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200 mb-6">
+              <svg class="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">Intelligent Grouping</h3>
+            <p class="text-gray-600">Similar errors are automatically grouped together. Focus on unique issues, not duplicates.</p>
+          </div>
+
+          <!-- Feature 3 -->
+          <div class="relative p-8 bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 hover:shadow-lg transition-shadow">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200 mb-6">
+              <svg class="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 6h.008v.008H6V6z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">Release Tracking</h3>
+            <p class="text-gray-600">Track which releases introduced new errors. Quickly identify and roll back problematic deployments.</p>
+          </div>
+
+          <!-- Feature 4 -->
+          <div class="relative p-8 bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 hover:shadow-lg transition-shadow">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200 mb-6">
+              <svg class="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">Real-time Alerts</h3>
+            <p class="text-gray-600">Get notified instantly when new errors occur or error rates spike. Never be caught off guard.</p>
+          </div>
+
+          <!-- Feature 5 -->
+          <div class="relative p-8 bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 hover:shadow-lg transition-shadow">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200 mb-6">
+              <svg class="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">User Context</h3>
+            <p class="text-gray-600">See which users are affected by errors. Understand impact and prioritize fixes accordingly.</p>
+          </div>
+
+          <!-- Feature 6 -->
+          <div class="relative p-8 bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 hover:shadow-lg transition-shadow">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200 mb-6">
+              <svg class="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">AI-Powered Insights</h3>
+            <p class="text-gray-600">Get AI-generated root cause analysis and fix suggestions. Resolve issues faster with intelligent assistance.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+</body>
+
+</html>

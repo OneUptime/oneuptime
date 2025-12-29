@@ -86,7 +86,7 @@ This document details the colors, icons, and product information used in the hom
 - **Color:** Purple
 - **Tailwind Classes:** `bg-purple-50`, `ring-purple-200`, `text-purple-600`
 - **Glow Class:** `hero-glow-purple`
-- **Link:** `/product/apm`
+- **Link:** `/product/metrics`
 - **Icon:** Line chart / heartbeat
 ```html
 <svg class="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
@@ -99,7 +99,7 @@ This document details the colors, icons, and product information used in the hom
 - **Color:** Yellow
 - **Tailwind Classes:** `bg-yellow-50`, `ring-yellow-200`, `text-yellow-600`
 - **Glow Class:** `hero-glow-yellow`
-- **Link:** `/product/apm`
+- **Link:** `/product/traces`
 - **Icon:** Waterfall / span diagram
 ```html
 <svg class="h-5 w-5 text-yellow-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
@@ -114,7 +114,7 @@ This document details the colors, icons, and product information used in the hom
 - **Color:** Orange
 - **Tailwind Classes:** `bg-orange-50`, `ring-orange-200`, `text-orange-600`
 - **Glow Class:** `hero-glow-rose` (uses rose glow effect)
-- **Link:** `/product/apm`
+- **Link:** `/product/exceptions`
 - **Icon:** Bug
 ```html
 <svg class="h-5 w-5 text-orange-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
@@ -142,7 +142,7 @@ This document details the colors, icons, and product information used in the hom
 - **Color:** Indigo
 - **Tailwind Classes:** `bg-indigo-50`, `ring-indigo-200`, `text-indigo-600`
 - **Glow Class:** `hero-glow-indigo`
-- **Link:** `/product/coming-soon`
+- **Link:** `/product/dashboards`
 - **Icon:** Pie chart
 ```html
 <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
