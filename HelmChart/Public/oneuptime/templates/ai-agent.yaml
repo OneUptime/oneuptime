@@ -81,8 +81,6 @@ spec:
               value: {{ $.Values.openTelemetryExporter.endpoint }}
             - name: ONEUPTIME_URL
               value: http://{{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.app.ports.http }}
-            - name: AI_AGENT_ID
-              value: {{ $.Values.aiAgent.id | squote }}
             - name: AI_AGENT_KEY
               {{- if $.Values.aiAgent.key }}
               value: {{ $.Values.aiAgent.key }}
