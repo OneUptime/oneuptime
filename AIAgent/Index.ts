@@ -2,6 +2,7 @@ import { PORT } from "./Config";
 import AliveJob from "./Jobs/Alive";
 import startTaskProcessingLoop from "./Jobs/ProcessScheduledTasks";
 import Register from "./Services/Register";
+import MetricsAPI from "./API/Metrics";
 import {
   getTaskHandlerRegistry,
   FixExceptionTaskHandler,
@@ -10,6 +11,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
+import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import "ejs";
 
 const APP_NAME: string = "ai-agent";
@@ -33,6 +35,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         readyCheck: async () => {},
       },
     });
+
+    // Add metrics API routes for KEDA autoscaling
+    const app: ExpressApplication = Express.getExpressApp();
+    app.use("/metrics", MetricsAPI);
 
     // add default routes
     await App.addDefaultRoutes();

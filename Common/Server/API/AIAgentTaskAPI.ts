@@ -17,6 +17,7 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import AIAgentTaskStatus from "../../Types/AI/AIAgentTaskStatus";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import PositiveNumber from "../../Types/PositiveNumber";
 
 export default class AIAgentTaskAPI extends BaseAPI<
   AIAgentTask,
@@ -82,6 +83,47 @@ export default class AIAgentTaskAPI extends BaseAPI<
               createdAt: task.createdAt,
             },
             message: "Task fetched successfully",
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Get the count of pending (scheduled) tasks for KEDA autoscaling
+     * Validates aiAgentId and aiAgentKey before returning count
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/get-pending-task-count`,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const data: JSONObject = req.body;
+
+          /* Validate AI Agent credentials */
+          const aiAgent: AIAgent | null = await this.validateAIAgent(data);
+
+          if (!aiAgent) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
+            );
+          }
+
+          /* Count scheduled tasks */
+          const count: PositiveNumber = await AIAgentTaskService.countBy({
+            query: {
+              status: AIAgentTaskStatus.Scheduled,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            count: count,
+            message: "Pending task count fetched successfully",
           });
         } catch (err) {
           next(err);

@@ -51,3 +51,10 @@ KEDA ScaledObjects for various services
 {{- $workerKedaArgs := dict "ServiceName" "worker" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.worker.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $workerKedaArgs }}
 {{- end }}
+
+{{/* AI Agent KEDA ScaledObject */}}
+{{- if and .Values.keda.enabled .Values.aiAgent.enabled .Values.aiAgent.keda.enabled (not .Values.aiAgent.disableAutoscaler) }}
+{{- $metricsConfig := dict "enabled" .Values.aiAgent.keda.enabled "minReplicas" .Values.aiAgent.keda.minReplicas "maxReplicas" .Values.aiAgent.keda.maxReplicas "pollingInterval" .Values.aiAgent.keda.pollingInterval "cooldownPeriod" .Values.aiAgent.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_ai_agent_queue_size" "threshold" .Values.aiAgent.keda.queueSizeThreshold "port" .Values.aiAgent.ports.http)) }}
+{{- $aiAgentKedaArgs := dict "ServiceName" "ai-agent" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.aiAgent.disableAutoscaler }}
+{{- include "oneuptime.kedaScaledObject" $aiAgentKedaArgs }}
+{{- end }}
