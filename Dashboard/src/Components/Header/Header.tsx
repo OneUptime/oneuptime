@@ -379,7 +379,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       <Header
         leftComponents={
           <>
-            {props.projects.length === 0 && <Logo onClick={() => {}} />}
+            <Logo onClick={() => {}} />
 
             <ProjectPicker
               showProjectModal={props.showProjectModal}

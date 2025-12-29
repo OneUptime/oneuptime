@@ -36,14 +36,14 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
   }, [isComponentVisible]);
 
   return (
-    <div className="w-64 mr-3">
-      <div className="relative mt-3 w-full">
+    <div className="w-64">
+      <div className="relative w-full">
         <button
           onClick={() => {
             setIsComponentVisible(!isDropdownVisible);
           }}
           type="button"
-          className="relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+          className="relative w-full cursor-pointer rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-3 pr-10 text-left hover:bg-gray-100 hover:border-gray-300 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition-all duration-150 sm:text-sm"
           aria-haspopup="listbox"
           aria-expanded="true"
           aria-labelledby="listbox-label"
@@ -51,17 +51,17 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
           <span className="flex items-center">
             <Icon
               icon={props.selectedProjectIcon}
-              className="h-6 w-6 flex-shrink-0 rounded-full"
+              className="h-5 w-5 flex-shrink-0 text-gray-500"
             />
 
-            <span className="ml-3 block truncate">
+            <span className="ml-2.5 block truncate font-medium text-gray-700">
               {props.selectedProjectName}
             </span>
           </span>
           <span className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
             <Icon
               icon={IconProp.UpDownArrow}
-              className="h-5 w-5 text-gray-400"
+              className="h-4 w-4 text-gray-400"
             />
           </span>
         </button>
