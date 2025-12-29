@@ -418,16 +418,25 @@ const HomeFeatureSet: FeatureSet = {
           name: "On-Call and Alerts",
           data: [
             {
-              name: "Phone Alerts",
+              name: "SMS Alerts",
               plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
+                free: "$0.10/SMS",
+                growth: "$0.10/SMS",
+                scale: "$0.10/SMS",
+                enterprise: "$0.10/SMS",
               },
             },
             {
-              name: "SMS Alerts",
+              name: "Phone Call Alerts",
+              plans: {
+                free: "$0.10/min",
+                growth: "$0.10/min",
+                scale: "$0.10/min",
+                enterprise: "$0.10/min",
+              },
+            },
+            {
+              name: "Bring Your Own Twilio",
               plans: {
                 free: true,
                 growth: true,
@@ -438,10 +447,10 @@ const HomeFeatureSet: FeatureSet = {
             {
               name: "Email Alerts",
               plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
+                free: "Free",
+                growth: "Free",
+                scale: "Free",
+                enterprise: "Free",
               },
             },
             {
@@ -454,7 +463,7 @@ const HomeFeatureSet: FeatureSet = {
               },
             },
             {
-              name: "Advanced Workflows",
+              name: "On-Call Rotation",
               plans: {
                 free: false,
                 growth: true,
@@ -463,7 +472,7 @@ const HomeFeatureSet: FeatureSet = {
               },
             },
             {
-              name: "On-Call Rotation",
+              name: "Advanced Workflows",
               plans: {
                 free: false,
                 growth: true,
@@ -489,7 +498,6 @@ const HomeFeatureSet: FeatureSet = {
                 enterprise: "Coming Soon",
               },
             },
-
             {
               name: "Vacation and OOO Policy",
               plans: {
@@ -499,7 +507,6 @@ const HomeFeatureSet: FeatureSet = {
                 enterprise: "Coming Soon",
               },
             },
-
             {
               name: "On-Call Pay",
               plans: {
@@ -509,7 +516,6 @@ const HomeFeatureSet: FeatureSet = {
                 enterprise: "Coming Soon",
               },
             },
-
             {
               name: "Reports",
               plans: {
@@ -747,7 +753,52 @@ const HomeFeatureSet: FeatureSet = {
           name: "AI Agent",
           data: [
             {
-              name: "Scan your Codebase",
+              name: "LLM Token Pricing",
+              plans: {
+                free: "$0.02/1K tokens",
+                growth: "$0.02/1K tokens",
+                scale: "$0.02/1K tokens",
+                enterprise: "$0.02/1K tokens",
+              },
+            },
+            {
+              name: "Bring Your Own LLM",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Incident Analysis & Insights",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Root Cause Suggestions",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Automated Runbook Generation",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Log Analysis & Anomaly Detection",
               plans: {
                 free: false,
                 growth: true,
@@ -765,33 +816,6 @@ const HomeFeatureSet: FeatureSet = {
               },
             },
             {
-              name: "Fix Performance Issues",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Fix DB Queries Automatically",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Fix Frontend Issues",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
               name: "Integrate with GitHub, GitLab",
               plans: {
                 free: false,
@@ -801,43 +825,7 @@ const HomeFeatureSet: FeatureSet = {
               },
             },
             {
-              name: "Integrate with CI/CD",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Terraform Support",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Integrate with Issue Tracker",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Integrates with Slack / Team",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Advanced Workflows",
+              name: "Integrate with Slack / Teams",
               plans: {
                 free: false,
                 growth: true,
