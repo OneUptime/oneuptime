@@ -114,6 +114,14 @@
         background-color: rgb(255 255 255) !important;
         box-shadow: 0 0 0 1px rgb(139 92 246 / 0.08), 0 4px 12px -4px rgb(139 92 246 / 0.1), 0 0 30px -8px rgb(139 92 246 / 0.08);
     }
+    /* Pink - Workflows */
+    .hero-glow-pink-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(236 72 153 / 0.06) 0%, rgb(236 72 153 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-pink:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 1px rgb(236 72 153 / 0.08), 0 4px 12px -4px rgb(236 72 153 / 0.1), 0 0 30px -8px rgb(236 72 153 / 0.08);
+    }
   </style>
 
     <main id="main-content">
@@ -244,14 +252,14 @@
                   <div class="mt-1 text-xs text-gray-500">Catch and fix bugs early</div>
                 </a>
               </div>
-              <!-- AI Agent - Violet -->
-              <div class="hero-card-wrapper hero-glow-violet-wrapper h-full">
-                <a href="/product/ai-agent" class="hero-card hero-glow-violet group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-gray-300 h-full">
-                  <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
-                    <svg class="h-5 w-5 text-violet-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"></path></svg>
+              <!-- Workflows - Pink -->
+              <div class="hero-card-wrapper hero-glow-pink-wrapper h-full">
+                <a href="/product/workflows" class="hero-card hero-glow-pink group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-gray-300 h-full">
+                  <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-pink-50 ring-1 ring-pink-200">
+                    <svg class="h-5 w-5 text-pink-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"></path></svg>
                   </div>
-                  <div class="mt-3 text-sm font-medium text-gray-900">AI Agent</div>
-                  <div class="mt-1 text-xs text-gray-500">Auto-fix issues with AI</div>
+                  <div class="mt-3 text-sm font-medium text-gray-900">Workflows</div>
+                  <div class="mt-1 text-xs text-gray-500">Automate your processes</div>
                 </a>
               </div>
               <!-- Dashboards - Indigo -->
@@ -262,6 +270,22 @@
                   </div>
                   <div class="mt-3 text-sm font-medium text-gray-900">Dashboards</div>
                   <div class="mt-1 text-xs text-gray-500">Custom visualizations</div>
+                </a>
+              </div>
+            </div>
+
+            <!-- AI Agent Featured Card - Spans full row -->
+            <div class="mt-5">
+              <div class="hero-card-wrapper hero-glow-violet-wrapper">
+                <a href="/product/ai-agent" class="hero-card hero-glow-violet group flex items-center gap-6 rounded-2xl bg-gradient-to-r from-violet-50 to-purple-50 px-6 py-5 ring-1 ring-inset ring-violet-200 transition-all hover:ring-violet-300 h-full">
+                  <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-violet-100 ring-1 ring-violet-200">
+                    <svg class="h-7 w-7 text-violet-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"></path></svg>
+                  </div>
+                  <div class="flex-1 text-left">
+                    <div class="text-base font-semibold text-gray-900">AI Agent</div>
+                    <div class="mt-1 text-sm text-gray-600">Automatically detect, diagnose, and fix issues with AI-powered code changes. Let AI handle the resolution while you focus on building.</div>
+                  </div>
+                  <svg class="h-5 w-5 text-violet-400 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"></path></svg>
                 </a>
               </div>
             </div>
@@ -323,7 +347,8 @@
         'hero-glow-cyan-wrapper': 'radial-gradient(ellipse at center, rgb(6 182 212 / 0.08) 0%, rgb(6 182 212 / 0.03) 35%, rgb(6 182 212 / 0.01) 55%, transparent 75%)',
         'hero-glow-teal-wrapper': 'radial-gradient(ellipse at center, rgb(20 184 166 / 0.08) 0%, rgb(20 184 166 / 0.03) 35%, rgb(20 184 166 / 0.01) 55%, transparent 75%)',
         'hero-glow-indigo-wrapper': 'radial-gradient(ellipse at center, rgb(99 102 241 / 0.08) 0%, rgb(99 102 241 / 0.03) 35%, rgb(99 102 241 / 0.01) 55%, transparent 75%)',
-        'hero-glow-violet-wrapper': 'radial-gradient(ellipse at center, rgb(139 92 246 / 0.08) 0%, rgb(139 92 246 / 0.03) 35%, rgb(139 92 246 / 0.01) 55%, transparent 75%)'
+        'hero-glow-violet-wrapper': 'radial-gradient(ellipse at center, rgb(139 92 246 / 0.08) 0%, rgb(139 92 246 / 0.03) 35%, rgb(139 92 246 / 0.01) 55%, transparent 75%)',
+        'hero-glow-pink-wrapper': 'radial-gradient(ellipse at center, rgb(236 72 153 / 0.08) 0%, rgb(236 72 153 / 0.03) 35%, rgb(236 72 153 / 0.01) 55%, transparent 75%)'
     };
 
     function getHeroGlowColor(wrapper) {
