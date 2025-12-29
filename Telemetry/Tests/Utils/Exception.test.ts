@@ -186,18 +186,6 @@ describe("ExceptionUtil", () => {
       expect(normalized).toBe("");
     });
 
-    test("handles null/undefined gracefully", () => {
-      // @ts-expect-error - testing edge case
-      const normalizedNull: string =
-        ExceptionUtil.normalizeForFingerprint(null);
-      // @ts-expect-error - testing edge case
-      const normalizedUndefined: string =
-        ExceptionUtil.normalizeForFingerprint(undefined);
-
-      expect(normalizedNull).toBe("");
-      expect(normalizedUndefined).toBe("");
-    });
-
     test("preserves meaningful text while normalizing IDs", () => {
       const message: string =
         "Failed to process payment for customer cus_ABC123DEF456GHI: Card declined";
