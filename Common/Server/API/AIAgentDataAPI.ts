@@ -80,6 +80,9 @@ export default class AIAgentDataAPI {
 
           const projectId: ObjectID = new ObjectID(data["projectId"] as string);
 
+          // Check if this is a Project AI Agent (has a projectId)
+          const isProjectAIAgent: boolean = aiAgent.projectId !== null && aiAgent.projectId !== undefined;
+
           // Get LLM provider for the project
           const llmProvider: LlmProvider | null =
             await LlmProviderService.getLLMProviderForProject(projectId);
@@ -90,6 +93,20 @@ export default class AIAgentDataAPI {
               res,
               new BadDataException(
                 "No LLM provider configured for this project",
+              ),
+            );
+          }
+
+          // Security check: Project AI Agents cannot access Global LLM Providers
+          // Only Global AI Agents (projectId is null) can access Global LLM Providers
+          const isGlobalLLMProvider: boolean = llmProvider.isGlobalLlm === true;
+
+          if (isProjectAIAgent && isGlobalLLMProvider) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "Project AI Agents cannot access Global LLM Providers. Please configure a project-specific LLM Provider.",
               ),
             );
           }
@@ -660,6 +677,7 @@ export default class AIAgentDataAPI {
       },
       select: {
         _id: true,
+        projectId: true, // Fetch projectId to check if this is a global or project AI agent
       },
       props: {
         isRoot: true,
