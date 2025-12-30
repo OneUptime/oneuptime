@@ -100,43 +100,62 @@
         </section>
 
         <!-- To The Builders Section -->
-        <section class="relative py-32 sm:py-40 lg:py-48 bg-gray-900 overflow-hidden" id="builders-section">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+
+        <section class="relative py-40 sm:py-48 lg:py-56 bg-black overflow-hidden" id="builders-section">
             <!-- Animated gradient background -->
             <div class="absolute inset-0 -z-10">
-                <div class="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"></div>
-                <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-700/20 via-transparent to-transparent"></div>
-                <!-- Subtle grid pattern -->
-                <div class="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
+                <div class="absolute inset-0 bg-black"></div>
+                <!-- Animated gradient orbs -->
+                <div class="builder-orb absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px]"></div>
+                <div class="builder-orb absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px]" style="animation-delay: -2s;"></div>
+                <div class="builder-orb absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[150px]" style="animation-delay: -4s;"></div>
             </div>
 
-            <!-- Decorative elements -->
-            <div class="absolute top-20 left-10 w-72 h-72 bg-white/[0.02] rounded-full blur-3xl"></div>
-            <div class="absolute bottom-20 right-10 w-96 h-96 bg-white/[0.02] rounded-full blur-3xl"></div>
+            <!-- Subtle noise texture -->
+            <div class="absolute inset-0 opacity-[0.015]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E');"></div>
+
+            <!-- Radial gradient overlay -->
+            <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_rgba(0,0,0,0.4)_100%)]"></div>
 
             <div class="mx-auto max-w-7xl px-6 lg:px-8 relative">
-                <div class="mx-auto max-w-3xl text-center">
-                    <!-- Core message -->
-                    <div class="space-y-4">
-                        <p class="text-xl sm:text-2xl text-gray-400 tracking-tight">
-                            To the builders of tomorrow,
-                        </p>
-                        <p class="text-2xl sm:text-3xl lg:text-4xl font-medium text-white tracking-tight">
+                <div class="mx-auto max-w-4xl text-center">
+                    <!-- Main heading -->
+                    <h2 class="builder-line text-2xl sm:text-3xl text-gray-500 italic mb-16" style="font-family: 'Cormorant Garamond', serif; animation-delay: 0s;">
+                        To the builders of tomorrow,
+                    </h2>
+
+                    <!-- Core statements -->
+                    <div class="space-y-4 sm:space-y-6 mb-16" style="font-family: 'Cormorant Garamond', serif;">
+                        <p class="builder-line text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-medium text-white tracking-tight leading-none" style="animation-delay: 0.15s;">
                             We see you.
                         </p>
-                        <p class="text-2xl sm:text-3xl lg:text-4xl font-medium text-white tracking-tight">
+                        <p class="builder-line text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-medium text-white/85 tracking-tight leading-none" style="animation-delay: 0.3s;">
                             We appreciate you.
                         </p>
-                        <p class="text-2xl sm:text-3xl lg:text-4xl font-medium text-white tracking-tight">
+                        <p class="builder-line text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-medium text-white/70 tracking-tight leading-none" style="animation-delay: 0.45s;">
                             We build for you.
                         </p>
-                        <p class="text-2xl sm:text-3xl lg:text-4xl font-medium text-white tracking-tight">
+                        <p class="builder-line text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-medium text-white/55 tracking-tight leading-none" style="animation-delay: 0.6s;">
                             Keep building.
-                        </p>
-                        <p class="text-xl sm:text-2xl lg:text-3xl font-medium text-gray-400 tracking-tight">
-                            The world needs what you're creating.
                         </p>
                     </div>
 
+                    <!-- Closing statement -->
+                    <div class="builder-line" style="animation-delay: 0.8s;">
+                        <div class="flex items-center justify-center gap-6 mb-10">
+                            <div class="h-px w-16 bg-gradient-to-r from-transparent to-gray-700"></div>
+                            <svg class="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2Z"/>
+                            </svg>
+                            <div class="h-px w-16 bg-gradient-to-l from-transparent to-gray-700"></div>
+                        </div>
+                        <p class="text-2xl sm:text-3xl lg:text-4xl text-gray-400 italic max-w-2xl mx-auto leading-relaxed" style="font-family: 'Cormorant Garamond', serif;">
+                            The world needs what you're creating.
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -144,16 +163,31 @@
                 @keyframes fadeInUp {
                     from {
                         opacity: 0;
-                        transform: translateY(20px);
+                        transform: translateY(30px);
                     }
                     to {
                         opacity: 1;
                         transform: translateY(0);
                     }
                 }
+                @keyframes float {
+                    0%, 100% {
+                        transform: translate(0, 0) scale(1);
+                    }
+                    33% {
+                        transform: translate(30px, -30px) scale(1.05);
+                    }
+                    66% {
+                        transform: translate(-20px, 20px) scale(0.95);
+                    }
+                }
                 .builder-line {
-                    animation: fadeInUp 0.8s ease-out forwards;
+                    opacity: 0;
+                    animation: fadeInUp 1s ease-out forwards;
                     animation-play-state: paused;
+                }
+                .builder-orb {
+                    animation: float 20s ease-in-out infinite;
                 }
                 #builders-section.in-view .builder-line {
                     animation-play-state: running;
@@ -174,7 +208,7 @@
                                 }
                             });
                         },
-                        { threshold: 0.3 }
+                        { threshold: 0.2 }
                     );
 
                     observer.observe(section);
