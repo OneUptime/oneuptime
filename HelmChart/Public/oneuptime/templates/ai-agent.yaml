@@ -113,8 +113,8 @@ spec:
 {{- include "oneuptime.service" $aiAgentServiceArgs }}
 ---
 
-{{- if not $.Values.aiAgent.disableAutoscaler }}
-# OneUptime AI Agent autoscaler
+{{- if and (not $.Values.aiAgent.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.aiAgent.keda.enabled)) }}
+# OneUptime AI Agent autoscaler (only when KEDA is not enabled, as KEDA manages its own HPA)
 {{- $aiAgentAutoScalerArgs := dict "ServiceName" "ai-agent" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $aiAgentAutoScalerArgs }}
 {{- end }}
