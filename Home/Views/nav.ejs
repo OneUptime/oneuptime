@@ -297,22 +297,12 @@
           </div>
         </div>
 
-        <a href="/pricing" class="text-base font-medium text-gray-500 hover:text-gray-900">Pricing</a>
-        <a href="/enterprise/overview" class="text-base font-medium text-gray-500 hover:text-gray-900">Enterprise</a>
-        <a href="/enterprise/demo" class="text-base font-medium text-gray-500 hover:text-gray-900"
-          data-testid="request-demo-desktop-link">Request Demo</a>
-
-        <div class="relative" onmouseenter="showMoreMenu()" onmouseover="showMoreMenu()" onmouseleave="hideMoreMenu()">
-          <!-- Item active: "text-gray-900", Item inactive: "text-gray-500" -->
-          <button onclick="showMoreMenu()" type="button"
+        <!-- Solutions Dropdown -->
+        <div class="relative" onmouseenter="showSolutionsMenu()" onmouseover="showSolutionsMenu()" onmouseleave="hideSolutionsMenu()">
+          <button onclick="showSolutionsMenu()" type="button"
             class="text-gray-500 group inline-flex items-center rounded-md bg-white text-base font-medium hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
             aria-expanded="false">
-            <span>More</span>
-            <!--
-                Heroicon name: mini/chevron-down
-  
-                Item active: "text-gray-600", Item inactive: "text-gray-400"
-              -->
+            <span>Solutions</span>
             <svg class="text-gray-400 ml-2 h-5 w-5 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path fill-rule="evenodd"
@@ -321,163 +311,282 @@
             </svg>
           </button>
 
-          <!--
-              'More' flyout menu, show/hide based on flyout menu state.
-  
-              Entering: "transition ease-out duration-200"
-                From: "opacity-0 trangray-y-1"
-                To: "opacity-100 trangray-y-0"
-              Leaving: "transition ease-in duration-150"
-                From: "opacity-100 trangray-y-0"
-                To: "opacity-0 trangray-y-1"
-            -->
-          <div onmouseenter="showMoreMenu()" onmouseover="showMoreMenu()" onmouseleave="hideMoreMenu()" id="more-menu"
-            class="absolute left-1/2 z-20 pt-3 w-screen max-w-md -translate-x-1/2 transform px-2 sm:px-0"
+          <div onmouseenter="showSolutionsMenu()" onmouseover="showSolutionsMenu()" onmouseleave="hideSolutionsMenu()"
+            class="absolute z-20 -ml-4 pt-3 w-screen max-w-3xl transform px-2 sm:px-0 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2"
+            id="solutions-menu" style="visibility: collapse;">
+            <div class="overflow-hidden rounded-2xl shadow-2xl ring-1 ring-black/5 bg-white">
+              <!-- Elegant Header with Pattern -->
+              <div class="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-8 py-6 overflow-hidden">
+                <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSA2MCAwIEwgMCAwIDAgNjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-50"></div>
+                <div class="relative">
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-white/10 text-white/80 uppercase tracking-wider">For Teams</span>
+                  </div>
+                  <h2 class="text-xl font-bold text-white">Built for how you work</h2>
+                  <p class="text-sm text-slate-400 mt-1">Purpose-built solutions for every team and use case</p>
+                </div>
+              </div>
+
+              <div class="p-6">
+                <!-- Team Cards with Hover Effects -->
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                  <a href="/solutions/devops" class="group relative block p-5 rounded-2xl border-2 border-transparent bg-gradient-to-br from-cyan-50/50 to-teal-50/50 hover:border-cyan-300 hover:shadow-lg hover:shadow-cyan-100/50 transition-all duration-300 hover:-translate-y-0.5">
+                    <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <svg class="h-4 w-4 text-cyan-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"></path>
+                      </svg>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/25 group-hover:scale-110 transition-transform duration-300">
+                      <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7"></path>
+                      </svg>
+                    </div>
+                    <h3 class="text-sm font-bold text-gray-900 group-hover:text-cyan-700 transition-colors">DevOps Teams</h3>
+                    <p class="text-xs text-gray-500 mt-1.5 leading-relaxed">Infrastructure monitoring, CI/CD pipelines & deployment tracking</p>
+                  </a>
+
+                  <a href="/solutions/sre" class="group relative block p-5 rounded-2xl border-2 border-transparent bg-gradient-to-br from-violet-50/50 to-purple-50/50 hover:border-violet-300 hover:shadow-lg hover:shadow-violet-100/50 transition-all duration-300 hover:-translate-y-0.5">
+                    <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <svg class="h-4 w-4 text-violet-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"></path>
+                      </svg>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-violet-500/25 group-hover:scale-110 transition-transform duration-300">
+                      <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+                      </svg>
+                    </div>
+                    <h3 class="text-sm font-bold text-gray-900 group-hover:text-violet-700 transition-colors">SRE Teams</h3>
+                    <p class="text-xs text-gray-500 mt-1.5 leading-relaxed">Reliability engineering, SLO management & error budgets</p>
+                  </a>
+
+                  <a href="/solutions/platform" class="group relative block p-5 rounded-2xl border-2 border-transparent bg-gradient-to-br from-amber-50/50 to-orange-50/50 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-100/50 transition-all duration-300 hover:-translate-y-0.5">
+                    <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <svg class="h-4 w-4 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"></path>
+                      </svg>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mb-4 shadow-lg shadow-amber-500/25 group-hover:scale-110 transition-transform duration-300">
+                      <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0l4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0l-5.571 3-5.571-3"></path>
+                      </svg>
+                    </div>
+                    <h3 class="text-sm font-bold text-gray-900 group-hover:text-amber-700 transition-colors">Platform Teams</h3>
+                    <p class="text-xs text-gray-500 mt-1.5 leading-relaxed">Internal developer platforms & service catalog management</p>
+                  </a>
+                </div>
+
+                <!-- Use Cases with Better Styling -->
+                <div class="border-t border-gray-100 pt-5">
+                  <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">Popular Use Cases</p>
+                  <div class="grid grid-cols-2 gap-2">
+                    <a href="/solutions/incident-response" class="group flex items-center gap-3 p-3 rounded-xl hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-all">
+                      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-rose-100 to-rose-50 flex items-center justify-center flex-shrink-0 ring-1 ring-rose-200/50 group-hover:ring-rose-300 transition-all">
+                        <svg class="h-4 w-4 text-rose-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"></path>
+                        </svg>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 group-hover:text-rose-700 transition-colors">Incident Response</p>
+                        <p class="text-xs text-gray-500 truncate">AI-powered root cause analysis</p>
+                      </div>
+                      <svg class="h-4 w-4 text-gray-300 group-hover:text-rose-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path>
+                      </svg>
+                    </a>
+
+                    <a href="/solutions/uptime-monitoring" class="group flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-50 border border-transparent hover:border-emerald-100 transition-all">
+                      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center flex-shrink-0 ring-1 ring-emerald-200/50 group-hover:ring-emerald-300 transition-all">
+                        <svg class="h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 group-hover:text-emerald-700 transition-colors">Uptime Monitoring</p>
+                        <p class="text-xs text-gray-500 truncate">24/7 global availability checks</p>
+                      </div>
+                      <svg class="h-4 w-4 text-gray-300 group-hover:text-emerald-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path>
+                      </svg>
+                    </a>
+
+                    <a href="/solutions/observability" class="group flex items-center gap-3 p-3 rounded-xl hover:bg-indigo-50 border border-transparent hover:border-indigo-100 transition-all">
+                      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-50 flex items-center justify-center flex-shrink-0 ring-1 ring-indigo-200/50 group-hover:ring-indigo-300 transition-all">
+                        <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"></path>
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">Full Observability</p>
+                        <p class="text-xs text-gray-500 truncate">Unified logs, metrics & traces</p>
+                      </div>
+                      <svg class="h-4 w-4 text-gray-300 group-hover:text-indigo-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path>
+                      </svg>
+                    </a>
+
+                    <a href="/solutions/status-communication" class="group flex items-center gap-3 p-3 rounded-xl hover:bg-sky-50 border border-transparent hover:border-sky-100 transition-all">
+                      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-sky-100 to-sky-50 flex items-center justify-center flex-shrink-0 ring-1 ring-sky-200/50 group-hover:ring-sky-300 transition-all">
+                        <svg class="h-4 w-4 text-sky-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"></path>
+                        </svg>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 group-hover:text-sky-700 transition-colors">Status Pages</p>
+                        <p class="text-xs text-gray-500 truncate">Beautiful incident communication</p>
+                      </div>
+                      <svg class="h-4 w-4 text-gray-300 group-hover:text-sky-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path>
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Premium Footer -->
+              <div class="bg-gradient-to-r from-gray-50 to-gray-100/50 px-6 py-4 flex items-center justify-between border-t border-gray-200/60">
+                <a href="/enterprise/overview" class="group inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                  <div class="w-7 h-7 rounded-lg bg-white shadow-sm flex items-center justify-center group-hover:shadow transition-shadow">
+                    <svg class="h-3.5 w-3.5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z"></path>
+                    </svg>
+                  </div>
+                  <span>Enterprise Solutions</span>
+                  <svg class="h-3 w-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path>
+                  </svg>
+                </a>
+                <a href="/enterprise/demo" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold shadow-lg shadow-gray-900/20 hover:bg-gray-800 hover:shadow-xl hover:shadow-gray-900/25 transition-all hover:-translate-y-0.5">
+                  Talk to Sales
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <a href="/pricing" class="text-base font-medium text-gray-500 hover:text-gray-900">Pricing</a>
+
+        <!-- Resources Dropdown -->
+        <div class="relative" onmouseenter="showResourcesMenu()" onmouseover="showResourcesMenu()" onmouseleave="hideResourcesMenu()">
+          <button onclick="showResourcesMenu()" type="button"
+            class="text-gray-500 group inline-flex items-center rounded-md bg-white text-base font-medium hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+            aria-expanded="false">
+            <span>Resources</span>
+            <svg class="text-gray-400 ml-2 h-5 w-5 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd"
+                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                clip-rule="evenodd" />
+            </svg>
+          </button>
+
+          <div onmouseenter="showResourcesMenu()" onmouseover="showResourcesMenu()" onmouseleave="hideResourcesMenu()" id="resources-menu"
+            class="absolute right-0 z-20 pt-3 w-screen max-w-md transform px-2 sm:px-0"
             style="visibility:collapse;">
-            <div class="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5">
-              <div class="relative grid gap-6 bg-white px-5 py-6 sm:gap-8 sm:p-8">
-
-                <a href="/docs" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                  <!-- Heroicon name: outline/lifebuoy -->
-                  <svg class="h-6 w-6 flex-shrink-0 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
-                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                  </svg>
-
-                  <div class="ml-4">
-                    <p class="text-base font-medium text-gray-900">Docs</p>
-                    <p class="mt-1 text-sm text-gray-500">Learn more about OneUptime by reading our docs.</p>
-                  </div>
-                </a>
-
-                <a href="/reference" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                  <!-- Heroicon name: outline/lifebuoy -->
-                  <svg class="h-6 w-6 flex-shrink-0 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
-                  viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z" />
-                  </svg>
-                  
-
-                  <div class="ml-4">
-                    <p class="text-base font-medium text-gray-900">API Reference</p>
-                    <p class="mt-1 text-sm text-gray-500">Connect OneUptime with the rest of your software stack.</p>
-                  </div>
-                </a>
-
-                <a href="/blog" target="_blank"
-                  class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                  <!-- Heroicon name: outline/lifebuoy -->
-
-                  <svg class="h-6 w-6 flex-shrink-0 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
-                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
-                  </svg>
-
-
-                  <div class="ml-4">
-                    <p class="text-base font-medium text-gray-900">Learning Resources and Blog</p>
-                    <p class="mt-1 text-sm text-gray-500">Learn about observability and keep yourself updated.</p>
-                  </div>
-                </a>
-
-                <a href="/support" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                  <!-- Heroicon name: outline/lifebuoy -->
-                  <svg class="h-6 w-6 flex-shrink-0 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
-                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M16.712 4.33a9.027 9.027 0 011.652 1.306c.51.51.944 1.064 1.306 1.652M16.712 4.33l-3.448 4.138m3.448-4.138a9.014 9.014 0 00-9.424 0M19.67 7.288l-4.138 3.448m4.138-3.448a9.014 9.014 0 010 9.424m-4.138-5.976a3.736 3.736 0 00-.88-1.388 3.737 3.737 0 00-1.388-.88m2.268 2.268a3.765 3.765 0 010 2.528m-2.268-4.796a3.765 3.765 0 00-2.528 0m4.796 4.796c-.181.506-.475.982-.88 1.388a3.736 3.736 0 01-1.388.88m2.268-2.268l4.138 3.448m0 0a9.027 9.027 0 01-1.306 1.652c-.51.51-1.064.944-1.652 1.306m0 0l-3.448-4.138m3.448 4.138a9.014 9.014 0 01-9.424 0m5.976-4.138a3.765 3.765 0 01-2.528 0m0 0a3.736 3.736 0 01-1.388-.88 3.737 3.737 0 01-.88-1.388m2.268 2.268L7.288 19.67m0 0a9.024 9.024 0 01-1.652-1.306 9.027 9.027 0 01-1.306-1.652m0 0l4.138-3.448M4.33 16.712a9.014 9.014 0 010-9.424m4.138 5.976a3.765 3.765 0 010-2.528m0 0c.181-.506.475-.982.88-1.388a3.736 3.736 0 011.388-.88m-2.268 2.268L4.33 7.288m6.406 1.18L7.288 4.33m0 0a9.024 9.024 0 00-1.652 1.306A9.025 9.025 0 004.33 7.288" />
-                  </svg>
-                  <div class="ml-4">
-                    <p class="text-base font-medium text-gray-900">Help &amp; Support</p>
-                    <p class="mt-1 text-sm text-gray-500">Get all of your questions answered by contacting support.</p>
-                  </div>
-                </a>
-
-                <a href="https://github.com/oneuptime/oneuptime" target="_blank"
-                  class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                  <!-- Heroicon name: outline/bookmark-square -->
-                  <svg class="h-6 w-6 flex-shrink-0 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
-                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd"
-                      d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-                      clip-rule="evenodd" />
-                  </svg>
-                  <div class="ml-4">
-                    <p class="text-base font-medium text-gray-900">GitHub</p>
-                    <p class="mt-1 text-sm text-gray-500">Check the code out, create new feature requests all on GitHub.
-                    </p>
-                  </div>
-                </a>
-
-
-                <a href="https://shop.oneuptime.com" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                  <!-- Heroicon name: outline/calendar -->
-
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6 flex-shrink-0 text-gray-600">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-                  </svg>
-                  
-
-                  <div class="ml-4">
-                    <p class="text-base font-medium text-gray-900">Merch Store</p>
-                    <p class="mt-1 text-sm text-gray-500">Buy our merch and support open-source development.</p>
-                  </div>
-                </a>
-
-                <a href="/about" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                  <!-- Heroicon name: outline/calendar -->
-
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                    stroke="currentColor" class="h-6 w-6 flex-shrink-0 text-gray-600">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                  </svg>
-
-                  <div class="ml-4">
-                    <p class="text-base font-medium text-gray-900">About Us</p>
-                    <p class="mt-1 text-sm text-gray-500">Learn more about why we are building OneUptime.</p>
-                  </div>
-                </a>
-
-                <a href="/legal" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
-                  <!-- Heroicon name: outline/shield-check -->
-                  <svg class="h-6 w-6 flex-shrink-0 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
-                    viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                  </svg>
-                  <div class="ml-4">
-                    <p class="text-base font-medium text-gray-900">Legal Center</p>
-                    <p class="mt-1 text-sm text-gray-500">See our terms, privacy, GDPR, SOC documents.</p>
+            <div class="overflow-hidden rounded-2xl shadow-2xl ring-1 ring-black/5 bg-white">
+              <!-- Featured Section -->
+              <div class="p-4 bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600">
+                <a href="/docs" class="group block p-4 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all border border-white/10">
+                  <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                      <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
+                      </svg>
+                    </div>
+                    <div class="flex-1">
+                      <p class="text-sm font-bold text-white">Documentation</p>
+                      <p class="text-xs text-white/70 mt-0.5">Comprehensive guides, tutorials & API reference</p>
+                    </div>
+                    <svg class="h-5 w-5 text-white/50 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+                    </svg>
                   </div>
                 </a>
               </div>
-              <!-- <div class="bg-gray-50 px-5 py-5 sm:px-8 sm:py-8">
-                  <div>
-                    <h3 class="text-base font-medium text-gray-500">Recent Posts</h3>
-                    <ul role="list" class="mt-4 space-y-4">
-                      <li class="truncate text-base">
-                        <a href="#" class="font-medium text-gray-900 hover:text-gray-700">Boost your conversion rate</a>
-                      </li>
-  
-                      <li class="truncate text-base">
-                        <a href="#" class="font-medium text-gray-900 hover:text-gray-700">How to use search engine optimization to drive traffic to your site</a>
-                      </li>
-  
-                      <li class="truncate text-base">
-                        <a href="#" class="font-medium text-gray-900 hover:text-gray-700">Improve your customer experience</a>
-                      </li>
-                    </ul>
-                  </div>
-                  <div class="mt-5 text-sm">
-                    <a href="#" class="font-medium text-gray-600 hover:text-gray-500">
-                      View all posts
-                      <span aria-hidden="true"> &rarr;</span>
+
+              <div class="p-4">
+                <!-- Quick Links Grid -->
+                <div class="grid grid-cols-2 gap-2">
+                  <a href="/reference" class="group flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-50 transition-all">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center ring-1 ring-emerald-200/50 group-hover:ring-emerald-300 group-hover:scale-105 transition-all">
+                      <svg class="h-5 w-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"></path>
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-gray-900">API Reference</p>
+                      <p class="text-xs text-gray-500">REST API & SDKs</p>
+                    </div>
+                  </a>
+
+                  <a href="/blog" class="group flex items-center gap-3 p-3 rounded-xl hover:bg-amber-50 transition-all">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center ring-1 ring-amber-200/50 group-hover:ring-amber-300 group-hover:scale-105 transition-all">
+                      <svg class="h-5 w-5 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z"></path>
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-gray-900">Blog</p>
+                      <p class="text-xs text-gray-500">News & insights</p>
+                    </div>
+                  </a>
+
+                  <a href="/support" class="group flex items-center gap-3 p-3 rounded-xl hover:bg-rose-50 transition-all">
+                    <div class="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center ring-1 ring-rose-200/50 group-hover:ring-rose-300 group-hover:scale-105 transition-all">
+                      <svg class="h-5 w-5 text-rose-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"></path>
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-gray-900">Support</p>
+                      <p class="text-xs text-gray-500">Get help</p>
+                    </div>
+                  </a>
+
+                  <a href="/about" class="group flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-all">
+                    <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center ring-1 ring-slate-200/50 group-hover:ring-slate-300 group-hover:scale-105 transition-all">
+                      <svg class="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path>
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-gray-900">About Us</p>
+                      <p class="text-xs text-gray-500">Our story</p>
+                    </div>
+                  </a>
+                </div>
+
+                <!-- Community Row -->
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                  <div class="flex gap-2">
+                    <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group flex-1 flex items-center justify-center gap-2 p-3 rounded-xl bg-gray-900 hover:bg-gray-800 transition-all hover:scale-[1.02]">
+                      <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
+                      </svg>
+                      <span class="text-sm font-semibold text-white">Star on GitHub</span>
+                    </a>
+                    <a href="https://shop.oneuptime.com" target="_blank" class="group flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all hover:scale-[1.02]">
+                      <svg class="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"></path>
+                      </svg>
+                      <span class="text-sm font-semibold text-gray-700">Merch</span>
                     </a>
                   </div>
-                </div> -->
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div class="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-100">
+                <a href="/legal" class="text-xs text-gray-500 hover:text-gray-700 transition-colors">Legal & Privacy</a>
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span class="text-xs font-medium text-gray-600">100% Open Source</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -613,15 +722,45 @@
               </div>
               <span class="text-sm font-medium text-gray-900">AI Agent</span>
             </a>
-
           </nav>
+
+          <!-- Solutions Section -->
+          <div class="mt-6 pt-6 border-t border-gray-100">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Solutions</p>
+            <div class="grid grid-cols-3 gap-2">
+              <a href="/solutions/devops" class="flex flex-col items-center p-3 rounded-xl border border-gray-100 hover:border-cyan-200 hover:bg-cyan-50/50">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center mb-2">
+                  <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3"></path>
+                  </svg>
+                </div>
+                <span class="text-xs font-medium text-gray-900 text-center">DevOps</span>
+              </a>
+              <a href="/solutions/sre" class="flex flex-col items-center p-3 rounded-xl border border-gray-100 hover:border-violet-200 hover:bg-violet-50/50">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mb-2">
+                  <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
+                  </svg>
+                </div>
+                <span class="text-xs font-medium text-gray-900 text-center">SRE</span>
+              </a>
+              <a href="/solutions/platform" class="flex flex-col items-center p-3 rounded-xl border border-gray-100 hover:border-amber-200 hover:bg-amber-50/50">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mb-2">
+                  <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25"></path>
+                  </svg>
+                </div>
+                <span class="text-xs font-medium text-gray-900 text-center">Platform</span>
+              </a>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="space-y-6 py-6 px-5">
+      <div class="space-y-6 py-6 px-5 border-t border-gray-100">
         <div class="grid grid-cols-2 gap-y-4 gap-x-8">
           <a href="/pricing" class="text-base font-medium text-gray-900 hover:text-gray-700">Pricing</a>
 
-          <a href="/enterprise/overview" class="text-base font-medium text-gray-900 hover:text-gray-700">Enterprise</a>
+          <a href="/docs" class="text-base font-medium text-gray-900 hover:text-gray-700">Docs</a>
 
           <a href="/enterprise/demo" class="text-base font-medium text-gray-900 hover:text-gray-700"
             data-testid="request-demo-mobile-link">Request Demo</a>
@@ -646,17 +785,16 @@
 <script>
 
   let productMenuTimer = null;
-  let moreMenuTimer = null;
+  let solutionsMenuTimer = null;
+  let resourcesMenuTimer = null;
 
   function closeMobileMenu() {
     document.getElementById("mobile-menu").style.visibility = "collapse";
-
   }
 
   function openMobileMenu() {
     document.getElementById("mobile-menu").style.visibility = "visible";
   }
-
 
   function showProductMenu() {
     if (productMenuTimer) {
@@ -676,21 +814,39 @@
     }, 150);
   }
 
-  function showMoreMenu() {
-    if (moreMenuTimer) {
-      clearTimeout(moreMenuTimer);
-      moreMenuTimer = null;
+  function showSolutionsMenu() {
+    if (solutionsMenuTimer) {
+      clearTimeout(solutionsMenuTimer);
+      solutionsMenuTimer = null;
     }
-    document.getElementById("more-menu").style.visibility = "visible";
+    document.getElementById("solutions-menu").style.visibility = "visible";
   }
 
-  function hideMoreMenu() {
-    if (moreMenuTimer) {
-      clearTimeout(moreMenuTimer);
+  function hideSolutionsMenu() {
+    if (solutionsMenuTimer) {
+      clearTimeout(solutionsMenuTimer);
     }
-    moreMenuTimer = setTimeout(() => {
-      document.getElementById("more-menu").style.visibility = "collapse";
-      moreMenuTimer = null;
+    solutionsMenuTimer = setTimeout(() => {
+      document.getElementById("solutions-menu").style.visibility = "collapse";
+      solutionsMenuTimer = null;
+    }, 150);
+  }
+
+  function showResourcesMenu() {
+    if (resourcesMenuTimer) {
+      clearTimeout(resourcesMenuTimer);
+      resourcesMenuTimer = null;
+    }
+    document.getElementById("resources-menu").style.visibility = "visible";
+  }
+
+  function hideResourcesMenu() {
+    if (resourcesMenuTimer) {
+      clearTimeout(resourcesMenuTimer);
+    }
+    resourcesMenuTimer = setTimeout(() => {
+      document.getElementById("resources-menu").style.visibility = "collapse";
+      resourcesMenuTimer = null;
     }, 150);
   }
 
