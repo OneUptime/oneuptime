@@ -56,7 +56,7 @@
             -->
           <div onmouseenter="showProductMenu()" onmouseover="showProductMenu()" onmouseleave="hideProductMenu()"
             class="absolute z-20 -ml-4 pt-3 w-screen max-w-6xl transform px-2 sm:px-0 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2"
-            id="product-menu" style="visibility: collapse;">
+            id="product-menu" style="visibility: collapse; opacity: 0;">
             <div class="overflow-hidden rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5">
               <div class="relative bg-white">
                 <div class="grid grid-cols-12 divide-x divide-gray-100">
@@ -313,7 +313,7 @@
 
           <div onmouseenter="showSolutionsMenu()" onmouseover="showSolutionsMenu()" onmouseleave="hideSolutionsMenu()"
             class="absolute z-20 -ml-4 pt-3 w-screen max-w-3xl transform px-2 sm:px-0 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2"
-            id="solutions-menu" style="visibility: collapse;">
+            id="solutions-menu" style="visibility: collapse; opacity: 0;">
             <div class="overflow-hidden rounded-2xl shadow-2xl ring-1 ring-black/5 bg-white">
               <!-- Elegant Header with Animated Gradient -->
               <div class="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-8 py-6 overflow-hidden">
@@ -510,7 +510,7 @@
 
           <div onmouseenter="showResourcesMenu()" onmouseover="showResourcesMenu()" onmouseleave="hideResourcesMenu()" id="resources-menu"
             class="absolute right-0 z-20 pt-3 w-screen max-w-md transform px-2 sm:px-0"
-            style="visibility:collapse;">
+            style="visibility: collapse; opacity: 0;">
             <div class="overflow-hidden rounded-2xl shadow-2xl ring-1 ring-black/5 bg-white">
               <!-- Featured Section with Enhanced Gradient -->
               <div class="relative p-5 bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 overflow-hidden">
@@ -847,7 +847,9 @@
       clearTimeout(productMenuTimer);
       productMenuTimer = null;
     }
-    document.getElementById("product-menu").style.visibility = "visible";
+    var menu = document.getElementById("product-menu");
+    menu.style.visibility = "visible";
+    menu.style.opacity = "1";
   }
 
   function hideProductMenu() {
@@ -855,7 +857,9 @@
       clearTimeout(productMenuTimer);
     }
     productMenuTimer = setTimeout(() => {
-      document.getElementById("product-menu").style.visibility = "collapse";
+      var menu = document.getElementById("product-menu");
+      menu.style.opacity = "0";
+      menu.style.visibility = "collapse";
       productMenuTimer = null;
     }, 150);
   }
@@ -865,7 +869,9 @@
       clearTimeout(solutionsMenuTimer);
       solutionsMenuTimer = null;
     }
-    document.getElementById("solutions-menu").style.visibility = "visible";
+    var menu = document.getElementById("solutions-menu");
+    menu.style.visibility = "visible";
+    menu.style.opacity = "1";
   }
 
   function hideSolutionsMenu() {
@@ -873,7 +879,9 @@
       clearTimeout(solutionsMenuTimer);
     }
     solutionsMenuTimer = setTimeout(() => {
-      document.getElementById("solutions-menu").style.visibility = "collapse";
+      var menu = document.getElementById("solutions-menu");
+      menu.style.opacity = "0";
+      menu.style.visibility = "collapse";
       solutionsMenuTimer = null;
     }, 150);
   }
@@ -883,7 +891,9 @@
       clearTimeout(resourcesMenuTimer);
       resourcesMenuTimer = null;
     }
-    document.getElementById("resources-menu").style.visibility = "visible";
+    var menu = document.getElementById("resources-menu");
+    menu.style.visibility = "visible";
+    menu.style.opacity = "1";
   }
 
   function hideResourcesMenu() {
@@ -891,7 +901,9 @@
       clearTimeout(resourcesMenuTimer);
     }
     resourcesMenuTimer = setTimeout(() => {
-      document.getElementById("resources-menu").style.visibility = "collapse";
+      var menu = document.getElementById("resources-menu");
+      menu.style.opacity = "0";
+      menu.style.visibility = "collapse";
       resourcesMenuTimer = null;
     }, 150);
   }
