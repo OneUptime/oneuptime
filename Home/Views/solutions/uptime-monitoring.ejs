@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+    <title>Uptime Monitoring | 100+ Global Locations, Real-Time Alerts</title>
+    <meta name="description"
+        content="Monitor your websites, APIs, and services from 100+ global locations. Get instant alerts when downtime occurs. 99.99% monitoring uptime SLA.">
+        <%- include('../head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+
+</head>
+
+<body>
+  <%- include('../nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white">
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <div class="mx-auto max-w-7xl px-6 pt-24 pb-20 sm:pt-32 sm:pb-24 lg:pt-40 lg:pb-32 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <!-- Badge -->
+          <div class="mb-8 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-lg">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <span>Uptime Monitoring</span>
+          </div>
+
+          <!-- Main Headline -->
+          <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+            Know when you're down <br class="hidden sm:block" />
+            <span class="text-emerald-600">before your customers do</span>
+          </h1>
+
+          <!-- Subheadline -->
+          <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+            Monitor your websites, APIs, and services from 100+ global locations. Get instant alerts and detailed performance insights.
+          </p>
+
+          <!-- CTA Buttons -->
+          <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="/accounts/register" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-gray-900 px-8 py-3.5 text-sm font-medium text-white shadow-lg transition-all hover:bg-gray-800">
+              Start Free Monitoring
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
+            </a>
+            <a href="/enterprise/demo" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+              </svg>
+              Schedule Demo
+            </a>
+          </div>
+
+          <!-- Stats -->
+          <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-600">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl font-bold text-gray-900">100+</span>
+              <span>Global Locations</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-2xl font-bold text-gray-900">30s</span>
+              <span>Check Intervals</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-2xl font-bold text-gray-900">99.99%</span>
+              <span>Monitoring SLA</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logo Roll -->
+    <%- include('../logo-roll') -%>
+
+    <!-- Monitor Types Section -->
+    <section class="bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Monitor everything that matters
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Comprehensive monitoring for websites, APIs, servers, and more
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <!-- HTTP/HTTPS -->
+          <div class="p-8 rounded-2xl bg-white border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 mb-6">
+              <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">Website Monitoring</h3>
+            <p class="text-gray-600">Monitor HTTP/HTTPS endpoints with custom headers, authentication, and content validation.</p>
+          </div>
+
+          <!-- API Monitoring -->
+          <div class="p-8 rounded-2xl bg-white border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-violet-100 mb-6">
+              <svg class="w-6 h-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">API Monitoring</h3>
+            <p class="text-gray-600">Monitor REST APIs with custom requests, JSON validation, and response time tracking.</p>
+          </div>
+
+          <!-- SSL Monitoring -->
+          <div class="p-8 rounded-2xl bg-white border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-100 mb-6">
+              <svg class="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">SSL Certificate</h3>
+            <p class="text-gray-600">Track SSL certificate expiration and get alerts before they expire.</p>
+          </div>
+
+          <!-- Ping/ICMP -->
+          <div class="p-8 rounded-2xl bg-white border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-amber-100 mb-6">
+              <svg class="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">Ping Monitoring</h3>
+            <p class="text-gray-600">Monitor server availability with ICMP ping checks from global locations.</p>
+          </div>
+
+          <!-- TCP/UDP -->
+          <div class="p-8 rounded-2xl bg-white border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-cyan-100 mb-6">
+              <svg class="w-6 h-6 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3m-19.5 0a4.5 4.5 0 0 1 .9-2.7L5.737 5.1a3.375 3.375 0 0 1 2.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 0 1 .9 2.7m0 0a3 3 0 0 1-3 3m0 3h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Zm-3 6h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">TCP/Port Monitoring</h3>
+            <p class="text-gray-600">Check if specific ports are open and accepting connections.</p>
+          </div>
+
+          <!-- Synthetic -->
+          <div class="p-8 rounded-2xl bg-white border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-rose-100 mb-6">
+              <svg class="w-6 h-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672Zm-7.518-.267A8.25 8.25 0 1 1 20.25 10.5M8.288 14.212A5.25 5.25 0 1 1 17.25 10.5" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">Synthetic Monitoring</h3>
+            <p class="text-gray-600">Run Playwright scripts to test complex user flows and multi-step transactions.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <span class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide text-gray-700 uppercase bg-gray-100 rounded-full mb-6 border border-gray-200">
+            Features
+          </span>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Powerful monitoring capabilities
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="flex gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+              <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900">100+ Global Locations</h3>
+              <p class="text-gray-600 mt-1">Monitor from data centers across North America, Europe, Asia, and more.</p>
+            </div>
+          </div>
+
+          <div class="flex gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+              <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900">30-Second Intervals</h3>
+              <p class="text-gray-600 mt-1">Check your services as frequently as every 30 seconds.</p>
+            </div>
+          </div>
+
+          <div class="flex gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+              <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900">Multi-Location Verification</h3>
+              <p class="text-gray-600 mt-1">Confirm incidents from multiple locations to reduce false positives.</p>
+            </div>
+          </div>
+
+          <div class="flex gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+              <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900">Performance Metrics</h3>
+              <p class="text-gray-600 mt-1">Track response times, DNS lookup, SSL handshake, and more.</p>
+            </div>
+          </div>
+
+          <div class="flex gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+              <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900">Custom Assertions</h3>
+              <p class="text-gray-600 mt-1">Validate response content, status codes, headers, and JSON paths.</p>
+            </div>
+          </div>
+
+          <div class="flex gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+              <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900">Instant Alerts</h3>
+              <p class="text-gray-600 mt-1">Get notified via SMS, phone, email, Slack, and more.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="relative py-24 sm:py-32 bg-gray-900 overflow-hidden">
+      <div class="absolute inset-0 opacity-10">
+        <svg class="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="cta-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M0 40V0h40" fill="none" stroke="currentColor" stroke-width="1"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#cta-grid)" />
+        </svg>
+      </div>
+
+      <div class="relative mx-auto max-w-4xl px-6 lg:px-8 text-center">
+        <h2 class="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-6">
+          Start monitoring in minutes
+        </h2>
+        <p class="text-lg text-gray-300 mb-10 max-w-2xl mx-auto">
+          Set up your first monitor in under 2 minutes. No credit card required.
+        </p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a href="/accounts/register" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-white text-gray-900 font-medium hover:bg-gray-100 transition-colors">
+            Start Free Monitoring
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </a>
+          <a href="/pricing" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-white font-medium hover:bg-white/10 transition-colors border border-white/20">
+            View Pricing
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  <%- include('../footer') -%>
+
+</body>
+
+</html>

@@ -1282,6 +1282,201 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+    // Solutions pages
+    app.get(
+      "/solutions/devops",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/solutions/devops",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/solutions/devops`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get("/solutions/sre", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/solutions/sre",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/solutions/sre`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
+
+    app.get(
+      "/solutions/platform",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/solutions/platform",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/solutions/platform`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/solutions/developers",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/solutions/developers",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/solutions/developers`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/solutions/incident-response",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/solutions/incident-response",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/solutions/incident-response`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/solutions/uptime-monitoring",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/solutions/uptime-monitoring",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/solutions/uptime-monitoring`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/solutions/observability",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/solutions/observability",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/solutions/observability`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/solutions/status-communication",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/solutions/status-communication",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/solutions/status-communication`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    // Industries pages
+    app.get(
+      "/industries/fintech",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/industries/fintech",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/industries/fintech`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/industries/saas",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/industries/saas",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/industries/saas`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/industries/healthcare",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/industries/healthcare",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/industries/healthcare`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/industries/ecommerce",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/industries/ecommerce",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/industries/ecommerce`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/industries/media",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/industries/media",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/industries/media`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/industries/government",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/industries/government",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/industries/government`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
     app.get("/legal", (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/legal.ejs`, {
         support: false,

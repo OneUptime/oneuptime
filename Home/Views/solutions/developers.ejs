@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+    <title>OneUptime for Developers | Developer-Friendly Observability</title>
+    <meta name="description"
+        content="Built by developers, for developers. Easy-to-integrate SDKs, powerful APIs, and intuitive interfaces. Debug faster and ship with confidence.">
+        <%- include('../head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+
+</head>
+
+<body>
+  <%- include('../nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white">
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <div class="mx-auto max-w-7xl px-6 pt-24 pb-20 sm:pt-32 sm:pb-24 lg:pt-40 lg:pb-32 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <!-- Badge -->
+          <div class="mb-8 inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+            </svg>
+            <span>For Developers</span>
+          </div>
+
+          <!-- Main Headline -->
+          <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+            Debug faster. <br class="hidden sm:block" />
+            <span class="text-gray-500">Ship with confidence.</span>
+          </h1>
+
+          <!-- Subheadline -->
+          <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+            Built by developers, for developers. Easy-to-integrate SDKs, powerful APIs, and intuitive interfaces that get out of your way.
+          </p>
+
+          <!-- CTA Buttons -->
+          <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="/accounts/register" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-gray-900 px-8 py-3.5 text-sm font-medium text-white shadow-lg transition-all hover:bg-gray-800">
+              Start Free Trial
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
+            </a>
+            <a href="/docs" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+              </svg>
+              View Documentation
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logo Roll -->
+    <%- include('../logo-roll') -%>
+
+    <!-- Code Example Section -->
+    <section class="bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Integrate in minutes, not days
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Simple SDKs for every major language and framework
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          <!-- Code Block -->
+          <div class="rounded-2xl bg-gray-900 p-6 shadow-xl">
+            <div class="flex items-center gap-2 mb-4">
+              <div class="w-3 h-3 rounded-full bg-red-500"></div>
+              <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div class="w-3 h-3 rounded-full bg-green-500"></div>
+              <span class="ml-4 text-gray-400 text-sm">app.js</span>
+            </div>
+            <pre class="text-sm text-gray-300 overflow-x-auto"><code><span class="text-violet-400">import</span> { OneUptime } <span class="text-violet-400">from</span> <span class="text-emerald-400">'@oneuptime/sdk'</span>;
+
+<span class="text-gray-500">// Initialize with your API key</span>
+OneUptime.<span class="text-blue-400">init</span>({
+  <span class="text-amber-400">apiKey</span>: process.env.<span class="text-cyan-400">ONEUPTIME_API_KEY</span>,
+  <span class="text-amber-400">serviceName</span>: <span class="text-emerald-400">'my-service'</span>,
+});
+
+<span class="text-gray-500">// Auto-instrument your app</span>
+OneUptime.<span class="text-blue-400">startTracing</span>();
+
+<span class="text-gray-500">// Track custom metrics</span>
+OneUptime.metrics.<span class="text-blue-400">increment</span>(<span class="text-emerald-400">'api.requests'</span>);
+
+<span class="text-gray-500">// Log with context</span>
+OneUptime.logger.<span class="text-blue-400">info</span>(<span class="text-emerald-400">'Request processed'</span>, {
+  <span class="text-amber-400">userId</span>: user.id,
+  <span class="text-amber-400">duration</span>: responseTime
+});</code></pre>
+          </div>
+
+          <!-- Features List -->
+          <div class="space-y-6">
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900">OpenTelemetry Native</h3>
+                <p class="text-gray-600 mt-1">Built on open standards. No vendor lock-in, works with your existing instrumentation.</p>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900">Auto-instrumentation</h3>
+                <p class="text-gray-600 mt-1">Get traces, metrics, and logs automatically. Zero code changes for common frameworks.</p>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900">SDKs for Every Language</h3>
+                <p class="text-gray-600 mt-1">Node.js, Python, Go, Java, Ruby, PHP, .NET and more. Native feel in every language.</p>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900">Powerful API</h3>
+                <p class="text-gray-600 mt-1">Full REST and GraphQL APIs. Automate everything, integrate with your workflows.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <span class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide text-gray-700 uppercase bg-gray-100 rounded-full mb-6 border border-gray-200">
+            Developer Experience
+          </span>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Tools developers actually want to use
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <!-- Error Tracking -->
+          <div class="p-8 rounded-2xl bg-gray-50 border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-rose-100 mb-6">
+              <svg class="w-6 h-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 12.75c1.148 0 2.278.08 3.383.237 1.037.146 1.866.966 1.866 2.013 0 3.728-2.35 6.75-5.25 6.75S6.75 18.728 6.75 15c0-1.046.83-1.867 1.866-2.013A24.204 24.204 0 0 1 12 12.75Zm0 0c2.883 0 5.647.508 8.207 1.44a23.91 23.91 0 0 1-1.152 6.06M12 12.75c-2.883 0-5.647.508-8.208 1.44.125 2.104.52 4.136 1.153 6.06M12 12.75a2.25 2.25 0 0 0 2.248-2.354M12 12.75a2.25 2.25 0 0 1-2.248-2.354M12 8.25c.995 0 1.971-.08 2.922-.236.403-.066.74-.358.795-.762a3.778 3.778 0 0 0-.399-2.25M12 8.25c-.995 0-1.97-.08-2.922-.236-.402-.066-.74-.358-.795-.762a3.734 3.734 0 0 1 .4-2.253M12 8.25a2.25 2.25 0 0 0-2.248 2.146M12 8.25a2.25 2.25 0 0 1 2.248 2.146M8.683 5a6.032 6.032 0 0 1-1.155-1.002c.07-.63.27-1.222.574-1.747m.581 2.749A3.75 3.75 0 0 1 15.318 5m0 0c.427-.283.815-.62 1.155-.999a4.471 4.471 0 0 0-.575-1.752M4.921 6a24.048 24.048 0 0 0-.392 3.314c1.668.546 3.416.914 5.223 1.082M19.08 6c.205 1.08.337 2.187.392 3.314a23.882 23.882 0 0 1-5.223 1.082" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">Error Tracking</h3>
+            <p class="text-gray-600">Catch errors before users do. Full stack traces, source maps, and context to debug faster.</p>
+          </div>
+
+          <!-- Distributed Tracing -->
+          <div class="p-8 rounded-2xl bg-gray-50 border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-cyan-100 mb-6">
+              <svg class="w-6 h-6 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">Distributed Tracing</h3>
+            <p class="text-gray-600">Follow requests across services. Find bottlenecks and understand your system's behavior.</p>
+          </div>
+
+          <!-- Log Management -->
+          <div class="p-8 rounded-2xl bg-gray-50 border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gray-200 mb-6">
+              <svg class="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">Log Management</h3>
+            <p class="text-gray-600">Search logs instantly. Correlate with traces and metrics for complete context.</p>
+          </div>
+
+          <!-- Real User Monitoring -->
+          <div class="p-8 rounded-2xl bg-gray-50 border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-100 mb-6">
+              <svg class="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">Real User Monitoring</h3>
+            <p class="text-gray-600">See what users experience. Core Web Vitals, session replay, and user journey tracking.</p>
+          </div>
+
+          <!-- CI/CD Integration -->
+          <div class="p-8 rounded-2xl bg-gray-50 border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 mb-6">
+              <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">CI/CD Integration</h3>
+            <p class="text-gray-600">Integrate with GitHub, GitLab, Jenkins. Track deployments and correlate with issues.</p>
+          </div>
+
+          <!-- IDE Extensions -->
+          <div class="p-8 rounded-2xl bg-gray-50 border border-gray-200 hover:shadow-lg transition-shadow">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-violet-100 mb-6">
+              <svg class="w-6 h-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">IDE Extensions</h3>
+            <p class="text-gray-600">Debug production issues from your IDE. VS Code and JetBrains extensions available.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="relative py-24 sm:py-32 bg-gray-900 overflow-hidden">
+      <div class="absolute inset-0 opacity-10">
+        <svg class="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="cta-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M0 40V0h40" fill="none" stroke="currentColor" stroke-width="1"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#cta-grid)" />
+        </svg>
+      </div>
+
+      <div class="relative mx-auto max-w-4xl px-6 lg:px-8 text-center">
+        <h2 class="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-6">
+          Ready to debug faster?
+        </h2>
+        <p class="text-lg text-gray-300 mb-10 max-w-2xl mx-auto">
+          Join thousands of developers who ship with confidence using OneUptime. Free tier includes everything you need to get started.
+        </p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a href="/accounts/register" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-white text-gray-900 font-medium hover:bg-gray-100 transition-colors">
+            Start Free Trial
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </a>
+          <a href="/docs" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-white font-medium hover:bg-white/10 transition-colors border border-white/20">
+            Read the Docs
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  <%- include('../footer') -%>
+
+</body>
+
+</html>
