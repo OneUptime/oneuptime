@@ -544,127 +544,170 @@
           </button>
 
           <div onmouseenter="showResourcesMenu()" onmouseover="showResourcesMenu()" onmouseleave="hideResourcesMenu()" id="resources-menu"
-            class="absolute right-0 z-20 pt-3 w-screen max-w-md transform px-2 sm:px-0"
+            class="absolute right-0 z-20 pt-3 w-screen max-w-3xl transform px-2 sm:px-0"
             style="visibility: collapse; opacity: 0;">
-            <div class="overflow-hidden rounded-2xl shadow-2xl ring-1 ring-black/5 bg-white">
-              <!-- Featured Section with Enhanced Gradient -->
-              <div class="relative p-5 bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 overflow-hidden">
-                <!-- Decorative elements -->
-                <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/4"></div>
-                <div class="absolute bottom-0 left-0 w-24 h-24 bg-violet-400/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/4"></div>
-                <a href="/docs" class="group relative block p-4 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all duration-300 border border-white/20 hover:border-white/30 hover:shadow-lg hover:shadow-white/10">
-                  <div class="flex items-center gap-4">
-                    <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-black/10">
-                      <svg class="h-7 w-7 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
-                      </svg>
-                    </div>
-                    <div class="flex-1">
-                      <div class="flex items-center gap-2 mb-1">
-                        <p class="text-sm font-bold text-white">Documentation</p>
-                      </div>
-                      <p class="text-xs text-white/70">Comprehensive guides, tutorials & API reference</p>
-                    </div>
-                    <svg class="h-5 w-5 text-white/50 group-hover:text-white group-hover:translate-x-1 transition-all duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
-                    </svg>
+            <div class="overflow-hidden rounded-2xl shadow-2xl ring-1 ring-gray-900/5 bg-white">
+              <div class="flex">
+                <!-- Left Column - Dark Featured Section -->
+                <div class="w-64 bg-gray-900 p-6 flex flex-col">
+                  <div class="flex-1">
+                    <p class="text-[10px] font-medium uppercase tracking-widest text-gray-500 mb-2">Resources</p>
+                    <h2 class="text-xl font-semibold text-white leading-snug">Learn & Connect</h2>
+                    <p class="text-sm text-gray-400 mt-2 leading-relaxed">Everything you need to get started and succeed.</p>
                   </div>
-                </a>
-              </div>
 
-              <div class="p-5">
-                <!-- Quick Links Grid with Enhanced Hover -->
-                <div class="grid grid-cols-2 gap-3">
-                  <a href="/reference" class="group flex items-center gap-3 p-3.5 rounded-xl border border-transparent hover:border-emerald-200 bg-gradient-to-br from-transparent to-transparent hover:from-emerald-50 hover:to-emerald-50/50 transition-all duration-200">
-                    <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center ring-1 ring-emerald-200/50 group-hover:ring-emerald-300 group-hover:scale-110 group-hover:shadow-md group-hover:shadow-emerald-100 transition-all duration-200">
-                      <svg class="h-5 w-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"></path>
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-semibold text-gray-900 group-hover:text-emerald-700 transition-colors">API Reference</p>
-                      <p class="text-xs text-gray-500">REST API & SDKs</p>
-                    </div>
-                  </a>
+                  <div class="space-y-2 mt-6">
+                    <a href="/docs" class="group flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
+                        <svg class="h-4.5 w-4.5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
+                        </svg>
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-sm font-medium text-white">Documentation</p>
+                        <p class="text-xs text-gray-500">Guides & tutorials</p>
+                      </div>
+                    </a>
+                    <a href="/reference" class="group flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
+                        <svg class="h-4.5 w-4.5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"></path>
+                        </svg>
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-sm font-medium text-white">API Reference</p>
+                        <p class="text-xs text-gray-500">REST API & SDKs</p>
+                      </div>
+                    </a>
+                  </div>
 
-                  <a href="/blog" class="group flex items-center gap-3 p-3.5 rounded-xl border border-transparent hover:border-amber-200 bg-gradient-to-br from-transparent to-transparent hover:from-amber-50 hover:to-amber-50/50 transition-all duration-200">
-                    <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center ring-1 ring-amber-200/50 group-hover:ring-amber-300 group-hover:scale-110 group-hover:shadow-md group-hover:shadow-amber-100 transition-all duration-200">
-                      <svg class="h-5 w-5 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z"></path>
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-semibold text-gray-900 group-hover:text-amber-700 transition-colors">Blog</p>
-                      <p class="text-xs text-gray-500">News & insights</p>
-                    </div>
-                  </a>
-
-                  <a href="/support" class="group flex items-center gap-3 p-3.5 rounded-xl border border-transparent hover:border-rose-200 bg-gradient-to-br from-transparent to-transparent hover:from-rose-50 hover:to-rose-50/50 transition-all duration-200">
-                    <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-rose-100 to-rose-50 flex items-center justify-center ring-1 ring-rose-200/50 group-hover:ring-rose-300 group-hover:scale-110 group-hover:shadow-md group-hover:shadow-rose-100 transition-all duration-200">
-                      <svg class="h-5 w-5 text-rose-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"></path>
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-semibold text-gray-900 group-hover:text-rose-700 transition-colors">Support</p>
-                      <p class="text-xs text-gray-500">Get help</p>
-                    </div>
-                  </a>
-
-                  <a href="/about" class="group flex items-center gap-3 p-3.5 rounded-xl border border-transparent hover:border-slate-200 bg-gradient-to-br from-transparent to-transparent hover:from-slate-50 hover:to-slate-50/50 transition-all duration-200">
-                    <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 flex items-center justify-center ring-1 ring-slate-200/50 group-hover:ring-slate-300 group-hover:scale-110 group-hover:shadow-md group-hover:shadow-slate-100 transition-all duration-200">
-                      <svg class="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path>
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-semibold text-gray-900 group-hover:text-slate-700 transition-colors">About Us</p>
-                      <p class="text-xs text-gray-500">Our story</p>
-                    </div>
-                  </a>
-                </div>
-
-                <!-- Community Row with Enhanced Style -->
-                <div class="mt-5 pt-5 border-t border-gray-100">
-                  <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                    </svg>
-                    Community
-                  </p>
-                  <div class="flex gap-3">
-                    <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group flex-1 relative flex items-center justify-center gap-2.5 p-3.5 rounded-xl bg-gradient-to-r from-gray-900 to-gray-800 hover:from-gray-800 hover:to-gray-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gray-900/20 overflow-hidden">
-                      <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                      <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <div class="mt-6 pt-5 border-t border-white/10">
+                    <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="inline-flex items-center gap-2 text-sm font-medium text-white hover:text-gray-300 transition-colors">
+                      <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                         <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
                       </svg>
-                      <span class="text-sm font-semibold text-white">Star on GitHub</span>
-                      <svg class="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                      Star on GitHub
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
                       </svg>
                     </a>
-                    <a href="https://shop.oneuptime.com" target="_blank" class="group flex items-center justify-center gap-2 p-3.5 rounded-xl border-2 border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-                      <svg class="h-5 w-5 text-gray-600 group-hover:text-gray-800" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"></path>
-                      </svg>
-                      <span class="text-sm font-semibold text-gray-700">Merch</span>
-                    </a>
+                  </div>
+                </div>
+
+                <!-- Right Column - Main Content -->
+                <div class="flex-1 p-6">
+                  <!-- Learn Section -->
+                  <div class="mb-6">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">Learn</p>
+                    <div class="grid grid-cols-2 gap-1">
+                      <a href="/blog" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="w-8 h-8 rounded-md bg-amber-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900 group-hover:text-gray-700">Blog</p>
+                          <p class="text-xs text-gray-500">News & insights</p>
+                        </div>
+                      </a>
+                      <a href="/tutorials" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="w-8 h-8 rounded-md bg-violet-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900 group-hover:text-gray-700">Tutorials</p>
+                          <p class="text-xs text-gray-500">Step-by-step guides</p>
+                        </div>
+                      </a>
+                      <a href="/changelog" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="w-8 h-8 rounded-md bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900 group-hover:text-gray-700">Changelog</p>
+                          <p class="text-xs text-gray-500">What's new</p>
+                        </div>
+                      </a>
+                      <a href="/videos" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="w-8 h-8 rounded-md bg-rose-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-rose-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900 group-hover:text-gray-700">Videos</p>
+                          <p class="text-xs text-gray-500">Watch & learn</p>
+                        </div>
+                      </a>
+                    </div>
+                  </div>
+
+                  <!-- Support & Company -->
+                  <div class="grid grid-cols-2 gap-6 pt-5 border-t border-gray-100">
+                    <!-- Support -->
+                    <div>
+                      <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">Support</p>
+                      <div class="grid grid-cols-1 gap-2">
+                        <a href="/support" class="group flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                          <div class="w-8 h-8 rounded-md bg-sky-50 flex items-center justify-center flex-shrink-0">
+                            <svg class="h-4 w-4 text-sky-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"></path>
+                            </svg>
+                          </div>
+                          <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Help Center</span>
+                        </a>
+                        <a href="/contact" class="group flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                          <div class="w-8 h-8 rounded-md bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                            <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"></path>
+                            </svg>
+                          </div>
+                          <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Contact Us</span>
+                        </a>
+                      </div>
+                    </div>
+
+                    <!-- Company -->
+                    <div>
+                      <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">Company</p>
+                      <div class="grid grid-cols-1 gap-2">
+                        <a href="/about" class="group flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                          <div class="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path>
+                            </svg>
+                          </div>
+                          <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">About Us</span>
+                        </a>
+                        <a href="https://shop.oneuptime.com" target="_blank" class="group flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                          <div class="w-8 h-8 rounded-md bg-pink-50 flex items-center justify-center flex-shrink-0">
+                            <svg class="h-4 w-4 text-pink-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"></path>
+                            </svg>
+                          </div>
+                          <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Merch Store</span>
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Footer with Enhanced Style -->
-              <div class="relative bg-gradient-to-r from-gray-50 via-gray-50 to-gray-100/80 px-5 py-3.5 flex items-center justify-between border-t border-gray-200/60 overflow-hidden">
-                <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-emerald-50/50 to-transparent"></div>
-                <a href="/legal" class="relative text-xs text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1.5 group">
-                  <svg class="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"></path>
-                  </svg>
-                  Legal & Privacy
-                </a>
-                <div class="relative flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-500/10 to-emerald-500/5 ring-1 ring-emerald-500/20">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50"></span>
-                  <span class="text-xs font-semibold text-emerald-700">100% Open Source</span>
+              <!-- Footer -->
+              <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                <div class="flex items-center gap-5">
+                  <a href="/legal" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">Legal</a>
+                  <a href="/privacy" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">Privacy</a>
+                  <a href="/security" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">Security</a>
+                </div>
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 ring-1 ring-emerald-200/50">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span class="text-xs font-medium text-emerald-700">100% Open Source</span>
                 </div>
               </div>
             </div>
