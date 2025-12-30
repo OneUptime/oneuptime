@@ -1,4 +1,10 @@
-<section class="relative py-32 sm:py-40 bg-white">
+<section class="relative py-32 sm:py-40 bg-white overflow-hidden" id="cta-section">
+    <!-- Subtle grid pattern background -->
+    <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_110%)]"></div>
+
+    <!-- Grid glow effect that follows cursor -->
+    <div id="cta-grid-glow-effect" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(59, 130, 246, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
     <div class="mx-auto max-w-7xl px-4 lg:px-6">
         <div class="text-center max-w-4xl mx-auto">
             <!-- Heading -->
@@ -62,3 +68,63 @@
         </div>
     </div>
 </section>
+
+<script>
+// CTA Grid glow effect that follows cursor
+(function() {
+    const ctaSection = document.getElementById('cta-section');
+    const ctaGridGlowEffect = document.getElementById('cta-grid-glow-effect');
+
+    if (!ctaSection || !ctaGridGlowEffect) return;
+
+    let isHovering = false;
+    let animationFrame = null;
+    let currentX = 0;
+    let currentY = 0;
+    let targetX = 0;
+    let targetY = 0;
+
+    function lerp(start, end, factor) {
+        return start + (end - start) * factor;
+    }
+
+    function animate() {
+        if (!isHovering) return;
+
+        // Smooth interpolation for fluid movement
+        currentX = lerp(currentX, targetX, 0.12);
+        currentY = lerp(currentY, targetY, 0.12);
+
+        ctaGridGlowEffect.style.setProperty('--mouse-x', currentX + 'px');
+        ctaGridGlowEffect.style.setProperty('--mouse-y', currentY + 'px');
+
+        animationFrame = requestAnimationFrame(animate);
+    }
+
+    ctaSection.addEventListener('mouseenter', function() {
+        isHovering = true;
+        ctaGridGlowEffect.style.opacity = '1';
+        animate();
+    });
+
+    ctaSection.addEventListener('mousemove', function(e) {
+        const rect = ctaSection.getBoundingClientRect();
+        targetX = e.clientX - rect.left;
+        targetY = e.clientY - rect.top;
+
+        if (!isHovering) {
+            currentX = targetX;
+            currentY = targetY;
+        }
+    });
+
+    ctaSection.addEventListener('mouseleave', function() {
+        isHovering = false;
+        ctaGridGlowEffect.style.opacity = '0';
+        if (animationFrame) {
+            cancelAnimationFrame(animationFrame);
+            animationFrame = null;
+        }
+    });
+})();
+</script>
