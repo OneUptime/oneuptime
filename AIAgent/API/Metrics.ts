@@ -53,9 +53,7 @@ router.get(
         });
 
       if (result instanceof HTTPErrorResponse) {
-        logger.error(
-          "Error fetching pending task count from OneUptime API",
-        );
+        logger.error("Error fetching pending task count from OneUptime API");
         logger.error(result);
         throw result;
       }
