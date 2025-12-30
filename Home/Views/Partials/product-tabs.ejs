@@ -1,122 +1,147 @@
 <div class="relative overflow-hidden bg-white pt-32 pb-32">
     <div class="max-w-3xl1 px-6">
-        <p class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-center">OneUptime is 10+ tools combined
+        <p class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-center">OneUptime is 11 products combined
             into one.</p>
         <p class="mt-5 text-xl text-gray-500 sm:text-center mb-12">Everything from monitoring, status pages,
-            incident management, on-call schedules - we've got it and we are just getting started!</p>
+            incident management, on-call schedules, logs, metrics, traces, and more!</p>
     </div>
 
     <div>
         <div class="sm:hidden px-6">
             <label for="location" class="block text-sm font-medium leading-6 text-gray-900">Select Product</label>
             <select id="location" onchange="showTab(this.value)" name="location" class="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-gray-600 sm:text-sm sm:leading-6">
-                <option value="1" selected>Status Pages</option>
-                <option value="2">Monitoring</option>
-                <option value="3">Incidents</option>
-                <option value="4">On Call</option>
-                <option value="5">Logs</option>
-                <option value="6">APM</option>
-                <option value="7">Workflows </option>
-                <option value="8">AI Agent</option>
+                <option value="status-pages" selected>Status Pages</option>
+                <option value="monitoring">Monitoring</option>
+                <option value="incidents">Incidents</option>
+                <option value="on-call">On Call</option>
+                <option value="logs">Logs</option>
+                <option value="metrics">Metrics</option>
+                <option value="traces">Traces</option>
+                <option value="exceptions">Exceptions</option>
+                <option value="workflows">Workflows</option>
+                <option value="dashboards">Dashboards</option>
+                <option value="ai-agent">AI Agent</option>
             </select>
           </div>
 
         <div class="hidden sm:block">
             <div class="border-b border-gray-200">
-                <nav class="-mb-px flex justify-center space-x-8" aria-label="Product feature tabs" role="tablist">
-                    <!-- Current: "border-gray-500 text-gray-600", Default: "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700" -->
+                <nav class="-mb-px flex justify-center flex-wrap gap-x-4 gap-y-2" aria-label="Product feature tabs" role="tablist">
+                    <!-- Status Pages - Emerald -->
                     <button type="button" onclick="showTab('status-pages')" id="tab-status-pages" role="tab" aria-selected="true" aria-controls="panel-status-pages"
                         class="tab-status-pages-button tab-1-button cursor-pointer border-gray-500 text-gray-600 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="0" aria-label="Status Pages - communicates service availability to users">
-                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 mr-2">
-                            <svg class="icon-tab-1 text-emerald-600 h-4 w-4"
-                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 ring-1 ring-emerald-200 mr-2">
+                            <svg class="icon-tab-1 text-emerald-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </span>
                         <span>Status Pages</span>
                     </button>
+                    <!-- Monitoring - Blue -->
                     <button type="button" onclick="showTab('monitoring')" id="tab-monitoring" role="tab" aria-selected="false" aria-controls="panel-monitoring"
-                        class="tab-monitoring-button tab-2-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Monitoring - uptime, performance and synthetic checks">
-                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 mr-2">
-                            <svg class="icon-tab-2 text-blue-600 h-4 w-4"
-                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+                        class="tab-monitoring-button tab-2-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Monitoring - uptime, performance and synthetic checks">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 ring-1 ring-blue-200 mr-2">
+                            <svg class="icon-tab-2 text-blue-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
                             </svg>
                         </span>
                         <span>Monitoring</span>
                     </button>
+                    <!-- Incidents - Rose -->
                     <button type="button" onclick="showTab('incidents')" id="tab-incidents" role="tab" aria-selected="false" aria-controls="panel-incidents"
-                        class="tab-incidents-button tab-3-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Incidents - detect, respond and learn from outages">
-                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 mr-2">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                class="icon-tab-3 text-amber-600 h-4 w-4" fill="none"
-                                viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                        class="tab-incidents-button tab-3-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Incidents - detect, respond and learn from outages">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-rose-50 ring-1 ring-rose-200 mr-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon-tab-3 text-rose-600 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                             </svg>
                         </span>
                         <span>Incidents</span>
                     </button>
+                    <!-- On-Call - Stone -->
                     <button type="button" onclick="showTab('on-call')" id="tab-on-call" role="tab" aria-selected="false" aria-controls="panel-on-call"
-                        class="tab-on-call-button tab-4-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="On Call Alerts - intelligent alert routing and scheduling">
-                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-purple-50 mr-2">
-                            <svg class="icon-tab-4 text-purple-600 h-4 w-4"
-                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                        class="tab-on-call-button tab-4-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="On Call Alerts - intelligent alert routing and scheduling">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-stone-100 ring-1 ring-stone-200 mr-2">
+                            <svg class="icon-tab-4 text-stone-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
                             </svg>
                         </span>
-                        <span>On Call Alerts</span>
+                        <span>On-Call</span>
                     </button>
-
+                    <!-- Logs - Amber -->
                     <button type="button" onclick="showTab('logs')" id="tab-logs" role="tab" aria-selected="false" aria-controls="panel-logs"
-                        class="tab-logs-button tab-5-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Logs - centralized log management and analytics">
-                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 mr-2">
-                            <svg class="icon-tab-5 text-slate-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        class="tab-logs-button tab-5-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Logs - centralized log management and analytics">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 ring-1 ring-amber-200 mr-2">
+                            <svg class="icon-tab-5 text-amber-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
                             </svg>
                         </span>
                         <span>Logs</span>
                     </button>
-
-                    <button type="button" onclick="showTab('apm')" id="tab-apm" role="tab" aria-selected="false" aria-controls="panel-apm"
-                        class="tab-apm-button tab-6-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="APM - metrics, traces and error tracking for applications">
-                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-teal-50 mr-2">
-                            <svg class="icon-tab-6 text-teal-600 h-4 w-4"
-                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l3-9 4 18 3-9h4" />
+                    <!-- Metrics - Purple -->
+                    <button type="button" onclick="showTab('metrics')" id="tab-metrics" role="tab" aria-selected="false" aria-controls="panel-metrics"
+                        class="tab-metrics-button tab-6-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Metrics - application and infrastructure metrics">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-purple-50 ring-1 ring-purple-200 mr-2">
+                            <svg class="icon-tab-6 text-purple-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2 12h3l2-4 3 8 3-6 2 4h7" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2 20h20" />
                             </svg>
                         </span>
-                        <span>APM</span>
+                        <span>Metrics</span>
                     </button>
-
+                    <!-- Traces - Yellow -->
+                    <button type="button" onclick="showTab('traces')" id="tab-traces" role="tab" aria-selected="false" aria-controls="panel-traces"
+                        class="tab-traces-button tab-7-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Traces - distributed request tracing">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-yellow-50 ring-1 ring-yellow-200 mr-2">
+                            <svg class="icon-tab-7 text-yellow-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <rect x="2" y="3" width="20" height="4" rx="0.5" />
+                                <rect x="2" y="10" width="10" height="4" rx="0.5" />
+                                <rect x="2" y="17" width="5" height="4" rx="0.5" />
+                                <rect x="17" y="17" width="5" height="4" rx="0.5" />
+                            </svg>
+                        </span>
+                        <span>Traces</span>
+                    </button>
+                    <!-- Exceptions - Orange -->
+                    <button type="button" onclick="showTab('exceptions')" id="tab-exceptions" role="tab" aria-selected="false" aria-controls="panel-exceptions"
+                        class="tab-exceptions-button tab-8-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Exceptions - error tracking and debugging">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-orange-50 ring-1 ring-orange-200 mr-2">
+                            <svg class="icon-tab-8 text-orange-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <ellipse cx="12" cy="14" rx="5" ry="6" />
+                                <path stroke-linecap="round" d="M9 8.5C9 6.5 10.5 5 12 5s3 1.5 3 3.5M4 11l3 1m10-1 3 1M4 17l3-1m10 1 3-1M12 8v12M9 14h6" />
+                            </svg>
+                        </span>
+                        <span>Exceptions</span>
+                    </button>
+                    <!-- Workflows - Sky -->
                     <button type="button" onclick="showTab('workflows')" id="tab-workflows" role="tab" aria-selected="false" aria-controls="panel-workflows"
-                        class="tab-workflows-button tab-7-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Workflows - automate reliability operations and responses">
-                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-indigo-50 mr-2">
-                            <svg class="icon-tab-7 text-indigo-600 h-4 w-4"
-                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z" />
+                        class="tab-workflows-button tab-9-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Workflows - automate reliability operations and responses">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-sky-50 ring-1 ring-sky-200 mr-2">
+                            <svg class="icon-tab-9 text-sky-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="transform: rotate(180deg)">
+                                <rect x="3" y="3" width="6" height="4" rx="1" stroke-width="1.5" />
+                                <rect x="15" y="3" width="6" height="4" rx="1" stroke-width="1.5" />
+                                <rect x="9" y="17" width="6" height="4" rx="1" stroke-width="1.5" />
+                                <path stroke-linecap="round" d="M6 7v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7M12 12v5" />
                             </svg>
                         </span>
                         <span>Workflows</span>
                     </button>
-
+                    <!-- Dashboards - Indigo -->
+                    <button type="button" onclick="showTab('dashboards')" id="tab-dashboards" role="tab" aria-selected="false" aria-controls="panel-dashboards"
+                        class="tab-dashboards-button tab-10-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Dashboards - custom data visualizations">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-indigo-50 ring-1 ring-indigo-200 mr-2">
+                            <svg class="icon-tab-10 text-indigo-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
+                            </svg>
+                        </span>
+                        <span>Dashboards</span>
+                    </button>
+                    <!-- AI Agent - Violet -->
                     <button type="button" onclick="showTab('ai-agent')" id="tab-ai-agent" role="tab" aria-selected="false" aria-controls="panel-ai-agent"
-                        class="tab-ai-agent-button tab-8-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="AI Agent - intelligent automation powered by AI">
-                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-violet-50 mr-2">
-                            <svg class="icon-tab-8 text-violet-600 h-4 w-4"
-                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+                        class="tab-ai-agent-button tab-11-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="AI Agent - intelligent automation powered by AI">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-violet-50 ring-1 ring-violet-200 mr-2">
+                            <svg class="icon-tab-11 text-violet-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
                             </svg>
                         </span>
                         <span>AI Agent</span>
@@ -468,40 +493,38 @@
     </div>
 
 
+    <!-- Metrics Tab Panel -->
     <div class="mt-10 tab-6" style="display: none;">
         <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
-
-
             <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
                 <div>
                     <div class="mt-6">
-                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Monitor performance of any app, any service, any stack.</h2>
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Track custom metrics with Prometheus and OpenTelemetry support.</h2>
 
                         <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
                             <li class="flex space-x-3">
                                 <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Monitor any Backend </div>
+                                    <div class="text-gray-500 -mt-1">Native OpenTelemetry Support</div>
                             </li>
                             <li class="flex space-x-3">
                                 <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Monitor any Database </div>
+                                    <div class="text-gray-500 -mt-1">Prometheus compatible</div>
                             </li>
                             <li class="flex space-x-3">
                                 <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Monitor any Frontend</div>
+                                    <div class="text-gray-500 -mt-1">Custom application metrics</div>
                             </li>
                             <li class="flex space-x-3">
                                 <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Monitor Microservices</div>
+                                    <div class="text-gray-500 -mt-1">Infrastructure monitoring</div>
                             </li>
                         </ul>
-
 
                         <div class="mt-6">
                             <a href="/accounts/register"
                                 class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
                                 started</a>
-                            <a href="/product/apm"
+                            <a href="/product/metrics"
                                 class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
                                     aria-hidden="true">→</span></a>
                         </div>
@@ -510,13 +533,11 @@
                 <div class="mt-8 border-t border-gray-200 pt-6">
                     <blockquote>
                         <div>
-                            <p class="text-base text-gray-500">&ldquo;OpenTelemetry is an open standard for collecting telemetry in a vendor agnostic way.
-                                &rdquo;</p>
+                            <p class="text-base text-gray-500">&ldquo;OneUptime metrics give us full visibility into our application performance across all services.&rdquo;</p>
                         </div>
                         <footer class="mt-3">
                             <div class="flex items-center space-x-3">
-                                <div class="text-base font-medium text-gray-700">Charity Majors on Twitter.
-                                </div>
+                                <div class="text-base font-medium text-gray-700">OneUptime User</div>
                             </div>
                         </footer>
                     </blockquote>
@@ -524,18 +545,133 @@
             </div>
 
             <div class="my-auto mx-auto px-6 col-span-2">
-                <div
-                    class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-
-                    <img class="relative rounded-lg shadow-lg" src="/img/apm-3.png" alt="OneUptime APM dashboard displaying application performance traces and metrics">
-                    
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/apm-3.png" alt="OneUptime metrics dashboard displaying application and infrastructure metrics">
                 </div>
             </div>
         </div>
     </div>
 
-
+    <!-- Traces Tab Panel -->
     <div class="mt-10 tab-7" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">End-to-end distributed tracing across all your services.</h2>
+
+                        <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Distributed request tracing</div>
+                            </li>
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Performance bottleneck detection</div>
+                            </li>
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">OpenTelemetry native</div>
+                            </li>
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Service dependency mapping</div>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/traces"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <blockquote>
+                        <div>
+                            <p class="text-base text-gray-500">&ldquo;Traces helped us identify performance bottlenecks we never knew existed in our microservices.&rdquo;</p>
+                        </div>
+                        <footer class="mt-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="text-base font-medium text-gray-700">OneUptime User</div>
+                            </div>
+                        </footer>
+                    </blockquote>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/apm-3.png" alt="OneUptime traces dashboard showing distributed request tracing">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exceptions Tab Panel -->
+    <div class="mt-10 tab-8" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Catch and fix bugs with full stack traces and context.</h2>
+
+                        <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Real-time error tracking</div>
+                            </li>
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Full stack traces</div>
+                            </li>
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Error grouping and deduplication</div>
+                            </li>
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Alert on new exceptions</div>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/exceptions"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <blockquote>
+                        <div>
+                            <p class="text-base text-gray-500">&ldquo;Exception tracking helped us reduce our bug resolution time by 60%.&rdquo;</p>
+                        </div>
+                        <footer class="mt-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="text-base font-medium text-gray-700">OneUptime User</div>
+                            </div>
+                        </footer>
+                    </blockquote>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/apm-3.png" alt="OneUptime exceptions dashboard showing error tracking and debugging">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workflows Tab Panel -->
+    <div class="mt-10 tab-9" style="display: none;">
         <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
 
 
@@ -602,10 +738,68 @@
     </div>
 
 
-    <div class="mt-10 tab-8" style="display: none;">
+    <!-- Dashboards Tab Panel -->
+    <div class="mt-10 tab-10" style="display: none;">
         <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Beautiful real-time dashboards to visualize all your data.</h2>
 
+                        <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Custom data visualizations</div>
+                            </li>
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Real-time updates</div>
+                            </li>
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Drag and drop builder</div>
+                            </li>
+                            <li class="flex space-x-3">
+                                <%- include('./tick-icon') %>
+                                    <div class="text-gray-500 -mt-1">Share with stakeholders</div>
+                            </li>
+                        </ul>
 
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/dashboards"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <blockquote>
+                        <div>
+                            <p class="text-base text-gray-500">&ldquo;Custom dashboards give our team instant visibility into what matters most.&rdquo;</p>
+                        </div>
+                        <footer class="mt-3">
+                            <div class="flex items-center space-x-3">
+                                <div class="text-base font-medium text-gray-700">OneUptime User</div>
+                            </div>
+                        </footer>
+                    </blockquote>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/apm-3.png" alt="OneUptime dashboards showing custom data visualizations">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Agent Tab Panel -->
+    <div class="mt-10 tab-11" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
             <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
                 <div>
                     <div class="mt-6">
@@ -630,12 +824,11 @@
                             </li>
                         </ul>
 
-
                         <div class="mt-6">
                             <a href="/accounts/register"
                                 class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
                                 started</a>
-                            <a href="/product/copilot"
+                            <a href="/product/ai-agent"
                                 class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
                                     aria-hidden="true">→</span></a>
                         </div>
@@ -648,8 +841,7 @@
                         </div>
                         <footer class="mt-3">
                             <div class="flex items-center space-x-3">
-                                <div class="text-base font-medium text-gray-700">OneUptime Team
-                                </div>
+                                <div class="text-base font-medium text-gray-700">OneUptime Team</div>
                             </div>
                         </footer>
                     </blockquote>
@@ -657,11 +849,8 @@
             </div>
 
             <div class="my-auto mx-auto px-6 col-span-2">
-                <div
-                    class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
                     <img class="relative rounded-lg shadow-lg" src="/img/copilot.png" alt="OneUptime AI Agent dashboard showing intelligent incident resolution and automation">
-
                 </div>
             </div>
         </div>
@@ -672,7 +861,7 @@
 
 <script>
     // Semantic tab slugs in desired order
-    const TAB_ORDER = ['status-pages','monitoring','incidents','on-call','logs','apm','workflows','ai-agent'];
+    const TAB_ORDER = ['status-pages','monitoring','incidents','on-call','logs','metrics','traces','exceptions','workflows','dashboards','ai-agent'];
     let currentActiveTab = 'status-pages';
 
 
