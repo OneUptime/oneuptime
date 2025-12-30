@@ -427,66 +427,78 @@
 
 
 
-    <div class="mt-10 tab-5" style="display: none;">
-        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+    <div class="mt-12 tab-5 tab-panel" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-5 lg:gap-12 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-8 lg:px-0 lg:col-span-2">
+                <div class="content-card">
+                    <h2 class="content-heading">Ingest logs from any source</h2>
 
+                    <div class="feature-list mt-8">
+                        <div class="feature-item">
+                            <span class="feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                            </span>
+                            <span class="feature-text">Native OpenTelemetry support</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                            </span>
+                            <span class="feature-text">Docker, Syslog, application logs</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                            </span>
+                            <span class="feature-text">Search terabytes in seconds</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                            </span>
+                            <span class="feature-text">Smart alerting on log patterns</span>
+                        </div>
+                    </div>
 
-            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
-                <div>
-                    <div class="mt-6">
-                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Ingest logs from any source and search in seconds.</h2>
+                    <div class="flex flex-wrap items-center gap-2 mt-8">
+                        <a href="/accounts/register" class="cta-primary">
+                            Get started free
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                            </svg>
+                        </a>
+                        <a href="/product/logs-management" class="cta-secondary">
+                            Learn more
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
 
-                        <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Native OpenTelemetry Support</div>
-                            </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Docker, Syslog, Application logs</div>
-                            </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Ingest TB's and search in seconds</div>
-                            </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Alert right team members</div>
-                            </li>
-                        </ul>
-
-
-                        <div class="mt-6">
-                            <a href="/accounts/register"
-                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
-                                started</a>
-                            <a href="/product/logs-management"
-                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
-                                    aria-hidden="true">→</span></a>
+                <div class="testimonial-card mt-6">
+                    <p class="testimonial-text">Fastest log software on the planet. Ingest petabytes and search in milliseconds.</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">SL</div>
+                        <div>
+                            <div class="testimonial-name">Simon Larsen</div>
+                            <div class="testimonial-role">CTO, OneUptime</div>
                         </div>
                     </div>
                 </div>
-                <div class="mt-8 border-t border-gray-200 pt-6">
-                    <blockquote>
-                        <div>
-                            <p class="text-base text-gray-500">&ldquo;We have built fastest log software on the planet, powered by Ceph &amp; Clickhouse. Ingest petabytes of data and search in milliseconds.&rdquo;</p>
-                        </div>
-                        <footer class="mt-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="text-base font-medium text-gray-700">Simon Larsen, CTO, OneUptime.
-                                </div>
-                            </div>
-                        </footer>
-                    </blockquote>
-                </div>
             </div>
 
-            <div class="my-auto mx-auto px-6 col-span-2">
-                <div
-                    class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-
-                    <img class="relative rounded-lg shadow-lg" src="/img/log-management.png" alt="OneUptime log management dashboard showing real-time log monitoring and analysis">
-                    
+            <div class="my-auto mx-auto px-6 lg:col-span-3">
+                <div class="image-showcase">
+                    <img src="/img/log-management.png" alt="OneUptime log management dashboard">
                 </div>
             </div>
         </div>
@@ -494,118 +506,156 @@
 
 
     <!-- Metrics Tab Panel -->
-    <div class="mt-10 tab-6" style="display: none;">
-        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
-            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
-                <div>
-                    <div class="mt-6">
-                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Track custom metrics with Prometheus and OpenTelemetry support.</h2>
+    <div class="mt-12 tab-6 tab-panel" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-5 lg:gap-12 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-8 lg:px-0 lg:col-span-2">
+                <div class="content-card">
+                    <h2 class="content-heading">Track metrics with Prometheus</h2>
 
-                        <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Native OpenTelemetry Support</div>
-                            </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Prometheus compatible</div>
-                            </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Custom application metrics</div>
-                            </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Infrastructure monitoring</div>
-                            </li>
-                        </ul>
+                    <div class="feature-list mt-8">
+                        <div class="feature-item">
+                            <span class="feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                            </span>
+                            <span class="feature-text">Native OpenTelemetry support</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                            </span>
+                            <span class="feature-text">Prometheus compatible</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                            </span>
+                            <span class="feature-text">Custom application metrics</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                            </span>
+                            <span class="feature-text">Infrastructure monitoring</span>
+                        </div>
+                    </div>
 
-                        <div class="mt-6">
-                            <a href="/accounts/register"
-                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
-                                started</a>
-                            <a href="/product/metrics"
-                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
-                                    aria-hidden="true">→</span></a>
+                    <div class="flex flex-wrap items-center gap-2 mt-8">
+                        <a href="/accounts/register" class="cta-primary">
+                            Get started free
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                            </svg>
+                        </a>
+                        <a href="/product/metrics" class="cta-secondary">
+                            Learn more
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="testimonial-card mt-6">
+                    <p class="testimonial-text">Full visibility into application performance across all our services.</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">OU</div>
+                        <div>
+                            <div class="testimonial-name">OneUptime User</div>
+                            <div class="testimonial-role">Platform Engineer</div>
                         </div>
                     </div>
                 </div>
-                <div class="mt-8 border-t border-gray-200 pt-6">
-                    <blockquote>
-                        <div>
-                            <p class="text-base text-gray-500">&ldquo;OneUptime metrics give us full visibility into our application performance across all services.&rdquo;</p>
-                        </div>
-                        <footer class="mt-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="text-base font-medium text-gray-700">OneUptime User</div>
-                            </div>
-                        </footer>
-                    </blockquote>
-                </div>
             </div>
 
-            <div class="my-auto mx-auto px-6 col-span-2">
-                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-                    <img class="relative rounded-lg shadow-lg" src="/img/apm-3.png" alt="OneUptime metrics dashboard displaying application and infrastructure metrics">
+            <div class="my-auto mx-auto px-6 lg:col-span-3">
+                <div class="image-showcase">
+                    <img src="/img/apm-3.png" alt="OneUptime metrics dashboard">
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Traces Tab Panel -->
-    <div class="mt-10 tab-7" style="display: none;">
-        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
-            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
-                <div>
-                    <div class="mt-6">
-                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">End-to-end distributed tracing across all your services.</h2>
+    <div class="mt-12 tab-7 tab-panel" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-5 lg:gap-12 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-8 lg:px-0 lg:col-span-2">
+                <div class="content-card">
+                    <h2 class="content-heading">End-to-end distributed tracing</h2>
 
-                        <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Distributed request tracing</div>
-                            </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Performance bottleneck detection</div>
-                            </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">OpenTelemetry native</div>
-                            </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Service dependency mapping</div>
-                            </li>
-                        </ul>
+                    <div class="feature-list mt-8">
+                        <div class="feature-item">
+                            <span class="feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                            </span>
+                            <span class="feature-text">Distributed request tracing</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                            </span>
+                            <span class="feature-text">Performance bottleneck detection</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                            </span>
+                            <span class="feature-text">OpenTelemetry native</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                            </span>
+                            <span class="feature-text">Service dependency mapping</span>
+                        </div>
+                    </div>
 
-                        <div class="mt-6">
-                            <a href="/accounts/register"
-                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
-                                started</a>
-                            <a href="/product/traces"
-                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
-                                    aria-hidden="true">→</span></a>
+                    <div class="flex flex-wrap items-center gap-2 mt-8">
+                        <a href="/accounts/register" class="cta-primary">
+                            Get started free
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                            </svg>
+                        </a>
+                        <a href="/product/traces" class="cta-secondary">
+                            Learn more
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="testimonial-card mt-6">
+                    <p class="testimonial-text">Traces helped us identify performance bottlenecks we never knew existed.</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">OU</div>
+                        <div>
+                            <div class="testimonial-name">OneUptime User</div>
+                            <div class="testimonial-role">DevOps Engineer</div>
                         </div>
                     </div>
                 </div>
-                <div class="mt-8 border-t border-gray-200 pt-6">
-                    <blockquote>
-                        <div>
-                            <p class="text-base text-gray-500">&ldquo;Traces helped us identify performance bottlenecks we never knew existed in our microservices.&rdquo;</p>
-                        </div>
-                        <footer class="mt-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="text-base font-medium text-gray-700">OneUptime User</div>
-                            </div>
-                        </footer>
-                    </blockquote>
-                </div>
             </div>
 
-            <div class="my-auto mx-auto px-6 col-span-2">
-                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-                    <img class="relative rounded-lg shadow-lg" src="/img/apm-3.png" alt="OneUptime traces dashboard showing distributed request tracing">
+            <div class="my-auto mx-auto px-6 lg:col-span-3">
+                <div class="image-showcase">
+                    <img src="/img/apm-3.png" alt="OneUptime traces dashboard">
                 </div>
             </div>
         </div>
