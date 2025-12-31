@@ -89,13 +89,6 @@
         }
 
 
-        /* Contributor row hover */
-        .contributor-row {
-            transition: all 0.2s ease;
-        }
-        .contributor-row:hover {
-            background-color: rgb(250 250 250);
-        }
     </style>
 </head>
 
@@ -268,96 +261,130 @@
         </section>
 
         <!-- Contributors Section -->
-        <section class="bg-white py-24 sm:py-32">
+        <section class="relative bg-gradient-to-b from-gray-50 to-white py-24 sm:py-32 overflow-hidden">
+            <!-- Decorative background elements -->
+            <div class="absolute inset-0 -z-10">
+                <div class="absolute top-0 left-1/4 w-72 h-72 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+                <div class="absolute bottom-0 right-1/4 w-72 h-72 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+            </div>
+
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
+                <!-- Section Header -->
                 <div class="mx-auto max-w-2xl text-center mb-16">
+                    <div class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200 shadow-sm mb-6">
+                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                        <span>Open Source Community</span>
+                    </div>
                     <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Our Contributors</h2>
                     <p class="mt-4 text-lg text-gray-600">Built by a global community of passionate developers.</p>
                 </div>
 
-                <div class="mx-auto max-w-3xl">
-                    <% if (typeof contributors !== 'undefined' && contributors && contributors.length > 0) { %>
-                    <!-- Top Contributors Table -->
-                    <div class="bg-white rounded-2xl ring-1 ring-inset ring-gray-200 overflow-hidden shadow-sm">
-                        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-900 ring-1 ring-gray-800">
-                                        <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-                                        </svg>
-                                    </div>
-                                    <h3 class="text-sm font-semibold text-gray-900">Top Contributors</h3>
-                                </div>
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-900 text-xs font-medium text-white ring-1 ring-inset ring-gray-800">
-                                    <span class="h-1.5 w-1.5 rounded-full bg-white"></span>
-                                    <%= contributors.length %>+ contributors
-                                </span>
-                            </div>
+                <% if (typeof contributors !== 'undefined' && contributors && contributors.length > 0) { %>
+                <!-- Contributors Grid -->
+                <div class="mx-auto max-w-5xl">
+                    <!-- Stats Row -->
+                    <div class="flex flex-wrap items-center justify-center gap-8 mb-12">
+                        <div class="text-center">
+                            <p class="text-4xl font-bold text-gray-900"><%= contributors.length %>+</p>
+                            <p class="text-sm text-gray-500 mt-1">Contributors</p>
                         </div>
-                        <div class="divide-y divide-gray-100">
+                        <div class="h-12 w-px bg-gray-200 hidden sm:block"></div>
+                        <div class="text-center">
+                            <p class="text-4xl font-bold text-gray-900"><%= contributors.reduce((sum, c) => sum + (c.contributions || 0), 0).toLocaleString() %></p>
+                            <p class="text-sm text-gray-500 mt-1">Total Commits</p>
+                        </div>
+                        <div class="h-12 w-px bg-gray-200 hidden sm:block"></div>
+                        <div class="text-center">
+                            <p class="text-4xl font-bold text-gray-900">24/7</p>
+                            <p class="text-sm text-gray-500 mt-1">Global Coverage</p>
+                        </div>
+                    </div>
+
+                    <!-- Top Contributors Cards -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        <%
+                        var displayedCount = 0;
+                        for(var i=0; i<contributors.length && displayedCount < 10; i++) {
+                            var contributor = contributors[i];
+                            // Skip bots
+                            if (!contributor || !contributor.login) continue;
+                            var login = contributor.login.toLowerCase();
+                            if (login.includes('bot') || login.includes('[bot]') || login === 'dependabot' || login === 'renovate' || login === 'greenkeeper' || login === 'snyk-bot' || login === 'imgbot' || login === 'codecov' || login === 'sonarcloud' || contributor.type === 'Bot') continue;
+                            displayedCount++;
+                        %>
+                        <a href="https://github.com/<%= contributor.login %>" target="_blank" class="group relative bg-white rounded-2xl p-5 ring-1 ring-inset ring-gray-200 shadow-sm hover:shadow-md hover:ring-gray-300 transition-all duration-200">
+                            <!-- Rank Badge -->
+                            <div class="absolute -top-2 -right-2 flex items-center justify-center w-6 h-6 rounded-full bg-gray-900 text-xs font-bold text-white shadow-sm">
+                                <%= displayedCount %>
+                            </div>
+
+                            <!-- Avatar -->
+                            <div class="flex justify-center mb-3">
+                                <img src="<%= contributor.avatar_url %>" alt="<%= contributor.login %>" class="w-16 h-16 rounded-full ring-2 ring-white shadow-md group-hover:scale-105 transition-transform duration-200" loading="lazy" />
+                            </div>
+
+                            <!-- Info -->
+                            <div class="text-center">
+                                <p class="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors"><%= contributor.login %></p>
+                                <p class="text-xs text-gray-500 mt-1"><%= contributor.contributions ? contributor.contributions.toLocaleString() : '0' %> commits</p>
+                            </div>
+                        </a>
+                        <% } %>
+                    </div>
+
+                    <!-- Additional Contributors Avatars -->
+                    <div class="mt-10 text-center">
+                        <p class="text-sm text-gray-500 mb-4">And many more amazing contributors...</p>
+                        <div class="flex flex-wrap justify-center -space-x-2">
                             <%
-                            var displayedCount = 0;
-                            for(var i=0; i<contributors.length && displayedCount < 10; i++) {
-                                var contributor = contributors[i];
-                                // Skip bots
-                                if (!contributor || !contributor.login) continue;
-                                var login = contributor.login.toLowerCase();
-                                if (login.includes('bot') || login.includes('[bot]') || login === 'dependabot' || login === 'renovate' || login === 'greenkeeper' || login === 'snyk-bot' || login === 'imgbot' || login === 'codecov' || login === 'sonarcloud' || contributor.type === 'Bot') continue;
-                                displayedCount++;
+                            var extraCount = 0;
+                            for(var j=displayedCount; j<contributors.length && extraCount < 20; j++) {
+                                var extraContributor = contributors[j];
+                                if (!extraContributor || !extraContributor.login) continue;
+                                var extraLogin = extraContributor.login.toLowerCase();
+                                if (extraLogin.includes('bot') || extraLogin.includes('[bot]') || extraLogin === 'dependabot' || extraLogin === 'renovate' || extraLogin === 'greenkeeper' || extraLogin === 'snyk-bot' || extraLogin === 'imgbot' || extraLogin === 'codecov' || extraLogin === 'sonarcloud' || extraContributor.type === 'Bot') continue;
+                                extraCount++;
                             %>
-                            <a href="https://github.com/<%= contributor.login %>" target="_blank" class="contributor-row flex items-center justify-between px-6 py-4 group">
-                                <div class="flex items-center gap-4">
-                                    <span class="flex items-center justify-center w-6 h-6 rounded-md bg-gray-900 text-xs font-semibold text-white ring-1 ring-inset ring-gray-800">
-                                        <%= displayedCount %>
-                                    </span>
-                                    <div class="flex items-center gap-2">
-                                        <svg class="h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                                        </svg>
-                                        <p class="text-sm font-medium text-gray-900 group-hover:text-gray-600 transition-colors"><%= contributor.login %></p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-4">
-                                    <div class="text-right">
-                                        <p class="text-sm font-semibold text-gray-900"><%= contributor.contributions ? contributor.contributions.toLocaleString() : '0' %></p>
-                                        <p class="text-xs text-gray-500">commits</p>
-                                    </div>
-                                    <svg class="h-4 w-4 text-gray-400 group-hover:text-gray-900 group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                                    </svg>
-                                </div>
-                            </a>
+                            <img src="<%= extraContributor.avatar_url %>" alt="<%= extraContributor.login %>" title="<%= extraContributor.login %>" class="w-8 h-8 rounded-full ring-2 ring-white hover:z-10 hover:scale-110 transition-transform duration-200" loading="lazy" />
+                            <% } %>
+                            <% if (contributors.length > displayedCount + extraCount) { %>
+                            <div class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 ring-2 ring-white text-xs font-medium text-gray-600">
+                                +<%= contributors.length - displayedCount - extraCount %>
+                            </div>
                             <% } %>
                         </div>
                     </div>
-                    <% } else { %>
-                    <!-- Fallback when contributors data is unavailable -->
-                    <div class="bg-white rounded-2xl ring-1 ring-inset ring-gray-200 overflow-hidden p-10 text-center">
+                </div>
+                <% } else { %>
+                <!-- Fallback when contributors data is unavailable -->
+                <div class="mx-auto max-w-md">
+                    <div class="bg-white rounded-2xl ring-1 ring-inset ring-gray-200 overflow-hidden p-10 text-center shadow-sm">
                         <div class="flex justify-center mb-6">
-                            <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-gray-900 ring-1 ring-gray-800">
-                                <svg class="h-7 w-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-900">
+                                <svg class="h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                                 </svg>
                             </div>
                         </div>
                         <h3 class="text-lg font-semibold text-gray-900 mb-2">Join Our Community</h3>
-                        <p class="text-gray-600 mb-6 max-w-md mx-auto">We have an amazing community of contributors on GitHub. Check out our repository to see who's helping build OneUptime.</p>
+                        <p class="text-gray-600 mb-6">We have an amazing community of contributors on GitHub. Check out our repository to see who's helping build OneUptime.</p>
                     </div>
-                    <% } %>
+                </div>
+                <% } %>
 
-                    <!-- CTA -->
-                    <div class="mt-10 text-center">
-                        <a href="https://github.com/oneuptime/oneuptime/graphs/contributors" target="_blank" class="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-700 transition-colors shadow-sm">
-                            <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                            </svg>
-                            <span>View all contributors</span>
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                            </svg>
-                        </a>
-                    </div>
+                <!-- CTA -->
+                <div class="mt-12 text-center">
+                    <a href="https://github.com/oneuptime/oneuptime/graphs/contributors" target="_blank" class="inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-700 transition-colors shadow-lg hover:shadow-xl">
+                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                        <span>View all contributors on GitHub</span>
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                        </svg>
+                    </a>
                 </div>
             </div>
         </section>
