@@ -1,191 +1,480 @@
 <!DOCTYPE html>
-<html lang="en" id="contact">
+<html lang="en" id="support">
 
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
     <title>OneUptime | Help and Support</title>
     <meta name="description"
-        content="OneUptime monitors websites, APIs, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
-        <%- include('head', {
-    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
-}) -%>
+        content="Get help with OneUptime. Contact our support team, browse documentation, or schedule a call with our engineers.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="OneUptime | Help and Support">
+    <meta property="og:description" content="Get help with OneUptime. Contact our support team, browse documentation, or schedule a call with our engineers.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://oneuptime.com/support">
+
+    <%- include('head', {
+        enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+    }) -%>
+
+    <style>
+        /* Support Card Styles with Glow Effects */
+        .support-card-wrapper {
+            position: relative;
+        }
+        .support-card-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: -40px;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .support-card-wrapper:hover::before {
+            opacity: 1;
+        }
+        .support-card {
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .support-card:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Glow Effects for Cards */
+        .support-glow-slate-wrapper::before {
+            background: radial-gradient(ellipse at center, rgb(100 116 139 / 0.08) 0%, rgb(100 116 139 / 0.03) 40%, transparent 70%);
+        }
+        .support-glow-slate:hover {
+            box-shadow: 0 0 0 2px rgb(100 116 139 / 0.12), 0 8px 24px -8px rgb(100 116 139 / 0.15), 0 0 40px -12px rgb(100 116 139 / 0.1);
+        }
+        .support-glow-cool-wrapper::before {
+            background: radial-gradient(ellipse at center, rgb(107 114 128 / 0.08) 0%, rgb(107 114 128 / 0.03) 40%, transparent 70%);
+        }
+        .support-glow-cool:hover {
+            box-shadow: 0 0 0 2px rgb(107 114 128 / 0.12), 0 8px 24px -8px rgb(107 114 128 / 0.15), 0 0 40px -12px rgb(107 114 128 / 0.1);
+        }
+        .support-glow-zinc-wrapper::before {
+            background: radial-gradient(ellipse at center, rgb(113 113 122 / 0.08) 0%, rgb(113 113 122 / 0.03) 40%, transparent 70%);
+        }
+        .support-glow-zinc:hover {
+            box-shadow: 0 0 0 2px rgb(113 113 122 / 0.12), 0 8px 24px -8px rgb(113 113 122 / 0.15), 0 0 40px -12px rgb(113 113 122 / 0.1);
+        }
+        .support-glow-stone-wrapper::before {
+            background: radial-gradient(ellipse at center, rgb(120 113 108 / 0.08) 0%, rgb(120 113 108 / 0.03) 40%, transparent 70%);
+        }
+        .support-glow-stone:hover {
+            box-shadow: 0 0 0 2px rgb(120 113 108 / 0.12), 0 8px 24px -8px rgb(120 113 108 / 0.15), 0 0 40px -12px rgb(120 113 108 / 0.1);
+        }
+
+        /* FAQ Accordion Styles */
+        .faq-item {
+            transition: all 0.2s ease;
+        }
+        .faq-item:hover {
+            background-color: rgb(249 250 251);
+        }
+        .faq-item summary::-webkit-details-marker {
+            display: none;
+        }
+        .faq-item summary::marker {
+            display: none;
+        }
+        .faq-chevron {
+            transition: transform 0.2s ease;
+        }
+        .faq-item[open] .faq-chevron {
+            transform: rotate(180deg);
+        }
+    </style>
 </head>
 
 <body class="bg-white antialiased text-gray-900">
-  <%- include('nav') -%>
-  <main id="main-content">
-  <!-- Hero -->
-  <header class="relative isolate overflow-hidden bg-gradient-to-b from-gray-700 via-gray-700 to-gray-800">
-    <div class="absolute inset-0 -z-10 opacity-20" aria-hidden="true">
-      <div class="h-full w-full bg-[radial-gradient(1000px_500px_at_50%_-10%,rgba(255,255,255,0.35),transparent)]"></div>
-    </div>
-    <div class="mx-auto max-w-7xl px-6 py-20 sm:py-28 lg:px-8">
-      <div class="max-w-3xl">
-        <h1 class="text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl">Help &amp; Support</h1>
-        <p class="mt-6 text-lg leading-8 text-gray-100">Friendly folks, standing by. Always humans, never bots. We respond to most requests in under one business day.</p>
-        <div class="mt-8 flex flex-wrap gap-3">
-          <a href="mailto:support@oneuptime.com" class="inline-flex items-center rounded-md bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-inset ring-white/20 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">Email support</a>
-          <a href="/docs" class="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">Browse docs</a>
-        </div>
-      </div>
-    </div>
-  </header>
+    <%- include('nav') -%>
+    <main id="main-content">
+        <!-- Hero Section -->
+        <section class="relative isolate overflow-hidden bg-white" id="support-hero-section">
+            <!-- Subtle grid pattern background -->
+            <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
 
-  <!-- Contact options -->
-  <section class="relative z-10 mx-auto -mt-16 max-w-7xl px-6 pb-24 lg:-mt-20 lg:px-8" aria-labelledby="contact-heading">
-    <h2 class="sr-only" id="contact-heading">Contact OneUptime support</h2>
+            <!-- Grid glow effect that follows cursor -->
+            <div id="support-grid-glow-effect" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(156, 163, 175, 0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(156, 163, 175, 0.4) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 200px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 200px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
 
-    <div class="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-4">
-      <!-- Support Email -->
-      <div class="flex flex-col rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
-        <div class="relative flex-1 px-6 pt-14 pb-6">
-          <div class="absolute top-0 left-6 -trangray-y-1/2 transform rounded-xl bg-gray-600 p-3 shadow-md">
-            <!-- Heroicon: envelope -->
-            <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25H4.5a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75m19.5 0v.243a2.25 2.25 0 01-1.03 1.905l-7.5 4.615a2.25 2.25 0 01-2.34 0l-7.5-4.615a2.25 2.25 0 01-1.03-1.905V6.75"/></svg>
-          </div>
-          <h3 class="text-lg font-semibold text-gray-900">Support Email</h3>
-          <p class="mt-3 text-sm leading-6 text-gray-600">Questions or issues? Send us an email and we’ll get back within one business day.</p>
-        </div>
-        <div class="rounded-b-2xl bg-gray-50 px-6 py-4">
-          <a href="mailto:support@oneuptime.com" class="text-sm font-medium text-gray-700 hover:text-gray-600">support@oneuptime.com<span class="ml-1" aria-hidden="true">→</span></a>
-        </div>
-      </div>
+            <div class="py-24 sm:py-32">
+                <div class="mx-auto max-w-7xl px-6 lg:px-8">
+                    <div class="mx-auto max-w-3xl text-center">
+                        <!-- Badge -->
+                        <div class="mb-8 inline-flex items-center gap-2 rounded-full bg-gray-50 px-4 py-2 text-sm text-gray-600 ring-1 ring-inset ring-gray-200">
+                            <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                            </svg>
+                            <span>Always humans, never bots</span>
+                        </div>
 
-      <!-- Slack -->
-      <div class="flex flex-col rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
-        <div class="relative flex-1 px-6 pt-14 pb-6">
-          <div class="absolute top-0 left-6 -trangray-y-1/2 transform rounded-xl bg-gray-600 p-3 shadow-md">
-            <!-- Heroicon: lifebuoy -->
-            <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.712 4.33a9.027 9.027 0 011.652 1.306c.51.51.944 1.064 1.306 1.652M16.712 4.33l-3.448 4.138m3.448-4.138a9.014 9.014 0 00-9.424 0M19.67 7.288l-4.138 3.448m4.138-3.448a9.014 9.014 0 010 9.424m-4.138-5.976a3.736 3.736 0 00-.88-1.388 3.737 3.737 0 00-1.388-.88m2.268 2.268a3.765 3.765 0 010 2.528m-2.268-4.796a3.765 3.765 0 00-2.528 0m4.796 4.796c-.181.506-.475.982-.88 1.388a3.736 3.736 0 01-1.388.88m2.268-2.268l4.138 3.448m0 0a9.027 9.027 0 01-1.306 1.652c-.51.51-1.064.944-1.652 1.306m0 0l-3.448-4.138m3.448 4.138a9.014 9.014 0 01-9.424 0m5.976-4.138a3.765 3.765 0 01-2.528 0m0 0a3.736 3.736 0 01-1.388-.88 3.737 3.737 0 01-.88-1.388m2.268 2.268L7.288 19.67m0 0a9.024 9.024 0 01-1.652-1.306 9.027 9.027 0 01-1.306-1.652m0 0l4.138-3.448M4.33 16.712a9.014 9.014 0 010-9.424m4.138 5.976a3.765 3.765 0 010-2.528m0 0c.181-.506.475-.982.88-1.388a3.736 3.736 0 011.388-.88m-2.268 2.268L4.33 7.288m6.406 1.18L7.288 4.33m0 0a9.024 9.024 0 00-1.652 1.306A9.025 9.025 0 004.33 7.288" /></svg>
-          </div>
-          <h3 class="text-lg font-semibold text-gray-900">Technical Support (Slack)</h3>
-          <p class="mt-3 text-sm leading-6 text-gray-600">Chat with our engineers for help with the dashboard, APIs, and features. Enterprise plans get a dedicated channel.</p>
-        </div>
-        <div class="rounded-b-2xl bg-gray-50 px-6 py-4">
-          <a href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA" target="_blank" rel="noopener" class="text-sm font-medium text-gray-700 hover:text-gray-600">Chat on Slack<span class="ml-1" aria-hidden="true">→</span></a>
-        </div>
-      </div>
+                        <!-- Main headline -->
+                        <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
+                            Help &amp; Support
+                        </h1>
 
-      <!-- Documentation -->
-      <div class="flex flex-col rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
-        <div class="relative flex-1 px-6 pt-14 pb-6">
-          <div class="absolute top-0 left-6 -trangray-y-1/2 transform rounded-xl bg-gray-600 p-3 shadow-md">
-            <!-- Heroicon: book-open -->
-            <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75c-2.755-2.06-6-2.25-9-.75v11.25c3-1.5 6-1.31 9 .75m0-11.25c2.755-2.06 6-2.25 9-.75v11.25c-3-1.5-6-1.31-9 .75m0-11.25v11.25"/></svg>
-          </div>
-          <h3 class="text-lg font-semibold text-gray-900">Documentation</h3>
-          <p class="mt-3 text-sm leading-6 text-gray-600">Guides, API references, and best practices to help you ship faster and resolve issues quickly.</p>
-        </div>
-        <div class="rounded-b-2xl bg-gray-50 px-6 py-4">
-          <a href="/docs" class="text-sm font-medium text-gray-700 hover:text-gray-600">Open docs<span class="ml-1" aria-hidden="true">→</span></a>
-        </div>
-      </div>
+                        <!-- Subheadline -->
+                        <p class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-xl mx-auto">
+                            Friendly folks, standing by. We respond to most requests in under one business day. Get the help you need to keep your systems running.
+                        </p>
 
-      <!-- Sales / Media -->
-      <div class="flex flex-col rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
-        <div class="relative flex-1 px-6 pt-14 pb-6">
-          <div class="absolute top-0 left-6 -trangray-y-1/2 transform rounded-xl bg-gray-600 p-3 shadow-md">
-            <!-- Heroicon: phone -->
-            <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25A2.25 2.25 0 0021.75 19.5v-1.372a1.125 1.125 0 00-.852-1.091l-4.423-1.106a1.125 1.125 0 00-1.173.417l-.97 1.293a1.125 1.125 0 01-1.21.38 12.035 12.035 0 01-7.143-7.143 1.125 1.125 0 01.38-1.21l1.293-.97a1.125 1.125 0 00.417-1.173L6.963 3.102A1.125 1.125 0 005.872 2.25H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg>
-          </div>
-          <h3 class="text-lg font-semibold text-gray-900">Sales &amp; Media</h3>
-          <p class="mt-3 text-sm leading-6 text-gray-600">Looking for a demo, quotes, or press info? Our team can help with enterprise plans and media requests.</p>
-        </div>
-        <div class="rounded-b-2xl bg-gray-50 px-6 py-4 flex items-center justify-between gap-4">
-          <a href="mailto:sales@oneuptime.com" class="text-sm font-medium text-gray-700 hover:text-gray-600">Contact sales<span class="ml-1" aria-hidden="true">→</span></a>
-          <a href="mailto:press@oneuptime.com" class="text-sm font-medium text-gray-700 hover:text-gray-600">Press<span class="ml-1" aria-hidden="true">→</span></a>
-        </div>
-      </div>
-    </div>
+                        <!-- CTA buttons -->
+                        <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+                            <a href="mailto:support@oneuptime.com" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+                                Email support
+                                <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                            </a>
+                            <a href="/docs" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-2.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">
+                                <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                                </svg>
+                                Browse docs
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-    <!-- FAQ (no custom CSS; native details/summary) -->
-    <div class="mt-16 rounded-2xl border border-gray-200 bg-white p-6 sm:p-8">
-      <h3 class="text-xl font-semibold text-gray-900">Frequently asked</h3>
-      <div class="mt-6 divide-y divide-gray-200">
-        <details class="group py-4">
-          <summary class="flex cursor-pointer list-none items-center justify-between text-left text-base font-medium text-gray-900">
-            What are your support hours?
-            <span class="ml-4 text-gray-400 group-open:rotate-180 transition"><svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd"/></svg></span>
-          </summary>
-          <p class="mt-3 text-sm leading-6 text-gray-600">We provide global coverage Monday–Friday and monitor critical channels 24/7 for enterprise SLAs.</p>
-        </details>
-        <details class="group py-4">
-          <summary class="flex cursor-pointer list-none items-center justify-between text-left text-base font-medium text-gray-900">
-            How do I get enterprise support?
-            <span class="ml-4 text-gray-400 group-open:rotate-180 transition"><svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd"/></svg></span>
-          </summary>
-          <p class="mt-3 text-sm leading-6 text-gray-600">Enterprise plans include a dedicated Slack channel and priority response. <a href="/enterprise/demo" class="font-medium text-gray-700 hover:text-gray-600">Request a demo</a> to learn more.</p>
-        </details>
-        <details class="group py-4">
-          <summary class="flex cursor-pointer list-none items-center justify-between text-left text-base font-medium text-gray-900">
-            Where can I find product guides and API docs?
-            <span class="ml-4 text-gray-400 group-open:rotate-180 transition"><svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd"/></svg></span>
-          </summary>
-          <p class="mt-3 text-sm leading-6 text-gray-600">Head to our <a href="/docs" class="font-medium text-gray-700 hover:text-gray-600">documentation</a> for quick starts, tutorials, and API references.</p>
-        </details>
-      </div>
-    </div>
+        <!-- Contact Options Section -->
+        <section class="bg-gray-50 py-24 sm:py-32">
+            <div class="mx-auto max-w-7xl px-6 lg:px-8">
+                <div class="mx-auto max-w-2xl text-center mb-16">
+                    <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Get in Touch</h2>
+                    <p class="mt-4 text-lg text-gray-600">Choose the channel that works best for you.</p>
+                </div>
 
-    <!-- Call Scheduler -->
-    <div class="mt-16 rounded-2xl border border-gray-200 bg-white p-6 sm:p-8">
-      <h3 class="text-xl font-semibold text-gray-900 text-center">Schedule a Call</h3>
-      <p class="mt-2 text-sm text-gray-600 text-center">Need personalized help? Schedule a call with our support team.</p>
-      
-      <div style="margin-top: 30px;">
-        <!-- Cal inline embed code begins -->
-        <div style="width:100%;height:100%;overflow:scroll" id="my-cal-inline-support"></div>
-        <script type="text/javascript">
-          (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; typeof namespace === "string" ? (cal.ns[namespace] = api) && p(api, ar) : p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
-          Cal("init", { origin: "https://cal.com" });
+                <div class="mx-auto max-w-5xl">
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <!-- Support Email -->
+                        <div class="support-card-wrapper support-glow-slate-wrapper">
+                            <div class="support-card support-glow-slate bg-white rounded-2xl p-8 ring-1 ring-inset ring-gray-200 transition-all hover:ring-slate-300 h-full">
+                                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 ring-1 ring-slate-200 mb-6">
+                                    <svg class="h-5 w-5 text-slate-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25H4.5a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75m19.5 0v.243a2.25 2.25 0 01-1.03 1.905l-7.5 4.615a2.25 2.25 0 01-2.34 0l-7.5-4.615a2.25 2.25 0 01-1.03-1.905V6.75"/>
+                                    </svg>
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-3">Support Email</h3>
+                                <p class="text-gray-600 leading-relaxed text-sm mb-6">
+                                    Questions or issues? Send us an email and we'll get back within one business day. Perfect for non-urgent inquiries.
+                                </p>
+                                <a href="mailto:support@oneuptime.com" class="inline-flex items-center text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors">
+                                    support@oneuptime.com
+                                    <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
 
-          Cal("inline", {
-            elementOrSelector: "#my-cal-inline-support",
-            calLink: "oneuptimehq/demo",
-            layout: "month_view"
-          });
+                        <!-- Slack -->
+                        <div class="support-card-wrapper support-glow-cool-wrapper">
+                            <div class="support-card support-glow-cool bg-white rounded-2xl p-8 ring-1 ring-inset ring-gray-200 transition-all hover:ring-gray-300 h-full">
+                                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-50 ring-1 ring-gray-200 mb-6">
+                                    <svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.712 4.33a9.027 9.027 0 011.652 1.306c.51.51.944 1.064 1.306 1.652M16.712 4.33l-3.448 4.138m3.448-4.138a9.014 9.014 0 00-9.424 0M19.67 7.288l-4.138 3.448m4.138-3.448a9.014 9.014 0 010 9.424m-4.138-5.976a3.736 3.736 0 00-.88-1.388 3.737 3.737 0 00-1.388-.88m2.268 2.268a3.765 3.765 0 010 2.528m-2.268-4.796a3.765 3.765 0 00-2.528 0m4.796 4.796c-.181.506-.475.982-.88 1.388a3.736 3.736 0 01-1.388.88m2.268-2.268l4.138 3.448m0 0a9.027 9.027 0 01-1.306 1.652c-.51.51-1.064.944-1.652 1.306m0 0l-3.448-4.138m3.448 4.138a9.014 9.014 0 01-9.424 0m5.976-4.138a3.765 3.765 0 01-2.528 0m0 0a3.736 3.736 0 01-1.388-.88 3.737 3.737 0 01-.88-1.388m2.268 2.268L7.288 19.67m0 0a9.024 9.024 0 01-1.652-1.306 9.027 9.027 0 01-1.306-1.652m0 0l4.138-3.448M4.33 16.712a9.014 9.014 0 010-9.424m4.138 5.976a3.765 3.765 0 010-2.528m0 0c.181-.506.475-.982.88-1.388a3.736 3.736 0 011.388-.88m-2.268 2.268L4.33 7.288m6.406 1.18L7.288 4.33m0 0a9.024 9.024 0 00-1.652 1.306A9.025 9.025 0 004.33 7.288" />
+                                    </svg>
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-3">Technical Support (Slack)</h3>
+                                <p class="text-gray-600 leading-relaxed text-sm mb-6">
+                                    Chat with our engineers for help with the dashboard, APIs, and features. Enterprise plans get a dedicated channel.
+                                </p>
+                                <a href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA" target="_blank" rel="noopener" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+                                    Chat on Slack
+                                    <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
 
-          Cal("ui", { "styles": { "branding": { "brandColor": "#6366f1" } }, "hideEventTypeDetails": false, "layout": "month_view" });
+                        <!-- Documentation -->
+                        <div class="support-card-wrapper support-glow-zinc-wrapper">
+                            <div class="support-card support-glow-zinc bg-white rounded-2xl p-8 ring-1 ring-inset ring-gray-200 transition-all hover:ring-zinc-300 h-full">
+                                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-zinc-50 ring-1 ring-zinc-200 mb-6">
+                                    <svg class="h-5 w-5 text-zinc-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+                                    </svg>
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-3">Documentation</h3>
+                                <p class="text-gray-600 leading-relaxed text-sm mb-6">
+                                    Guides, API references, and best practices to help you ship faster and resolve issues quickly. Self-serve support 24/7.
+                                </p>
+                                <a href="/docs" class="inline-flex items-center text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors">
+                                    Open docs
+                                    <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
 
-          Cal("on", {
-            action: "bookingSuccessful",
-            callback: (e) => {
-              // `data` is properties for the event.
-              // `type` is the name of the action(You can also call it type of the action.) This would be same as "ANY_ACTION_NAME" except when ANY_ACTION_NAME="*" which listens to all the events.
-              // `namespace` tells you the Cal namespace for which the event is fired/
-              const { data, type, namespace } = e.detail;
+                        <!-- Sales & Media -->
+                        <div class="support-card-wrapper support-glow-stone-wrapper">
+                            <div class="support-card support-glow-stone bg-white rounded-2xl p-8 ring-1 ring-inset ring-gray-200 transition-all hover:ring-stone-300 h-full">
+                                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-stone-50 ring-1 ring-stone-200 mb-6">
+                                    <svg class="h-5 w-5 text-stone-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/>
+                                    </svg>
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-3">Sales &amp; Media</h3>
+                                <p class="text-gray-600 leading-relaxed text-sm mb-6">
+                                    Looking for a demo, quotes, or press info? Our team can help with enterprise plans and media requests.
+                                </p>
+                                <div class="flex items-center gap-6">
+                                    <a href="mailto:sales@oneuptime.com" class="inline-flex items-center text-sm font-medium text-stone-700 hover:text-stone-900 transition-colors">
+                                        Contact sales
+                                        <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                                        </svg>
+                                    </a>
+                                    <a href="mailto:press@oneuptime.com" class="inline-flex items-center text-sm font-medium text-stone-700 hover:text-stone-900 transition-colors">
+                                        Press
+                                        <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-              if (posthog) {
-                posthog.capture('home/support-call-booked', {
-                  'page': {
-                    'path': window.location.pathname,
-                    'referrer': document.referrer,
-                    'search': window.location.search,
-                    'url': window.location.href,
-                    'title': document.title,
-                  },
-                  'data': data,
-                  'type': type,
-                  'namespace': namespace
-                });
-              }
+        <!-- FAQ Section -->
+        <section class="bg-white py-24 sm:py-32">
+            <div class="mx-auto max-w-7xl px-6 lg:px-8">
+                <div class="mx-auto max-w-2xl text-center mb-16">
+                    <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Frequently Asked Questions</h2>
+                    <p class="mt-4 text-lg text-gray-600">Quick answers to common questions.</p>
+                </div>
+
+                <div class="mx-auto max-w-3xl">
+                    <div class="bg-white rounded-2xl ring-1 ring-inset ring-gray-200 overflow-hidden shadow-sm">
+                        <div class="divide-y divide-gray-100">
+                            <details class="faq-item group">
+                                <summary class="flex cursor-pointer items-center justify-between px-6 py-5 text-left">
+                                    <span class="text-base font-medium text-gray-900">What are your support hours?</span>
+                                    <span class="ml-6 flex-shrink-0">
+                                        <svg class="faq-chevron h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </span>
+                                </summary>
+                                <div class="px-6 pb-5">
+                                    <p class="text-sm leading-relaxed text-gray-600">We provide global coverage Monday through Friday and monitor critical channels 24/7 for enterprise SLAs. Most requests receive a response within one business day.</p>
+                                </div>
+                            </details>
+
+                            <details class="faq-item group">
+                                <summary class="flex cursor-pointer items-center justify-between px-6 py-5 text-left">
+                                    <span class="text-base font-medium text-gray-900">How do I get enterprise support?</span>
+                                    <span class="ml-6 flex-shrink-0">
+                                        <svg class="faq-chevron h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </span>
+                                </summary>
+                                <div class="px-6 pb-5">
+                                    <p class="text-sm leading-relaxed text-gray-600">Enterprise plans include a dedicated Slack channel, priority response times, and direct access to our engineering team. <a href="/enterprise/demo" class="font-medium text-gray-900 hover:text-gray-700 underline decoration-gray-300 underline-offset-2">Request a demo</a> to learn more about enterprise features.</p>
+                                </div>
+                            </details>
+
+                            <details class="faq-item group">
+                                <summary class="flex cursor-pointer items-center justify-between px-6 py-5 text-left">
+                                    <span class="text-base font-medium text-gray-900">Where can I find product guides and API docs?</span>
+                                    <span class="ml-6 flex-shrink-0">
+                                        <svg class="faq-chevron h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </span>
+                                </summary>
+                                <div class="px-6 pb-5">
+                                    <p class="text-sm leading-relaxed text-gray-600">Head to our <a href="/docs" class="font-medium text-gray-900 hover:text-gray-700 underline decoration-gray-300 underline-offset-2">documentation</a> for quick starts, tutorials, API references, and integration guides. Everything you need to get up and running.</p>
+                                </div>
+                            </details>
+
+                            <details class="faq-item group">
+                                <summary class="flex cursor-pointer items-center justify-between px-6 py-5 text-left">
+                                    <span class="text-base font-medium text-gray-900">Can I self-host OneUptime?</span>
+                                    <span class="ml-6 flex-shrink-0">
+                                        <svg class="faq-chevron h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </span>
+                                </summary>
+                                <div class="px-6 pb-5">
+                                    <p class="text-sm leading-relaxed text-gray-600">OneUptime is 100% open source and can be self-hosted on your own infrastructure. Check out our <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="font-medium text-gray-900 hover:text-gray-700 underline decoration-gray-300 underline-offset-2">GitHub repository</a> for deployment instructions and Docker/Kubernetes configurations.</p>
+                                </div>
+                            </details>
+
+                            <details class="faq-item group">
+                                <summary class="flex cursor-pointer items-center justify-between px-6 py-5 text-left">
+                                    <span class="text-base font-medium text-gray-900">What's included in the free plan?</span>
+                                    <span class="ml-6 flex-shrink-0">
+                                        <svg class="faq-chevron h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </span>
+                                </summary>
+                                <div class="px-6 pb-5">
+                                    <p class="text-sm leading-relaxed text-gray-600">Our free plan includes monitoring, status pages, incident management, and on-call scheduling. Visit our <a href="/pricing" class="font-medium text-gray-900 hover:text-gray-700 underline decoration-gray-300 underline-offset-2">pricing page</a> to see what's included in each plan and find the right fit for your team.</p>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Schedule a Call Section -->
+        <section class="bg-gray-50 py-24 sm:py-32" id="schedule-call-section">
+            <div class="mx-auto max-w-7xl px-6 lg:px-8">
+                <div class="mx-auto max-w-2xl text-center mb-12">
+                    <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Schedule a Call</h2>
+                    <p class="mt-4 text-lg text-gray-600">Need personalized help? Book time with our team.</p>
+                </div>
+
+                <div class="mx-auto max-w-4xl">
+                    <div class="bg-white rounded-2xl ring-1 ring-inset ring-gray-200 overflow-hidden shadow-sm">
+                        <div class="p-4 sm:p-6">
+                            <!-- Cal inline embed code begins -->
+                            <div style="width:100%;height:600px;overflow:auto" id="my-cal-inline-support"></div>
+                            <script type="text/javascript">
+                                (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; typeof namespace === "string" ? (cal.ns[namespace] = api) && p(api, ar) : p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
+                                Cal("init", { origin: "https://cal.com" });
+
+                                Cal("inline", {
+                                    elementOrSelector: "#my-cal-inline-support",
+                                    calLink: "oneuptimehq/demo",
+                                    layout: "month_view"
+                                });
+
+                                Cal("ui", { "styles": { "branding": { "brandColor": "#111827" } }, "hideEventTypeDetails": false, "layout": "month_view" });
+
+                                Cal("on", {
+                                    action: "bookingSuccessful",
+                                    callback: (e) => {
+                                        const { data, type, namespace } = e.detail;
+
+                                        if (typeof posthog !== 'undefined' && posthog) {
+                                            posthog.capture('home/support-call-booked', {
+                                                'page': {
+                                                    'path': window.location.pathname,
+                                                    'referrer': document.referrer,
+                                                    'search': window.location.search,
+                                                    'url': window.location.href,
+                                                    'title': document.title,
+                                                },
+                                                'data': data,
+                                                'type': type,
+                                                'namespace': namespace
+                                            });
+                                        }
+                                    }
+                                })
+                            </script>
+                            <!-- Cal inline embed code ends -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA Section -->
+        <section class="bg-white py-24 sm:py-32">
+            <div class="mx-auto max-w-7xl px-6 lg:px-8">
+                <div class="mx-auto max-w-2xl text-center">
+                    <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Still have questions?</h2>
+                    <p class="mt-4 text-lg text-gray-600">We're here to help. Reach out and we'll get back to you quickly.</p>
+
+                    <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <a href="mailto:support@oneuptime.com" class="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-700 transition-colors shadow-sm">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25H4.5a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75m19.5 0v.243a2.25 2.25 0 01-1.03 1.905l-7.5 4.615a2.25 2.25 0 01-2.34 0l-7.5-4.615a2.25 2.25 0 01-1.03-1.905V6.75"/>
+                            </svg>
+                            Email support
+                        </a>
+                        <a href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                            </svg>
+                            Chat on Slack
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <%- include('cta') -%>
+    </main>
+    <%- include('footer') -%>
+
+    <script>
+    // Subtle cursor-following grid glow effect
+    (function() {
+        const section = document.getElementById('support-hero-section');
+        const glowEffect = document.getElementById('support-grid-glow-effect');
+
+        if (!section || !glowEffect) return;
+
+        let isHovering = false;
+        let animationFrame = null;
+        let currentX = 0;
+        let currentY = 0;
+        let targetX = 0;
+        let targetY = 0;
+
+        function lerp(start, end, factor) {
+            return start + (end - start) * factor;
+        }
+
+        function animate() {
+            if (!isHovering) return;
+
+            currentX = lerp(currentX, targetX, 0.1);
+            currentY = lerp(currentY, targetY, 0.1);
+
+            glowEffect.style.setProperty('--mouse-x', currentX + 'px');
+            glowEffect.style.setProperty('--mouse-y', currentY + 'px');
+
+            animationFrame = requestAnimationFrame(animate);
+        }
+
+        section.addEventListener('mouseenter', function() {
+            isHovering = true;
+            glowEffect.style.opacity = '1';
+            animate();
+        });
+
+        section.addEventListener('mousemove', function(e) {
+            const rect = section.getBoundingClientRect();
+            targetX = e.clientX - rect.left;
+            targetY = e.clientY - rect.top;
+
+            if (!isHovering) {
+                currentX = targetX;
+                currentY = targetY;
             }
-          })
+        });
 
-        </script>
-        <!-- Cal inline embed code ends -->
-      </div>
-    </div>
-
-    <!-- Final CTA -->
-    <div class="mt-10 flex flex-wrap items-center gap-3">
-      <a href="mailto:support@oneuptime.com" class="inline-flex items-center rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black">Email support</a>
-      <a href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA" target="_blank" rel="noopener" class="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-200 hover:bg-gray-100">Chat on Slack</a>
-    </div>
-  </section>
-
-  <%- include('cta') -%>
-  </main>
-  <%- include('footer') -%>
+        section.addEventListener('mouseleave', function() {
+            isHovering = false;
+            glowEffect.style.opacity = '0';
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+                animationFrame = null;
+            }
+        });
+    })();
+    </script>
 </body>
 </html>
