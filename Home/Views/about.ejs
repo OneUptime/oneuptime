@@ -492,47 +492,47 @@
         </section>
 
         <!-- Hiring CTA Section -->
-        <section class="relative py-24 sm:py-32 bg-gray-50 overflow-hidden" id="hiring-section">
+        <section class="relative py-32 sm:py-40 bg-white overflow-hidden" id="hiring-section">
             <!-- Subtle grid pattern -->
-            <div class="absolute inset-0 -z-10 h-full w-full bg-gray-50 bg-[linear-gradient(to_right,#e5e5e5_1px,transparent_1px),linear-gradient(to_bottom,#e5e5e5_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_50%,#000_40%,transparent_100%)]"></div>
+            <div class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#f5f5f5_1px,transparent_1px),linear-gradient(to_bottom,#f5f5f5_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_50%,#000_40%,transparent_100%)]"></div>
 
-            <!-- Subtle grid glow effect -->
-            <div id="hiring-grid-glow-effect" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(156, 163, 175, 0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(156, 163, 175, 0.5) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 200px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 200px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+            <!-- Grid glow effect that follows cursor -->
+            <div id="hiring-grid-glow-effect" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(156, 163, 175, 0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(156, 163, 175, 0.4) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 200px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 200px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
 
             <div class="mx-auto max-w-7xl px-6 lg:px-8 relative">
-                <div class="mx-auto max-w-2xl text-center">
-                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 text-sm font-medium mb-8">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
-                        </svg>
-                        <span>We're hiring</span>
-                    </div>
-
-                    <h2 class="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-gray-900 leading-[1.15]">
-                        Join us in building the<br class="hidden sm:block" />
-                        <span class="text-gray-500">future of observability</span>
+                <div class="text-center max-w-3xl mx-auto">
+                    <!-- Heading -->
+                    <h2 class="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1]">
+                        <span class="text-gray-700 block">Join us in building the</span>
+                        <span class="text-gray-900 block mt-2">future of observability.</span>
                     </h2>
 
-                    <p class="mt-6 text-base sm:text-lg text-gray-600 max-w-xl mx-auto">
-                        We always give first priority to open-source contributors. Our interview process involves contributing to open-source, so you can show us what you can do.
+                    <!-- Subtext -->
+                    <p class="mt-8 text-lg text-gray-500 leading-relaxed max-w-2xl mx-auto">
+                        We give first priority to open-source contributors. Our interview process involves contributing to open-source, so you can show us what you can do.
                     </p>
 
+                    <!-- Buttons -->
                     <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <a href="https://github.com/OneUptime/interview" target="_blank" class="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white hover:bg-gray-700 transition-colors">
-                            <span>See open roles</span>
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <a href="https://github.com/OneUptime/interview" target="_blank"
+                           class="group inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gray-900 text-white font-medium text-sm shadow-sm hover:bg-gray-800 transition-all duration-200">
+                            <span>View open positions</span>
+                            <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                             </svg>
                         </a>
-                        <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="inline-flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
-                            <span>Start contributing</span>
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+
+                        <a href="https://github.com/oneuptime/oneuptime" target="_blank"
+                           class="group inline-flex items-center gap-2 px-6 py-3 rounded-lg text-gray-600 font-medium text-sm hover:text-gray-900 transition-colors duration-200">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                             </svg>
+                            <span>Start contributing</span>
                         </a>
                     </div>
 
-                    <div class="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-gray-500">
+                    <!-- Perks -->
+                    <div class="mt-14 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-500">
                         <div class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
