@@ -202,7 +202,7 @@
             .back-to-top {
                 position: fixed;
                 bottom: 2rem;
-                right: 2rem;
+                left: 2rem;
                 width: 3rem;
                 height: 3rem;
                 border-radius: 9999px;
@@ -244,6 +244,46 @@
                 color: #6366f1;
             }
 
+            /* Floating TOC */
+            .floating-toc {
+                position: fixed;
+                top: 50%;
+                left: calc(50% + 28rem);
+                transform: translateY(-50%);
+                max-width: 200px;
+                max-height: 60vh;
+                z-index: 40;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.3s ease;
+            }
+
+            .floating-toc.visible {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            @media (min-width: 1440px) and (max-width: 1599px) {
+                .floating-toc {
+                    left: calc(50% + 26rem);
+                    max-width: 180px;
+                }
+            }
+
+            .floating-toc-inner {
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(148, 163, 184, 0.3);
+                border-radius: 1rem;
+                padding: 1rem;
+                box-shadow: 0 10px 40px rgba(15, 23, 42, 0.08);
+            }
+
+            .floating-toc-inner:hover {
+                box-shadow: 0 15px 50px rgba(15, 23, 42, 0.12);
+                border-color: rgba(99, 102, 241, 0.3);
+            }
+
             /* TOC active state */
             #toc a.toc-active {
                 color: #4f46e5;
@@ -253,14 +293,26 @@
             #toc a {
                 position: relative;
                 padding-left: 0.75rem;
+                display: block;
+                padding-top: 0.25rem;
+                padding-bottom: 0.25rem;
+                font-size: 0.8125rem;
+                line-height: 1.4;
+                color: #64748b;
+                text-decoration: none;
+                transition: color 0.2s;
+            }
+
+            #toc a:hover {
+                color: #6366f1;
             }
 
             #toc a::before {
                 content: '';
                 position: absolute;
                 left: 0;
-                top: 0.25rem;
-                bottom: 0.25rem;
+                top: 0.35rem;
+                bottom: 0.35rem;
                 width: 2px;
                 background: transparent;
                 border-radius: 1px;
@@ -269,6 +321,29 @@
 
             #toc a.toc-active::before {
                 background: #6366f1;
+            }
+
+            #toc a.toc-h3 {
+                padding-left: 1.25rem;
+                font-size: 0.75rem;
+                color: #94a3b8;
+            }
+
+            #toc a.toc-h3::before {
+                left: 0.5rem;
+            }
+
+            @media (max-width: 1279px) {
+                .floating-toc {
+                    display: none !important;
+                }
+            }
+
+            @media (min-width: 1280px) and (max-width: 1439px) {
+                .floating-toc {
+                    left: calc(50% + 24rem);
+                    max-width: 160px;
+                }
             }
 
             /* Smooth scroll behavior */
@@ -288,6 +363,18 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
         </svg>
     </button>
+
+    <!-- Floating TOC -->
+    <div class="floating-toc" id="floating-toc">
+        <div class="floating-toc-inner">
+            <h2 class="text-xs font-semibold tracking-wider text-indigo-600 uppercase mb-3 flex items-center gap-2">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+                On this page
+            </h2>
+            <nav id="toc" aria-label="Table of contents" class="overflow-y-auto max-h-[50vh] pr-1"></nav>
+        </div>
+    </div>
+
     <%- include('../nav') -%>
 
         <div class="relative isolate overflow-hidden bg-gradient-to-b from-white via-white to-gray-50/40">
@@ -328,12 +415,12 @@
                 </div>
             </div>
 
-            <!-- Content + Sidebar -->
+            <!-- Content -->
             <div class="pb-24">
-                <div class="mx-auto max-w-7xl px-6 lg:px-8">
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                <div class="mx-auto max-w-4xl px-6 lg:px-8">
+                    <div>
                         <!-- Main content -->
-                        <article class="lg:col-span-8 xl:col-span-9">
+                        <article>
                             <div class="relative">
                                 <div class="floating-share hidden xl:flex" aria-label="Share this article">
                                     <a title="Share on X" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?text=<%- encodeURIComponent(blogPost.title) -%>&url=<%- encodeURIComponent(blogPost.blogUrl) -%>">
@@ -406,20 +493,6 @@
                                 <%- include('./Partials/OpenSourceCommitment', { blogPost: blogPost }) -%>
                             </div>
                         </article>
-
-                        <!-- Sidebar -->
-                        <aside class="hidden lg:block lg:col-span-4 xl:col-span-3">
-                            <div class="sticky top-28 space-y-8">
-                                <div class="rounded-2xl border border-gray-200/80 bg-gradient-to-br from-gray-50 to-white p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
-                                    <h2 class="text-xs font-semibold tracking-wider text-indigo-600 uppercase mb-4 flex items-center gap-2">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
-                                        On this page
-                                    </h2>
-                                    <!-- Reserve initial space for TOC to reduce layout shift once populated -->
-                                    <nav id="toc" aria-label="Table of contents" class="text-sm leading-7 space-y-1 text-gray-600 min-h-[3rem] max-h-[60vh] overflow-y-auto pr-2"></nav>
-                                </div>
-                            </div>
-                        </aside>
                     </div>
                 </div>
             </div>
@@ -479,13 +552,14 @@
                         }
                     } catch (e) {}
 
-                    // TOC with active state tracking
+                    // TOC with active state tracking and floating visibility
                     try {
                         const container = document.querySelector('.blog-body');
                         if(!container){ return; }
                         const headings = container.querySelectorAll('h2, h3');
                         if(!headings.length){ return; }
                         const toc = document.getElementById('toc');
+                        const floatingToc = document.getElementById('floating-toc');
                         if(!toc){ return; }
                         const tocLinks = [];
                         headings.forEach(h => {
@@ -495,14 +569,14 @@
                             const a = document.createElement('a');
                             a.href = '#' + h.id;
                             a.textContent = h.textContent;
-                            a.className = 'block hover:text-indigo-600 transition-colors duration-200 ' + (h.tagName === 'H3' ? 'pl-4 text-gray-500' : 'font-medium text-gray-700');
+                            a.className = h.tagName === 'H3' ? 'toc-h3' : '';
                             a.dataset.target = h.id;
                             toc.appendChild(a);
                             tocLinks.push({ link: a, heading: h });
                         });
 
-                        // Track active TOC item on scroll
-                        const updateActiveToc = () => {
+                        // Track active TOC item and floating TOC visibility on scroll
+                        const updateToc = () => {
                             const scrollPos = window.scrollY + 150;
                             let activeIndex = 0;
                             tocLinks.forEach((item, i) => {
@@ -519,9 +593,20 @@
                                     item.link.classList.remove('toc-active');
                                 }
                             });
+
+                            // Show/hide floating TOC based on scroll position
+                            if(floatingToc){
+                                const blogBodyRect = container.getBoundingClientRect();
+                                const isInView = blogBodyRect.top < window.innerHeight * 0.3 && blogBodyRect.bottom > window.innerHeight * 0.5;
+                                if(isInView && window.scrollY > 300){
+                                    floatingToc.classList.add('visible');
+                                } else {
+                                    floatingToc.classList.remove('visible');
+                                }
+                            }
                         };
-                        window.addEventListener('scroll', updateActiveToc, { passive: true });
-                        updateActiveToc();
+                        window.addEventListener('scroll', updateToc, { passive: true });
+                        updateToc();
                     } catch (e) {}
 
                     // Back to top button
