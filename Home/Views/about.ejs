@@ -303,6 +303,21 @@
                     </div>
 
                     <!-- Top Contributors Cards -->
+                    <%
+                    // Avatar gradient colors - cycling through for variety
+                    var avatarGradients = [
+                        'from-blue-400 to-blue-600',
+                        'from-emerald-400 to-emerald-600',
+                        'from-purple-400 to-purple-600',
+                        'from-rose-400 to-rose-600',
+                        'from-amber-400 to-amber-600',
+                        'from-indigo-400 to-indigo-600',
+                        'from-cyan-400 to-cyan-600',
+                        'from-pink-400 to-pink-600',
+                        'from-teal-400 to-teal-600',
+                        'from-orange-400 to-orange-600'
+                    ];
+                    %>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                         <%
                         var displayedCount = 0;
@@ -312,6 +327,8 @@
                             if (!contributor || !contributor.login) continue;
                             var login = contributor.login.toLowerCase();
                             if (login.includes('bot') || login.includes('[bot]') || login === 'dependabot' || login === 'renovate' || login === 'greenkeeper' || login === 'snyk-bot' || login === 'imgbot' || login === 'codecov' || login === 'sonarcloud' || contributor.type === 'Bot') continue;
+                            var initials = contributor.login.substring(0, 2).toUpperCase();
+                            var gradientClass = avatarGradients[displayedCount % avatarGradients.length];
                             displayedCount++;
                         %>
                         <a href="https://github.com/<%= contributor.login %>" target="_blank" class="group relative bg-white rounded-2xl p-5 ring-1 ring-inset ring-gray-200 shadow-sm hover:shadow-md hover:ring-gray-300 transition-all duration-200">
@@ -322,7 +339,9 @@
 
                             <!-- Avatar -->
                             <div class="flex justify-center mb-3">
-                                <img src="<%= contributor.avatar_url %>" alt="<%= contributor.login %>" class="w-16 h-16 rounded-full ring-2 ring-white shadow-md group-hover:scale-105 transition-transform duration-200" loading="lazy" />
+                                <div class="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br <%= gradientClass %> text-lg font-semibold text-white ring-2 ring-white shadow-md group-hover:scale-105 transition-transform duration-200">
+                                    <%= initials %>
+                                </div>
                             </div>
 
                             <!-- Info -->
@@ -345,9 +364,13 @@
                                 if (!extraContributor || !extraContributor.login) continue;
                                 var extraLogin = extraContributor.login.toLowerCase();
                                 if (extraLogin.includes('bot') || extraLogin.includes('[bot]') || extraLogin === 'dependabot' || extraLogin === 'renovate' || extraLogin === 'greenkeeper' || extraLogin === 'snyk-bot' || extraLogin === 'imgbot' || extraLogin === 'codecov' || extraLogin === 'sonarcloud' || extraContributor.type === 'Bot') continue;
+                                var extraInitials = extraContributor.login.substring(0, 2).toUpperCase();
+                                var extraGradientClass = avatarGradients[(displayedCount + extraCount) % avatarGradients.length];
                                 extraCount++;
                             %>
-                            <img src="<%= extraContributor.avatar_url %>" alt="<%= extraContributor.login %>" title="<%= extraContributor.login %>" class="w-8 h-8 rounded-full ring-2 ring-white hover:z-10 hover:scale-110 transition-transform duration-200" loading="lazy" />
+                            <div title="<%= extraContributor.login %>" class="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br <%= extraGradientClass %> text-xs font-semibold text-white ring-2 ring-white hover:z-10 hover:scale-110 transition-transform duration-200 cursor-pointer">
+                                <%= extraInitials %>
+                            </div>
                             <% } %>
                             <% if (contributors.length > displayedCount + extraCount) { %>
                             <div class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 ring-2 ring-white text-xs font-medium text-gray-600">
