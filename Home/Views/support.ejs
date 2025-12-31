@@ -19,7 +19,7 @@
     }) -%>
 
     <style>
-        /* Support Card Styles with Glow Effects */
+        /* Support Card Styles with Colorful Glow Effects */
         .support-card-wrapper {
             position: relative;
         }
@@ -45,30 +45,36 @@
             transform: translateY(-2px);
         }
 
-        /* Glow Effects for Cards */
-        .support-glow-slate-wrapper::before {
-            background: radial-gradient(ellipse at center, rgb(100 116 139 / 0.08) 0%, rgb(100 116 139 / 0.03) 40%, transparent 70%);
+        /* Blue - Support Email */
+        .support-glow-blue-wrapper::before {
+            background: radial-gradient(ellipse at center, rgb(59 130 246 / 0.08) 0%, rgb(59 130 246 / 0.03) 40%, transparent 70%);
         }
-        .support-glow-slate:hover {
-            box-shadow: 0 0 0 2px rgb(100 116 139 / 0.12), 0 8px 24px -8px rgb(100 116 139 / 0.15), 0 0 40px -12px rgb(100 116 139 / 0.1);
+        .support-glow-blue:hover {
+            box-shadow: 0 0 0 2px rgb(59 130 246 / 0.2), 0 8px 24px -8px rgb(59 130 246 / 0.2), 0 0 40px -12px rgb(59 130 246 / 0.15);
         }
-        .support-glow-cool-wrapper::before {
-            background: radial-gradient(ellipse at center, rgb(107 114 128 / 0.08) 0%, rgb(107 114 128 / 0.03) 40%, transparent 70%);
+
+        /* Purple - Slack */
+        .support-glow-purple-wrapper::before {
+            background: radial-gradient(ellipse at center, rgb(168 85 247 / 0.08) 0%, rgb(168 85 247 / 0.03) 40%, transparent 70%);
         }
-        .support-glow-cool:hover {
-            box-shadow: 0 0 0 2px rgb(107 114 128 / 0.12), 0 8px 24px -8px rgb(107 114 128 / 0.15), 0 0 40px -12px rgb(107 114 128 / 0.1);
+        .support-glow-purple:hover {
+            box-shadow: 0 0 0 2px rgb(168 85 247 / 0.2), 0 8px 24px -8px rgb(168 85 247 / 0.2), 0 0 40px -12px rgb(168 85 247 / 0.15);
         }
-        .support-glow-zinc-wrapper::before {
-            background: radial-gradient(ellipse at center, rgb(113 113 122 / 0.08) 0%, rgb(113 113 122 / 0.03) 40%, transparent 70%);
+
+        /* Emerald - Documentation */
+        .support-glow-emerald-wrapper::before {
+            background: radial-gradient(ellipse at center, rgb(16 185 129 / 0.08) 0%, rgb(16 185 129 / 0.03) 40%, transparent 70%);
         }
-        .support-glow-zinc:hover {
-            box-shadow: 0 0 0 2px rgb(113 113 122 / 0.12), 0 8px 24px -8px rgb(113 113 122 / 0.15), 0 0 40px -12px rgb(113 113 122 / 0.1);
+        .support-glow-emerald:hover {
+            box-shadow: 0 0 0 2px rgb(16 185 129 / 0.2), 0 8px 24px -8px rgb(16 185 129 / 0.2), 0 0 40px -12px rgb(16 185 129 / 0.15);
         }
-        .support-glow-stone-wrapper::before {
-            background: radial-gradient(ellipse at center, rgb(120 113 108 / 0.08) 0%, rgb(120 113 108 / 0.03) 40%, transparent 70%);
+
+        /* Amber - Sales & Media */
+        .support-glow-amber-wrapper::before {
+            background: radial-gradient(ellipse at center, rgb(245 158 11 / 0.08) 0%, rgb(245 158 11 / 0.03) 40%, transparent 70%);
         }
-        .support-glow-stone:hover {
-            box-shadow: 0 0 0 2px rgb(120 113 108 / 0.12), 0 8px 24px -8px rgb(120 113 108 / 0.15), 0 0 40px -12px rgb(120 113 108 / 0.1);
+        .support-glow-amber:hover {
+            box-shadow: 0 0 0 2px rgb(245 158 11 / 0.2), 0 8px 24px -8px rgb(245 158 11 / 0.2), 0 0 40px -12px rgb(245 158 11 / 0.15);
         }
 
         /* FAQ Accordion Styles */
@@ -101,15 +107,15 @@
             <!-- Subtle grid pattern background -->
             <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
 
-            <!-- Grid glow effect that follows cursor -->
-            <div id="support-grid-glow-effect" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(156, 163, 175, 0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(156, 163, 175, 0.4) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 200px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 200px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+            <!-- Grid glow effect that follows cursor - Blue like home page -->
+            <div id="support-grid-glow-effect" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(59, 130, 246, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
 
             <div class="py-24 sm:py-32">
                 <div class="mx-auto max-w-7xl px-6 lg:px-8">
                     <div class="mx-auto max-w-3xl text-center">
                         <!-- Badge -->
-                        <div class="mb-8 inline-flex items-center gap-2 rounded-full bg-gray-50 px-4 py-2 text-sm text-gray-600 ring-1 ring-inset ring-gray-200">
-                            <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <div class="mb-8 inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm text-blue-700 ring-1 ring-inset ring-blue-200">
+                            <svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
                             </svg>
                             <span>Always humans, never bots</span>
@@ -153,11 +159,11 @@
 
                 <div class="mx-auto max-w-5xl">
                     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                        <!-- Support Email -->
-                        <div class="support-card-wrapper support-glow-slate-wrapper">
-                            <div class="support-card support-glow-slate bg-white rounded-2xl p-8 ring-1 ring-inset ring-gray-200 transition-all hover:ring-slate-300 h-full">
-                                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 ring-1 ring-slate-200 mb-6">
-                                    <svg class="h-5 w-5 text-slate-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <!-- Support Email - Blue -->
+                        <div class="support-card-wrapper support-glow-blue-wrapper">
+                            <div class="support-card support-glow-blue bg-white rounded-2xl p-8 ring-1 ring-inset ring-gray-200 transition-all hover:ring-blue-300 h-full">
+                                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-200 mb-6">
+                                    <svg class="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25H4.5a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75m19.5 0v.243a2.25 2.25 0 01-1.03 1.905l-7.5 4.615a2.25 2.25 0 01-2.34 0l-7.5-4.615a2.25 2.25 0 01-1.03-1.905V6.75"/>
                                     </svg>
                                 </div>
@@ -165,7 +171,7 @@
                                 <p class="text-gray-600 leading-relaxed text-sm mb-6">
                                     Questions or issues? Send us an email and we'll get back within one business day. Perfect for non-urgent inquiries.
                                 </p>
-                                <a href="mailto:support@oneuptime.com" class="inline-flex items-center text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors">
+                                <a href="mailto:support@oneuptime.com" class="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
                                     support@oneuptime.com
                                     <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
@@ -174,19 +180,19 @@
                             </div>
                         </div>
 
-                        <!-- Slack -->
-                        <div class="support-card-wrapper support-glow-cool-wrapper">
-                            <div class="support-card support-glow-cool bg-white rounded-2xl p-8 ring-1 ring-inset ring-gray-200 transition-all hover:ring-gray-300 h-full">
-                                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-50 ring-1 ring-gray-200 mb-6">
-                                    <svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.712 4.33a9.027 9.027 0 011.652 1.306c.51.51.944 1.064 1.306 1.652M16.712 4.33l-3.448 4.138m3.448-4.138a9.014 9.014 0 00-9.424 0M19.67 7.288l-4.138 3.448m4.138-3.448a9.014 9.014 0 010 9.424m-4.138-5.976a3.736 3.736 0 00-.88-1.388 3.737 3.737 0 00-1.388-.88m2.268 2.268a3.765 3.765 0 010 2.528m-2.268-4.796a3.765 3.765 0 00-2.528 0m4.796 4.796c-.181.506-.475.982-.88 1.388a3.736 3.736 0 01-1.388.88m2.268-2.268l4.138 3.448m0 0a9.027 9.027 0 01-1.306 1.652c-.51.51-1.064.944-1.652 1.306m0 0l-3.448-4.138m3.448 4.138a9.014 9.014 0 01-9.424 0m5.976-4.138a3.765 3.765 0 01-2.528 0m0 0a3.736 3.736 0 01-1.388-.88 3.737 3.737 0 01-.88-1.388m2.268 2.268L7.288 19.67m0 0a9.024 9.024 0 01-1.652-1.306 9.027 9.027 0 01-1.306-1.652m0 0l4.138-3.448M4.33 16.712a9.014 9.014 0 010-9.424m4.138 5.976a3.765 3.765 0 010-2.528m0 0c.181-.506.475-.982.88-1.388a3.736 3.736 0 011.388-.88m-2.268 2.268L4.33 7.288m6.406 1.18L7.288 4.33m0 0a9.024 9.024 0 00-1.652 1.306A9.025 9.025 0 004.33 7.288" />
+                        <!-- Slack - Purple -->
+                        <div class="support-card-wrapper support-glow-purple-wrapper">
+                            <div class="support-card support-glow-purple bg-white rounded-2xl p-8 ring-1 ring-inset ring-gray-200 transition-all hover:ring-purple-300 h-full">
+                                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-50 ring-1 ring-purple-200 mb-6">
+                                    <svg class="h-5 w-5 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
                                     </svg>
                                 </div>
                                 <h3 class="text-lg font-semibold text-gray-900 mb-3">Technical Support (Slack)</h3>
                                 <p class="text-gray-600 leading-relaxed text-sm mb-6">
                                     Chat with our engineers for help with the dashboard, APIs, and features. Enterprise plans get a dedicated channel.
                                 </p>
-                                <a href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA" target="_blank" rel="noopener" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+                                <a href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA" target="_blank" rel="noopener" class="inline-flex items-center text-sm font-medium text-purple-600 hover:text-purple-700 transition-colors">
                                     Chat on Slack
                                     <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
@@ -195,11 +201,11 @@
                             </div>
                         </div>
 
-                        <!-- Documentation -->
-                        <div class="support-card-wrapper support-glow-zinc-wrapper">
-                            <div class="support-card support-glow-zinc bg-white rounded-2xl p-8 ring-1 ring-inset ring-gray-200 transition-all hover:ring-zinc-300 h-full">
-                                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-zinc-50 ring-1 ring-zinc-200 mb-6">
-                                    <svg class="h-5 w-5 text-zinc-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <!-- Documentation - Emerald -->
+                        <div class="support-card-wrapper support-glow-emerald-wrapper">
+                            <div class="support-card support-glow-emerald bg-white rounded-2xl p-8 ring-1 ring-inset ring-gray-200 transition-all hover:ring-emerald-300 h-full">
+                                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200 mb-6">
+                                    <svg class="h-5 w-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
                                     </svg>
                                 </div>
@@ -207,7 +213,7 @@
                                 <p class="text-gray-600 leading-relaxed text-sm mb-6">
                                     Guides, API references, and best practices to help you ship faster and resolve issues quickly. Self-serve support 24/7.
                                 </p>
-                                <a href="/docs" class="inline-flex items-center text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors">
+                                <a href="/docs" class="inline-flex items-center text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors">
                                     Open docs
                                     <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
@@ -216,11 +222,11 @@
                             </div>
                         </div>
 
-                        <!-- Sales & Media -->
-                        <div class="support-card-wrapper support-glow-stone-wrapper">
-                            <div class="support-card support-glow-stone bg-white rounded-2xl p-8 ring-1 ring-inset ring-gray-200 transition-all hover:ring-stone-300 h-full">
-                                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-stone-50 ring-1 ring-stone-200 mb-6">
-                                    <svg class="h-5 w-5 text-stone-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <!-- Sales & Media - Amber -->
+                        <div class="support-card-wrapper support-glow-amber-wrapper">
+                            <div class="support-card support-glow-amber bg-white rounded-2xl p-8 ring-1 ring-inset ring-gray-200 transition-all hover:ring-amber-300 h-full">
+                                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200 mb-6">
+                                    <svg class="h-5 w-5 text-amber-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/>
                                     </svg>
                                 </div>
@@ -229,13 +235,13 @@
                                     Looking for a demo, quotes, or press info? Our team can help with enterprise plans and media requests.
                                 </p>
                                 <div class="flex items-center gap-6">
-                                    <a href="mailto:sales@oneuptime.com" class="inline-flex items-center text-sm font-medium text-stone-700 hover:text-stone-900 transition-colors">
+                                    <a href="mailto:sales@oneuptime.com" class="inline-flex items-center text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors">
                                         Contact sales
                                         <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                                         </svg>
                                     </a>
-                                    <a href="mailto:press@oneuptime.com" class="inline-flex items-center text-sm font-medium text-stone-700 hover:text-stone-900 transition-colors">
+                                    <a href="mailto:press@oneuptime.com" class="inline-flex items-center text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors">
                                         Press
                                         <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
@@ -284,7 +290,7 @@
                                     </span>
                                 </summary>
                                 <div class="px-6 pb-5">
-                                    <p class="text-sm leading-relaxed text-gray-600">Enterprise plans include a dedicated Slack channel, priority response times, and direct access to our engineering team. <a href="/enterprise/demo" class="font-medium text-gray-900 hover:text-gray-700 underline decoration-gray-300 underline-offset-2">Request a demo</a> to learn more about enterprise features.</p>
+                                    <p class="text-sm leading-relaxed text-gray-600">Enterprise plans include a dedicated Slack channel, priority response times, and direct access to our engineering team. <a href="/enterprise/demo" class="font-medium text-blue-600 hover:text-blue-700 underline decoration-blue-300 underline-offset-2">Request a demo</a> to learn more about enterprise features.</p>
                                 </div>
                             </details>
 
@@ -298,7 +304,7 @@
                                     </span>
                                 </summary>
                                 <div class="px-6 pb-5">
-                                    <p class="text-sm leading-relaxed text-gray-600">Head to our <a href="/docs" class="font-medium text-gray-900 hover:text-gray-700 underline decoration-gray-300 underline-offset-2">documentation</a> for quick starts, tutorials, API references, and integration guides. Everything you need to get up and running.</p>
+                                    <p class="text-sm leading-relaxed text-gray-600">Head to our <a href="/docs" class="font-medium text-emerald-600 hover:text-emerald-700 underline decoration-emerald-300 underline-offset-2">documentation</a> for quick starts, tutorials, API references, and integration guides. Everything you need to get up and running.</p>
                                 </div>
                             </details>
 
@@ -312,7 +318,7 @@
                                     </span>
                                 </summary>
                                 <div class="px-6 pb-5">
-                                    <p class="text-sm leading-relaxed text-gray-600">OneUptime is 100% open source and can be self-hosted on your own infrastructure. Check out our <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="font-medium text-gray-900 hover:text-gray-700 underline decoration-gray-300 underline-offset-2">GitHub repository</a> for deployment instructions and Docker/Kubernetes configurations.</p>
+                                    <p class="text-sm leading-relaxed text-gray-600">OneUptime is 100% open source and can be self-hosted on your own infrastructure. Check out our <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="font-medium text-purple-600 hover:text-purple-700 underline decoration-purple-300 underline-offset-2">GitHub repository</a> for deployment instructions and Docker/Kubernetes configurations.</p>
                                 </div>
                             </details>
 
@@ -326,7 +332,7 @@
                                     </span>
                                 </summary>
                                 <div class="px-6 pb-5">
-                                    <p class="text-sm leading-relaxed text-gray-600">Our free plan includes monitoring, status pages, incident management, and on-call scheduling. Visit our <a href="/pricing" class="font-medium text-gray-900 hover:text-gray-700 underline decoration-gray-300 underline-offset-2">pricing page</a> to see what's included in each plan and find the right fit for your team.</p>
+                                    <p class="text-sm leading-relaxed text-gray-600">Our free plan includes monitoring, status pages, incident management, and on-call scheduling. Visit our <a href="/pricing" class="font-medium text-amber-600 hover:text-amber-700 underline decoration-amber-300 underline-offset-2">pricing page</a> to see what's included in each plan and find the right fit for your team.</p>
                                 </div>
                             </details>
                         </div>
@@ -358,7 +364,7 @@
                                     layout: "month_view"
                                 });
 
-                                Cal("ui", { "styles": { "branding": { "brandColor": "#111827" } }, "hideEventTypeDetails": false, "layout": "month_view" });
+                                Cal("ui", { "styles": { "branding": { "brandColor": "#3b82f6" } }, "hideEventTypeDetails": false, "layout": "month_view" });
 
                                 Cal("on", {
                                     action: "bookingSuccessful",
@@ -389,37 +395,12 @@
             </div>
         </section>
 
-        <!-- Final CTA Section -->
-        <section class="bg-white py-24 sm:py-32">
-            <div class="mx-auto max-w-7xl px-6 lg:px-8">
-                <div class="mx-auto max-w-2xl text-center">
-                    <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Still have questions?</h2>
-                    <p class="mt-4 text-lg text-gray-600">We're here to help. Reach out and we'll get back to you quickly.</p>
-
-                    <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <a href="mailto:support@oneuptime.com" class="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-700 transition-colors shadow-sm">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25H4.5a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75m19.5 0v.243a2.25 2.25 0 01-1.03 1.905l-7.5 4.615a2.25 2.25 0 01-2.34 0l-7.5-4.615a2.25 2.25 0 01-1.03-1.905V6.75"/>
-                            </svg>
-                            Email support
-                        </a>
-                        <a href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-                            </svg>
-                            Chat on Slack
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <%- include('cta') -%>
     </main>
     <%- include('footer') -%>
 
     <script>
-    // Subtle cursor-following grid glow effect
+    // Subtle cursor-following grid glow effect - Blue like home page
     (function() {
         const section = document.getElementById('support-hero-section');
         const glowEffect = document.getElementById('support-grid-glow-effect');
@@ -440,8 +421,8 @@
         function animate() {
             if (!isHovering) return;
 
-            currentX = lerp(currentX, targetX, 0.1);
-            currentY = lerp(currentY, targetY, 0.1);
+            currentX = lerp(currentX, targetX, 0.12);
+            currentY = lerp(currentY, targetY, 0.12);
 
             glowEffect.style.setProperty('--mouse-x', currentX + 'px');
             glowEffect.style.setProperty('--mouse-y', currentY + 'px');
