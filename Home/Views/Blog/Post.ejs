@@ -249,7 +249,7 @@
                 position: absolute;
                 top: 0;
                 left: calc(100% + 2rem);
-                max-width: 200px;
+                width: 200px;
                 max-height: 60vh;
                 z-index: 40;
             }
@@ -259,6 +259,7 @@
                 top: 50%;
                 left: calc(50% + 28rem);
                 transform: translateY(-50%);
+                width: 200px;
             }
 
             .floating-toc.is-bottom {
@@ -267,19 +268,32 @@
                 bottom: 0;
                 left: calc(100% + 2rem);
                 transform: none;
+                width: 200px;
             }
 
             @media (min-width: 1280px) and (max-width: 1439px) {
+                .floating-toc {
+                    width: 180px;
+                }
                 .floating-toc.is-fixed {
                     left: calc(50% + 24rem);
-                    max-width: 180px;
+                    width: 180px;
+                }
+                .floating-toc.is-bottom {
+                    width: 180px;
                 }
             }
 
             @media (min-width: 1440px) and (max-width: 1599px) {
+                .floating-toc {
+                    width: 190px;
+                }
                 .floating-toc.is-fixed {
                     left: calc(50% + 26rem);
-                    max-width: 190px;
+                    width: 190px;
+                }
+                .floating-toc.is-bottom {
+                    width: 190px;
                 }
             }
 
@@ -557,7 +571,7 @@
                         const container = document.querySelector('.blog-body');
                         const contentWrapper = document.getElementById('content-wrapper');
                         if(!container){ return; }
-                        const headings = container.querySelectorAll('h2, h3');
+                        const headings = container.querySelectorAll('h2');
                         if(!headings.length){ return; }
                         const toc = document.getElementById('toc');
                         const floatingToc = document.getElementById('floating-toc');
