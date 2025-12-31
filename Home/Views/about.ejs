@@ -99,136 +99,6 @@
             </div>
         </section>
 
-        <!-- To The Builders Section -->
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap" rel="stylesheet">
-
-        <section class="relative bg-gradient-to-b from-gray-950 via-black to-gray-950 overflow-hidden" id="builders-section">
-            <!-- Ambient glow effects -->
-            <div class="absolute inset-0 overflow-hidden">
-                <div class="builder-glow absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-indigo-500/[0.07] via-purple-500/[0.05] to-transparent rounded-full blur-[100px]"></div>
-                <div class="builder-glow absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-gradient-to-t from-blue-500/[0.05] to-transparent rounded-full blur-[80px]" style="animation-delay: -3s;"></div>
-            </div>
-
-            <!-- Vertical line accent -->
-            <div class="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-gray-800/50 to-transparent"></div>
-
-            <div class="relative">
-                <!-- Poetry-style centered layout -->
-                <div class="py-20 sm:py-28 lg:py-32">
-                    <div class="mx-auto max-w-3xl px-6 text-center">
-
-                        <h2 class="builder-line text-2xl sm:text-3xl lg:text-4xl leading-snug mb-14 sm:mb-16" style="animation-delay: 0.1s;">
-                            <span class="text-white not-italic font-medium tracking-wide" style="font-family: 'Playfair Display', serif;">To the builders, the dreamers,</span><br />
-                            <span class="text-gray-400 italic" style="font-family: 'Cormorant Garamond', serif;">the ones who won't quit</span>
-                        </h2>
-
-                        <!-- We see you -->
-                        <div class="builder-line mb-10 sm:mb-12" style="animation-delay: 0.2s;">
-                            <p class="text-3xl sm:text-4xl lg:text-5xl text-white mb-3 italic" style="font-family: 'Cormorant Garamond', serif;">
-                                We see you.
-                            </p>
-                            <p class="text-base sm:text-lg text-gray-500 leading-relaxed max-w-xl mx-auto" style="font-family: 'Playfair Display', serif;">
-                                The late nights and early mornings.<br class="hidden sm:block" />
-                                The countless iterations no one will ever see.<br class="hidden sm:block" />
-                                The persistence when it would be easier to stop.
-                            </p>
-                        </div>
-
-                        <!-- We believe in you -->
-                        <div class="builder-line mb-10 sm:mb-12" style="animation-delay: 0.35s;">
-                            <p class="text-3xl sm:text-4xl lg:text-5xl text-white/90 mb-3 italic" style="font-family: 'Cormorant Garamond', serif;">
-                                We believe in you.
-                            </p>
-                            <p class="text-base sm:text-lg text-gray-500 leading-relaxed max-w-xl mx-auto" style="font-family: 'Playfair Display', serif;">
-                                In your vision. In your craft.<br class="hidden sm:block" />
-                                In the fire that made you start<br class="hidden sm:block" />
-                                and the resolve that keeps you going.
-                            </p>
-                        </div>
-
-                        <!-- We build alongside you -->
-                        <div class="builder-line mb-14 sm:mb-16" style="animation-delay: 0.5s;">
-                            <p class="text-3xl sm:text-4xl lg:text-5xl text-white/80 mb-3 italic" style="font-family: 'Cormorant Garamond', serif;">
-                                We build alongside you.
-                            </p>
-                            <p class="text-base sm:text-lg text-gray-500 leading-relaxed max-w-xl mx-auto" style="font-family: 'Playfair Display', serif;">
-                                Not as vendors. As builders ourselves,<br class="hidden sm:block" />
-                                who understand what it takes<br class="hidden sm:block" />
-                                to ship something that matters.
-                            </p>
-                        </div>
-
-                        <!-- Closing -->
-                        <div class="builder-line pt-10 sm:pt-12 border-t border-gray-800/30" style="animation-delay: 0.65s;">
-                            <p class="text-4xl sm:text-5xl lg:text-6xl text-white/70 mb-3 italic" style="font-family: 'Cormorant Garamond', serif;">
-                                Keep building.
-                            </p>
-                            <p class="text-lg sm:text-xl text-gray-500 font-light" style="font-family: 'Playfair Display', serif;">
-                                The world runs on what you create.
-                            </p>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-            <style>
-                @keyframes fadeInUp {
-                    from {
-                        opacity: 0;
-                        transform: translateY(40px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-                @keyframes pulse-glow {
-                    0%, 100% {
-                        opacity: 1;
-                        transform: translateX(-50%) scale(1);
-                    }
-                    50% {
-                        opacity: 0.7;
-                        transform: translateX(-50%) scale(1.05);
-                    }
-                }
-                .builder-line {
-                    opacity: 0;
-                    animation: fadeInUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-                    animation-play-state: paused;
-                }
-                .builder-glow {
-                    animation: pulse-glow 8s ease-in-out infinite;
-                }
-                #builders-section.in-view .builder-line {
-                    animation-play-state: running;
-                }
-            </style>
-
-            <script>
-                (function() {
-                    const section = document.getElementById('builders-section');
-                    if (!section) return;
-
-                    const observer = new IntersectionObserver(
-                        (entries) => {
-                            entries.forEach(entry => {
-                                if (entry.isIntersecting) {
-                                    section.classList.add('in-view');
-                                }
-                            });
-                        },
-                        { threshold: 0.15 }
-                    );
-
-                    observer.observe(section);
-                })();
-            </script>
-        </section>
-
         <!-- Mission & Vision Section -->
         <section class="bg-white py-24 sm:py-32">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
@@ -414,6 +284,136 @@
                     </div>
                 </div>
             </div>
+        </section>
+
+        <!-- To The Builders Section -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap" rel="stylesheet">
+
+        <section class="relative bg-gradient-to-b from-gray-950 via-black to-gray-950 overflow-hidden" id="builders-section">
+            <!-- Ambient glow effects -->
+            <div class="absolute inset-0 overflow-hidden">
+                <div class="builder-glow absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-indigo-500/[0.07] via-purple-500/[0.05] to-transparent rounded-full blur-[100px]"></div>
+                <div class="builder-glow absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-gradient-to-t from-blue-500/[0.05] to-transparent rounded-full blur-[80px]" style="animation-delay: -3s;"></div>
+            </div>
+
+            <!-- Vertical line accent -->
+            <div class="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-gray-800/50 to-transparent"></div>
+
+            <div class="relative">
+                <!-- Poetry-style centered layout -->
+                <div class="py-20 sm:py-28 lg:py-32">
+                    <div class="mx-auto max-w-3xl px-6 text-center">
+
+                        <h2 class="builder-line text-2xl sm:text-3xl lg:text-4xl leading-snug mb-14 sm:mb-16" style="animation-delay: 0.1s;">
+                            <span class="text-white not-italic font-medium tracking-wide" style="font-family: 'Playfair Display', serif;">To the builders, the dreamers,</span><br />
+                            <span class="text-gray-400 italic" style="font-family: 'Cormorant Garamond', serif;">the ones who won't quit</span>
+                        </h2>
+
+                        <!-- We see you -->
+                        <div class="builder-line mb-10 sm:mb-12" style="animation-delay: 0.2s;">
+                            <p class="text-3xl sm:text-4xl lg:text-5xl text-white mb-3 italic" style="font-family: 'Cormorant Garamond', serif;">
+                                We see you.
+                            </p>
+                            <p class="text-base sm:text-lg text-gray-500 leading-relaxed max-w-xl mx-auto" style="font-family: 'Playfair Display', serif;">
+                                The late nights and early mornings.<br class="hidden sm:block" />
+                                The countless iterations no one will ever see.<br class="hidden sm:block" />
+                                The persistence when it would be easier to stop.
+                            </p>
+                        </div>
+
+                        <!-- We believe in you -->
+                        <div class="builder-line mb-10 sm:mb-12" style="animation-delay: 0.35s;">
+                            <p class="text-3xl sm:text-4xl lg:text-5xl text-white/90 mb-3 italic" style="font-family: 'Cormorant Garamond', serif;">
+                                We believe in you.
+                            </p>
+                            <p class="text-base sm:text-lg text-gray-500 leading-relaxed max-w-xl mx-auto" style="font-family: 'Playfair Display', serif;">
+                                In your vision. In your craft.<br class="hidden sm:block" />
+                                In the fire that made you start<br class="hidden sm:block" />
+                                and the resolve that keeps you going.
+                            </p>
+                        </div>
+
+                        <!-- We build alongside you -->
+                        <div class="builder-line mb-14 sm:mb-16" style="animation-delay: 0.5s;">
+                            <p class="text-3xl sm:text-4xl lg:text-5xl text-white/80 mb-3 italic" style="font-family: 'Cormorant Garamond', serif;">
+                                We build alongside you.
+                            </p>
+                            <p class="text-base sm:text-lg text-gray-500 leading-relaxed max-w-xl mx-auto" style="font-family: 'Playfair Display', serif;">
+                                Not as vendors. As builders ourselves,<br class="hidden sm:block" />
+                                who understand what it takes<br class="hidden sm:block" />
+                                to ship something that matters.
+                            </p>
+                        </div>
+
+                        <!-- Closing -->
+                        <div class="builder-line pt-10 sm:pt-12 border-t border-gray-800/30" style="animation-delay: 0.65s;">
+                            <p class="text-4xl sm:text-5xl lg:text-6xl text-white/70 mb-3 italic" style="font-family: 'Cormorant Garamond', serif;">
+                                Keep building.
+                            </p>
+                            <p class="text-lg sm:text-xl text-gray-500 font-light" style="font-family: 'Playfair Display', serif;">
+                                The world runs on what you create.
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <style>
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(40px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                @keyframes pulse-glow {
+                    0%, 100% {
+                        opacity: 1;
+                        transform: translateX(-50%) scale(1);
+                    }
+                    50% {
+                        opacity: 0.7;
+                        transform: translateX(-50%) scale(1.05);
+                    }
+                }
+                .builder-line {
+                    opacity: 0;
+                    animation: fadeInUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                    animation-play-state: paused;
+                }
+                .builder-glow {
+                    animation: pulse-glow 8s ease-in-out infinite;
+                }
+                #builders-section.in-view .builder-line {
+                    animation-play-state: running;
+                }
+            </style>
+
+            <script>
+                (function() {
+                    const section = document.getElementById('builders-section');
+                    if (!section) return;
+
+                    const observer = new IntersectionObserver(
+                        (entries) => {
+                            entries.forEach(entry => {
+                                if (entry.isIntersecting) {
+                                    section.classList.add('in-view');
+                                }
+                            });
+                        },
+                        { threshold: 0.15 }
+                    );
+
+                    observer.observe(section);
+                })();
+            </script>
         </section>
 
         <!-- Hiring CTA Section -->
