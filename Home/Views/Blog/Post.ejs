@@ -246,27 +246,40 @@
 
             /* Floating TOC */
             .floating-toc {
+                position: absolute;
+                top: 0;
+                left: calc(100% + 2rem);
+                max-width: 200px;
+                max-height: 60vh;
+                z-index: 40;
+            }
+
+            .floating-toc.is-fixed {
                 position: fixed;
                 top: 50%;
                 left: calc(50% + 28rem);
                 transform: translateY(-50%);
-                max-width: 200px;
-                max-height: 60vh;
-                z-index: 40;
-                opacity: 0;
-                visibility: hidden;
-                transition: opacity 0.3s ease, visibility 0.3s ease;
             }
 
-            .floating-toc.visible {
-                opacity: 1;
-                visibility: visible;
+            .floating-toc.is-bottom {
+                position: absolute;
+                top: auto;
+                bottom: 0;
+                left: calc(100% + 2rem);
+                transform: none;
+            }
+
+            @media (min-width: 1280px) and (max-width: 1439px) {
+                .floating-toc.is-fixed {
+                    left: calc(50% + 24rem);
+                    max-width: 180px;
+                }
             }
 
             @media (min-width: 1440px) and (max-width: 1599px) {
-                .floating-toc {
+                .floating-toc.is-fixed {
                     left: calc(50% + 26rem);
-                    max-width: 180px;
+                    max-width: 190px;
                 }
             }
 
@@ -333,19 +346,6 @@
                 left: 0.5rem;
             }
 
-            @media (max-width: 1279px) {
-                .floating-toc {
-                    display: none !important;
-                }
-            }
-
-            @media (min-width: 1280px) and (max-width: 1439px) {
-                .floating-toc {
-                    left: calc(50% + 24rem);
-                    max-width: 160px;
-                }
-            }
-
             /* Smooth scroll behavior */
             html {
                 scroll-behavior: smooth;
@@ -363,17 +363,6 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
         </svg>
     </button>
-
-    <!-- Floating TOC -->
-    <div class="floating-toc" id="floating-toc">
-        <div class="floating-toc-inner">
-            <h2 class="text-xs font-semibold tracking-wider text-indigo-600 uppercase mb-3 flex items-center gap-2">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
-                On this page
-            </h2>
-            <nav id="toc" aria-label="Table of contents" class="overflow-y-auto max-h-[50vh] pr-1"></nav>
-        </div>
-    </div>
 
     <%- include('../nav') -%>
 
@@ -418,7 +407,18 @@
             <!-- Content -->
             <div class="pb-24">
                 <div class="mx-auto max-w-4xl px-6 lg:px-8">
-                    <div>
+                    <div class="relative" id="content-wrapper">
+                        <!-- Floating TOC -->
+                        <div class="floating-toc hidden xl:block" id="floating-toc">
+                            <div class="floating-toc-inner">
+                                <h2 class="text-xs font-semibold tracking-wider text-indigo-600 uppercase mb-3 flex items-center gap-2">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+                                    On this page
+                                </h2>
+                                <nav id="toc" aria-label="Table of contents" class="overflow-y-auto max-h-[50vh] pr-1"></nav>
+                            </div>
+                        </div>
+
                         <!-- Main content -->
                         <article>
                             <div class="relative">
@@ -552,9 +552,10 @@
                         }
                     } catch (e) {}
 
-                    // TOC with active state tracking and visibility based on content position
+                    // TOC with active state tracking and sticky positioning
                     try {
                         const container = document.querySelector('.blog-body');
+                        const contentWrapper = document.getElementById('content-wrapper');
                         if(!container){ return; }
                         const headings = container.querySelectorAll('h2, h3');
                         if(!headings.length){ return; }
@@ -575,7 +576,7 @@
                             tocLinks.push({ link: a, heading: h });
                         });
 
-                        // Track active TOC item and visibility on scroll
+                        // Track active TOC item and position on scroll
                         const updateToc = () => {
                             const scrollPos = window.scrollY + 150;
                             let activeIndex = 0;
@@ -594,25 +595,31 @@
                                 }
                             });
 
-                            // Show/hide floating TOC based on blog content position
-                            if(floatingToc){
-                                const rect = container.getBoundingClientRect();
-                                const contentTop = rect.top;
-                                const contentBottom = rect.bottom;
+                            // Handle TOC positioning: top (absolute), fixed, or bottom (absolute)
+                            if(floatingToc && contentWrapper){
+                                const wrapperRect = contentWrapper.getBoundingClientRect();
+                                const tocHeight = floatingToc.offsetHeight;
                                 const viewportHeight = window.innerHeight;
+                                const fixedTopPosition = (viewportHeight - tocHeight) / 2;
 
-                                // Show TOC when content top has scrolled past the top of viewport
-                                // and content bottom is still below the middle of the viewport
-                                const shouldShow = contentTop < 100 && contentBottom > viewportHeight * 0.4;
+                                // When content top is above the point where TOC would be centered
+                                const shouldBeFixed = wrapperRect.top < fixedTopPosition && wrapperRect.bottom > (fixedTopPosition + tocHeight);
 
-                                if(shouldShow){
-                                    floatingToc.classList.add('visible');
-                                } else {
-                                    floatingToc.classList.remove('visible');
+                                // When content bottom is above where the fixed TOC would end
+                                const shouldBeBottom = wrapperRect.bottom <= (fixedTopPosition + tocHeight);
+
+                                floatingToc.classList.remove('is-fixed', 'is-bottom');
+
+                                if(shouldBeBottom){
+                                    floatingToc.classList.add('is-bottom');
+                                } else if(shouldBeFixed){
+                                    floatingToc.classList.add('is-fixed');
                                 }
+                                // else: stays at absolute top (default)
                             }
                         };
                         window.addEventListener('scroll', updateToc, { passive: true });
+                        window.addEventListener('resize', updateToc, { passive: true });
                         updateToc();
                     } catch (e) {}
 
