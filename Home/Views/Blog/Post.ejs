@@ -255,7 +255,7 @@
                 z-index: 40;
                 opacity: 0;
                 visibility: hidden;
-                transition: all 0.3s ease;
+                transition: opacity 0.3s ease, visibility 0.3s ease;
             }
 
             .floating-toc.visible {
@@ -552,7 +552,7 @@
                         }
                     } catch (e) {}
 
-                    // TOC with active state tracking and floating visibility
+                    // TOC with active state tracking and visibility based on content position
                     try {
                         const container = document.querySelector('.blog-body');
                         if(!container){ return; }
@@ -575,7 +575,7 @@
                             tocLinks.push({ link: a, heading: h });
                         });
 
-                        // Track active TOC item and floating TOC visibility on scroll
+                        // Track active TOC item and visibility on scroll
                         const updateToc = () => {
                             const scrollPos = window.scrollY + 150;
                             let activeIndex = 0;
@@ -594,11 +594,18 @@
                                 }
                             });
 
-                            // Show/hide floating TOC based on scroll position
+                            // Show/hide floating TOC based on blog content position
                             if(floatingToc){
-                                const blogBodyRect = container.getBoundingClientRect();
-                                const isInView = blogBodyRect.top < window.innerHeight * 0.3 && blogBodyRect.bottom > window.innerHeight * 0.5;
-                                if(isInView && window.scrollY > 300){
+                                const rect = container.getBoundingClientRect();
+                                const contentTop = rect.top;
+                                const contentBottom = rect.bottom;
+                                const viewportHeight = window.innerHeight;
+
+                                // Show TOC when content top has scrolled past the top of viewport
+                                // and content bottom is still below the middle of the viewport
+                                const shouldShow = contentTop < 100 && contentBottom > viewportHeight * 0.4;
+
+                                if(shouldShow){
                                     floatingToc.classList.add('visible');
                                 } else {
                                     floatingToc.classList.remove('visible');
