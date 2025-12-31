@@ -59,7 +59,8 @@
 }
     </script>
 
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/a11y-dark.min.css">
+        <!-- GitHub-style syntax highlighting with colorful theme -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
         <script>hljs.highlightAll();</script>
@@ -75,9 +76,9 @@
                 top: 0;
                 left: 0;
                 width: 0;
-                height: 4px;
+                height: 3px;
                 z-index: 60;
-                background: linear-gradient(90deg, #4f46e5, #7c3aed);
+                background: linear-gradient(90deg, #6366f1, #8b5cf6);
                 transition: width 120ms ease-out;
             }
 
@@ -99,53 +100,55 @@
                 align-items: center;
                 justify-content: center;
                 background: rgba(255, 255, 255, 0.9);
-                box-shadow: 0 10px 30px rgba(79, 70, 229, 0.08);
+                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
                 transition: all 0.2s ease;
             }
 
             .floating-share a:hover {
-                border-color: #4f46e5;
-                color: #4f46e5;
+                border-color: #6366f1;
+                color: #6366f1;
                 transform: translateY(-2px);
             }
 
-            /* Custom styles for code blocks in blog posts */
+            /* Code blocks styling */
             .blog-body pre {
                 font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace !important;
                 font-size: 14px !important;
-                line-height: 1.5 !important;
+                line-height: 1.6 !important;
                 font-weight: 400 !important;
                 margin-top: 1.75rem !important;
                 margin-bottom: 1.75rem !important;
-                border: 1px solid rgba(15, 23, 42, 0.08) !important;
-                box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08) !important;
+                border: 1px solid rgba(15, 23, 42, 0.1) !important;
+                border-radius: 0.75rem !important;
+                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06) !important;
             }
-            
+
             .blog-body pre code {
                 font-family: inherit !important;
                 font-size: inherit !important;
                 line-height: inherit !important;
                 font-weight: inherit !important;
             }
-            
+
             /* Ensure highlight.js doesn't override our font settings */
             .blog-body .hljs {
                 font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace !important;
                 font-size: 14px !important;
-                line-height: 1.5 !important;
+                line-height: 1.6 !important;
                 font-weight: 400 !important;
+                padding: 1.25rem !important;
+                border-radius: 0.75rem !important;
             }
 
             /* Inline code chips */
             .blog-body :not(pre) > code {
                 font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
                 font-size: 0.80em;
-                padding: 0.15rem 0.35rem;
-                border-radius: 0.45rem;
-                background: rgba(148, 163, 184, 0.15);
-                border: 1px solid rgba(71, 85, 105, 0.35);
-                color: #0f172a;
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+                padding: 0.15rem 0.4rem;
+                border-radius: 0.375rem;
+                background: rgba(99, 102, 241, 0.08);
+                border: 1px solid rgba(99, 102, 241, 0.15);
+                color: #4f46e5;
                 white-space: nowrap;
             }
 
@@ -153,25 +156,35 @@
                 font-weight: 600;
             }
 
+            /* Blockquotes */
             .blog-body blockquote {
-                border-left: 4px solid #a5b4fc;
-                background: rgba(224, 231, 255, 0.45);
+                border-left: 3px solid #a5b4fc;
+                background: rgba(238, 242, 255, 0.5);
                 padding: 1.25rem 1.5rem;
-                border-radius: 1rem;
+                border-radius: 0 0.75rem 0.75rem 0;
                 font-style: normal;
                 color: #1f2937;
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
             }
 
             .blog-body img {
-                border-radius: 1.25rem;
-                box-shadow: 0 25px 60px rgba(15, 23, 42, 0.08);
+                border-radius: 1rem;
+                box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
             }
 
             .blog-body h2,
             .blog-body h3,
             .blog-body h4 {
                 scroll-margin-top: 7rem;
+            }
+
+            /* Links */
+            .blog-body a:not(.no-underline) {
+                text-decoration-color: rgba(99, 102, 241, 0.3);
+                text-underline-offset: 3px;
+            }
+
+            .blog-body a:not(.no-underline):hover {
+                text-decoration-color: rgba(99, 102, 241, 0.6);
             }
 
             @media (max-width: 1279px) {
@@ -189,6 +202,12 @@
     <%- include('../nav') -%>
 
         <div class="relative isolate overflow-hidden bg-gradient-to-b from-white via-white to-gray-50/40">
+            <!-- Subtle decorative background blurs -->
+            <div class="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+                <div class="absolute top-10 left-1/4 w-96 h-96 bg-indigo-50 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+                <div class="absolute top-20 right-1/4 w-96 h-96 bg-purple-50 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+            </div>
+
             <!-- Hero / Title Section -->
             <div class="pt-20 pb-12 sm:pt-28 sm:pb-20">
                 <div class="mx-auto max-w-4xl px-6 lg:px-8 text-center relative">
@@ -267,15 +286,15 @@
 
                             <!-- Author -->
                             <% if(blogPost.author){ %>
-                            <div class="mt-16 p-6 rounded-2xl bg-white/60 backdrop-blur border border-gray-200 shadow-sm flex gap-6 items-start">
+                            <div class="mt-16 p-6 rounded-2xl bg-gray-50 border border-gray-200 shadow-sm flex gap-6 items-start">
                                 <!-- Added explicit width/height + lazy loading for below-the-fold author bio image -->
-                                <img class="h-16 w-16 rounded-full ring-2 ring-gray-200" src="<%- blogPost.author.profileImageUrl -%>" alt="<%- blogPost.author.name -%>" width="64" height="64" loading="lazy" decoding="async">
+                                <img class="h-16 w-16 rounded-full ring-2 ring-white shadow-sm" src="<%- blogPost.author.profileImageUrl -%>" alt="<%- blogPost.author.name -%>" width="64" height="64" loading="lazy" decoding="async">
                                 <div>
                                     <h3 class="text-lg font-semibold text-gray-900"><%- blogPost.author.name -%></h3>
                                     <p class="text-sm text-gray-600 mb-2">@<%- blogPost.author.username -%> • <%- blogPost.formattedPostDate -%> • <span id="reading-time-inline"></span></p>
                                     <div class="text-sm text-gray-700"><%- blogPost.author.bio || 'Building reliable software at OneUptime. Follow along for more on observability & reliability.' -%></div>
                                     <div class="mt-3 flex gap-3">
-                                        <a href="<%- blogPost.author.githubUrl -%>" target="_blank" class="text-xs font-medium text-gray-600 hover:text-gray-500 inline-flex items-center gap-1">View GitHub
+                                        <a href="<%- blogPost.author.githubUrl -%>" target="_blank" class="text-xs font-medium text-indigo-600 hover:text-indigo-500 inline-flex items-center gap-1 transition-colors">View GitHub
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 5h6m0 0v6m0-6L10 14"/></svg>
                                         </a>
                                     </div>
@@ -291,10 +310,10 @@
                         <!-- Sidebar -->
                         <aside class="hidden lg:block lg:col-span-4 xl:col-span-3">
                             <div class="sticky top-28 space-y-8">
-                                <div class="rounded-2xl border border-gray-200 bg-white/70 backdrop-blur p-6 shadow-sm">
-                                    <h2 class="text-sm font-semibold tracking-wide text-gray-900 uppercase mb-4">On this page</h2>
+                                <div class="rounded-2xl border border-gray-200 bg-gray-50 p-6 shadow-sm">
+                                    <h2 class="text-sm font-semibold tracking-wide text-gray-700 uppercase mb-4">On this page</h2>
                                     <!-- Reserve initial space for TOC to reduce layout shift once populated -->
-                                    <nav id="toc" aria-label="Table of contents" class="text-sm leading-6 space-y-2 text-gray-700 min-h-[3rem]"></nav>
+                                    <nav id="toc" aria-label="Table of contents" class="text-sm leading-6 space-y-2 text-gray-600 min-h-[3rem]"></nav>
                                 </div>
                             </div>
                         </aside>
@@ -372,7 +391,7 @@
                             const a = document.createElement('a');
                             a.href = '#' + h.id;
                             a.textContent = h.textContent;
-                            a.className = 'block hover:text-gray-600 transition ' + (h.tagName === 'H3' ? 'pl-4 text-gray-500' : 'font-medium');
+                            a.className = 'block hover:text-indigo-600 transition-colors duration-200 ' + (h.tagName === 'H3' ? 'pl-4 text-gray-500' : 'font-medium text-gray-700');
                             toc.appendChild(a);
                         });
                     } catch (e) {}
