@@ -761,33 +761,54 @@
 </div>
 
 <!-- Final CTA Section -->
-<div class="relative isolate overflow-hidden bg-gray-900" id="features-cta">
-    <div class="absolute inset-0 -z-10 bg-[radial-gradient(45%_40%_at_50%_60%,rgba(139,92,246,0.15),transparent)]"></div>
-    <div class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80" aria-hidden="true">
-        <div class="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-violet-500 to-emerald-500 opacity-10 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
-    </div>
+<div class="relative isolate overflow-hidden bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950" id="features-cta">
+    <!-- Background effects -->
+    <div class="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_50%_at_50%_-20%,rgba(120,119,198,0.15),transparent)]"></div>
+    <div class="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_50%_30%_at_50%_100%,rgba(16,185,129,0.1),transparent)]"></div>
+    <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_40%,transparent_100%)]"></div>
 
-    <div class="py-20 sm:py-28">
+    <div class="py-24 sm:py-32">
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
-            <div class="mx-auto max-w-2xl text-center">
-                <h2 class="text-3xl font-medium tracking-tight text-white sm:text-4xl">
-                    Ready to simplify your stack?
+            <div class="mx-auto max-w-3xl text-center">
+                <h2 class="text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
+                    Ready to simplify<br class="hidden sm:block" />your stack?
                 </h2>
-                <p class="mt-4 text-lg text-gray-300">
-                    Join thousands of teams who've replaced their fragmented monitoring tools with OneUptime.
+                <p class="mt-6 text-lg leading-8 text-gray-400 max-w-2xl mx-auto">
+                    Join thousands of teams who've replaced their fragmented monitoring tools with a single, powerful platform.
                 </p>
+
+                <!-- CTA Buttons -->
                 <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <a href="/accounts/register" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-semibold text-gray-900 shadow-sm transition-all hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                    <a href="/accounts/register" class="group w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-white px-8 py-4 text-sm font-semibold text-gray-900 shadow-lg shadow-white/10 transition-all hover:bg-gray-100 hover:shadow-xl hover:shadow-white/20 hover:-translate-y-0.5">
                         Start for free
-                        <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                        <svg class="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
                     </a>
-                    <a href="/enterprise/demo" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-transparent px-6 py-3 text-sm font-semibold text-white ring-1 ring-white/20 transition-all hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
-                        Talk to sales
+                    <a href="/enterprise/demo" class="w-full sm:w-auto inline-flex items-center justify-center rounded-full bg-white/5 backdrop-blur-sm px-8 py-4 text-sm font-semibold text-white ring-1 ring-white/10 transition-all hover:bg-white/10 hover:ring-white/20">
+                        Request demo
                     </a>
                 </div>
-                <p class="mt-6 text-sm text-gray-400">
-                    Free tier available. No credit card required.
-                </p>
+
+                <!-- Trust indicators -->
+                <div class="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-500">
+                    <div class="flex items-center gap-2">
+                        <svg class="h-5 w-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                        </svg>
+                        <span>Free tier available</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <svg class="h-5 w-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                        </svg>
+                        <span>No credit card required</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <svg class="h-5 w-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                        </svg>
+                        <span>Setup in 5 minutes</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
