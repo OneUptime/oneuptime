@@ -1,191 +1,208 @@
-<section class="relative overflow-hidden bg-[#0a0a0f]">
-  <!-- Subtle gradient background -->
-  <div class="absolute inset-0">
-    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-violet-500/[0.15] via-fuchsia-500/[0.05] to-transparent blur-3xl"></div>
+<section class="relative overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-50">
+  <!-- Decorative background elements -->
+  <div class="absolute inset-0 overflow-hidden">
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-blue-100/50 rounded-full blur-3xl"></div>
+    <div class="absolute top-1/3 right-1/4 w-80 h-80 bg-indigo-100/40 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-t from-slate-100/80 to-transparent"></div>
   </div>
 
-  <!-- Noise texture overlay -->
-  <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')] opacity-50"></div>
+  <!-- Subtle grid pattern -->
+  <div class="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)] opacity-40"></div>
 
-  <div class="relative mx-auto max-w-6xl px-6 py-32 sm:py-40 lg:px-8">
+  <div class="relative mx-auto max-w-6xl px-6 py-24 sm:py-32 lg:px-8">
     <!-- Header -->
     <div class="mx-auto max-w-3xl text-center">
-      <div class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 mb-8 backdrop-blur-sm">
-        <div class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
-        <span class="text-sm font-medium text-gray-400">AI-Powered Reliability</span>
+      <div class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 backdrop-blur-sm px-4 py-1.5 mb-8 shadow-sm">
+        <div class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+        <span class="text-sm font-medium text-slate-700">AI-Powered Reliability</span>
       </div>
 
-      <h2 class="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight">
-        <span class="text-white">From detection to fix.</span><br>
-        <span class="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">Automatically.</span>
+      <h2 class="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-slate-900">
+        From detection to fix.<br>
+        <span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Automatically.</span>
       </h2>
 
-      <p class="mt-6 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+      <p class="mt-6 text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
         OneUptime continuously monitors your logs, traces, and metrics. When issues arise, it analyzes the root cause, generates a fix, and opens a pull request for your review.
       </p>
     </div>
 
     <!-- How it works -->
-    <div class="mx-auto mt-24 max-w-4xl">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/[0.08] rounded-2xl overflow-hidden">
-        <div class="bg-[#0a0a0f] p-8 group hover:bg-white/[0.02] transition-colors">
-          <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white text-sm font-semibold mb-6">
-            1
+    <div class="mx-auto mt-20 max-w-4xl">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="relative bg-white rounded-2xl p-8 shadow-sm border border-slate-200/60 hover:shadow-md hover:border-slate-300/60 transition-all">
+          <div class="absolute -top-4 left-8">
+            <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/25">
+              1
+            </div>
           </div>
-          <h3 class="text-lg font-medium text-white mb-3">Connect</h3>
-          <p class="text-sm text-gray-500 leading-relaxed">Link your GitHub or GitLab repo. OneUptime auto-instruments your code with OpenTelemetry.</p>
+          <h3 class="text-lg font-semibold text-slate-900 mt-4 mb-2">Connect</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Link your GitHub or GitLab repository. OneUptime auto-instruments your code with OpenTelemetry.</p>
         </div>
 
-        <div class="bg-[#0a0a0f] p-8 group hover:bg-white/[0.02] transition-colors">
-          <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-fuchsia-500 to-pink-500 text-white text-sm font-semibold mb-6">
-            2
+        <div class="relative bg-white rounded-2xl p-8 shadow-sm border border-slate-200/60 hover:shadow-md hover:border-slate-300/60 transition-all">
+          <div class="absolute -top-4 left-8">
+            <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/25">
+              2
+            </div>
           </div>
-          <h3 class="text-lg font-medium text-white mb-3">Detect</h3>
-          <p class="text-sm text-gray-500 leading-relaxed">AI monitors your logs, traces, and metrics 24/7. It identifies errors and performance bottlenecks.</p>
+          <h3 class="text-lg font-semibold text-slate-900 mt-4 mb-2">Detect</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">AI monitors your logs, traces, and metrics around the clock, identifying errors and performance issues.</p>
         </div>
 
-        <div class="bg-[#0a0a0f] p-8 group hover:bg-white/[0.02] transition-colors">
-          <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 text-white text-sm font-semibold mb-6">
-            3
+        <div class="relative bg-white rounded-2xl p-8 shadow-sm border border-slate-200/60 hover:shadow-md hover:border-slate-300/60 transition-all">
+          <div class="absolute -top-4 left-8">
+            <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/25">
+              3
+            </div>
           </div>
-          <h3 class="text-lg font-medium text-white mb-3">Fix</h3>
-          <p class="text-sm text-gray-500 leading-relaxed">AI generates a fix, opens a pull request, and provides a detailed explanation. You review and merge.</p>
+          <h3 class="text-lg font-semibold text-slate-900 mt-4 mb-2">Fix</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">AI generates a fix, opens a pull request, and provides a detailed explanation for your review.</p>
         </div>
       </div>
     </div>
 
     <!-- Screenshot -->
     <div class="mx-auto mt-20 max-w-5xl">
-      <div class="relative rounded-xl border border-white/10 bg-white/[0.02] p-1.5 backdrop-blur-sm">
-        <div class="absolute -inset-px rounded-xl bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
-        <img class="relative rounded-lg w-full" src="/img/copilot.png" alt="OneUptime Copilot showing an AI-generated pull request with code fixes">
+      <div class="relative">
+        <!-- Glow effect behind image -->
+        <div class="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-blue-500/20 rounded-3xl blur-2xl opacity-60"></div>
+        <div class="relative rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/50">
+          <img class="relative rounded-xl w-full" src="/img/copilot.png" alt="OneUptime Copilot showing an AI-generated pull request with code fixes">
+        </div>
       </div>
     </div>
 
     <!-- Features grid -->
-    <div class="mx-auto mt-32 max-w-5xl">
-      <div class="text-center mb-16">
-        <h3 class="text-2xl sm:text-3xl font-semibold text-white">Everything you need to ship faster</h3>
-        <p class="mt-4 text-gray-500">Powerful features that work together seamlessly</p>
+    <div class="mx-auto mt-28 max-w-5xl">
+      <div class="text-center mb-14">
+        <h3 class="text-2xl sm:text-3xl font-semibold text-slate-900">Everything you need to ship faster</h3>
+        <p class="mt-3 text-slate-500">Powerful features that work together seamlessly</p>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div class="group p-6 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.12] transition-all">
-          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center mb-4">
-            <svg class="h-5 w-5 text-violet-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div class="group p-6 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-lg hover:border-blue-200 hover:-translate-y-1 transition-all duration-200">
+          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center mb-4 group-hover:from-blue-100 group-hover:to-indigo-200 transition-colors">
+            <svg class="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
             </svg>
           </div>
-          <h4 class="text-white font-medium mb-2">Auto-instrument</h4>
-          <p class="text-sm text-gray-500 leading-relaxed">Add tracing, metrics, and logging with one click. No SDK setup required.</p>
+          <h4 class="text-slate-900 font-semibold mb-2">Auto-instrument</h4>
+          <p class="text-sm text-slate-500 leading-relaxed">Add tracing, metrics, and logging with one click. No SDK setup required.</p>
         </div>
 
-        <div class="group p-6 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.12] transition-all">
-          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-fuchsia-500/20 to-pink-500/20 flex items-center justify-center mb-4">
-            <svg class="h-5 w-5 text-fuchsia-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <div class="group p-6 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-lg hover:border-blue-200 hover:-translate-y-1 transition-all duration-200">
+          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center mb-4 group-hover:from-amber-100 group-hover:to-orange-200 transition-colors">
+            <svg class="h-5 w-5 text-amber-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
           </div>
-          <h4 class="text-white font-medium mb-2">Fix exceptions</h4>
-          <p class="text-sm text-gray-500 leading-relaxed">AI catches errors in production and generates fixes before users notice.</p>
+          <h4 class="text-slate-900 font-semibold mb-2">Fix exceptions</h4>
+          <p class="text-sm text-slate-500 leading-relaxed">AI catches errors in production and generates fixes before users notice.</p>
         </div>
 
-        <div class="group p-6 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.12] transition-all">
-          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500/20 to-rose-500/20 flex items-center justify-center mb-4">
-            <svg class="h-5 w-5 text-pink-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <div class="group p-6 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-lg hover:border-blue-200 hover:-translate-y-1 transition-all duration-200">
+          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-100 flex items-center justify-center mb-4 group-hover:from-emerald-100 group-hover:to-teal-200 transition-colors">
+            <svg class="h-5 w-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
             </svg>
           </div>
-          <h4 class="text-white font-medium mb-2">Optimize performance</h4>
-          <p class="text-sm text-gray-500 leading-relaxed">Identifies slow traces and submits optimized code automatically.</p>
+          <h4 class="text-slate-900 font-semibold mb-2">Optimize performance</h4>
+          <p class="text-sm text-slate-500 leading-relaxed">Identifies slow traces and submits optimized code automatically.</p>
         </div>
 
-        <div class="group p-6 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.12] transition-all">
-          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-rose-500/20 to-orange-500/20 flex items-center justify-center mb-4">
-            <svg class="h-5 w-5 text-rose-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <div class="group p-6 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-lg hover:border-blue-200 hover:-translate-y-1 transition-all duration-200">
+          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-50 to-violet-100 flex items-center justify-center mb-4 group-hover:from-purple-100 group-hover:to-violet-200 transition-colors">
+            <svg class="h-5 w-5 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
             </svg>
           </div>
-          <h4 class="text-white font-medium mb-2">Fix flaky tests</h4>
-          <p class="text-sm text-gray-500 leading-relaxed">Detects and fixes intermittent test failures in your CI/CD pipeline.</p>
+          <h4 class="text-slate-900 font-semibold mb-2">Fix flaky tests</h4>
+          <p class="text-sm text-slate-500 leading-relaxed">Detects and fixes intermittent test failures in your CI/CD pipeline.</p>
         </div>
 
-        <div class="group p-6 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.12] transition-all">
-          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500/20 to-yellow-500/20 flex items-center justify-center mb-4">
-            <svg class="h-5 w-5 text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <div class="group p-6 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-lg hover:border-blue-200 hover:-translate-y-1 transition-all duration-200">
+          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-50 to-sky-100 flex items-center justify-center mb-4 group-hover:from-cyan-100 group-hover:to-sky-200 transition-colors">
+            <svg class="h-5 w-5 text-cyan-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
             </svg>
           </div>
-          <h4 class="text-white font-medium mb-2">Optimize queries</h4>
-          <p class="text-sm text-gray-500 leading-relaxed">Finds slow database queries and suggests indexes or rewrites.</p>
+          <h4 class="text-slate-900 font-semibold mb-2">Optimize queries</h4>
+          <p class="text-sm text-slate-500 leading-relaxed">Finds slow database queries and suggests indexes or rewrites.</p>
         </div>
 
-        <div class="group p-6 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.12] transition-all">
-          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center mb-4">
-            <svg class="h-5 w-5 text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <div class="group p-6 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-lg hover:border-blue-200 hover:-translate-y-1 transition-all duration-200">
+          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-rose-50 to-pink-100 flex items-center justify-center mb-4 group-hover:from-rose-100 group-hover:to-pink-200 transition-colors">
+            <svg class="h-5 w-5 text-rose-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
             </svg>
           </div>
-          <h4 class="text-white font-medium mb-2">Security patches</h4>
-          <p class="text-sm text-gray-500 leading-relaxed">Detects vulnerable dependencies and creates PRs with safe upgrades.</p>
+          <h4 class="text-slate-900 font-semibold mb-2">Security patches</h4>
+          <p class="text-sm text-slate-500 leading-relaxed">Detects vulnerable dependencies and creates PRs with safe upgrades.</p>
         </div>
       </div>
     </div>
 
     <!-- Enterprise section -->
-    <div class="mx-auto mt-32 max-w-4xl">
-      <div class="rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-transparent p-8 sm:p-12">
-        <div class="text-center mb-12">
-          <span class="inline-block text-xs font-semibold tracking-wider uppercase text-violet-400 mb-4">Enterprise</span>
-          <h3 class="text-2xl sm:text-3xl font-semibold text-white">Built for enterprise security</h3>
-        </div>
+    <div class="mx-auto mt-28 max-w-4xl">
+      <div class="relative rounded-3xl overflow-hidden">
+        <!-- Background gradient -->
+        <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"></div>
+        <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:2rem_2rem]"></div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
-          <div class="flex gap-4">
-            <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
-              <svg class="h-4 w-4 text-violet-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
-              </svg>
-            </div>
-            <div>
-              <h4 class="text-white font-medium mb-1">Bring your own LLM</h4>
-              <p class="text-sm text-gray-500">Use Claude, GPT-4, Llama, or self-host. Your code stays in your infrastructure.</p>
-            </div>
+        <div class="relative p-8 sm:p-12">
+          <div class="text-center mb-10">
+            <span class="inline-block text-xs font-semibold tracking-wider uppercase text-blue-400 mb-3">Enterprise</span>
+            <h3 class="text-2xl sm:text-3xl font-semibold text-white">Built for enterprise security</h3>
           </div>
 
-          <div class="flex gap-4">
-            <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-fuchsia-500/10 flex items-center justify-center">
-              <svg class="h-4 w-4 text-fuchsia-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-              </svg>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div class="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+              <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+                </svg>
+              </div>
+              <div>
+                <h4 class="text-white font-semibold mb-1">Bring your own LLM</h4>
+                <p class="text-sm text-slate-400">Use Claude, GPT-4, Llama, or self-host. Your code stays in your infrastructure.</p>
+              </div>
             </div>
-            <div>
-              <h4 class="text-white font-medium mb-1">Zero data retention</h4>
-              <p class="text-sm text-gray-500">We never store, view, or train on your code. SOC 2 Type II compliant.</p>
-            </div>
-          </div>
 
-          <div class="flex gap-4">
-            <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center">
-              <svg class="h-4 w-4 text-pink-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
-              </svg>
+            <div class="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+              <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
+                <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+              </div>
+              <div>
+                <h4 class="text-white font-semibold mb-1">Zero data retention</h4>
+                <p class="text-sm text-slate-400">We never store, view, or train on your code. SOC 2 Type II compliant.</p>
+              </div>
             </div>
-            <div>
-              <h4 class="text-white font-medium mb-1">Self-hosted option</h4>
-              <p class="text-sm text-gray-500">Deploy OneUptime entirely within your own cloud or on-premises infrastructure.</p>
-            </div>
-          </div>
 
-          <div class="flex gap-4">
-            <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center">
-              <svg class="h-4 w-4 text-rose-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-              </svg>
+            <div class="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+              <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-lg">
+                <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+                </svg>
+              </div>
+              <div>
+                <h4 class="text-white font-semibold mb-1">Self-hosted option</h4>
+                <p class="text-sm text-slate-400">Deploy OneUptime entirely within your own cloud or on-premises infrastructure.</p>
+              </div>
             </div>
-            <div>
-              <h4 class="text-white font-medium mb-1">SSO &amp; RBAC</h4>
-              <p class="text-sm text-gray-500">Enterprise SSO with SAML/OIDC. Fine-grained role-based access controls.</p>
+
+            <div class="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+              <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
+                <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                </svg>
+              </div>
+              <div>
+                <h4 class="text-white font-semibold mb-1">SSO &amp; RBAC</h4>
+                <p class="text-sm text-slate-400">Enterprise SSO with SAML/OIDC. Fine-grained role-based access controls.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -194,13 +211,13 @@
 
     <!-- CTA -->
     <div class="mx-auto mt-20 text-center">
-      <a href="/enterprise/demo" class="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-100 transition-colors">
+      <a href="/enterprise/demo" class="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all">
         See it in action
-        <svg class="h-4 w-4 text-gray-600 group-hover:translate-x-0.5 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <svg class="h-4 w-4 group-hover:translate-x-0.5 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
         </svg>
       </a>
-      <p class="mt-4 text-sm text-gray-600">No credit card required</p>
+      <p class="mt-4 text-sm text-slate-500">No credit card required</p>
     </div>
   </div>
 </section>
