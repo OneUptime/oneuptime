@@ -141,19 +141,35 @@
     // Console Easter Egg - For those who inspect
     const asciiArt = `
 %c
-    ╔════════════════════════════════════════════════════════════╗
-    ║                                                            ║
-    ║              🔧  TO THE BUILDERS  🔧                        ║
-    ║                                                            ║
-    ║   We see you.                                              ║
-    ║   We appreciate you.                                       ║
-    ║   We build for you.                                        ║
-    ║   Keep building.                                           ║
-    ║   The world relies on you.                                 ║
-    ║                                                            ║
-    ║                      — with ❤️ from OneUptime                ║
-    ║                                                            ║
-    ╚════════════════════════════════════════════════════════════╝
+    ╔═══════════════════════════════════════════════════════════════════════╗
+    ║                                                                       ║
+    ║                   🔧  TO THE BUILDERS, THE DREAMERS  🔧                ║
+    ║                       THE ONES WHO WON'T QUIT                         ║
+    ║                                                                       ║
+    ║   We see you.                                                         ║
+    ║                                                                       ║
+    ║   The late nights and early mornings.                                 ║
+    ║   The countless iterations no one will ever see.                      ║
+    ║   The persistence when it would be easier to stop.                    ║
+    ║                                                                       ║
+    ║   We believe in you.                                                  ║
+    ║                                                                       ║
+    ║   In your vision. In your craft.                                      ║
+    ║   In the fire that made you start                                     ║
+    ║   and the resolve that keeps you going.                               ║
+    ║                                                                       ║
+    ║   We build alongside you.                                             ║
+    ║                                                                       ║
+    ║   Shoulder to shoulder. As builders ourselves,                        ║
+    ║   who understand what it takes                                        ║
+    ║   to ship something that matters.                                     ║
+    ║                                                                       ║
+    ║   Keep building.                                                      ║
+    ║   The world runs on what you create.                                  ║
+    ║                                                                       ║
+    ║                                        — with ❤️ from OneUptime         ║
+    ║                                                                       ║
+    ╚═══════════════════════════════════════════════════════════════════════╝
 `;
 
     console.log(asciiArt, 'font-family: monospace; color: #4ade80; font-size: 11px; line-height: 1.4;');
@@ -202,19 +218,35 @@
                 terminal.style.background = 'rgba(255, 255, 255, 0.06)';
 
                 const lines = [
-                    { text: '$ echo "TO THE BUILDERS"', type: 'command' },
+                    { text: '$ echo "TO THE BUILDERS, THE DREAMERS"', type: 'command' },
+                    { text: 'The ones who won\'t quit', type: 'subheader' },
                     { text: '', type: 'blank' },
-                    { text: 'We see you.', type: 'output' },
-                    { text: 'We appreciate you.', type: 'output' },
-                    { text: 'We build for you.', type: 'output' },
-                    { text: 'Keep building.', type: 'output' },
-                    { text: 'The world relies on you.', type: 'output highlight' },
+                    { text: 'We see you.', type: 'output highlight' },
+                    { text: '', type: 'blank' },
+                    { text: 'The late nights and early mornings.', type: 'output' },
+                    { text: 'The countless iterations no one will ever see.', type: 'output' },
+                    { text: 'The persistence when it would be easier to stop.', type: 'output' },
+                    { text: '', type: 'blank' },
+                    { text: 'We believe in you.', type: 'output highlight' },
+                    { text: '', type: 'blank' },
+                    { text: 'In your vision. In your craft.', type: 'output' },
+                    { text: 'In the fire that made you start', type: 'output' },
+                    { text: 'and the resolve that keeps you going.', type: 'output' },
+                    { text: '', type: 'blank' },
+                    { text: 'We build alongside you.', type: 'output highlight' },
+                    { text: '', type: 'blank' },
+                    { text: 'Shoulder to shoulder. As builders ourselves,', type: 'output' },
+                    { text: 'who understand what it takes', type: 'output' },
+                    { text: 'to ship something that matters.', type: 'output' },
+                    { text: '', type: 'blank' },
+                    { text: 'Keep building.', type: 'output highlight' },
+                    { text: 'The world runs on what you create.', type: 'output' },
                     { text: '', type: 'blank' },
                     { text: '— with ❤️ from OneUptime', type: 'signature' }
                 ];
 
                 terminalContent.innerHTML = '';
-                terminalContent.style.minHeight = '220px';
+                terminalContent.style.minHeight = '520px';
                 terminalContent.style.padding = '20px 24px';
 
                 let lineIndex = 0;
@@ -234,7 +266,11 @@
                     lineEl.style.marginBottom = '2px';
 
                     if (line.type === 'command') {
-                        lineEl.innerHTML = '<span style="color: #28c840;">$</span> <span style="color: #f5f5f5;">echo "TO THE BUILDERS"</span>';
+                        lineEl.innerHTML = '<span style="color: #28c840;">$</span> <span style="color: #f5f5f5;">echo "TO THE BUILDERS, THE DREAMERS"</span>';
+                    } else if (line.type === 'subheader') {
+                        lineEl.style.color = '#98989d';
+                        lineEl.style.fontStyle = 'italic';
+                        lineEl.textContent = line.text;
                     } else if (line.type === 'blank') {
                         lineEl.innerHTML = '&nbsp;';
                     } else if (line.type === 'output highlight') {
