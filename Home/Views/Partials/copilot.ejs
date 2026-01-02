@@ -1,25 +1,20 @@
-<section class="relative overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-50">
-  <!-- Decorative background elements -->
-  <div class="absolute inset-0 overflow-hidden">
-    <div class="absolute top-0 left-1/4 w-96 h-96 bg-blue-100/50 rounded-full blur-3xl"></div>
-    <div class="absolute top-1/3 right-1/4 w-80 h-80 bg-indigo-100/40 rounded-full blur-3xl"></div>
-    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-t from-slate-100/80 to-transparent"></div>
-  </div>
-
-  <!-- Subtle grid pattern -->
-  <div class="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)] opacity-40"></div>
+<section class="relative overflow-hidden bg-gradient-to-b from-slate-50 to-white">
+  <!-- Elegant background -->
+  <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(59,130,246,0.08),transparent)]"></div>
+  <div class="absolute top-0 right-0 w-1/2 h-1/2 bg-[radial-gradient(ellipse_50%_50%_at_100%_0%,rgba(99,102,241,0.05),transparent)]"></div>
+  <div class="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-30"></div>
 
   <div class="relative mx-auto max-w-6xl px-6 py-24 sm:py-32 lg:px-8">
     <!-- Header -->
     <div class="mx-auto max-w-3xl text-center">
-      <div class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 backdrop-blur-sm px-4 py-1.5 mb-8 shadow-sm">
+      <div class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 mb-8">
         <div class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-        <span class="text-sm font-medium text-slate-700">AI-Powered Reliability</span>
+        <span class="text-sm font-medium text-emerald-700">AI-Powered Reliability</span>
       </div>
 
       <h2 class="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-slate-900">
         From detection to fix.<br>
-        <span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Automatically.</span>
+        <span class="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">Automatically.</span>
       </h2>
 
       <p class="mt-6 text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
@@ -29,35 +24,44 @@
 
     <!-- How it works -->
     <div class="mx-auto mt-20 max-w-4xl">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="relative bg-white rounded-2xl p-8 shadow-sm border border-slate-200/60 hover:shadow-md hover:border-slate-300/60 transition-all">
-          <div class="absolute -top-4 left-8">
-            <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/25">
-              1
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="relative group">
+          <div class="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <div class="relative bg-white rounded-2xl p-8 shadow-sm border border-slate-200/80 hover:shadow-lg hover:border-slate-300 transition-all duration-300">
+            <div class="absolute -top-4 left-8">
+              <div class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-sm font-bold shadow-lg shadow-blue-500/30">
+                1
+              </div>
             </div>
+            <h3 class="text-lg font-semibold text-slate-900 mt-4 mb-2">Connect</h3>
+            <p class="text-sm text-slate-500 leading-relaxed">Link your GitHub or GitLab repository. OneUptime auto-instruments your code with OpenTelemetry.</p>
           </div>
-          <h3 class="text-lg font-semibold text-slate-900 mt-4 mb-2">Connect</h3>
-          <p class="text-sm text-slate-500 leading-relaxed">Link your GitHub or GitLab repository. OneUptime auto-instruments your code with OpenTelemetry.</p>
         </div>
 
-        <div class="relative bg-white rounded-2xl p-8 shadow-sm border border-slate-200/60 hover:shadow-md hover:border-slate-300/60 transition-all">
-          <div class="absolute -top-4 left-8">
-            <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/25">
-              2
+        <div class="relative group">
+          <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-violet-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <div class="relative bg-white rounded-2xl p-8 shadow-sm border border-slate-200/80 hover:shadow-lg hover:border-slate-300 transition-all duration-300">
+            <div class="absolute -top-4 left-8">
+              <div class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-white text-sm font-bold shadow-lg shadow-indigo-500/30">
+                2
+              </div>
             </div>
+            <h3 class="text-lg font-semibold text-slate-900 mt-4 mb-2">Detect</h3>
+            <p class="text-sm text-slate-500 leading-relaxed">AI monitors your logs, traces, and metrics around the clock, identifying errors and performance issues.</p>
           </div>
-          <h3 class="text-lg font-semibold text-slate-900 mt-4 mb-2">Detect</h3>
-          <p class="text-sm text-slate-500 leading-relaxed">AI monitors your logs, traces, and metrics around the clock, identifying errors and performance issues.</p>
         </div>
 
-        <div class="relative bg-white rounded-2xl p-8 shadow-sm border border-slate-200/60 hover:shadow-md hover:border-slate-300/60 transition-all">
-          <div class="absolute -top-4 left-8">
-            <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/25">
-              3
+        <div class="relative group">
+          <div class="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-purple-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <div class="relative bg-white rounded-2xl p-8 shadow-sm border border-slate-200/80 hover:shadow-lg hover:border-slate-300 transition-all duration-300">
+            <div class="absolute -top-4 left-8">
+              <div class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-white text-sm font-bold shadow-lg shadow-violet-500/30">
+                3
+              </div>
             </div>
+            <h3 class="text-lg font-semibold text-slate-900 mt-4 mb-2">Fix</h3>
+            <p class="text-sm text-slate-500 leading-relaxed">AI generates a fix, opens a pull request, and provides a detailed explanation for your review.</p>
           </div>
-          <h3 class="text-lg font-semibold text-slate-900 mt-4 mb-2">Fix</h3>
-          <p class="text-sm text-slate-500 leading-relaxed">AI generates a fix, opens a pull request, and provides a detailed explanation for your review.</p>
         </div>
       </div>
     </div>
@@ -65,9 +69,8 @@
     <!-- Screenshot -->
     <div class="mx-auto mt-20 max-w-5xl">
       <div class="relative">
-        <!-- Glow effect behind image -->
-        <div class="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-blue-500/20 rounded-3xl blur-2xl opacity-60"></div>
-        <div class="relative rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/50">
+        <div class="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-violet-500/20 rounded-3xl blur-2xl opacity-60"></div>
+        <div class="relative rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-300/50">
           <img class="relative rounded-xl w-full" src="/img/copilot.png" alt="OneUptime Copilot showing an AI-generated pull request with code fixes">
         </div>
       </div>
@@ -80,10 +83,10 @@
         <p class="mt-3 text-slate-500">Powerful features that work together seamlessly</p>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        <div class="group p-6 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-lg hover:border-blue-200 hover:-translate-y-1 transition-all duration-200">
-          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center mb-4 group-hover:from-blue-100 group-hover:to-indigo-200 transition-colors">
-            <svg class="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="group p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-blue-200 hover:-translate-y-1 transition-all duration-300">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center mb-4 group-hover:from-blue-100 group-hover:to-blue-200 transition-colors">
+            <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
             </svg>
           </div>
@@ -91,9 +94,9 @@
           <p class="text-sm text-slate-500 leading-relaxed">Add tracing, metrics, and logging with one click. No SDK setup required.</p>
         </div>
 
-        <div class="group p-6 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-lg hover:border-blue-200 hover:-translate-y-1 transition-all duration-200">
-          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center mb-4 group-hover:from-amber-100 group-hover:to-orange-200 transition-colors">
-            <svg class="h-5 w-5 text-amber-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <div class="group p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-amber-200 hover:-translate-y-1 transition-all duration-300">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 flex items-center justify-center mb-4 group-hover:from-amber-100 group-hover:to-amber-200 transition-colors">
+            <svg class="h-6 w-6 text-amber-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
           </div>
@@ -101,9 +104,9 @@
           <p class="text-sm text-slate-500 leading-relaxed">AI catches errors in production and generates fixes before users notice.</p>
         </div>
 
-        <div class="group p-6 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-lg hover:border-blue-200 hover:-translate-y-1 transition-all duration-200">
-          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-100 flex items-center justify-center mb-4 group-hover:from-emerald-100 group-hover:to-teal-200 transition-colors">
-            <svg class="h-5 w-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <div class="group p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-emerald-200 hover:-translate-y-1 transition-all duration-300">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center mb-4 group-hover:from-emerald-100 group-hover:to-emerald-200 transition-colors">
+            <svg class="h-6 w-6 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
             </svg>
           </div>
@@ -111,9 +114,9 @@
           <p class="text-sm text-slate-500 leading-relaxed">Identifies slow traces and submits optimized code automatically.</p>
         </div>
 
-        <div class="group p-6 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-lg hover:border-blue-200 hover:-translate-y-1 transition-all duration-200">
-          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-50 to-violet-100 flex items-center justify-center mb-4 group-hover:from-purple-100 group-hover:to-violet-200 transition-colors">
-            <svg class="h-5 w-5 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <div class="group p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-violet-200 hover:-translate-y-1 transition-all duration-300">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-50 to-violet-100 flex items-center justify-center mb-4 group-hover:from-violet-100 group-hover:to-violet-200 transition-colors">
+            <svg class="h-6 w-6 text-violet-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
             </svg>
           </div>
@@ -121,9 +124,9 @@
           <p class="text-sm text-slate-500 leading-relaxed">Detects and fixes intermittent test failures in your CI/CD pipeline.</p>
         </div>
 
-        <div class="group p-6 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-lg hover:border-blue-200 hover:-translate-y-1 transition-all duration-200">
-          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-50 to-sky-100 flex items-center justify-center mb-4 group-hover:from-cyan-100 group-hover:to-sky-200 transition-colors">
-            <svg class="h-5 w-5 text-cyan-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <div class="group p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-cyan-200 hover:-translate-y-1 transition-all duration-300">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-50 to-cyan-100 flex items-center justify-center mb-4 group-hover:from-cyan-100 group-hover:to-cyan-200 transition-colors">
+            <svg class="h-6 w-6 text-cyan-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
             </svg>
           </div>
@@ -131,9 +134,9 @@
           <p class="text-sm text-slate-500 leading-relaxed">Finds slow database queries and suggests indexes or rewrites.</p>
         </div>
 
-        <div class="group p-6 rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-lg hover:border-blue-200 hover:-translate-y-1 transition-all duration-200">
-          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-rose-50 to-pink-100 flex items-center justify-center mb-4 group-hover:from-rose-100 group-hover:to-pink-200 transition-colors">
-            <svg class="h-5 w-5 text-rose-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <div class="group p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-rose-200 hover:-translate-y-1 transition-all duration-300">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-50 to-rose-100 flex items-center justify-center mb-4 group-hover:from-rose-100 group-hover:to-rose-200 transition-colors">
+            <svg class="h-6 w-6 text-rose-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
             </svg>
           </div>
@@ -144,21 +147,24 @@
     </div>
 
     <!-- Enterprise section -->
-    <div class="mx-auto mt-28 max-w-4xl">
+    <div class="mx-auto mt-28 max-w-5xl">
       <div class="relative rounded-3xl overflow-hidden">
-        <!-- Background gradient -->
         <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"></div>
-        <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:2rem_2rem]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_50%_50%_at_50%_50%,rgba(99,102,241,0.15),transparent)]"></div>
+        <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff06_1px,transparent_1px),linear-gradient(to_bottom,#ffffff06_1px,transparent_1px)] bg-[size:2rem_2rem]"></div>
 
         <div class="relative p-8 sm:p-12">
           <div class="text-center mb-10">
-            <span class="inline-block text-xs font-semibold tracking-wider uppercase text-blue-400 mb-3">Enterprise</span>
+            <span class="inline-flex items-center gap-2 text-xs font-semibold tracking-wider uppercase text-indigo-400 mb-3">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+              Enterprise Ready
+            </span>
             <h3 class="text-2xl sm:text-3xl font-semibold text-white">Built for enterprise security</h3>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div class="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-              <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+            <div class="flex gap-4 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+              <div class="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
                 <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
                 </svg>
@@ -169,8 +175,8 @@
               </div>
             </div>
 
-            <div class="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-              <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
+            <div class="flex gap-4 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+              <div class="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
                 <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                 </svg>
@@ -181,8 +187,8 @@
               </div>
             </div>
 
-            <div class="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-              <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-lg">
+            <div class="flex gap-4 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+              <div class="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
                 <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
                 </svg>
@@ -193,8 +199,8 @@
               </div>
             </div>
 
-            <div class="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-              <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
+            <div class="flex gap-4 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+              <div class="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
                 <svg class="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                 </svg>
@@ -211,7 +217,7 @@
 
     <!-- CTA -->
     <div class="mx-auto mt-20 text-center">
-      <a href="/enterprise/demo" class="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all">
+      <a href="/enterprise/demo" class="group inline-flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
         See it in action
         <svg class="h-4 w-4 group-hover:translate-x-0.5 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
