@@ -1206,19 +1206,16 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    app.get(
-      "/product/traces",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
-          "/product/traces",
-          res.locals["homeUrl"] as string,
-        );
-        res.render(`${ViewsPath}/traces`, {
-          enableGoogleTagManager: IsBillingEnabled,
-          seo,
-        });
-      },
-    );
+    app.get("/product/traces", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/traces",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/traces`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
 
     app.get(
       "/product/exceptions",
