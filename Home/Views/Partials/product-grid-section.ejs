@@ -1,0 +1,48 @@
+<!-- Product Grid Section - Reusable partial -->
+<!-- Parameters: title (optional), subtitle (optional), description (optional) -->
+<section class="relative py-24 lg:py-32 bg-white overflow-hidden">
+  <div class="mx-auto max-w-6xl px-6 lg:px-8">
+    <!-- Header -->
+    <div class="text-center mb-12">
+      <p class="text-sm font-medium text-violet-600 tracking-wide uppercase mb-4">Complete Platform</p>
+      <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
+        <% if (typeof title !== 'undefined' && title) { %>
+          <%= title %><br class="hidden sm:block" />
+        <% } else { %>
+          Everything you need<br class="hidden sm:block" />
+        <% } %>
+        <span class="text-gray-500">
+          <% if (typeof subtitle !== 'undefined' && subtitle) { %>
+            <%= subtitle %>
+          <% } else { %>
+            in one place
+          <% } %>
+        </span>
+      </h2>
+      <p class="max-w-2xl mx-auto text-lg text-gray-600 leading-relaxed">
+        <% if (typeof description !== 'undefined' && description) { %>
+          <%= description %>
+        <% } else { %>
+          Stop paying for 7+ tools. Get everything in one open-source platform.
+        <% } %>
+      </p>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 auto-rows-fr">
+      <%- include('./hero-cards/monitoring') -%>
+      <%- include('./hero-cards/status-page') -%>
+      <%- include('./hero-cards/incidents') -%>
+      <%- include('./hero-cards/on-call') -%>
+      <%- include('./hero-cards/logs') -%>
+      <%- include('./hero-cards/metrics') -%>
+      <%- include('./hero-cards/traces') -%>
+      <%- include('./hero-cards/exceptions') -%>
+      <%- include('./hero-cards/workflows') -%>
+      <%- include('./hero-cards/dashboards') -%>
+    </div>
+
+    <!-- AI Agent Featured Card -->
+    <%- include('./hero-cards/ai-agent') -%>
+  </div>
+</section>
