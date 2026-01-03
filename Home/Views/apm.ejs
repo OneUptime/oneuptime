@@ -136,6 +136,51 @@
 
       <%- include('logo-roll') -%>
 
+  <!-- Stats Section -->
+  <div class="relative bg-gradient-to-r from-cyan-600 to-blue-600 py-16">
+    <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+    <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
+        <div class="text-center">
+          <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur mb-4">
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div class="text-2xl font-bold text-white">Sub-ms</div>
+          <div class="mt-1 text-sm text-cyan-100">Trace Resolution</div>
+        </div>
+        <div class="text-center">
+          <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur mb-4">
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="text-2xl font-bold text-white">8x</div>
+          <div class="mt-1 text-sm text-cyan-100">Cost Savings</div>
+        </div>
+        <div class="text-center">
+          <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur mb-4">
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+            </svg>
+          </div>
+          <div class="text-2xl font-bold text-white">Any Stack</div>
+          <div class="mt-1 text-sm text-cyan-100">Language Support</div>
+        </div>
+        <div class="text-center">
+          <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur mb-4">
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div class="text-2xl font-bold text-white">No</div>
+          <div class="mt-1 text-sm text-cyan-100">Rehydration</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Why OneUptime Section -->
   <div class="relative bg-gradient-to-b from-white via-cyan-50/30 to-white py-24 sm:py-32 overflow-hidden">
     <!-- Background decorative elements -->
@@ -473,6 +518,7 @@
     </div>
   </div>
 
+          <%- include('./Partials/enterprise-ready') -%>
           <%- include('features-table') -%>
             <%- include('cta') -%>
             </main>
