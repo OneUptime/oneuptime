@@ -6,7 +6,7 @@
 <head>
     <title>OneUptime for Government | Secure, Compliant Observability</title>
     <meta name="description"
-        content="FedRAMP-ready observability for government agencies. Secure, compliant monitoring for citizen services and critical government infrastructure.">
+        content="Government-grade observability platform. Secure, compliant monitoring for citizen services and critical government infrastructure with US data residency.">
         <%- include('../head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
@@ -24,65 +24,58 @@
       <div class="mx-auto max-w-7xl px-6 pt-24 pb-20 sm:pt-32 sm:pb-24 lg:pt-40 lg:pb-32 lg:px-8">
         <div class="mx-auto max-w-3xl text-center">
           <!-- Badge -->
-          <div class="mb-8 inline-flex items-center gap-2 rounded-full bg-blue-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
+          <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group mb-8 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-4 py-1.5 text-sm text-blue-900 ring-1 ring-inset ring-blue-200 transition-all hover:bg-blue-100 hover:ring-blue-300">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0 0 12 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75Z" />
             </svg>
-            <span>Government</span>
-          </div>
+            <span>Government & Public Sector</span>
+            <span class="h-1 w-1 rounded-full bg-blue-400"></span>
+            <span>Secure & Compliant</span>
+            <svg class="h-3.5 w-3.5 text-blue-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+          </a>
 
           <!-- Main Headline -->
-          <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-            Secure monitoring for <br class="hidden sm:block" />
-            <span class="text-blue-900">government services</span>
+          <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
+            Citizens depend on services <br class="hidden sm:block" />
+            <span class="text-gray-700">that can't go down.</span>
           </h1>
 
           <!-- Subheadline -->
-          <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
-            FedRAMP-ready observability platform built for government security requirements. Monitor citizen services and critical infrastructure with confidence.
+          <p class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-xl mx-auto">
+            Government-grade observability with US data residency and on-premise options. Monitor critical services with confidence.
           </p>
 
           <!-- CTA Buttons -->
-          <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="/enterprise/demo" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-gray-900 px-8 py-3.5 text-sm font-medium text-white shadow-lg transition-all hover:bg-gray-800">
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-              </svg>
+          <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <a href="/enterprise/demo"
+              class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
               Request Demo
+              <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
             </a>
-            <a href="/accounts/register" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50">
+            <a href="/support" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-2.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50">
               Contact Sales
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-              </svg>
             </a>
           </div>
 
-          <!-- Trust Indicators -->
+          <!-- Quick stats -->
           <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-500">
             <div class="flex items-center gap-2">
-              <svg class="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-              </svg>
-              <span>SOC 2 Type II</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <svg class="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-              </svg>
-              <span>ISO 27001</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <svg class="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
               </svg>
               <span>US Data Residency</span>
             </div>
             <div class="flex items-center gap-2">
-              <svg class="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
               </svg>
-              <span>On-Premise Option</span>
+              <span>SOC 2 Type II</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+              <span>On-Premise Available</span>
             </div>
           </div>
         </div>
@@ -92,83 +85,229 @@
     <!-- Logo Roll -->
     <%- include('../logo-roll') -%>
 
-    <!-- Government Use Cases Section -->
-    <section class="bg-gray-50 py-24 sm:py-32">
-      <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto max-w-2xl text-center mb-16">
-          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
-            Built for government needs
+    <!-- Government Pain Points Section -->
+    <section class="relative py-24 lg:py-32 bg-gray-50 overflow-hidden">
+      <div class="absolute inset-0 -z-10">
+        <div class="absolute top-1/4 left-0 w-72 h-72 bg-blue-100/40 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-1/4 right-0 w-72 h-72 bg-slate-100/40 rounded-full blur-3xl"></div>
+      </div>
+
+      <div class="mx-auto max-w-6xl px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <p class="text-sm font-medium text-blue-800 tracking-wide uppercase mb-4">The Reality</p>
+          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
+            In government, system failures affect millions.
           </h2>
-          <p class="mt-4 text-lg text-gray-600">
-            Monitor critical citizen services and infrastructure
+          <p class="max-w-2xl mx-auto text-lg text-gray-600">
+            Citizens can't choose a different government. Their services have to work.
           </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <!-- Citizen Services -->
-          <div class="p-8 rounded-2xl bg-white border border-gray-200 hover:shadow-lg transition-shadow">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 mb-6">
-              <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-              </svg>
+        <!-- Pain Points Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Emergency service outages</h3>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-3">Citizen Services</h3>
-            <p class="text-gray-600">Monitor portals, benefit systems, and online services that citizens depend on every day.</p>
+            <p class="text-sm text-gray-600">911 systems, emergency alerts, disaster response platforms. When these go down, lives are at stake. There's no "try again later."</p>
           </div>
 
-          <!-- Emergency Services -->
-          <div class="p-8 rounded-2xl bg-white border border-gray-200 hover:shadow-lg transition-shadow">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-rose-100 mb-6">
-              <svg class="w-6 h-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-              </svg>
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Compliance nightmares</h3>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-3">Emergency Services</h3>
-            <p class="text-gray-600">Ensure 24/7 availability of 911 systems, emergency response, and public safety applications.</p>
+            <p class="text-sm text-gray-600">Annual audits, FedRAMP requirements, data sovereignty mandates. Pulling compliance reports shouldn't require a team and a month.</p>
           </div>
 
-          <!-- Tax & Revenue -->
-          <div class="p-8 rounded-2xl bg-white border border-gray-200 hover:shadow-lg transition-shadow">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-100 mb-6">
-              <svg class="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
-              </svg>
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Citizen portal crashes</h3>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-3">Tax & Revenue Systems</h3>
-            <p class="text-gray-600">Monitor tax filing systems, payment processing, and revenue management applications.</p>
+            <p class="text-sm text-gray-600">Tax deadline day. Benefits enrollment period. License renewal surge. The portal crashes when citizens need it most—and it makes the news.</p>
           </div>
 
-          <!-- Healthcare Services -->
-          <div class="p-8 rounded-2xl bg-white border border-gray-200 hover:shadow-lg transition-shadow">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-violet-100 mb-6">
-              <svg class="w-6 h-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-              </svg>
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Legacy system fragility</h3>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-3">Public Health Systems</h3>
-            <p class="text-gray-600">Monitor healthcare portals, vaccination systems, and public health applications.</p>
+            <p class="text-sm text-gray-600">30-year-old mainframes talking to modern APIs. One integration breaks and the whole system goes down. No one knows how it was built.</p>
           </div>
 
-          <!-- Infrastructure -->
-          <div class="p-8 rounded-2xl bg-white border border-gray-200 hover:shadow-lg transition-shadow">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-amber-100 mb-6">
-              <svg class="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3m-19.5 0a4.5 4.5 0 0 1 .9-2.7L5.737 5.1a3.375 3.375 0 0 1 2.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 0 1 .9 2.7m0 0a3 3 0 0 1-3 3m0 3h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Zm-3 6h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Z" />
-              </svg>
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3m-19.5 0a4.5 4.5 0 0 1 .9-2.7L5.737 5.1a3.375 3.375 0 0 1 2.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 0 1 .9 2.7m0 0a3 3 0 0 1-3 3m0 3h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Zm-3 6h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Multi-agency chaos</h3>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-3">Critical Infrastructure</h3>
-            <p class="text-gray-600">Monitor utilities, transportation systems, and other critical infrastructure services.</p>
+            <p class="text-sm text-gray-600">Different agencies, different systems, different monitoring tools. Finding where an issue starts across agency boundaries takes days.</p>
           </div>
 
-          <!-- Records Management -->
-          <div class="p-8 rounded-2xl bg-white border border-gray-200 hover:shadow-lg transition-shadow">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-cyan-100 mb-6">
-              <svg class="w-6 h-6 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-              </svg>
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Security blind spots</h3>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-3">Records Management</h3>
-            <p class="text-gray-600">Monitor document management systems, archives, and public records applications.</p>
+            <p class="text-sm text-gray-600">Sophisticated attacks on government systems. If your observability isn't security-aware, you're missing indicators of compromise.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Product Grid Section -->
+    <%- include('../Partials/product-grid-section', {
+      label: 'The Solution',
+      title: 'OneUptime for Government',
+      subtitle: 'Built for government-grade security.',
+      description: 'Complete observability designed for public sector requirements. US data residency, on-premise options, and full compliance documentation.'
+    }) -%>
+
+    <!-- Government Features Bento -->
+    <section class="relative py-24 lg:py-32 bg-gray-50 overflow-hidden">
+      <div class="absolute inset-0 -z-10">
+        <div class="absolute top-1/4 right-0 w-72 h-72 bg-blue-100/40 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-1/4 left-0 w-72 h-72 bg-slate-100/40 rounded-full blur-3xl"></div>
+      </div>
+
+      <div class="relative mx-auto max-w-6xl px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <p class="text-sm font-medium text-blue-800 tracking-wide uppercase mb-4">Government Grade</p>
+          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
+            Built for the demands<br class="hidden sm:block" />
+            <span class="text-gray-500">of public service.</span>
+          </h2>
+          <p class="max-w-2xl mx-auto text-lg text-gray-600">
+            From citizen portals to emergency services, OneUptime provides the secure, compliant observability that government demands.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Citizen Service Monitoring - Large -->
+          <div class="lg:col-span-2 group">
+            <div class="h-full p-8 rounded-2xl bg-white border border-gray-300 shadow-sm hover:shadow-lg transition-shadow">
+              <div class="flex items-start justify-between mb-5">
+                <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-800">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                  </svg>
+                </div>
+                <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">Mission Critical</span>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">Citizen Service Monitoring</h3>
+              <p class="text-gray-500 mb-5">End-to-end visibility into citizen-facing applications. Track portal performance, form submissions, and service availability to ensure citizens can always access what they need.</p>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="flex items-center gap-2 text-sm text-gray-700">
+                  <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  Portal availability
+                </div>
+                <div class="flex items-center gap-2 text-sm text-gray-700">
+                  <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  Form submission tracking
+                </div>
+                <div class="flex items-center gap-2 text-sm text-gray-700">
+                  <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  User experience
+                </div>
+                <div class="flex items-center gap-2 text-sm text-gray-700">
+                  <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  Peak traffic handling
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Compliance Reporting -->
+          <div class="group">
+            <div class="h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm hover:shadow-lg transition-shadow">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-600 mb-4">
+                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Compliance Reporting</h3>
+              <p class="text-sm text-gray-500 mb-3">Automated audit trails and compliance documentation. Generate reports for audits with complete access logs and incident records.</p>
+              <div class="pt-3 border-t border-gray-100">
+                <a href="/docs/compliance" class="text-xs text-blue-800 hover:text-blue-900 font-medium flex items-center gap-1">
+                  Compliance Docs
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Emergency Service Monitoring -->
+          <div class="group">
+            <div class="h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm hover:shadow-lg transition-shadow">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-rose-600 mb-4">
+                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Emergency Services</h3>
+              <p class="text-sm text-gray-500">24/7 monitoring for critical emergency systems. Sub-minute alerting ensures rapid response to any degradation.</p>
+            </div>
+          </div>
+
+          <!-- Infrastructure Monitoring -->
+          <div class="group">
+            <div class="h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm hover:shadow-lg transition-shadow">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-amber-600 mb-4">
+                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3m-19.5 0a4.5 4.5 0 0 1 .9-2.7L5.737 5.1a3.375 3.375 0 0 1 2.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 0 1 .9 2.7m0 0a3 3 0 0 1-3 3m0 3h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Zm-3 6h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Critical Infrastructure</h3>
+              <p class="text-sm text-gray-500">Monitor utilities, transportation systems, and essential services. Ensure critical infrastructure remains operational.</p>
+            </div>
+          </div>
+
+          <!-- On-Premise Deployment -->
+          <div class="group">
+            <div class="h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm hover:shadow-lg transition-shadow">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-violet-600 mb-4">
+                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">On-Premise Deployment</h3>
+              <p class="text-sm text-gray-500">Deploy within your own infrastructure. Full control over data, complete air-gap support, and sovereign data handling.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -189,116 +328,61 @@
           </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div class="flex gap-4">
-            <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div class="text-center">
+            <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100">
+              <svg class="h-8 w-8 text-blue-800" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
               </svg>
             </div>
-            <div>
-              <h3 class="font-semibold text-gray-900">US Data Residency</h3>
-              <p class="text-gray-600 mt-1">All data stored exclusively in US-based data centers.</p>
-            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">US Data Residency</h3>
+            <p class="text-gray-600">All data stored exclusively in US-based data centers.</p>
           </div>
 
-          <div class="flex gap-4">
-            <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+          <div class="text-center">
+            <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100">
+              <svg class="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
               </svg>
             </div>
-            <div>
-              <h3 class="font-semibold text-gray-900">On-Premise Deployment</h3>
-              <p class="text-gray-600 mt-1">Deploy within your own infrastructure for maximum control.</p>
-            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">SOC 2 Type II</h3>
+            <p class="text-gray-600">Independently audited security controls and processes.</p>
           </div>
 
-          <div class="flex gap-4">
-            <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+          <div class="text-center">
+            <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100">
+              <svg class="h-8 w-8 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
               </svg>
             </div>
-            <div>
-              <h3 class="font-semibold text-gray-900">SOC 2 Type II Certified</h3>
-              <p class="text-gray-600 mt-1">Independently audited security controls.</p>
-            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">AES-256 Encryption</h3>
+            <p class="text-gray-600">Data encrypted at rest and in transit with military-grade encryption.</p>
           </div>
 
-          <div class="flex gap-4">
-            <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+          <div class="text-center">
+            <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100">
+              <svg class="h-8 w-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3m-19.5 0a4.5 4.5 0 0 1 .9-2.7L5.737 5.1a3.375 3.375 0 0 1 2.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 0 1 .9 2.7m0 0a3 3 0 0 1-3 3m0 3h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Zm-3 6h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Z" />
               </svg>
             </div>
-            <div>
-              <h3 class="font-semibold text-gray-900">Complete Audit Logging</h3>
-              <p class="text-gray-600 mt-1">Comprehensive audit trails for compliance requirements.</p>
-            </div>
-          </div>
-
-          <div class="flex gap-4">
-            <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="font-semibold text-gray-900">AES-256 Encryption</h3>
-              <p class="text-gray-600 mt-1">Data encrypted at rest and in transit.</p>
-            </div>
-          </div>
-
-          <div class="flex gap-4">
-            <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-              </svg>
-            </div>
-            <div>
-              <h3 class="font-semibold text-gray-900">Role-Based Access Control</h3>
-              <p class="text-gray-600 mt-1">Granular permissions with SSO integration.</p>
-            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">On-Premise Option</h3>
+            <p class="text-gray-600">Deploy within your infrastructure for complete control.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- CTA Section -->
-    <section class="relative py-24 sm:py-32 bg-gray-900 overflow-hidden">
-      <div class="absolute inset-0 opacity-10">
-        <svg class="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="cta-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M0 40V0h40" fill="none" stroke="currentColor" stroke-width="1"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#cta-grid)" />
-        </svg>
-      </div>
+    <!-- AI Agent Section -->
+    <%- include('../Partials/copilot') -%>
 
-      <div class="relative mx-auto max-w-4xl px-6 lg:px-8 text-center">
-        <h2 class="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-6">
-          Ready to modernize government observability?
-        </h2>
-        <p class="text-lg text-gray-300 mb-10 max-w-2xl mx-auto">
-          Contact our government sales team to discuss your specific requirements and compliance needs.
-        </p>
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a href="/enterprise/demo" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-white text-gray-900 font-medium hover:bg-gray-100 transition-colors">
-            Request Demo
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-            </svg>
-          </a>
-          <a href="/support" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-white font-medium hover:bg-white/10 transition-colors border border-white/20">
-            Contact Sales
-          </a>
-        </div>
-      </div>
-    </section>
+    <!-- Enterprise Ready Section -->
+    <%- include('../Partials/enterprise-ready') -%>
 
+    <!-- Open Source Section -->
+    <%- include('../Partials/proudly-open-source') -%>
+
+    <%- include('../cta') -%>
   </main>
   <%- include('../footer') -%>
 
