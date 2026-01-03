@@ -1,17 +1,17 @@
 <!-- Product Grid Section - Reusable partial -->
-<!-- Parameters: title (optional), subtitle (optional), description (optional) -->
+<!-- Parameters: title (optional), subtitle (optional), description (optional), label (optional) -->
 <section class="relative py-24 lg:py-32 bg-white overflow-hidden">
   <div class="mx-auto max-w-6xl px-6 lg:px-8">
     <!-- Header -->
     <div class="text-center mb-12">
-      <p class="text-sm font-medium text-violet-600 tracking-wide uppercase mb-4">Complete Platform</p>
+      <p class="text-sm font-medium text-violet-600 tracking-wide uppercase mb-4"><% if (typeof label !== 'undefined' && label) { %><%= label %><% } else { %>Complete Platform<% } %></p>
       <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
         <% if (typeof title !== 'undefined' && title) { %>
           <%= title %><br class="hidden sm:block" />
         <% } else { %>
           Everything you need<br class="hidden sm:block" />
         <% } %>
-        <span class="text-gray-500">
+        <span class="text-gray-700">
           <% if (typeof subtitle !== 'undefined' && subtitle) { %>
             <%= subtitle %>
           <% } else { %>
