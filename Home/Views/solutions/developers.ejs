@@ -4,15 +4,99 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>OneUptime for Developers | Stop Juggling Tools. Start Shipping Faster.</title>
+    <title>OneUptime for Developers | Stop Fighting Fires. Start Shipping Features.</title>
     <meta name="description"
-        content="Replace your fragmented monitoring stack with one complete open-source observability platform. Unified dashboard, AI-powered fixes, OpenTelemetry native. No vendor lock-in.">
+        content="The open-source observability platform developers actually want to use. OpenTelemetry native, API-first, no vendor lock-in. Debug production issues in minutes, not hours.">
         <%- include('../head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
 
 <style>
-    /* Developer Card Styles - Matching Home Page */
+    /* Hero Product Card Glow Styles - Matching Home Page */
+    .hero-card-wrapper {
+        position: relative;
+    }
+    .hero-card-wrapper::before {
+        content: '';
+        position: absolute;
+        inset: -30px;
+        border-radius: 50%;
+        opacity: 0;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none;
+        z-index: 0;
+    }
+    .hero-card-wrapper:hover::before {
+        opacity: 1;
+    }
+    .hero-card {
+        position: relative;
+        z-index: 1;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .hero-card:hover {
+        transform: translateY(-2px);
+    }
+
+    /* Color-themed glow effects */
+    .hero-glow-violet-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(139 92 246 / 0.06) 0%, rgb(139 92 246 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-violet:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(139 92 246 / 0.3), 0 4px 12px -4px rgb(139 92 246 / 0.15), 0 0 30px -8px rgb(139 92 246 / 0.1);
+    }
+    .hero-glow-emerald-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(16 185 129 / 0.06) 0%, rgb(16 185 129 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-emerald:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(16 185 129 / 0.3), 0 4px 12px -4px rgb(16 185 129 / 0.15), 0 0 30px -8px rgb(16 185 129 / 0.1);
+    }
+    .hero-glow-blue-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(59 130 246 / 0.06) 0%, rgb(59 130 246 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-blue:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(59 130 246 / 0.3), 0 4px 12px -4px rgb(59 130 246 / 0.15), 0 0 30px -8px rgb(59 130 246 / 0.1);
+    }
+    .hero-glow-amber-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(245 158 11 / 0.06) 0%, rgb(245 158 11 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-amber:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(245 158 11 / 0.3), 0 4px 12px -4px rgb(245 158 11 / 0.15), 0 0 30px -8px rgb(245 158 11 / 0.1);
+    }
+    .hero-glow-rose-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(244 63 94 / 0.06) 0%, rgb(244 63 94 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-rose:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(244 63 94 / 0.3), 0 4px 12px -4px rgb(244 63 94 / 0.15), 0 0 30px -8px rgb(244 63 94 / 0.1);
+    }
+    .hero-glow-gray-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(107 114 128 / 0.06) 0%, rgb(107 114 128 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-gray:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(107 114 128 / 0.3), 0 4px 12px -4px rgb(107 114 128 / 0.15), 0 0 30px -8px rgb(107 114 128 / 0.1);
+    }
+    .hero-glow-cyan-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(6 182 212 / 0.06) 0%, rgb(6 182 212 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-cyan:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(6 182 212 / 0.3), 0 4px 12px -4px rgb(6 182 212 / 0.15), 0 0 30px -8px rgb(6 182 212 / 0.1);
+    }
+    .hero-glow-yellow-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(234 179 8 / 0.06) 0%, rgb(234 179 8 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-yellow:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(234 179 8 / 0.3), 0 4px 12px -4px rgb(234 179 8 / 0.15), 0 0 30px -8px rgb(234 179 8 / 0.1);
+    }
+
+    /* Dev card styles */
     .dev-card {
         position: relative;
         transition: all 0.2s ease;
@@ -22,42 +106,20 @@
         box-shadow: 0 12px 40px -12px rgba(0,0,0,0.1);
     }
 
-    /* Color-themed glow effects */
-    .dev-glow-violet:hover {
-        box-shadow: 0 0 0 1px rgb(139 92 246 / 0.2), 0 4px 16px -4px rgb(139 92 246 / 0.15), 0 0 24px -8px rgb(139 92 246 / 0.1);
-    }
-    .dev-glow-emerald:hover {
-        box-shadow: 0 0 0 1px rgb(16 185 129 / 0.2), 0 4px 16px -4px rgb(16 185 129 / 0.15), 0 0 24px -8px rgb(16 185 129 / 0.1);
-    }
-    .dev-glow-blue:hover {
-        box-shadow: 0 0 0 1px rgb(59 130 246 / 0.2), 0 4px 16px -4px rgb(59 130 246 / 0.15), 0 0 24px -8px rgb(59 130 246 / 0.1);
-    }
-    .dev-glow-amber:hover {
-        box-shadow: 0 0 0 1px rgb(245 158 11 / 0.2), 0 4px 16px -4px rgb(245 158 11 / 0.15), 0 0 24px -8px rgb(245 158 11 / 0.1);
-    }
-    .dev-glow-rose:hover {
-        box-shadow: 0 0 0 1px rgb(244 63 94 / 0.2), 0 4px 16px -4px rgb(244 63 94 / 0.15), 0 0 24px -8px rgb(244 63 94 / 0.1);
-    }
-    .dev-glow-gray:hover {
-        box-shadow: 0 0 0 1px rgb(107 114 128 / 0.2), 0 4px 16px -4px rgb(107 114 128 / 0.15), 0 0 24px -8px rgb(107 114 128 / 0.1);
-    }
-    .dev-glow-yellow:hover {
-        box-shadow: 0 0 0 1px rgb(234 179 8 / 0.2), 0 4px 16px -4px rgb(234 179 8 / 0.15), 0 0 24px -8px rgb(234 179 8 / 0.1);
-    }
-    .dev-glow-cyan:hover {
-        box-shadow: 0 0 0 1px rgb(6 182 212 / 0.2), 0 4px 16px -4px rgb(6 182 212 / 0.15), 0 0 24px -8px rgb(6 182 212 / 0.1);
-    }
-
-    /* Hero card wrappers */
-    .hero-card-wrapper {
-        position: relative;
-    }
-
     /* Code block styling */
     .code-block {
         font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
         font-size: 13px;
         line-height: 1.6;
+    }
+
+    /* Terminal typing animation */
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+    }
+    .cursor-blink {
+        animation: blink 1s step-end infinite;
     }
 </style>
 </head>
@@ -66,23 +128,26 @@
   <%- include('../nav') -%>
 
   <main id="main-content">
-    <!-- Hero Section -->
-    <div class="relative isolate overflow-hidden bg-white" id="dev-hero-section">
+    <!-- Hero Section - Matching Home Page Style -->
+    <div class="relative isolate bg-white overflow-hidden" id="dev-hero-section">
       <!-- Subtle grid pattern background -->
       <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
 
       <!-- Grid glow effect that follows cursor -->
       <div id="dev-grid-glow-effect" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(139, 92, 246, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(139, 92, 246, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
 
+      <!-- Hero ambient glow -->
+      <div id="hero-ambient-glow" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/4 w-[800px] h-[600px] pointer-events-none" style="background: transparent; opacity: 0; transition: opacity 0.35s ease-out;"></div>
+
       <div class="py-24 sm:py-32 lg:py-40">
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
           <div class="mx-auto max-w-3xl text-center">
-            <!-- Badge -->
+            <!-- Badge - Matching Home Page -->
             <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group mb-8 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100 hover:ring-gray-300">
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
               </svg>
-              <span>For Developers</span>
+              <span>Built for Developers</span>
               <span class="h-1 w-1 rounded-full bg-gray-300"></span>
               <span>Open Source</span>
               <svg class="h-3.5 w-3.5 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
@@ -90,13 +155,13 @@
 
             <!-- Main Headline -->
             <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
-              Stop juggling tools. <br class="hidden sm:block" />
-              <span class="text-gray-500">Start shipping faster.</span>
+              Stop fighting fires. <br class="hidden sm:block" />
+              <span class="text-gray-500">Start shipping features.</span>
             </h1>
 
             <!-- Subheadline -->
             <p class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-xl mx-auto">
-              You didn't sign up to manage a dozen monitoring tools, write runbooks for every incident, or debug production at 3 AM. You signed up to build great software.
+              You became a developer to build great software, not to spend your nights debugging production or juggling a dozen monitoring tools.
             </p>
 
             <!-- CTA Buttons -->
@@ -107,7 +172,7 @@
                 <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
               </a>
               <a href="/docs" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-2.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50">
-                View documentation
+                Read the docs
               </a>
             </div>
 
@@ -140,6 +205,106 @@
     <!-- Logo Roll -->
     <%- include('../logo-roll') -%>
 
+    <!-- Developer Pain Points Section -->
+    <section class="relative py-24 lg:py-32 bg-gray-50 overflow-hidden">
+      <div class="absolute inset-0 -z-10">
+        <div class="absolute top-1/4 left-0 w-72 h-72 bg-rose-100/40 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-1/4 right-0 w-72 h-72 bg-amber-100/40 rounded-full blur-3xl"></div>
+      </div>
+
+      <div class="mx-auto max-w-6xl px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <p class="text-sm font-medium text-rose-600 tracking-wide uppercase mb-4">The Problem</p>
+          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
+            Sound familiar?
+          </h2>
+        </div>
+
+        <!-- Pain Points Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">3 AM pages</h3>
+            </div>
+            <p class="text-sm text-gray-600">"Something's broken in production." Cool. Which of my 7 dashboards should I check first?</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Context switching</h3>
+            </div>
+            <p class="text-sm text-gray-600">Logs in Splunk. Traces in Jaeger. Metrics in Datadog. Alerts in PagerDuty. Where's the actual bug?</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Surprise invoices</h3>
+            </div>
+            <p class="text-sm text-gray-600">"Your bill this month: $47,000." Thanks for the 10TB of logs nobody looked at.</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Vendor lock-in</h3>
+            </div>
+            <p class="text-sm text-gray-600">Proprietary agents everywhere. Good luck migrating when the pricing "evolves."</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Endless setup</h3>
+            </div>
+            <p class="text-sm text-gray-600">Two weeks to instrument. Another week for dashboards. Three more for alerts. Ship features? Maybe next quarter.</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Alert fatigue</h3>
+            </div>
+            <p class="text-sm text-gray-600">500 alerts. 3 real problems. Which is which? Hope you enjoy playing detective at 3 AM.</p>
+          </div>
+        </div>
+
+        <div class="max-w-2xl mx-auto text-center">
+          <div class="p-6 rounded-2xl bg-white border border-emerald-200 shadow-sm">
+            <p class="text-lg text-gray-700">
+              OneUptime fixes all of this. <span class="font-semibold text-emerald-600">One platform. One bill. One place to debug.</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Product Grid Section -->
     <section class="relative py-24 lg:py-32 bg-white overflow-hidden">
       <div class="mx-auto max-w-6xl px-6 lg:px-8">
@@ -151,15 +316,15 @@
             <span class="text-gray-500">in one place</span>
           </h2>
           <p class="max-w-2xl mx-auto text-lg text-gray-600 leading-relaxed">
-            Replace 7+ tools with a single unified platform
+            Stop paying for 7+ tools. Get everything in one open-source platform.
           </p>
         </div>
 
         <!-- Product Grid -->
         <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 auto-rows-fr">
           <!-- Monitoring -->
-          <div class="hero-card-wrapper h-full">
-            <a href="/product/monitoring" class="dev-card dev-glow-blue group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-blue-300 h-full">
+          <div class="hero-card-wrapper hero-glow-blue-wrapper h-full">
+            <a href="/product/monitoring" class="hero-card hero-glow-blue group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-blue-300 h-full">
               <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-200">
                 <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3" />
@@ -171,8 +336,8 @@
           </div>
 
           <!-- Status Page -->
-          <div class="hero-card-wrapper h-full">
-            <a href="/product/status-page" class="dev-card dev-glow-emerald group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-emerald-300 h-full">
+          <div class="hero-card-wrapper hero-glow-emerald-wrapper h-full">
+            <a href="/product/status-page" class="hero-card hero-glow-emerald group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-emerald-300 h-full">
               <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
                 <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -184,8 +349,8 @@
           </div>
 
           <!-- Incidents -->
-          <div class="hero-card-wrapper h-full">
-            <a href="/product/incident-management" class="dev-card dev-glow-rose group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-rose-300 h-full">
+          <div class="hero-card-wrapper hero-glow-rose-wrapper h-full">
+            <a href="/product/incident-management" class="hero-card hero-glow-rose group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-rose-300 h-full">
               <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200">
                 <svg class="h-5 w-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
@@ -197,8 +362,8 @@
           </div>
 
           <!-- On-Call -->
-          <div class="hero-card-wrapper h-full">
-            <a href="/product/on-call" class="dev-card dev-glow-amber group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-amber-300 h-full">
+          <div class="hero-card-wrapper hero-glow-amber-wrapper h-full">
+            <a href="/product/on-call" class="hero-card hero-glow-amber group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-amber-300 h-full">
               <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
                 <svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
@@ -210,8 +375,8 @@
           </div>
 
           <!-- Logs -->
-          <div class="hero-card-wrapper h-full">
-            <a href="/product/logs" class="dev-card dev-glow-gray group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-gray-400 h-full">
+          <div class="hero-card-wrapper hero-glow-gray-wrapper h-full">
+            <a href="/product/logs" class="hero-card hero-glow-gray group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-gray-400 h-full">
               <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100 ring-1 ring-gray-300">
                 <svg class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
@@ -223,8 +388,8 @@
           </div>
 
           <!-- Metrics -->
-          <div class="hero-card-wrapper h-full">
-            <a href="/product/metrics" class="dev-card dev-glow-cyan group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-cyan-300 h-full">
+          <div class="hero-card-wrapper hero-glow-cyan-wrapper h-full">
+            <a href="/product/metrics" class="hero-card hero-glow-cyan group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-cyan-300 h-full">
               <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200">
                 <svg class="h-5 w-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l3-9 4 18 3-9h4" />
@@ -236,8 +401,8 @@
           </div>
 
           <!-- Traces -->
-          <div class="hero-card-wrapper h-full">
-            <a href="/product/traces" class="dev-card dev-glow-yellow group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-yellow-300 h-full">
+          <div class="hero-card-wrapper hero-glow-yellow-wrapper h-full">
+            <a href="/product/traces" class="hero-card hero-glow-yellow group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-yellow-300 h-full">
               <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-yellow-50 ring-1 ring-yellow-200">
                 <svg class="h-5 w-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
@@ -249,8 +414,8 @@
           </div>
 
           <!-- Exceptions -->
-          <div class="hero-card-wrapper h-full">
-            <a href="/product/exceptions" class="dev-card dev-glow-rose group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-rose-300 h-full">
+          <div class="hero-card-wrapper hero-glow-rose-wrapper h-full">
+            <a href="/product/exceptions" class="hero-card hero-glow-rose group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-rose-300 h-full">
               <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
                 <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 12.75c1.148 0 2.278.08 3.383.237 1.037.146 1.866.966 1.866 2.013 0 3.728-2.35 6.75-5.25 6.75S6.75 18.728 6.75 15c0-1.046.83-1.867 1.866-2.013A24.204 24.204 0 0 1 12 12.75Z" />
@@ -262,8 +427,8 @@
           </div>
 
           <!-- Workflows -->
-          <div class="hero-card-wrapper h-full">
-            <a href="/product/workflows" class="dev-card dev-glow-violet group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-violet-300 h-full">
+          <div class="hero-card-wrapper hero-glow-violet-wrapper h-full">
+            <a href="/product/workflows" class="hero-card hero-glow-violet group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-violet-300 h-full">
               <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
                 <svg class="h-5 w-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 0 1-.657.643 48.39 48.39 0 0 1-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 0 1-.658.663v0c-.355 0-.676-.186-.959-.401a1.647 1.647 0 0 0-1.003-.349c-1.036 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 0 1-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 0 0 .657-.643v0c0-.355-.186-.676-.401-.959a1.647 1.647 0 0 1-.349-1.003c0-1.035 1.008-1.875 2.25-1.875 1.243 0 2.25.84 2.25 1.875 0 .369-.128.713-.349 1.003-.215.283-.4.604-.4.959v0c0 .333.277.599.61.58a48.1 48.1 0 0 0 5.427-.63 48.05 48.05 0 0 0 .582-4.717.532.532 0 0 0-.533-.57v0c-.355 0-.676.186-.959.401-.29.221-.634.349-1.003.349-1.035 0-1.875-1.007-1.875-2.25s.84-2.25 1.875-2.25c.369 0 .713.128 1.003.349.283.215.604.401.959.401v0a.656.656 0 0 0 .659-.663 47.703 47.703 0 0 0-.31-4.82 48.847 48.847 0 0 1-6.067.21.641.641 0 0 1-.657-.643v0Z" />
@@ -275,8 +440,8 @@
           </div>
 
           <!-- Dashboards -->
-          <div class="hero-card-wrapper h-full">
-            <a href="/product/dashboards" class="dev-card dev-glow-blue group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-blue-300 h-full">
+          <div class="hero-card-wrapper hero-glow-blue-wrapper h-full">
+            <a href="/product/dashboards" class="hero-card hero-glow-blue group flex flex-col items-center justify-center text-center rounded-2xl bg-white px-4 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-blue-300 h-full">
               <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-200">
                 <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
@@ -290,7 +455,7 @@
 
         <!-- AI Agent Featured Card -->
         <div class="mt-5">
-          <a href="/product/ai-agent" class="dev-card dev-glow-violet group flex items-center gap-5 rounded-2xl bg-white px-6 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-violet-300">
+          <a href="/product/ai-agent" class="hero-card hero-glow-violet group flex items-center gap-5 rounded-2xl bg-white px-6 py-5 ring-1 ring-inset ring-gray-200 transition-all hover:ring-violet-300">
             <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
               <svg class="h-5 w-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
@@ -301,7 +466,7 @@
                 <span class="text-sm font-medium text-gray-900">AI Agent</span>
                 <span class="inline-flex items-center rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200">New</span>
               </div>
-              <div class="mt-1 text-xs text-gray-500">Automatically detect, diagnose, and resolve incidents with AI-powered root cause analysis and code fixes.</div>
+              <div class="mt-1 text-xs text-gray-500">Automatically detect issues, diagnose root cause, and get AI-generated code fixes as pull requests.</div>
             </div>
             <svg class="h-4 w-4 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path></svg>
           </a>
@@ -309,84 +474,18 @@
       </div>
     </section>
 
-    <!-- Problem Section: Tool Sprawl -->
-    <section class="relative py-24 lg:py-32 bg-gray-50 overflow-hidden">
-      <div class="absolute inset-0 -z-10">
-        <div class="absolute top-1/4 left-0 w-72 h-72 bg-rose-100/40 rounded-full blur-3xl"></div>
-        <div class="absolute bottom-1/4 right-0 w-72 h-72 bg-amber-100/40 rounded-full blur-3xl"></div>
-      </div>
-
-      <div class="mx-auto max-w-6xl px-6 lg:px-8">
-        <div class="text-center mb-16">
-          <p class="text-sm font-medium text-rose-600 tracking-wide uppercase mb-4">The Problem</p>
-          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
-            Tool sprawl is killing<br class="hidden sm:block" />
-            <span class="text-gray-500">your productivity</span>
-          </h2>
-        </div>
-
-        <!-- Comparison Table -->
-        <div class="max-w-3xl mx-auto mb-12">
-          <div class="rounded-2xl bg-white border border-gray-300 shadow-sm overflow-hidden">
-            <div class="grid grid-cols-2 bg-gray-50 border-b border-gray-200">
-              <div class="px-6 py-4 text-sm font-semibold text-gray-900">What You Need</div>
-              <div class="px-6 py-4 text-sm font-semibold text-gray-500">What You're Paying For</div>
-            </div>
-            <div class="divide-y divide-gray-100">
-              <div class="grid grid-cols-2">
-                <div class="px-6 py-3 text-sm text-gray-900">Uptime monitoring</div>
-                <div class="px-6 py-3 text-sm text-gray-500">Pingdom, UptimeRobot</div>
-              </div>
-              <div class="grid grid-cols-2">
-                <div class="px-6 py-3 text-sm text-gray-900">Status pages</div>
-                <div class="px-6 py-3 text-sm text-gray-500">StatusPage.io</div>
-              </div>
-              <div class="grid grid-cols-2">
-                <div class="px-6 py-3 text-sm text-gray-900">Alerting & on-call</div>
-                <div class="px-6 py-3 text-sm text-gray-500">PagerDuty, OpsGenie</div>
-              </div>
-              <div class="grid grid-cols-2">
-                <div class="px-6 py-3 text-sm text-gray-900">Incident management</div>
-                <div class="px-6 py-3 text-sm text-gray-500">Incident.io, FireHydrant</div>
-              </div>
-              <div class="grid grid-cols-2">
-                <div class="px-6 py-3 text-sm text-gray-900">Logs</div>
-                <div class="px-6 py-3 text-sm text-gray-500">Loggly, Papertrail, Splunk</div>
-              </div>
-              <div class="grid grid-cols-2">
-                <div class="px-6 py-3 text-sm text-gray-900">APM & Metrics</div>
-                <div class="px-6 py-3 text-sm text-gray-500">New Relic, Datadog</div>
-              </div>
-              <div class="grid grid-cols-2">
-                <div class="px-6 py-3 text-sm text-gray-900">Error tracking</div>
-                <div class="px-6 py-3 text-sm text-gray-500">Sentry, Bugsnag</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="max-w-2xl mx-auto text-center">
-          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
-            <p class="text-lg text-gray-700">
-              That's <span class="font-semibold text-gray-900">7+ subscriptions</span>, 7+ dashboards, 7+ sets of documentation, and <span class="font-semibold text-gray-900">7+ context switches</span> when something breaks in production.
-            </p>
-          </div>
-          <p class="mt-6 text-sm text-gray-500">OneUptime consolidates all of this into one platform.</p>
-        </div>
-      </div>
-    </section>
-
     <!-- OpenTelemetry Section -->
-    <section class="relative py-24 lg:py-32 bg-white overflow-hidden">
+    <section class="relative py-24 lg:py-32 bg-gray-50 overflow-hidden">
       <div class="mx-auto max-w-6xl px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
             <p class="text-sm font-medium text-amber-600 tracking-wide uppercase mb-4">Industry Standard</p>
             <h2 class="text-3xl sm:text-4xl font-semibold tracking-tight text-gray-900 mb-6">
-              OpenTelemetry Native
+              OpenTelemetry Native.<br/>
+              <span class="text-gray-500">No proprietary nonsense.</span>
             </h2>
             <p class="text-lg text-gray-600 mb-8">
-              No proprietary agents. No custom SDKs to learn. OneUptime speaks OpenTelemetry natively—the industry standard for observability.
+              Use the instrumentation you already have. Point your OTLP exporter at OneUptime and you're done. No vendor SDK to learn, no agent to install, no lock-in.
             </p>
 
             <div class="space-y-4 mb-8">
@@ -395,8 +494,8 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                 </svg>
                 <div>
-                  <p class="font-medium text-gray-900">Send traces, metrics, and logs</p>
-                  <p class="text-sm text-gray-500">From any language or framework</p>
+                  <p class="font-medium text-gray-900">Works with your existing setup</p>
+                  <p class="text-sm text-gray-500">Already instrumented? Just change the endpoint.</p>
                 </div>
               </div>
               <div class="flex items-start gap-3">
@@ -404,8 +503,8 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                 </svg>
                 <div>
-                  <p class="font-medium text-gray-900">No vendor lock-in</p>
-                  <p class="text-sm text-gray-500">Switch providers without changing instrumentation</p>
+                  <p class="font-medium text-gray-900">Traces, metrics, and logs</p>
+                  <p class="text-sm text-gray-500">Full OTLP support for all signal types.</p>
                 </div>
               </div>
               <div class="flex items-start gap-3">
@@ -413,24 +512,23 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                 </svg>
                 <div>
-                  <p class="font-medium text-gray-900">Point and send</p>
-                  <p class="text-sm text-gray-500">Configure your OTLP exporter to OneUptime—done</p>
+                  <p class="font-medium text-gray-900">Auto-correlation</p>
+                  <p class="text-sm text-gray-500">Click from trace to log to metric. No manual linking.</p>
                 </div>
               </div>
             </div>
 
             <div class="flex flex-wrap gap-2">
-              <span class="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">Go</span>
-              <span class="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">Java</span>
-              <span class="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">Python</span>
-              <span class="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">JavaScript</span>
-              <span class="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">TypeScript</span>
-              <span class="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">Ruby</span>
-              <span class="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">PHP</span>
-              <span class="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">Rust</span>
-              <span class="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">.NET</span>
-              <span class="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">C++</span>
-              <span class="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">Swift</span>
+              <span class="px-3 py-1.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-200">Go</span>
+              <span class="px-3 py-1.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-200">Java</span>
+              <span class="px-3 py-1.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-200">Python</span>
+              <span class="px-3 py-1.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-200">Node.js</span>
+              <span class="px-3 py-1.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-200">.NET</span>
+              <span class="px-3 py-1.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-200">Ruby</span>
+              <span class="px-3 py-1.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-200">PHP</span>
+              <span class="px-3 py-1.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-200">Rust</span>
+              <span class="px-3 py-1.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-200">C++</span>
+              <span class="px-3 py-1.5 text-xs font-medium bg-white text-gray-700 rounded-full border border-gray-200">Swift</span>
             </div>
           </div>
 
@@ -446,7 +544,7 @@
                 <span class="absolute left-1/2 -translate-x-1/2 text-xs text-gray-500 font-medium">otel-config.yaml</span>
               </div>
               <div class="px-5 py-4 overflow-x-auto">
-                <pre class="code-block text-gray-300"><code><span class="text-gray-500"># Point your OTLP exporter at OneUptime</span>
+                <pre class="code-block text-gray-300"><code><span class="text-gray-500"># That's it. Seriously.</span>
 <span class="text-blue-400">exporters</span>:
   <span class="text-emerald-400">otlp</span>:
     <span class="text-amber-400">endpoint</span>: <span class="text-gray-300">"otlp.oneuptime.com:4317"</span>
@@ -482,15 +580,18 @@
         <div class="text-center mb-16">
           <p class="text-sm font-medium text-violet-600 tracking-wide uppercase mb-4">Developer Experience</p>
           <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
-            Built for developers<br class="hidden sm:block" />
-            <span class="text-gray-500">by developers</span>
+            Built by developers.<br class="hidden sm:block" />
+            <span class="text-gray-500">For developers.</span>
           </h2>
+          <p class="max-w-2xl mx-auto text-lg text-gray-600">
+            We're not just an observability company that happens to have an API. Everything is API-first, code-configurable, and designed for developer workflows.
+          </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <!-- Open Source - Large -->
           <div class="lg:col-span-2 group">
-            <div class="dev-card h-full p-8 rounded-2xl bg-white border border-gray-300 shadow-sm dev-glow-gray">
+            <div class="dev-card h-full p-8 rounded-2xl bg-white border border-gray-300 shadow-sm">
               <div class="flex items-start justify-between mb-5">
                 <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700">
                   <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -504,8 +605,8 @@
                   </svg>
                 </a>
               </div>
-              <h3 class="text-xl font-semibold text-gray-900 mb-2">Open Source. No Vendor Lock-In.</h3>
-              <p class="text-gray-500 mb-5">Apache 2.0 licensed. Full transparency, complete control over your data.</p>
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">Open Source. No Strings Attached.</h3>
+              <p class="text-gray-500 mb-5">Apache 2.0 licensed. Read the code. Run it yourself. Contribute features. Your data, your infrastructure, your rules.</p>
               <div class="grid grid-cols-2 gap-3">
                 <div class="flex items-center gap-2 text-sm text-gray-700">
                   <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -517,7 +618,7 @@
                   <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                   </svg>
-                  Inspect the code
+                  Audit the code
                 </div>
                 <div class="flex items-center gap-2 text-sm text-gray-700">
                   <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -537,14 +638,14 @@
 
           <!-- API First -->
           <div class="group">
-            <div class="dev-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm dev-glow-blue">
+            <div class="dev-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
               <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
                 <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
                 </svg>
               </div>
               <h3 class="text-base font-semibold text-gray-900 mb-1">API-First Architecture</h3>
-              <p class="text-sm text-gray-500 mb-3">Everything accessible via REST API. Automate any workflow.</p>
+              <p class="text-sm text-gray-500 mb-3">Everything in the UI is available via REST API. Build custom integrations, automate workflows, script your setup.</p>
               <div class="pt-3 border-t border-gray-100">
                 <a href="/docs/api" class="text-xs text-violet-600 hover:text-violet-800 font-medium flex items-center gap-1">
                   API Documentation
@@ -558,33 +659,33 @@
 
           <!-- Terraform -->
           <div class="group">
-            <div class="dev-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm dev-glow-violet">
+            <div class="dev-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
               <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
                 <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
                 </svg>
               </div>
               <h3 class="text-base font-semibold text-gray-900 mb-1">Terraform Provider</h3>
-              <p class="text-sm text-gray-500">Infrastructure as Code. Version control your monitoring config.</p>
+              <p class="text-sm text-gray-500">Infrastructure as Code for your monitoring. Version control your alerts, dashboards, and on-call schedules.</p>
             </div>
           </div>
 
           <!-- Smart Alerting -->
           <div class="group">
-            <div class="dev-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm dev-glow-amber">
+            <div class="dev-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
               <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
                 <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
                 </svg>
               </div>
               <h3 class="text-base font-semibold text-gray-900 mb-1">Smart Alerting</h3>
-              <p class="text-sm text-gray-500">On-call rotations, escalations, deduplication. No 3AM noise.</p>
+              <p class="text-sm text-gray-500">Deduplication, grouping, and routing that actually works. No more alert storms at 3 AM.</p>
             </div>
           </div>
 
           <!-- Synthetic Monitoring -->
           <div class="group">
-            <div class="dev-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm dev-glow-emerald">
+            <div class="dev-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
               <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
                 <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -592,240 +693,98 @@
                 </svg>
               </div>
               <h3 class="text-base font-semibold text-gray-900 mb-1">Playwright Synthetics</h3>
-              <p class="text-sm text-gray-500">Test like real users. Multi-browser, multi-location, screenshots on fail.</p>
+              <p class="text-sm text-gray-500">Write browser tests in real code. Multi-browser, multi-location, screenshots on failure.</p>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section class="relative py-24 lg:py-32 bg-gray-50 overflow-hidden">
+      <div class="mx-auto max-w-6xl px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <p class="text-sm font-medium text-blue-600 tracking-wide uppercase mb-4">Get Started</p>
+          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
+            Up and running in minutes
+          </h2>
+          <p class="max-w-2xl mx-auto text-lg text-gray-600">
+            No sales calls. No 14-day trials that expire. Just start building.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <!-- Step 1 -->
+          <div class="relative group">
+            <div class="absolute -top-4 left-6">
+              <div class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gray-900 text-white text-sm font-bold">
+                1
+              </div>
+            </div>
+            <div class="p-8 pt-10 rounded-2xl bg-white border border-gray-200 shadow-sm h-full">
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">Sign up</h3>
+              <p class="text-sm text-gray-600 mb-4">Create a free account. No credit card required. Takes 30 seconds.</p>
+              <div class="rounded-lg bg-gray-900 p-3">
+                <code class="text-xs text-emerald-400">
+                  <span class="text-gray-500">$</span> open oneuptime.com/accounts/register
+                </code>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="relative group">
+            <div class="absolute -top-4 left-6">
+              <div class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gray-900 text-white text-sm font-bold">
+                2
+              </div>
+            </div>
+            <div class="p-8 pt-10 rounded-2xl bg-white border border-gray-200 shadow-sm h-full">
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">Add a monitor</h3>
+              <p class="text-sm text-gray-600 mb-4">Monitor an API endpoint, website, server, or any resource you care about.</p>
+              <div class="rounded-lg bg-gray-900 p-3">
+                <code class="text-xs text-emerald-400">
+                  <span class="text-gray-500"># or via API</span><br/>
+                  curl -X POST api.oneuptime.com/monitors
+                </code>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="relative group">
+            <div class="absolute -top-4 left-6">
+              <div class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gray-900 text-white text-sm font-bold">
+                3
+              </div>
+            </div>
+            <div class="p-8 pt-10 rounded-2xl bg-white border border-gray-200 shadow-sm h-full">
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">Ship with confidence</h3>
+              <p class="text-sm text-gray-600 mb-4">Get alerted when things break. Debug in one place. Fix faster.</p>
+              <div class="rounded-lg bg-gray-900 p-3">
+                <code class="text-xs text-emerald-400">
+                  <span class="text-gray-500"># you're done</span><br/>
+                  git push origin main
+                </code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center mt-12">
+          <a href="/accounts/register" class="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-gray-900 text-white font-medium shadow-lg shadow-gray-900/20 hover:bg-gray-800 transition-all hover:shadow-xl hover:shadow-gray-900/25 hover:-translate-y-0.5">
+            Get started free
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </a>
+          <p class="mt-4 text-sm text-gray-500">Or <a href="/docs/installation" class="text-violet-600 hover:text-violet-800 font-medium">self-host with Docker</a></p>
         </div>
       </div>
     </section>
 
     <!-- Enterprise Ready Section -->
     <%- include('../Partials/enterprise-ready') -%>
-
-    <!-- Before/After Comparison -->
-    <section class="relative py-24 lg:py-32 bg-gray-50 overflow-hidden">
-      <!-- Background decorations -->
-      <div class="absolute inset-0 -z-10">
-        <div class="absolute top-0 left-1/4 w-96 h-96 bg-rose-100/30 rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-emerald-100/30 rounded-full blur-3xl"></div>
-      </div>
-
-      <div class="relative mx-auto max-w-6xl px-6 lg:px-8">
-        <div class="text-center mb-16">
-          <p class="text-sm font-medium text-gray-500 tracking-wide uppercase mb-4">The Transformation</p>
-          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-4">
-            The bottom line
-          </h2>
-          <p class="text-lg text-gray-600 max-w-2xl mx-auto">
-            See how OneUptime transforms your monitoring stack from chaos to clarity
-          </p>
-        </div>
-
-        <div class="relative max-w-5xl mx-auto">
-          <!-- Connecting Arrow (visible on lg screens) -->
-          <div class="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-            <div class="w-16 h-16 rounded-full bg-white shadow-xl border border-gray-200 flex items-center justify-center">
-              <svg class="w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-              </svg>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
-            <!-- Before -->
-            <div class="relative group">
-              <div class="absolute inset-0 bg-gradient-to-br from-gray-200/50 to-gray-300/50 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div class="relative p-8 lg:p-10 rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-shadow duration-300">
-                <div class="flex items-center gap-4 mb-8">
-                  <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shadow-inner">
-                    <svg class="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                    </svg>
-                  </div>
-                  <div>
-                    <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Current State</span>
-                    <h3 class="text-xl font-semibold text-gray-700">Before OneUptime</h3>
-                  </div>
-                </div>
-                <ul class="space-y-4">
-                  <li class="flex items-start gap-4">
-                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-700">7+ tools, 7+ subscriptions</p>
-                      <p class="text-xs text-gray-400 mt-0.5">Multiple vendors, multiple bills</p>
-                    </div>
-                  </li>
-                  <li class="flex items-start gap-4">
-                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-700">Context switching between dashboards</p>
-                      <p class="text-xs text-gray-400 mt-0.5">Lost productivity and focus</p>
-                    </div>
-                  </li>
-                  <li class="flex items-start gap-4">
-                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-700">Manual incident detection</p>
-                      <p class="text-xs text-gray-400 mt-0.5">Slow response times</p>
-                    </div>
-                  </li>
-                  <li class="flex items-start gap-4">
-                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-700">Proprietary agents & SDKs</p>
-                      <p class="text-xs text-gray-400 mt-0.5">Vendor-specific implementations</p>
-                    </div>
-                  </li>
-                  <li class="flex items-start gap-4">
-                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-700">Vendor lock-in</p>
-                      <p class="text-xs text-gray-400 mt-0.5">Data held hostage</p>
-                    </div>
-                  </li>
-                  <li class="flex items-start gap-4">
-                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-gray-700">"Something's broken" alerts</p>
-                      <p class="text-xs text-gray-400 mt-0.5">No actionable insights</p>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <!-- After -->
-            <div class="relative group">
-              <div class="absolute inset-0 bg-gradient-to-br from-emerald-200/50 to-emerald-300/50 rounded-3xl blur-xl opacity-50 group-hover:opacity-80 transition-opacity duration-500"></div>
-              <div class="relative p-8 lg:p-10 rounded-3xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 shadow-sm hover:shadow-lg transition-shadow duration-300">
-                <div class="flex items-center gap-4 mb-8">
-                  <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-200">
-                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                    </svg>
-                  </div>
-                  <div>
-                    <span class="text-xs font-medium text-emerald-600 uppercase tracking-wider">With OneUptime</span>
-                    <h3 class="text-xl font-semibold text-emerald-900">After OneUptime</h3>
-                  </div>
-                </div>
-                <ul class="space-y-4">
-                  <li class="flex items-start gap-4">
-                    <div class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
-                      <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-semibold text-emerald-900">One platform, one bill</p>
-                      <p class="text-xs text-emerald-600 mt-0.5">Simplified vendor management</p>
-                    </div>
-                  </li>
-                  <li class="flex items-start gap-4">
-                    <div class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
-                      <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-semibold text-emerald-900">Unified, correlated view</p>
-                      <p class="text-xs text-emerald-600 mt-0.5">Everything in one place</p>
-                    </div>
-                  </li>
-                  <li class="flex items-start gap-4">
-                    <div class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
-                      <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-semibold text-emerald-900">AI-powered detection + fixes</p>
-                      <p class="text-xs text-emerald-600 mt-0.5">Automatic remediation</p>
-                    </div>
-                  </li>
-                  <li class="flex items-start gap-4">
-                    <div class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
-                      <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-semibold text-emerald-900">OpenTelemetry standard</p>
-                      <p class="text-xs text-emerald-600 mt-0.5">Industry-standard instrumentation</p>
-                    </div>
-                  </li>
-                  <li class="flex items-start gap-4">
-                    <div class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
-                      <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-semibold text-emerald-900">Open source freedom</p>
-                      <p class="text-xs text-emerald-600 mt-0.5">Full transparency and control</p>
-                    </div>
-                  </li>
-                  <li class="flex items-start gap-4">
-                    <div class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
-                      <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm font-semibold text-emerald-900">"Here's the fix" pull requests</p>
-                      <p class="text-xs text-emerald-600 mt-0.5">AI-generated code fixes</p>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <!-- Mobile Arrow (visible on smaller screens) -->
-          <div class="flex lg:hidden justify-center -my-3 relative z-10">
-            <div class="w-12 h-12 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center">
-              <svg class="w-5 h-5 text-emerald-500 rotate-90" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bottom CTA -->
-        <div class="text-center mt-16">
-          <a href="/accounts/register" class="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-gray-900 text-white font-medium shadow-lg shadow-gray-900/20 hover:bg-gray-800 transition-all hover:shadow-xl hover:shadow-gray-900/25 hover:-translate-y-0.5">
-            Make the switch today
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-            </svg>
-          </a>
-        </div>
-      </div>
-    </section>
 
     <!-- Open Source Section -->
     <%- include('../Partials/proudly-open-source') -%>
@@ -890,6 +849,71 @@
         cancelAnimationFrame(animationFrame);
         animationFrame = null;
       }
+    });
+  })();
+
+  // Hero ambient glow for product cards
+  (function() {
+    const heroAmbientGlow = document.getElementById('hero-ambient-glow');
+    const heroCardWrappers = document.querySelectorAll('.hero-card-wrapper');
+    let currentHeroColor = null;
+    let heroFadeTimeout = null;
+
+    const heroGlowColors = {
+        'hero-glow-emerald-wrapper': 'radial-gradient(ellipse at center, rgb(16 185 129 / 0.08) 0%, rgb(16 185 129 / 0.03) 35%, rgb(16 185 129 / 0.01) 55%, transparent 75%)',
+        'hero-glow-rose-wrapper': 'radial-gradient(ellipse at center, rgb(244 63 94 / 0.08) 0%, rgb(244 63 94 / 0.03) 35%, rgb(244 63 94 / 0.01) 55%, transparent 75%)',
+        'hero-glow-blue-wrapper': 'radial-gradient(ellipse at center, rgb(59 130 246 / 0.08) 0%, rgb(59 130 246 / 0.03) 35%, rgb(59 130 246 / 0.01) 55%, transparent 75%)',
+        'hero-glow-amber-wrapper': 'radial-gradient(ellipse at center, rgb(245 158 11 / 0.08) 0%, rgb(245 158 11 / 0.03) 35%, rgb(245 158 11 / 0.01) 55%, transparent 75%)',
+        'hero-glow-gray-wrapper': 'radial-gradient(ellipse at center, rgb(120 113 108 / 0.08) 0%, rgb(120 113 108 / 0.03) 35%, rgb(120 113 108 / 0.01) 55%, transparent 75%)',
+        'hero-glow-cyan-wrapper': 'radial-gradient(ellipse at center, rgb(6 182 212 / 0.08) 0%, rgb(6 182 212 / 0.03) 35%, rgb(6 182 212 / 0.01) 55%, transparent 75%)',
+        'hero-glow-yellow-wrapper': 'radial-gradient(ellipse at center, rgb(234 179 8 / 0.08) 0%, rgb(234 179 8 / 0.03) 35%, rgb(234 179 8 / 0.01) 55%, transparent 75%)',
+        'hero-glow-violet-wrapper': 'radial-gradient(ellipse at center, rgb(139 92 246 / 0.08) 0%, rgb(139 92 246 / 0.03) 35%, rgb(139 92 246 / 0.01) 55%, transparent 75%)'
+    };
+
+    function getHeroGlowColor(wrapper) {
+        const wrapperClasses = wrapper.className.split(' ');
+        for (var i = 0; i < wrapperClasses.length; i++) {
+            if (heroGlowColors[wrapperClasses[i]]) {
+                return heroGlowColors[wrapperClasses[i]];
+            }
+        }
+        return null;
+    }
+
+    heroCardWrappers.forEach(function(wrapper) {
+        wrapper.addEventListener('mouseenter', function() {
+            const newColor = getHeroGlowColor(wrapper);
+
+            if (heroFadeTimeout) {
+                clearTimeout(heroFadeTimeout);
+                heroFadeTimeout = null;
+            }
+
+            if (currentHeroColor && currentHeroColor !== newColor) {
+                heroAmbientGlow.style.opacity = '0';
+                heroFadeTimeout = setTimeout(function() {
+                    heroAmbientGlow.style.background = newColor;
+                    heroAmbientGlow.style.opacity = '1';
+                    currentHeroColor = newColor;
+                }, 250);
+            } else if (!currentHeroColor) {
+                heroAmbientGlow.style.background = newColor;
+                heroAmbientGlow.style.opacity = '1';
+                currentHeroColor = newColor;
+            }
+        });
+
+        wrapper.addEventListener('mouseleave', function() {
+            if (heroFadeTimeout) {
+                clearTimeout(heroFadeTimeout);
+                heroFadeTimeout = null;
+            }
+
+            heroFadeTimeout = setTimeout(function() {
+                heroAmbientGlow.style.opacity = '0';
+                currentHeroColor = null;
+            }, 100);
+        });
     });
   })();
   </script>
