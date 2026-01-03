@@ -17,116 +17,54 @@
 
     <main id="main-content">
       <!-- Hero Section -->
-      <div class="relative isolate overflow-hidden bg-gradient-to-b from-gray-50 via-white to-white">
-        <!-- Background decorative elements -->
-        <div class="absolute inset-0 -z-10 overflow-hidden">
-          <div class="absolute -top-40 -right-32 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-cyan-100/60 to-blue-100/40 blur-3xl"></div>
-          <div class="absolute -bottom-40 -left-32 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-blue-100/60 to-cyan-100/40 blur-3xl"></div>
-          <div class="absolute top-1/2 left-1/2 -trangray-x-1/2 -trangray-y-1/2 h-[600px] w-[600px] rounded-full bg-gradient-to-br from-sky-50/40 to-blue-50/30 blur-3xl"></div>
+      <div class="relative isolate overflow-hidden bg-white">
+        <!-- Subtle background gradient -->
+        <div class="absolute inset-0 -z-10">
+          <div class="absolute inset-0 bg-gradient-to-b from-cyan-50/50 via-white to-white"></div>
+          <div class="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[800px] h-[800px] rounded-full bg-cyan-100/30 blur-3xl"></div>
         </div>
 
-        <!-- Grid pattern overlay -->
-        <div class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#8882_1px,transparent_1px),linear-gradient(to_bottom,#8882_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
-
-        <div class="py-24 sm:py-32 lg:py-40">
+        <div class="py-20 sm:py-28 lg:py-32">
           <div class="mx-auto max-w-7xl px-6 lg:px-8">
-            <div class="mx-auto max-w-4xl text-center">
-              <!-- Badge -->
-              <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-50 border border-cyan-100 mb-8">
-                <span class="relative flex h-2 w-2">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-                </span>
-                <span class="text-sm font-medium text-cyan-700">Powered by OpenTelemetry</span>
-              </div>
+            <div class="mx-auto max-w-3xl text-center">
+              <!-- Minimal badge -->
+              <p class="text-sm font-medium text-cyan-600 mb-4">Powered by OpenTelemetry</p>
 
-              <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl lg:text-7xl">
-                Monitor performance of <span class="bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">any app, any stack</span>
+              <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+                Monitor performance of any app
               </h1>
-              <p class="mt-6 text-xl sm:text-2xl leading-8 text-gray-600 max-w-3xl mx-auto">
-                OneUptime can monitor any backend, database and frontend. Trace events across services and monitor your whole stack.
+              <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+                Monitor any backend, database, and frontend. Trace events across services and monitor your whole stack.
               </p>
-
-              <!-- Feature highlights row -->
-              <div class="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-600">
-                <div class="flex items-center gap-2">
-                  <svg class="h-5 w-5 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Distributed tracing
-                </div>
-                <div class="flex items-center gap-2">
-                  <svg class="h-5 w-5 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Real-time metrics
-                </div>
-                <div class="flex items-center gap-2">
-                  <svg class="h-5 w-5 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Error tracking
-                </div>
-                <div class="flex items-center gap-2">
-                  <svg class="h-5 w-5 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Cross-service visibility
-                </div>
-              </div>
 
               <div class="mt-10 flex items-center justify-center gap-x-6">
                 <a href="/accounts/register"
-                  class="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-all duration-300 shadow-lg shadow-gray-900/20 hover:shadow-xl hover:-trangray-y-0.5">
+                  class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
                   Get started
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
                 </a>
-                <a href="/enterprise/demo" class="group inline-flex items-center gap-2 text-sm font-semibold text-gray-900 hover:text-cyan-600 transition-colors">
-                  Request Demo
-                  <span aria-hidden="true" class="group-hover:trangray-x-1 transition-transform">→</span>
+                <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                  Request demo <span aria-hidden="true">&rarr;</span>
                 </a>
+              </div>
+
+              <!-- Subtle feature list -->
+              <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+                <span>Distributed tracing</span>
+                <span class="hidden sm:inline text-gray-300">|</span>
+                <span>Real-time metrics</span>
+                <span class="hidden sm:inline text-gray-300">|</span>
+                <span>Error tracking</span>
+                <span class="hidden sm:inline text-gray-300">|</span>
+                <span>Cross-service visibility</span>
               </div>
             </div>
 
-            <!-- Hero image with enhanced styling -->
-            <div class="mt-16 flow-root sm:mt-24">
-              <div class="relative">
-                <!-- Glow effect behind image -->
-                <div class="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-sky-500/20 rounded-2xl blur-2xl"></div>
-                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-                  <img src="/img/apm-3.png" alt="OneUptime APM dashboard displaying application performance traces and metrics" width="2432" height="1442"
-                    class="rounded-md shadow-2xl ring-1 ring-gray-900/10">
-                </div>
-
-                <!-- Floating cards -->
-                <div class="hidden lg:block absolute -left-8 top-1/4 bg-white rounded-xl shadow-xl p-4 border border-gray-100 animate-float">
-                  <div class="flex items-center gap-3">
-                    <div class="h-10 w-10 rounded-lg bg-cyan-50 ring-1 ring-cyan-200 flex items-center justify-center">
-                      <svg class="h-5 w-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div class="text-xs text-gray-500">Avg Response</div>
-                      <div class="text-sm font-semibold text-gray-900">45ms</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="hidden lg:block absolute -right-8 bottom-1/3 bg-white rounded-xl shadow-xl p-4 border border-gray-100 animate-float-delayed">
-                  <div class="flex items-center gap-3">
-                    <div class="h-10 w-10 rounded-lg bg-blue-50 ring-1 ring-blue-200 flex items-center justify-center">
-                      <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div class="text-xs text-gray-500">Throughput</div>
-                      <div class="text-sm font-semibold text-gray-900">12K req/s</div>
-                    </div>
-                  </div>
+            <!-- Clean hero image -->
+            <div class="mt-16 sm:mt-20">
+              <div class="relative mx-auto max-w-5xl">
+                <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                  <img src="/img/apm.png" alt="OneUptime APM dashboard" width="2432" height="1442"
+                    class="rounded-lg shadow-lg">
                 </div>
               </div>
             </div>
