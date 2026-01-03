@@ -403,24 +403,24 @@
                   <div class="w-3 h-3 rounded-full" style="background: #febc2e;"></div>
                   <div class="w-3 h-3 rounded-full" style="background: #28c840;"></div>
                 </div>
-                <span class="absolute left-1/2 -translate-x-1/2 text-xs text-gray-500 font-medium">otel-config.yaml</span>
+                <span class="absolute left-1/2 -translate-x-1/2 text-xs text-gray-500 font-medium">otel-collector-config.yaml</span>
               </div>
               <div class="px-5 py-4 overflow-x-auto">
-                <pre class="code-block text-gray-300"><code><span class="text-gray-500"># That's it. Seriously.</span>
-<span class="text-blue-400">exporters</span>:
-  <span class="text-emerald-400">otlp</span>:
-    <span class="text-amber-400">endpoint</span>: <span class="text-gray-300">"otlp.oneuptime.com:4317"</span>
+                <pre class="code-block text-gray-300"><code><span class="text-blue-400">exporters</span>:
+  <span class="text-emerald-400">otlphttp</span>:
+    <span class="text-amber-400">endpoint</span>: <span class="text-gray-300">"https://oneuptime.com/otlp"</span>
+    <span class="text-amber-400">encoding</span>: <span class="text-gray-300">json</span>
     <span class="text-amber-400">headers</span>:
-      <span class="text-amber-400">x-oneuptime-token</span>: <span class="text-gray-300">"your-api-key"</span>
+      <span class="text-amber-400">x-oneuptime-token</span>: <span class="text-gray-300">"YOUR_TOKEN"</span>
 
 <span class="text-blue-400">service</span>:
   <span class="text-emerald-400">pipelines</span>:
     <span class="text-amber-400">traces</span>:
-      <span class="text-amber-400">exporters</span>: [<span class="text-gray-300">otlp</span>]
+      <span class="text-amber-400">exporters</span>: [<span class="text-gray-300">otlphttp</span>]
     <span class="text-amber-400">metrics</span>:
-      <span class="text-amber-400">exporters</span>: [<span class="text-gray-300">otlp</span>]
+      <span class="text-amber-400">exporters</span>: [<span class="text-gray-300">otlphttp</span>]
     <span class="text-amber-400">logs</span>:
-      <span class="text-amber-400">exporters</span>: [<span class="text-gray-300">otlp</span>]</code></pre>
+      <span class="text-amber-400">exporters</span>: [<span class="text-gray-300">otlphttp</span>]</code></pre>
               </div>
             </div>
           </div>
