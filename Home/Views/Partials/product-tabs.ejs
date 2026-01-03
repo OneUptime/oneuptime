@@ -1,100 +1,150 @@
 <div class="relative overflow-hidden bg-white pt-32 pb-32">
     <div class="max-w-3xl1 px-6">
-        <p class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-center">OneUptime is 8+ tools combined
+        <p class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-center">OneUptime is 10+ products combined
             into one.</p>
         <p class="mt-5 text-xl text-gray-500 sm:text-center mb-12">Everything from monitoring, status pages,
-            incident management, on-call schedules - we've got it and we are just getting started!</p>
+            incident management, on-call schedules, logs, metrics, traces, and more!</p>
     </div>
 
     <div>
         <div class="sm:hidden px-6">
             <label for="location" class="block text-sm font-medium leading-6 text-gray-900">Select Product</label>
-            <select id="location" onchange="showTab(this.value)" name="location" class="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                <option value="1" selected>Status Pages</option>
-                <option value="2">Monitoring</option>
-                <option value="3">Incidents</option>
-                <option value="4">On Call</option>
-                <option value="5">Logs</option>
-                <option value="6">APM</option>
-                <option value="7">Workflows </option>
+            <select id="location" onchange="showTab(this.value)" name="location" class="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-gray-600 sm:text-sm sm:leading-6">
+                <option value="status-pages" selected>Status Pages</option>
+                <option value="monitoring">Monitoring</option>
+                <option value="incidents">Incidents</option>
+                <option value="on-call">On Call</option>
+                <option value="logs">Logs</option>
+                <option value="metrics">Metrics</option>
+                <option value="traces">Traces</option>
+                <option value="exceptions">Exceptions</option>
+                <option value="workflows">Workflows</option>
+                <option value="dashboards">Dashboards</option>
+                <option value="ai-agent">AI Agent</option>
             </select>
           </div>
 
         <div class="hidden sm:block">
             <div class="border-b border-gray-200">
-                <nav class="-mb-px flex justify-center space-x-8" aria-label="Product feature tabs" role="tablist">
-                    <!-- Current: "border-indigo-500 text-indigo-600", Default: "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700" -->
+                <nav class="-mb-px flex justify-center flex-wrap gap-x-4 gap-y-2" aria-label="Product feature tabs" role="tablist">
+                    <!-- Status Pages - Emerald -->
                     <button type="button" onclick="showTab('status-pages')" id="tab-status-pages" role="tab" aria-selected="true" aria-controls="panel-status-pages"
-                        class="tab-status-pages-button tab-1-button cursor-pointer border-indigo-500 text-indigo-600 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="0" aria-label="Status Pages - communicates service availability to users">
-                        <!-- Current: "text-indigo-500", Default: "text-gray-400 group-hover:text-gray-500" -->
-                        <svg class="icon-tab-1 text-gray-400 text-indigo-500 -ml-0.5 mr-2 h-5 w-5"
-                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        class="tab-status-pages-button tab-1-button cursor-pointer border-gray-500 text-gray-600 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="0" aria-label="Status Pages - communicates service availability to users">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 ring-1 ring-emerald-200 mr-2">
+                            <svg class="icon-tab-1 text-emerald-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </span>
                         <span>Status Pages</span>
                     </button>
+                    <!-- Monitoring - Blue -->
                     <button type="button" onclick="showTab('monitoring')" id="tab-monitoring" role="tab" aria-selected="false" aria-controls="panel-monitoring"
-                        class="tab-monitoring-button tab-2-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Monitoring - uptime, performance and synthetic checks">
-                        <svg class="icon-tab-2 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
-                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-                        </svg>
+                        class="tab-monitoring-button tab-2-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Monitoring - uptime, performance and synthetic checks">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 ring-1 ring-blue-200 mr-2">
+                            <svg class="icon-tab-2 text-blue-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+                            </svg>
+                        </span>
                         <span>Monitoring</span>
                     </button>
+                    <!-- Incidents - Rose -->
                     <button type="button" onclick="showTab('incidents')" id="tab-incidents" role="tab" aria-selected="false" aria-controls="panel-incidents"
-                        class="tab-incidents-button tab-3-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Incidents - detect, respond and learn from outages">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                            class="icon-tab-3 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5" fill="none"
-                            viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                        </svg>
+                        class="tab-incidents-button tab-3-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Incidents - detect, respond and learn from outages">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-rose-50 ring-1 ring-rose-200 mr-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon-tab-3 text-rose-600 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                            </svg>
+                        </span>
                         <span>Incidents</span>
                     </button>
+                    <!-- On-Call - Stone -->
                     <button type="button" onclick="showTab('on-call')" id="tab-on-call" role="tab" aria-selected="false" aria-controls="panel-on-call"
-                        class="tab-on-call-button tab-4-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="On Call Alerts - intelligent alert routing and scheduling">
-                        <svg class="icon-tab-4 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
-                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                        </svg>
-                        <span>On Call Alerts</span>
+                        class="tab-on-call-button tab-4-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="On Call Alerts - intelligent alert routing and scheduling">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-stone-100 ring-1 ring-stone-200 mr-2">
+                            <svg class="icon-tab-4 text-stone-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                            </svg>
+                        </span>
+                        <span>On-Call</span>
                     </button>
-
+                    <!-- Logs - Amber -->
                     <button type="button" onclick="showTab('logs')" id="tab-logs" role="tab" aria-selected="false" aria-controls="panel-logs"
-                        class="tab-logs-button tab-5-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Logs - centralized log management and analytics">
-                        <svg class="icon-tab-5 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" >
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
-                          </svg>
+                        class="tab-logs-button tab-5-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Logs - centralized log management and analytics">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 ring-1 ring-amber-200 mr-2">
+                            <svg class="icon-tab-5 text-amber-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
+                            </svg>
+                        </span>
                         <span>Logs</span>
                     </button>
-
-                    <button type="button" onclick="showTab('apm')" id="tab-apm" role="tab" aria-selected="false" aria-controls="panel-apm"
-                        class="tab-apm-button tab-6-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="APM - metrics, traces and error tracking for applications">
-                    
-                        <svg class="icon-tab-6 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
-                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l3-9 4 18 3-9h4" />
-                        </svg>
-                        <span>APM</span>
+                    <!-- Metrics - Purple -->
+                    <button type="button" onclick="showTab('metrics')" id="tab-metrics" role="tab" aria-selected="false" aria-controls="panel-metrics"
+                        class="tab-metrics-button tab-6-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Metrics - application and infrastructure metrics">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-purple-50 ring-1 ring-purple-200 mr-2">
+                            <svg class="icon-tab-6 text-purple-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2 12h3l2-4 3 8 3-6 2 4h7" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2 20h20" />
+                            </svg>
+                        </span>
+                        <span>Metrics</span>
                     </button>
-
+                    <!-- Traces - Yellow -->
+                    <button type="button" onclick="showTab('traces')" id="tab-traces" role="tab" aria-selected="false" aria-controls="panel-traces"
+                        class="tab-traces-button tab-7-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Traces - distributed request tracing">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-yellow-50 ring-1 ring-yellow-200 mr-2">
+                            <svg class="icon-tab-7 text-yellow-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <rect x="2" y="3" width="20" height="4" rx="0.5" />
+                                <rect x="2" y="10" width="10" height="4" rx="0.5" />
+                                <rect x="2" y="17" width="5" height="4" rx="0.5" />
+                                <rect x="17" y="17" width="5" height="4" rx="0.5" />
+                            </svg>
+                        </span>
+                        <span>Traces</span>
+                    </button>
+                    <!-- Exceptions - Orange -->
+                    <button type="button" onclick="showTab('exceptions')" id="tab-exceptions" role="tab" aria-selected="false" aria-controls="panel-exceptions"
+                        class="tab-exceptions-button tab-8-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Exceptions - error tracking and debugging">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-orange-50 ring-1 ring-orange-200 mr-2">
+                            <svg class="icon-tab-8 text-orange-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <ellipse cx="12" cy="14" rx="5" ry="6" />
+                                <path stroke-linecap="round" d="M9 8.5C9 6.5 10.5 5 12 5s3 1.5 3 3.5M4 11l3 1m10-1 3 1M4 17l3-1m10 1 3-1M12 8v12M9 14h6" />
+                            </svg>
+                        </span>
+                        <span>Exceptions</span>
+                    </button>
+                    <!-- Workflows - Sky -->
                     <button type="button" onclick="showTab('workflows')" id="tab-workflows" role="tab" aria-selected="false" aria-controls="panel-workflows"
-                        class="tab-workflows-button tab-7-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Workflows - automate reliability operations and responses">
-                    
-                        <svg class="icon-tab-7 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
-                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                            stroke="currentColor" class="w-6 h-6">
-                            <path strokeLinecap="round" strokeLinejoin="round"
-                                d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z" />
-                        </svg>
+                        class="tab-workflows-button tab-9-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Workflows - automate reliability operations and responses">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-sky-50 ring-1 ring-sky-200 mr-2">
+                            <svg class="icon-tab-9 text-sky-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="transform: rotate(180deg)">
+                                <rect x="3" y="3" width="6" height="4" rx="1" stroke-width="1.5" />
+                                <rect x="15" y="3" width="6" height="4" rx="1" stroke-width="1.5" />
+                                <rect x="9" y="17" width="6" height="4" rx="1" stroke-width="1.5" />
+                                <path stroke-linecap="round" d="M6 7v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7M12 12v5" />
+                            </svg>
+                        </span>
                         <span>Workflows</span>
+                    </button>
+                    <!-- Dashboards - Indigo -->
+                    <button type="button" onclick="showTab('dashboards')" id="tab-dashboards" role="tab" aria-selected="false" aria-controls="panel-dashboards"
+                        class="tab-dashboards-button tab-10-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Dashboards - custom data visualizations">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-indigo-50 ring-1 ring-indigo-200 mr-2">
+                            <svg class="icon-tab-10 text-indigo-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
+                            </svg>
+                        </span>
+                        <span>Dashboards</span>
+                    </button>
+                    <!-- AI Agent - Violet -->
+                    <button type="button" onclick="showTab('ai-agent')" id="tab-ai-agent" role="tab" aria-selected="false" aria-controls="panel-ai-agent"
+                        class="tab-ai-agent-button tab-11-button cursor-pointer border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="AI Agent - intelligent automation powered by AI">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-violet-50 ring-1 ring-violet-200 mr-2">
+                            <svg class="icon-tab-11 text-violet-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+                            </svg>
+                        </span>
+                        <span>AI Agent</span>
                     </button>
                 </nav>
             </div>
@@ -108,33 +158,55 @@
             <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
                 <div>
                     <div class="mt-6">
-                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Beautiful Status Pages for your
-                            customers and stakeholders</h2>
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Turn downtime into trust. Keep customers informed, not frustrated.</h2>
 
-                        <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Unlimited subscribers</div>
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Your brand, your domain, your colors</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Unlimited private users</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Automatic or manual status updates from monitors</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Custom branding</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Private pages for internal teams</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Keep stakeholders updated</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">90-day uptime history at a glance</span>
                             </li>
-
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Subscriber notifications via email, SMS, RSS</span>
+                            </li>
                         </ul>
 
 
                         <div class="mt-6">
                             <a href="/accounts/register"
-                                class="rounded-md bg-indigo-600 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:text-white">Get
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
                                 started</a>
                             <a href="/product/status-page"
                                 class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
@@ -143,19 +215,7 @@
                     </div>
                 </div>
                 <div class="mt-8 border-t border-gray-200 pt-6">
-                    <blockquote>
-                        <div>
-                            <p class="text-base text-gray-500">&ldquo;OneUptime is one of the best status page product
-                                on
-                                the internet.&rdquo;</p>
-                        </div>
-                        <footer class="mt-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="text-base font-medium text-gray-700">Kamrin Danielle, G2 Crowd Reviewer
-                                </div>
-                            </div>
-                        </footer>
-                    </blockquote>
+                    <p class="text-sm text-emerald-600 font-medium">Reduce support tickets by 40% during incidents</p>
                 </div>
             </div>
             <div class="my-auto mx-auto px-6 col-span-2">
@@ -175,53 +235,64 @@
             <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
                 <div>
                     <div class="mt-6">
-                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Monitor resources in realtime.</h2>
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Be the first to know when something breaks. Not your customers.</h2>
 
-                        <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Monitor any resource.</div>
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Check every 10 seconds from 100+ global locations</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Showcase realtime status</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Website, API, server, database, containers and more</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Alert right team members</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Simulate real user flows with synthetic tests</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Monitor from multiple locations</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Get alerted before SSL certificates expire</span>
                             </li>
-
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Smart alerts that reduce noise by 90%</span>
+                            </li>
                         </ul>
 
 
                         <div class="mt-6">
                             <a href="/accounts/register"
-                                class="rounded-md bg-indigo-600 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:text-white">Get
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
                                 started</a>
-                            <a href="/product/monitoring"
+                            <a href="/product/uptime-monitoring"
                                 class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
                                     aria-hidden="true">→</span></a>
                         </div>
                     </div>
                 </div>
                 <div class="mt-8 border-t border-gray-200 pt-6">
-                    <blockquote>
-                        <div>
-                            <p class="text-base text-gray-500">&ldquo;Makes monitoring any endpoint or service really
-                                easy
-                                and the best part is, it's all open-source so there's no vendor lockin.&rdquo;</p>
-                        </div>
-                        <footer class="mt-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="text-base font-medium text-gray-700">Otse Obande, Reviewer on AlternativeTo
-                                </div>
-                            </div>
-                        </footer>
-                    </blockquote>
+                    <p class="text-sm text-blue-600 font-medium">Detect outages in under 30 seconds, anywhere in the world</p>
                 </div>
             </div>
 
@@ -244,32 +315,55 @@
             <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
                 <div>
                     <div class="mt-6">
-                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Incident Management and Response.</h2>
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">From chaos to calm. Manage incidents without the panic.</h2>
 
-                        <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Alert right stakeholders instantly.</div>
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Declare incidents directly from Slack or Teams</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Integrate with Slack / Teams / etc.</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Auto-assign the right people based on services</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Post Postmortem Notes</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Timeline captures every action automatically</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Call, SMS, Email Alerts</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">One-click status page updates</span>
                             </li>
-
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-rose-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Built-in postmortem templates that teams actually use</span>
+                            </li>
                         </ul>
 
 
                         <div class="mt-6">
                             <a href="/accounts/register"
-                                class="rounded-md bg-indigo-600 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:text-white">Get
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
                                 started</a>
                             <a href="/product/incident-management"
                                 class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
@@ -278,19 +372,7 @@
                     </div>
                 </div>
                 <div class="mt-8 border-t border-gray-200 pt-6">
-                    <blockquote>
-                        <div>
-                            <p class="text-base text-gray-500">&ldquo;OneUptime alerts the right people at the right time,
-                                and
-                                lets us manage incidents directly from Slack.&rdquo;</p>
-                        </div>
-                        <footer class="mt-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="text-base font-medium text-gray-700">Jeff Dunbee, Reviewer on Capterra
-                                </div>
-                            </div>
-                        </footer>
-                    </blockquote>
+                    <p class="text-sm text-rose-600 font-medium">Cut mean time to resolution (MTTR) by 50%</p>
                 </div>
             </div>
 
@@ -315,32 +397,55 @@
             <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
                 <div>
                     <div class="mt-6">
-                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">On Call Policies, Schedules and
-                            Alerts.</h2>
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">On-call doesn't have to mean burnout. Fair schedules, fewer interruptions.</h2>
 
-                        <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Escalate it to right stakeholders</div>
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-stone-200 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-stone-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Phone calls that actually wake you up at 3am</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">On Call Rotation and Shifts</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-stone-200 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-stone-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Escalate to backup if no response in 5 minutes</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Call, SMS, Email Alerts</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-stone-200 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-stone-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Weekly, daily, or custom rotation schedules</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Integrate with Slack / Teams</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-stone-200 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-stone-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Override schedules for vacations instantly</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-stone-200 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-stone-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">See who's on-call right now, always</span>
                             </li>
                         </ul>
 
 
                         <div class="mt-6">
                             <a href="/accounts/register"
-                                class="rounded-md bg-indigo-600 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:text-white">Get
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
                                 started</a>
                             <a href="/product/on-call"
                                 class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
@@ -349,18 +454,7 @@
                     </div>
                 </div>
                 <div class="mt-8 border-t border-gray-200 pt-6">
-                    <blockquote>
-                        <div>
-                            <p class="text-base text-gray-500">&ldquo;Easy to use, pleasant UI, outstanding support,
-                                extremely fast responses.&rdquo;</p>
-                        </div>
-                        <footer class="mt-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="text-base font-medium text-gray-700">Etso Obasake, G2 Crowd Reviewer
-                                </div>
-                            </div>
-                        </footer>
-                    </blockquote>
+                    <p class="text-sm text-stone-600 font-medium">Never miss a critical alert. 99.99% delivery guarantee.</p>
                 </div>
             </div>
 
@@ -379,36 +473,57 @@
 
     <div class="mt-10 tab-5" style="display: none;">
         <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
-
-
             <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
                 <div>
                     <div class="mt-6">
-                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Ingest logs from any source and search in seconds.</h2>
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">All your logs in one place. Find the needle in the haystack, fast.</h2>
 
-                        <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Native OpenTelemetry Support</div>
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Search terabytes in milliseconds</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Docker, Syslog, Application logs</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Tail logs in real-time as they happen</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Ingest TB's and search in seconds</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Alert when error patterns spike</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Alert right team members</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Jump from log to trace to fix issues faster</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Ingest from Docker, Kubernetes, apps, anything</span>
                             </li>
                         </ul>
 
-
                         <div class="mt-6">
                             <a href="/accounts/register"
-                                class="rounded-md bg-indigo-600 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:text-white">Get
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
                                 started</a>
                             <a href="/product/logs-management"
                                 class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
@@ -417,131 +532,298 @@
                     </div>
                 </div>
                 <div class="mt-8 border-t border-gray-200 pt-6">
-                    <blockquote>
-                        <div>
-                            <p class="text-base text-gray-500">&ldquo;We have built fastest log software on the planet, powered by Ceph &amp; Clickhouse. Ingest petabytes of data and search in milliseconds.&rdquo;</p>
-                        </div>
-                        <footer class="mt-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="text-base font-medium text-gray-700">Simon Larsen, CTO, OneUptime.
-                                </div>
-                            </div>
-                        </footer>
-                    </blockquote>
+                    <p class="text-sm text-amber-600 font-medium">10x cheaper than Splunk. No per-GB pricing surprises.</p>
                 </div>
             </div>
 
             <div class="my-auto mx-auto px-6 col-span-2">
-                <div
-                    class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-
-                    <img class="relative rounded-lg shadow-lg" src="/img/log-management.png" alt="OneUptime log management dashboard showing real-time log monitoring and analysis">
-                    
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/logs.png" alt="OneUptime log management dashboard showing centralized logging">
                 </div>
             </div>
         </div>
     </div>
 
 
+    <!-- Metrics Tab Panel -->
     <div class="mt-10 tab-6" style="display: none;">
         <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
-
-
             <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
                 <div>
                     <div class="mt-6">
-                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Monitor performance of any app, any service, any stack.</h2>
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">See exactly how your systems perform. Spot problems before they escalate.</h2>
 
-                        <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Monitor any Backend </div>
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">CPU, memory, disk, network - all in one view</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Monitor any Database </div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Track custom business metrics alongside infra</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Monitor any Frontend</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Alert on thresholds or anomalies</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Monitor Microservices</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Compare performance across deployments</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Works with Prometheus, StatsD, OpenTelemetry</span>
                             </li>
                         </ul>
 
-
                         <div class="mt-6">
                             <a href="/accounts/register"
-                                class="rounded-md bg-indigo-600 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:text-white">Get
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
                                 started</a>
-                            <a href="/product/apm"
+                            <a href="/product/metrics"
                                 class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
                                     aria-hidden="true">→</span></a>
                         </div>
                     </div>
                 </div>
                 <div class="mt-8 border-t border-gray-200 pt-6">
-                    <blockquote>
-                        <div>
-                            <p class="text-base text-gray-500">&ldquo;OpenTelemetry is an open standard for collecting telemetry in a vendor agnostic way.
-                                &rdquo;</p>
-                        </div>
-                        <footer class="mt-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="text-base font-medium text-gray-700">Charity Majors on Twitter.
-                                </div>
-                            </div>
-                        </footer>
-                    </blockquote>
+                    <p class="text-sm text-purple-600 font-medium">Keep 13 months of history. No data retention limits.</p>
                 </div>
             </div>
 
             <div class="my-auto mx-auto px-6 col-span-2">
-                <div
-                    class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-
-                    <img class="relative rounded-lg shadow-lg" src="/img/apm-3.png" alt="OneUptime APM dashboard displaying application performance traces and metrics">
-                    
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/metrics.png" alt="OneUptime metrics dashboard displaying application and infrastructure metrics">
                 </div>
             </div>
         </div>
     </div>
 
-
+    <!-- Traces Tab Panel -->
     <div class="mt-10 tab-7" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Why is this request slow? Follow it across every service to find out.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">See every hop from frontend to database</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Pinpoint the slow service in seconds</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Auto-discover service dependencies</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Compare traces: before vs after deploy</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Link traces to logs and errors automatically</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/traces"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-yellow-600 font-medium">Debug distributed systems like they're monoliths</p>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/traces.png" alt="OneUptime traces dashboard showing distributed request tracing">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exceptions Tab Panel -->
+    <div class="mt-10 tab-8" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Catch bugs before users report them. Fix them before they spread.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-orange-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Stack traces with source maps and context</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-orange-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Group similar errors - no duplicate noise</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-orange-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">See which deploy introduced the bug</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-orange-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Get notified only for new or regressed issues</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-orange-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">AI suggests fixes - review and merge</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/exceptions"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-orange-600 font-medium">Ship with confidence. Know every error before users do.</p>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/exceptions.png" alt="OneUptime exceptions dashboard showing error tracking and debugging">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workflows Tab Panel -->
+    <div class="mt-10 tab-9" style="display: none;">
         <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
 
 
             <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
                 <div>
                     <div class="mt-6">
-                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Integrate with any software</h2>
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Stop doing the same thing twice. Automate your runbooks and responses.</h2>
 
-                        <ul role="list" class="mt-6 space-y-3 mt-8 mb-8 text-lg text-gray-500">
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Drag and Drop workflows</div>
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-sky-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-sky-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Drag-and-drop - no code required</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Supports Webhooks and APIs</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-sky-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-sky-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Trigger on alerts, schedules, or webhooks</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">5000+ Integrations</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-sky-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-sky-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Auto-remediate common issues</span>
                             </li>
-                            <li class="flex space-x-3">
-                                <%- include('./tick-icon') %>
-                                    <div class="text-gray-500 -mt-1">Supports Custom Code</div>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-sky-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-sky-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Connect Slack, Jira, GitHub, and more</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-sky-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-sky-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Run custom scripts when you need more power</span>
                             </li>
                         </ul>
 
 
                         <div class="mt-6">
                             <a href="/accounts/register"
-                                class="rounded-md bg-indigo-600 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:text-white">Get
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
                                 started</a>
                             <a href="/product/workflows"
                                 class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
@@ -550,18 +832,7 @@
                     </div>
                 </div>
                 <div class="mt-8 border-t border-gray-200 pt-6">
-                    <blockquote>
-                        <div>
-                            <p class="text-base text-gray-500">&ldquo;Workflows are very powerful feature of OneUptime.
-                                Let's us automate literally anything.&rdquo;</p>
-                        </div>
-                        <footer class="mt-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="text-base font-medium text-gray-700">Jamie Polowin, AlternativeTo Reviewer
-                                </div>
-                            </div>
-                        </footer>
-                    </blockquote>
+                    <p class="text-sm text-sky-600 font-medium">Turn 30-minute runbooks into 30-second automations</p>
                 </div>
             </div>
 
@@ -576,12 +847,161 @@
         </div>
     </div>
 
+
+    <!-- Dashboards Tab Panel -->
+    <div class="mt-10 tab-10" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Your data, your way. Build dashboards that tell the story you need.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Mix logs, metrics, traces in one view</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Updates in real-time - no refresh needed</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Put it on the TV in your office</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Share with stakeholders via secure links</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Templates for common use cases</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/dashboards"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-indigo-600 font-medium">Build in minutes what used to take hours in Grafana</p>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/dashboards.png" alt="OneUptime dashboards showing custom data visualizations">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Agent Tab Panel -->
+    <div class="mt-10 tab-11" style="display: none;">
+        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-3 lg:gap-24 lg:px-8">
+            <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
+                <div>
+                    <div class="mt-6">
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Let AI fix bugs while you sleep. Wake up to pull requests, not pages.</h2>
+
+                        <ul role="list" class="mt-8 mb-8 space-y-4">
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-violet-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Sees an error, reads your code, opens a PR</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-violet-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Finds slow database queries and optimizes them</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-violet-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Explains root cause in plain English</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-violet-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">You review and merge - always in control</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-violet-100 mt-0.5">
+                                    <svg class="w-3.5 h-3.5 text-violet-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span class="text-gray-600 text-base leading-relaxed">Works with your repo: GitHub, GitLab, Bitbucket</span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-6">
+                            <a href="/accounts/register"
+                                class="rounded-md bg-gray-900 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black hover:text-white">Get
+                                started</a>
+                            <a href="/product/ai-agent"
+                                class="text-base font-semibold leading-7 text-gray-900 ml-3">Learn more <span
+                                    aria-hidden="true">→</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-violet-600 font-medium">Your AI teammate that never sleeps. BYOLLM supported.</p>
+                </div>
+            </div>
+
+            <div class="my-auto mx-auto px-6 col-span-2">
+                <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
+                    <img class="relative rounded-lg shadow-lg" src="/img/ai-agent.png" alt="OneUptime AI Agent dashboard showing intelligent incident resolution and automation">
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 
 <script>
     // Semantic tab slugs in desired order
-    const TAB_ORDER = ['status-pages','monitoring','incidents','on-call','logs','apm','workflows'];
+    const TAB_ORDER = ['status-pages','monitoring','incidents','on-call','logs','metrics','traces','exceptions','workflows','dashboards','ai-agent'];
     let currentActiveTab = 'status-pages';
 
 
@@ -598,13 +1018,13 @@
 
         const button = document.querySelector(`.tab-${tab}-button`) || document.querySelector(`.tab-${TAB_ORDER.indexOf(tab)+1}-button`);
         if (button) {
-            button.classList.remove('border-indigo-500', 'text-indigo-600');
+            button.classList.remove('border-gray-500', 'text-gray-600');
             button.classList.add('border-transparent', 'text-gray-500', 'hover:border-gray-300', 'hover:text-gray-700');
             button.setAttribute('aria-selected','false');
             button.setAttribute('tabindex','-1');
         }
         const icon = document.querySelector(`.icon-tab-${TAB_ORDER.indexOf(tab)+1}`) || document.querySelector(`.icon-tab-${tab}`);
-        if (icon) { icon.classList.remove('text-indigo-500'); icon.classList.add('text-gray-400'); }
+        if (icon) { icon.classList.remove('text-gray-500'); icon.classList.add('text-gray-400'); }
     }
 
     function showTab(tab) {
@@ -619,14 +1039,14 @@
         const button = document.querySelector(`.tab-${tab}-button`) || document.querySelector(`.tab-${numericIndex}-button`);
         if (button) {
             button.classList.remove('border-transparent', 'text-gray-500', 'hover:border-gray-300', 'hover:text-gray-700');
-            button.classList.add('border-indigo-500', 'text-indigo-600');
+            button.classList.add('border-gray-500', 'text-gray-600');
             button.setAttribute('aria-selected','true');
             button.setAttribute('tabindex','0');
             button.focus();
         }
 
         const icon = document.querySelector(`.icon-tab-${numericIndex}`) || document.querySelector(`.icon-tab-${tab}`);
-        if (icon) { icon.classList.remove('text-gray-400'); icon.classList.add('text-indigo-500'); }
+        if (icon) { icon.classList.remove('text-gray-400'); icon.classList.add('text-gray-500'); }
 
         currentActiveTab = tab;
         if (history.replaceState) { history.replaceState(null, '', `#tab-${tab}`); }

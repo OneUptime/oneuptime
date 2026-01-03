@@ -1,14 +1,128 @@
-<!-- This example requires Tailwind CSS v3.0+ -->
-<div class="bg-white">
-  <div class="mx-auto max-w-7xl px-6 py-10 sm:py-10 lg:flex lg:items-center lg:justify-between lg:px-8">
-    <div>
-    <h2 class="text-4xl font-bold tracking-tight text-gray-900">Get started for free today.</h2>
-    <p class="mx-auto mt-2 max-w-xl text-lg leading-8 text-gray-600">We have a generous free plan. Get started for free today or request a demo. No credit card required.</p>
-  </div>
-   
-    <div class="mt-10 flex items-center gap-x-6 lg:mt-0 lg:flex-shrink-0">
-      <a href="/accounts/register" class="rounded-md bg-indigo-600 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-indigo-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Sign up</a>
-      <a href="/enterprise/demo" class="text-base font-semibold leading-7 text-gray-900">Request Demo <span aria-hidden="true">→</span></a>
+<section class="relative py-32 sm:py-40 bg-white overflow-hidden" id="cta-section">
+    <!-- Subtle grid pattern background -->
+    <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#e5e5e5_1px,transparent_1px),linear-gradient(to_bottom,#e5e5e5_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_100%_80%_at_50%_50%,#000_30%,transparent_70%)]"></div>
+
+    <!-- Grid glow effect that follows cursor -->
+    <div id="cta-grid-glow-effect" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(59, 130, 246, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+    <!-- Ambient glow decoration -->
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-gradient-to-r from-blue-500/5 via-indigo-500/5 to-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="mx-auto max-w-7xl px-4 lg:px-6 relative">
+        <div class="text-center max-w-4xl mx-auto">
+            <!-- Heading -->
+            <h2 class="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1]">
+                <span class="text-gray-700 block">Downtime is expensive.</span>
+                <span class="text-gray-900 block mt-2">Peace of mind isn't.</span>
+            </h2>
+
+            <!-- Subtext -->
+            <p class="mt-6 text-lg sm:text-xl text-gray-500 leading-relaxed max-w-2xl mx-auto">
+                Every minute of downtime means lost revenue and eroded customer trust.
+                Start protecting your business today.
+            </p>
+
+            <!-- Buttons -->
+            <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="/accounts/register"
+                   class="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-lg bg-gray-900 text-white font-medium text-base shadow-lg shadow-gray-900/20 hover:bg-gray-800 hover:shadow-xl hover:shadow-gray-900/25 transition-all duration-200">
+                    <span>Get started free</span>
+                    <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                    </svg>
+                </a>
+
+                <a href="/enterprise/demo"
+                   class="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-lg bg-white text-gray-700 font-medium text-base ring-1 ring-gray-200 hover:ring-gray-300 hover:bg-gray-50 transition-all duration-200">
+                    <svg class="w-4 h-4 text-gray-500 group-hover:text-gray-700 transition-colors" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.91 11.672a.375.375 0 0 1 0 .656l-5.603 3.113a.375.375 0 0 1-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112Z" />
+                    </svg>
+                    <span>Request a demo</span>
+                </a>
+            </div>
+
+            <!-- Features list -->
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-3">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-sm text-gray-600 ring-1 ring-gray-100">
+                    <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                    <span>No credit card required</span>
+                </div>
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-sm text-gray-600 ring-1 ring-gray-100">
+                    <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                    <span>Free forever plan</span>
+                </div>
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-sm text-gray-600 ring-1 ring-gray-100">
+                    <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                    <span>Cancel anytime</span>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
+</section>
+
+<script>
+// CTA Grid glow effect that follows cursor
+(function() {
+    const ctaSection = document.getElementById('cta-section');
+    const ctaGridGlowEffect = document.getElementById('cta-grid-glow-effect');
+
+    if (!ctaSection || !ctaGridGlowEffect) return;
+
+    let isHovering = false;
+    let animationFrame = null;
+    let currentX = 0;
+    let currentY = 0;
+    let targetX = 0;
+    let targetY = 0;
+
+    function lerp(start, end, factor) {
+        return start + (end - start) * factor;
+    }
+
+    function animate() {
+        if (!isHovering) return;
+
+        // Smooth interpolation for fluid movement
+        currentX = lerp(currentX, targetX, 0.12);
+        currentY = lerp(currentY, targetY, 0.12);
+
+        ctaGridGlowEffect.style.setProperty('--mouse-x', currentX + 'px');
+        ctaGridGlowEffect.style.setProperty('--mouse-y', currentY + 'px');
+
+        animationFrame = requestAnimationFrame(animate);
+    }
+
+    ctaSection.addEventListener('mouseenter', function() {
+        isHovering = true;
+        ctaGridGlowEffect.style.opacity = '1';
+        animate();
+    });
+
+    ctaSection.addEventListener('mousemove', function(e) {
+        const rect = ctaSection.getBoundingClientRect();
+        targetX = e.clientX - rect.left;
+        targetY = e.clientY - rect.top;
+
+        if (!isHovering) {
+            currentX = targetX;
+            currentY = targetY;
+        }
+    });
+
+    ctaSection.addEventListener('mouseleave', function() {
+        isHovering = false;
+        ctaGridGlowEffect.style.opacity = '0';
+        if (animationFrame) {
+            cancelAnimationFrame(animationFrame);
+            animationFrame = null;
+        }
+    });
+})();
+</script>

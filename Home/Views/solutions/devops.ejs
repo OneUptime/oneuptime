@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+    <title>OneUptime for DevOps | Unified Observability for DevOps Teams</title>
+    <meta name="description"
+        content="Empower your DevOps team with unified monitoring, incident management, and observability. Reduce MTTR, automate workflows, and ship faster with confidence.">
+        <%- include('../head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+
+</head>
+
+<body>
+  <%- include('../nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white">
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <div class="mx-auto max-w-7xl px-6 pt-24 pb-20 sm:pt-32 sm:pb-24 lg:pt-40 lg:pb-32 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <!-- Badge -->
+          <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group mb-8 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-4 py-1.5 text-sm text-blue-700 ring-1 ring-inset ring-blue-200 transition-all hover:bg-blue-100 hover:ring-blue-300">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.24-.438.613-.43.992a6.759 6.759 0 0 1 0 .255c-.008.378.137.75.43.99l1.004.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 0 1 0-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281Z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+            </svg>
+            <span>Built for DevOps</span>
+            <span class="h-1 w-1 rounded-full bg-blue-300"></span>
+            <span>Open Source</span>
+            <svg class="h-3.5 w-3.5 text-blue-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+          </a>
+
+          <!-- Main Headline -->
+          <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
+            Ship faster with <br class="hidden sm:block" />
+            <span class="text-gray-700">complete visibility.</span>
+          </h1>
+
+          <!-- Subheadline -->
+          <p class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-xl mx-auto">
+            Stop juggling tools. OneUptime unifies monitoring, logs, traces, incidents, and on-call into a single platform—so you can debug faster and deploy with confidence.
+          </p>
+
+          <!-- CTA Buttons -->
+          <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <a href="/accounts/register"
+              class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+              Get started free
+              <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+            </a>
+            <a href="/enterprise/demo" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-2.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50">
+              Schedule Demo
+            </a>
+          </div>
+
+          <!-- Quick stats -->
+          <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-500">
+            <div class="flex items-center gap-2">
+              <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+              <span>OpenTelemetry Native</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+              <span>CI/CD Integration</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+              <span>Self-host or Cloud</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logo Roll -->
+    <%- include('../logo-roll') -%>
+
+    <!-- DevOps Pain Points Section -->
+    <section class="relative py-24 lg:py-32 bg-gray-50 overflow-hidden">
+      <div class="absolute inset-0 -z-10">
+        <div class="absolute top-1/4 left-0 w-72 h-72 bg-rose-100/40 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-1/4 right-0 w-72 h-72 bg-amber-100/40 rounded-full blur-3xl"></div>
+      </div>
+
+      <div class="mx-auto max-w-6xl px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <p class="text-sm font-medium text-rose-600 tracking-wide uppercase mb-4">The Problem</p>
+          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
+            Sound familiar?
+          </h2>
+        </div>
+
+        <!-- Pain Points Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Tool sprawl</h3>
+            </div>
+            <p class="text-sm text-gray-600">Datadog for metrics. Splunk for logs. PagerDuty for alerts. Five more tools you forgot the password to.</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Slow MTTR</h3>
+            </div>
+            <p class="text-sm text-gray-600">Incident hits. Spend 30 minutes just figuring out which dashboard to check. Root cause? Still a mystery.</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Runaway costs</h3>
+            </div>
+            <p class="text-sm text-gray-600">"We need to cut observability spend by 40%." Cool, which critical metrics should we stop monitoring?</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Manual toil</h3>
+            </div>
+            <p class="text-sm text-gray-600">Same runbook, different day. Copy-paste commands at 3 AM while half-asleep. Hope you didn't fat-finger anything.</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">No single pane</h3>
+            </div>
+            <p class="text-sm text-gray-600">Logs say one thing. Metrics say another. Traces are... somewhere. Good luck correlating that at 3 AM.</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Alert noise</h3>
+            </div>
+            <p class="text-sm text-gray-600">200 alerts today. 197 were false positives. The 3 real ones? Buried in the noise.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- The Solution Section -->
+    <%- include('../Partials/product-grid-section', {
+      label: 'The Solution',
+      title: 'OneUptime',
+      subtitle: 'One platform. Zero chaos.',
+      description: 'Stop juggling tools. OneUptime unifies monitoring, logs, traces, incidents, and on-call into a single open-source platform—so you can ship faster and sleep better.'
+    }) -%>
+
+    <!-- DevOps Features Bento -->
+    <section class="relative py-24 lg:py-32 bg-gray-50 overflow-hidden">
+      <div class="absolute inset-0 -z-10">
+        <div class="absolute top-1/4 right-0 w-72 h-72 bg-blue-100/40 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-1/4 left-0 w-72 h-72 bg-emerald-100/40 rounded-full blur-3xl"></div>
+      </div>
+
+      <div class="relative mx-auto max-w-6xl px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <p class="text-sm font-medium text-blue-600 tracking-wide uppercase mb-4">DevOps Workflow</p>
+          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
+            Built for the way<br class="hidden sm:block" />
+            <span class="text-gray-500">DevOps teams work.</span>
+          </h2>
+          <p class="max-w-2xl mx-auto text-lg text-gray-600">
+            From deployment to detection to resolution. OneUptime integrates into every stage of your DevOps pipeline.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- CI/CD Integration - Large -->
+          <div class="lg:col-span-2 group">
+            <div class="h-full p-8 rounded-2xl bg-white border border-gray-300 shadow-sm hover:shadow-lg transition-shadow">
+              <div class="flex items-start justify-between mb-5">
+                <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-600">
+                  <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                  </svg>
+                </div>
+                <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">Native Integration</span>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">CI/CD Pipeline Integration</h3>
+              <p class="text-gray-500 mb-5">Connect your entire delivery pipeline. GitHub Actions, GitLab CI, Jenkins, ArgoCD—OneUptime correlates deployments with performance changes automatically.</p>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="flex items-center gap-2 text-sm text-gray-700">
+                  <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  Deployment markers
+                </div>
+                <div class="flex items-center gap-2 text-sm text-gray-700">
+                  <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  Change tracking
+                </div>
+                <div class="flex items-center gap-2 text-sm text-gray-700">
+                  <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  Rollback triggers
+                </div>
+                <div class="flex items-center gap-2 text-sm text-gray-700">
+                  <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  Pipeline status
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Infrastructure as Code -->
+          <div class="group">
+            <div class="h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm hover:shadow-lg transition-shadow">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-violet-600 mb-4">
+                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Infrastructure as Code</h3>
+              <p class="text-sm text-gray-500 mb-3">Terraform, Pulumi, CloudFormation. Version control your monitors, alerts, and dashboards alongside your infrastructure.</p>
+              <div class="pt-3 border-t border-gray-100">
+                <a href="/docs/terraform" class="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                  Terraform Provider
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Automated Workflows -->
+          <div class="group">
+            <div class="h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm hover:shadow-lg transition-shadow">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-600 mb-4">
+                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Automated Workflows</h3>
+              <p class="text-sm text-gray-500">Automate incident response, runbooks, and remediation. Restart services, scale pods, or run custom scripts—all triggered by alerts.</p>
+            </div>
+          </div>
+
+          <!-- Kubernetes Native -->
+          <div class="group">
+            <div class="h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm hover:shadow-lg transition-shadow">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-cyan-600 mb-4">
+                <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M10.204 14.35l.007.01-.999 2.413a5.171 5.171 0 0 1-2.075-2.597l2.578-.437.004.005a.44.44 0 0 1 .484.606zm-.833-2.129a.44.44 0 0 0 .173-.756l.002-.011L7.585 9.7a5.143 5.143 0 0 0-.73 3.255l2.514-.725.002-.009zm1.145-1.98a.44.44 0 0 0 .699-.337l-.01-.005.15-2.62a5.144 5.144 0 0 0-3.01 1.442l2.168 1.527.003-.007zm1.67 1.593a.44.44 0 0 0 .699.337l.002.007 2.168-1.527a5.145 5.145 0 0 0-3.01-1.442l.15 2.62-.01.005zm1.145 1.98l.002.009 2.514.725a5.143 5.143 0 0 0-.73-3.255l-1.96 1.754.003.011a.44.44 0 0 0 .173.756h-.002zm-.107 1.371l.004-.005 2.578.437a5.171 5.171 0 0 1-2.075 2.597l-.999-2.413.007-.01a.44.44 0 0 0 .484-.606h.001zm-3.307-.617a.44.44 0 0 0-.775 0l-.003.006-1.19 2.263a5.178 5.178 0 0 0 3.16.001l-1.19-2.263-.002-.007zm7.083 3.206c-.099-.212-.252-.4-.44-.544a1.44 1.44 0 0 0-.401-.22 1.485 1.485 0 0 0-.459-.073c-.156 0-.31.025-.456.073-.477.164-.841.544-.997 1.024-.044.137-.067.282-.067.43a1.482 1.482 0 0 0 .436 1.045c.283.282.666.44 1.065.44.16 0 .317-.026.465-.076.452-.15.815-.503.988-.94v-.001c.081-.192.123-.403.123-.62 0-.248-.059-.491-.176-.711v-.001zm-12.965.001a1.466 1.466 0 0 0-.176.711c0 .217.042.428.123.62.173.437.536.79.988.94.148.05.305.076.465.076.4 0 .782-.158 1.065-.44a1.482 1.482 0 0 0 .436-1.045c0-.148-.023-.293-.067-.43a1.465 1.465 0 0 0-.997-1.024 1.49 1.49 0 0 0-.456-.073c-.159 0-.314.025-.459.073a1.44 1.44 0 0 0-.401.22 1.487 1.487 0 0 0-.44.544zm7.233 5.2c-.438.085-.872-.211-.963-.661a.86.86 0 0 1 .177-.719.868.868 0 0 1 .651-.329.859.859 0 0 1 .655.236l.003.003a.86.86 0 0 1 .257.664.863.863 0 0 1-.78.806zm-6.36-5.996l-1.377-2.614a6.16 6.16 0 0 0 .878 3.101l.5-.487zm12.72 0l.5.487a6.16 6.16 0 0 0 .878-3.101l-1.377 2.614zm-7.083-6.003l-.93-2.03a6.222 6.222 0 0 0-1.767 2.557l2.697-.527zm1.447 0l2.697.527a6.222 6.222 0 0 0-1.768-2.557l-.93 2.03zm-.724.837L12 6.838l-1.724 3.759 1.724-1.221 1.724 1.221z"/>
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Kubernetes Native</h3>
+              <p class="text-sm text-gray-500">Native k8s integration. Auto-discover services, track deployments, monitor pods, and correlate cluster events with application issues.</p>
+            </div>
+          </div>
+
+          <!-- Smart Alerting -->
+          <div class="group">
+            <div class="h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm hover:shadow-lg transition-shadow">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-amber-600 mb-4">
+                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Intelligent Alerting</h3>
+              <p class="text-sm text-gray-500">Deduplication, grouping, and routing that actually works. Cut alert fatigue by 90% while catching the issues that matter.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Integration Section -->
+    <section class="bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <span class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide text-gray-700 uppercase bg-gray-100 rounded-full mb-6 border border-gray-200">
+            Integrations
+          </span>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Works with your stack
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            OneUptime integrates with the tools you already use
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+          <div class="flex flex-col items-center p-6 rounded-2xl bg-gray-50 border border-gray-200">
+            <svg class="w-10 h-10 text-gray-700 mb-2" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+            <span class="text-sm font-medium text-gray-700">GitHub</span>
+          </div>
+          <div class="flex flex-col items-center p-6 rounded-2xl bg-gray-50 border border-gray-200">
+            <svg class="w-10 h-10 text-orange-600 mb-2" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M4.845.904c-1.748 0-3.2 1.575-3.2 3.469 0 1.894 1.452 3.469 3.2 3.469h3.2V4.373c0-1.894-1.452-3.469-3.2-3.469m0 9.26H3.2C1.452 10.164 0 11.739 0 13.633c0 1.894 1.452 3.469 3.2 3.469h1.645c1.748 0 3.2-1.575 3.2-3.469V10.164H4.845zm9.155 0H10.8c-1.748 0-3.2 1.575-3.2 3.469s1.452 3.469 3.2 3.469H14c1.748 0 3.2-1.575 3.2-3.469s-1.452-3.469-3.2-3.469zm0-6.469c0-1.894-1.452-3.469-3.2-3.469H10.8c-1.748 0-3.2 1.575-3.2 3.469v3.469H14c1.748 0 3.2-1.575 3.2-3.469zm4.155 0h-1.645c-1.748 0-3.2 1.575-3.2 3.469v6.469c0 1.894 1.452 3.469 3.2 3.469h1.645c1.748 0 3.2-1.575 3.2-3.469V7.164c0-1.894-1.452-3.469-3.2-3.469z"/>
+            </svg>
+            <span class="text-sm font-medium text-gray-700">GitLab</span>
+          </div>
+          <div class="flex flex-col items-center p-6 rounded-2xl bg-gray-50 border border-gray-200">
+            <svg class="w-10 h-10 text-blue-500 mb-2" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M10.204 14.35l.007.01-.999 2.413a5.171 5.171 0 0 1-2.075-2.597l2.578-.437.004.005a.44.44 0 0 1 .484.606zm-.833-2.129a.44.44 0 0 0 .173-.756l.002-.011L7.585 9.7a5.143 5.143 0 0 0-.73 3.255l2.514-.725.002-.009zm1.145-1.98a.44.44 0 0 0 .699-.337l-.01-.005.15-2.62a5.144 5.144 0 0 0-3.01 1.442l2.168 1.527.003-.007zm1.67 1.593a.44.44 0 0 0 .699.337l.002.007 2.168-1.527a5.145 5.145 0 0 0-3.01-1.442l.15 2.62-.01.005zm1.145 1.98l.002.009 2.514.725a5.143 5.143 0 0 0-.73-3.255l-1.96 1.754.003.011a.44.44 0 0 0 .173.756h-.002zm-.107 1.371l.004-.005 2.578.437a5.171 5.171 0 0 1-2.075 2.597l-.999-2.413.007-.01a.44.44 0 0 0 .484-.606h.001z"/>
+            </svg>
+            <span class="text-sm font-medium text-gray-700">Kubernetes</span>
+          </div>
+          <div class="flex flex-col items-center p-6 rounded-2xl bg-gray-50 border border-gray-200">
+            <svg class="w-10 h-10 text-blue-600 mb-2" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13.983 11.078h2.119a.186.186 0 0 0 .186-.185V9.006a.186.186 0 0 0-.186-.186h-2.119a.186.186 0 0 0-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 0 0 .186-.186V3.574a.186.186 0 0 0-.186-.185h-2.118a.185.185 0 0 0-.185.185v1.888c0 .102.082.185.185.186m0 2.716h2.118a.187.187 0 0 0 .186-.186V6.29a.186.186 0 0 0-.186-.185h-2.118a.185.185 0 0 0-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 0 0 .184-.186V6.29a.185.185 0 0 0-.185-.185H8.1a.185.185 0 0 0-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 0 0 .185-.186V6.29a.186.186 0 0 0-.185-.185H5.136a.186.186 0 0 0-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 0 0 .186-.185V9.006a.186.186 0 0 0-.186-.186h-2.118a.185.185 0 0 0-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 0 0 .184-.185V9.006a.185.185 0 0 0-.184-.186h-2.12a.185.185 0 0 0-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 0 0 .185-.185V9.006a.185.185 0 0 0-.185-.186h-2.12a.186.186 0 0 0-.185.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 0 0 .184-.185V9.006a.185.185 0 0 0-.184-.186h-2.12a.185.185 0 0 0-.185.185v1.888c0 .102.084.185.185.185m8.824 2.714h2.119a.186.186 0 0 0 .185-.185v-1.888a.186.186 0 0 0-.185-.185h-2.12a.185.185 0 0 0-.184.185v1.888c0 .102.083.185.185.185m-2.93 0h2.12a.185.185 0 0 0 .184-.185v-1.888a.185.185 0 0 0-.184-.185h-2.12a.185.185 0 0 0-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.186.186 0 0 0 .185-.185v-1.888a.186.186 0 0 0-.185-.185h-2.12a.186.186 0 0 0-.185.185v1.888c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 0 0 .184-.185v-1.888a.185.185 0 0 0-.184-.185h-2.12a.185.185 0 0 0-.185.185v1.888c0 .102.084.185.185.185m-2.92 0h2.12a.185.185 0 0 0 .184-.185v-1.888a.185.185 0 0 0-.184-.185h-2.12a.186.186 0 0 0-.186.185v1.888c0 .102.084.185.186.185m0 2.714h2.12a.185.185 0 0 0 .184-.185v-1.888a.185.185 0 0 0-.184-.185h-2.12a.186.186 0 0 0-.186.185v1.888c0 .102.084.185.186.185m2.92 0h2.12a.185.185 0 0 0 .184-.185v-1.888a.185.185 0 0 0-.184-.185h-2.12a.186.186 0 0 0-.185.185v1.888c0 .102.084.185.185.185m2.964 0h2.12a.185.185 0 0 0 .184-.185v-1.888a.185.185 0 0 0-.184-.185h-2.12a.186.186 0 0 0-.185.185v1.888c0 .102.084.185.185.185m2.93 0h2.12a.185.185 0 0 0 .184-.185v-1.888a.185.185 0 0 0-.184-.185h-2.12a.185.185 0 0 0-.184.185v1.888c0 .102.083.185.185.185m2.929 0h2.12a.186.186 0 0 0 .185-.185v-1.888a.186.186 0 0 0-.185-.185h-2.12a.185.185 0 0 0-.184.185v1.888c0 .102.083.185.185.185m2.929-2.714h2.118a.186.186 0 0 0 .185-.185v-1.888a.186.186 0 0 0-.185-.185h-2.118a.186.186 0 0 0-.186.185v1.888c0 .102.084.185.186.185"/>
+            </svg>
+            <span class="text-sm font-medium text-gray-700">Docker</span>
+          </div>
+          <div class="flex flex-col items-center p-6 rounded-2xl bg-gray-50 border border-gray-200">
+            <svg class="w-10 h-10 text-orange-500 mb-2" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.001,4.8c-3.2,0-5.2,1.6-6,4.8c1.2-1.6,2.6-2.2,4.2-1.8c0.913,0.228,1.565,0.89,2.288,1.624 C13.666,10.618,15.027,12,18.001,12c3.2,0,5.2-1.6,6-4.8c-1.2,1.6-2.6,2.2-4.2,1.8c-0.913-0.228-1.565-0.89-2.288-1.624 C16.337,6.182,14.976,4.8,12.001,4.8z M6.001,12c-3.2,0-5.2,1.6-6,4.8c1.2-1.6,2.6-2.2,4.2-1.8c0.913,0.228,1.565,0.89,2.288,1.624 c1.177,1.194,2.538,2.576,5.512,2.576c3.2,0,5.2-1.6,6-4.8c-1.2,1.6-2.6,2.2-4.2,1.8c-0.913-0.228-1.565-0.89-2.288-1.624 C10.337,13.382,8.976,12,6.001,12z"/>
+            </svg>
+            <span class="text-sm font-medium text-gray-700">AWS</span>
+          </div>
+          <div class="flex flex-col items-center p-6 rounded-2xl bg-gray-50 border border-gray-200">
+            <svg class="w-10 h-10 text-green-600 mb-2" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.001 0C5.326 0 0 5.326 0 12.001c0 5.991 4.419 10.957 10.169 11.902v-8.45h-3.06V12h3.06v-2.6c0-3.02 1.8-4.692 4.557-4.692 1.32 0 2.7.236 2.7.236v2.964H15.89c-1.5 0-1.968.932-1.968 1.888V12h3.34l-.534 3.453h-2.806v8.45C19.58 22.96 24 17.994 24 12.001 24 5.326 18.674 0 12.001 0z"/>
+            </svg>
+            <span class="text-sm font-medium text-gray-700">Slack</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI Agent Section -->
+    <%- include('../Partials/copilot') -%>
+
+    <!-- Enterprise Ready Section -->
+    <%- include('../Partials/enterprise-ready') -%>
+
+    <!-- Open Source Section -->
+    <%- include('../Partials/proudly-open-source') -%>
+
+    <%- include('../cta') -%>
+  </main>
+  <%- include('../footer') -%>
+
+</body>
+
+</html>

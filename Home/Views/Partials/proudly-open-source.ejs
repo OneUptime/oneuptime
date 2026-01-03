@@ -1,48 +1,304 @@
-<section class="mb-32 border-gray-100 border-t-2 border-b-2">
-<div class="mx-auto mt-32 max-w-7xl pb-32 pl-10 pr-10">
-  <div class="md:flex justify-between">
-  <div class="mx-auto max-w-2xl lg:mx-0">
-    <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-      We're proudly open-source. 🚀
-    </h2>
-    <p class="mt-6 text-base leading-7 text-gray-600">
-     Open-source wins, open-software wins, open-protocol wins. Our platform is built on open-source technologies and we're proud to contribute back to the community. 
-    </p>
-  </div>
-  <div class="mt-10">
-    <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="text-base font-semibold leading-6 text-gray-900 ">View GitHub Repo <span
-      aria-hidden="true">→</span></a>
-  </div>
-</div>
-  <div class="mx-auto mt-16 flex max-w-2xl flex-col gap-8 lg:mx-0 lg:mt-20 lg:max-w-none lg:flex-row lg:items-end">
-    <div class="flex flex-col-reverse justify-between gap-x-16 gap-y-8 rounded-2xl bg-gray-50 p-8 sm:w-3/4 sm:max-w-md sm:flex-row-reverse sm:items-end lg:w-96 lg:max-w-none lg:flex-none lg:flex-col lg:items-start">
-      <p class="flex-none text-3xl font-bold tracking-tight text-gray-900">80+</p>
-      <div class="sm:w-80 sm:shrink lg:w-auto lg:flex-none">
-        <p class="text-lg font-semibold tracking-tight text-gray-900">Open Source Contributors</p>
-        <p class="mt-2 text-base leading-7 text-gray-600">
-          Open Source contributors make all of OneUptime happen.
-        </p>
-      </div>
-    </div>
-    <div class="flex flex-col-reverse justify-between gap-x-16 gap-y-8 rounded-2xl bg-gray-900 p-8 sm:flex-row-reverse sm:items-end lg:w-full lg:max-w-sm lg:flex-auto lg:flex-col lg:items-start">
-      <p class="flex-none text-3xl font-bold tracking-tight text-white">29,000+</p>
-      <div class="sm:w-80 sm:shrink lg:w-auto lg:flex-none">
-        <p class="text-lg font-semibold tracking-tight text-white">Code Commits</p>
-        <p class="mt-2 text-base leading-7 text-gray-400">
-          Our team of developers are constantly improving the platform.
-        </p>
-      </div>
-    </div>
-    <div class="flex flex-col-reverse justify-between gap-x-16 gap-y-8 rounded-2xl bg-indigo-600 p-8 sm:w-11/12 sm:max-w-xl sm:flex-row-reverse sm:items-end lg:w-full lg:max-w-none lg:flex-auto lg:flex-col lg:items-start">
-      <p class="flex-none text-3xl font-bold tracking-tight text-white">100,000+</p>
-      <div class="sm:w-80 sm:shrink lg:w-auto lg:flex-none">
-        <p class="text-lg font-semibold tracking-tight text-white">Open Source Downloads</p>
-        <p class="mt-2 text-base leading-7 text-indigo-200">
-          Used by thousands of companies - from small startups to large enterprises.
-        </p>
-      </div>
-    </div>
-  </div>
-</div>
+<section id="proudly-open-source-section" class="relative py-24 sm:py-32 bg-gray-900 overflow-hidden">
+    <!-- Subtle background gradient -->
+    <div class="absolute inset-0 bg-gradient-to-b from-gray-900 via-gray-800/50 to-gray-900"></div>
 
+    <!-- Mouse-following glow -->
+    <div id="oss-mouse-glow" class="pointer-events-none absolute w-[800px] h-[800px] rounded-full opacity-0 transition-opacity duration-300" style="background: radial-gradient(circle at center, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 30%, rgba(255, 255, 255, 0.02) 50%, transparent 70%); transform: translate(-50%, -50%);"></div>
+
+    <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Header -->
+        <div class="text-center mb-16">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8">
+                <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                <span class="text-sm text-gray-400">Open Source</span>
+            </div>
+
+            <h2 class="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1]">
+                <span class="text-gray-400 block">Proudly</span>
+                <span class="text-white block">open-source</span>
+            </h2>
+            <p class="mt-6 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                Full transparency, complete control. Our entire codebase is open for you to inspect, modify, and self-host.
+            </p>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto mb-16">
+            <div class="text-center p-8 rounded-2xl bg-white/[0.03] border border-white/[0.06] transition-all duration-300 hover:bg-white/[0.06] hover:border-white/[0.12] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                <div class="text-4xl sm:text-5xl font-semibold text-white mb-2"><%= locals.githubContributors || '80+' %></div>
+                <div class="text-sm text-gray-400">Contributors</div>
+            </div>
+            <div class="text-center p-8 rounded-2xl bg-white/[0.03] border border-white/[0.06] transition-all duration-300 hover:bg-white/[0.06] hover:border-white/[0.12] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                <div class="text-4xl sm:text-5xl font-semibold text-white mb-2"><%= locals.githubCommits || '29k+' %></div>
+                <div class="text-sm text-gray-400">Commits</div>
+            </div>
+            <div class="text-center p-8 rounded-2xl bg-white/[0.03] border border-white/[0.06] transition-all duration-300 hover:bg-white/[0.06] hover:border-white/[0.12] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                <div class="text-4xl sm:text-5xl font-semibold text-white mb-2">1M+</div>
+                <div class="text-sm text-gray-400">Downloads</div>
+            </div>
+        </div>
+
+        <!-- Terminal -->
+        <div class="max-w-2xl mx-auto mb-12">
+            <div id="oss-terminal" class="rounded-2xl overflow-hidden transition-all duration-500 bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.1]">
+                <!-- Title Bar -->
+                <div class="flex items-center px-4 py-3 relative border-b border-white/[0.06]" style="background: rgba(255,255,255,0.02);">
+                    <div id="oss-terminal-dots" class="flex gap-2 cursor-pointer group">
+                        <div class="w-3 h-3 rounded-full transition-all duration-200 group-hover:brightness-110" style="background: #ff5f57; box-shadow: inset 0 -1px 1px rgba(0,0,0,0.2);"></div>
+                        <div class="w-3 h-3 rounded-full transition-all duration-200 group-hover:brightness-110" style="background: #febc2e; box-shadow: inset 0 -1px 1px rgba(0,0,0,0.2);"></div>
+                        <div class="w-3 h-3 rounded-full transition-all duration-200 group-hover:brightness-110" style="background: #28c840; box-shadow: inset 0 -1px 1px rgba(0,0,0,0.2);"></div>
+                    </div>
+                    <span id="oss-terminal-title" class="absolute left-1/2 -translate-x-1/2 text-xs text-gray-500 font-medium" style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;">terminal</span>
+                </div>
+                <!-- Content -->
+                <div id="oss-terminal-content" class="px-5 py-4" style="min-height: 60px;">
+                    <code class="text-gray-300" style="font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace; font-size: 14px; line-height: 1.6;">
+                        <span style="color: #28c840;">$</span> curl <%= locals.homeUrl || 'https://oneuptime.com' %>/install.sh | bash
+                    </code>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="https://github.com/oneuptime/oneuptime" target="_blank"
+               class="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full font-medium text-sm transition-all duration-300 bg-white/[0.08] border border-white/[0.1] text-white hover:bg-white/[0.15] hover:border-white/[0.2] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                <span>Star on GitHub</span>
+                <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+            </a>
+            <a href="https://github.com/oneuptime/oneuptime#readme" target="_blank"
+               class="group inline-flex items-center gap-2 px-6 py-3 rounded-full text-gray-400 font-medium text-sm hover:text-white transition-all duration-300">
+                <span>View documentation</span>
+                <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+            </a>
+        </div>
+    </div>
 </section>
+
+<script>
+(function() {
+    const ossSection = document.getElementById('proudly-open-source-section');
+    const ossGlow = document.getElementById('oss-mouse-glow');
+
+    if (!ossSection || !ossGlow) return;
+
+    let rafId = null;
+    let targetX = 0;
+    let targetY = 0;
+    let currentX = 0;
+    let currentY = 0;
+
+    function lerp(start, end, factor) {
+        return start + (end - start) * factor;
+    }
+
+    function animate() {
+        currentX = lerp(currentX, targetX, 0.15);
+        currentY = lerp(currentY, targetY, 0.15);
+
+        ossGlow.style.left = currentX + 'px';
+        ossGlow.style.top = currentY + 'px';
+
+        if (Math.abs(targetX - currentX) > 0.1 || Math.abs(targetY - currentY) > 0.1) {
+            rafId = requestAnimationFrame(animate);
+        } else {
+            rafId = null;
+        }
+    }
+
+    ossSection.addEventListener('mousemove', function(e) {
+        const rect = ossSection.getBoundingClientRect();
+        targetX = e.clientX - rect.left;
+        targetY = e.clientY - rect.top;
+
+        if (!rafId) {
+            rafId = requestAnimationFrame(animate);
+        }
+    });
+
+    ossSection.addEventListener('mouseenter', function() {
+        ossGlow.style.opacity = '1';
+    });
+
+    ossSection.addEventListener('mouseleave', function() {
+        ossGlow.style.opacity = '0';
+        if (rafId) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+        }
+    });
+
+
+    // Console Easter Egg - For those who inspect
+    const asciiArt = `
+%c
+    ╔═══════════════════════════════════════════════════════════════════════╗
+    ║                                                                       ║
+    ║                   🔧  TO THE BUILDERS, THE DREAMERS  🔧                ║
+    ║                       THE ONES WHO WON'T QUIT                         ║
+    ║                                                                       ║
+    ║   We see you.                                                         ║
+    ║                                                                       ║
+    ║   The late nights and early mornings.                                 ║
+    ║   The countless iterations no one will ever see.                      ║
+    ║   The persistence when it would be easier to stop.                    ║
+    ║                                                                       ║
+    ║   We believe in you.                                                  ║
+    ║                                                                       ║
+    ║   In your vision. In your craft.                                      ║
+    ║   In the fire that made you start                                     ║
+    ║   and the resolve that keeps you going.                               ║
+    ║                                                                       ║
+    ║   We build alongside you.                                             ║
+    ║                                                                       ║
+    ║   Shoulder to shoulder. As builders ourselves,                        ║
+    ║   who understand what it takes                                        ║
+    ║   to ship something that matters.                                     ║
+    ║                                                                       ║
+    ║   Keep building.                                                      ║
+    ║   The world runs on what you create.                                  ║
+    ║                                                                       ║
+    ║                                        — with ❤️ from OneUptime         ║
+    ║                                                                       ║
+    ╚═══════════════════════════════════════════════════════════════════════╝
+`;
+
+    console.log(asciiArt, 'font-family: monospace; color: #4ade80; font-size: 11px; line-height: 1.4;');
+    console.log('%c👋 Hey there, curious developer!', 'font-size: 16px; font-weight: bold; color: #60a5fa;');
+    console.log('%cWe\'re always looking for builders. Check out our open issues: https://github.com/oneuptime/oneuptime/issues', 'color: #94a3b8;');
+
+    // Terminal Easter Egg - Click dots to reveal
+    const terminal = document.getElementById('oss-terminal');
+    const terminalDots = document.getElementById('oss-terminal-dots');
+    const terminalContent = document.getElementById('oss-terminal-content');
+    const terminalTitle = document.getElementById('oss-terminal-title');
+    let easterEggActive = false;
+    let originalContent = '';
+    let originalTitle = '';
+
+    if (terminalDots && terminalContent && terminalTitle) {
+        // Save original content
+        originalContent = terminalContent.innerHTML;
+        originalTitle = terminalTitle.textContent;
+
+        // Escape key to revert
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && easterEggActive) {
+                easterEggActive = false;
+                terminalTitle.textContent = originalTitle;
+                terminalContent.innerHTML = originalContent;
+                terminalContent.style.minHeight = '';
+                terminalContent.style.padding = '';
+                terminal.style.boxShadow = '';
+                terminal.style.borderColor = '';
+                terminal.style.background = '';
+            }
+        });
+
+        terminalDots.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (easterEggActive) return;
+            easterEggActive = true;
+
+                // Change terminal title
+                terminalTitle.textContent = 'builder_tribute.sh';
+
+                // Show Easter egg content
+                terminal.style.boxShadow = '0 0 30px rgba(255, 255, 255, 0.1)';
+                terminal.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                terminal.style.background = 'rgba(255, 255, 255, 0.06)';
+
+                const lines = [
+                    { text: '$ echo "TO THE BUILDERS, THE DREAMERS"', type: 'command' },
+                    { text: 'The ones who won\'t quit', type: 'subheader' },
+                    { text: '', type: 'blank' },
+                    { text: 'We see you.', type: 'output highlight' },
+                    { text: '', type: 'blank' },
+                    { text: 'The late nights and early mornings.', type: 'output' },
+                    { text: 'The countless iterations no one will ever see.', type: 'output' },
+                    { text: 'The persistence when it would be easier to stop.', type: 'output' },
+                    { text: '', type: 'blank' },
+                    { text: 'We believe in you.', type: 'output highlight' },
+                    { text: '', type: 'blank' },
+                    { text: 'In your vision. In your craft.', type: 'output' },
+                    { text: 'In the fire that made you start', type: 'output' },
+                    { text: 'and the resolve that keeps you going.', type: 'output' },
+                    { text: '', type: 'blank' },
+                    { text: 'We build alongside you.', type: 'output highlight' },
+                    { text: '', type: 'blank' },
+                    { text: 'Shoulder to shoulder. As builders ourselves,', type: 'output' },
+                    { text: 'who understand what it takes', type: 'output' },
+                    { text: 'to ship something that matters.', type: 'output' },
+                    { text: '', type: 'blank' },
+                    { text: 'Keep building.', type: 'output highlight' },
+                    { text: 'The world runs on what you create.', type: 'output' },
+                    { text: '', type: 'blank' },
+                    { text: '— with ❤️ from OneUptime', type: 'signature' }
+                ];
+
+                terminalContent.innerHTML = '';
+                terminalContent.style.minHeight = '520px';
+                terminalContent.style.padding = '20px 24px';
+
+                let lineIndex = 0;
+
+                function typeLine() {
+                    if (lineIndex >= lines.length) return;
+
+                    const line = lines[lineIndex];
+                    const lineEl = document.createElement('div');
+                    lineEl.style.opacity = '0';
+                    lineEl.style.transform = 'translateY(5px)';
+                    lineEl.style.transition = 'all 0.3s ease-out';
+                    lineEl.style.fontFamily = "'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace";
+                    lineEl.style.fontSize = '15px';
+                    lineEl.style.lineHeight = '1.6';
+                    lineEl.style.letterSpacing = '0.3px';
+                    lineEl.style.marginBottom = '2px';
+
+                    if (line.type === 'command') {
+                        lineEl.innerHTML = '<span style="color: #28c840;">$</span> <span style="color: #f5f5f5;">echo "TO THE BUILDERS, THE DREAMERS"</span>';
+                    } else if (line.type === 'subheader') {
+                        lineEl.style.color = '#98989d';
+                        lineEl.style.fontStyle = 'italic';
+                        lineEl.textContent = line.text;
+                    } else if (line.type === 'blank') {
+                        lineEl.innerHTML = '&nbsp;';
+                    } else if (line.type === 'output highlight') {
+                        lineEl.style.color = '#28c840';
+                        lineEl.style.fontWeight = '500';
+                        lineEl.textContent = line.text;
+                    } else if (line.type === 'signature') {
+                        lineEl.style.color = '#98989d';
+                        lineEl.style.marginTop = '4px';
+                        lineEl.textContent = line.text;
+                    } else {
+                        lineEl.style.color = '#ffffff';
+                        lineEl.textContent = line.text;
+                    }
+
+                    terminalContent.appendChild(lineEl);
+
+                    setTimeout(() => {
+                        lineEl.style.opacity = '1';
+                        lineEl.style.transform = 'translateY(0)';
+                    }, 50);
+
+                    lineIndex++;
+                    setTimeout(typeLine, 150);
+                }
+
+                typeLine();
+        });
+    }
+})();
+</script>

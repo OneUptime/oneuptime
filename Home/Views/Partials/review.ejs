@@ -1,29 +1,74 @@
-<figure class="animate-fade-in rounded-3xl bg-white p-6  shadow-md "
-                    aria-hidden="false" style="animation-delay: 0.5s;">
-                    <blockquote class="text-gray-900">
-                        <div class="flex"><svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-indigo-500">
-                                <path
-                                    d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z">
-                                </path>
-                            </svg><svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-indigo-500">
-                                <path
-                                    d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z">
-                                </path>
-                            </svg><svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-indigo-500">
-                                <path
-                                    d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z">
-                                </path>
-                            </svg><svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-indigo-500">
-                                <path
-                                    d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z">
-                                </path>
-                            </svg><svg viewBox="0 0 20 20" aria-hidden="true" class="h-5 w-5 fill-indigo-500">
-                                <path
-                                    d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z">
-                                </path>
-                            </svg></div>
-                        <p class="mt-4 text-lg font-semibold leading-6 before:content-['“'] after:content-['”']"><%= review.title %></p>
-                        <p class="mt-3 text-base leading-7"><%= review.text %></p>
-                    </blockquote>
-                    <figcaption class="mt-3 text-sm text-gray-600 before:content-['–_']"><%= review.name %></figcaption>
-                </figure>
+<%
+    // Default color if not provided
+    const color = typeof glowColor !== 'undefined' ? glowColor : 'indigo';
+
+    // Color mappings for avatar gradients
+    const avatarGradients = {
+        'emerald': 'from-emerald-400 to-emerald-600',
+        'blue': 'from-blue-400 to-blue-600',
+        'purple': 'from-purple-400 to-purple-600',
+        'amber': 'from-amber-400 to-amber-600',
+        'rose': 'from-rose-400 to-rose-600',
+        'indigo': 'from-indigo-400 to-indigo-600'
+    };
+
+    // Color mappings for quote icon
+    const quoteColors = {
+        'emerald': 'text-emerald-100',
+        'blue': 'text-blue-100',
+        'purple': 'text-purple-100',
+        'amber': 'text-amber-100',
+        'rose': 'text-rose-100',
+        'indigo': 'text-indigo-100'
+    };
+
+    // Color mappings for ring accent
+    const ringColors = {
+        'emerald': 'ring-emerald-100',
+        'blue': 'ring-blue-100',
+        'purple': 'ring-purple-100',
+        'amber': 'ring-amber-100',
+        'rose': 'ring-rose-100',
+        'indigo': 'ring-indigo-100'
+    };
+%>
+<figure class="review-card review-glow-<%= color %> animate-fade-in rounded-2xl bg-white p-6 shadow-md ring-1 ring-gray-200 hover:ring-<%= color %>-200"
+    aria-hidden="false" style="animation-delay: 0.5s;">
+    <blockquote class="text-gray-900">
+        <!-- Star Rating -->
+        <div class="flex items-center gap-0.5 mb-4">
+            <svg viewBox="0 0 20 20" aria-hidden="true" class="h-4 w-4 fill-amber-400">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+            </svg>
+            <svg viewBox="0 0 20 20" aria-hidden="true" class="h-4 w-4 fill-amber-400">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+            </svg>
+            <svg viewBox="0 0 20 20" aria-hidden="true" class="h-4 w-4 fill-amber-400">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+            </svg>
+            <svg viewBox="0 0 20 20" aria-hidden="true" class="h-4 w-4 fill-amber-400">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+            </svg>
+            <svg viewBox="0 0 20 20" aria-hidden="true" class="h-4 w-4 fill-amber-400">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+            </svg>
+        </div>
+
+        <!-- Review Title -->
+        <p class="text-base font-semibold leading-6 text-gray-900"><%= review.title %></p>
+
+        <!-- Review Text -->
+        <p class="mt-3 text-sm leading-6 text-gray-600"><%= review.text %></p>
+    </blockquote>
+
+    <!-- Author Section -->
+    <figcaption class="mt-5 flex items-center gap-3 border-t border-gray-100 pt-5">
+        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br <%= avatarGradients[color] %> text-sm font-semibold text-white ring-2 ring-white shadow-sm">
+            <%= review.name.split(' ').map(n => n[0]).slice(0, 2).join('') %>
+        </div>
+        <div class="flex flex-col">
+            <span class="text-sm font-semibold text-gray-900"><%= review.name %></span>
+            <span class="text-xs text-gray-500"><%= review.role %> at <%= review.company %></span>
+        </div>
+    </figcaption>
+</figure>

@@ -59,9 +59,14 @@
 }
     </script>
 
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/a11y-dark.min.css">
+        <!-- Syntax highlighting with highlight.js - using One Dark theme for colorful code -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
         <script>hljs.highlightAll();</script>
 
         <style>
@@ -75,10 +80,11 @@
                 top: 0;
                 left: 0;
                 width: 0;
-                height: 4px;
+                height: 3px;
                 z-index: 60;
-                background: linear-gradient(90deg, #4f46e5, #7c3aed);
+                background: linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7);
                 transition: width 120ms ease-out;
+                box-shadow: 0 0 10px rgba(99, 102, 241, 0.5), 0 0 20px rgba(139, 92, 246, 0.3);
             }
 
             .floating-share {
@@ -99,53 +105,55 @@
                 align-items: center;
                 justify-content: center;
                 background: rgba(255, 255, 255, 0.9);
-                box-shadow: 0 10px 30px rgba(79, 70, 229, 0.08);
+                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
                 transition: all 0.2s ease;
             }
 
             .floating-share a:hover {
-                border-color: #4f46e5;
-                color: #4f46e5;
+                border-color: #6366f1;
+                color: #6366f1;
                 transform: translateY(-2px);
             }
 
-            /* Custom styles for code blocks in blog posts */
+            /* Code blocks styling */
             .blog-body pre {
                 font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace !important;
                 font-size: 14px !important;
-                line-height: 1.5 !important;
+                line-height: 1.6 !important;
                 font-weight: 400 !important;
                 margin-top: 1.75rem !important;
                 margin-bottom: 1.75rem !important;
-                border: 1px solid rgba(15, 23, 42, 0.08) !important;
-                box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08) !important;
+                border: 1px solid rgba(15, 23, 42, 0.1) !important;
+                border-radius: 0.75rem !important;
+                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06) !important;
             }
-            
+
             .blog-body pre code {
                 font-family: inherit !important;
                 font-size: inherit !important;
                 line-height: inherit !important;
                 font-weight: inherit !important;
             }
-            
+
             /* Ensure highlight.js doesn't override our font settings */
             .blog-body .hljs {
                 font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace !important;
                 font-size: 14px !important;
-                line-height: 1.5 !important;
+                line-height: 1.6 !important;
                 font-weight: 400 !important;
+                padding: 1.25rem !important;
+                border-radius: 0.75rem !important;
             }
 
             /* Inline code chips */
             .blog-body :not(pre) > code {
                 font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
                 font-size: 0.80em;
-                padding: 0.15rem 0.35rem;
-                border-radius: 0.45rem;
-                background: rgba(148, 163, 184, 0.15);
-                border: 1px solid rgba(71, 85, 105, 0.35);
-                color: #0f172a;
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+                padding: 0.15rem 0.4rem;
+                border-radius: 0.375rem;
+                background: rgba(99, 102, 241, 0.08);
+                border: 1px solid rgba(99, 102, 241, 0.15);
+                color: #4f46e5;
                 white-space: nowrap;
             }
 
@@ -153,19 +161,19 @@
                 font-weight: 600;
             }
 
+            /* Blockquotes */
             .blog-body blockquote {
-                border-left: 4px solid #a5b4fc;
-                background: rgba(224, 231, 255, 0.45);
+                border-left: 3px solid #a5b4fc;
+                background: rgba(238, 242, 255, 0.5);
                 padding: 1.25rem 1.5rem;
-                border-radius: 1rem;
+                border-radius: 0 0.75rem 0.75rem 0;
                 font-style: normal;
                 color: #1f2937;
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
             }
 
             .blog-body img {
-                border-radius: 1.25rem;
-                box-shadow: 0 25px 60px rgba(15, 23, 42, 0.08);
+                border-radius: 1rem;
+                box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
             }
 
             .blog-body h2,
@@ -174,10 +182,187 @@
                 scroll-margin-top: 7rem;
             }
 
+            /* Links */
+            .blog-body a:not(.no-underline) {
+                text-decoration-color: rgba(99, 102, 241, 0.3);
+                text-underline-offset: 3px;
+            }
+
+            .blog-body a:not(.no-underline):hover {
+                text-decoration-color: rgba(99, 102, 241, 0.6);
+            }
+
             @media (max-width: 1279px) {
                 .floating-share {
                     display: none !important;
                 }
+            }
+
+            /* Back to top button */
+            .back-to-top {
+                position: fixed;
+                bottom: 2rem;
+                left: 2rem;
+                width: 3rem;
+                height: 3rem;
+                border-radius: 9999px;
+                background: rgba(255, 255, 255, 0.95);
+                border: 1px solid rgba(148, 163, 184, 0.3);
+                box-shadow: 0 10px 40px rgba(15, 23, 42, 0.1);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                opacity: 0;
+                visibility: hidden;
+                transform: translateY(10px);
+                transition: all 0.3s ease;
+                z-index: 50;
+            }
+
+            .back-to-top.visible {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0);
+            }
+
+            .back-to-top:hover {
+                background: #fff;
+                border-color: #6366f1;
+                transform: translateY(-3px);
+                box-shadow: 0 15px 50px rgba(99, 102, 241, 0.15);
+            }
+
+            .back-to-top svg {
+                width: 1.25rem;
+                height: 1.25rem;
+                color: #64748b;
+                transition: color 0.2s;
+            }
+
+            .back-to-top:hover svg {
+                color: #6366f1;
+            }
+
+            /* Floating TOC */
+            .floating-toc {
+                position: absolute;
+                top: 0;
+                left: calc(100% + 2rem);
+                width: 200px;
+                max-height: 60vh;
+                z-index: 40;
+            }
+
+            .floating-toc.is-fixed {
+                position: fixed;
+                top: 50%;
+                left: calc(50% + 28rem);
+                transform: translateY(-50%);
+                width: 200px;
+            }
+
+            .floating-toc.is-bottom {
+                position: absolute;
+                top: auto;
+                bottom: 0;
+                left: calc(100% + 2rem);
+                transform: none;
+                width: 200px;
+            }
+
+            @media (min-width: 1280px) and (max-width: 1439px) {
+                .floating-toc {
+                    width: 180px;
+                }
+                .floating-toc.is-fixed {
+                    left: calc(50% + 24rem);
+                    width: 180px;
+                }
+                .floating-toc.is-bottom {
+                    width: 180px;
+                }
+            }
+
+            @media (min-width: 1440px) and (max-width: 1599px) {
+                .floating-toc {
+                    width: 190px;
+                }
+                .floating-toc.is-fixed {
+                    left: calc(50% + 26rem);
+                    width: 190px;
+                }
+                .floating-toc.is-bottom {
+                    width: 190px;
+                }
+            }
+
+            .floating-toc-inner {
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(148, 163, 184, 0.3);
+                border-radius: 1rem;
+                padding: 1rem;
+                box-shadow: 0 10px 40px rgba(15, 23, 42, 0.08);
+            }
+
+            .floating-toc-inner:hover {
+                box-shadow: 0 15px 50px rgba(15, 23, 42, 0.12);
+                border-color: rgba(99, 102, 241, 0.3);
+            }
+
+            /* TOC active state */
+            #toc a.toc-active {
+                color: #4f46e5;
+                font-weight: 500;
+            }
+
+            #toc a {
+                position: relative;
+                padding-left: 0.75rem;
+                display: block;
+                padding-top: 0.25rem;
+                padding-bottom: 0.25rem;
+                font-size: 0.8125rem;
+                line-height: 1.4;
+                color: #64748b;
+                text-decoration: none;
+                transition: color 0.2s;
+            }
+
+            #toc a:hover {
+                color: #6366f1;
+            }
+
+            #toc a::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0.35rem;
+                bottom: 0.35rem;
+                width: 2px;
+                background: transparent;
+                border-radius: 1px;
+                transition: background 0.2s;
+            }
+
+            #toc a.toc-active::before {
+                background: #6366f1;
+            }
+
+            #toc a.toc-h3 {
+                padding-left: 1.25rem;
+                font-size: 0.75rem;
+                color: #94a3b8;
+            }
+
+            #toc a.toc-h3::before {
+                left: 0.5rem;
+            }
+
+            /* Smooth scroll behavior */
+            html {
+                scroll-behavior: smooth;
             }
         </style>
 
@@ -186,9 +371,22 @@
 
 <body>
     <div class="reading-progress" id="reading-progress"></div>
+    <!-- Back to top button -->
+    <button class="back-to-top" id="back-to-top" aria-label="Back to top" title="Back to top">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+        </svg>
+    </button>
+
     <%- include('../nav') -%>
 
-        <div class="relative isolate overflow-hidden bg-gradient-to-b from-white via-white to-slate-50/40">
+        <div class="relative isolate overflow-hidden bg-gradient-to-b from-white via-white to-gray-50/40">
+            <!-- Subtle decorative background blurs -->
+            <div class="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+                <div class="absolute top-10 left-1/4 w-96 h-96 bg-indigo-50 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+                <div class="absolute top-20 right-1/4 w-96 h-96 bg-purple-50 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
+            </div>
+
             <!-- Hero / Title Section -->
             <div class="pt-20 pb-12 sm:pt-28 sm:pb-20">
                 <div class="mx-auto max-w-4xl px-6 lg:px-8 text-center relative">
@@ -202,15 +400,15 @@
                         <% if(blogPost.author){ %>
                         <a href="<%- blogPost.author.githubUrl -%>" target="_blank" class="flex items-center space-x-2 group">
                             <!-- Added explicit width & height to stabilize layout (CLS) -->
-                            <img class="h-8 w-8 rounded-full ring-2 ring-indigo-200 group-hover:ring-indigo-400 transition" src="<%- blogPost.author.profileImageUrl -%>" alt="<%- blogPost.author.name -%>" width="32" height="32" decoding="async">
+                            <img class="h-8 w-8 rounded-full ring-2 ring-gray-200 group-hover:ring-gray-400 transition" src="<%- blogPost.author.profileImageUrl -%>" alt="<%- blogPost.author.name -%>" width="32" height="32" decoding="async">
                             <span class="font-medium text-gray-700 group-hover:text-gray-900 transition">@<%- blogPost.author.username -%></span>
                         </a>
                         <span class="hidden sm:inline select-none">•</span>
                         <span><%- blogPost.formattedPostDate -%></span>
                         <span class="hidden sm:inline select-none">•</span>
                         <% } %>
-                        <span id="reading-time" class="inline-flex items-center gap-1">
-                            <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span id="reading-time" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <span class="sr-only">Reading time</span>
                         </span>
                     </div>
@@ -220,12 +418,23 @@
                 </div>
             </div>
 
-            <!-- Content + Sidebar -->
+            <!-- Content -->
             <div class="pb-24">
-                <div class="mx-auto max-w-7xl px-6 lg:px-8">
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                <div class="mx-auto max-w-4xl px-6 lg:px-8">
+                    <div class="relative" id="content-wrapper">
+                        <!-- Floating TOC -->
+                        <div class="floating-toc hidden xl:block" id="floating-toc">
+                            <div class="floating-toc-inner">
+                                <h2 class="text-xs font-semibold tracking-wider text-indigo-600 uppercase mb-3 flex items-center gap-2">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+                                    On this page
+                                </h2>
+                                <nav id="toc" aria-label="Table of contents" class="overflow-y-auto max-h-[50vh] pr-1"></nav>
+                            </div>
+                        </div>
+
                         <!-- Main content -->
-                        <article class="lg:col-span-8 xl:col-span-9">
+                        <article>
                             <div class="relative">
                                 <div class="floating-share hidden xl:flex" aria-label="Share this article">
                                     <a title="Share on X" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?text=<%- encodeURIComponent(blogPost.title) -%>&url=<%- encodeURIComponent(blogPost.blogUrl) -%>">
@@ -241,7 +450,7 @@
                                         </svg>
                                     </a>
                                 </div>
-                                <div class="blog-body prose prose-slate max-w-none prose-headings:scroll-mt-28 prose-headings:font-display prose-headings:font-semibold lg:prose-headings:scroll-mt-[8.5rem] prose-a:font-semibold prose-a:text-indigo-600 hover:prose-a:text-indigo-500 prose-img:rounded-xl prose-pre:rounded-xl prose-code:text-indigo-600">
+                                <div class="blog-body prose prose-gray max-w-none prose-headings:scroll-mt-28 prose-headings:font-display prose-headings:font-semibold lg:prose-headings:scroll-mt-[8.5rem] prose-a:font-semibold prose-a:text-gray-600 hover:prose-a:text-gray-500 prose-img:rounded-xl prose-pre:rounded-xl prose-code:text-gray-600">
                                     <%- blogPost.htmlBody -%>
                                 </div>
                             </div>
@@ -250,14 +459,14 @@
                             <div class="mt-14 border-t border-gray-200/70 pt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
                                 <div class="text-sm font-medium text-gray-600">Share this article</div>
                                 <div class="flex gap-3">
-                                    <a title="Share on X" target="_blank" rel="noopener" class="group inline-flex items-center justify-center h-9 w-9 rounded-lg border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 transition" href="https://twitter.com/intent/tweet?text=<%- encodeURIComponent(blogPost.title) -%>&url=<%- encodeURIComponent(blogPost.blogUrl) -%>">
-                                        <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600" viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 3h3.77l-8.26 9.45L23 21h-6.17l-4.8-6.01L6.4 21H2.62l8.63-9.87L1 3h6.32l4.33 5.41L17.53 3Zm-1.33 15.62h2.09L7.94 4.29H5.71l10.49 14.33Z"/></svg>
+                                    <a title="Share on X" target="_blank" rel="noopener" class="group inline-flex items-center justify-center h-9 w-9 rounded-lg border border-gray-200 hover:border-gray-400 hover:bg-gray-100 transition" href="https://twitter.com/intent/tweet?text=<%- encodeURIComponent(blogPost.title) -%>&url=<%- encodeURIComponent(blogPost.blogUrl) -%>">
+                                        <svg class="w-4 h-4 text-gray-500 group-hover:text-gray-600" viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 3h3.77l-8.26 9.45L23 21h-6.17l-4.8-6.01L6.4 21H2.62l8.63-9.87L1 3h6.32l4.33 5.41L17.53 3Zm-1.33 15.62h2.09L7.94 4.29H5.71l10.49 14.33Z"/></svg>
                                     </a>
-                                    <a title="Share on LinkedIn" target="_blank" rel="noopener" class="group inline-flex items-center justify-center h-9 w-9 rounded-lg border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 transition" href="https://www.linkedin.com/sharing/share-offsite/?url=<%- encodeURIComponent(blogPost.blogUrl) -%>">
-                                        <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.049c.476-.9 1.637-1.85 3.37-1.85 3.601 0 4.266 2.37 4.266 5.455v6.286ZM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124ZM7.119 20.452H3.553V9h3.566v11.452ZM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003Z"/></svg>
+                                    <a title="Share on LinkedIn" target="_blank" rel="noopener" class="group inline-flex items-center justify-center h-9 w-9 rounded-lg border border-gray-200 hover:border-gray-400 hover:bg-gray-100 transition" href="https://www.linkedin.com/sharing/share-offsite/?url=<%- encodeURIComponent(blogPost.blogUrl) -%>">
+                                        <svg class="w-4 h-4 text-gray-500 group-hover:text-gray-600" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.049c.476-.9 1.637-1.85 3.37-1.85 3.601 0 4.266 2.37 4.266 5.455v6.286ZM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124ZM7.119 20.452H3.553V9h3.566v11.452ZM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003Z"/></svg>
                                     </a>
-                                    <a title="Discuss on Hacker News" target="_blank" rel="noopener" class="group inline-flex items-center justify-center h-9 w-9 rounded-lg border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 transition" href="https://news.ycombinator.com/submitlink?u=<%- encodeURIComponent(blogPost.blogUrl) -%>&t=<%- encodeURIComponent(blogPost.title) -%>">
-                                        <svg class="w-4 h-4 text-gray-500 group-hover:text-indigo-600" viewBox="0 0 24 24" aria-hidden="true">
+                                    <a title="Discuss on Hacker News" target="_blank" rel="noopener" class="group inline-flex items-center justify-center h-9 w-9 rounded-lg border border-gray-200 hover:border-gray-400 hover:bg-gray-100 transition" href="https://news.ycombinator.com/submitlink?u=<%- encodeURIComponent(blogPost.blogUrl) -%>&t=<%- encodeURIComponent(blogPost.title) -%>">
+                                        <svg class="w-4 h-4 text-gray-500 group-hover:text-gray-600" viewBox="0 0 24 24" aria-hidden="true">
                                             <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.92"></circle>
                                             <path d="M7.2 6.2L12 12.8l4.8-6.6M12 13.4V17.8" fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path>
                                         </svg>
@@ -267,17 +476,28 @@
 
                             <!-- Author -->
                             <% if(blogPost.author){ %>
-                            <div class="mt-16 p-6 rounded-2xl bg-white/60 backdrop-blur border border-gray-200 shadow-sm flex gap-6 items-start">
-                                <!-- Added explicit width/height + lazy loading for below-the-fold author bio image -->
-                                <img class="h-16 w-16 rounded-full ring-2 ring-indigo-200" src="<%- blogPost.author.profileImageUrl -%>" alt="<%- blogPost.author.name -%>" width="64" height="64" loading="lazy" decoding="async">
-                                <div>
-                                    <h3 class="text-lg font-semibold text-gray-900"><%- blogPost.author.name -%></h3>
-                                    <p class="text-sm text-gray-600 mb-2">@<%- blogPost.author.username -%> • <%- blogPost.formattedPostDate -%> • <span id="reading-time-inline"></span></p>
-                                    <div class="text-sm text-gray-700"><%- blogPost.author.bio || 'Building reliable software at OneUptime. Follow along for more on observability & reliability.' -%></div>
-                                    <div class="mt-3 flex gap-3">
-                                        <a href="<%- blogPost.author.githubUrl -%>" target="_blank" class="text-xs font-medium text-indigo-600 hover:text-indigo-500 inline-flex items-center gap-1">View GitHub
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 5h6m0 0v6m0-6L10 14"/></svg>
-                                        </a>
+                            <div class="mt-16 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-gray-50 to-indigo-50/30 border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow duration-300">
+                                <div class="flex flex-col sm:flex-row gap-5 sm:gap-6 items-start">
+                                    <!-- Added explicit width/height + lazy loading for below-the-fold author bio image -->
+                                    <div class="relative">
+                                        <img class="h-16 w-16 sm:h-20 sm:w-20 rounded-full ring-4 ring-white shadow-md" src="<%- blogPost.author.profileImageUrl -%>" alt="<%- blogPost.author.name -%>" width="80" height="80" loading="lazy" decoding="async">
+                                        <div class="absolute -bottom-1 -right-1 h-6 w-6 bg-green-400 rounded-full border-2 border-white flex items-center justify-center">
+                                            <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <h3 class="text-lg font-semibold text-gray-900"><%- blogPost.author.name -%></h3>
+                                            <span class="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">Author</span>
+                                        </div>
+                                        <p class="text-sm text-gray-500 mb-3">@<%- blogPost.author.username -%> • <%- blogPost.formattedPostDate -%> • <span id="reading-time-inline"></span></p>
+                                        <div class="text-sm text-gray-600 leading-relaxed"><%- blogPost.author.bio || 'Building reliable software at OneUptime. Follow along for more on observability & reliability.' -%></div>
+                                        <div class="mt-4 flex flex-wrap gap-3">
+                                            <a href="<%- blogPost.author.githubUrl -%>" target="_blank" class="text-xs font-medium text-gray-600 hover:text-gray-900 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-gray-200 hover:border-gray-300 shadow-sm transition-all duration-200">
+                                                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                                                GitHub
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -287,17 +507,6 @@
                                 <%- include('./Partials/OpenSourceCommitment', { blogPost: blogPost }) -%>
                             </div>
                         </article>
-
-                        <!-- Sidebar -->
-                        <aside class="hidden lg:block lg:col-span-4 xl:col-span-3">
-                            <div class="sticky top-28 space-y-8">
-                                <div class="rounded-2xl border border-gray-200 bg-white/70 backdrop-blur p-6 shadow-sm">
-                                    <h2 class="text-sm font-semibold tracking-wide text-gray-900 uppercase mb-4">On this page</h2>
-                                    <!-- Reserve initial space for TOC to reduce layout shift once populated -->
-                                    <nav id="toc" aria-label="Table of contents" class="text-sm leading-6 space-y-2 text-gray-700 min-h-[3rem]"></nav>
-                                </div>
-                            </div>
-                        </aside>
                     </div>
                 </div>
             </div>
@@ -357,14 +566,17 @@
                         }
                     } catch (e) {}
 
-                    // TOC
+                    // TOC with active state tracking and sticky positioning
                     try {
                         const container = document.querySelector('.blog-body');
+                        const contentWrapper = document.getElementById('content-wrapper');
                         if(!container){ return; }
-                        const headings = container.querySelectorAll('h2, h3');
+                        const headings = container.querySelectorAll('h2');
                         if(!headings.length){ return; }
                         const toc = document.getElementById('toc');
+                        const floatingToc = document.getElementById('floating-toc');
                         if(!toc){ return; }
+                        const tocLinks = [];
                         headings.forEach(h => {
                             if(!h.id){
                                 h.id = h.textContent.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
@@ -372,9 +584,76 @@
                             const a = document.createElement('a');
                             a.href = '#' + h.id;
                             a.textContent = h.textContent;
-                            a.className = 'block hover:text-indigo-600 transition ' + (h.tagName === 'H3' ? 'pl-4 text-gray-500' : 'font-medium');
+                            a.className = h.tagName === 'H3' ? 'toc-h3' : '';
+                            a.dataset.target = h.id;
                             toc.appendChild(a);
+                            tocLinks.push({ link: a, heading: h });
                         });
+
+                        // Track active TOC item and position on scroll
+                        const updateToc = () => {
+                            const scrollPos = window.scrollY + 150;
+                            let activeIndex = 0;
+                            tocLinks.forEach((item, i) => {
+                                const rect = item.heading.getBoundingClientRect();
+                                const top = rect.top + window.scrollY;
+                                if(scrollPos >= top){
+                                    activeIndex = i;
+                                }
+                            });
+                            tocLinks.forEach((item, i) => {
+                                if(i === activeIndex){
+                                    item.link.classList.add('toc-active');
+                                } else {
+                                    item.link.classList.remove('toc-active');
+                                }
+                            });
+
+                            // Handle TOC positioning: top (absolute), fixed, or bottom (absolute)
+                            if(floatingToc && contentWrapper){
+                                const wrapperRect = contentWrapper.getBoundingClientRect();
+                                const tocHeight = floatingToc.offsetHeight;
+                                const viewportHeight = window.innerHeight;
+                                const fixedTopPosition = (viewportHeight - tocHeight) / 2;
+
+                                // When content top is above the point where TOC would be centered
+                                const shouldBeFixed = wrapperRect.top < fixedTopPosition && wrapperRect.bottom > (fixedTopPosition + tocHeight);
+
+                                // When content bottom is above where the fixed TOC would end
+                                const shouldBeBottom = wrapperRect.bottom <= (fixedTopPosition + tocHeight);
+
+                                floatingToc.classList.remove('is-fixed', 'is-bottom');
+
+                                if(shouldBeBottom){
+                                    floatingToc.classList.add('is-bottom');
+                                } else if(shouldBeFixed){
+                                    floatingToc.classList.add('is-fixed');
+                                }
+                                // else: stays at absolute top (default)
+                            }
+                        };
+                        window.addEventListener('scroll', updateToc, { passive: true });
+                        window.addEventListener('resize', updateToc, { passive: true });
+                        updateToc();
+                    } catch (e) {}
+
+                    // Back to top button
+                    try {
+                        const backToTopBtn = document.getElementById('back-to-top');
+                        if(backToTopBtn){
+                            const toggleVisibility = () => {
+                                if(window.scrollY > 400){
+                                    backToTopBtn.classList.add('visible');
+                                } else {
+                                    backToTopBtn.classList.remove('visible');
+                                }
+                            };
+                            window.addEventListener('scroll', toggleVisibility, { passive: true });
+                            toggleVisibility();
+                            backToTopBtn.addEventListener('click', () => {
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            });
+                        }
                     } catch (e) {}
 
                     // Stabilize images inside blog body (add width/height if missing & lazy-load non-hero images)

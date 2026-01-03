@@ -1,120 +1,278 @@
-<section class="mb-32 border-gray-100 border-t-2">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-20 mt-20">
-        <div class="mx-auto max-w-5xl sm:text-center">
-            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-center">Enterprise grade, at scale.
-            </h1>
-            <p class="mt-5 text-xl text-gray-500 sm:text-center">Built to support enterprise-grade demands for security,
-                availability, and scale and this is why thousands of our customers trust us every day.</p>
+<style>
+    .enterprise-card-wrapper {
+        position: relative;
+    }
+    .enterprise-card {
+        position: relative;
+        z-index: 1;
+        transition: all 0.2s ease;
+    }
+    .enterprise-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px -12px rgba(0,0,0,0.1);
+    }
+</style>
+<section class="relative py-24 lg:py-32 bg-white overflow-hidden">
+    <!-- Subtle background -->
+    <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 to-white"></div>
+
+    <div class="relative mx-auto max-w-6xl px-6 lg:px-8">
+        <!-- Header -->
+        <div class="text-center mb-16">
+            <!-- Simple label -->
+            <p class="text-sm font-medium text-emerald-600 tracking-wide uppercase mb-4">Enterprise Ready</p>
+
+            <!-- Clean title -->
+            <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
+                Security & Compliance<br class="hidden sm:block" />
+                <span class="text-gray-800">Built for Scale</span>
+            </h2>
+
+            <!-- Description -->
+            <p class="max-w-2xl mx-auto text-lg text-gray-600 leading-relaxed">
+                SOC 2 Type II certified and GDPR compliant. Trusted by teams from seed-stage startups to Fortune 500 enterprises.
+            </p>
         </div>
-        <ul role="list"
-            class="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-6 text-sm sm:mt-20 sm:grid-cols-2 md:gap-y-10 lg:max-w-none lg:grid-cols-3">
-            <li class="rounded-2xl border border-gray-200 p-8">
-                <svg fill="none" viewBox="0 0 32 32" aria-hidden="true" stroke-width="1.5" stroke="currentColor"
-                    class="h-10 w-10">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+
+        <!-- Bento Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+            <!-- Security - Featured Large Card -->
+            <div class="lg:col-span-2 group enterprise-card-wrapper">
+                <div class="enterprise-card h-full p-8 rounded-2xl bg-white border border-gray-300 shadow-sm">
+                    <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-5">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Security & Compliance</h3>
+                    <p class="text-gray-500 mb-5">Enterprise-grade security with comprehensive compliance certifications.</p>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="/legal/soc-2" class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-md border border-gray-300 hover:bg-gray-100 transition-colors">SOC 2 Type II</a>
+                        <a href="/legal/iso-27001" class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-md border border-gray-300 hover:bg-gray-100 transition-colors">ISO 27001</a>
+                        <a href="/legal/hipaa" class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-md border border-gray-300 hover:bg-gray-100 transition-colors">HIPAA</a>
+                        <a href="/legal/gdpr" class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-md border border-gray-300 hover:bg-gray-100 transition-colors">GDPR</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SSO -->
+            <div class="group enterprise-card-wrapper">
+                <div class="enterprise-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
+                    <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-1">SSO & SAML</h3>
+                    <p class="text-sm text-gray-500">Okta, Azure AD, Google, and more.</p>
+                </div>
+            </div>
+
+            <!-- Access Control -->
+            <div class="group enterprise-card-wrapper">
+                <div class="enterprise-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
+                    <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-1">Role-Based Access</h3>
+                    <p class="text-sm text-gray-500">Fine-grained permissions.</p>
+                </div>
+            </div>
+
+            <!-- Integrations - Featured Card -->
+            <div class="md:col-span-2 lg:col-span-1 lg:row-span-2 group enterprise-card-wrapper">
+                <div class="enterprise-card h-full rounded-2xl bg-white border border-gray-300 shadow-sm overflow-hidden">
+                    <div class="h-full flex flex-col p-6">
+                        <!-- Header -->
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700">
+                                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 0 1-.657.643 48.39 48.39 0 0 1-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 0 1-.658.663v0c-.355 0-.676-.186-.959-.401a1.647 1.647 0 0 0-1.003-.349c-1.036 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 0 1-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 0 0 .657-.643v0c0-.355-.186-.676-.401-.959a1.647 1.647 0 0 1-.349-1.003c0-1.035 1.008-1.875 2.25-1.875 1.243 0 2.25.84 2.25 1.875 0 .369-.128.713-.349 1.003-.215.283-.4.604-.4.959v0c0 .333.277.599.61.58a48.1 48.1 0 0 0 5.427-.63 48.05 48.05 0 0 0 .582-4.717.532.532 0 0 0-.533-.57v0c-.355 0-.676.186-.959.401-.29.221-.634.349-1.003.349-1.035 0-1.875-1.007-1.875-2.25s.84-2.25 1.875-2.25c.369 0 .713.128 1.003.349.283.215.604.401.959.401v0a.656.656 0 0 0 .659-.663 47.703 47.703 0 0 0-.31-4.82 48.847 48.847 0 0 1-6.067.21.641.641 0 0 1-.657-.643v0Z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-semibold text-gray-900">Integrations</h3>
+                                <p class="text-xs text-gray-500">Connect your stack</p>
+                            </div>
+                        </div>
+
+                        <!-- Integration Logos Grid -->
+                        <div class="flex-1 flex flex-col justify-center">
+                            <div class="grid grid-cols-4 gap-2">
+                                <!-- Row 1 -->
+                                <div class="group/icon flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-gray-300 hover:border-gray-300 transition-all cursor-default" title="Slack">
+                                    <svg class="w-5 h-5 text-gray-400 group-hover/icon:text-[#4A154B] transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.27 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.163 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.163 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.163 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.27a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.163a2.528 2.528 0 0 1-2.522 2.523h-6.315z"/>
+                                    </svg>
+                                </div>
+                                <div class="group/icon flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-gray-300 hover:border-gray-300 transition-all cursor-default" title="GitHub">
+                                    <svg class="w-5 h-5 text-gray-400 group-hover/icon:text-[#181717] transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+                                    </svg>
+                                </div>
+                                <div class="group/icon flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-gray-300 hover:border-gray-300 transition-all cursor-default" title="Jira">
+                                    <svg class="w-5 h-5 text-gray-400 group-hover/icon:text-[#0052CC] transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.005-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.758a1.001 1.001 0 0 0-1.001-1.001zM23.013 0H11.455a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.215 5.215 0 0 0 24 12.483V1.005A1.005 1.005 0 0 0 23.013 0z"/>
+                                    </svg>
+                                </div>
+                                <div class="group/icon flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-gray-300 hover:border-gray-300 transition-all cursor-default" title="AWS">
+                                    <svg class="w-5 h-5 text-gray-400 group-hover/icon:text-[#FF9900] transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M6.763 10.036c0 .296.032.535.088.71.064.176.144.368.256.576.04.063.056.127.056.183 0 .08-.048.16-.152.24l-.503.335a.383.383 0 0 1-.208.072c-.08 0-.16-.04-.239-.112a2.47 2.47 0 0 1-.287-.375 6.18 6.18 0 0 1-.248-.471c-.622.734-1.405 1.101-2.347 1.101-.67 0-1.205-.191-1.596-.574-.391-.384-.59-.894-.59-1.533 0-.678.239-1.23.726-1.644.487-.415 1.133-.623 1.955-.623.272 0 .551.024.846.064.296.04.6.104.918.176v-.583c0-.607-.127-1.03-.375-1.277-.255-.248-.686-.367-1.3-.367-.28 0-.568.031-.863.103-.296.072-.583.16-.862.272a2.287 2.287 0 0 1-.28.104.488.488 0 0 1-.127.023c-.112 0-.168-.08-.168-.247v-.391c0-.128.016-.224.056-.28a.597.597 0 0 1 .224-.167c.279-.144.614-.264 1.005-.36a4.84 4.84 0 0 1 1.246-.151c.95 0 1.644.216 2.091.647.439.43.662 1.085.662 1.963v2.586zm-3.24 1.214c.263 0 .534-.048.822-.144a1.784 1.784 0 0 0 .758-.51 1.259 1.259 0 0 0 .272-.512c.047-.191.08-.423.08-.694v-.335a6.99 6.99 0 0 0-.735-.136 6.1 6.1 0 0 0-.75-.048c-.535 0-.926.104-1.19.32-.263.215-.39.518-.39.917 0 .375.095.655.295.846.191.2.47.296.838.296zm6.41.862c-.144 0-.24-.024-.304-.08-.064-.048-.12-.16-.168-.311L7.586 5.55a1.398 1.398 0 0 1-.072-.32c0-.128.064-.2.191-.2h.783c.151 0 .255.025.31.08.065.048.113.16.16.312l1.342 5.284 1.245-5.284c.04-.16.104-.264.151-.312a.549.549 0 0 1 .32-.08h.638c.152 0 .256.025.32.08.063.048.12.16.151.312l1.261 5.348 1.381-5.348c.048-.16.104-.264.16-.312a.52.52 0 0 1 .311-.08h.743c.127 0 .2.065.2.2 0 .04-.009.08-.017.128a.934.934 0 0 1-.056.2l-1.923 6.17c-.048.16-.104.263-.168.311a.51.51 0 0 1-.303.08h-.687c-.151 0-.255-.024-.32-.08-.063-.056-.119-.16-.15-.32l-1.238-5.148-1.23 5.14c-.04.16-.087.264-.15.32-.065.056-.177.08-.32.08zm10.256.215c-.415 0-.83-.048-1.229-.143-.399-.096-.71-.2-.918-.32-.128-.071-.215-.151-.247-.223a.563.563 0 0 1-.048-.224v-.407c0-.167.064-.247.183-.247.048 0 .096.008.144.024.048.016.12.048.2.08.271.12.566.215.878.279.319.064.63.096.95.096.502 0 .894-.088 1.165-.264a.86.86 0 0 0 .415-.758.777.777 0 0 0-.215-.559c-.144-.151-.416-.287-.807-.415l-1.157-.36c-.583-.183-1.014-.454-1.277-.813a1.902 1.902 0 0 1-.4-1.158c0-.335.073-.63.216-.886.144-.255.335-.479.575-.654.24-.184.51-.32.83-.415.32-.096.655-.136 1.006-.136.175 0 .359.008.535.032.183.024.35.056.518.088.16.04.312.08.455.127.144.048.256.096.336.144a.69.69 0 0 1 .24.2.43.43 0 0 1 .071.263v.375c0 .168-.064.256-.184.256a.83.83 0 0 1-.303-.096 3.652 3.652 0 0 0-1.532-.311c-.455 0-.815.071-1.062.223-.248.152-.375.383-.375.71 0 .224.08.416.24.567.159.152.454.304.877.44l1.134.358c.574.184.99.44 1.237.767.247.327.367.702.367 1.117 0 .343-.072.655-.207.926a2.167 2.167 0 0 1-.583.703c-.248.2-.543.343-.886.447-.36.111-.734.167-1.142.167zM21.698 16.207c-2.626 1.94-6.442 2.969-9.722 2.969-4.598 0-8.74-1.7-11.87-4.526-.247-.223-.024-.527.272-.351 3.384 1.963 7.559 3.153 11.877 3.153 2.914 0 6.114-.607 9.06-1.852.439-.2.814.287.383.607zm1.094-1.246c-.336-.43-2.22-.207-3.074-.103-.255.032-.295-.192-.063-.36 1.5-1.053 3.967-.75 4.254-.399.287.36-.08 2.826-1.485 4.007-.215.184-.423.088-.327-.151.32-.79 1.03-2.57.695-2.994z"/>
+                                    </svg>
+                                </div>
+                                <!-- Row 2 -->
+                                <div class="group/icon flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-gray-300 hover:border-gray-300 transition-all cursor-default" title="Microsoft Teams">
+                                    <svg class="w-5 h-5 text-gray-400 group-hover/icon:text-[#6264A7] transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M20.625 8.127c-.367 0-.708-.068-1.025-.205-.317-.136-.594-.328-.832-.563s-.426-.515-.563-.832A2.5 2.5 0 0 1 18 5.502c0-.36.068-.697.205-1.02.137-.322.326-.6.563-.837.238-.238.515-.426.832-.563.317-.137.657-.205 1.025-.205.36 0 .697.068 1.02.205.322.137.6.325.837.563.238.238.426.515.563.837.137.323.205.66.205 1.02 0 .367-.068.708-.205 1.025a2.643 2.643 0 0 1-.563.832c-.237.238-.515.427-.837.563-.323.137-.66.205-1.02.205zm0-3.75a1.12 1.12 0 0 0-.797.328 1.12 1.12 0 0 0-.328.797c0 .313.11.578.328.797.219.219.484.328.797.328s.578-.11.797-.328a1.085 1.085 0 0 0 .328-.797 1.085 1.085 0 0 0-.328-.797 1.085 1.085 0 0 0-.797-.328zM24 10.002v5.578c0 .516-.098.996-.293 1.46a3.78 3.78 0 0 1-.803 1.194 3.78 3.78 0 0 1-1.195.803 3.629 3.629 0 0 1-1.459.293c-.297 0-.602-.035-.908-.105a3.53 3.53 0 0 1-.85-.329 5.623 5.623 0 0 1-.855 1.729 5.606 5.606 0 0 1-1.319 1.336 5.94 5.94 0 0 1-1.67.861 5.63 5.63 0 0 1-1.898.305c-.766 0-1.492-.133-2.162-.398a5.77 5.77 0 0 1-1.805-1.102 5.874 5.874 0 0 1-1.312-1.664 5.778 5.778 0 0 1-.674-2.086H1.996a.96.96 0 0 1-.703-.293A.96.96 0 0 1 1 16.881V6.873c0-.274.098-.508.293-.703a.96.96 0 0 1 .703-.293h8.59a3.35 3.35 0 0 1-.34-1.5c0-.485.092-.938.275-1.365a3.54 3.54 0 0 1 .75-1.114 3.54 3.54 0 0 1 1.114-.75A3.399 3.399 0 0 1 13.75 .873c.485 0 .938.092 1.365.275.426.183.797.432 1.114.75.316.316.566.687.75 1.114.183.427.275.88.275 1.365s-.092.938-.275 1.365a3.54 3.54 0 0 1-.75 1.113 3.54 3.54 0 0 1-1.114.75 3.399 3.399 0 0 1-1.365.276c-.125 0-.25-.008-.375-.024a2.487 2.487 0 0 1-.375-.058v1.078h10.875c.312 0 .578.11.797.328.218.219.328.485.328.797zM13.75 2.373c-.273 0-.531.053-.78.158a2.03 2.03 0 0 0-.638.434c-.18.183-.321.394-.428.639a1.928 1.928 0 0 0-.158.773c0 .273.053.531.158.78.106.245.249.456.428.638.18.18.391.32.639.428.248.105.507.158.779.158s.531-.053.773-.158a2.03 2.03 0 0 0 .64-.428c.183-.182.324-.393.433-.639.109-.248.158-.506.158-.779s-.053-.531-.158-.773a2.03 2.03 0 0 0-.434-.64 2.03 2.03 0 0 0-.639-.433 1.928 1.928 0 0 0-.773-.158zM7.937 9.814h2.25V7.94H3.814v1.875h2.25v6h1.875v-6zm10.313 7.313v-6.75H13v6.504c0 .273-.098.508-.293.703a.96.96 0 0 1-.703.293H9.309c.101.54.29 1.037.556 1.5.266.461.593.859.985 1.19.39.332.838.595 1.318.779.48.187.996.281 1.582.281.617 0 1.195-.117 1.746-.352.55-.234 1.03-.558 1.436-.966.406-.41.726-.879.966-1.43.24-.55.352-1.132.352-1.752zm5.25-1.547v-5.203h-3.75v6.855c.203.203.44.355.691.452.25.098.524.146.809.146.312 0 .605-.058.879-.176.273-.116.512-.277.715-.48.203-.203.364-.442.48-.715.117-.274.176-.566.176-.879z"/>
+                                    </svg>
+                                </div>
+                                <div class="group/icon flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-gray-300 hover:border-gray-300 transition-all cursor-default" title="Google Cloud">
+                                    <svg class="w-5 h-5 text-gray-400 group-hover/icon:text-[#4285F4] transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12.19 2.38a9.344 9.344 0 0 0-9.234 6.893c.053-.02-.055.013 0 0-3.875 2.551-3.922 8.11-.247 10.941l.006-.007-.007.03a6.7 6.7 0 0 0 4.077 1.356h5.173l.03.03h5.192c6.687.053 9.376-8.605 3.835-12.35a9.37 9.37 0 0 0-2.821-4.552l-.043.043.006-.05A9.34 9.34 0 0 0 12.19 2.38m-.358 4.146c1.244-.04 2.518.368 3.486 1.15a5.19 5.19 0 0 1 1.862 4.078v.518c3.53-.07 3.53 5.262 0 5.193h-5.193l-.008.009v-.04H6.785a2.6 2.6 0 0 1-1.067-.23h.001a2.597 2.597 0 1 1 3.437-3.437l3.013-3.012A6.75 6.75 0 0 0 8.11 8.24c.018-.01.04-.026.054-.023a5.2 5.2 0 0 1 3.67-1.69z"/>
+                                    </svg>
+                                </div>
+                                <div class="group/icon flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-gray-300 hover:border-gray-300 transition-all cursor-default" title="PagerDuty">
+                                    <svg class="w-5 h-5 text-gray-400 group-hover/icon:text-[#06AC38] transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M16.965 1.18C15.085.164 13.769 0 10.683 0H3.73v14.55h6.926c2.743 0 4.8-.164 6.61-1.37 1.975-1.303 3.004-3.44 3.004-6.003 0-2.893-1.328-4.942-3.305-5.997zM11.87 10.59H8.282V3.608h3.348c2.788 0 4.42 1.207 4.42 3.42 0 2.375-1.632 3.562-4.18 3.562zM3.73 17.803h4.552V24H3.73z"/>
+                                    </svg>
+                                </div>
+                                <div class="group/icon flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-gray-300 hover:border-gray-300 transition-all cursor-default" title="Microsoft Azure">
+                                    <svg class="w-5 h-5 text-gray-400 group-hover/icon:text-[#0078D4] transition-colors" viewBox="0 0 64 64" fill="currentColor">
+                                        <path d="M14.62 55H64L37.4 8.91l-8.1 22.25 15.56 18.5L14.62 55z"/>
+                                        <path d="M35.28 4.84l-19 15.95L0 48.98h14.68l20.6-44.14z"/>
+                                    </svg>
+                                </div>
+                                <!-- Row 3 -->
+                                <div class="group/icon flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-gray-300 hover:border-gray-300 transition-all cursor-default" title="Docker">
+                                    <svg class="w-5 h-5 text-gray-400 group-hover/icon:text-[#2496ED] transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M13.983 11.078h2.119a.186.186 0 0 0 .186-.185V9.006a.186.186 0 0 0-.186-.186h-2.119a.185.185 0 0 0-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 0 0 .186-.186V3.574a.186.186 0 0 0-.186-.185h-2.118a.185.185 0 0 0-.185.185v1.888c0 .102.082.185.185.185m0 2.716h2.118a.187.187 0 0 0 .186-.186V6.29a.186.186 0 0 0-.186-.185h-2.118a.185.185 0 0 0-.185.185v1.887c0 .102.082.186.185.186m-2.93 0h2.12a.186.186 0 0 0 .184-.186V6.29a.185.185 0 0 0-.185-.185H8.1a.185.185 0 0 0-.185.185v1.887c0 .102.083.186.185.186m-2.964 0h2.119a.186.186 0 0 0 .185-.186V6.29a.185.185 0 0 0-.185-.185H5.136a.186.186 0 0 0-.186.185v1.887c0 .102.084.186.186.186m5.893 2.715h2.118a.186.186 0 0 0 .186-.185V9.006a.186.186 0 0 0-.186-.186h-2.118a.185.185 0 0 0-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.186.186 0 0 0 .184-.185V9.006a.185.185 0 0 0-.185-.186H8.1a.185.185 0 0 0-.185.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.186.186 0 0 0 .185-.185V9.006a.185.185 0 0 0-.185-.186H5.136a.186.186 0 0 0-.186.185v1.888c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 0 0 .184-.185V9.006a.185.185 0 0 0-.184-.186h-2.12a.185.185 0 0 0-.184.185v1.888c0 .102.083.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 0 0-.75.748 11.376 11.376 0 0 0 .692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 0 0 3.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288Z"/>
+                                    </svg>
+                                </div>
+                                <div class="group/icon flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-gray-300 hover:border-gray-300 transition-all cursor-default" title="Kubernetes">
+                                    <svg class="w-5 h-5 text-gray-400 group-hover/icon:text-[#326CE5] transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="m10.204 14.35.007.01-.999 2.413a5.17 5.17 0 0 1-2.075-2.597l2.578-.437.004.005a.44.44 0 0 1 .484.606zm-.833-2.129a.44.44 0 0 0 .173-.756l.002-.011L7.585 9.7a5.14 5.14 0 0 0-.73 3.255l2.514-.725zm1.145-1.98a.44.44 0 0 0 .699-.337l.01-.005.15-2.62a5.14 5.14 0 0 0-3.01 1.442l2.147 1.523zm.76 2.75.723.349.722-.347.18-.78-.5-.623h-.804l-.5.623.179.779zm1.5-3.095a.44.44 0 0 0 .7.336l.008.003 2.134-1.513a5.2 5.2 0 0 0-2.992-1.442l.148 2.615zm10.876 5.97-5.773 7.181a1.6 1.6 0 0 1-1.248.594l-9.261.003a1.6 1.6 0 0 1-1.247-.596l-5.776-7.18a1.58 1.58 0 0 1-.307-1.34L2.1 5.573c.108-.47.425-.864.863-1.073L11.305.513a1.6 1.6 0 0 1 1.385 0l8.345 3.985c.438.209.755.604.863 1.073l2.062 8.955c.108.47-.005.963-.308 1.34m-3.289-2.057c-.042-.01-.103-.026-.145-.034-.174-.033-.315-.025-.479-.038-.35-.037-.638-.067-.895-.148-.105-.04-.18-.165-.216-.216l-.201-.059a6.5 6.5 0 0 0-.105-2.332 6.5 6.5 0 0 0-.936-2.163c.052-.047.15-.133.177-.159.008-.09.001-.183.094-.282.197-.185.444-.338.743-.522.142-.084.273-.137.415-.242.032-.024.076-.062.11-.089.24-.191.295-.52.123-.736s-.506-.236-.745-.045c-.034.027-.08.062-.111.088-.134.116-.217.23-.33.35-.246.25-.45.458-.673.609-.097.056-.239.037-.303.033l-.19.135a6.55 6.55 0 0 0-4.146-2.003l-.012-.223c-.065-.062-.143-.115-.163-.25-.022-.268.015-.557.057-.905.023-.163.061-.298.068-.475.001-.04-.001-.099-.001-.142 0-.306-.224-.555-.5-.555-.275 0-.499.249-.499.555l.001.014c0 .041-.002.092 0 .128.006.177.044.312.067.475.042.348.078.637.056.906a.55.55 0 0 1-.162.258l-.012.211a6.42 6.42 0 0 0-4.166 2.003l-.18-.128c-.09.012-.18.04-.297-.029-.223-.15-.427-.358-.673-.608-.113-.12-.195-.234-.329-.349l-.111-.088a.6.6 0 0 0-.348-.132.48.48 0 0 0-.398.176c-.172.216-.117.546.123.737l.007.005.104.083c.142.105.272.159.414.242.299.185.546.338.743.522.076.082.09.226.1.288l.16.143a6.46 6.46 0 0 0-1.02 4.506l-.208.06c-.055.072-.133.184-.215.217-.257.081-.546.11-.895.147-.164.014-.305.006-.48.039-.037.007-.09.02-.133.03l-.004.002-.007.002c-.295.071-.484.342-.423.608.061.267.349.429.645.365l.007-.001.01-.003.129-.029c.17-.046.294-.113.448-.172.33-.118.604-.217.87-.256.112-.009.23.069.288.101l.217-.037a6.5 6.5 0 0 0 2.88 3.596l-.09.218c.033.084.069.199.044.282-.097.252-.263.517-.452.813-.091.136-.185.242-.268.399-.02.037-.045.095-.064.134-.128.275-.034.591.213.71.248.12.556-.007.69-.282v-.002c.02-.039.046-.09.062-.127.07-.162.094-.301.144-.458.132-.332.205-.68.387-.897.05-.06.13-.082.215-.105l.113-.205a6.45 6.45 0 0 0 4.609.012l.106.192c.086.028.18.042.256.155.136.232.229.507.342.84.05.156.074.295.145.457.016.037.043.09.062.129.133.276.442.402.69.282.247-.118.341-.435.213-.71-.02-.039-.045-.096-.065-.134-.083-.156-.177-.261-.268-.398-.19-.296-.346-.541-.443-.793-.04-.13.007-.21.038-.294-.018-.022-.059-.144-.083-.202a6.5 6.5 0 0 0 2.88-3.622c.064.01.176.03.213.038.075-.05.144-.114.28-.104.266.039.54.138.87.256.154.06.277.128.448.173.036.01.088.019.13.028l.009.003.007.001c.297.064.584-.098.645-.365.06-.266-.128-.537-.423-.608M16.4 9.701l-1.95 1.746v.005a.44.44 0 0 0 .173.757l.003.01 2.526.728a5.2 5.2 0 0 0-.108-1.674 5.2 5.2 0 0 0-.644-1.572zm-4.013 5.325a.44.44 0 0 0-.404-.232.44.44 0 0 0-.372.233h-.002l-1.268 2.292a5.16 5.16 0 0 0 3.326.003l-1.27-2.296zm1.888-1.293a.44.44 0 0 0-.27.036.44.44 0 0 0-.214.572l-.003.004 1.01 2.438a5.15 5.15 0 0 0 2.081-2.615l-2.6-.44z"/>
+                                    </svg>
+                                </div>
+                                <div class="group/icon flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-gray-300 hover:border-gray-300 transition-all cursor-default" title="OpenTelemetry">
+                                    <svg class="w-5 h-5 text-gray-400 group-hover/icon:text-[#F5A800] transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12.697 13.117A2.618 2.618 0 1 0 16.4 16.82a2.618 2.618 0 0 0-3.703-3.703m2.768 2.77a1.296 1.296 0 1 1-1.833-1.832 1.296 1.296 0 0 1 1.833 1.832M16.356.236L14.752 1.84a.81.81 0 0 0 0 1.144l6.263 6.263a.81.81 0 0 0 1.144 0l1.604-1.604a.81.81 0 0 0 0-1.144L17.498.235a.81.81 0 0 0-1.142 0M5.117 20.734a.733.733 0 0 0 0-1.034l-.815-.816a.733.733 0 0 0-1.035 0l-1.684 1.685-.003.002-.462-.463a.654.654 0 1 0-.925.925l2.775 2.775a.654.654 0 1 0 .925-.925l-.463-.462.003-.002zm8.486-15.893l-3.564 3.564a.82.82 0 0 0 0 1.154l2.2 2.2a3.98 3.98 0 0 1 5.137.419l1.782-1.782a.82.82 0 0 0 0-1.154l-4.401-4.4a.815.815 0 0 0-1.154 0m-2.288 7.846l-1.3-1.3a.786.786 0 0 0-1.108 0l-4.583 4.586a.786.786 0 0 0 0 1.107l2.597 2.598a.786.786 0 0 0 1.108 0l2.947-2.953a3.99 3.99 0 0 1 .339-4.038"/>
+                                    </svg>
+                                </div>
+                                <div class="group/icon flex items-center justify-center w-full aspect-square rounded-xl bg-white border border-gray-300 hover:border-gray-300 transition-all cursor-default" title="Grafana">
+                                    <svg class="w-5 h-5 text-gray-400 group-hover/icon:text-[#F46800] transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M23.02 10.59a8.6 8.6 0 0 0-.862-3.034 8.9 8.9 0 0 0-1.789-2.445c.337-1.342-.413-2.505-.413-2.505-1.292-.08-2.113.4-2.416.62l-.154-.064a10 10 0 0 0-.677-.247 10 10 0 0 0-.711-.197 10 10 0 0 0-.875-.161C14.557.753 12.94 0 12.94 0c-1.804 1.145-2.147 2.744-2.147 2.744l-.018.093a9 9 0 0 0-.298.088c-.138.042-.275.094-.413.143-.138.055-.275.107-.41.166a9 9 0 0 0-1.557.87l-.063-.029c-2.497-.955-4.716.195-4.716.195-.203 2.658.996 4.33 1.235 4.636a11.6 11.6 0 0 0-.607 2.635C1.636 12.677.953 15.014.953 15.014c1.926 2.214 4.171 2.351 4.171 2.351l.006-.005c.285.509.615.994.986 1.446.157.19.32.372.488.548-.704 2.009.099 3.68.099 3.68 2.144.08 3.553-.937 3.849-1.173a9.8 9.8 0 0 0 3.164.501h.08l.055-.003.107-.002.103-.005.003.002c1.01 1.44 2.788 1.646 2.788 1.646 1.264-1.332 1.337-2.653 1.337-2.94v-.058l-.003-.06a8 8 0 0 0 .758-.6 8 8 0 0 0 1.415-1.7c1.43.083 2.437-.885 2.437-.885-.236-1.49-1.085-2.216-1.264-2.354l-.018-.013-.016-.013-.031-.02.02-.27c.01-.163.016-.322.016-.48v-.253l-.005-.098-.008-.135a2 2 0 0 0-.01-.13l-.013-.125-.016-.124-.018-.122a6.2 6.2 0 0 0-2.032-3.73 6 6 0 0 0-3.222-1.46 6 6 0 0 0-.85-.048l-.107.002h-.063l-.044.003-.104.008a4.78 4.78 0 0 0-3.335 1.695c-.332.4-.592.84-.768 1.297a4.6 4.6 0 0 0-.312 1.817l.003.091.013.164a3.6 3.6 0 0 0 .698 1.82 3.53 3.53 0 0 0 1.827 1.282c.33.098.66.14.971.137l.114-.002.063-.003.062-.003.099-.01.028-.003.031-.005.06-.008a1 1 0 0 0 .112-.02c.036-.008.072-.013.109-.024a2.6 2.6 0 0 0 .914-.415l.085-.065a.25.25 0 0 0 .039-.35.244.244 0 0 0-.309-.06l-.078.042a2.5 2.5 0 0 1-.283.116 2.5 2.5 0 0 1-.475.096l-.083.006-.083.002-.08-.002-.102-.006h-.012l-.024.006-.044-.006a3 3 0 0 1-.091-.01 2.6 2.6 0 0 1-.724-.213 2.6 2.6 0 0 1-.667-.438 2.52 2.52 0 0 1-.805-1.475 2.3 2.3 0 0 1-.029-.444l.006-.122v-.023l.002-.031.005-.06a3.16 3.16 0 0 1 1.352-2.29c.282-.2.597-.345.937-.43a3 3 0 0 1 .776-.101h.06l.07.002.045.003h.026l.07.005a4 4 0 0 1 1.635.49 3.94 3.94 0 0 1 1.602 1.662c.188.432.322.9.397 1.414l.005.076.003.075.002.075v.07l-.002.138-.008.174a6 6 0 0 1-.08.639 5 5 0 0 1-.267.927 5.3 5.3 0 0 1-.624 1.13 5.05 5.05 0 0 1-3.237 2.014 5 5 0 0 1-.649.066l-.039.003h-.287a6.6 6.6 0 0 1-1.716-.265 6.8 6.8 0 0 1-3.4-2.274 7 7 0 0 1-.746-1.15 6.6 6.6 0 0 1-.714-2.596l-.005-.083-.002-.02v-.056l-.003-.073v-.096l-.003-.104v-.07l.003-.163c.008-.22.026-.45.054-.678a9 9 0 0 1 .28-1.355c.128-.445.285-.87.473-1.277a7 7 0 0 1 1.456-2.1c.285-.299.605-.556.953-.763.169-.111.346-.214.524-.306.089-.05.182-.091.273-.135l.138-.062a7 7 0 0 1 .714-.267l.145-.045c.049-.015.098-.026.148-.041l.296-.076c.049-.013.1-.02.15-.033l.15-.032.151-.028.076-.013.075-.01.153-.024c.057-.01.114-.013.171-.023l.169-.021.106-.01.073-.008.036-.003.042-.002.171-.01.086-.006h.023l.037-.003.145-.007a8 8 0 0 1 1.708.125 8 8 0 0 1 2.048.68c.59.285 1.15.65 1.672 1.09l.09.077.089.078c.06.052.114.107.171.159l.166.16.159.164a8.7 8.7 0 0 1 1.41 1.978l.04.078.04.078.075.156c.023.051.05.1.07.153l.065.15a9 9 0 0 1 .45 1.34.19.19 0 0 0 .201.142.186.186 0 0 0 .172-.184c.01-.247-.009-.571-.024-.856"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Badge -->
+                        <div class="mt-5 pt-4 border-t border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-gray-500">Popular tools supported</span>
+                                <a href="/product/workflows" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white rounded-lg border border-gray-300 hover:border-gray-300 hover:bg-gray-50 transition-colors">
+                                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                    </svg>
+                                    5,000+ more
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API -->
+            <div class="group enterprise-card-wrapper">
+                <div class="enterprise-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
+                    <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-1">API & Terraform</h3>
+                    <p class="text-sm text-gray-500">REST API and official Terraform provider.</p>
+                </div>
+            </div>
+
+            <!-- Data Residency -->
+            <div class="group enterprise-card-wrapper">
+                <div class="enterprise-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
+                    <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-1">Data Residency</h3>
+                    <p class="text-sm text-gray-500">US, EU datacenters or self-host.</p>
+                </div>
+            </div>
+
+            <!-- Audit Logs -->
+            <div class="group enterprise-card-wrapper">
+                <div class="enterprise-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
+                    <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-1">Audit Logs</h3>
+                    <p class="text-sm text-gray-500">Complete activity tracking.</p>
+                </div>
+            </div>
+
+            <!-- Support -->
+            <div class="group enterprise-card-wrapper">
+                <div class="enterprise-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
+                    <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-1">24/7 Support</h3>
+                    <p class="text-sm text-gray-500">Dedicated engineer support.</p>
+                </div>
+            </div>
+
+            <!-- Uptime SLA -->
+            <div class="group enterprise-card-wrapper">
+                <div class="enterprise-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
+                    <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-1">99.99% Uptime</h3>
+                    <p class="text-sm text-gray-500">Enterprise-grade reliability.</p>
+                </div>
+            </div>
+
+            <!-- Custom Contracts -->
+            <div class="group enterprise-card-wrapper">
+                <div class="enterprise-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
+                    <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0 0 12 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52 2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 0 1-2.031.352 5.988 5.988 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971Zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0 2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 0 1-2.031.352 5.989 5.989 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971Z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-1">Custom Contracts</h3>
+                    <p class="text-sm text-gray-500">Flexible terms for your needs.</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Bottom CTA -->
+        <div class="mt-12 text-center">
+            <a href="/enterprise/demo" class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors">
+                Talk to Sales
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                 </svg>
-
-                <h3 class="mt-6 font-semibold text-gray-900">SSO / SAML Auth</h3>
-                <p class="mt-2 text-gray-700">
-                    Use SSO and SAML authentication and integrate with your existing identity provider.
-                </p>
-            </li>
-            <li class="rounded-2xl border border-gray-200 p-8">
-                <svg fill="none" viewBox="0 0 32 32" aria-hidden="true" stroke-width="1.5" stroke="currentColor"
-                    class="h-10 w-10">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
-                </svg>
-
-                <h3 class="mt-6 font-semibold text-gray-900">Advanced Access Controls</h3>
-                <p class="mt-2 text-gray-700">
-                    Access controls let you set fine-grained permissions for individual users or teams.
-                </p>
-            </li>
-            <li class="rounded-2xl border border-gray-200 p-8">
-                <svg fill="none" viewBox="0 0 32 32" aria-hidden="true" stroke-width="1.5" stroke="currentColor"
-                    class="h-10 w-10">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
-                </svg>
-
-                <h3 class="mt-6 font-semibold text-gray-900">Dedicated Engineer and Support</h3>
-                <p class="mt-2 text-gray-700">
-                    Our team are here to help you with any issues you may have - 24/7/365.
-                </p>
-            </li>
-            <li class="rounded-2xl border border-gray-200 p-8"><svg fill="none" viewBox="0 0 32 32" aria-hidden="true"
-                    stroke-width="1.5" stroke="currentColor" class="h-10 w-10">
-
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
-
-                </svg>
-                <h3 class="mt-6 font-semibold text-gray-900">Audit Events and Logs</h3>
-                <p class="mt-2 text-gray-700">
-                    Document user activities and system events, crucial for security and compliance.
-                </p>
-            </li>
-            <li class="rounded-2xl border border-gray-200 p-8">
-                <svg fill="none" viewBox="0 0 32 32" aria-hidden="true" stroke-width="1.5" stroke="currentColor"
-                    class="h-10 w-10">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
-                </svg>
-                <h3 class="mt-6 font-semibold text-gray-900">Custom Data Residency</h3>
-                <p class="mt-2 text-gray-700">You control your data. Store it on-prem or pick from our US or EU
-                    datacenter.</p>
-            </li>
-            <li class="rounded-2xl border border-gray-200 p-8">
-                <svg fill="none" viewBox="0 0 32 32" aria-hidden="true" stroke-width="1.5" stroke="currentColor"
-                    class="h-10 w-10">
-
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
-
-
-                </svg>
-                <h3 class="mt-6 font-semibold text-gray-900">SOC 2 Type 2 &amp; ISO Compliant</h3>
-                <p class="mt-2 text-gray-700">We are SOC 2/3, ISO, PCI, HIPAA, CCPA and GDPR Compliant. </p>
-            </li>
-            <li class="rounded-2xl border border-gray-200 p-8"><svg fill="none" viewBox="0 0 32 32" aria-hidden="true" stroke-width="1.5" stroke="currentColor"
-                    class="h-10 w-10">
-
-                   <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z"
-      />
-
-                </svg>
-                <h3 class="mt-6 font-semibold text-gray-900">5000+ Integrations</h3>
-                <p class="mt-2 text-gray-700">
-                    Integrate with your existing tools and workflows using our Workflows.
-                </p>
-            </li>
-            <li class="rounded-2xl border border-gray-200 p-8"><svg fill="none" viewBox="0 0 32 32" aria-hidden="true" stroke-width="1.5" stroke="currentColor"
-                    class="h-10 w-10" >
-  <path stroke-linecap="round" stroke-linejoin="round" d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z" />
-</svg>
-
-                <h3 class="mt-6 font-semibold text-gray-900">Full API Access</h3>
-                <p class="mt-2 text-gray-700">
-                    Anything you can do in the UI, you can do with our API. Build your own integrations and
-                    workflows.
-                </p>
-            </li>
-            <li class="rounded-2xl border border-gray-200 p-8"><svg fill="none" viewBox="0 0 32 32" aria-hidden="true" stroke-width="1.5" stroke="currentColor"
-                    class="h-10 w-10" >
-  <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 9.75 16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z" />
-</svg>
-
-                <h3 class="mt-6 font-semibold text-gray-900">Terraform Support</h3>
-                <p class="mt-2 text-gray-700">
-                    Use our Terraform provider to manage your OneUptime resources as code. Version control your
-                    infrastructure.
-                </p>
-            </li>
-        </ul>
+            </a>
+        </div>
     </div>
 </section>

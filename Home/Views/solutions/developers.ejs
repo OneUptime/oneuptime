@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+    <title>OneUptime for Developers | Stop Fighting Fires. Start Shipping Features.</title>
+    <meta name="description"
+        content="The open-source observability platform developers actually want to use. OpenTelemetry native, API-first, no vendor lock-in. Debug production issues in minutes, not hours.">
+        <%- include('../head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+
+<!-- JetBrains Mono font for code blocks -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+    /* Hero Product Card Glow Styles - Matching Home Page */
+    .hero-card-wrapper {
+        position: relative;
+    }
+    .hero-card-wrapper::before {
+        content: '';
+        position: absolute;
+        inset: -30px;
+        border-radius: 50%;
+        opacity: 0;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none;
+        z-index: 0;
+    }
+    .hero-card-wrapper:hover::before {
+        opacity: 1;
+    }
+    .hero-card {
+        position: relative;
+        z-index: 1;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .hero-card:hover {
+        transform: translateY(-2px);
+    }
+
+    /* Color-themed glow effects - matching hero.ejs */
+    /* Emerald - Status Page */
+    .hero-glow-emerald-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(16 185 129 / 0.06) 0%, rgb(16 185 129 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-emerald:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(16 185 129 / 0.3), 0 4px 12px -4px rgb(16 185 129 / 0.15), 0 0 30px -8px rgb(16 185 129 / 0.1);
+    }
+    /* Rose - Incident Management & Error Tracking */
+    .hero-glow-rose-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(244 63 94 / 0.06) 0%, rgb(244 63 94 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-rose:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(244 63 94 / 0.3), 0 4px 12px -4px rgb(244 63 94 / 0.15), 0 0 30px -8px rgb(244 63 94 / 0.1);
+    }
+    /* Blue - Monitoring */
+    .hero-glow-blue-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(59 130 246 / 0.06) 0%, rgb(59 130 246 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-blue:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(59 130 246 / 0.3), 0 4px 12px -4px rgb(59 130 246 / 0.15), 0 0 30px -8px rgb(59 130 246 / 0.1);
+    }
+    /* Amber - Logs */
+    .hero-glow-amber-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(245 158 11 / 0.06) 0%, rgb(245 158 11 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-amber:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(245 158 11 / 0.3), 0 4px 12px -4px rgb(245 158 11 / 0.15), 0 0 30px -8px rgb(245 158 11 / 0.1);
+    }
+    /* Stone - On-Call */
+    .hero-glow-stone-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(120 113 108 / 0.06) 0%, rgb(120 113 108 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-stone:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(120 113 108 / 0.3), 0 4px 12px -4px rgb(120 113 108 / 0.15), 0 0 30px -8px rgb(120 113 108 / 0.1);
+    }
+    /* Purple - Metrics */
+    .hero-glow-purple-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(168 85 247 / 0.06) 0%, rgb(168 85 247 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-purple:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(168 85 247 / 0.3), 0 4px 12px -4px rgb(168 85 247 / 0.15), 0 0 30px -8px rgb(168 85 247 / 0.1);
+    }
+    /* Yellow - Traces */
+    .hero-glow-yellow-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(234 179 8 / 0.06) 0%, rgb(234 179 8 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-yellow:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(234 179 8 / 0.3), 0 4px 12px -4px rgb(234 179 8 / 0.15), 0 0 30px -8px rgb(234 179 8 / 0.1);
+    }
+    /* Sky - Workflows */
+    .hero-glow-sky-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(14 165 233 / 0.06) 0%, rgb(14 165 233 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-sky:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(14 165 233 / 0.3), 0 4px 12px -4px rgb(14 165 233 / 0.15), 0 0 30px -8px rgb(14 165 233 / 0.1);
+    }
+    /* Indigo - Dashboards */
+    .hero-glow-indigo-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(99 102 241 / 0.06) 0%, rgb(99 102 241 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-indigo:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(99 102 241 / 0.3), 0 4px 12px -4px rgb(99 102 241 / 0.15), 0 0 30px -8px rgb(99 102 241 / 0.1);
+    }
+    /* Violet - AI Agent */
+    .hero-glow-violet-wrapper::before {
+        background: radial-gradient(ellipse at center, rgb(139 92 246 / 0.06) 0%, rgb(139 92 246 / 0.02) 40%, transparent 70%);
+    }
+    .hero-glow-violet:hover {
+        background-color: rgb(255 255 255) !important;
+        box-shadow: 0 0 0 2px rgb(139 92 246 / 0.3), 0 4px 12px -4px rgb(139 92 246 / 0.15), 0 0 30px -8px rgb(139 92 246 / 0.1);
+    }
+
+    /* Dev card styles */
+    .dev-card {
+        position: relative;
+        transition: all 0.2s ease;
+    }
+    .dev-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px -12px rgba(0,0,0,0.1);
+    }
+
+    /* Code block styling */
+    .code-block {
+        font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+        font-size: 14px;
+        line-height: 1.7;
+        font-feature-settings: 'liga' 1, 'calt' 1;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Terminal window styling */
+    .terminal-window {
+        background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+        box-shadow:
+            0 0 0 1px rgba(255,255,255,0.05),
+            0 25px 50px -12px rgba(0,0,0,0.5),
+            0 0 100px -20px rgba(245,158,11,0.15);
+    }
+
+    .terminal-header {
+        background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%);
+        backdrop-filter: blur(10px);
+    }
+
+    .terminal-dot {
+        box-shadow: 0 0 8px currentColor;
+    }
+
+    .terminal-body {
+        background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, transparent 100%);
+    }
+
+    /* Line numbers */
+    .line-number {
+        color: #4a5568;
+        user-select: none;
+        text-align: right;
+        padding-right: 1rem;
+        border-right: 1px solid rgba(255,255,255,0.05);
+        margin-right: 1rem;
+    }
+
+    /* Syntax highlighting improvements */
+    .syntax-key { color: #7dd3fc; }
+    .syntax-value { color: #fcd34d; }
+    .syntax-string { color: #86efac; }
+    .syntax-comment { color: #6b7280; font-style: italic; }
+    .syntax-bracket { color: #a78bfa; }
+
+    /* Terminal typing animation */
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+    }
+    .cursor-blink {
+        animation: blink 1s step-end infinite;
+    }
+
+    /* Copy button */
+    .copy-btn {
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+    .terminal-window:hover .copy-btn {
+        opacity: 1;
+    }
+</style>
+</head>
+
+<body>
+  <%- include('../nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section - Matching Home Page Style -->
+    <div class="relative isolate bg-white overflow-hidden" id="dev-hero-section">
+      <!-- Subtle grid pattern background -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <!-- Grid glow effect that follows cursor -->
+      <div id="dev-grid-glow-effect" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(139, 92, 246, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(139, 92, 246, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+      <!-- Hero ambient glow -->
+      <div id="hero-ambient-glow" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/4 w-[800px] h-[600px] pointer-events-none" style="background: transparent; opacity: 0; transition: opacity 0.35s ease-out;"></div>
+
+      <div class="py-24 sm:py-32 lg:py-40">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Badge - Matching Home Page -->
+            <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="group mb-8 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100 hover:ring-gray-300">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+              </svg>
+              <span>Built for Developers</span>
+              <span class="h-1 w-1 rounded-full bg-gray-300"></span>
+              <span>Open Source</span>
+              <svg class="h-3.5 w-3.5 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+            </a>
+
+            <!-- Main Headline -->
+            <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
+              Stop fighting fires. <br class="hidden sm:block" />
+              <span class="text-gray-700">Start shipping features.</span>
+            </h1>
+
+            <!-- Subheadline -->
+            <p class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-xl mx-auto">
+              You became a developer to build great software, not to spend your nights debugging production or juggling a dozen monitoring tools.
+            </p>
+
+            <!-- CTA Buttons -->
+            <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+              <a href="/accounts/register"
+                class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+                Get started free
+                <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+              </a>
+              <a href="/docs" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-2.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50">
+                Read the docs
+              </a>
+            </div>
+
+            <!-- Quick stats -->
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-500">
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                <span>Apache 2.0 Licensed</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                <span>OpenTelemetry Native</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                <span>Self-host or Cloud</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logo Roll -->
+    <%- include('../logo-roll') -%>
+
+    <!-- Developer Pain Points Section -->
+    <section class="relative py-24 lg:py-32 bg-gray-50 overflow-hidden">
+      <div class="absolute inset-0 -z-10">
+        <div class="absolute top-1/4 left-0 w-72 h-72 bg-rose-100/40 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-1/4 right-0 w-72 h-72 bg-amber-100/40 rounded-full blur-3xl"></div>
+      </div>
+
+      <div class="mx-auto max-w-6xl px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <p class="text-sm font-medium text-rose-600 tracking-wide uppercase mb-4">The Problem</p>
+          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
+            Sound familiar?
+          </h2>
+        </div>
+
+        <!-- Pain Points Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">3 AM pages</h3>
+            </div>
+            <p class="text-sm text-gray-600">"Something's broken in production." Cool. Which of my 7 dashboards should I check first?</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Context switching</h3>
+            </div>
+            <p class="text-sm text-gray-600">Logs in Splunk. Traces in Jaeger. Metrics in Datadog. Alerts in PagerDuty. Where's the actual bug?</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Surprise invoices</h3>
+            </div>
+            <p class="text-sm text-gray-600">"Your bill this month: $47,000." Thanks for the 10TB of logs nobody looked at.</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Vendor lock-in</h3>
+            </div>
+            <p class="text-sm text-gray-600">Proprietary agents everywhere. Good luck migrating when the pricing "evolves."</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Endless setup</h3>
+            </div>
+            <p class="text-sm text-gray-600">Two weeks to instrument. Another week for dashboards. Three more for alerts. Ship features? Maybe next quarter.</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold text-gray-900">Alert fatigue</h3>
+            </div>
+            <p class="text-sm text-gray-600">500 alerts. 3 real problems. Which is which? Hope you enjoy playing detective at 3 AM.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Product Grid Section -->
+    <%- include('../Partials/product-grid-section', {
+      label: 'The Solution',
+      title: 'OneUptime',
+      subtitle: 'One platform. Zero chaos.',
+      description: 'Stop context-switching between tools. OneUptime unifies monitoring, logs, traces, incidents, and on-call into a single open-source platform—so you can debug faster and get back to shipping.'
+    }) -%>
+
+    <!-- OpenTelemetry Section -->
+    <section class="relative py-24 lg:py-32 overflow-hidden bg-slate-900">
+      <!-- Background effects -->
+      <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(245,158,11,0.15),transparent)]"></div>
+      <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff06_1px,transparent_1px),linear-gradient(to_bottom,#ffffff06_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-50"></div>
+
+      <div class="relative mx-auto max-w-6xl px-6 lg:px-8">
+        <!-- Header -->
+        <div class="text-center mb-16">
+          <div class="inline-flex items-center gap-3 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-yellow-500/15 px-5 py-2 mb-8 shadow-lg shadow-amber-500/10 backdrop-blur-sm">
+            <!-- OpenTelemetry Logo -->
+            <svg class="h-5 w-5 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.697 13.117A2.618 2.618 0 1 0 16.4 16.82a2.618 2.618 0 0 0-3.703-3.703m2.768 2.77a1.296 1.296 0 1 1-1.833-1.832 1.296 1.296 0 0 1 1.833 1.832M16.356.236L14.752 1.84a.81.81 0 0 0 0 1.144l6.263 6.263a.81.81 0 0 0 1.144 0l1.604-1.604a.81.81 0 0 0 0-1.144L17.498.235a.81.81 0 0 0-1.142 0M5.117 20.734a.733.733 0 0 0 0-1.034l-.815-.816a.733.733 0 0 0-1.035 0l-1.684 1.685-.003.002-.462-.463a.654.654 0 1 0-.925.925l2.775 2.775a.654.654 0 1 0 .925-.925l-.463-.462.003-.002zm8.486-15.893l-3.564 3.564a.82.82 0 0 0 0 1.154l2.2 2.2a3.98 3.98 0 0 1 5.137.419l1.782-1.782a.82.82 0 0 0 0-1.154l-4.401-4.4a.815.815 0 0 0-1.154 0m-2.288 7.846l-1.3-1.3a.786.786 0 0 0-1.108 0l-4.583 4.586a.786.786 0 0 0 0 1.107l2.597 2.598a.786.786 0 0 0 1.108 0l2.947-2.953a3.99 3.99 0 0 1 .339-4.038"/>
+            </svg>
+            <span class="text-sm font-semibold bg-gradient-to-r from-amber-200 via-orange-200 to-yellow-200 bg-clip-text text-transparent">OpenTelemetry Native</span>
+          </div>
+
+          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-white mb-6">
+            Your instrumentation.<br/>
+            <span class="bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">Our platform.</span>
+          </h2>
+
+          <p class="max-w-2xl mx-auto text-lg text-slate-400 leading-relaxed">
+            No proprietary agents. No vendor lock-in. Just point your OpenTelemetry collector at OneUptime and you're done. Works with any language, any framework.
+          </p>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+          <div class="group p-6 rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 hover:border-amber-500/30 hover:-translate-y-1 transition-all duration-300">
+            <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-4 group-hover:bg-amber-500/20 group-hover:border-amber-500/30 transition-colors">
+              <svg class="h-6 w-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+              </svg>
+            </div>
+            <h4 class="text-white font-semibold mb-2">Zero Migration</h4>
+            <p class="text-sm text-slate-400 leading-relaxed">Already using OpenTelemetry? Just change the endpoint. Your existing instrumentation works instantly.</p>
+          </div>
+
+          <div class="group p-6 rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 hover:border-orange-500/30 hover:-translate-y-1 transition-all duration-300">
+            <div class="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-4 group-hover:bg-orange-500/20 group-hover:border-orange-500/30 transition-colors">
+              <svg class="h-6 w-6 text-orange-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+              </svg>
+            </div>
+            <h4 class="text-white font-semibold mb-2">Traces + Metrics + Logs</h4>
+            <p class="text-sm text-slate-400 leading-relaxed">Full OTLP support for all signal types. Auto-correlated so you can jump from trace to log to metric.</p>
+          </div>
+
+          <div class="group p-6 rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 hover:border-yellow-500/30 hover:-translate-y-1 transition-all duration-300">
+            <div class="w-12 h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mb-4 group-hover:bg-yellow-500/20 group-hover:border-yellow-500/30 transition-colors">
+              <svg class="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+              </svg>
+            </div>
+            <h4 class="text-white font-semibold mb-2">No Vendor Lock-in</h4>
+            <p class="text-sm text-slate-400 leading-relaxed">Open standards mean you can switch anytime. Your instrumentation is yours, not ours.</p>
+          </div>
+        </div>
+
+        <!-- Code Sample with Language Pills -->
+        <div class="max-w-4xl mx-auto">
+          <!-- Language Pills Grid -->
+          <div class="grid grid-cols-5 sm:grid-cols-10 gap-3 mb-8" id="lang-selector">
+            <!-- Go -->
+            <button data-lang="go" class="lang-btn group flex flex-col items-center gap-2 cursor-pointer" onclick="switchLang('go')">
+              <div class="lang-icon w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center transition-all duration-300 group-hover:bg-cyan-500/20 group-hover:border-cyan-500/50 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-cyan-500/20" data-color="cyan">
+                <svg class="w-6 h-6 text-slate-400 group-hover:text-cyan-400 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M1.811 10.231c-.047 0-.058-.023-.035-.059l.246-.315c.023-.035.081-.058.128-.058h4.172c.046 0 .058.035.035.07l-.199.303c-.023.036-.082.07-.117.07zM.047 11.306c-.047 0-.059-.023-.035-.058l.245-.316c.023-.035.082-.058.129-.058h5.328c.047 0 .07.035.058.07l-.093.28c-.012.047-.058.07-.105.07zm2.828 1.075c-.047 0-.059-.035-.035-.07l.163-.292c.023-.035.07-.07.117-.07h2.337c.047 0 .07.035.07.082l-.023.28c0 .047-.047.082-.082.082zm12.129-2.36c-.736.187-1.239.327-1.963.514-.176.046-.187.058-.34-.117-.174-.199-.303-.327-.548-.444-.737-.362-1.45-.257-2.115.175-.795.514-1.204 1.274-1.192 2.22.011.935.654 1.706 1.577 1.835.795.105 1.46-.175 1.987-.77.105-.13.198-.27.315-.434H10.47c-.245 0-.304-.152-.222-.35.152-.362.432-.97.596-1.274a.315.315 0 0 1 .292-.187h4.253c-.023.316-.023.631-.07.947a4.983 4.983 0 0 1-.958 2.29c-.841 1.11-1.94 1.8-3.33 1.986-1.145.152-2.209-.07-3.143-.77-.865-.655-1.356-1.52-1.484-2.595-.152-1.274.222-2.419.993-3.424.83-1.086 1.928-1.776 3.272-2.02 1.098-.2 2.15-.07 3.096.571.62.41 1.063.97 1.356 1.648.07.105.023.164-.117.2z"/>
+                </svg>
+              </div>
+              <span class="lang-label text-xs font-medium text-slate-500 group-hover:text-cyan-400 transition-colors">Go</span>
+            </button>
+
+            <!-- Java -->
+            <button data-lang="java" class="lang-btn group flex flex-col items-center gap-2 cursor-pointer" onclick="switchLang('java')">
+              <div class="lang-icon w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center transition-all duration-300 group-hover:bg-red-500/20 group-hover:border-red-500/50 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-red-500/20" data-color="red">
+                <svg class="w-6 h-6 text-slate-400 group-hover:text-red-400 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8.851 18.56s-.917.534.653.714c1.902.218 2.874.187 4.969-.211 0 0 .552.346 1.321.646-4.699 2.013-10.633-.118-6.943-1.149M8.276 15.933s-1.028.761.542.924c2.032.209 3.636.227 6.413-.308 0 0 .384.389.987.602-5.679 1.661-12.007.13-7.942-1.218M13.116 11.475c1.158 1.333-.304 2.533-.304 2.533s2.939-1.518 1.589-3.418c-1.261-1.772-2.228-2.652 3.007-5.688 0-.001-8.216 2.051-4.292 6.573M19.33 20.504s.679.559-.747.991c-2.712.822-11.288 1.069-13.669.033-.856-.373.75-.89 1.254-.998.527-.114.828-.093.828-.093-.953-.671-6.156 1.317-2.643 1.887 9.58 1.553 17.462-.7 14.977-1.82M9.292 13.21s-4.362 1.036-1.544 1.412c1.189.159 3.561.123 5.77-.062 1.806-.152 3.618-.477 3.618-.477s-.637.272-1.098.587c-4.429 1.165-12.986.623-10.522-.568 2.082-1.006 3.776-.892 3.776-.892M17.116 17.584c4.503-2.34 2.421-4.589.968-4.285-.355.074-.515.138-.515.138s.132-.207.385-.297c2.875-1.011 5.086 2.981-.928 4.562 0-.001.07-.062.09-.118M14.401 0s2.494 2.494-2.365 6.33c-3.896 3.077-.889 4.832 0 6.836-2.274-2.053-3.943-3.858-2.824-5.539 1.644-2.469 6.197-3.665 5.189-7.627M9.734 23.924c4.322.277 10.959-.153 11.116-2.198 0 0-.302.775-3.572 1.391-3.688.694-8.239.613-10.937.168 0-.001.553.457 3.393.639"/>
+                </svg>
+              </div>
+              <span class="lang-label text-xs font-medium text-slate-500 group-hover:text-red-400 transition-colors">Java</span>
+            </button>
+
+            <!-- Python -->
+            <button data-lang="python" class="lang-btn group flex flex-col items-center gap-2 cursor-pointer" onclick="switchLang('python')">
+              <div class="lang-icon w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center transition-all duration-300 group-hover:bg-yellow-500/20 group-hover:border-yellow-500/50 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-yellow-500/20" data-color="yellow">
+                <svg class="w-6 h-6 text-slate-400 group-hover:text-yellow-400 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M14.25.18l.9.2.73.26.59.3.45.32.34.34.25.34.16.33.1.3.04.26.02.2-.01.13V8.5l-.05.63-.13.55-.21.46-.26.38-.3.31-.33.25-.35.19-.35.14-.33.1-.3.07-.26.04-.21.02H8.77l-.69.05-.59.14-.5.22-.41.27-.33.32-.27.35-.2.36-.15.37-.1.35-.07.32-.04.27-.02.21v3.06H3.17l-.21-.03-.28-.07-.32-.12-.35-.18-.36-.26-.36-.36-.35-.46-.32-.59-.28-.73-.21-.88-.14-1.05-.05-1.23.06-1.22.16-1.04.24-.87.32-.71.36-.57.4-.44.42-.33.42-.24.4-.16.36-.1.32-.05.24-.01h.16l.06.01h8.16v-.83H6.18l-.01-2.75-.02-.37.05-.34.11-.31.17-.28.25-.26.31-.23.38-.2.44-.18.51-.15.58-.12.64-.1.71-.06.77-.04.84-.02 1.27.05zm-6.3 1.98l-.23.33-.08.41.08.41.23.34.33.22.41.09.41-.09.33-.22.23-.34.08-.41-.08-.41-.23-.33-.33-.22-.41-.09-.41.09zm13.09 3.95l.28.06.32.12.35.18.36.27.36.35.35.47.32.59.28.73.21.88.14 1.04.05 1.23-.06 1.23-.16 1.04-.24.86-.32.71-.36.57-.4.45-.42.33-.42.24-.4.16-.36.09-.32.05-.24.02-.16-.01h-8.22v.82h5.84l.01 2.76.02.36-.05.34-.11.31-.17.29-.25.25-.31.24-.38.2-.44.17-.51.15-.58.13-.64.09-.71.07-.77.04-.84.01-1.27-.04-1.07-.14-.9-.2-.73-.25-.59-.3-.45-.33-.34-.34-.25-.34-.16-.33-.1-.3-.04-.25-.02-.2.01-.13v-5.34l.05-.64.13-.54.21-.46.26-.38.3-.32.33-.24.35-.2.35-.14.33-.1.3-.06.26-.04.21-.02.13-.01h5.84l.69-.05.59-.14.5-.21.41-.28.33-.32.27-.35.2-.36.15-.36.1-.35.07-.32.04-.28.02-.21V6.07h2.09l.14.01zm-6.47 14.25l-.23.33-.08.41.08.41.23.33.33.23.41.08.41-.08.33-.23.23-.33.08-.41-.08-.41-.23-.33-.33-.23-.41-.08-.41.08z"/>
+                </svg>
+              </div>
+              <span class="lang-label text-xs font-medium text-slate-500 group-hover:text-yellow-400 transition-colors">Python</span>
+            </button>
+
+            <!-- Node.js -->
+            <button data-lang="nodejs" class="lang-btn group flex flex-col items-center gap-2 cursor-pointer" onclick="switchLang('nodejs')">
+              <div class="lang-icon w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center transition-all duration-300 group-hover:bg-green-500/20 group-hover:border-green-500/50 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-green-500/20" data-color="green">
+                <svg class="w-6 h-6 text-slate-400 group-hover:text-green-400 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M11.998 24c-.321 0-.641-.084-.922-.247l-2.936-1.737c-.438-.245-.224-.332-.08-.383.585-.203.703-.25 1.328-.604.065-.037.151-.023.218.017l2.256 1.339a.29.29 0 0 0 .272 0l8.795-5.076a.277.277 0 0 0 .134-.238V6.921a.283.283 0 0 0-.137-.242l-8.791-5.072a.278.278 0 0 0-.271 0L3.075 6.68a.284.284 0 0 0-.139.241v10.15a.27.27 0 0 0 .139.235l2.409 1.392c1.307.654 2.108-.116 2.108-.89V7.787c0-.142.114-.253.256-.253h1.115c.139 0 .255.112.255.253v10.021c0 1.745-.95 2.745-2.604 2.745-.508 0-.909 0-2.026-.551L2.28 18.675a1.857 1.857 0 0 1-.922-1.604V6.921c0-.659.353-1.275.922-1.603l8.795-5.082c.557-.315 1.296-.315 1.848 0l8.794 5.082c.57.329.924.944.924 1.603v10.15a1.86 1.86 0 0 1-.924 1.604l-8.794 5.078c-.28.163-.6.247-.925.247zm2.715-6.997c-3.857 0-4.664-1.774-4.664-3.262 0-.142.114-.253.256-.253h1.137c.127 0 .233.091.253.216.172 1.161.686 1.746 3.018 1.746 1.856 0 2.646-.42 2.646-1.404 0-.567-.224-.988-3.11-1.271-2.412-.239-3.905-.771-3.905-2.702 0-1.78 1.501-2.839 4.016-2.839 2.824 0 4.222.98 4.398 3.084a.258.258 0 0 1-.064.19.258.258 0 0 1-.183.08h-1.143a.252.252 0 0 1-.246-.196c-.273-1.213-.936-1.601-2.762-1.601-2.034 0-2.271.709-2.271 1.24 0 .644.28.832 3.012 1.196 2.709.36 4.001.869 4.001 2.762-.001 1.922-1.601 3.014-4.389 3.014z"/>
+                </svg>
+              </div>
+              <span class="lang-label text-xs font-medium text-slate-500 group-hover:text-green-400 transition-colors">Node.js</span>
+            </button>
+
+            <!-- .NET -->
+            <button data-lang="dotnet" class="lang-btn group flex flex-col items-center gap-2 cursor-pointer" onclick="switchLang('dotnet')">
+              <div class="lang-icon w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center transition-all duration-300 group-hover:bg-purple-500/20 group-hover:border-purple-500/50 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-purple-500/20" data-color="purple">
+                <svg class="w-6 h-6 text-slate-400 group-hover:text-purple-400 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M24 8.77h-2.468v7.565h-1.425V8.77h-2.462V7.53H24zm-6.852 7.565h-4.821V7.53h4.63v1.24h-3.205v2.494h2.953v1.234h-2.953v2.604h3.396zm-6.708 0H8.882L4.78 9.863a2.896 2.896 0 0 1-.258-.51h-.036c.032.189.048.592.048 1.21v5.772H3.157V7.53h1.659l3.965 6.32c.167.261.275.442.323.54h.024c-.04-.233-.06-.629-.06-1.185V7.529h1.372zm-8.703-.693a.868.829 0 0 1-.869.829.868.829 0 0 1-.868-.83.868.829 0 0 1 .868-.828.868.829 0 0 1 .869.829z"/>
+                </svg>
+              </div>
+              <span class="lang-label text-xs font-medium text-slate-500 group-hover:text-purple-400 transition-colors">.NET</span>
+            </button>
+
+            <!-- Ruby -->
+            <button data-lang="ruby" class="lang-btn group flex flex-col items-center gap-2 cursor-pointer" onclick="switchLang('ruby')">
+              <div class="lang-icon w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center transition-all duration-300 group-hover:bg-rose-500/20 group-hover:border-rose-500/50 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-rose-500/20" data-color="rose">
+                <svg class="w-6 h-6 text-slate-400 group-hover:text-rose-400 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.156.083c3.033.525 3.893 2.598 3.829 4.77L24 4.822 22.635 22.71 4.89 23.926h.016C3.433 23.864.15 23.729 0 19.139l1.645-3 2.819 6.586.503 1.172 2.805-9.144-.03.007.016-.03 9.255 2.956-1.396-5.431-.99-3.9 8.82-.569-.615-.51L16.5 2.114 20.159.073l-.003.01zM5.13 5.073c3.561-3.533 8.157-5.621 9.922-3.84 1.762 1.777-.105 6.105-3.673 9.636-3.563 3.532-8.103 5.734-9.864 3.957-1.766-1.777.045-6.217 3.612-9.75l.003-.003z"/>
+                </svg>
+              </div>
+              <span class="lang-label text-xs font-medium text-slate-500 group-hover:text-rose-400 transition-colors">Ruby</span>
+            </button>
+
+            <!-- PHP -->
+            <button data-lang="php" class="lang-btn group flex flex-col items-center gap-2 cursor-pointer" onclick="switchLang('php')">
+              <div class="lang-icon w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center transition-all duration-300 group-hover:bg-indigo-500/20 group-hover:border-indigo-500/50 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-indigo-500/20" data-color="indigo">
+                <svg class="w-6 h-6 text-slate-400 group-hover:text-indigo-400 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7.01 10.207h-.944l-.515 2.648h.838c.556 0 .97-.105 1.242-.314.272-.21.455-.559.55-1.049.092-.47.05-.802-.124-.995-.175-.193-.523-.29-1.047-.29zM12 5.688C5.373 5.688 0 8.514 0 12s5.373 6.313 12 6.313S24 15.486 24 12c0-3.486-5.373-6.312-12-6.312zm-3.26 7.451c-.261.25-.575.438-.917.551-.336.108-.765.164-1.285.164H5.357l-.327 1.681H3.652l1.23-6.326h2.65c.797 0 1.378.209 1.744.628.366.418.476 1.002.33 1.752a2.836 2.836 0 0 1-.305.847c-.143.255-.33.49-.561.703zm4.024.715l.543-2.799c.063-.318.039-.536-.068-.651-.107-.116-.336-.174-.687-.174H11.46l-.704 3.625H9.388l1.23-6.327h1.367l-.327 1.682h1.218c.767 0 1.295.134 1.586.401s.378.7.263 1.299l-.572 2.944h-1.389zm7.597-2.265a2.782 2.782 0 0 1-.305.847c-.143.255-.33.49-.561.703a2.44 2.44 0 0 1-.917.551c-.336.108-.765.164-1.286.164h-1.18l-.327 1.682h-1.378l1.23-6.326h2.649c.797 0 1.378.209 1.744.628.366.417.477 1.001.331 1.751zm-2.595-1.382h-.943l-.516 2.648h.838c.557 0 .971-.105 1.242-.314.272-.21.455-.559.551-1.049.092-.47.049-.802-.125-.995s-.524-.29-1.047-.29z"/>
+                </svg>
+              </div>
+              <span class="lang-label text-xs font-medium text-slate-500 group-hover:text-indigo-400 transition-colors">PHP</span>
+            </button>
+
+            <!-- Rust -->
+            <button data-lang="rust" class="lang-btn group flex flex-col items-center gap-2 cursor-pointer" onclick="switchLang('rust')">
+              <div class="lang-icon w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center transition-all duration-300 group-hover:bg-orange-500/20 group-hover:border-orange-500/50 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-orange-500/20" data-color="orange">
+                <svg class="w-6 h-6 text-slate-400 group-hover:text-orange-400 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.8346 11.7033l-1.0073-.6236a13.7268 13.7268 0 00-.0283-.2936l.8656-.8069a.3483.3483 0 00-.1154-.578l-1.1066-.414a8.4958 8.4958 0 00-.087-.2856l.6904-.9587a.3462.3462 0 00-.2257-.5446l-1.1663-.1894a9.3574 9.3574 0 00-.1407-.2622l.49-1.0761a.3437.3437 0 00-.0274-.3361.3486.3486 0 00-.3006-.154l-1.1845.0416a6.7444 6.7444 0 00-.1873-.2268l.2723-1.153a.3472.3472 0 00-.417-.4172l-1.1532.2724a14.0183 14.0183 0 00-.2278-.1873l.0415-1.1845a.3442.3442 0 00-.49-.328l-1.076.491c-.0872-.0476-.1742-.0952-.2623-.1407l-.1903-1.1673A.3483.3483 0 0016.256.955l-.9597.6905a8.4867 8.4867 0 00-.2855-.086l-.414-1.1066a.3483.3483 0 00-.5781-.1154l-.8069.8666a9.2936 9.2936 0 00-.2936-.0284L12.2946.1683a.3462.3462 0 00-.5892 0l-.6236 1.0073a13.7383 13.7383 0 00-.2936.0284L9.9803.3374a.3462.3462 0 00-.578.1154l-.4141 1.1065c-.0962.0274-.1903.0567-.2855.086L7.744.955a.3483.3483 0 00-.5447.2258L7.009 2.348a9.3574 9.3574 0 00-.2622.1407l-1.0762-.491a.3462.3462 0 00-.49.328l.0416 1.1845a7.9826 7.9826 0 00-.2278.1873L3.8413 3.425a.3472.3472 0 00-.4171.4171l.2713 1.1531c-.0628.075-.1255.1509-.1863.2268l-1.1845-.0415a.3462.3462 0 00-.328.49l.491 1.0761a9.167 9.167 0 00-.1407.2622l-1.1662.1894a.3483.3483 0 00-.2258.5446l.6904.9587a13.303 13.303 0 00-.087.2855l-1.1065.414a.3483.3483 0 00-.1155.5781l.8656.807a9.2936 9.2936 0 00-.0283.2935l-1.0073.6236a.3442.3442 0 000 .5892l1.0073.6236c.008.0982.0182.1964.0283.2936l-.8656.8079a.3462.3462 0 00.1155.578l1.1065.4141c.0273.0962.0567.1914.087.2855l-.6904.9587a.3452.3452 0 00.2268.5447l1.1662.1893c.0456.088.0922.1751.1408.2622l-.491 1.0762a.3462.3462 0 00.328.49l1.1834-.0415c.0618.0769.1235.1528.1873.2277l-.2713 1.1541a.3462.3462 0 00.4171.4161l1.153-.2713c.075.0638.151.1255.2279.1863l-.0415 1.1845a.3442.3442 0 00.49.327l1.0761-.49c.087.0486.1741.0951.2622.1407l.1903 1.1662a.3483.3483 0 00.5447.2268l.9587-.6904a9.299 9.299 0 00.2855.087l.414 1.1066a.3452.3452 0 00.5781.1154l.8079-.8656c.0972.0111.1954.0203.2936.0294l.6236 1.0073a.3472.3472 0 00.5892 0l.6236-1.0073c.0982-.0091.1964-.0183.2936-.0294l.8069.8656a.3483.3483 0 00.578-.1154l.4141-1.1066a8.4626 8.4626 0 00.2855-.087l.9587.6904a.3452.3452 0 00.5447-.2268l.1903-1.1662c.088-.0456.1751-.0931.2622-.1407l1.0762.49a.3472.3472 0 00.49-.327l-.0415-1.1845a6.7267 6.7267 0 00.2267-.1863l1.1531.2713a.3472.3472 0 00.4171-.416l-.2713-1.1542c.0628-.0749.1255-.1508.1863-.2278l1.1845.0415a.3442.3442 0 00.328-.49l-.49-1.076c.0475-.0872.0951-.1742.1407-.2623l1.1662-.1893a.3483.3483 0 00.2258-.5447l-.6904-.9587.087-.2855 1.1066-.414a.3462.3462 0 00.1154-.5781l-.8656-.8079c.0101-.0972.0202-.1954.0283-.2936l1.0073-.6236a.3442.3442 0 000-.5892zM12 16.9a4.9 4.9 0 114.9-4.9 4.9 4.9 0 01-4.9 4.9z"/>
+                </svg>
+              </div>
+              <span class="lang-label text-xs font-medium text-slate-500 group-hover:text-orange-400 transition-colors">Rust</span>
+            </button>
+
+            <!-- C++ -->
+            <button data-lang="cpp" class="lang-btn group flex flex-col items-center gap-2 cursor-pointer" onclick="switchLang('cpp')">
+              <div class="lang-icon w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center transition-all duration-300 group-hover:bg-blue-500/20 group-hover:border-blue-500/50 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-blue-500/20" data-color="blue">
+                <svg class="w-6 h-6 text-slate-400 group-hover:text-blue-400 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M22.394 6c-.167-.29-.398-.543-.652-.69L12.926.22c-.509-.294-1.34-.294-1.848 0L2.26 5.31c-.508.293-.923 1.013-.923 1.6v10.18c0 .294.104.62.271.91.167.29.398.543.652.69l8.816 5.09c.508.293 1.34.293 1.848 0l8.816-5.09c.254-.147.485-.4.652-.69.167-.29.27-.616.27-.91V6.91c.003-.294-.1-.62-.268-.91zM12 19.11c-3.92 0-7.109-3.19-7.109-7.11 0-3.92 3.19-7.11 7.11-7.11a7.133 7.133 0 0 1 6.156 3.553l-3.076 1.78a3.567 3.567 0 0 0-3.08-1.78A3.56 3.56 0 0 0 8.444 12 3.56 3.56 0 0 0 12 15.555a3.57 3.57 0 0 0 3.08-1.778l3.078 1.78A7.135 7.135 0 0 1 12 19.11zm7.11-6.715h-.79v.79h-.79v-.79h-.79v-.79h.79v-.79h.79v.79h.79zm2.962 0h-.79v.79h-.79v-.79h-.79v-.79h.79v-.79h.79v.79h.79z"/>
+                </svg>
+              </div>
+              <span class="lang-label text-xs font-medium text-slate-500 group-hover:text-blue-400 transition-colors">C++</span>
+            </button>
+
+            <!-- Swift -->
+            <button data-lang="swift" class="lang-btn group flex flex-col items-center gap-2 cursor-pointer" onclick="switchLang('swift')">
+              <div class="lang-icon w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center transition-all duration-300 group-hover:bg-orange-500/20 group-hover:border-orange-500/50 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-orange-500/20" data-color="orange">
+                <svg class="w-6 h-6 text-slate-400 group-hover:text-orange-400 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7.508 0c-.287 0-.573 0-.86.002-.241.002-.483.003-.724.01-.132.003-.263.009-.395.015A9.154 9.154 0 0 0 4.348.15 5.492 5.492 0 0 0 2.85.645 5.04 5.04 0 0 0 .645 2.848c-.245.48-.4.972-.495 1.5-.093.52-.122 1.05-.136 1.576a35.2 35.2 0 0 0-.012.724C0 6.935 0 7.221 0 7.508v8.984c0 .287 0 .575.002.862.002.24.005.481.012.722.014.526.043 1.057.136 1.576.095.528.25 1.02.495 1.5a5.03 5.03 0 0 0 2.205 2.203c.48.244.97.4 1.498.495.52.093 1.05.124 1.576.138.241.007.483.009.724.01.287.002.573.002.86.002h8.984c.287 0 .573 0 .86-.002.241-.001.483-.003.724-.01a10.523 10.523 0 0 0 1.578-.138 5.322 5.322 0 0 0 1.498-.495 5.035 5.035 0 0 0 2.203-2.203c.245-.48.4-.972.495-1.5.093-.52.124-1.05.138-1.576.007-.241.009-.481.01-.722.002-.287.002-.575.002-.862V7.508c0-.287 0-.573-.002-.86a33.662 33.662 0 0 0-.01-.724 10.5 10.5 0 0 0-.138-1.576 5.328 5.328 0 0 0-.495-1.5A5.039 5.039 0 0 0 21.152.645 5.32 5.32 0 0 0 19.654.15a10.493 10.493 0 0 0-1.578-.138 34.98 34.98 0 0 0-.722-.01C17.067 0 16.779 0 16.492 0H7.508zm6.035 3.41c4.114 2.47 6.545 7.162 5.549 11.131-.024.093-.05.181-.076.272l.002.001c2.062 2.538 1.5 5.258 1.236 4.745-1.072-2.086-3.066-1.568-4.088-1.043a6.803 6.803 0 0 1-.281.158l-.02.012-.002.002c-2.115 1.123-4.957 1.205-7.812-.022a12.568 12.568 0 0 1-5.64-4.838c.649.48 1.35.902 2.097 1.252 3.019 1.414 6.051 1.311 8.197-.002C9.651 12.73 7.101 9.67 5.146 7.191a10.628 10.628 0 0 1-1.005-1.384c2.34 2.142 6.038 4.83 7.365 5.576C8.69 8.408 6.208 4.743 6.324 4.86c4.436 4.47 8.528 6.996 8.528 6.996.154.085.27.154.36.213.085-.215.16-.437.224-.668.708-2.588-.09-5.548-1.893-7.992z"/>
+                </svg>
+              </div>
+              <span class="lang-label text-xs font-medium text-slate-500 group-hover:text-orange-400 transition-colors">Swift</span>
+            </button>
+          </div>
+
+          <!-- Code Block -->
+          <div class="relative max-w-3xl mx-auto">
+            <!-- Glow effect -->
+            <div class="absolute -inset-4 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-yellow-500/20 rounded-3xl blur-2xl opacity-50"></div>
+            <div class="absolute -inset-1 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-yellow-500/10 rounded-2xl"></div>
+
+            <!-- Terminal Window -->
+            <div class="terminal-window relative rounded-2xl overflow-hidden border border-slate-700/50">
+              <!-- Terminal Header -->
+              <div class="terminal-header flex items-center justify-between px-4 py-3 border-b border-slate-700/50">
+                <div class="flex items-center gap-2">
+                  <div class="terminal-dot w-3 h-3 rounded-full bg-[#ff5f57]" style="color: #ff5f57;"></div>
+                  <div class="terminal-dot w-3 h-3 rounded-full bg-[#febc2e]" style="color: #febc2e;"></div>
+                  <div class="terminal-dot w-3 h-3 rounded-full bg-[#28c840]" style="color: #28c840;"></div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                  <span id="terminal-filename" class="text-xs text-slate-400 font-medium tracking-wide">otel-collector.yaml</span>
+                </div>
+                <button class="copy-btn flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600/50 text-xs text-slate-400 hover:text-slate-200 transition-all" onclick="copyCode()">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+                  </svg>
+                  Copy
+                </button>
+              </div>
+
+              <!-- Terminal Body -->
+              <div class="terminal-body px-5 py-5 overflow-x-auto">
+                <pre class="code-block text-slate-300" id="code-content"><code><span class="syntax-comment"># OpenTelemetry Collector config for OneUptime</span>
+<span class="text-cyan-400">receivers</span>:
+  <span class="text-purple-400">otlp</span>:
+    <span class="text-slate-400">protocols</span>:
+      <span class="text-slate-400">grpc</span>:
+        <span class="text-slate-400">endpoint</span>: <span class="syntax-string">"0.0.0.0:4317"</span>
+      <span class="text-slate-400">http</span>:
+        <span class="text-slate-400">endpoint</span>: <span class="syntax-string">"0.0.0.0:4318"</span>
+
+<span class="text-cyan-400">exporters</span>:
+  <span class="text-purple-400">otlphttp</span>:
+    <span class="text-slate-400">endpoint</span>: <span class="syntax-string">"https://oneuptime.com/otlp"</span>
+    <span class="text-slate-400">headers</span>:
+      <span class="text-slate-400">x-oneuptime-token</span>: <span class="syntax-string">"YOUR_TOKEN"</span>
+
+<span class="text-cyan-400">service</span>:
+  <span class="text-purple-400">pipelines</span>:
+    <span class="text-slate-400">traces</span>:
+      <span class="text-slate-400">receivers</span>: [<span class="text-amber-400">otlp</span>]
+      <span class="text-slate-400">exporters</span>: [<span class="text-amber-400">otlphttp</span>]
+    <span class="text-slate-400">metrics</span>:
+      <span class="text-slate-400">receivers</span>: [<span class="text-amber-400">otlp</span>]
+      <span class="text-slate-400">exporters</span>: [<span class="text-amber-400">otlphttp</span>]
+    <span class="text-slate-400">logs</span>:
+      <span class="text-slate-400">receivers</span>: [<span class="text-amber-400">otlp</span>]
+      <span class="text-slate-400">exporters</span>: [<span class="text-amber-400">otlphttp</span>]</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Integration Guide Button -->
+          <div class="mt-10 flex justify-center">
+            <a href="/docs/telemetry/open-telemetry" class="group inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-yellow-500/10 border border-amber-500/30 hover:border-amber-400/50 hover:from-amber-500/20 hover:via-orange-500/20 hover:to-yellow-500/20 transition-all duration-300">
+              <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/25">
+                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                </svg>
+              </div>
+              <div class="text-left">
+                <div class="text-sm font-semibold text-white group-hover:text-amber-200 transition-colors">Read the full integration guide</div>
+                <div class="text-xs text-slate-400">Step-by-step setup instructions</div>
+              </div>
+              <svg class="w-5 h-5 text-amber-400 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Developer Features Bento -->
+    <section class="relative py-24 lg:py-32 bg-white overflow-hidden">
+      <div class="absolute inset-0 -z-10">
+        <div class="absolute top-1/4 right-0 w-72 h-72 bg-violet-100/40 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-1/4 left-0 w-72 h-72 bg-blue-100/40 rounded-full blur-3xl"></div>
+      </div>
+
+      <div class="relative mx-auto max-w-6xl px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <p class="text-sm font-medium text-violet-600 tracking-wide uppercase mb-4">Developer Experience</p>
+          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
+            Built by developers.<br class="hidden sm:block" />
+            <span class="text-gray-500">For developers.</span>
+          </h2>
+          <p class="max-w-2xl mx-auto text-lg text-gray-600">
+            We're not just an observability company that happens to have an API. Everything is API-first, code-configurable, and designed for developer workflows.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Open Source - Large -->
+          <div class="lg:col-span-2 group">
+            <div class="dev-card h-full p-8 rounded-2xl bg-white border border-gray-300 shadow-sm">
+              <div class="flex items-start justify-between mb-5">
+                <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700">
+                  <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                  </svg>
+                </div>
+                <a href="https://github.com/oneuptime/oneuptime" target="_blank" class="text-xs text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1">
+                  View on GitHub
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                  </svg>
+                </a>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">Open Source. No Strings Attached.</h3>
+              <p class="text-gray-500 mb-5">Apache 2.0 licensed. Read the code. Run it yourself. Contribute features. Your data, your infrastructure, your rules.</p>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="flex items-center gap-2 text-sm text-gray-700">
+                  <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  Self-host anywhere
+                </div>
+                <div class="flex items-center gap-2 text-sm text-gray-700">
+                  <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  Audit the code
+                </div>
+                <div class="flex items-center gap-2 text-sm text-gray-700">
+                  <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  Contribute features
+                </div>
+                <div class="flex items-center gap-2 text-sm text-gray-700">
+                  <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  No surprise pricing
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- API First -->
+          <div class="group">
+            <div class="dev-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
+                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">API-First Architecture</h3>
+              <p class="text-sm text-gray-500 mb-3">Everything in the UI is available via REST API. Build custom integrations, automate workflows, script your setup.</p>
+              <div class="pt-3 border-t border-gray-100">
+                <a href="/docs/api" class="text-xs text-violet-600 hover:text-violet-800 font-medium flex items-center gap-1">
+                  API Documentation
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Terraform -->
+          <div class="group">
+            <div class="dev-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
+                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Terraform Provider</h3>
+              <p class="text-sm text-gray-500">Infrastructure as Code for your monitoring. Version control your alerts, dashboards, and on-call schedules.</p>
+            </div>
+          </div>
+
+          <!-- Smart Alerting -->
+          <div class="group">
+            <div class="dev-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
+                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Smart Alerting</h3>
+              <p class="text-sm text-gray-500">Deduplication, grouping, and routing that actually works. No more alert storms at 3 AM.</p>
+            </div>
+          </div>
+
+          <!-- Synthetic Monitoring -->
+          <div class="group">
+            <div class="dev-card h-full p-6 rounded-2xl bg-white border border-gray-300 shadow-sm">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-700 mb-4">
+                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.91 11.672a.375.375 0 0 1 0 .656l-5.603 3.113a.375.375 0 0 1-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112Z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Playwright Synthetics</h3>
+              <p class="text-sm text-gray-500">Write browser tests in real code. Multi-browser, multi-location, screenshots on failure.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI Agent Section -->
+    <%- include('../Partials/copilot') -%>
+
+    <!-- Enterprise Ready Section -->
+    <%- include('../Partials/enterprise-ready') -%>
+
+    <!-- Open Source Section -->
+    <%- include('../Partials/proudly-open-source') -%>
+
+    <%- include('../cta') -%>
+  </main>
+
+  <%- include('../footer') -%>
+
+  <script>
+  // Hero grid glow effect
+  (function() {
+    const heroSection = document.getElementById('dev-hero-section');
+    const gridGlowEffect = document.getElementById('dev-grid-glow-effect');
+
+    if (!heroSection || !gridGlowEffect) return;
+
+    let isHovering = false;
+    let animationFrame = null;
+    let currentX = 0;
+    let currentY = 0;
+    let targetX = 0;
+    let targetY = 0;
+
+    function lerp(start, end, factor) {
+      return start + (end - start) * factor;
+    }
+
+    function animate() {
+      if (!isHovering) return;
+
+      currentX = lerp(currentX, targetX, 0.12);
+      currentY = lerp(currentY, targetY, 0.12);
+
+      gridGlowEffect.style.setProperty('--mouse-x', currentX + 'px');
+      gridGlowEffect.style.setProperty('--mouse-y', currentY + 'px');
+
+      animationFrame = requestAnimationFrame(animate);
+    }
+
+    heroSection.addEventListener('mouseenter', function() {
+      isHovering = true;
+      gridGlowEffect.style.opacity = '1';
+      animate();
+    });
+
+    heroSection.addEventListener('mousemove', function(e) {
+      const rect = heroSection.getBoundingClientRect();
+      targetX = e.clientX - rect.left;
+      targetY = e.clientY - rect.top;
+
+      if (!isHovering) {
+        currentX = targetX;
+        currentY = targetY;
+      }
+    });
+
+    heroSection.addEventListener('mouseleave', function() {
+      isHovering = false;
+      gridGlowEffect.style.opacity = '0';
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = null;
+      }
+    });
+  })();
+
+  // Hero ambient glow for product cards
+  (function() {
+    const heroAmbientGlow = document.getElementById('hero-ambient-glow');
+    const heroCardWrappers = document.querySelectorAll('.hero-card-wrapper');
+    let currentHeroColor = null;
+    let heroFadeTimeout = null;
+
+    const heroGlowColors = {
+        'hero-glow-emerald-wrapper': 'radial-gradient(ellipse at center, rgb(16 185 129 / 0.08) 0%, rgb(16 185 129 / 0.03) 35%, rgb(16 185 129 / 0.01) 55%, transparent 75%)',
+        'hero-glow-rose-wrapper': 'radial-gradient(ellipse at center, rgb(244 63 94 / 0.08) 0%, rgb(244 63 94 / 0.03) 35%, rgb(244 63 94 / 0.01) 55%, transparent 75%)',
+        'hero-glow-blue-wrapper': 'radial-gradient(ellipse at center, rgb(59 130 246 / 0.08) 0%, rgb(59 130 246 / 0.03) 35%, rgb(59 130 246 / 0.01) 55%, transparent 75%)',
+        'hero-glow-amber-wrapper': 'radial-gradient(ellipse at center, rgb(245 158 11 / 0.08) 0%, rgb(245 158 11 / 0.03) 35%, rgb(245 158 11 / 0.01) 55%, transparent 75%)',
+        'hero-glow-stone-wrapper': 'radial-gradient(ellipse at center, rgb(120 113 108 / 0.08) 0%, rgb(120 113 108 / 0.03) 35%, rgb(120 113 108 / 0.01) 55%, transparent 75%)',
+        'hero-glow-purple-wrapper': 'radial-gradient(ellipse at center, rgb(168 85 247 / 0.08) 0%, rgb(168 85 247 / 0.03) 35%, rgb(168 85 247 / 0.01) 55%, transparent 75%)',
+        'hero-glow-yellow-wrapper': 'radial-gradient(ellipse at center, rgb(234 179 8 / 0.08) 0%, rgb(234 179 8 / 0.03) 35%, rgb(234 179 8 / 0.01) 55%, transparent 75%)',
+        'hero-glow-sky-wrapper': 'radial-gradient(ellipse at center, rgb(14 165 233 / 0.08) 0%, rgb(14 165 233 / 0.03) 35%, rgb(14 165 233 / 0.01) 55%, transparent 75%)',
+        'hero-glow-indigo-wrapper': 'radial-gradient(ellipse at center, rgb(99 102 241 / 0.08) 0%, rgb(99 102 241 / 0.03) 35%, rgb(99 102 241 / 0.01) 55%, transparent 75%)',
+        'hero-glow-violet-wrapper': 'radial-gradient(ellipse at center, rgb(139 92 246 / 0.08) 0%, rgb(139 92 246 / 0.03) 35%, rgb(139 92 246 / 0.01) 55%, transparent 75%)'
+    };
+
+    function getHeroGlowColor(wrapper) {
+        const wrapperClasses = wrapper.className.split(' ');
+        for (var i = 0; i < wrapperClasses.length; i++) {
+            if (heroGlowColors[wrapperClasses[i]]) {
+                return heroGlowColors[wrapperClasses[i]];
+            }
+        }
+        return null;
+    }
+
+    heroCardWrappers.forEach(function(wrapper) {
+        wrapper.addEventListener('mouseenter', function() {
+            const newColor = getHeroGlowColor(wrapper);
+
+            if (heroFadeTimeout) {
+                clearTimeout(heroFadeTimeout);
+                heroFadeTimeout = null;
+            }
+
+            if (currentHeroColor && currentHeroColor !== newColor) {
+                heroAmbientGlow.style.opacity = '0';
+                heroFadeTimeout = setTimeout(function() {
+                    heroAmbientGlow.style.background = newColor;
+                    heroAmbientGlow.style.opacity = '1';
+                    currentHeroColor = newColor;
+                }, 250);
+            } else if (!currentHeroColor) {
+                heroAmbientGlow.style.background = newColor;
+                heroAmbientGlow.style.opacity = '1';
+                currentHeroColor = newColor;
+            }
+        });
+
+        wrapper.addEventListener('mouseleave', function() {
+            if (heroFadeTimeout) {
+                clearTimeout(heroFadeTimeout);
+                heroFadeTimeout = null;
+            }
+
+            heroFadeTimeout = setTimeout(function() {
+                heroAmbientGlow.style.opacity = '0';
+                currentHeroColor = null;
+            }, 100);
+        });
+    });
+  })();
+
+  // Language switching for OpenTelemetry section
+  (function() {
+    const codeSnippets = {
+      go: {
+        filename: 'main.go',
+        code: `<span class="syntax-comment">// Initialize OpenTelemetry with OneUptime</span>
+<span class="text-purple-400">package</span> main
+
+<span class="text-purple-400">import</span> (
+    <span class="syntax-string">"go.opentelemetry.io/otel"</span>
+    <span class="syntax-string">"go.opentelemetry.io/otel/exporters/otlp/otlptrace"</span>
+)
+
+<span class="text-purple-400">func</span> <span class="text-cyan-400">main</span>() {
+    exporter, _ := otlptrace.<span class="text-cyan-400">New</span>(ctx,
+        otlptrace.<span class="text-cyan-400">WithEndpoint</span>(<span class="syntax-string">"oneuptime.com/otlp"</span>),
+        otlptrace.<span class="text-cyan-400">WithHeaders</span>(<span class="text-purple-400">map</span>[<span class="text-cyan-400">string</span>]<span class="text-cyan-400">string</span>{
+            <span class="syntax-string">"x-oneuptime-token"</span>: <span class="syntax-string">"YOUR_TOKEN"</span>,
+        }),
+    )
+    tracer := otel.<span class="text-cyan-400">Tracer</span>(<span class="syntax-string">"my-service"</span>)
+    ctx, span := tracer.<span class="text-cyan-400">Start</span>(ctx, <span class="syntax-string">"operation"</span>)
+    <span class="text-purple-400">defer</span> span.<span class="text-cyan-400">End</span>()
+}`
+      },
+      java: {
+        filename: 'App.java',
+        code: `<span class="syntax-comment">// Initialize OpenTelemetry with OneUptime</span>
+<span class="text-purple-400">import</span> io.opentelemetry.api.OpenTelemetry;
+<span class="text-purple-400">import</span> io.opentelemetry.api.trace.Tracer;
+<span class="text-purple-400">import</span> io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter;
+
+<span class="text-purple-400">public class</span> <span class="text-cyan-400">App</span> {
+    <span class="text-purple-400">public static void</span> <span class="text-cyan-400">main</span>(String[] args) {
+        OtlpGrpcSpanExporter exporter = OtlpGrpcSpanExporter
+            .<span class="text-cyan-400">builder</span>()
+            .<span class="text-cyan-400">setEndpoint</span>(<span class="syntax-string">"https://oneuptime.com/otlp"</span>)
+            .<span class="text-cyan-400">addHeader</span>(<span class="syntax-string">"x-oneuptime-token"</span>, <span class="syntax-string">"YOUR_TOKEN"</span>)
+            .<span class="text-cyan-400">build</span>();
+
+        Tracer tracer = openTelemetry.<span class="text-cyan-400">getTracer</span>(<span class="syntax-string">"my-service"</span>);
+        Span span = tracer.<span class="text-cyan-400">spanBuilder</span>(<span class="syntax-string">"operation"</span>).<span class="text-cyan-400">startSpan</span>();
+        span.<span class="text-cyan-400">end</span>();
+    }
+}`
+      },
+      python: {
+        filename: 'app.py',
+        code: `<span class="syntax-comment"># Initialize OpenTelemetry with OneUptime</span>
+<span class="text-purple-400">from</span> opentelemetry <span class="text-purple-400">import</span> trace
+<span class="text-purple-400">from</span> opentelemetry.sdk.trace <span class="text-purple-400">import</span> TracerProvider
+<span class="text-purple-400">from</span> opentelemetry.exporter.otlp.proto.grpc.trace_exporter <span class="text-purple-400">import</span> OTLPSpanExporter
+
+<span class="syntax-comment"># Configure the exporter</span>
+exporter = <span class="text-cyan-400">OTLPSpanExporter</span>(
+    endpoint=<span class="syntax-string">"https://oneuptime.com/otlp"</span>,
+    headers={<span class="syntax-string">"x-oneuptime-token"</span>: <span class="syntax-string">"YOUR_TOKEN"</span>}
+)
+
+provider = <span class="text-cyan-400">TracerProvider</span>()
+provider.<span class="text-cyan-400">add_span_processor</span>(<span class="text-cyan-400">BatchSpanProcessor</span>(exporter))
+trace.<span class="text-cyan-400">set_tracer_provider</span>(provider)
+
+<span class="syntax-comment"># Create traces</span>
+tracer = trace.<span class="text-cyan-400">get_tracer</span>(<span class="syntax-string">"my-service"</span>)
+<span class="text-purple-400">with</span> tracer.<span class="text-cyan-400">start_as_current_span</span>(<span class="syntax-string">"operation"</span>) <span class="text-purple-400">as</span> span:
+    span.<span class="text-cyan-400">set_attribute</span>(<span class="syntax-string">"key"</span>, <span class="syntax-string">"value"</span>)`
+      },
+      nodejs: {
+        filename: 'tracing.js',
+        code: `<span class="syntax-comment">// Initialize OpenTelemetry with OneUptime</span>
+<span class="text-purple-400">const</span> { NodeSDK } = <span class="text-cyan-400">require</span>(<span class="syntax-string">'@opentelemetry/sdk-node'</span>);
+<span class="text-purple-400">const</span> { OTLPTraceExporter } = <span class="text-cyan-400">require</span>(
+  <span class="syntax-string">'@opentelemetry/exporter-trace-otlp-http'</span>
+);
+
+<span class="text-purple-400">const</span> exporter = <span class="text-purple-400">new</span> <span class="text-cyan-400">OTLPTraceExporter</span>({
+  url: <span class="syntax-string">'https://oneuptime.com/otlp/v1/traces'</span>,
+  headers: { <span class="syntax-string">'x-oneuptime-token'</span>: <span class="syntax-string">'YOUR_TOKEN'</span> }
+});
+
+<span class="text-purple-400">const</span> sdk = <span class="text-purple-400">new</span> <span class="text-cyan-400">NodeSDK</span>({
+  traceExporter: exporter,
+  serviceName: <span class="syntax-string">'my-service'</span>
+});
+
+sdk.<span class="text-cyan-400">start</span>();
+
+<span class="syntax-comment">// Your app code - traces auto-collected!</span>`
+      },
+      dotnet: {
+        filename: 'Program.cs',
+        code: `<span class="syntax-comment">// Initialize OpenTelemetry with OneUptime</span>
+<span class="text-purple-400">using</span> OpenTelemetry;
+<span class="text-purple-400">using</span> OpenTelemetry.Trace;
+<span class="text-purple-400">using</span> OpenTelemetry.Exporter;
+
+<span class="text-purple-400">var</span> builder = WebApplication.<span class="text-cyan-400">CreateBuilder</span>(args);
+
+builder.Services.<span class="text-cyan-400">AddOpenTelemetry</span>()
+    .<span class="text-cyan-400">WithTracing</span>(tracing => tracing
+        .<span class="text-cyan-400">AddAspNetCoreInstrumentation</span>()
+        .<span class="text-cyan-400">AddOtlpExporter</span>(opt => {
+            opt.Endpoint = <span class="text-purple-400">new</span> <span class="text-cyan-400">Uri</span>(<span class="syntax-string">"https://oneuptime.com/otlp"</span>);
+            opt.Headers = <span class="syntax-string">"x-oneuptime-token=YOUR_TOKEN"</span>;
+        })
+    );
+
+<span class="text-purple-400">var</span> app = builder.<span class="text-cyan-400">Build</span>();
+app.<span class="text-cyan-400">Run</span>();`
+      },
+      ruby: {
+        filename: 'config/initializers/opentelemetry.rb',
+        code: `<span class="syntax-comment"># Initialize OpenTelemetry with OneUptime</span>
+<span class="text-purple-400">require</span> <span class="syntax-string">'opentelemetry/sdk'</span>
+<span class="text-purple-400">require</span> <span class="syntax-string">'opentelemetry/exporter/otlp'</span>
+
+OpenTelemetry::SDK.<span class="text-cyan-400">configure</span> <span class="text-purple-400">do</span> |c|
+  c.<span class="text-cyan-400">service_name</span> = <span class="syntax-string">'my-service'</span>
+
+  c.<span class="text-cyan-400">add_span_processor</span>(
+    OpenTelemetry::SDK::Trace::Export::BatchSpanProcessor.<span class="text-cyan-400">new</span>(
+      OpenTelemetry::Exporter::OTLP::Exporter.<span class="text-cyan-400">new</span>(
+        endpoint: <span class="syntax-string">'https://oneuptime.com/otlp'</span>,
+        headers: { <span class="syntax-string">'x-oneuptime-token'</span> => <span class="syntax-string">'YOUR_TOKEN'</span> }
+      )
+    )
+  )
+<span class="text-purple-400">end</span>
+
+<span class="syntax-comment"># Create traces</span>
+tracer = OpenTelemetry.<span class="text-cyan-400">tracer_provider</span>.<span class="text-cyan-400">tracer</span>(<span class="syntax-string">'my-service'</span>)
+tracer.<span class="text-cyan-400">in_span</span>(<span class="syntax-string">'operation'</span>) { |span| <span class="syntax-comment"># your code</span> }`
+      },
+      php: {
+        filename: 'bootstrap.php',
+        code: `<span class="syntax-comment">// Initialize OpenTelemetry with OneUptime</span>
+<span class="text-purple-400">&lt;?php</span>
+<span class="text-purple-400">use</span> OpenTelemetry\\SDK\\Trace\\TracerProvider;
+<span class="text-purple-400">use</span> OpenTelemetry\\Contrib\\Otlp\\SpanExporter;
+
+<span class="text-cyan-400">$exporter</span> = <span class="text-purple-400">new</span> <span class="text-cyan-400">SpanExporter</span>(
+    <span class="syntax-string">'https://oneuptime.com/otlp'</span>,
+    [<span class="syntax-string">'x-oneuptime-token'</span> => <span class="syntax-string">'YOUR_TOKEN'</span>]
+);
+
+<span class="text-cyan-400">$tracerProvider</span> = <span class="text-purple-400">new</span> <span class="text-cyan-400">TracerProvider</span>(
+    <span class="text-purple-400">new</span> <span class="text-cyan-400">BatchSpanProcessor</span>(<span class="text-cyan-400">$exporter</span>)
+);
+
+<span class="text-cyan-400">$tracer</span> = <span class="text-cyan-400">$tracerProvider</span>-><span class="text-cyan-400">getTracer</span>(<span class="syntax-string">'my-service'</span>);
+
+<span class="syntax-comment">// Create traces</span>
+<span class="text-cyan-400">$span</span> = <span class="text-cyan-400">$tracer</span>-><span class="text-cyan-400">spanBuilder</span>(<span class="syntax-string">'operation'</span>)-><span class="text-cyan-400">startSpan</span>();
+<span class="syntax-comment">// Your code here</span>
+<span class="text-cyan-400">$span</span>-><span class="text-cyan-400">end</span>();`
+      },
+      rust: {
+        filename: 'main.rs',
+        code: `<span class="syntax-comment">// Initialize OpenTelemetry with OneUptime</span>
+<span class="text-purple-400">use</span> opentelemetry::global;
+<span class="text-purple-400">use</span> opentelemetry_otlp::WithExportConfig;
+
+<span class="text-purple-400">fn</span> <span class="text-cyan-400">main</span>() {
+    <span class="text-purple-400">let</span> tracer = opentelemetry_otlp::new_pipeline()
+        .<span class="text-cyan-400">tracing</span>()
+        .<span class="text-cyan-400">with_exporter</span>(
+            opentelemetry_otlp::new_exporter()
+                .<span class="text-cyan-400">http</span>()
+                .<span class="text-cyan-400">with_endpoint</span>(<span class="syntax-string">"https://oneuptime.com/otlp"</span>)
+                .<span class="text-cyan-400">with_headers</span>(<span class="text-cyan-400">HashMap::from</span>([(
+                    <span class="syntax-string">"x-oneuptime-token"</span>.<span class="text-cyan-400">into</span>(),
+                    <span class="syntax-string">"YOUR_TOKEN"</span>.<span class="text-cyan-400">into</span>()
+                )]))
+        )
+        .<span class="text-cyan-400">install_batch</span>(opentelemetry::runtime::Tokio)
+        .<span class="text-cyan-400">unwrap</span>();
+
+    tracer.<span class="text-cyan-400">in_span</span>(<span class="syntax-string">"operation"</span>, |_cx| { <span class="syntax-comment">/* code */</span> });
+}`
+      },
+      cpp: {
+        filename: 'main.cpp',
+        code: `<span class="syntax-comment">// Initialize OpenTelemetry with OneUptime</span>
+<span class="text-purple-400">#include</span> <span class="syntax-string">&lt;opentelemetry/exporters/otlp/otlp_http_exporter.h&gt;</span>
+<span class="text-purple-400">#include</span> <span class="syntax-string">&lt;opentelemetry/sdk/trace/tracer_provider.h&gt;</span>
+
+<span class="text-purple-400">namespace</span> trace = opentelemetry::trace;
+
+<span class="text-cyan-400">int</span> <span class="text-cyan-400">main</span>() {
+    otlp::OtlpHttpExporterOptions opts;
+    opts.url = <span class="syntax-string">"https://oneuptime.com/otlp/v1/traces"</span>;
+    opts.http_headers = {
+        {<span class="syntax-string">"x-oneuptime-token"</span>, <span class="syntax-string">"YOUR_TOKEN"</span>}
+    };
+
+    <span class="text-purple-400">auto</span> exporter = otlp::<span class="text-cyan-400">OtlpHttpExporterFactory::Create</span>(opts);
+    <span class="text-purple-400">auto</span> provider = trace::Provider::<span class="text-cyan-400">GetTracerProvider</span>();
+    <span class="text-purple-400">auto</span> tracer = provider-><span class="text-cyan-400">GetTracer</span>(<span class="syntax-string">"my-service"</span>);
+
+    <span class="text-purple-400">auto</span> span = tracer-><span class="text-cyan-400">StartSpan</span>(<span class="syntax-string">"operation"</span>);
+    <span class="syntax-comment">// Your code here</span>
+    span-><span class="text-cyan-400">End</span>();
+}`
+      },
+      swift: {
+        filename: 'Tracing.swift',
+        code: `<span class="syntax-comment">// Initialize OpenTelemetry with OneUptime</span>
+<span class="text-purple-400">import</span> OpenTelemetryApi
+<span class="text-purple-400">import</span> OpenTelemetrySdk
+<span class="text-purple-400">import</span> OtlpExporter
+
+<span class="text-purple-400">let</span> exporter = <span class="text-cyan-400">OtlpHttpTraceExporter</span>(
+    endpoint: <span class="text-cyan-400">URL</span>(string: <span class="syntax-string">"https://oneuptime.com/otlp"</span>)!,
+    config: <span class="text-cyan-400">OtlpConfiguration</span>(
+        headers: [(<span class="syntax-string">"x-oneuptime-token"</span>, <span class="syntax-string">"YOUR_TOKEN"</span>)]
+    )
+)
+
+<span class="text-purple-400">let</span> tracerProvider = <span class="text-cyan-400">TracerProviderBuilder</span>()
+    .<span class="text-cyan-400">add</span>(spanProcessor: <span class="text-cyan-400">BatchSpanProcessor</span>(exporter))
+    .<span class="text-cyan-400">build</span>()
+
+OpenTelemetry.<span class="text-cyan-400">registerTracerProvider</span>(tracerProvider)
+
+<span class="syntax-comment">// Create traces</span>
+<span class="text-purple-400">let</span> tracer = OpenTelemetry.instance.<span class="text-cyan-400">tracerProvider</span>.<span class="text-cyan-400">get</span>(<span class="syntax-string">"my-service"</span>)
+<span class="text-purple-400">let</span> span = tracer.<span class="text-cyan-400">spanBuilder</span>(spanName: <span class="syntax-string">"operation"</span>).<span class="text-cyan-400">startSpan</span>()
+span.<span class="text-cyan-400">end</span>()`
+      }
+    };
+
+    let currentLang = null;
+
+    // Color mappings for each language
+    const langColors = {
+      go: { bg: 'bg-cyan-500/20', border: 'border-cyan-500/50', text: 'text-cyan-400', shadow: 'shadow-cyan-500/30' },
+      java: { bg: 'bg-red-500/20', border: 'border-red-500/50', text: 'text-red-400', shadow: 'shadow-red-500/30' },
+      python: { bg: 'bg-yellow-500/20', border: 'border-yellow-500/50', text: 'text-yellow-400', shadow: 'shadow-yellow-500/30' },
+      nodejs: { bg: 'bg-green-500/20', border: 'border-green-500/50', text: 'text-green-400', shadow: 'shadow-green-500/30' },
+      dotnet: { bg: 'bg-purple-500/20', border: 'border-purple-500/50', text: 'text-purple-400', shadow: 'shadow-purple-500/30' },
+      ruby: { bg: 'bg-rose-500/20', border: 'border-rose-500/50', text: 'text-rose-400', shadow: 'shadow-rose-500/30' },
+      php: { bg: 'bg-indigo-500/20', border: 'border-indigo-500/50', text: 'text-indigo-400', shadow: 'shadow-indigo-500/30' },
+      rust: { bg: 'bg-orange-500/20', border: 'border-orange-500/50', text: 'text-orange-400', shadow: 'shadow-orange-500/30' },
+      cpp: { bg: 'bg-blue-500/20', border: 'border-blue-500/50', text: 'text-blue-400', shadow: 'shadow-blue-500/30' },
+      swift: { bg: 'bg-orange-500/20', border: 'border-orange-500/50', text: 'text-orange-400', shadow: 'shadow-orange-500/30' }
+    };
+
+    window.switchLang = function(lang) {
+      if (!codeSnippets[lang]) return;
+
+      currentLang = lang;
+      const codeContent = document.getElementById('code-content');
+      const terminalFilename = document.getElementById('terminal-filename');
+
+      if (codeContent) {
+        codeContent.innerHTML = '<code>' + codeSnippets[lang].code + '</code>';
+      }
+      if (terminalFilename) {
+        terminalFilename.textContent = codeSnippets[lang].filename;
+      }
+
+      // Update active state for language buttons
+      const langBtns = document.querySelectorAll('.lang-btn');
+      langBtns.forEach(function(btn) {
+        const btnLang = btn.getAttribute('data-lang');
+        const icon = btn.querySelector('.lang-icon');
+        const label = btn.querySelector('.lang-label');
+
+        if (btnLang === lang) {
+          const colors = langColors[lang];
+          icon.classList.add(colors.bg, colors.border, 'scale-110', 'shadow-lg', colors.shadow);
+          icon.classList.remove('bg-slate-800/80', 'border-slate-700/50');
+          icon.querySelector('svg').classList.add(colors.text);
+          icon.querySelector('svg').classList.remove('text-slate-400');
+          label.classList.add(colors.text);
+          label.classList.remove('text-slate-500');
+        } else {
+          // Reset to default state
+          const prevColors = langColors[btnLang];
+          icon.classList.remove(prevColors.bg, prevColors.border, 'scale-110', 'shadow-lg', prevColors.shadow);
+          icon.classList.add('bg-slate-800/80', 'border-slate-700/50');
+          icon.querySelector('svg').classList.remove(prevColors.text);
+          icon.querySelector('svg').classList.add('text-slate-400');
+          label.classList.remove(prevColors.text);
+          label.classList.add('text-slate-500');
+        }
+      });
+    };
+
+    window.copyCode = function() {
+      const codeContent = document.getElementById('code-content');
+      if (!codeContent) return;
+
+      // Get plain text from HTML content
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = codeContent.innerHTML;
+      const plainText = tempDiv.textContent || tempDiv.innerText;
+
+      navigator.clipboard.writeText(plainText).then(function() {
+        // Show copied feedback
+        const copyBtn = document.querySelector('.copy-btn');
+        if (copyBtn) {
+          const originalText = copyBtn.innerHTML;
+          copyBtn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg> Copied!';
+          setTimeout(function() {
+            copyBtn.innerHTML = originalText;
+          }, 2000);
+        }
+      });
+    };
+
+    // No language selected by default - shows OTel Collector config
+  })();
+  </script>
+
+</body>
+
+</html>

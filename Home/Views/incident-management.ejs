@@ -16,299 +16,718 @@
 <body>
   <%- include('nav') -%>
   <main id="main-content">
-  <div class="relative isolate overflow-hidden bg-white">
-    <div class="py-24 sm:py-32">
-      <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto max-w-7xl text-center">
+  <!-- Hero Section -->
+  <div class="relative isolate overflow-hidden bg-gradient-to-b from-gray-50 via-white to-white">
+    <!-- Background decorative elements -->
+    <div class="absolute inset-0 -z-10 overflow-hidden">
+      <div class="absolute -top-40 -right-32 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-red-100/60 to-orange-100/40 blur-3xl"></div>
+      <div class="absolute -bottom-40 -left-32 h-[400px] w-[400px] rounded-full bg-gradient-to-tr from-amber-100/50 to-yellow-100/30 blur-3xl"></div>
+      <div class="absolute top-1/2 left-1/2 -trangray-x-1/2 -trangray-y-1/2 h-[600px] w-[600px] rounded-full bg-gradient-to-r from-gray-100/40 to-gray-100/20 blur-3xl"></div>
+    </div>
 
-          <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">Protect revenue and improve experience, by resolving critical incidents faster.</h1>
-          <p class="mt-6 text-xl sm:text-2xl leading-8 text-gray-600">Keep stakeholders throughout the business informed in real-time, empowering the entire company to collaborate and respond proactively.</p>
-          <div class="mt-10 flex items-center justify-center gap-x-6">
+    <!-- Grid pattern overlay -->
+    <div class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#8882_1px,transparent_1px),linear-gradient(to_bottom,#8882_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+
+    <div class="py-24 sm:py-32 lg:py-40">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-4xl text-center">
+
+          <!-- Badge -->
+          <div class="mb-8 flex justify-center">
+            <div class="relative rounded-full px-4 py-1.5 text-sm leading-6 text-gray-600 ring-1 ring-gray-900/10 hover:ring-gray-900/20 transition-all duration-300 bg-white/80 backdrop-blur-sm shadow-sm">
+              <span class="inline-flex items-center gap-x-2">
+                <span class="flex h-2 w-2 relative">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+                Resolve incidents faster with AI-powered insights
+              </span>
+            </div>
+          </div>
+
+          <!-- Headline -->
+          <h1 class="text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
+            <span class="text-gray-900">Resolve incidents </span>
+            <span class="relative">
+              <span class="bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 bg-clip-text text-transparent">faster</span>
+              <svg class="absolute -bottom-2 left-0 w-full h-3 text-red-300/60" viewBox="0 0 200 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1 7.5C31 3.5 61 1.5 101 2.5C141 3.5 171 6 199 4" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+              </svg>
+            </span>
+          </h1>
+
+          <p class="mt-8 text-lg sm:text-xl leading-8 text-gray-600 max-w-2xl mx-auto">
+            Keep stakeholders throughout the business informed in real-time, empowering the entire company to collaborate and respond proactively.
+          </p>
+
+          <!-- CTA Buttons -->
+          <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-x-6">
             <a href="/accounts/register"
-              class="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Get
-              started</a>
-            <a href="/enterprise/demo" class="text-sm font-semibold leading-6 text-gray-900">Request Demo <span
-                aria-hidden="true">→</span></a>
+              class="group relative inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white transition-all duration-300 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-xl shadow-lg shadow-gray-900/25 hover:shadow-xl hover:shadow-gray-900/30 hover:-trangray-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+              <span>Start for free</span>
+              <svg class="ml-2 h-5 w-5 transition-transform duration-300 group-hover:trangray-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+            <a href="/enterprise/demo"
+              class="group inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-gray-700 transition-all duration-300 bg-white rounded-xl ring-1 ring-gray-200 hover:ring-gray-300 hover:bg-gray-50 hover:-trangray-y-0.5 shadow-sm hover:shadow-md">
+              <svg class="mr-2 h-5 w-5 text-gray-500 group-hover:text-gray-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Watch demo</span>
+            </a>
+          </div>
+
+          <!-- Feature highlights -->
+          <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-500">
+            <div class="flex items-center gap-x-2">
+              <svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Instant alerts</span>
+            </div>
+            <div class="flex items-center gap-x-2">
+              <svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Custom severity levels</span>
+            </div>
+            <div class="flex items-center gap-x-2">
+              <svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Postmortem reports</span>
+            </div>
+            <div class="flex items-center gap-x-2">
+              <svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Team collaboration</span>
+            </div>
           </div>
         </div>
-        <div class="mt-16 flow-root sm:mt-24">
-          <div
-            class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-              <img src="/img/incidents.png" alt="OneUptime incident management dashboard showing active incidents and timelines" width="2432" height="1442"
-                class="rounded-md shadow-2xl ring-1 ring-gray-900/10">
-                <%- include('./Partials/watch-demo.ejs', {videoId: "_fQ_F4EisBQ"}) -%>
+
+        <!-- Hero Image -->
+        <div class="mt-20 flow-root sm:mt-24">
+          <div class="relative">
+            <!-- Glow effect behind image -->
+            <div class="absolute -inset-4 bg-gradient-to-r from-red-500/20 via-orange-500/20 to-amber-500/20 rounded-3xl blur-2xl opacity-60"></div>
+
+            <!-- Image container -->
+            <div class="relative rounded-2xl bg-gradient-to-b from-gray-100 to-gray-50 p-2 sm:p-3 ring-1 ring-gray-200/80 shadow-2xl shadow-gray-900/10">
+              <div class="relative rounded-xl overflow-hidden bg-gray-900">
+                <img src="/img/incidents.png" alt="OneUptime incident management dashboard showing active incidents and timelines" width="2432" height="1442"
+                  class="w-full rounded-lg">
+
+                <!-- Floating status indicator -->
+                <div class="absolute top-4 right-4 sm:top-6 sm:right-6">
+                  <div class="flex items-center gap-2 px-3 py-2 bg-white/95 backdrop-blur-sm rounded-full shadow-lg ring-1 ring-black/5">
+                    <span class="flex h-2.5 w-2.5 relative">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                    </span>
+                    <span class="text-sm font-medium text-gray-700">1 active incident</span>
+                  </div>
+                </div>
+              </div>
+
+              <%- include('./Partials/watch-demo.ejs', {videoId: "_fQ_F4EisBQ"}) -%>
+            </div>
+
+            <!-- Decorative floating cards -->
+            <div class="hidden lg:block absolute -left-16 top-1/4 transform -trangray-y-1/2">
+              <div class="bg-white rounded-xl shadow-xl shadow-gray-900/10 p-4 ring-1 ring-gray-100 max-w-[200px]">
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100">
+                    <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-xs text-gray-500">Severity</div>
+                    <div class="text-lg font-bold text-red-600">P1 Critical</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-gray-500">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Response: 2 min
+                </div>
+              </div>
+            </div>
+
+            <div class="hidden lg:block absolute -right-12 bottom-1/4 transform trangray-y-1/2">
+              <div class="bg-white rounded-xl shadow-xl shadow-gray-900/10 p-4 ring-1 ring-gray-100 max-w-[220px]">
+                <div class="flex items-center gap-3">
+                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
+                    <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-sm font-semibold text-gray-900">Incident Resolved</div>
+                    <div class="text-xs text-gray-500">MTTR: 15 min</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-    <div
-      class="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]"
-      aria-hidden="true">
-      <div
-        class="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
-        style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)">
+  </div>
+
+  <!-- Stats Section -->
+  <div class="relative bg-gradient-to-r from-red-600 to-orange-600 py-16">
+    <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+    <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
+        <div class="text-center">
+          <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur mb-4">
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div class="text-2xl font-bold text-white">&lt;5 sec</div>
+          <div class="mt-1 text-sm text-red-100">Detection Time</div>
+        </div>
+        <div class="text-center">
+          <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur mb-4">
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="text-2xl font-bold text-white">73%</div>
+          <div class="mt-1 text-sm text-red-100">Faster MTTR</div>
+        </div>
+        <div class="text-center">
+          <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur mb-4">
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <div class="text-2xl font-bold text-white">Unlimited</div>
+          <div class="mt-1 text-sm text-red-100">Team Members</div>
+        </div>
+        <div class="text-center">
+          <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur mb-4">
+            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+          </div>
+          <div class="text-2xl font-bold text-white">Instant</div>
+          <div class="mt-1 text-sm text-red-100">Alerts</div>
+        </div>
       </div>
     </div>
   </div>
 
   <%- include('logo-roll') -%>
 
-    <div class="relative overflow-hidden bg-white pt-16 pb-32">
-      <div class="max-w-3xl1 pr-12">
-      <h2 class="text-base font-semibold leading-7 text-indigo-500 sm:text-center">Why OneUptime.</h2>
-      <p class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-center">An unbeatable incident management product built for you.</p>
-      <p class="mt-5 text-xl text-gray-500 sm:text-center mb-12">Our real-time operations platform ensures less downtime and fewer outages, meaning happier customers and more productive teams.</p>
-    </div>
-    <div class="relative mt-24">
-        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-2 lg:gap-24 lg:px-8">
-          <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none lg:py-16 lg:px-0">
-            <div>
-              <div>
-                <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600">
-                  
-                  <svg class="h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>                    
-                </span>
-              </div>
-              <div class="mt-6">
-                <h2 class="text-3xl font-bold tracking-tight text-gray-900">Incident Created Instantly</h2>
-                <p class="mt-4 text-lg text-gray-500">OneUptime's monitoring lets you know exactly what is wrong with your service, at the right time. Incidents are created instantly, alerting the right people and saving you critical minutes during downtime.</p>
-                <div class="mt-6">
-                  <a href="/accounts/register" class="rounded-md bg-indigo-600 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:text-white">Get started</a>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="mt-12 sm:mt-16 lg:mt-0">
-            <div class="-mr-48 pl-6 md:-mr-16 lg:relative lg:m-0 lg:h-full lg:px-0">
-              <img class="w-full rounded-xl shadow-xl ring-1 ring-black ring-opacity-5 lg:absolute lg:left-0 lg:h-full lg:w-auto lg:max-w-none" src="/img/incidents.png" alt="Inbox user interface">
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="mt-24">
-        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-2 lg:gap-24 lg:px-8">
-          <div class="mx-auto max-w-xl px-6 lg:col-start-2 lg:mx-0 lg:max-w-none lg:py-32 lg:px-0">
-            <div>
-              <div>
-                <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600">
-                  
-                  <svg class="h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                  </svg>  
-                    
-                </span>
-              </div>
-              <div class="mt-6">
-                <h2 class="text-3xl font-bold tracking-tight text-gray-900">Custom Incident Severity</h2>
-                <p class="mt-4 text-lg text-gray-500">Customize incident severity for your project - have levels like P1, P2 and more. Severity help you to keep your team in the loop and keep customers updated.</p>
-                <div class="mt-6">
-                  <a href="/accounts/register" class="rounded-md bg-indigo-600 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:text-white">Get started</a>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="mt-12 sm:mt-16 lg:col-start-1 lg:mt-0">
-            <div class="-ml-48 pr-6 md:-ml-16 lg:relative lg:m-0 lg:h-full lg:px-0">
-              <img class="w-full rounded-xl shadow-xl ring-1 ring-black ring-opacity-5 lg:absolute lg:right-0 lg:h-full lg:w-auto lg:max-w-none" src="/img/incident-severity.png" alt="Monitoring">
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="relative mt-24">
-        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-2 lg:gap-24 lg:px-8">
-          <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none lg:py-16 lg:px-0">
-            <div>
-              <div>
-                <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600">
-                  
-                  <svg class="h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12.75 15l3-3m0 0l-3-3m3 3h-7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>  
-                </span>
-              </div>
-              <div class="mt-6">
-                <h2 class="text-3xl font-bold tracking-tight text-gray-900">Custom Incident State</h2>
-                <p class="mt-4 text-lg text-gray-500">Customize incident states for your project - have states like investigating, monitoring and more. States help you to keep your team in the loop and keep customers updated.</p>
-                <div class="mt-6">
-                  <a href="/accounts/register" class="rounded-md bg-indigo-600 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:text-white">Get started</a>
-                 
-                </div>
-              </div>
-            </div>
-            
-          </div>
-          <div class="mt-12 sm:mt-16 lg:mt-0">
-            <div class="-mr-48 pl-6 md:-mr-16 lg:relative lg:m-0 lg:h-full lg:px-0">
-              <img class="w-full rounded-xl shadow-xl ring-1 ring-black ring-opacity-5 lg:absolute lg:left-0 lg:h-full lg:w-auto lg:max-w-none" src="/img/incident-state.png" alt="Inbox user interface">
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="mt-24">
-        <div class="lg:mx-auto lg:grid lg:max-w-7xl lg:grid-flow-col-dense lg:grid-cols-2 lg:gap-24 lg:px-8">
-          <div class="mx-auto max-w-xl px-6 lg:col-start-2 lg:mx-0 lg:max-w-none lg:py-32 lg:px-0">
-            <div>
-              <div>
-                <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600">
-                  
-                  <svg class="h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-                  </svg>    
-                </span>
-              </div>
-              <div class="mt-6">
-                <h2 class="text-3xl font-bold tracking-tight text-gray-900">Post Incident and Postmortem Notes</h2>
-                <p class="mt-4 text-lg text-gray-500">Post notes directly on your status page and communicate directly with your team, customers and users. Always keep them in the loop and reduce support costs. </p>
-                <div class="mt-6">
-                  <a href="/accounts/register" class="rounded-md bg-indigo-600 px-3.5 py-1.5 text-base font-semibold leading-7 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 hover:text-white">Get started</a>
-                  
-                </div>
-              </div>
-            </div>
-            <div class="mt-8 border-t border-gray-200 pt-6">
-              <blockquote>
-                <div>
-                  <p class="text-base text-gray-500">&ldquo;Makes monitoring any endpoint or service really easy and the best part is, it's all open-source so there's no vendor lockin.&rdquo;</p>
-                </div>
-                <footer class="mt-3">
-                  <div class="flex items-center space-x-3">
-                    <div class="text-base font-medium text-gray-700">Otse Obande, Reviewer on AlternativeTo</div>
-                  </div>
-                </footer>
-              </blockquote>
-            </div>
-          </div>
-          <div class="mt-12 sm:mt-16 lg:col-start-1 lg:mt-0">
-            <div class="-ml-48 pr-6 md:-ml-16 lg:relative lg:m-0 lg:h-full lg:px-0">
-              <img class="w-full rounded-xl shadow-xl ring-1 ring-black ring-opacity-5 lg:absolute lg:right-0 lg:h-full lg:w-auto lg:max-w-none" src="/img/incident-report.png" alt="Monitoring">
-            </div>
-          </div>
-        </div>
-      </div>
+  <!-- Why OneUptime Section -->
+  <div class="relative overflow-hidden bg-gradient-to-b from-white via-gray-50/50 to-white py-24 sm:py-32">
+    <!-- Background decorative elements -->
+    <div class="absolute inset-0 -z-10 overflow-hidden">
+      <div class="absolute top-1/4 -right-64 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-red-50 to-orange-100/50 blur-3xl"></div>
+      <div class="absolute bottom-1/4 -left-64 h-[400px] w-[400px] rounded-full bg-gradient-to-tr from-amber-50 to-yellow-100/50 blur-3xl"></div>
     </div>
 
-   
-      
-      <%- include('testimonials') -%>
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <!-- Section Header -->
+      <div class="mx-auto max-w-2xl text-center mb-20">
+        <div class="inline-flex items-center gap-2 rounded-full bg-red-50 px-4 py-1.5 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-600/20 mb-6">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          Why OneUptime
+        </div>
+        <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+          An unbeatable incident management <span class="bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">built for you</span>
+        </h2>
+        <p class="mt-6 text-lg leading-8 text-gray-600">
+          Our real-time operations platform ensures less downtime and fewer outages, meaning happier customers and more productive teams.
+        </p>
+      </div>
 
-
-      <div class="relative bg-white py-24 sm:py-32 lg:py-40">
-        <div class="mx-auto max-w-md px-6 text-center sm:max-w-3xl lg:max-w-7xl lg:px-8">
-          <h2 class="text-lg font-semibold text-indigo-600">More features</h2>
-          <p class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Advanced features, built for you.</p>
-          <p class="mx-auto mt-5 max-w-prose text-xl text-gray-500">Build custom workflows, integrate with anything you have, or more - you never run out of features. Batteries included.
+      <!-- Feature Blocks -->
+      <div class="space-y-24 lg:space-y-32">
+        <!-- Feature 1: Incident Created Instantly -->
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <div class="relative">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 ring-1 ring-red-200">
+                <svg class="h-7 w-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Instant Detection</span>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Incidents Created Instantly</h3>
+            <p class="text-lg text-gray-600 mb-6">
+              OneUptime's monitoring lets you know exactly what is wrong with your service, at the right time. Incidents are created instantly, alerting the right people.
             </p>
-          <div class="mt-20">
-            <div class="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
-              <div class="pt-6">
-                <div class="flow-root rounded-lg bg-gray-50 px-6 pb-8">
-                  <div class="-mt-6">
-                    <div>
-                      <span class="inline-flex items-center justify-center rounded-xl bg-indigo-500 p-3 shadow-lg">
-                        <!-- Heroicon name: outline/cloud-arrow-up -->
-                        <svg class="h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
-                        </svg>                        
-                      </span>
-                    </div>
-                    <h3 class="mt-8 text-lg font-semibold leading-8 tracking-tight text-gray-900">Reliability Guaranteed.</h3>
-                    <p class="mt-5 text-base leading-7 text-gray-600">Hosted on a distributed high avalability infrastructure across multiple clouds when there is a major incident at a cloud provider you are hosted on, we never go down.</p>
-                  </div>
-                </div>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Auto-detect and create incidents
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Alert the right team members
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Save critical response time
+              </li>
+            </ul>
+            <a href="/accounts/register" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-all duration-300 shadow-lg shadow-gray-900/20 hover:shadow-xl hover:-trangray-y-0.5">
+              Get started
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+          <div class="mt-12 lg:mt-0">
+            <div class="relative">
+              <div class="absolute -inset-4 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-3xl blur-2xl opacity-60"></div>
+              <div class="relative rounded-2xl bg-gradient-to-b from-gray-100 to-gray-50 p-2 ring-1 ring-gray-200/80 shadow-2xl">
+                <img src="/img/incidents.png" alt="Incident dashboard" class="rounded-xl w-full">
               </div>
-      
-              <div class="pt-6">
-                <div class="flow-root rounded-lg bg-gray-50 px-6 pb-8">
-                  <div class="-mt-6">
-                    <div>
-                      <span class="inline-flex items-center justify-center rounded-xl bg-indigo-500 p-3 shadow-lg">
-                        <!-- Heroicon name: outline/lock-closed -->
-                        <svg class="h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v2.25A2.25 2.25 0 006 10.5zm0 9.75h2.25A2.25 2.25 0 0010.5 18v-2.25a2.25 2.25 0 00-2.25-2.25H6a2.25 2.25 0 00-2.25 2.25V18A2.25 2.25 0 006 20.25zm9.75-9.75H18a2.25 2.25 0 002.25-2.25V6A2.25 2.25 0 0018 3.75h-2.25A2.25 2.25 0 0013.5 6v2.25a2.25 2.25 0 002.25 2.25z" />
-                        </svg>
-                      </span>
+              <!-- Floating card -->
+              <div class="absolute -bottom-6 -left-6 hidden lg:block">
+                <div class="bg-white rounded-xl shadow-xl p-4 ring-1 ring-gray-100">
+                  <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100">
+                      <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                     </div>
-                    <h3 class="mt-8 text-lg font-semibold leading-8 tracking-tight text-gray-900">Integrations</h3>
-                    <p class="mt-5 text-base leading-7 text-gray-600">Choose from 5000+ integrations to integrate with. Your team can update incidents and manage everything without leaving Slack for example. Build custom integrations with our API.</p>
-                  </div>
-                </div>
-              </div>
-      
-              <div class="pt-6">
-                <div class="flow-root rounded-lg bg-gray-50 px-6 pb-8">
-                  <div class="-mt-6">
                     <div>
-                      <span class="inline-flex items-center justify-center rounded-xl bg-indigo-500 p-3 shadow-lg">
-                        <!-- Heroicon name: outline/arrow-path -->
-                        <svg class="h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z" />
-                        </svg>
-                      
-                      </span>
+                      <div class="text-xs text-gray-500">Detection Time</div>
+                      <div class="text-lg font-bold text-gray-900">&lt;5 sec</div>
                     </div>
-                    <h3 class="mt-8 text-lg font-semibold leading-8 tracking-tight text-gray-900">Workflows</h3>
-                    <p class="mt-5 text-base leading-7 text-gray-600">Build complex workflows without code. Automate incident workflow, status page updates, have one control plane for all of your resources and keep stakeholders updated.</p>
-                  </div>
-                </div>
-              </div>
-      
-              <div class="pt-6">
-                <div class="flow-root rounded-lg bg-gray-50 px-6 pb-8">
-                  <div class="-mt-6">
-                    <div>
-                      <span class="inline-flex items-center justify-center rounded-xl bg-indigo-500 p-3 shadow-lg">
-                        <!-- Heroicon name: outline/shield-check -->
-                        <svg class="h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-                        </svg>             
-                      </span>
-                    </div>
-                    <h3 class="mt-8 text-lg font-semibold leading-8 tracking-tight text-gray-900">Custom Criteria</h3>
-                    <p class="mt-5 text-base leading-7 text-gray-600">Define custom criteria to create incidents - create an incident if the response time is delayed for 5 mins for example. </p>
-                  </div>
-                </div>
-              </div>
-      
-              <div class="pt-6">
-                <div class="flow-root rounded-lg bg-gray-50 px-6 pb-8">
-                  <div class="-mt-6">
-                    <div>
-                      <span class="inline-flex items-center justify-center rounded-xl bg-indigo-500 p-3 shadow-lg">
-                        
-                        <svg class="h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-                        </svg> 
-                      </span>
-                    </div>
-                    <h3 class="mt-8 text-lg font-semibold leading-8 tracking-tight text-gray-900">Instant Alerts</h3>
-                    <p class="mt-5 text-base leading-7 text-gray-600">Alert anyone across the company via email, sms, slack notification, phone call or more.</p>
-                  </div>
-                </div>
-              </div>
-      
-              <div class="pt-6">
-                <div class="flow-root rounded-lg bg-gray-50 px-6 pb-8">
-                  <div class="-mt-6">
-                    <div>
-                      <span class="inline-flex items-center justify-center rounded-xl bg-indigo-500 p-3 shadow-lg">
-                       
-                        <svg class="h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
-                        </svg>                          
-                      </span>
-                    </div>
-                    <h3 class="mt-8 text-lg font-semibold leading-8 tracking-tight text-gray-900">On-Call Schedules</h3>
-                    <p class="mt-5 text-base leading-7 text-gray-600">Create on-call schedules, and escalation policies so your incidents are always responded to as fast as possible.</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- Feature 2: Custom Incident Severity -->
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
+            <div class="relative">
+              <div class="absolute -inset-4 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 rounded-3xl blur-2xl opacity-60"></div>
+              <div class="relative rounded-2xl bg-gradient-to-b from-gray-100 to-gray-50 p-2 ring-1 ring-gray-200/80 shadow-2xl">
+                <img src="/img/incident-severity.png" alt="Incident severity" class="rounded-xl w-full">
+              </div>
+              <!-- Floating card -->
+              <div class="absolute -bottom-6 -right-6 hidden lg:block">
+                <div class="bg-white rounded-xl shadow-xl p-4 ring-1 ring-gray-100">
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2">
+                      <span class="h-2 w-2 rounded-full bg-red-500"></span>
+                      <span class="text-xs font-medium text-gray-600">P1 - Critical</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="h-2 w-2 rounded-full bg-orange-500"></span>
+                      <span class="text-xs font-medium text-gray-600">P2 - High</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+                      <span class="text-xs font-medium text-gray-600">P3 - Medium</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="relative order-1 lg:order-2">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 ring-1 ring-amber-200">
+                <svg class="h-7 w-7 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-amber-600 uppercase tracking-wide">Prioritization</span>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Custom Incident Severity</h3>
+            <p class="text-lg text-gray-600 mb-6">
+              Customize incident severity for your project - have levels like P1, P2 and more. Severity helps you keep your team in the loop and prioritize response.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Custom severity levels
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Priority-based escalation
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                SLA-aware response
+              </li>
+            </ul>
+            <a href="/accounts/register" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-all duration-300 shadow-lg shadow-gray-900/20 hover:shadow-xl hover:-trangray-y-0.5">
+              Get started
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Feature 3: Custom Incident State -->
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <div class="relative">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-50 ring-1 ring-violet-200">
+                <svg class="h-7 w-7 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-violet-600 uppercase tracking-wide">Workflow States</span>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Custom Incident States</h3>
+            <p class="text-lg text-gray-600 mb-6">
+              Customize incident states for your project - have states like investigating, monitoring and more. States help you track progress throughout resolution.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Custom state workflows
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Auto-update status pages
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Keep stakeholders informed
+              </li>
+            </ul>
+            <a href="/accounts/register" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-all duration-300 shadow-lg shadow-gray-900/20 hover:shadow-xl hover:-trangray-y-0.5">
+              Get started
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+          <div class="mt-12 lg:mt-0">
+            <div class="relative">
+              <div class="absolute -inset-4 bg-gradient-to-r from-violet-500/20 to-purple-500/20 rounded-3xl blur-2xl opacity-60"></div>
+              <div class="relative rounded-2xl bg-gradient-to-b from-gray-100 to-gray-50 p-2 ring-1 ring-gray-200/80 shadow-2xl">
+                <img src="/img/incident-state.png" alt="Incident states" class="rounded-xl w-full">
+              </div>
+              <!-- Floating card -->
+              <div class="absolute -top-6 -right-6 hidden lg:block">
+                <div class="bg-white rounded-xl shadow-xl p-4 ring-1 ring-gray-100">
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2 text-xs">
+                      <span class="h-2 w-2 rounded-full bg-red-500"></span>
+                      <span class="text-gray-600">Identified</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+                      <span class="text-gray-600">Investigating</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span class="h-2 w-2 rounded-full bg-blue-500"></span>
+                      <span class="text-gray-600">Monitoring</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                      <span class="text-gray-600">Resolved</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature 4: Postmortem Notes -->
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
+            <div class="relative">
+              <div class="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 to-teal-500/20 rounded-3xl blur-2xl opacity-60"></div>
+              <div class="relative rounded-2xl bg-gradient-to-b from-gray-100 to-gray-50 p-2 ring-1 ring-gray-200/80 shadow-2xl">
+                <img src="/img/incident-report.png" alt="Incident report" class="rounded-xl w-full">
+              </div>
+              <!-- Floating card -->
+              <div class="absolute -bottom-6 -right-6 hidden lg:block">
+                <div class="bg-white rounded-xl shadow-xl p-4 ring-1 ring-gray-100 max-w-[180px]">
+                  <div class="flex items-center gap-2 mb-2">
+                    <svg class="h-4 w-4 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span class="text-sm font-medium text-gray-700">Postmortem</span>
+                  </div>
+                  <p class="text-xs text-gray-500">Root cause analysis & action items documented</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="relative order-1 lg:order-2">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-50 ring-1 ring-cyan-200">
+                <svg class="h-7 w-7 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-cyan-600 uppercase tracking-wide">Documentation</span>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Post Incident & Postmortem Notes</h3>
+            <p class="text-lg text-gray-600 mb-6">
+              Post notes directly on your status page and communicate with your team, customers and users. Always keep them in the loop and reduce support costs.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Public & private notes
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Root cause analysis
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Action item tracking
+              </li>
+            </ul>
+            <a href="/accounts/register" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-all duration-300 shadow-lg shadow-gray-900/20 hover:shadow-xl hover:-trangray-y-0.5">
+              Get started
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- More Features Section -->
+  <div class="relative overflow-hidden bg-gradient-to-b from-white via-gray-50/30 to-white py-24 sm:py-32">
+    <!-- Background decorative elements -->
+    <div class="absolute inset-0 -z-10 overflow-hidden">
+      <div class="absolute top-0 left-1/4 h-[400px] w-[400px] rounded-full bg-gradient-to-br from-red-50 to-orange-100/30 blur-3xl"></div>
+      <div class="absolute bottom-0 right-1/4 h-[300px] w-[300px] rounded-full bg-gradient-to-tr from-amber-50 to-yellow-100/30 blur-3xl"></div>
+    </div>
+
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <!-- Section Header -->
+      <div class="mx-auto max-w-2xl text-center mb-16">
+        <div class="inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-1.5 text-sm font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20 mb-6">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          More Features
+        </div>
+        <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+          Advanced features, <span class="bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">built for you</span>
+        </h2>
+        <p class="mt-6 text-lg leading-8 text-gray-600">
+          Build custom workflows, integrate with anything you have, or more - you never run out of features. Batteries included.
+        </p>
       </div>
 
+      <!-- Feature Cards Grid -->
+      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <!-- Card 1: Reliability Guaranteed -->
+        <div class="group relative bg-white rounded-2xl p-8 shadow-sm ring-1 ring-gray-200/60 hover:shadow-xl hover:shadow-emerald-500/10 hover:ring-emerald-200 transition-all duration-300">
+          <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div class="relative">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200 mb-6">
+              <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Reliability Guaranteed</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">
+              Hosted on a distributed high availability infrastructure across multiple clouds. When there's a major incident at a cloud provider, we never go down.
+            </p>
+            <div class="mt-6 flex items-center gap-2">
+              <div class="flex -space-x-1">
+                <div class="h-6 w-6 rounded-full bg-blue-100 ring-2 ring-white flex items-center justify-center text-xs font-medium text-blue-600">A</div>
+                <div class="h-6 w-6 rounded-full bg-amber-100 ring-2 ring-white flex items-center justify-center text-xs font-medium text-amber-600">G</div>
+                <div class="h-6 w-6 rounded-full bg-cyan-100 ring-2 ring-white flex items-center justify-center text-xs font-medium text-cyan-600">Az</div>
+              </div>
+              <span class="text-xs text-gray-500">Multi-cloud</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Integrations -->
+        <div class="group relative bg-white rounded-2xl p-8 shadow-sm ring-1 ring-gray-200/60 hover:shadow-xl hover:shadow-blue-500/10 hover:ring-blue-200 transition-all duration-300">
+          <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div class="relative">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-200 mb-6">
+              <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Integrations</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">
+              Choose from 5000+ integrations. Your team can update incidents without leaving Slack. Build custom integrations with our API.
+            </p>
+            <div class="mt-6 flex flex-wrap gap-2">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-xs font-medium text-gray-600">Slack</span>
+              <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-xs font-medium text-gray-600">Teams</span>
+              <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-xs font-medium text-gray-600">Jira</span>
+              <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-xs font-medium text-gray-600">+5000</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Workflows -->
+        <div class="group relative bg-white rounded-2xl p-8 shadow-sm ring-1 ring-gray-200/60 hover:shadow-xl hover:shadow-violet-500/10 hover:ring-violet-200 transition-all duration-300">
+          <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-violet-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div class="relative">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200 mb-6">
+              <svg class="h-6 w-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Workflows</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">
+              Build complex workflows without code. Automate incident workflow, status page updates, and keep stakeholders updated.
+            </p>
+            <div class="mt-6 flex items-center gap-2">
+              <div class="flex items-center gap-1 text-xs text-gray-500">
+                <span class="h-2 w-2 rounded-full bg-red-500"></span>
+                <span>Alert</span>
+                <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+                <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+                <span>Escalate</span>
+                <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+                <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                <span>Resolve</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: Custom Criteria -->
+        <div class="group relative bg-white rounded-2xl p-8 shadow-sm ring-1 ring-gray-200/60 hover:shadow-xl hover:shadow-amber-500/10 hover:ring-amber-200 transition-all duration-300">
+          <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div class="relative">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200 mb-6">
+              <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Custom Criteria</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">
+              Define custom criteria to create incidents - create an incident if the response time is delayed for 5 mins for example.
+            </p>
+            <div class="mt-6 p-3 bg-gray-50 rounded-lg">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-gray-500">Response time</span>
+                <span class="font-medium text-amber-600">&gt; 5 min</span>
+              </div>
+              <div class="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div class="h-full w-3/4 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 5: Instant Alerts -->
+        <div class="group relative bg-white rounded-2xl p-8 shadow-sm ring-1 ring-gray-200/60 hover:shadow-xl hover:shadow-red-500/10 hover:ring-red-200 transition-all duration-300">
+          <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-red-500/5 to-rose-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div class="relative">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200 mb-6">
+              <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Instant Alerts</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">
+              Alert anyone across the company via email, SMS, Slack notification, phone call or more.
+            </p>
+            <div class="mt-6 flex flex-wrap gap-2">
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-red-50 text-xs font-medium text-red-600">
+                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Email
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-red-50 text-xs font-medium text-red-600">
+                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                Phone
+              </span>
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-red-50 text-xs font-medium text-red-600">
+                SMS
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 6: On-Call Schedules -->
+        <div class="group relative bg-white rounded-2xl p-8 shadow-sm ring-1 ring-gray-200/60 hover:shadow-xl hover:shadow-cyan-500/10 hover:ring-cyan-200 transition-all duration-300">
+          <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500/5 to-sky-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div class="relative">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200 mb-6">
+              <svg class="h-6 w-6 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">On-Call Schedules</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">
+              Create on-call schedules, and escalation policies so your incidents are always responded to as fast as possible.
+            </p>
+            <div class="mt-6 space-y-2">
+              <div class="flex items-center gap-2 text-xs">
+                <div class="h-6 w-6 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-600 font-medium">JD</div>
+                <span class="text-gray-600">John (Mon-Wed)</span>
+              </div>
+              <div class="flex items-center gap-2 text-xs">
+                <div class="h-6 w-6 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-medium">SK</div>
+                <span class="text-gray-600">Sarah (Thu-Sun)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+      <%- include('./Partials/enterprise-ready') -%>
       <%- include('features-table') -%>
       <%- include('cta') -%>
   </main>

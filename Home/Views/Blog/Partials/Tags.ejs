@@ -2,8 +2,8 @@
     <div class="flex flex-wrap gap-2">
         <% for(var i=0; i<blogPost.tags.length; i++) { %>
             <a href="/blog/tag/<%- blogPost.tags[i].replaceAll(' ','-').toLowerCase() -%>" class="group/tag">
-                <span class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700 shadow-sm hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 transition">
-                    <span class="h-1.5 w-1.5 rounded-full bg-indigo-500 group-hover/tag:bg-indigo-600"></span>
+                <span class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600 shadow-sm hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 transition">
+                    <span class="h-1.5 w-1.5 rounded-full bg-gray-400 group-hover/tag:bg-indigo-500 transition"></span>
                     <%- blogPost.tags[i] -%>
                 </span>
             </a>

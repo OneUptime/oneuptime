@@ -13,6 +13,16 @@
 
 </head>
 
+<style>
+  .payg-tab-active {
+    border-color: #111827 !important;
+    color: #111827 !important;
+  }
+  .payg-tab:focus {
+    outline: none;
+  }
+</style>
+
 <body>
   <%- include('nav') -%>
   <main id="main-content">
@@ -24,10 +34,10 @@
             plans unlock additional features. Sign up free, no credit card required.</p>
           <div class="relative mt-6 flex self-center rounded-lg bg-gray-100 p-0.5 sm:mt-8">
             <button type="button" onclick="switchToMonthlyBilling()" id="monthly-billing-btn"
-              class="relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8">Monthly
+              class="relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-gray-500 sm:w-auto sm:px-8">Monthly
               billing</button>
             <button type="button" onclick="switchToYearlyBilling()" id="yearly-billing-btn"
-              class="relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8">Yearly
+              class="relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-gray-500 sm:w-auto sm:px-8">Yearly
               billing</button>
           </div>
         </div>
@@ -474,223 +484,313 @@
           </div>
         </div>
 
-        <div class="mx-auto mt-16 max-w-2xl rounded-lg ring-1 ring-gray-200 sm:mt-20 lg:mx-0  lg:max-w-none">
-          <div class="lg:flex">
-            <div class="p-8 sm:p-10 lg:flex-auto">
-              <h3 class="text-2xl font-bold tracking-tight text-gray-900">Active Monitoring</h3>
-              <p class="mt-6 text-base leading-7 text-gray-600">Pricing for montoring website, API, IP addresses and
-                more.
-                We pass on the cost of monitoring to you, so you can focus on your core business activities and maintain
-                uptime. </p>
-              <div class="mt-10 flex items-center gap-x-4">
-                <h4 class="flex-none text-sm font-semibold leading-6 text-indigo-600">What’s included</h4>
-                <div class="h-px flex-auto bg-gray-100"></div>
-              </div>
-              <ul role="list"
-                class="mt-8 grid grid-cols-1 gap-4 text-sm leading-6 text-gray-600 sm:grid-cols-2 sm:gap-6">
-                <li class="flex gap-x-3">
-                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
-                    aria-hidden="true">
-                    <path fill-rule="evenodd"
-                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                      clip-rule="evenodd" />
-                  </svg>
-                  Monitor from multiple locations.
-                </li>
-                <li class="flex gap-x-3">
-                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
-                    aria-hidden="true">
-                    <path fill-rule="evenodd"
-                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                      clip-rule="evenodd" />
-                  </svg>
-                  Monitor resource every minute.
-                </li>
-                <li class="flex gap-x-3">
-                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
-                    aria-hidden="true">
-                    <path fill-rule="evenodd"
-                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                      clip-rule="evenodd" />
-                  </svg>
-                  Logs stored for 90 days. Custom retention available for enterprise customers.
-                </li>
-                <li class="flex gap-x-3">
-                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
-                    aria-hidden="true">
-                    <path fill-rule="evenodd"
-                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                      clip-rule="evenodd" />
-                  </svg>
-                  Set custom criteria based on response body, headers, status, etc.
-                </li>
-              </ul>
-            </div>
-            <div class="-mt-2 p-2 lg:mt-0 lg:w-full lg:max-w-md lg:flex-shrink-0">
-              <div
-                class="rounded-lg bg-gray-50 py-10 text-center ring-1 ring-inset ring-gray-900/5 lg:flex lg:flex-col lg:justify-center lg:py-16">
-                <div class="mx-auto max-w-xs px-8">
-                  <p class="text-base font-semibold text-gray-600">Only pay for what you use.</p>
-                  <p class="mt-6 flex items-baseline justify-center gap-x-2">
-                  <div id="total-monitor-price" class="text-4xl font-semibold tracking-tight text-gray-900">$1</div>
-                  <div id="total-monitor-price-description"
-                    class="text-sm font-semibold leading-6 tracking-wide text-gray-600">per monitor per month</div>
-                  </p>
-                  <a href="/accounts/register"
-                    class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Free
-                    14 day trial</a>
-                  <p class="mt-6 text-xs leading-5 text-gray-600">If you have more than 100 monitors, contact us for a
-                    discount.</p>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          <div class="p-8 sm:p-10">
-            <div class="flex justify-between">
-              <p class="text-base font-semibold text-gray-500">Select Number of Active
-                Monitors</p>
-              <p id="total-number-of-monitors" class="text-base font-semibold text-gray-600">1 Monitor</p>
-            </div>
-            <input id="default-range" type="range" value="1" max="100" min="0" step="1"
-              onchange="updateMonitorPrice(this.value)" oninput="updateMonitorPrice(this.value)"
-              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer ">
-
-            <div>
-              <p id="more-than-100-monitors-message" style="display: none;" class="text-base text-gray-600">If you have
-                more than 100 monitors, contact sales@oneuptime.com for a discount.</p>
-            </div>
-          </div>
-
-        </div>
-
-
+        <!-- Pay As You Go Section -->
         <div class="mx-auto mt-16 max-w-2xl rounded-lg ring-1 ring-gray-200 sm:mt-20 lg:mx-0 lg:max-w-none">
-          <div class="lg:flex">
-            <div class="p-8 sm:p-10 lg:flex-auto">
-              <h3 class="text-2xl font-bold tracking-tight text-gray-900">Telemetry: Logs, Traces and Metrics.</h3>
-              <p class="mt-6 text-base leading-7 text-gray-600">We charge $0.10 for every GB of data ingested (for 15
-                day
-                retention). It's the lowest in the industry and 8X cheaper than DataDog. </p>
-              <div class="mt-10 flex items-center gap-x-4">
-                <h4 class="flex-none text-sm font-semibold leading-6 text-indigo-600">What’s included</h4>
-                <div class="h-px flex-auto bg-gray-100"></div>
-              </div>
-              <ul role="list"
-                class="mt-8 grid grid-cols-1 gap-4 text-sm leading-6 text-gray-600 sm:grid-cols-2 sm:gap-6">
-                <li class="flex gap-x-3">
-                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
-                    aria-hidden="true">
-                    <path fill-rule="evenodd"
-                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                      clip-rule="evenodd" />
-                  </svg>
-                  Ingest logs, traces and metrics from any service or app.
-                </li>
-                <li class="flex gap-x-3">
-                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
-                    aria-hidden="true">
-                    <path fill-rule="evenodd"
-                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                      clip-rule="evenodd" />
-                  </svg>
-                  Custom data retention. We store your data for 15 days by default.
-                </li>
-                <li class="flex gap-x-3">
-                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
-                    aria-hidden="true">
-                    <path fill-rule="evenodd"
-                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                      clip-rule="evenodd" />
-                  </svg>
-                  Search TB's of data in seconds.
-                </li>
-                <li class="flex gap-x-3">
-                  <svg class="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor"
-                    aria-hidden="true">
-                    <path fill-rule="evenodd"
-                      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                      clip-rule="evenodd" />
-                  </svg>
-                  Native integration with OpenTelemetry.
-                </li>
-              </ul>
+          <div class="p-6 sm:p-8">
+            <h3 class="text-2xl font-bold tracking-tight text-gray-900 text-center mb-2">Pay As You Go</h3>
+            <p class="text-base text-gray-600 text-center mb-8">Only pay for what you use. No commitments, scale up or down anytime.</p>
+
+            <!-- Tab Navigation -->
+            <div class="border-b border-gray-200">
+              <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                <button onclick="switchPayAsYouGoTab('monitoring')" id="tab-monitoring"
+                  class="payg-tab payg-tab-active whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium">
+                  Monitoring
+                </button>
+                <button onclick="switchPayAsYouGoTab('sms-call')" id="tab-sms-call"
+                  class="payg-tab whitespace-nowrap border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
+                  SMS & Call
+                </button>
+                <button onclick="switchPayAsYouGoTab('telemetry')" id="tab-telemetry"
+                  class="payg-tab whitespace-nowrap border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
+                  Telemetry
+                </button>
+                <button onclick="switchPayAsYouGoTab('ai-agent')" id="tab-ai-agent"
+                  class="payg-tab whitespace-nowrap border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
+                  AI Agent
+                </button>
+              </nav>
             </div>
-            <div class="-mt-2 p-2 lg:mt-0 lg:w-full lg:max-w-md lg:flex-shrink-0">
-              <div
-                class="rounded-lg bg-gray-50 py-10 text-center ring-1 ring-inset ring-gray-900/5 lg:flex lg:flex-col lg:justify-center lg:py-16">
-                <div class="mx-auto max-w-xs px-8">
-                  <p class="text-base font-semibold text-gray-600">Only pay for what you use.</p>
-                  <p class="mt-6 flex items-baseline justify-center gap-x-2">
-                  <div id="total-telemetry-price" class="text-4xl font-semibold tracking-tight text-gray-900">$0.10</div>
-                  <div id="total-telemetry-price-description"
-                    class="text-sm font-semibold leading-6 tracking-wide text-gray-600">per GB ingested (15 day
-                    retention)</div>
-                  </p>
-                  <a href="/accounts/register"
-                    class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Free
-                    14 day trial</a>
-                  <p class="mt-6 text-xs leading-5 text-gray-600">If you ingest more than 1 TB of data every month.
-                    Contact us for a discount.</p>
+
+            <!-- Monitoring Tab Content -->
+            <div id="content-monitoring" class="payg-content pt-8">
+              <div class="lg:flex">
+                <div class="lg:flex-auto">
+                  <h4 class="text-xl font-semibold tracking-tight text-gray-900">Active Monitoring</h4>
+                  <p class="mt-4 text-base leading-7 text-gray-600">Pricing for monitoring website, API, IP addresses and more. We pass on the cost of monitoring to you, so you can focus on your core business activities and maintain uptime.</p>
+                  <div class="mt-6 flex items-center gap-x-4">
+                    <h5 class="flex-none text-sm font-semibold leading-6 text-gray-600">What's included</h5>
+                    <div class="h-px flex-auto bg-gray-100"></div>
+                  </div>
+                  <ul role="list" class="mt-4 grid grid-cols-1 gap-3 text-sm leading-6 text-gray-600 sm:grid-cols-2">
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Monitor from multiple locations
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Monitor resource every minute
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Logs stored for 90 days
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Custom criteria for response body, headers, status
+                    </li>
+                  </ul>
+                </div>
+                <div class="mt-8 lg:mt-0 lg:ml-8 lg:w-full lg:max-w-xs lg:flex-shrink-0">
+                  <div class="rounded-lg bg-gray-50 p-6 text-center ring-1 ring-inset ring-gray-900/5">
+                    <p class="text-base font-semibold text-gray-600">Starting at</p>
+                    <p class="mt-4 flex items-baseline justify-center gap-x-2">
+                      <span id="total-monitor-price" class="text-4xl font-bold tracking-tight text-gray-900">$1</span>
+                    </p>
+                    <p id="total-monitor-price-description" class="mt-2 text-sm text-gray-600">per monitor per month</p>
+                    <a href="/accounts/register" class="mt-6 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Start Free Trial</a>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-8 pt-6 border-t border-gray-100">
+                <div class="flex justify-between mb-2">
+                  <p class="text-sm font-medium text-gray-500">Select Number of Active Monitors</p>
+                  <p id="total-number-of-monitors" class="text-sm font-semibold text-gray-900">1 Monitor</p>
+                </div>
+                <input id="monitor-range" type="range" value="1" max="100" min="0" step="1"
+                  onchange="updateMonitorPrice(this.value)" oninput="updateMonitorPrice(this.value)"
+                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                <p id="more-than-100-monitors-message" style="display: none;" class="mt-2 text-sm text-gray-600">If you have more than 100 monitors, contact sales@oneuptime.com for a discount.</p>
+              </div>
+            </div>
+
+            <!-- SMS & Call Tab Content -->
+            <div id="content-sms-call" class="payg-content pt-8 hidden">
+              <div class="lg:flex">
+                <div class="lg:flex-auto">
+                  <h4 class="text-xl font-semibold tracking-tight text-gray-900">SMS & Call Alerts</h4>
+                  <p class="mt-4 text-base leading-7 text-gray-600">Get instant alerts via SMS and phone calls when your monitors detect issues. Email alerts are free and always will be.</p>
+                  <div class="mt-6 flex items-center gap-x-4">
+                    <h5 class="flex-none text-sm font-semibold leading-6 text-gray-600">What's included</h5>
+                    <div class="h-px flex-auto bg-gray-100"></div>
+                  </div>
+                  <ul role="list" class="mt-4 grid grid-cols-1 gap-3 text-sm leading-6 text-gray-600 sm:grid-cols-2">
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Instant SMS notifications
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Voice call alerts
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Worldwide coverage
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Email alerts always free
+                    </li>
+                  </ul>
+                </div>
+                <div class="mt-8 lg:mt-0 lg:ml-8 lg:w-full lg:max-w-xs lg:flex-shrink-0">
+                  <div class="rounded-lg bg-gray-50 p-6 ring-1 ring-inset ring-gray-900/5">
+                    <div class="mb-6 pb-6 border-b border-gray-200">
+                      <p class="text-base font-semibold text-gray-600 text-center">SMS Pricing</p>
+                      <p class="mt-4 flex items-baseline justify-center gap-x-2">
+                        <span class="text-4xl font-bold tracking-tight text-gray-900">$0.10</span>
+                      </p>
+                      <p class="mt-2 text-sm text-gray-600 text-center">per SMS sent</p>
+                    </div>
+                    <div>
+                      <p class="text-base font-semibold text-gray-600 text-center">Call Pricing</p>
+                      <p class="mt-4 flex items-baseline justify-center gap-x-2">
+                        <span class="text-4xl font-bold tracking-tight text-gray-900">$0.10</span>
+                      </p>
+                      <p class="mt-2 text-sm text-gray-600 text-center">per minute per call</p>
+                    </div>
+                    <a href="/accounts/register" class="mt-6 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Start Free Trial</a>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="flex">
+                  <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-gray-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                  <div class="ml-3">
+                    <h3 class="text-sm font-semibold text-gray-900">Bring Your Own Twilio</h3>
+                    <p class="mt-1 text-sm text-gray-600">Connect your own Twilio account and pay nothing to OneUptime for SMS and Call alerts. You only pay Twilio directly at their rates.</p>
+                  </div>
+                </div>
+              </div>
+              <p class="mt-4 text-sm text-gray-500">Pricing may vary for high-risk regions. Contact support for details.</p>
+            </div>
+
+            <!-- Telemetry Tab Content -->
+            <div id="content-telemetry" class="payg-content pt-8 hidden">
+              <div class="lg:flex">
+                <div class="lg:flex-auto">
+                  <h4 class="text-xl font-semibold tracking-tight text-gray-900">Telemetry: Logs, Traces and Metrics</h4>
+                  <p class="mt-4 text-base leading-7 text-gray-600">We charge $0.10 for every GB of data ingested (for 15 day retention). It's the lowest in the industry and 8X cheaper than DataDog.</p>
+                  <div class="mt-6 flex items-center gap-x-4">
+                    <h5 class="flex-none text-sm font-semibold leading-6 text-gray-600">What's included</h5>
+                    <div class="h-px flex-auto bg-gray-100"></div>
+                  </div>
+                  <ul role="list" class="mt-4 grid grid-cols-1 gap-3 text-sm leading-6 text-gray-600 sm:grid-cols-2">
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Ingest logs, traces and metrics
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Custom data retention
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Search TB's of data in seconds
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Native OpenTelemetry support
+                    </li>
+                  </ul>
+                </div>
+                <div class="mt-8 lg:mt-0 lg:ml-8 lg:w-full lg:max-w-xs lg:flex-shrink-0">
+                  <div class="rounded-lg bg-gray-50 p-6 text-center ring-1 ring-inset ring-gray-900/5">
+                    <p class="text-base font-semibold text-gray-600">Starting at</p>
+                    <p class="mt-4 flex items-baseline justify-center gap-x-2">
+                      <span id="total-telemetry-price" class="text-4xl font-bold tracking-tight text-gray-900">$0.10</span>
+                    </p>
+                    <p id="total-telemetry-price-description" class="mt-2 text-sm text-gray-600">per GB ingested (15 day retention)</p>
+                    <a href="/accounts/register" class="mt-6 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Start Free Trial</a>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-8 pt-6 border-t border-gray-100 space-y-6">
+                <div>
+                  <div class="flex justify-between mb-2">
+                    <p class="text-sm font-medium text-gray-500">GB's ingested per month</p>
+                    <p id="total-number-of-gb-ingested" class="text-sm font-semibold text-gray-900">1 GB</p>
+                  </div>
+                  <input id="telemetry-gb-range" type="range" value="1" max="1000" min="0" step="1"
+                    onchange="updateTelemetryPrice(this.value, null)" oninput="updateTelemetryPrice(this.value, null)"
+                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                  <p id="more-than-10-tb-ingested-message" style="display: none;" class="mt-2 text-sm text-gray-600">If you are ingesting more than 1 TB of data every month, contact sales@oneuptime.com for a discount.</p>
+                </div>
+                <div>
+                  <div class="flex justify-between mb-2">
+                    <p class="text-sm font-medium text-gray-500">Data Retention (in days)</p>
+                    <p id="data-retention-in-days" class="text-sm font-semibold text-gray-900">15 Days</p>
+                  </div>
+                  <input id="telemetry-retention-range" type="range" value="15" max="180" min="0" step="1"
+                    onchange="updateTelemetryPrice(null, this.value)" oninput="updateTelemetryPrice(null, this.value)"
+                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                  <p id="more-than-6-months-retention" style="display: none;" class="mt-2 text-sm text-gray-600">If you're looking for data retention of more than 6 months, contact sales@oneuptime.com for a discount.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- AI Agent Tab Content -->
+            <div id="content-ai-agent" class="payg-content pt-8 hidden">
+              <div class="lg:flex">
+                <div class="lg:flex-auto">
+                  <h4 class="text-xl font-semibold tracking-tight text-gray-900">AI Agent</h4>
+                  <p class="mt-4 text-base leading-7 text-gray-600">Leverage AI to automatically analyze incidents, suggest resolutions, and help your team respond faster. Powered by advanced LLMs to provide intelligent insights.</p>
+                  <div class="mt-6 flex items-center gap-x-4">
+                    <h5 class="flex-none text-sm font-semibold leading-6 text-gray-600">What's included</h5>
+                    <div class="h-px flex-auto bg-gray-100"></div>
+                  </div>
+                  <ul role="list" class="mt-4 grid grid-cols-1 gap-3 text-sm leading-6 text-gray-600 sm:grid-cols-2">
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Incident analysis & insights
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Root cause suggestions
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Automated runbook generation
+                    </li>
+                    <li class="flex gap-x-3">
+                      <svg class="h-6 w-5 flex-none text-green-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      Log analysis & anomaly detection
+                    </li>
+                  </ul>
+                </div>
+                <div class="mt-8 lg:mt-0 lg:ml-8 lg:w-full lg:max-w-xs lg:flex-shrink-0">
+                  <div class="rounded-lg bg-gray-50 p-6 text-center ring-1 ring-inset ring-gray-900/5">
+                    <p class="text-base font-semibold text-gray-600">LLM Token Usage</p>
+                    <p class="mt-4 flex items-baseline justify-center gap-x-2">
+                      <span id="total-ai-price" class="text-4xl font-bold tracking-tight text-gray-900">$0.02</span>
+                    </p>
+                    <p id="total-ai-price-description" class="mt-2 text-sm text-gray-600">per 1,000 tokens</p>
+                    <a href="/accounts/register" class="mt-6 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Start Free Trial</a>
+                    <p class="mt-4 text-xs text-gray-500">Equivalent to $20 per 1M tokens</p>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-8 pt-6 border-t border-gray-100">
+                <div class="flex justify-between mb-2">
+                  <p class="text-sm font-medium text-gray-500">Estimated tokens per month (in thousands)</p>
+                  <p id="total-number-of-tokens" class="text-sm font-semibold text-gray-900">100K tokens</p>
+                </div>
+                <input id="ai-token-range" type="range" value="100" max="10000" min="0" step="100"
+                  onchange="updateAIPrice(this.value)" oninput="updateAIPrice(this.value)"
+                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                <p id="more-than-10m-tokens-message" style="display: none;" class="mt-2 text-sm text-gray-600">If you need more than 10M tokens per month, contact sales@oneuptime.com for volume pricing.</p>
+              </div>
+              <div class="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="flex">
+                  <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-gray-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                  <div class="ml-3">
+                    <h3 class="text-sm font-semibold text-gray-900">Bring Your Own LLM Provider</h3>
+                    <p class="mt-1 text-sm text-gray-600">Connect your own LLM provider (OpenAI, Anthropic, or others) and pay nothing to OneUptime for AI features. You only pay your provider directly at their rates.</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-
-          <div class="p-8 sm:p-10">
-            <div class="flex justify-between">
-              <p class="text-base font-semibold text-gray-500">GB's ingested per month</p>
-              <p id="total-number-of-gb-ingested" class="text-base font-semibold text-gray-600">1 GB</p>
-            </div>
-            <input id="default-range" type="range" value="1" max="1000" min="0" step="1"
-              onchange="updateTelemetryPrice(this.value, null)" oninput="updateTelemetryPrice(this.value, null)"
-              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer ">
-            <div>
-              <p id="more-than-10-tb-ingested-message" style="display: none;" class="text-base text-gray-600">If you are
-                ingesting more than 1 TB of data every month, contact sales@oneuptime.com for a discount.</p>
-            </div>
-          </div>
-
-          <div class="p-8 sm:p-10 -mt-8">
-            <div class="flex justify-between">
-              <p class="text-base font-semibold text-gray-500">Data Rentention (in days)</p>
-              <p id="data-retention-in-days" class="text-base font-semibold text-gray-600">15 Days</p>
-            </div>
-            <input id="default-range" type="range" value="15" max="180" min="0" step="1"
-              onchange="updateTelemetryPrice(null, this.value)" oninput="updateTelemetryPrice(null,this.value)"
-              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer ">
-            <div>
-              <p id="more-than-6-months-retention" style="display: none;" class="text-base text-gray-600">If you're
-                looking for data rention of more than 6 months. contact sales@oneuptime.com for a discount. </p>
-            </div>
-
-          </div>
-
-
-        </div>
-
-
-        <div
-          class="mt-20 flex flex-col items-start gap-x-8 gap-y-6 rounded-md p-8 ring-1 ring-gray-900/10 sm:gap-y-10 sm:p-10 lg:col-span-2 lg:flex-row lg:items-center">
-          <div class="lg:min-w-0 lg:flex-1">
-            <h3 class="text-lg font-semibold leading-8 tracking-tight text-gray-600">SMS Pricing</h3>
-            <p class="mt-1 text-base leading-7 text-gray-600">We bill you on per SMS sent. Our pricing starts at $0.10
-              USD per SMS sent to United States, Canada, UK and EU. For other countries, please contact support. Email
-              alerts are free and always will be.</p>
-          </div>
-          <!-- <a href="#" class="rounded-md px-3.5 py-2 text-sm font-semibold leading-6 text-gray-600 ring-1 ring-inset ring-indigo-200 hover:ring-indigo-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">See SMS Pricing <span aria-hidden="true">&rarr;</span></a> -->
-        </div>
-
-        <div
-          class="mt-5 flex flex-col items-start gap-x-8 gap-y-6 rounded-md p-8 ring-1 ring-gray-900/10 sm:gap-y-10 sm:p-10 lg:col-span-2 lg:flex-row lg:items-center">
-          <div class="lg:min-w-0 lg:flex-1">
-            <h3 class="text-lg font-semibold leading-8 tracking-tight text-gray-600">Call Pricing</h3>
-            <p class="mt-1 text-base leading-7 text-gray-600">We bill you on per call we make. Our pricing starts at
-              $0.10 USD per minute per call we make to United States, Canada, UK and EU. For other countries, please
-              contact support. Email alerts are free and always will be.</p>
-          </div>
-          <!-- <a href="#" class="rounded-md px-3.5 py-2 text-sm font-semibold leading-6 text-gray-600 ring-1 ring-inset ring-indigo-200 hover:ring-indigo-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">See SMS Pricing <span aria-hidden="true">&rarr;</span></a> -->
         </div>
       </div>
 
@@ -705,7 +805,7 @@
       <div class="bg-white">
         <div class="mx-auto max-w-7xl py-24 px-6 sm:py-32 lg:px-8 lg:py-40">
           <div class="mx-auto max-w-3xl text-center">
-            <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">OneUptime is 8+ tools combined into one.</h2>
+            <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">OneUptime is 10+ tools combined into one.</h2>
             <p class="mx-auto mt-4 max-w-xl text-lg leading-8 text-gray-600">With OneUptime, you get a complete SRE
               toolchain out-of-the-box. One interface. One conversation. One permission model. Thousands of features.
               You'll be amazed at everything OneUptime can do today. And we're just getting started.</p>
@@ -714,7 +814,7 @@
             <div class="relative">
               <dt>
                 <!-- Heroicon name: outline/check -->
-                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
                   viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
@@ -727,7 +827,7 @@
             <div class="relative">
               <dt>
                 <!-- Heroicon name: outline/check -->
-                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
                   viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
@@ -740,7 +840,7 @@
             <div class="relative">
               <dt>
                 <!-- Heroicon name: outline/check -->
-                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
                   viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
@@ -753,7 +853,7 @@
             <div class="relative">
               <dt>
                 <!-- Heroicon name: outline/check -->
-                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
                   viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
@@ -767,7 +867,7 @@
             <div class="relative">
               <dt>
                 <!-- Heroicon name: outline/check -->
-                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
                   viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
@@ -779,7 +879,7 @@
             <div class="relative">
               <dt>
                 <!-- Heroicon name: outline/check -->
-                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
                   viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
@@ -791,7 +891,7 @@
             <div class="relative">
               <dt>
                 <!-- Heroicon name: outline/check -->
-                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
                   viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
@@ -804,7 +904,7 @@
             <div class="relative">
               <dt>
                 <!-- Heroicon name: outline/check -->
-                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
                   viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
@@ -1478,8 +1578,8 @@
       <script>
 
         function switchToYearlyBilling() {
-          document.getElementById("yearly-billing-btn").classList = "relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
-          document.getElementById("monthly-billing-btn").classList = "relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
+          document.getElementById("yearly-billing-btn").classList = "relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-gray-500 sm:w-auto sm:px-8"
+          document.getElementById("monthly-billing-btn").classList = "relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-gray-500 sm:w-auto sm:px-8"
           for (let i = 0; i < document.getElementsByClassName("free-plan-price").length; i++) {
             document.getElementsByClassName("free-plan-price")[i].innerHTML = "$0"
           }
@@ -1496,8 +1596,8 @@
         }
 
         function switchToMonthlyBilling() {
-          document.getElementById("monthly-billing-btn").classList = "relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
-          document.getElementById("yearly-billing-btn").classList = "relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
+          document.getElementById("monthly-billing-btn").classList = "relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-gray-500 sm:w-auto sm:px-8"
+          document.getElementById("yearly-billing-btn").classList = "relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-gray-500 sm:w-auto sm:px-8"
           for (let i = 0; i < document.getElementsByClassName("free-plan-price").length; i++) {
             document.getElementsByClassName("free-plan-price")[i].innerHTML = "$0"
           }
@@ -1609,6 +1709,65 @@
             document.getElementById("more-than-6-months-retention").style.display = "none";
           }
 
+        }
+
+        // Pay As You Go Tab Switching
+        function switchPayAsYouGoTab(tabName) {
+          // Hide all content sections
+          const contents = document.querySelectorAll('.payg-content');
+          contents.forEach(content => {
+            content.classList.add('hidden');
+          });
+
+          // Reset all tab styles
+          const tabs = document.querySelectorAll('.payg-tab');
+          tabs.forEach(tab => {
+            tab.classList.remove('payg-tab-active', 'border-gray-900', 'text-gray-900');
+            tab.classList.add('border-transparent', 'text-gray-500', 'hover:border-gray-300', 'hover:text-gray-700');
+          });
+
+          // Show selected content
+          const selectedContent = document.getElementById('content-' + tabName);
+          if (selectedContent) {
+            selectedContent.classList.remove('hidden');
+          }
+
+          // Activate selected tab
+          const selectedTab = document.getElementById('tab-' + tabName);
+          if (selectedTab) {
+            selectedTab.classList.add('payg-tab-active', 'border-gray-900', 'text-gray-900');
+            selectedTab.classList.remove('border-transparent', 'text-gray-500', 'hover:border-gray-300', 'hover:text-gray-700');
+          }
+        }
+
+        // AI Agent Pricing Calculator
+        function updateAIPrice(tokenCountInThousands) {
+          if (typeof tokenCountInThousands !== 'number') {
+            tokenCountInThousands = parseInt(tokenCountInThousands);
+          }
+
+          const pricePerThousandTokens = 0.02; // $20 per 1M tokens = $0.02 per 1K tokens
+          const totalPrice = tokenCountInThousands * pricePerThousandTokens;
+
+          // Update price display
+          document.getElementById("total-ai-price").innerHTML = `$${totalPrice.toFixed(2)}`;
+
+          // Update description
+          document.getElementById("total-ai-price-description").innerHTML = `for ${tokenCountInThousands.toLocaleString()}K tokens`;
+
+          // Update token count display
+          if (tokenCountInThousands >= 1000) {
+            document.getElementById("total-number-of-tokens").innerHTML = `${(tokenCountInThousands / 1000).toFixed(1)}M tokens`;
+          } else {
+            document.getElementById("total-number-of-tokens").innerHTML = `${tokenCountInThousands}K tokens`;
+          }
+
+          // Show message if at max
+          if (tokenCountInThousands === 10000) {
+            document.getElementById("more-than-10m-tokens-message").style.display = "block";
+          } else {
+            document.getElementById("more-than-10m-tokens-message").style.display = "none";
+          }
         }
 
 

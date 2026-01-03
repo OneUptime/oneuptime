@@ -27,6 +27,11 @@ import Reviews from "./Utils/Reviews";
 // import jobs.
 import "./Jobs/UpdateBlog";
 import { getGitHubStarsCount, formatStarCount } from "./Jobs/FetchGitHubStars";
+import {
+  getGitHubContributorsCount,
+  getGitHubCommitsCount,
+  formatCount,
+} from "./Jobs/FetchGitHubStats";
 import { Host, IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 
@@ -94,6 +99,10 @@ const HomeFeatureSet: FeatureSet = {
       );
 
       const githubStars: string | null = formatStarCount(getGitHubStarsCount());
+      const githubContributors: string = formatCount(
+        getGitHubContributorsCount(),
+      );
+      const githubCommits: string = formatCount(getGitHubCommitsCount());
 
       res.render(`${ViewsPath}/index`, {
         support: false,
@@ -107,6 +116,8 @@ const HomeFeatureSet: FeatureSet = {
         reviewsList3,
         seo,
         githubStars,
+        githubContributors,
+        githubCommits,
       });
     });
 
@@ -119,6 +130,12 @@ const HomeFeatureSet: FeatureSet = {
         );
       },
     );
+
+    app.get("/install.sh", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.redirect(
+        "https://raw.githubusercontent.com/OneUptime/oneuptime/release/Home/Scripts/Install.sh",
+      );
+    });
 
     app.get("/support", async (_req: ExpressRequest, res: ExpressResponse) => {
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
@@ -401,16 +418,25 @@ const HomeFeatureSet: FeatureSet = {
           name: "On-Call and Alerts",
           data: [
             {
-              name: "Phone Alerts",
+              name: "SMS Alerts",
               plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
+                free: "$0.10/SMS",
+                growth: "$0.10/SMS",
+                scale: "$0.10/SMS",
+                enterprise: "$0.10/SMS",
               },
             },
             {
-              name: "SMS Alerts",
+              name: "Phone Call Alerts",
+              plans: {
+                free: "$0.10/min",
+                growth: "$0.10/min",
+                scale: "$0.10/min",
+                enterprise: "$0.10/min",
+              },
+            },
+            {
+              name: "Bring Your Own Twilio",
               plans: {
                 free: true,
                 growth: true,
@@ -421,10 +447,10 @@ const HomeFeatureSet: FeatureSet = {
             {
               name: "Email Alerts",
               plans: {
-                free: true,
-                growth: true,
-                scale: true,
-                enterprise: true,
+                free: "Free",
+                growth: "Free",
+                scale: "Free",
+                enterprise: "Free",
               },
             },
             {
@@ -437,7 +463,7 @@ const HomeFeatureSet: FeatureSet = {
               },
             },
             {
-              name: "Advanced Workflows",
+              name: "On-Call Rotation",
               plans: {
                 free: false,
                 growth: true,
@@ -446,7 +472,7 @@ const HomeFeatureSet: FeatureSet = {
               },
             },
             {
-              name: "On-Call Rotation",
+              name: "Advanced Workflows",
               plans: {
                 free: false,
                 growth: true,
@@ -472,7 +498,6 @@ const HomeFeatureSet: FeatureSet = {
                 enterprise: "Coming Soon",
               },
             },
-
             {
               name: "Vacation and OOO Policy",
               plans: {
@@ -482,7 +507,6 @@ const HomeFeatureSet: FeatureSet = {
                 enterprise: "Coming Soon",
               },
             },
-
             {
               name: "On-Call Pay",
               plans: {
@@ -492,7 +516,6 @@ const HomeFeatureSet: FeatureSet = {
                 enterprise: "Coming Soon",
               },
             },
-
             {
               name: "Reports",
               plans: {
@@ -730,7 +753,52 @@ const HomeFeatureSet: FeatureSet = {
           name: "AI Agent",
           data: [
             {
-              name: "Scan your Codebase",
+              name: "LLM Token Pricing",
+              plans: {
+                free: "$0.02/1K tokens",
+                growth: "$0.02/1K tokens",
+                scale: "$0.02/1K tokens",
+                enterprise: "$0.02/1K tokens",
+              },
+            },
+            {
+              name: "Bring Your Own LLM",
+              plans: {
+                free: true,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Incident Analysis & Insights",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Root Cause Suggestions",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Automated Runbook Generation",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
+              name: "Log Analysis & Anomaly Detection",
               plans: {
                 free: false,
                 growth: true,
@@ -748,33 +816,6 @@ const HomeFeatureSet: FeatureSet = {
               },
             },
             {
-              name: "Fix Performance Issues",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Fix DB Queries Automatically",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Fix Frontend Issues",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
               name: "Integrate with GitHub, GitLab",
               plans: {
                 free: false,
@@ -784,43 +825,7 @@ const HomeFeatureSet: FeatureSet = {
               },
             },
             {
-              name: "Integrate with CI/CD",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Terraform Support",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Integrate with Issue Tracker",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Integrates with Slack / Team",
-              plans: {
-                free: false,
-                growth: true,
-                scale: true,
-                enterprise: true,
-              },
-            },
-            {
-              name: "Advanced Workflows",
+              name: "Integrate with Slack / Teams",
               plans: {
                 free: false,
                 growth: true,
@@ -1188,6 +1193,62 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get(
+      "/product/metrics",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/metrics",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/metrics`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/product/traces",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/traces",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/traces`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/product/exceptions",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/exceptions",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/exceptions`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/product/dashboards",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/dashboards",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/dashboards`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
       "/incident-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.redirect("/product/incident-management");
@@ -1201,6 +1262,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/enterprise/overview",
       (_req: ExpressRequest, res: ExpressResponse) => {
+        const { reviewsList1, reviewsList2, reviewsList3 } = Reviews;
         const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
           "/enterprise/overview",
           res.locals["homeUrl"] as string,
@@ -1212,6 +1274,204 @@ const HomeFeatureSet: FeatureSet = {
           cta: true,
           blackLogo: false,
           requestDemoCta: true,
+          reviewsList1,
+          reviewsList2,
+          reviewsList3,
+          seo,
+        });
+      },
+    );
+
+    // Solutions pages
+    app.get(
+      "/solutions/devops",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/solutions/devops",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/solutions/devops`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get("/solutions/sre", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/solutions/sre",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/solutions/sre`, {
+        enableGoogleTagManager: IsBillingEnabled,
+        seo,
+      });
+    });
+
+    app.get(
+      "/solutions/platform",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/solutions/platform",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/solutions/platform`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/solutions/developers",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/solutions/developers",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/solutions/developers`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/solutions/incident-response",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/solutions/incident-response",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/solutions/incident-response`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/solutions/uptime-monitoring",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/solutions/uptime-monitoring",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/solutions/uptime-monitoring`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/solutions/observability",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/solutions/observability",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/solutions/observability`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/solutions/status-communication",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/solutions/status-communication",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/solutions/status-communication`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    // Industries pages
+    app.get(
+      "/industries/fintech",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/industries/fintech",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/industries/fintech`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/industries/saas",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/industries/saas",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/industries/saas`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/industries/healthcare",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/industries/healthcare",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/industries/healthcare`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/industries/ecommerce",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/industries/ecommerce",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/industries/ecommerce`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/industries/media",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/industries/media",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/industries/media`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/industries/government",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/industries/government",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/industries/government`, {
+          enableGoogleTagManager: IsBillingEnabled,
           seo,
         });
       },
