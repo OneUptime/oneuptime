@@ -604,113 +604,225 @@
 
     <!-- Before/After Comparison -->
     <section class="relative py-24 lg:py-32 bg-gray-50 overflow-hidden">
+      <!-- Background decorations -->
+      <div class="absolute inset-0 -z-10">
+        <div class="absolute top-0 left-1/4 w-96 h-96 bg-rose-100/30 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-emerald-100/30 rounded-full blur-3xl"></div>
+      </div>
+
       <div class="relative mx-auto max-w-6xl px-6 lg:px-8">
         <div class="text-center mb-16">
-          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900">
+          <p class="text-sm font-medium text-gray-500 tracking-wide uppercase mb-4">The Transformation</p>
+          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-4">
             The bottom line
           </h2>
+          <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+            See how OneUptime transforms your monitoring stack from chaos to clarity
+          </p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          <!-- Before -->
-          <div class="p-8 rounded-2xl bg-white border border-gray-300 shadow-sm">
-            <div class="flex items-center gap-3 mb-6">
-              <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-              </div>
-              <h3 class="text-lg font-semibold text-gray-600">Before OneUptime</h3>
+        <div class="relative max-w-5xl mx-auto">
+          <!-- Connecting Arrow (visible on lg screens) -->
+          <div class="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+            <div class="w-16 h-16 rounded-full bg-white shadow-xl border border-gray-200 flex items-center justify-center">
+              <svg class="w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
             </div>
-            <ul class="space-y-3">
-              <li class="flex items-center gap-3 text-sm text-gray-500">
-                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-                7+ tools, 7+ subscriptions
-              </li>
-              <li class="flex items-center gap-3 text-sm text-gray-500">
-                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-                Context switching between dashboards
-              </li>
-              <li class="flex items-center gap-3 text-sm text-gray-500">
-                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-                Manual incident detection
-              </li>
-              <li class="flex items-center gap-3 text-sm text-gray-500">
-                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-                Proprietary agents & SDKs
-              </li>
-              <li class="flex items-center gap-3 text-sm text-gray-500">
-                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-                Vendor lock-in
-              </li>
-              <li class="flex items-center gap-3 text-sm text-gray-500">
-                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-                "Something's broken" alerts
-              </li>
-            </ul>
           </div>
 
-          <!-- After -->
-          <div class="p-8 rounded-2xl bg-emerald-50 border border-emerald-200 shadow-sm">
-            <div class="flex items-center gap-3 mb-6">
-              <div class="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                </svg>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
+            <!-- Before -->
+            <div class="relative group">
+              <div class="absolute inset-0 bg-gradient-to-br from-gray-200/50 to-gray-300/50 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div class="relative p-8 lg:p-10 rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-shadow duration-300">
+                <div class="flex items-center gap-4 mb-8">
+                  <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shadow-inner">
+                    <svg class="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                  <div>
+                    <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Current State</span>
+                    <h3 class="text-xl font-semibold text-gray-700">Before OneUptime</h3>
+                  </div>
+                </div>
+                <ul class="space-y-4">
+                  <li class="flex items-start gap-4">
+                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-medium text-gray-700">7+ tools, 7+ subscriptions</p>
+                      <p class="text-xs text-gray-400 mt-0.5">Multiple vendors, multiple bills</p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-4">
+                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-medium text-gray-700">Context switching between dashboards</p>
+                      <p class="text-xs text-gray-400 mt-0.5">Lost productivity and focus</p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-4">
+                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-medium text-gray-700">Manual incident detection</p>
+                      <p class="text-xs text-gray-400 mt-0.5">Slow response times</p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-4">
+                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-medium text-gray-700">Proprietary agents & SDKs</p>
+                      <p class="text-xs text-gray-400 mt-0.5">Vendor-specific implementations</p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-4">
+                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-medium text-gray-700">Vendor lock-in</p>
+                      <p class="text-xs text-gray-400 mt-0.5">Data held hostage</p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-4">
+                    <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-medium text-gray-700">"Something's broken" alerts</p>
+                      <p class="text-xs text-gray-400 mt-0.5">No actionable insights</p>
+                    </div>
+                  </li>
+                </ul>
               </div>
-              <h3 class="text-lg font-semibold text-emerald-900">After OneUptime</h3>
             </div>
-            <ul class="space-y-3">
-              <li class="flex items-center gap-3 text-sm text-emerald-800 font-medium">
-                <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                </svg>
-                One platform, one bill
-              </li>
-              <li class="flex items-center gap-3 text-sm text-emerald-800 font-medium">
-                <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                </svg>
-                Unified, correlated view
-              </li>
-              <li class="flex items-center gap-3 text-sm text-emerald-800 font-medium">
-                <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                </svg>
-                AI-powered detection + fixes
-              </li>
-              <li class="flex items-center gap-3 text-sm text-emerald-800 font-medium">
-                <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                </svg>
-                OpenTelemetry standard
-              </li>
-              <li class="flex items-center gap-3 text-sm text-emerald-800 font-medium">
-                <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                </svg>
-                Open source freedom
-              </li>
-              <li class="flex items-center gap-3 text-sm text-emerald-800 font-medium">
-                <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                </svg>
-                "Here's the fix" pull requests
-              </li>
-            </ul>
+
+            <!-- After -->
+            <div class="relative group">
+              <div class="absolute inset-0 bg-gradient-to-br from-emerald-200/50 to-emerald-300/50 rounded-3xl blur-xl opacity-50 group-hover:opacity-80 transition-opacity duration-500"></div>
+              <div class="relative p-8 lg:p-10 rounded-3xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 shadow-sm hover:shadow-lg transition-shadow duration-300">
+                <div class="flex items-center gap-4 mb-8">
+                  <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-200">
+                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                  </div>
+                  <div>
+                    <span class="text-xs font-medium text-emerald-600 uppercase tracking-wider">With OneUptime</span>
+                    <h3 class="text-xl font-semibold text-emerald-900">After OneUptime</h3>
+                  </div>
+                </div>
+                <ul class="space-y-4">
+                  <li class="flex items-start gap-4">
+                    <div class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                      <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-emerald-900">One platform, one bill</p>
+                      <p class="text-xs text-emerald-600 mt-0.5">Simplified vendor management</p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-4">
+                    <div class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                      <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-emerald-900">Unified, correlated view</p>
+                      <p class="text-xs text-emerald-600 mt-0.5">Everything in one place</p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-4">
+                    <div class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                      <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-emerald-900">AI-powered detection + fixes</p>
+                      <p class="text-xs text-emerald-600 mt-0.5">Automatic remediation</p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-4">
+                    <div class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                      <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-emerald-900">OpenTelemetry standard</p>
+                      <p class="text-xs text-emerald-600 mt-0.5">Industry-standard instrumentation</p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-4">
+                    <div class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                      <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-emerald-900">Open source freedom</p>
+                      <p class="text-xs text-emerald-600 mt-0.5">Full transparency and control</p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-4">
+                    <div class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                      <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-emerald-900">"Here's the fix" pull requests</p>
+                      <p class="text-xs text-emerald-600 mt-0.5">AI-generated code fixes</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
+
+          <!-- Mobile Arrow (visible on smaller screens) -->
+          <div class="flex lg:hidden justify-center -my-3 relative z-10">
+            <div class="w-12 h-12 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center">
+              <svg class="w-5 h-5 text-emerald-500 rotate-90" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom CTA -->
+        <div class="text-center mt-16">
+          <a href="/accounts/register" class="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-gray-900 text-white font-medium shadow-lg shadow-gray-900/20 hover:bg-gray-800 transition-all hover:shadow-xl hover:shadow-gray-900/25 hover:-translate-y-0.5">
+            Make the switch today
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </a>
         </div>
       </div>
     </section>
