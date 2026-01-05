@@ -35,6 +35,8 @@ export interface PageSEOData {
     | "support"
     | "enterprise"
     | "compare"
+    | "solutions"
+    | "industry"
     | "other";
 }
 
@@ -303,6 +305,134 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/metrics": {
+    title: "Metrics | Application & Infrastructure Metrics | OneUptime",
+    description:
+      "Collect and visualize metrics from applications and infrastructure. OpenTelemetry native. Custom dashboards, alerting, and anomaly detection. Open source.",
+    canonicalPath: "/product/metrics",
+    ogImage: "/img/metrics.png",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Metrics", url: "/product/metrics" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Metrics",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Collect, store, and visualize metrics from any source with powerful querying and alerting.",
+      features: [
+        "OpenTelemetry metrics ingestion",
+        "Custom metric collection",
+        "Real-time dashboards",
+        "Metric-based alerting",
+        "Anomaly detection",
+        "Long-term retention",
+        "PromQL compatible",
+        "Infrastructure metrics",
+      ],
+    },
+  },
+
+  "/product/traces": {
+    title: "Distributed Tracing | End-to-End Request Tracing | OneUptime",
+    description:
+      "Trace requests across microservices and distributed systems. OpenTelemetry native. Visualize latency, find bottlenecks, and debug performance issues. Open source.",
+    canonicalPath: "/product/traces",
+    ogImage: "/img/traces.png",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Traces", url: "/product/traces" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Traces",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Distributed tracing for microservices and complex architectures.",
+      features: [
+        "OpenTelemetry trace ingestion",
+        "End-to-end request tracing",
+        "Service dependency maps",
+        "Latency analysis",
+        "Span waterfall views",
+        "Trace-based alerting",
+        "Root cause analysis",
+        "Performance bottleneck detection",
+      ],
+    },
+  },
+
+  "/product/exceptions": {
+    title: "Error Tracking | Exception Monitoring & Alerts | OneUptime",
+    description:
+      "Track and monitor exceptions across your applications. Get instant alerts, stack traces, and context to fix bugs faster. OpenTelemetry native. Open source.",
+    canonicalPath: "/product/exceptions",
+    ogImage: "/img/exceptions.png",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Exceptions", url: "/product/exceptions" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Exceptions",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Exception tracking and error monitoring for applications.",
+      features: [
+        "Real-time error tracking",
+        "Stack trace capture",
+        "Error grouping and deduplication",
+        "Exception alerting",
+        "Release tracking",
+        "User impact analysis",
+        "Integration with issue trackers",
+        "OpenTelemetry native",
+      ],
+    },
+  },
+
+  "/product/dashboards": {
+    title: "Dashboards | Custom Observability Dashboards | OneUptime",
+    description:
+      "Build custom dashboards to visualize all your observability data. Combine metrics, logs, traces, and status in one view. Share with your team. Open source.",
+    canonicalPath: "/product/dashboards",
+    ogImage: "/img/dashboards.png",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Dashboards", url: "/product/dashboards" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Dashboards",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Custom dashboards to visualize and monitor all your observability data.",
+      features: [
+        "Drag-and-drop dashboard builder",
+        "Multiple visualization types",
+        "Combine metrics, logs, and traces",
+        "Real-time data updates",
+        "Dashboard sharing and embedding",
+        "Custom time ranges",
+        "Dashboard templates",
+        "Role-based access control",
+      ],
+    },
+  },
+
   // Pricing
   "/pricing": {
     title: "Pricing | Free Tier & Paid Plans | OneUptime",
@@ -465,6 +595,148 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
       { name: "Home", url: "/" },
       { name: "Legal", url: "/legal" },
       { name: "HIPAA", url: "/legal/hipaa" },
+    ],
+  },
+
+  // Teams (Solutions)
+  "/solutions/devops": {
+    title: "DevOps Monitoring & Observability | OneUptime",
+    description:
+      "Observability platform built for DevOps teams. Monitor infrastructure, track deployments, automate incident response, and improve MTTR. Open source.",
+    canonicalPath: "/solutions/devops",
+    twitterCard: "summary_large_image",
+    pageType: "solutions",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Solutions", url: "/#solutions" },
+      { name: "DevOps", url: "/solutions/devops" },
+    ],
+  },
+
+  "/solutions/sre": {
+    title: "SRE Tools & Platform | Site Reliability Engineering | OneUptime",
+    description:
+      "Complete SRE platform with SLOs, error budgets, incident management, and on-call scheduling. Track reliability metrics and reduce toil. Open source.",
+    canonicalPath: "/solutions/sre",
+    twitterCard: "summary_large_image",
+    pageType: "solutions",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Solutions", url: "/#solutions" },
+      { name: "SRE", url: "/solutions/sre" },
+    ],
+  },
+
+  "/solutions/platform": {
+    title: "Platform Engineering Observability | OneUptime",
+    description:
+      "Observability for platform engineering teams. Provide self-service monitoring, standardized dashboards, and unified alerting for internal developer platforms. Open source.",
+    canonicalPath: "/solutions/platform",
+    twitterCard: "summary_large_image",
+    pageType: "solutions",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Solutions", url: "/#solutions" },
+      { name: "Platform", url: "/solutions/platform" },
+    ],
+  },
+
+  "/solutions/developers": {
+    title: "Developer Observability Tools | OneUptime",
+    description:
+      "Debugging and observability tools for developers. Trace requests, search logs, track errors, and understand application performance. Open source.",
+    canonicalPath: "/solutions/developers",
+    twitterCard: "summary_large_image",
+    pageType: "solutions",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Solutions", url: "/#solutions" },
+      { name: "Developers", url: "/solutions/developers" },
+    ],
+  },
+
+  // Industries
+  "/industries/fintech": {
+    title: "FinTech Monitoring & Compliance | OneUptime",
+    description:
+      "Observability platform for FinTech companies. SOC 2 compliant, PCI-DSS ready. Monitor payment systems, track transactions, and ensure uptime for financial services.",
+    canonicalPath: "/industries/fintech",
+    twitterCard: "summary_large_image",
+    pageType: "industry",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Industries", url: "/#industries" },
+      { name: "FinTech", url: "/industries/fintech" },
+    ],
+  },
+
+  "/industries/saas": {
+    title: "SaaS Monitoring & Status Pages | OneUptime",
+    description:
+      "Complete observability for SaaS companies. Monitor your application, communicate status to customers, manage incidents, and improve reliability. Open source.",
+    canonicalPath: "/industries/saas",
+    twitterCard: "summary_large_image",
+    pageType: "industry",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Industries", url: "/#industries" },
+      { name: "SaaS", url: "/industries/saas" },
+    ],
+  },
+
+  "/industries/healthcare": {
+    title: "Healthcare IT Monitoring | HIPAA Compliant | OneUptime",
+    description:
+      "HIPAA-compliant observability platform for healthcare organizations. Monitor EHR systems, ensure uptime for critical health services, and maintain compliance.",
+    canonicalPath: "/industries/healthcare",
+    twitterCard: "summary_large_image",
+    pageType: "industry",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Industries", url: "/#industries" },
+      { name: "Healthcare", url: "/industries/healthcare" },
+    ],
+  },
+
+  "/industries/ecommerce": {
+    title: "E-Commerce Monitoring & Uptime | OneUptime",
+    description:
+      "Observability platform for e-commerce. Monitor checkout flows, track page performance, ensure uptime during peak traffic, and reduce cart abandonment.",
+    canonicalPath: "/industries/ecommerce",
+    twitterCard: "summary_large_image",
+    pageType: "industry",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Industries", url: "/#industries" },
+      { name: "E-Commerce", url: "/industries/ecommerce" },
+    ],
+  },
+
+  "/industries/media": {
+    title: "Media & Streaming Monitoring | OneUptime",
+    description:
+      "Observability for media and streaming platforms. Monitor video delivery, track playback quality, ensure global availability, and optimize viewer experience.",
+    canonicalPath: "/industries/media",
+    twitterCard: "summary_large_image",
+    pageType: "industry",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Industries", url: "/#industries" },
+      { name: "Media", url: "/industries/media" },
+    ],
+  },
+
+  "/industries/government": {
+    title: "Government IT Monitoring | FedRAMP Ready | OneUptime",
+    description:
+      "Secure observability platform for government agencies. Self-hosted deployment, data residency controls, and compliance-ready. Monitor critical public services.",
+    canonicalPath: "/industries/government",
+    twitterCard: "summary_large_image",
+    pageType: "industry",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Industries", url: "/#industries" },
+      { name: "Government", url: "/industries/government" },
     ],
   },
 };

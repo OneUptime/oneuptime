@@ -36,7 +36,26 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   "/product/incident-management": { priority: 0.9, changefreq: "weekly" },
   "/product/on-call": { priority: 0.9, changefreq: "weekly" },
   "/product/logs-management": { priority: 0.9, changefreq: "weekly" },
+  "/product/metrics": { priority: 0.9, changefreq: "weekly" },
+  "/product/traces": { priority: 0.9, changefreq: "weekly" },
+  "/product/exceptions": { priority: 0.9, changefreq: "weekly" },
   "/product/workflows": { priority: 0.9, changefreq: "weekly" },
+  "/product/dashboards": { priority: 0.9, changefreq: "weekly" },
+  "/product/ai-agent": { priority: 0.9, changefreq: "weekly" },
+
+  // Teams (Solutions) pages
+  "/solutions/devops": { priority: 0.8, changefreq: "weekly" },
+  "/solutions/sre": { priority: 0.8, changefreq: "weekly" },
+  "/solutions/platform": { priority: 0.8, changefreq: "weekly" },
+  "/solutions/developers": { priority: 0.8, changefreq: "weekly" },
+
+  // Industry pages
+  "/industries/fintech": { priority: 0.8, changefreq: "weekly" },
+  "/industries/saas": { priority: 0.8, changefreq: "weekly" },
+  "/industries/healthcare": { priority: 0.8, changefreq: "weekly" },
+  "/industries/ecommerce": { priority: 0.8, changefreq: "weekly" },
+  "/industries/media": { priority: 0.8, changefreq: "weekly" },
+  "/industries/government": { priority: 0.8, changefreq: "weekly" },
 
   // Important pages
   "/pricing": { priority: 0.9, changefreq: "weekly" },
