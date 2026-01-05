@@ -24,38 +24,82 @@
   <main id="main-content">
 
     <!-- Hero Section -->
-    <section class="relative isolate overflow-hidden">
-      <!-- Background - dot pattern (same as OSS friends) -->
-      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-[size:2rem_2rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+    <section class="relative isolate overflow-hidden bg-gradient-to-b from-gray-50 to-white">
+      <!-- Background elements -->
+      <div class="absolute inset-0 -z-10">
+        <!-- Gradient orbs -->
+        <div class="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full blur-3xl opacity-60"></div>
+        <div class="absolute top-20 right-1/4 w-80 h-80 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full blur-3xl opacity-50"></div>
+        <!-- Subtle grid pattern -->
+        <div class="absolute inset-0 bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_60%,transparent_100%)]"></div>
+      </div>
 
-      <div class="py-20 sm:py-28 lg:py-32">
+      <div class="py-16 sm:py-24 lg:py-32">
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
-          <div class="mx-auto max-w-3xl text-center">
-            <!-- Badge -->
-            <a href="#book-demo" class="group mb-8 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100 hover:ring-gray-300">
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z"></path>
-              </svg>
-              <span>Schedule a demo</span>
-              <svg class="h-3.5 w-3.5 text-gray-400 transition-transform group-hover:trangray-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
-            </a>
+          <div class="mx-auto max-w-4xl text-center">
+
 
             <!-- Main headline -->
-            <h1 class="text-3xl font-medium tracking-tight text-gray-900 sm:text-4xl lg:text-5xl xl:text-[3.5rem] xl:leading-[1.15]">
-              Let's solve your <br class="hidden sm:block" />software-ops challenges
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Request Demo
             </h1>
 
             <!-- Subheadline -->
-            <p class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-xl mx-auto">
-              Get a personalized demo (30 mins to 1 hour). We'll show you how OneUptime can replace your fragmented toolchain with one unified platform.
+            <p class="mt-6 text-lg leading-8 text-gray-600 sm:text-xl max-w-2xl mx-auto">
+              Get a personalized walkthrough of how OneUptime can replace your fragmented toolchain with one unified observability platform.
             </p>
 
+            <!-- Value props -->
+            <div class="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-gray-500">
+              <div class="flex items-center gap-2">
+                <svg class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                </svg>
+                <span>Talk to engineers, not sales</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                </svg>
+                <span>Tailored to your stack</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                </svg>
+                <span>Zero commitment</span>
+              </div>
+            </div>
+
             <!-- CTA buttons -->
-            <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-              <a href="#book-demo" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
-                Schedule the call
-                <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+            <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <a href="#book-demo" class="group w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-gray-900 px-8 py-3.5 text-base font-medium text-white shadow-lg shadow-gray-900/20 transition-all hover:bg-gray-800 hover:shadow-xl hover:shadow-gray-900/25 hover:-translate-y-0.5">
+                Book your demo
+                <svg class="ml-2 h-5 w-5 transition-transform group-hover:translate-y-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
               </a>
+              <a href="/accounts/register" class="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-white px-8 py-3.5 text-base font-medium text-gray-700 ring-1 ring-gray-200 transition-all hover:bg-gray-50 hover:ring-gray-300">
+                Or start free trial
+              </a>
+            </div>
+
+            <!-- Social proof stats -->
+            <div class="mt-12 pt-8 border-t border-gray-200/60">
+              <div class="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
+                <div class="text-center">
+                  <p class="text-2xl sm:text-3xl font-semibold text-gray-900">1000+</p>
+                  <p class="text-sm text-gray-500">Teams using OneUptime</p>
+                </div>
+                <div class="hidden sm:block w-px h-10 bg-gray-200"></div>
+                <div class="text-center">
+                  <p class="text-2xl sm:text-3xl font-semibold text-gray-900">99.99%</p>
+                  <p class="text-sm text-gray-500">Uptime SLA</p>
+                </div>
+                <div class="hidden sm:block w-px h-10 bg-gray-200"></div>
+                <div class="text-center">
+                  <p class="text-2xl sm:text-3xl font-semibold text-gray-900">24/7</p>
+                  <p class="text-sm text-gray-500">Support available</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
