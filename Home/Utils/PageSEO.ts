@@ -386,8 +386,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
       name: "OneUptime Exceptions",
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Web, Cloud",
-      description:
-        "Exception tracking and error monitoring for applications.",
+      description: "Exception tracking and error monitoring for applications.",
       features: [
         "Real-time error tracking",
         "Stack trace capture",
