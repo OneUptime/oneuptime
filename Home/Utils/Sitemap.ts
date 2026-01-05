@@ -36,7 +36,6 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   "/product/incident-management": { priority: 0.9, changefreq: "weekly" },
   "/product/on-call": { priority: 0.9, changefreq: "weekly" },
   "/product/logs-management": { priority: 0.9, changefreq: "weekly" },
-  "/product/apm": { priority: 0.9, changefreq: "weekly" },
   "/product/workflows": { priority: 0.9, changefreq: "weekly" },
 
   // Important pages

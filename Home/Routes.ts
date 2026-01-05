@@ -992,17 +992,6 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    app.get("/product/apm", (_req: ExpressRequest, res: ExpressResponse) => {
-      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
-        "/product/apm",
-        res.locals["homeUrl"] as string,
-      );
-      res.render(`${ViewsPath}/apm`, {
-        enableGoogleTagManager: IsBillingEnabled,
-        seo,
-      });
-    });
-
     app.get("/status-page", (_req: ExpressRequest, res: ExpressResponse) => {
       res.redirect("/product/status-page");
     });

@@ -236,38 +236,6 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
-  "/product/apm": {
-    title: "APM | Application Performance Monitoring | OneUptime",
-    description:
-      "Monitor application performance with distributed tracing, metrics, and error tracking. OpenTelemetry native. Track latency, throughput, and errors across services. Open source.",
-    canonicalPath: "/product/apm",
-    ogImage: "/img/apm.png",
-    twitterCard: "summary_large_image",
-    pageType: "product",
-    breadcrumbs: [
-      { name: "Home", url: "/" },
-      { name: "Products", url: "/#products" },
-      { name: "APM", url: "/product/apm" },
-    ],
-    softwareApplication: {
-      name: "OneUptime APM",
-      applicationCategory: "DeveloperApplication",
-      operatingSystem: "Web, Cloud",
-      description:
-        "Application performance monitoring with distributed tracing, metrics, and error tracking.",
-      features: [
-        "Distributed tracing",
-        "Performance metrics",
-        "Error tracking and exceptions",
-        "Service dependency maps",
-        "OpenTelemetry native",
-        "Latency analysis",
-        "Throughput monitoring",
-        "Custom dashboards",
-      ],
-    },
-  },
-
   "/product/workflows": {
     title: "Workflow Automation | No-Code Integrations | OneUptime",
     description:
