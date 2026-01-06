@@ -307,11 +307,11 @@
           </div>
         </div>
 
-        <!-- Feature 2: Unlimited Monitors -->
+        <!-- Feature 2: Private Network Monitoring -->
         <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
           <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
             <div class="relative flex items-center justify-center py-6">
-              <!-- Polished Global Monitoring Illustration -->
+              <!-- Private Network Monitoring Illustration -->
               <svg class="w-full max-w-md" viewBox="0 0 400 320" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -330,53 +330,57 @@
                   </filter>
                 </defs>
 
-                <!-- Globe with shadow -->
+                <!-- Private network cloud/shield shape -->
                 <g filter="url(#globeShadow)">
-                  <circle cx="200" cy="130" r="95" fill="white"/>
+                  <path d="M200 30 L340 90 L340 180 C340 240 280 280 200 290 C120 280 60 240 60 180 L60 90 L200 30Z" fill="white"/>
                 </g>
-                <circle cx="200" cy="130" r="95" fill="none" stroke="url(#cyanGrad)" stroke-width="2"/>
+                <path d="M200 30 L340 90 L340 180 C340 240 280 280 200 290 C120 280 60 240 60 180 L60 90 L200 30Z" fill="none" stroke="url(#cyanGrad)" stroke-width="2"/>
 
-                <!-- Globe grid - elegant curved lines -->
-                <ellipse cx="200" cy="130" rx="95" ry="30" fill="none" stroke="#E5E7EB" stroke-width="1"/>
-                <ellipse cx="200" cy="90" rx="80" ry="20" fill="none" stroke="#F3F4F6" stroke-width="1"/>
-                <ellipse cx="200" cy="170" rx="80" ry="20" fill="none" stroke="#F3F4F6" stroke-width="1"/>
-                <ellipse cx="200" cy="130" rx="35" ry="95" fill="none" stroke="#E5E7EB" stroke-width="1"/>
-                <ellipse cx="200" cy="130" rx="65" ry="95" fill="none" stroke="#F3F4F6" stroke-width="1"/>
+                <!-- Internal network grid -->
+                <line x1="100" y1="130" x2="300" y2="130" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="4 4"/>
+                <line x1="100" y1="170" x2="300" y2="170" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="4 4"/>
+                <line x1="100" y1="210" x2="300" y2="210" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="4 4"/>
+                <line x1="140" y1="90" x2="140" y2="250" stroke="#F3F4F6" stroke-width="1" stroke-dasharray="4 4"/>
+                <line x1="200" y1="70" x2="200" y2="270" stroke="#F3F4F6" stroke-width="1" stroke-dasharray="4 4"/>
+                <line x1="260" y1="90" x2="260" y2="250" stroke="#F3F4F6" stroke-width="1" stroke-dasharray="4 4"/>
 
-                <!-- Location markers with glow -->
+                <!-- Lock icon in center -->
+                <rect x="180" y="100" width="40" height="35" rx="4" fill="#ECFEFF" stroke="#06B6D4" stroke-width="2"/>
+                <path d="M190 100V90C190 82 195 75 200 75C205 75 210 82 210 90V100" fill="none" stroke="#06B6D4" stroke-width="2"/>
+                <circle cx="200" cy="115" r="4" fill="#06B6D4"/>
+                <line x1="200" y1="119" x2="200" y2="127" stroke="#06B6D4" stroke-width="2"/>
+
+                <!-- Internal server nodes with glow -->
                 <g filter="url(#dotGlow)">
-                  <circle cx="140" cy="80" r="10" fill="url(#greenGrad)"/>
-                  <circle cx="250" cy="75" r="10" fill="url(#greenGrad)"/>
-                  <circle cx="120" cy="135" r="10" fill="url(#greenGrad)"/>
-                  <circle cx="275" cy="130" r="10" fill="url(#greenGrad)"/>
-                  <circle cx="150" cy="175" r="10" fill="url(#greenGrad)"/>
-                  <circle cx="240" cy="170" r="10" fill="url(#greenGrad)"/>
-                  <circle cx="200" cy="100" r="10" fill="url(#greenGrad)"/>
+                  <circle cx="120" cy="150" r="10" fill="url(#greenGrad)"/>
+                  <circle cx="280" cy="150" r="10" fill="url(#greenGrad)"/>
+                  <circle cx="140" cy="200" r="10" fill="url(#greenGrad)"/>
+                  <circle cx="200" cy="180" r="10" fill="url(#greenGrad)"/>
+                  <circle cx="260" cy="200" r="10" fill="url(#greenGrad)"/>
                 </g>
 
                 <!-- Inner white dots for polish -->
-                <circle cx="140" cy="80" r="3" fill="white" opacity="0.6"/>
-                <circle cx="250" cy="75" r="3" fill="white" opacity="0.6"/>
-                <circle cx="120" cy="135" r="3" fill="white" opacity="0.6"/>
-                <circle cx="275" cy="130" r="3" fill="white" opacity="0.6"/>
-                <circle cx="150" cy="175" r="3" fill="white" opacity="0.6"/>
-                <circle cx="240" cy="170" r="3" fill="white" opacity="0.6"/>
-                <circle cx="200" cy="100" r="3" fill="white" opacity="0.6"/>
+                <circle cx="120" cy="150" r="3" fill="white" opacity="0.6"/>
+                <circle cx="280" cy="150" r="3" fill="white" opacity="0.6"/>
+                <circle cx="140" cy="200" r="3" fill="white" opacity="0.6"/>
+                <circle cx="200" cy="180" r="3" fill="white" opacity="0.6"/>
+                <circle cx="260" cy="200" r="3" fill="white" opacity="0.6"/>
+
+                <!-- VPN badge -->
+                <rect x="160" y="240" width="80" height="24" rx="12" fill="#06B6D4"/>
+                <text x="200" y="256" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="white" text-anchor="middle">PRIVATE</text>
 
                 <!-- Stats with better typography -->
                 <g>
-                  <text x="90" y="275" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="700" fill="#0F172A">∞</text>
-                  <text x="90" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748B">Monitors</text>
+                  <text x="70" y="305" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" fill="#0F172A">VPN</text>
+                  <text x="70" y="318" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748B">Ready</text>
 
-                  <text x="185" y="275" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="700" fill="#0F172A">7</text>
-                  <text x="185" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748B">Regions</text>
+                  <text x="165" y="305" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" fill="#0F172A">K8s</text>
+                  <text x="165" y="318" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748B">Clusters</text>
 
-                  <text x="275" y="275" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="700" fill="#0F172A">1s</text>
-                  <text x="275" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748B">Intervals</text>
+                  <text x="265" y="305" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" fill="#0F172A">LAN</text>
+                  <text x="265" y="318" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748B">Networks</text>
                 </g>
-
-                <!-- Subtle outer ring -->
-                <circle cx="200" cy="130" r="108" stroke="#06B6D4" stroke-width="1" opacity="0.1"/>
               </svg>
             </div>
           </div>
@@ -384,33 +388,33 @@
             <div class="flex items-center gap-4 mb-6">
               <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-50 ring-1 ring-cyan-200">
                 <svg class="h-7 w-7 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
-              <span class="text-sm font-semibold text-cyan-600 uppercase tracking-wide">Scale Without Limits</span>
+              <span class="text-sm font-semibold text-cyan-600 uppercase tracking-wide">Internal Infrastructure</span>
             </div>
-            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Unlimited Monitors</h3>
+            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Private Network Monitoring</h3>
             <p class="text-lg text-gray-600 mb-6">
-              Monitor unlimited resources with 1-second checks from 7 different locations around the world. Install probes inside your VPN to monitor internal resources.
+              Deploy lightweight monitoring probes inside your private networks, VPNs, or air-gapped environments. Monitor internal services, databases, and infrastructure that aren't accessible from the public internet.
             </p>
             <ul class="space-y-3 mb-8">
               <li class="flex items-center gap-3 text-gray-600">
                 <svg class="h-5 w-5 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                No limits on monitor count
+                Monitor behind firewalls and VPNs
               </li>
               <li class="flex items-center gap-3 text-gray-600">
                 <svg class="h-5 w-5 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                Private probe deployment
+                Kubernetes cluster monitoring
               </li>
               <li class="flex items-center gap-3 text-gray-600">
                 <svg class="h-5 w-5 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                Multi-region redundancy
+                On-premise and hybrid cloud support
               </li>
             </ul>
             <a href="/accounts/register" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-all duration-300 shadow-lg shadow-gray-900/20 hover:shadow-xl hover:-trangray-y-0.5">
@@ -525,6 +529,269 @@
                   <circle cx="24" cy="18" r="6" fill="#8B5CF6"/>
                   <circle cx="24" cy="18" r="10" fill="#8B5CF6" opacity="0.2"/>
                   <text x="42" y="23" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#7C3AED">Real-time</text>
+                </g>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature 4: User Journey Monitoring -->
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
+            <div class="relative flex items-center justify-center py-6">
+              <!-- User Journey Monitoring Illustration -->
+              <svg class="w-full max-w-md" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#F97316"/>
+                    <stop offset="100%" style="stop-color:#EA580C"/>
+                  </linearGradient>
+                  <filter id="stepShadow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#F97316" flood-opacity="0.15"/>
+                  </filter>
+                </defs>
+
+                <!-- Browser frame -->
+                <g filter="url(#stepShadow)">
+                  <rect x="50" y="30" width="300" height="200" rx="12" fill="white"/>
+                </g>
+                <rect x="50" y="30" width="300" height="200" rx="12" fill="none" stroke="#E5E7EB" stroke-width="1"/>
+
+                <!-- Browser header -->
+                <rect x="50" y="30" width="300" height="32" rx="12" fill="#F9FAFB"/>
+                <rect x="50" y="50" width="300" height="12" fill="#F9FAFB"/>
+                <circle cx="70" cy="46" r="5" fill="#FCA5A5"/>
+                <circle cx="86" cy="46" r="5" fill="#FCD34D"/>
+                <circle cx="102" cy="46" r="5" fill="#86EFAC"/>
+                <rect x="130" y="40" width="150" height="12" rx="6" fill="#E5E7EB"/>
+
+                <!-- Journey steps -->
+                <g>
+                  <!-- Step 1: Login -->
+                  <rect x="70" y="80" width="60" height="45" rx="6" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1"/>
+                  <rect x="78" y="88" width="30" height="4" rx="2" fill="#FDBA74"/>
+                  <rect x="78" y="96" width="44" height="3" rx="1.5" fill="#FED7AA"/>
+                  <rect x="78" y="103" width="44" height="3" rx="1.5" fill="#FED7AA"/>
+                  <rect x="78" y="112" width="24" height="8" rx="4" fill="#F97316"/>
+                  <text x="100" y="135" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#9A3412" text-anchor="middle">Login</text>
+
+                  <!-- Arrow 1 -->
+                  <path d="M135 102 L155 102" stroke="#F97316" stroke-width="2" stroke-dasharray="3 2"/>
+                  <path d="M152 98 L158 102 L152 106" fill="none" stroke="#F97316" stroke-width="2"/>
+
+                  <!-- Step 2: Browse -->
+                  <rect x="165" y="80" width="60" height="45" rx="6" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1"/>
+                  <rect x="173" y="88" width="20" height="20" rx="3" fill="#FED7AA"/>
+                  <rect x="198" y="88" width="20" height="20" rx="3" fill="#FED7AA"/>
+                  <rect x="173" y="112" width="44" height="4" rx="2" fill="#FDBA74"/>
+                  <text x="195" y="135" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#9A3412" text-anchor="middle">Browse</text>
+
+                  <!-- Arrow 2 -->
+                  <path d="M230 102 L250 102" stroke="#F97316" stroke-width="2" stroke-dasharray="3 2"/>
+                  <path d="M247 98 L253 102 L247 106" fill="none" stroke="#F97316" stroke-width="2"/>
+
+                  <!-- Step 3: Checkout -->
+                  <rect x="260" y="80" width="60" height="45" rx="6" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1"/>
+                  <rect x="268" y="88" width="44" height="12" rx="3" fill="#FED7AA"/>
+                  <rect x="268" y="104" width="44" height="12" rx="3" fill="#22C55E"/>
+                  <text x="290" y="135" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#9A3412" text-anchor="middle">Checkout</text>
+                </g>
+
+                <!-- Success checkmark -->
+                <circle cx="330" cy="102" r="15" fill="#22C55E"/>
+                <path d="M323 102 L328 107 L337 98" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+                <!-- Timeline/metrics bar -->
+                <rect x="70" y="160" width="250" height="50" rx="8" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1"/>
+                <text x="85" y="178" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#9A3412">Journey Metrics</text>
+                <text x="85" y="195" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#C2410C">Login: 1.2s</text>
+                <text x="150" y="195" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#C2410C">Browse: 0.8s</text>
+                <text x="215" y="195" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#C2410C">Checkout: 2.1s</text>
+                <text x="280" y="195" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#16A34A">Total: 4.1s</text>
+
+                <!-- Stats -->
+                <g>
+                  <text x="90" y="265" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#0F172A">E2E</text>
+                  <text x="90" y="282" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748B">Testing</text>
+
+                  <text x="185" y="265" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#0F172A">UX</text>
+                  <text x="185" y="282" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748B">Flows</text>
+
+                  <text x="265" y="265" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#0F172A">24/7</text>
+                  <text x="265" y="282" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748B">Checks</text>
+                </g>
+              </svg>
+            </div>
+          </div>
+          <div class="relative order-1 lg:order-2">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 ring-1 ring-orange-200">
+                <svg class="h-7 w-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-orange-600 uppercase tracking-wide">End-to-End Testing</span>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">User Journey Monitoring</h3>
+            <p class="text-lg text-gray-600 mb-6">
+              Simulate real user interactions and monitor critical user journeys like sign-up, checkout, or onboarding flows. Catch issues before your users do with automated synthetic monitoring.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Multi-step flow monitoring
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Form submissions and interactions
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Performance metrics per step
+              </li>
+            </ul>
+            <a href="/accounts/register" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-all duration-300 shadow-lg shadow-gray-900/20 hover:shadow-xl hover:-trangray-y-0.5">
+              Get started
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Feature 5: IoT, Cron & Backup Monitoring -->
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <div class="relative">
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 ring-1 ring-emerald-200">
+                <svg class="h-7 w-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-emerald-600 uppercase tracking-wide">Scheduled Task Monitoring</span>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">IoT, Cron & Backup Monitoring</h3>
+            <p class="text-lg text-gray-600 mb-6">
+              Monitor scheduled jobs, IoT device heartbeats, and backup processes. Get alerted when cron jobs fail to run, backups don't complete, or IoT devices go silent.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Heartbeat monitoring for IoT devices
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Cron job and scheduled task alerts
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Backup completion verification
+              </li>
+            </ul>
+            <a href="/accounts/register" class="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-all duration-300 shadow-lg shadow-gray-900/20 hover:shadow-xl hover:-trangray-y-0.5">
+              Get started
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+          <div class="mt-12 lg:mt-0">
+            <div class="relative flex items-center justify-center py-6">
+              <!-- IoT, Cron & Backup Monitoring Illustration -->
+              <svg class="w-full max-w-md" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#10B981"/>
+                    <stop offset="100%" style="stop-color:#059669"/>
+                  </linearGradient>
+                  <filter id="iotShadow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#10B981" flood-opacity="0.15"/>
+                  </filter>
+                </defs>
+
+                <!-- Central hub -->
+                <g filter="url(#iotShadow)">
+                  <circle cx="200" cy="150" r="45" fill="white"/>
+                </g>
+                <circle cx="200" cy="150" r="45" fill="none" stroke="url(#emeraldGrad)" stroke-width="2"/>
+
+                <!-- Clock icon in center -->
+                <circle cx="200" cy="150" r="25" fill="#ECFDF5" stroke="#10B981" stroke-width="1.5"/>
+                <line x1="200" y1="150" x2="200" y2="135" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
+                <line x1="200" y1="150" x2="212" y2="155" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="200" cy="150" r="3" fill="#10B981"/>
+
+                <!-- IoT Device 1 - Sensor -->
+                <g filter="url(#iotShadow)">
+                  <rect x="60" y="50" width="70" height="55" rx="8" fill="white"/>
+                </g>
+                <rect x="60" y="50" width="70" height="55" rx="8" fill="none" stroke="#E5E7EB" stroke-width="1"/>
+                <rect x="68" y="58" width="54" height="8" rx="4" fill="#10B981"/>
+                <circle cx="78" cy="88" r="8" fill="#ECFDF5" stroke="#10B981" stroke-width="1"/>
+                <path d="M75 88 L78 85 L81 88 L78 91 Z" fill="#10B981"/>
+                <text x="95" y="92" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#6B7280">Sensor</text>
+                <!-- Connection line -->
+                <line x1="130" y1="77" x2="160" y2="120" stroke="#10B981" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+                <!-- Cron Job - Server -->
+                <g filter="url(#iotShadow)">
+                  <rect x="270" y="50" width="70" height="55" rx="8" fill="white"/>
+                </g>
+                <rect x="270" y="50" width="70" height="55" rx="8" fill="none" stroke="#E5E7EB" stroke-width="1"/>
+                <rect x="278" y="58" width="54" height="8" rx="4" fill="#8B5CF6"/>
+                <text x="305" y="80" font-family="ui-monospace, monospace" font-size="8" fill="#6B7280" text-anchor="middle">* * * * *</text>
+                <rect x="278" y="88" width="54" height="10" rx="3" fill="#F3E8FF"/>
+                <text x="305" y="96" font-family="system-ui, -apple-system, sans-serif" font-size="8" fill="#7C3AED" text-anchor="middle">Cron Job</text>
+                <!-- Connection line -->
+                <line x1="270" y1="77" x2="240" y2="120" stroke="#8B5CF6" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+                <!-- Backup - Storage -->
+                <g filter="url(#iotShadow)">
+                  <rect x="60" y="195" width="70" height="55" rx="8" fill="white"/>
+                </g>
+                <rect x="60" y="195" width="70" height="55" rx="8" fill="none" stroke="#E5E7EB" stroke-width="1"/>
+                <rect x="68" y="203" width="54" height="8" rx="4" fill="#F59E0B"/>
+                <rect x="75" y="218" width="40" height="24" rx="4" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1"/>
+                <path d="M88 225 L95 232 L102 225" fill="none" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="95" y1="232" x2="95" y2="236" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round"/>
+                <text x="95" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#6B7280" text-anchor="middle">Backup</text>
+                <!-- Connection line -->
+                <line x1="130" y1="222" x2="160" y2="180" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+                <!-- IoT Device 2 - Gateway -->
+                <g filter="url(#iotShadow)">
+                  <rect x="270" y="195" width="70" height="55" rx="8" fill="white"/>
+                </g>
+                <rect x="270" y="195" width="70" height="55" rx="8" fill="none" stroke="#E5E7EB" stroke-width="1"/>
+                <rect x="278" y="203" width="54" height="8" rx="4" fill="#06B6D4"/>
+                <circle cx="305" cy="230" r="12" fill="#ECFEFF" stroke="#06B6D4" stroke-width="1"/>
+                <circle cx="305" cy="230" r="5" fill="#06B6D4"/>
+                <path d="M295 220 A15 15 0 0 1 315 220" fill="none" stroke="#06B6D4" stroke-width="1.5"/>
+                <path d="M290 215 A22 22 0 0 1 320 215" fill="none" stroke="#06B6D4" stroke-width="1"/>
+                <text x="305" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#6B7280" text-anchor="middle">IoT Hub</text>
+                <!-- Connection line -->
+                <line x1="270" y1="222" x2="240" y2="180" stroke="#06B6D4" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+                <!-- Pulse rings around center -->
+                <circle cx="200" cy="150" r="55" stroke="#10B981" stroke-width="1" opacity="0.2"/>
+                <circle cx="200" cy="150" r="65" stroke="#10B981" stroke-width="1" opacity="0.1"/>
+
+                <!-- Heartbeat indicator -->
+                <g transform="translate(175, 205)">
+                  <rect x="0" y="0" width="50" height="20" rx="10" fill="#ECFDF5" stroke="#10B981" stroke-width="1"/>
+                  <path d="M10 10 L15 10 L18 5 L22 15 L26 10 L30 10 L33 7 L36 13 L40 10" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </g>
               </svg>
             </div>
