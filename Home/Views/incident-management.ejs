@@ -17,161 +17,54 @@
   <%- include('nav') -%>
   <main id="main-content">
   <!-- Hero Section -->
-  <div class="relative isolate overflow-hidden bg-gradient-to-b from-gray-50 via-white to-white">
-    <!-- Background decorative elements -->
-    <div class="absolute inset-0 -z-10 overflow-hidden">
-      <div class="absolute -top-40 -right-32 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-red-100/60 to-orange-100/40 blur-3xl"></div>
-      <div class="absolute -bottom-40 -left-32 h-[400px] w-[400px] rounded-full bg-gradient-to-tr from-amber-100/50 to-yellow-100/30 blur-3xl"></div>
-      <div class="absolute top-1/2 left-1/2 -trangray-x-1/2 -trangray-y-1/2 h-[600px] w-[600px] rounded-full bg-gradient-to-r from-gray-100/40 to-gray-100/20 blur-3xl"></div>
+  <div class="relative isolate overflow-hidden bg-white">
+    <!-- Subtle background gradient -->
+    <div class="absolute inset-0 -z-10">
+      <div class="absolute inset-0 bg-gradient-to-b from-red-50/50 via-white to-white"></div>
+      <div class="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[800px] h-[800px] rounded-full bg-red-100/30 blur-3xl"></div>
     </div>
 
-    <!-- Grid pattern overlay -->
-    <div class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#8882_1px,transparent_1px),linear-gradient(to_bottom,#8882_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
-
-    <div class="py-24 sm:py-32 lg:py-40">
+    <div class="py-20 sm:py-28 lg:py-32">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto max-w-4xl text-center">
+        <div class="mx-auto max-w-3xl text-center">
+          <!-- Minimal badge -->
+          <p class="text-sm font-medium text-red-600 mb-4">Resolve incidents faster with AI-powered insights</p>
 
-          <!-- Badge -->
-          <div class="mb-8 flex justify-center">
-            <div class="relative rounded-full px-4 py-1.5 text-sm leading-6 text-gray-600 ring-1 ring-gray-900/10 hover:ring-gray-900/20 transition-all duration-300 bg-white/80 backdrop-blur-sm shadow-sm">
-              <span class="inline-flex items-center gap-x-2">
-                <span class="flex h-2 w-2 relative">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                </span>
-                Resolve incidents faster with AI-powered insights
-              </span>
-            </div>
-          </div>
-
-          <!-- Headline -->
-          <h1 class="text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
-            <span class="text-gray-900">Resolve incidents </span>
-            <span class="relative">
-              <span class="bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 bg-clip-text text-transparent">faster</span>
-              <svg class="absolute -bottom-2 left-0 w-full h-3 text-red-300/60" viewBox="0 0 200 9" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M1 7.5C31 3.5 61 1.5 101 2.5C141 3.5 171 6 199 4" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-              </svg>
-            </span>
+          <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+            Resolve incidents faster
           </h1>
-
-          <p class="mt-8 text-lg sm:text-xl leading-8 text-gray-600 max-w-2xl mx-auto">
+          <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
             Keep stakeholders throughout the business informed in real-time, empowering the entire company to collaborate and respond proactively.
           </p>
 
-          <!-- CTA Buttons -->
-          <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-x-6">
+          <div class="mt-10 flex items-center justify-center gap-x-6">
             <a href="/accounts/register"
-              class="group relative inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white transition-all duration-300 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-xl shadow-lg shadow-gray-900/25 hover:shadow-xl hover:shadow-gray-900/30 hover:-trangray-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
-              <span>Start for free</span>
-              <svg class="ml-2 h-5 w-5 transition-transform duration-300 group-hover:trangray-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
+              class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+              Get started
             </a>
-            <a href="/enterprise/demo"
-              class="group inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-gray-700 transition-all duration-300 bg-white rounded-xl ring-1 ring-gray-200 hover:ring-gray-300 hover:bg-gray-50 hover:-trangray-y-0.5 shadow-sm hover:shadow-md">
-              <svg class="mr-2 h-5 w-5 text-gray-500 group-hover:text-gray-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>Watch demo</span>
+            <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+              Request demo <span aria-hidden="true">&rarr;</span>
             </a>
           </div>
 
-          <!-- Feature highlights -->
-          <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-500">
-            <div class="flex items-center gap-x-2">
-              <svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Instant alerts</span>
-            </div>
-            <div class="flex items-center gap-x-2">
-              <svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Custom severity levels</span>
-            </div>
-            <div class="flex items-center gap-x-2">
-              <svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Postmortem reports</span>
-            </div>
-            <div class="flex items-center gap-x-2">
-              <svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Team collaboration</span>
-            </div>
+          <!-- Subtle feature list -->
+          <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+            <span>Instant alerts</span>
+            <span class="hidden sm:inline text-gray-300">|</span>
+            <span>Custom severity levels</span>
+            <span class="hidden sm:inline text-gray-300">|</span>
+            <span>Postmortem reports</span>
+            <span class="hidden sm:inline text-gray-300">|</span>
+            <span>Team collaboration</span>
           </div>
         </div>
 
-        <!-- Hero Image -->
-        <div class="mt-20 flow-root sm:mt-24">
-          <div class="relative">
-            <!-- Glow effect behind image -->
-            <div class="absolute -inset-4 bg-gradient-to-r from-red-500/20 via-orange-500/20 to-amber-500/20 rounded-3xl blur-2xl opacity-60"></div>
-
-            <!-- Image container -->
-            <div class="relative rounded-2xl bg-gradient-to-b from-gray-100 to-gray-50 p-2 sm:p-3 ring-1 ring-gray-200/80 shadow-2xl shadow-gray-900/10">
-              <div class="relative rounded-xl overflow-hidden bg-gray-900">
-                <img src="/img/incidents.png" alt="OneUptime incident management dashboard showing active incidents and timelines" width="2432" height="1442"
-                  class="w-full rounded-lg">
-
-                <!-- Floating status indicator -->
-                <div class="absolute top-4 right-4 sm:top-6 sm:right-6">
-                  <div class="flex items-center gap-2 px-3 py-2 bg-white/95 backdrop-blur-sm rounded-full shadow-lg ring-1 ring-black/5">
-                    <span class="flex h-2.5 w-2.5 relative">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-                    </span>
-                    <span class="text-sm font-medium text-gray-700">1 active incident</span>
-                  </div>
-                </div>
-              </div>
-
-              <%- include('./Partials/watch-demo.ejs', {videoId: "_fQ_F4EisBQ"}) -%>
-            </div>
-
-            <!-- Decorative floating cards -->
-            <div class="hidden lg:block absolute -left-16 top-1/4 transform -trangray-y-1/2">
-              <div class="bg-white rounded-xl shadow-xl shadow-gray-900/10 p-4 ring-1 ring-gray-100 max-w-[200px]">
-                <div class="flex items-center gap-3 mb-3">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100">
-                    <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div class="text-xs text-gray-500">Severity</div>
-                    <div class="text-lg font-bold text-red-600">P1 Critical</div>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2 text-xs text-gray-500">
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Response: 2 min
-                </div>
-              </div>
-            </div>
-
-            <div class="hidden lg:block absolute -right-12 bottom-1/4 transform trangray-y-1/2">
-              <div class="bg-white rounded-xl shadow-xl shadow-gray-900/10 p-4 ring-1 ring-gray-100 max-w-[220px]">
-                <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
-                    <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div class="text-sm font-semibold text-gray-900">Incident Resolved</div>
-                    <div class="text-xs text-gray-500">MTTR: 15 min</div>
-                  </div>
-                </div>
-              </div>
+        <!-- Clean hero image -->
+        <div class="mt-16 sm:mt-20">
+          <div class="relative mx-auto max-w-5xl">
+            <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+              <img src="/img/incidents.png" alt="OneUptime incident management dashboard" width="2432" height="1442"
+                class="rounded-lg shadow-lg">
             </div>
           </div>
         </div>

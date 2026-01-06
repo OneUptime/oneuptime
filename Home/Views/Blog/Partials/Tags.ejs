@@ -1,9 +1,28 @@
+<%
+  // Tag color palette
+  const tagColors = [
+    { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-400', hoverBg: 'hover:bg-blue-100', hoverBorder: 'hover:border-blue-300' },
+    { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-400', hoverBg: 'hover:bg-emerald-100', hoverBorder: 'hover:border-emerald-300' },
+    { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', dot: 'bg-purple-400', hoverBg: 'hover:bg-purple-100', hoverBorder: 'hover:border-purple-300' },
+    { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', dot: 'bg-amber-400', hoverBg: 'hover:bg-amber-100', hoverBorder: 'hover:border-amber-300' },
+    { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-700', dot: 'bg-rose-400', hoverBg: 'hover:bg-rose-100', hoverBorder: 'hover:border-rose-300' },
+    { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-700', dot: 'bg-sky-400', hoverBg: 'hover:bg-sky-100', hoverBorder: 'hover:border-sky-300' }
+  ];
+  function hashTag(tag) {
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+      hash = ((hash << 5) - hash) + tag.charCodeAt(i);
+      hash = hash & hash;
+    }
+    return Math.abs(hash);
+  }
+%>
 <% if(blogPost.tags.length> 0){ %>
     <div class="flex flex-wrap gap-2">
-        <% for(var i=0; i<blogPost.tags.length; i++) { %>
+        <% for(var i=0; i<blogPost.tags.length; i++) { const tc = tagColors[hashTag(blogPost.tags[i]) % tagColors.length]; %>
             <a href="/blog/tag/<%- blogPost.tags[i].replaceAll(' ','-').toLowerCase() -%>" class="group/tag">
-                <span class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600 shadow-sm hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 transition">
-                    <span class="h-1.5 w-1.5 rounded-full bg-gray-400 group-hover/tag:bg-indigo-500 transition"></span>
+                <span class="inline-flex items-center gap-1.5 rounded-full border <%= tc.border %> <%= tc.bg %> px-3 py-1 text-xs font-medium <%= tc.text %> shadow-sm <%= tc.hoverBg %> <%= tc.hoverBorder %> transition">
+                    <span class="h-1.5 w-1.5 rounded-full <%= tc.dot %>"></span>
                     <%- blogPost.tags[i] -%>
                 </span>
             </a>

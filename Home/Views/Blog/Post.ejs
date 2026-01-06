@@ -71,7 +71,7 @@
 
         <style>
             body {
-                background: radial-gradient(circle at top, #eef2ff, #f8fafc 45%, #ffffff 70%);
+                background: #ffffff;
                 color: #111827;
             }
 
@@ -82,9 +82,9 @@
                 width: 0;
                 height: 3px;
                 z-index: 60;
-                background: linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7);
+                background: linear-gradient(90deg, #3b82f6, #06b6d4, #10b981);
                 transition: width 120ms ease-out;
-                box-shadow: 0 0 10px rgba(99, 102, 241, 0.5), 0 0 20px rgba(139, 92, 246, 0.3);
+                box-shadow: 0 0 10px rgba(59, 130, 246, 0.4), 0 0 20px rgba(6, 182, 212, 0.3);
             }
 
             .floating-share {
@@ -110,8 +110,8 @@
             }
 
             .floating-share a:hover {
-                border-color: #6366f1;
-                color: #6366f1;
+                border-color: #3b82f6;
+                color: #3b82f6;
                 transform: translateY(-2px);
             }
 
@@ -151,9 +151,9 @@
                 font-size: 0.80em;
                 padding: 0.15rem 0.4rem;
                 border-radius: 0.375rem;
-                background: rgba(99, 102, 241, 0.08);
-                border: 1px solid rgba(99, 102, 241, 0.15);
-                color: #4f46e5;
+                background: rgba(59, 130, 246, 0.08);
+                border: 1px solid rgba(59, 130, 246, 0.15);
+                color: #2563eb;
                 white-space: nowrap;
             }
 
@@ -163,8 +163,8 @@
 
             /* Blockquotes */
             .blog-body blockquote {
-                border-left: 3px solid #a5b4fc;
-                background: rgba(238, 242, 255, 0.5);
+                border-left: 3px solid #60a5fa;
+                background: rgba(239, 246, 255, 0.6);
                 padding: 1.25rem 1.5rem;
                 border-radius: 0 0.75rem 0.75rem 0;
                 font-style: normal;
@@ -184,12 +184,12 @@
 
             /* Links */
             .blog-body a:not(.no-underline) {
-                text-decoration-color: rgba(99, 102, 241, 0.3);
+                text-decoration-color: rgba(59, 130, 246, 0.3);
                 text-underline-offset: 3px;
             }
 
             .blog-body a:not(.no-underline):hover {
-                text-decoration-color: rgba(99, 102, 241, 0.6);
+                text-decoration-color: rgba(59, 130, 246, 0.6);
             }
 
             @media (max-width: 1279px) {
@@ -228,9 +228,9 @@
 
             .back-to-top:hover {
                 background: #fff;
-                border-color: #6366f1;
+                border-color: #3b82f6;
                 transform: translateY(-3px);
-                box-shadow: 0 15px 50px rgba(99, 102, 241, 0.15);
+                box-shadow: 0 15px 50px rgba(59, 130, 246, 0.15);
             }
 
             .back-to-top svg {
@@ -241,7 +241,7 @@
             }
 
             .back-to-top:hover svg {
-                color: #6366f1;
+                color: #3b82f6;
             }
 
             /* Floating TOC */
@@ -308,12 +308,12 @@
 
             .floating-toc-inner:hover {
                 box-shadow: 0 15px 50px rgba(15, 23, 42, 0.12);
-                border-color: rgba(99, 102, 241, 0.3);
+                border-color: rgba(59, 130, 246, 0.3);
             }
 
             /* TOC active state */
             #toc a.toc-active {
-                color: #4f46e5;
+                color: #2563eb;
                 font-weight: 500;
             }
 
@@ -331,7 +331,7 @@
             }
 
             #toc a:hover {
-                color: #6366f1;
+                color: #3b82f6;
             }
 
             #toc a::before {
@@ -347,7 +347,7 @@
             }
 
             #toc a.toc-active::before {
-                background: #6366f1;
+                background: #3b82f6;
             }
 
             #toc a.toc-h3 {
@@ -380,12 +380,7 @@
 
     <%- include('../nav') -%>
 
-        <div class="relative isolate overflow-hidden bg-gradient-to-b from-white via-white to-gray-50/40">
-            <!-- Subtle decorative background blurs -->
-            <div class="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-                <div class="absolute top-10 left-1/4 w-96 h-96 bg-indigo-50 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
-                <div class="absolute top-20 right-1/4 w-96 h-96 bg-purple-50 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
-            </div>
+        <div class="relative isolate overflow-hidden bg-white">
 
             <!-- Hero / Title Section -->
             <div class="pt-20 pb-12 sm:pt-28 sm:pb-20">
@@ -407,7 +402,7 @@
                         <span><%- blogPost.formattedPostDate -%></span>
                         <span class="hidden sm:inline select-none">•</span>
                         <% } %>
-                        <span id="reading-time" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600">
+                        <span id="reading-time" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-600">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <span class="sr-only">Reading time</span>
                         </span>
@@ -425,7 +420,7 @@
                         <!-- Floating TOC -->
                         <div class="floating-toc hidden xl:block" id="floating-toc">
                             <div class="floating-toc-inner">
-                                <h2 class="text-xs font-semibold tracking-wider text-indigo-600 uppercase mb-3 flex items-center gap-2">
+                                <h2 class="text-xs font-semibold tracking-wider text-blue-600 uppercase mb-3 flex items-center gap-2">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
                                     On this page
                                 </h2>
@@ -476,19 +471,19 @@
 
                             <!-- Author -->
                             <% if(blogPost.author){ %>
-                            <div class="mt-16 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-gray-50 to-indigo-50/30 border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow duration-300">
+                            <div class="mt-16 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-gray-50 to-blue-50/30 border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200/60 transition-all duration-300">
                                 <div class="flex flex-col sm:flex-row gap-5 sm:gap-6 items-start">
                                     <!-- Added explicit width/height + lazy loading for below-the-fold author bio image -->
                                     <div class="relative">
                                         <img class="h-16 w-16 sm:h-20 sm:w-20 rounded-full ring-4 ring-white shadow-md" src="<%- blogPost.author.profileImageUrl -%>" alt="<%- blogPost.author.name -%>" width="80" height="80" loading="lazy" decoding="async">
-                                        <div class="absolute -bottom-1 -right-1 h-6 w-6 bg-green-400 rounded-full border-2 border-white flex items-center justify-center">
+                                        <div class="absolute -bottom-1 -right-1 h-6 w-6 bg-emerald-400 rounded-full border-2 border-white flex items-center justify-center">
                                             <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                                         </div>
                                     </div>
                                     <div class="flex-1">
                                         <div class="flex items-center gap-2 mb-1">
                                             <h3 class="text-lg font-semibold text-gray-900"><%- blogPost.author.name -%></h3>
-                                            <span class="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">Author</span>
+                                            <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Author</span>
                                         </div>
                                         <p class="text-sm text-gray-500 mb-3">@<%- blogPost.author.username -%> • <%- blogPost.formattedPostDate -%> • <span id="reading-time-inline"></span></p>
                                         <div class="text-sm text-gray-600 leading-relaxed"><%- blogPost.author.bio || 'Building reliable software at OneUptime. Follow along for more on observability & reliability.' -%></div>
