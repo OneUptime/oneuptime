@@ -17,7 +17,12 @@
   <%- include('nav') -%>
   <main id="main-content">
   <!-- Hero Section -->
-  <div class="relative isolate overflow-hidden bg-white">
+  <div class="relative isolate overflow-hidden bg-white" id="monitoring-hero-section">
+    <!-- Subtle grid pattern background -->
+    <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+    <!-- Grid glow effect that follows cursor - blue color -->
+    <div id="monitoring-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(59, 130, 246, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
 
     <div class="py-20 sm:py-28 lg:py-32">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
