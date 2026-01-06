@@ -1,100 +1,250 @@
-<div class="bg-white">
-    <div class="mx-auto max-w-7xl py-24 px-6 sm:py-32 lg:px-8 lg:py-40">
-      <div class="mx-auto max-w-3xl text-center">
-        <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Security and Compliance.</h2>
-        <p class="mx-auto mt-4 max-w-xl text-lg leading-8 text-gray-600">We take security seriously here at OneUptime, and we are proud to exceed the industry standard when it comes to protecting your data.</p>
-      </div>
-      <dl class="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-4 lg:gap-x-8">
-        <div class="relative">
-          <dt>
-            <!-- Heroicon name: outline/check -->
-            <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
-            <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">SOC 2</p>
-          </dt>
-          <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">SOC 2 ensures your service providers securely manage your data to protect the interests of your organization.</dd>
-        </div>
-  
-        <div class="relative">
-          <dt>
-            <!-- Heroicon name: outline/check -->
-            <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
-            <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">SOC 3</p>
-          </dt>
-          <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">SOC 3 report outlines information related to controls for security, availability, processing integrity, confidentiality or privacy.</dd>
-        </div>
-  
-        <div class="relative">
-          <dt>
-            <!-- Heroicon name: outline/check -->
-            <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
-            <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">ISO/IEC 27001</p>
-          </dt>
-          <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">ISO 27001 includes all legal, physical and technical controls involved in information risk management processes.</dd>
-        </div>
-  
-        <div class="relative">
-          <dt>
-            <!-- Heroicon name: outline/check -->
-            <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
-            <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">ISO/IEC 27017</p>
-          </dt>
-          <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">ISO/IEC 27017 security on aspects of cloud computing, recommending cloud-specific information security controls.</dd>
-        </div>
-        
+<style>
+    .security-card {
+        position: relative;
+        z-index: 1;
+        transition: all 0.2s ease;
+    }
+    .security-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px -12px rgba(0,0,0,0.1);
+    }
+    .cert-badge {
+        transition: all 0.2s ease;
+    }
+    .cert-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px -8px rgba(0,0,0,0.1);
+    }
+</style>
 
-
-        <div class="relative">
-          <dt>
-            <!-- Heroicon name: outline/check -->
-            <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
-            <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">PCI DSS</p>
-          </dt>
-          <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">PCI DSS is a standard for organizations that handle branded credit cards from the major card schemes. </dd>
-        </div>
-  
-        <div class="relative">
-          <dt>
-            <!-- Heroicon name: outline/check -->
-            <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
-            <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">ISO/IEC 27018</p>
-          </dt>
-          <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">ISO/IEC 27018 is a code of practice that focuses on the protection of personal data in the cloud.</dd>
-        </div>
-  
-        <div class="relative">
-          <dt>
-            <!-- Heroicon name: outline/check -->
-            <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
-            <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">HIPAA</p>
-          </dt>
-          <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">HIPAA is United States legislation that provides data privacy and security provisions for safeguarding medical information.</dd>
-        </div>
-  
-        <div class="relative">
-          <dt>
-            <!-- Heroicon name: outline/check -->
-            <svg class="absolute mt-1 h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
-            <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">GDPR</p>
-          </dt>
-          <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">The GDPR is a law on data protection and privacy in the European Union and the European Economic Area.</dd>
-        </div>
-  
-      </dl>
+<section class="relative bg-gray-50 py-24 sm:py-32 overflow-hidden">
+    <!-- Subtle pattern background -->
+    <div class="absolute inset-0 opacity-[0.02]">
+        <svg class="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <pattern id="security-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+                    <path d="M0 32V0h32" fill="none" stroke="currentColor" stroke-width="1"/>
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#security-grid)" />
+        </svg>
     </div>
-  </div>
+
+    <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section Header -->
+        <div class="text-center mb-16">
+            <p class="text-sm font-medium text-emerald-600 tracking-wide uppercase mb-4">Security & Compliance</p>
+            <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
+                Enterprise-Grade Security,<br class="hidden sm:block" />
+                <span class="text-gray-500">Built from Day One</span>
+            </h2>
+            <p class="max-w-2xl mx-auto text-lg text-gray-600 leading-relaxed">
+                We take security seriously. OneUptime exceeds industry standards to protect your data with comprehensive certifications and compliance frameworks.
+            </p>
+        </div>
+
+        <!-- Main Security Features - Bento Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+            <!-- Data Protection - Large Card -->
+            <div class="lg:col-span-2 group">
+                <div class="security-card h-full p-8 rounded-2xl bg-white border border-gray-200 shadow-sm">
+                    <div class="flex items-start justify-between mb-6">
+                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-100 border border-emerald-200">
+                            <svg class="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                            </svg>
+                        </div>
+                        <span class="px-3 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200">Verified</span>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Data Protection & Privacy</h3>
+                    <p class="text-gray-600 mb-6">Your data is encrypted at rest and in transit using industry-standard AES-256 encryption. We implement strict access controls and regular security audits.</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="flex items-center gap-2 text-sm text-gray-600">
+                            <svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            AES-256 encryption
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-600">
+                            <svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            TLS 1.3 in transit
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-600">
+                            <svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            Regular penetration testing
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-600">
+                            <svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            Role-based access control
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Infrastructure Security -->
+            <div class="group">
+                <div class="security-card h-full p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+                    <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 border border-blue-200 mb-4">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3m-19.5 0a4.5 4.5 0 0 1 .9-2.7L5.737 5.1a3.375 3.375 0 0 1 2.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 0 1 .9 2.7m0 0a3 3 0 0 1-3 3m0 3h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Zm-3 6h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-2">Infrastructure Security</h3>
+                    <p class="text-sm text-gray-500 mb-4">Hosted on SOC 2 compliant infrastructure with multi-region redundancy and automated failover.</p>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2 text-sm text-gray-600">
+                            <svg class="h-4 w-4 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            Multi-region deployment
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-600">
+                            <svg class="h-4 w-4 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            DDoS protection
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-600">
+                            <svg class="h-4 w-4 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            99.99% SLA guarantee
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compliance Certifications -->
+        <div class="mb-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">Compliance Certifications</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <!-- SOC 2 -->
+                <a href="/legal/soc-2" class="cert-badge group flex flex-col items-center p-5 rounded-xl bg-white border border-gray-200 shadow-sm hover:border-emerald-200">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-3 group-hover:bg-emerald-100 transition-colors">
+                        <svg class="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                        </svg>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-900">SOC 2 Type II</span>
+                    <span class="text-xs text-gray-500 mt-1 text-center">Security & availability controls</span>
+                </a>
+
+                <!-- SOC 3 -->
+                <a href="/legal/soc-3" class="cert-badge group flex flex-col items-center p-5 rounded-xl bg-white border border-gray-200 shadow-sm hover:border-emerald-200">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-3 group-hover:bg-emerald-100 transition-colors">
+                        <svg class="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                        </svg>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-900">SOC 3</span>
+                    <span class="text-xs text-gray-500 mt-1 text-center">Public trust report</span>
+                </a>
+
+                <!-- ISO 27001 -->
+                <a href="/legal/iso-27001" class="cert-badge group flex flex-col items-center p-5 rounded-xl bg-white border border-gray-200 shadow-sm hover:border-blue-200">
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center mb-3 group-hover:bg-blue-100 transition-colors">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5a17.92 17.92 0 0 1-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
+                        </svg>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-900">ISO 27001</span>
+                    <span class="text-xs text-gray-500 mt-1 text-center">Information security</span>
+                </a>
+
+                <!-- ISO 27017 -->
+                <a href="/legal/iso-27017" class="cert-badge group flex flex-col items-center p-5 rounded-xl bg-white border border-gray-200 shadow-sm hover:border-blue-200">
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center mb-3 group-hover:bg-blue-100 transition-colors">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 0 0 4.5 4.5H18a3.75 3.75 0 0 0 1.332-7.257 3 3 0 0 0-3.758-3.848 5.25 5.25 0 0 0-10.233 2.33A4.502 4.502 0 0 0 2.25 15Z" />
+                        </svg>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-900">ISO 27017</span>
+                    <span class="text-xs text-gray-500 mt-1 text-center">Cloud security</span>
+                </a>
+
+                <!-- ISO 27018 -->
+                <a href="/legal/iso-27018" class="cert-badge group flex flex-col items-center p-5 rounded-xl bg-white border border-gray-200 shadow-sm hover:border-violet-200">
+                    <div class="w-12 h-12 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center mb-3 group-hover:bg-violet-100 transition-colors">
+                        <svg class="w-6 h-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                        </svg>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-900">ISO 27018</span>
+                    <span class="text-xs text-gray-500 mt-1 text-center">PII protection</span>
+                </a>
+
+                <!-- HIPAA -->
+                <a href="/legal/hipaa" class="cert-badge group flex flex-col items-center p-5 rounded-xl bg-white border border-gray-200 shadow-sm hover:border-rose-200">
+                    <div class="w-12 h-12 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center mb-3 group-hover:bg-rose-100 transition-colors">
+                        <svg class="w-6 h-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+                        </svg>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-900">HIPAA</span>
+                    <span class="text-xs text-gray-500 mt-1 text-center">Healthcare data</span>
+                </a>
+
+                <!-- GDPR -->
+                <a href="/legal/gdpr" class="cert-badge group flex flex-col items-center p-5 rounded-xl bg-white border border-gray-200 shadow-sm hover:border-cyan-200">
+                    <div class="w-12 h-12 rounded-xl bg-cyan-50 border border-cyan-100 flex items-center justify-center mb-3 group-hover:bg-cyan-100 transition-colors">
+                        <svg class="w-6 h-6 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 0 1 6-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 0 1-3.827-5.802" />
+                        </svg>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-900">GDPR</span>
+                    <span class="text-xs text-gray-500 mt-1 text-center">EU data privacy</span>
+                </a>
+
+                <!-- PCI DSS -->
+                <a href="/legal/pci" class="cert-badge group flex flex-col items-center p-5 rounded-xl bg-white border border-gray-200 shadow-sm hover:border-amber-200">
+                    <div class="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center mb-3 group-hover:bg-amber-100 transition-colors">
+                        <svg class="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+                        </svg>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-900">PCI DSS</span>
+                    <span class="text-xs text-gray-500 mt-1 text-center">Payment card security</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Additional Security Features -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Audit Logs -->
+            <div class="security-card p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+                <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 mb-4">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
+                    </svg>
+                </div>
+                <h3 class="text-base font-semibold text-gray-900 mb-1">Comprehensive Audit Logs</h3>
+                <p class="text-sm text-gray-500">Complete activity tracking with immutable audit trails for compliance reporting and security investigations.</p>
+            </div>
+
+            <!-- SSO & MFA -->
+            <div class="security-card p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+                <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 mb-4">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+                    </svg>
+                </div>
+                <h3 class="text-base font-semibold text-gray-900 mb-1">SSO & Multi-Factor Auth</h3>
+                <p class="text-sm text-gray-500">SAML 2.0 SSO with Okta, Azure AD, and Google. Enforce MFA across your organization for enhanced security.</p>
+            </div>
+
+            <!-- Vulnerability Management -->
+            <div class="security-card p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+                <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 mb-4">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.25-8.25-3.286Zm0 13.036h.008v.008H12v-.008Z" />
+                    </svg>
+                </div>
+                <h3 class="text-base font-semibold text-gray-900 mb-1">Vulnerability Management</h3>
+                <p class="text-sm text-gray-500">Continuous security scanning, regular penetration testing, and responsible disclosure program.</p>
+            </div>
+        </div>
+
+        <!-- Bottom CTA -->
+        <div class="mt-12 text-center">
+            <a href="/legal" class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-gray-700 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-colors">
+                View All Compliance Documents
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+            </a>
+        </div>
+    </div>
+</section>
