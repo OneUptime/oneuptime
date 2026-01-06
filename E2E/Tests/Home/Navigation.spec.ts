@@ -45,14 +45,20 @@ test.describe("navigation bar", () => {
     if (!IS_BILLING_ENABLED) {
       return;
     }
-    const navEnterpriseLink: Locator = page
+    // Enterprise is now a dropdown button, not a direct link
+    const navEnterpriseButton: Locator = page
       .getByRole("navigation")
-      .getByRole("link", { name: "Enterprise" });
-    await navEnterpriseLink.click();
-    await navEnterpriseLink.hover();
-    await expect(navEnterpriseLink).toBeVisible();
-    await expect(navEnterpriseLink).toBeInViewport();
-    await expect(navEnterpriseLink).toHaveText(/Enterprise/);
+      .getByRole("button", { name: "Enterprise" });
+    await navEnterpriseButton.click();
+    await expect(navEnterpriseButton).toBeVisible();
+    await expect(navEnterpriseButton).toBeInViewport();
+    await expect(navEnterpriseButton).toHaveText(/Enterprise/);
+
+    // Click on Enterprise Overview link in the dropdown
+    const enterpriseOverviewLink: Locator = page
+      .getByRole("link", { name: "Enterprise Overview" })
+      .first();
+    await enterpriseOverviewLink.click();
     await expect(page).toHaveURL(/.*enterprise\/overview/);
   });
 
@@ -60,6 +66,12 @@ test.describe("navigation bar", () => {
     if (!IS_BILLING_ENABLED) {
       return;
     }
+    // Request Demo is now inside the Enterprise dropdown
+    const navEnterpriseButton: Locator = page
+      .getByRole("navigation")
+      .getByRole("button", { name: "Enterprise" });
+    await navEnterpriseButton.click();
+
     await page.getByTestId("request-demo-desktop-link").click();
     await expect(page).toHaveURL(/.*enterprise\/demo/);
   });
