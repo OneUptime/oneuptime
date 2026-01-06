@@ -232,77 +232,106 @@
             </a>
           </div>
           <div class="mt-12 lg:mt-0">
-            <div class="relative flex items-center justify-center py-6">
-              <!-- Polished Monitor Anything Illustration -->
-              <svg class="w-full max-w-md" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#3B82F6"/>
-                    <stop offset="100%" style="stop-color:#1D4ED8"/>
-                  </linearGradient>
-                  <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.08"/>
-                  </filter>
-                </defs>
+            <div class="relative">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
 
-                <!-- Connection lines with gradient opacity -->
-                <g stroke="#E5E7EB" stroke-width="1.5">
-                  <line x1="200" y1="150" x2="80" y2="70" stroke-dasharray="4 3"/>
-                  <line x1="200" y1="150" x2="320" y2="70" stroke-dasharray="4 3"/>
-                  <line x1="200" y1="150" x2="80" y2="230" stroke-dasharray="4 3"/>
-                  <line x1="200" y1="150" x2="320" y2="230" stroke-dasharray="4 3"/>
-                </g>
+              <!-- Clean Browser Window -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Browser header -->
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  </div>
+                </div>
 
-                <!-- Central monitoring hub -->
-                <g filter="url(#softShadow)">
-                  <circle cx="200" cy="150" r="42" fill="url(#blueGrad)"/>
-                </g>
-                <path d="M184 150L194 160L216 138" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- Content area -->
+                <div class="p-4">
+                  <!-- Header -->
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="text-gray-800 text-sm font-medium">All Monitors</div>
+                        <div class="text-gray-400 text-xs">6 resources</div>
+                      </div>
+                    </div>
+                    <span class="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-xs text-gray-600 border border-gray-200">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      All OK
+                    </span>
+                  </div>
 
-                <!-- Website/HTTP node -->
-                <g filter="url(#softShadow)">
-                  <circle cx="80" cy="70" r="32" fill="white"/>
-                </g>
-                <circle cx="80" cy="70" r="32" fill="none" stroke="#F3F4F6" stroke-width="1"/>
-                <rect x="64" y="58" width="32" height="24" rx="4" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.5"/>
-                <line x1="64" y1="66" x2="96" y2="66" stroke="#3B82F6" stroke-width="1.5"/>
-                <circle cx="68" cy="62" r="1.5" fill="#3B82F6"/>
-                <circle cx="73" cy="62" r="1.5" fill="#3B82F6"/>
-                <circle cx="78" cy="62" r="1.5" fill="#3B82F6"/>
+                  <!-- Monitor list -->
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span class="text-gray-700 text-sm">Website</span>
+                        <span class="text-gray-400 text-xs font-mono">HTTPS</span>
+                      </div>
+                      <span class="text-gray-400 text-xs">124ms</span>
+                    </div>
 
-                <!-- API node -->
-                <g filter="url(#softShadow)">
-                  <circle cx="320" cy="70" r="32" fill="white"/>
-                </g>
-                <circle cx="320" cy="70" r="32" fill="none" stroke="#F3F4F6" stroke-width="1"/>
-                <rect x="300" y="58" width="40" height="24" rx="4" fill="#F5F3FF" stroke="#8B5CF6" stroke-width="1.5"/>
-                <text x="320" y="74" font-family="ui-monospace, monospace" font-size="10" font-weight="600" fill="#7C3AED" text-anchor="middle">/api</text>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span class="text-gray-700 text-sm">API Endpoint</span>
+                        <span class="text-gray-400 text-xs font-mono">REST</span>
+                      </div>
+                      <span class="text-gray-400 text-xs">45ms</span>
+                    </div>
 
-                <!-- Server node -->
-                <g filter="url(#softShadow)">
-                  <circle cx="80" cy="230" r="32" fill="white"/>
-                </g>
-                <circle cx="80" cy="230" r="32" fill="none" stroke="#F3F4F6" stroke-width="1"/>
-                <rect x="62" y="214" width="36" height="8" rx="2" fill="#ECFEFF" stroke="#06B6D4" stroke-width="1"/>
-                <rect x="62" y="226" width="36" height="8" rx="2" fill="#ECFEFF" stroke="#06B6D4" stroke-width="1"/>
-                <rect x="62" y="238" width="36" height="8" rx="2" fill="#ECFEFF" stroke="#06B6D4" stroke-width="1"/>
-                <circle cx="68" cy="218" r="2" fill="#22C55E"/>
-                <circle cx="68" cy="230" r="2" fill="#22C55E"/>
-                <circle cx="68" cy="242" r="2" fill="#22C55E"/>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span class="text-gray-700 text-sm">Server</span>
+                        <span class="text-gray-400 text-xs font-mono">TCP:22</span>
+                      </div>
+                      <span class="text-gray-400 text-xs">8ms</span>
+                    </div>
 
-                <!-- Database node -->
-                <g filter="url(#softShadow)">
-                  <circle cx="320" cy="230" r="32" fill="white"/>
-                </g>
-                <circle cx="320" cy="230" r="32" fill="none" stroke="#F3F4F6" stroke-width="1"/>
-                <ellipse cx="320" cy="218" rx="16" ry="6" fill="#FEF9C3" stroke="#EAB308" stroke-width="1.5"/>
-                <path d="M304 218v20c0 4 7 6 16 6s16-2 16-6v-20" stroke="#EAB308" stroke-width="1.5" fill="none"/>
-                <path d="M304 228c0 4 7 6 16 6s16-2 16-6" stroke="#EAB308" stroke-width="1.5" fill="none"/>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span class="text-gray-700 text-sm">Database</span>
+                        <span class="text-gray-400 text-xs font-mono">PostgreSQL</span>
+                      </div>
+                      <span class="text-gray-400 text-xs">12ms</span>
+                    </div>
 
-                <!-- Pulse rings -->
-                <circle cx="200" cy="150" r="54" stroke="#3B82F6" stroke-width="1" opacity="0.15"/>
-                <circle cx="200" cy="150" r="68" stroke="#3B82F6" stroke-width="1" opacity="0.08"/>
-              </svg>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span class="text-gray-700 text-sm">Container</span>
+                        <span class="text-gray-400 text-xs font-mono">Docker</span>
+                      </div>
+                      <span class="text-gray-400 text-xs">3ms</span>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span class="text-gray-700 text-sm">IPv6 Endpoint</span>
+                        <span class="text-gray-400 text-xs font-mono">ICMP</span>
+                      </div>
+                      <span class="text-gray-400 text-xs">18ms</span>
+                    </div>
+                  </div>
+
+                  <!-- Footer -->
+                  <div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                    <span>Checked from 7 locations</span>
+                    <span>Last check: 1s ago</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -487,68 +516,94 @@
             </a>
           </div>
           <div class="mt-12 lg:mt-0">
-            <div class="relative flex items-center justify-center py-6">
-              <!-- Polished Real-time Status Illustration -->
-              <svg class="w-full max-w-md" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="violetGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" style="stop-color:#8B5CF6"/>
-                    <stop offset="100%" style="stop-color:#7C3AED"/>
-                  </linearGradient>
-                  <filter id="cardShadow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#8B5CF6" flood-opacity="0.1"/>
-                  </filter>
-                </defs>
+            <div class="relative">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
 
-                <!-- Main status card -->
-                <g filter="url(#cardShadow)">
-                  <rect x="60" y="20" width="280" height="210" rx="16" fill="white"/>
-                </g>
-                <rect x="60" y="20" width="280" height="210" rx="16" fill="none" stroke="#F3F4F6" stroke-width="1"/>
+              <!-- Clean Browser Window -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Browser header -->
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  </div>
+                  <div class="flex-1 flex justify-center">
+                    <div class="flex items-center gap-2 bg-white px-3 py-1 rounded-md border border-gray-200 text-xs text-gray-500">
+                      <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                      </svg>
+                      status.yourcompany.com
+                    </div>
+                  </div>
+                </div>
 
-                <!-- Header -->
-                <rect x="60" y="20" width="280" height="48" rx="16" fill="url(#violetGrad)"/>
-                <rect x="60" y="52" width="280" height="16" fill="url(#violetGrad)"/>
-                <circle cx="92" cy="44" r="14" fill="rgba(255,255,255,0.15)"/>
-                <path d="M88 44L91 47L96 42" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <text x="120" y="49" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="600" fill="white">All Systems Operational</text>
+                <!-- Content area -->
+                <div class="p-4">
+                  <!-- Header -->
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="text-gray-800 text-sm font-medium">All Systems Operational</div>
+                        <div class="text-gray-400 text-xs">Updated 1 second ago</div>
+                      </div>
+                    </div>
+                    <span class="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-xs text-gray-600 border border-gray-200">
+                      99.99%
+                    </span>
+                  </div>
 
-                <!-- Status rows with subtle backgrounds -->
-                <g>
-                  <!-- Row 1 -->
-                  <rect x="76" y="82" width="248" height="36" rx="8" fill="#F0FDF4"/>
-                  <circle cx="96" cy="100" r="6" fill="#22C55E"/>
-                  <text x="116" y="105" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#1F2937">API Services</text>
-                  <text x="308" y="105" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#16A34A" text-anchor="end">Operational</text>
+                  <!-- Status list -->
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span class="text-gray-700 text-sm">API Services</span>
+                      </div>
+                      <span class="text-gray-400 text-xs">Operational</span>
+                    </div>
 
-                  <!-- Row 2 -->
-                  <rect x="76" y="126" width="248" height="36" rx="8" fill="#F0FDF4"/>
-                  <circle cx="96" cy="144" r="6" fill="#22C55E"/>
-                  <text x="116" y="149" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#1F2937">Web Dashboard</text>
-                  <text x="308" y="149" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#16A34A" text-anchor="end">Operational</text>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span class="text-gray-700 text-sm">Web Dashboard</span>
+                      </div>
+                      <span class="text-gray-400 text-xs">Operational</span>
+                    </div>
 
-                  <!-- Row 3 -->
-                  <rect x="76" y="170" width="248" height="36" rx="8" fill="#F0FDF4"/>
-                  <circle cx="96" cy="188" r="6" fill="#22C55E"/>
-                  <text x="116" y="193" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#1F2937">Database</text>
-                  <text x="308" y="193" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#16A34A" text-anchor="end">Operational</text>
-                </g>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span class="text-gray-700 text-sm">Database</span>
+                      </div>
+                      <span class="text-gray-400 text-xs">Operational</span>
+                    </div>
 
-                <!-- Footer stats -->
-                <text x="76" y="220" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#9CA3AF">Last updated: 1 second ago</text>
-                <g transform="translate(268, 208)">
-                  <rect x="0" y="0" width="56" height="22" rx="6" fill="#F0FDF4"/>
-                  <text x="28" y="15" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#16A34A" text-anchor="middle">99.99%</text>
-                </g>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span class="text-gray-700 text-sm">CDN & Assets</span>
+                      </div>
+                      <span class="text-gray-400 text-xs">Operational</span>
+                    </div>
+                  </div>
 
-                <!-- Real-time indicator pill -->
-                <g transform="translate(140, 252)">
-                  <rect x="0" y="0" width="120" height="36" rx="18" fill="white" stroke="#E9D5FF" stroke-width="1.5"/>
-                  <circle cx="24" cy="18" r="6" fill="#8B5CF6"/>
-                  <circle cx="24" cy="18" r="10" fill="#8B5CF6" opacity="0.2"/>
-                  <text x="42" y="23" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#7C3AED">Real-time</text>
-                </g>
-              </svg>
+                  <!-- Footer -->
+                  <div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span class="text-gray-400 text-xs">Real-time updates</span>
+                    </div>
+                    <span class="text-gray-400 text-xs">Refreshes every 1s</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
