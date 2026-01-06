@@ -17,7 +17,12 @@
   <main id="main-content">
 
   <!-- Hero Section -->
-  <div class="relative isolate overflow-hidden bg-white">
+  <div class="relative isolate overflow-hidden bg-white" id="ai-agent-hero-section">
+    <!-- Subtle grid pattern background -->
+    <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+    <!-- Grid glow effect that follows cursor - violet/pink color -->
+    <div id="ai-agent-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(139, 92, 246, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(139, 92, 246, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
 
     <div class="py-20 sm:py-28 lg:py-32">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
@@ -538,12 +543,184 @@
       </div>
     </div>
   </div>
+  <!-- Team Notifications Section -->
+  <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
+        <div class="lg:pr-8">
+          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-50 border border-violet-100 mb-6">
+            <svg class="h-4 w-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span class="text-sm font-medium text-violet-700">AI Notifications</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            Know when AI <span class="text-violet-600">fixes your code</span>
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Get instant notifications when AI Agent detects issues and creates pull requests. Review and merge fixes from Slack, Teams, or your favorite channel.
+          </p>
+          <ul class="mt-8 space-y-4">
+            <li class="flex items-start gap-4">
+              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-50 ring-1 ring-violet-200">
+                <svg class="h-4 w-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <div class="font-semibold text-gray-900">PR notifications</div>
+                <div class="text-gray-600">Know when AI creates a pull request for review</div>
+              </div>
+            </li>
+            <li class="flex items-start gap-4">
+              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-50 ring-1 ring-violet-200">
+                <svg class="h-4 w-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <div class="font-semibold text-gray-900">Issue detection</div>
+                <div class="text-gray-600">Get alerts when AI finds errors or performance issues</div>
+              </div>
+            </li>
+            <li class="flex items-start gap-4">
+              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-50 ring-1 ring-violet-200">
+                <svg class="h-4 w-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <div class="font-semibold text-gray-900">Fix summaries</div>
+                <div class="text-gray-600">Detailed explanations of what AI changed and why</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="relative lg:order-last">
+          <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-inset ring-gray-900/10">
+            <!-- Slack-like notification demo -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+              <div class="bg-[#4A154B] px-4 py-3 flex items-center gap-3">
+                <div class="flex items-center gap-2">
+                  <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+                  </svg>
+                  <span class="text-white font-bold text-lg">Slack</span>
+                </div>
+              </div>
+              <div class="p-4 space-y-4">
+                <div class="flex items-start gap-3 animate-fadeInSlack" style="animation-delay: 0.2s;">
+                  <div class="h-10 w-10 rounded-lg bg-violet-600 flex items-center justify-center flex-shrink-0">
+                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2">
+                      <span class="font-bold text-gray-900">OneUptime AI</span>
+                      <span class="text-xs text-gray-500">3:45 PM</span>
+                    </div>
+                    <div class="mt-1 text-sm text-gray-700">
+                      <div class="bg-rose-50 border-l-4 border-rose-500 p-3 rounded-r-lg">
+                        <p class="font-medium text-rose-800">Error detected in production</p>
+                        <p class="text-rose-600 text-xs mt-1">NullPointerException • auth-service • 156 occurrences</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3 animate-fadeInSlack" style="animation-delay: 0.6s;">
+                  <div class="h-10 w-10 rounded-lg bg-violet-600 flex items-center justify-center flex-shrink-0">
+                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2">
+                      <span class="font-bold text-gray-900">OneUptime AI</span>
+                      <span class="text-xs text-gray-500">3:47 PM</span>
+                    </div>
+                    <div class="mt-1 text-sm text-gray-700">
+                      <div class="bg-violet-50 border-l-4 border-violet-500 p-3 rounded-r-lg">
+                        <p class="font-medium text-violet-800">Analyzing codebase for fix...</p>
+                        <p class="text-violet-600 text-xs mt-1">Checking auth-service • 47 files scanned</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3 animate-fadeInSlack" style="animation-delay: 1.0s;">
+                  <div class="h-10 w-10 rounded-lg bg-violet-600 flex items-center justify-center flex-shrink-0">
+                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2">
+                      <span class="font-bold text-gray-900">OneUptime AI</span>
+                      <span class="text-xs text-gray-500">3:49 PM</span>
+                    </div>
+                    <div class="mt-1 text-sm text-gray-700">
+                      <div class="bg-emerald-50 border-l-4 border-emerald-500 p-3 rounded-r-lg">
+                        <p class="font-medium text-emerald-800">Pull request created!</p>
+                        <p class="text-emerald-600 text-xs mt-1">fix: Add null check in UserSession.java • PR #1247</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <%- include('./Partials/enterprise-ready') -%>
   <%- include('features-table') -%>
   <%- include('cta') -%>
   </main>
   <%- include('footer') -%>
   <%- include('./Partials/video-script') -%>
+
+  <style>
+    @keyframes fadeInSlack {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .animate-fadeInSlack {
+      opacity: 0;
+      animation: fadeInSlack 0.5s ease-out forwards;
+    }
+  </style>
+
+  <script>
+    // Grid glow effect for AI agent hero section
+    (function() {
+      const heroSection = document.getElementById('ai-agent-hero-section');
+      const gridGlow = document.getElementById('ai-agent-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+
+          gridGlow.style.setProperty('--mouse-x', `${x}px`);
+          gridGlow.style.setProperty('--mouse-y', `${y}px`);
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
 
 </body>
 
