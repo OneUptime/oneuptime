@@ -236,100 +236,79 @@
               <!-- Subtle background -->
               <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
 
-              <!-- Clean Browser Window -->
-              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
-                <!-- Browser header -->
-                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
-                  <div class="flex gap-1.5">
-                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
-                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
-                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+              <!-- Grid of Monitor Type Cards -->
+              <div class="relative max-w-md mx-auto">
+                <div class="grid grid-cols-3 gap-3">
+                  <!-- Website -->
+                  <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
+                    <div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center mx-auto mb-2">
+                      <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+                      </svg>
+                    </div>
+                    <div class="text-gray-700 text-xs font-medium">Website</div>
+                    <div class="text-gray-400 text-[10px]">HTTP/HTTPS</div>
+                  </div>
+
+                  <!-- API -->
+                  <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
+                    <div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center mx-auto mb-2">
+                      <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                      </svg>
+                    </div>
+                    <div class="text-gray-700 text-xs font-medium">API</div>
+                    <div class="text-gray-400 text-[10px]">REST/GraphQL</div>
+                  </div>
+
+                  <!-- Server -->
+                  <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
+                    <div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center mx-auto mb-2">
+                      <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+                      </svg>
+                    </div>
+                    <div class="text-gray-700 text-xs font-medium">Server</div>
+                    <div class="text-gray-400 text-[10px]">SSH/Ping</div>
+                  </div>
+
+                  <!-- Database -->
+                  <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
+                    <div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center mx-auto mb-2">
+                      <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+                      </svg>
+                    </div>
+                    <div class="text-gray-700 text-xs font-medium">Database</div>
+                    <div class="text-gray-400 text-[10px]">SQL/NoSQL</div>
+                  </div>
+
+                  <!-- Container -->
+                  <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
+                    <div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center mx-auto mb-2">
+                      <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                      </svg>
+                    </div>
+                    <div class="text-gray-700 text-xs font-medium">Container</div>
+                    <div class="text-gray-400 text-[10px]">Docker/K8s</div>
+                  </div>
+
+                  <!-- Port -->
+                  <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
+                    <div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center mx-auto mb-2">
+                      <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/>
+                      </svg>
+                    </div>
+                    <div class="text-gray-700 text-xs font-medium">Port</div>
+                    <div class="text-gray-400 text-[10px]">TCP/UDP</div>
                   </div>
                 </div>
 
-                <!-- Content area -->
-                <div class="p-4">
-                  <!-- Header -->
-                  <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-2">
-                      <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <div class="text-gray-800 text-sm font-medium">All Monitors</div>
-                        <div class="text-gray-400 text-xs">6 resources</div>
-                      </div>
-                    </div>
-                    <span class="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-xs text-gray-600 border border-gray-200">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                      All OK
-                    </span>
-                  </div>
-
-                  <!-- Monitor list -->
-                  <div class="space-y-2">
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">Website</span>
-                        <span class="text-gray-400 text-xs font-mono">HTTPS</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">124ms</span>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">API Endpoint</span>
-                        <span class="text-gray-400 text-xs font-mono">REST</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">45ms</span>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">Server</span>
-                        <span class="text-gray-400 text-xs font-mono">TCP:22</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">8ms</span>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">Database</span>
-                        <span class="text-gray-400 text-xs font-mono">PostgreSQL</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">12ms</span>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">Container</span>
-                        <span class="text-gray-400 text-xs font-mono">Docker</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">3ms</span>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">IPv6 Endpoint</span>
-                        <span class="text-gray-400 text-xs font-mono">ICMP</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">18ms</span>
-                    </div>
-                  </div>
-
-                  <!-- Footer -->
-                  <div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-                    <span>Checked from 7 locations</span>
-                    <span>Last check: 1s ago</span>
-                  </div>
+                <!-- Footer label -->
+                <div class="mt-4 text-center text-xs text-gray-400">
+                  + SSL, IPv4, IPv6, Inbound Data & more
                 </div>
               </div>
             </div>
@@ -343,89 +322,58 @@
               <!-- Subtle background -->
               <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
 
-              <!-- Clean Browser Window -->
-              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
-                <!-- Browser header -->
-                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+              <!-- Terminal Window -->
+              <div class="relative bg-gray-900 rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-700">
+                <!-- Terminal header -->
+                <div class="bg-gray-800 px-4 py-2.5 flex items-center gap-3 border-b border-gray-700">
                   <div class="flex gap-1.5">
-                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
-                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
-                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-600"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-600"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-600"></div>
                   </div>
-                  <div class="flex-1 flex justify-center">
-                    <div class="flex items-center gap-2 bg-white px-3 py-1 rounded-md border border-gray-200 text-xs text-gray-500">
-                      <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                      </svg>
-                      internal.company.local
-                    </div>
-                  </div>
+                  <span class="text-gray-400 text-xs font-mono">oneuptime-probe — prod-vpc-01</span>
                 </div>
 
-                <!-- Content area -->
-                <div class="p-4">
-                  <!-- Header -->
-                  <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-2">
-                      <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <div class="text-gray-800 text-sm font-medium">Private Network</div>
-                        <div class="text-gray-400 text-xs">4 services</div>
-                      </div>
-                    </div>
-                    <span class="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-xs text-gray-600 border border-gray-200">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                      Connected
-                    </span>
-                  </div>
+                <!-- Terminal content -->
+                <div class="p-4 font-mono text-sm">
+                  <div class="text-gray-500 text-xs mb-3">$ oneuptime probe status --network internal</div>
 
-                  <!-- Services list -->
                   <div class="space-y-2">
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">PostgreSQL</span>
-                        <span class="text-gray-400 text-xs font-mono">10.0.1.50</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">12ms</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-emerald-400">✓</span>
+                      <span class="text-gray-300">postgresql</span>
+                      <span class="text-gray-500">10.0.1.50:5432</span>
+                      <span class="text-gray-600 ml-auto">12ms</span>
                     </div>
-
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">Redis Cluster</span>
-                        <span class="text-gray-400 text-xs font-mono">10.0.1.51</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">3ms</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-emerald-400">✓</span>
+                      <span class="text-gray-300">redis-cluster</span>
+                      <span class="text-gray-500">10.0.1.51:6379</span>
+                      <span class="text-gray-600 ml-auto">3ms</span>
                     </div>
-
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">K8s API Server</span>
-                        <span class="text-gray-400 text-xs font-mono">10.0.0.1</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">8ms</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-emerald-400">✓</span>
+                      <span class="text-gray-300">k8s-api</span>
+                      <span class="text-gray-500">10.0.0.1:6443</span>
+                      <span class="text-gray-600 ml-auto">8ms</span>
                     </div>
-
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">API Gateway</span>
-                        <span class="text-gray-400 text-xs font-mono">10.0.2.10</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">15ms</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-emerald-400">✓</span>
+                      <span class="text-gray-300">api-gateway</span>
+                      <span class="text-gray-500">10.0.2.10:8080</span>
+                      <span class="text-gray-600 ml-auto">15ms</span>
                     </div>
                   </div>
 
-                  <!-- Footer -->
-                  <div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-                    <span>Probe: prod-vpc-01</span>
-                    <span>Last check: 2s ago</span>
+                  <div class="mt-4 pt-3 border-t border-gray-800">
+                    <div class="text-gray-500 text-xs">
+                      <span class="text-emerald-400">4 healthy</span> · 0 degraded · 0 down
+                    </div>
+                  </div>
+
+                  <div class="mt-3 flex items-center gap-1 text-gray-600">
+                    <span>$</span>
+                    <span class="w-2 h-4 bg-gray-500 animate-pulse"></span>
                   </div>
                 </div>
               </div>
@@ -520,79 +468,100 @@
               <!-- Subtle background -->
               <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
 
-              <!-- Clean Browser Window -->
+              <!-- Status Page with Uptime Bars -->
               <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
-                <!-- Browser header -->
-                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
-                  <div class="flex gap-1.5">
-                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
-                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
-                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                <!-- Header -->
+                <div class="p-4 border-b border-gray-100">
+                  <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                    <div>
+                      <div class="text-gray-800 text-sm font-semibold">All Systems Operational</div>
+                      <div class="text-gray-400 text-xs">Updated 1 second ago</div>
+                    </div>
                   </div>
                 </div>
 
-                <!-- Content area -->
-                <div class="p-4">
-                  <!-- Header -->
-                  <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-2">
-                      <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <div class="text-gray-800 text-sm font-medium">All Systems Operational</div>
-                        <div class="text-gray-400 text-xs">Updated 1 second ago</div>
-                      </div>
+                <!-- Uptime bars -->
+                <div class="p-4 space-y-4">
+                  <!-- API Services -->
+                  <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                      <span class="text-gray-700 text-sm">API Services</span>
+                      <span class="text-gray-400 text-xs">99.99%</span>
                     </div>
-                    <span class="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-xs text-gray-600 border border-gray-200">
-                      99.99%
-                    </span>
-                  </div>
-
-                  <!-- Status list -->
-                  <div class="space-y-2">
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">API Services</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">Operational</span>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">Web Dashboard</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">Operational</span>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">Database</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">Operational</span>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">CDN & Assets</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">Operational</span>
+                    <div class="flex gap-0.5">
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-amber-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
                     </div>
                   </div>
 
-                  <!-- Footer -->
-                  <div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span class="text-gray-400 text-xs">Real-time updates</span>
+                  <!-- Web Dashboard -->
+                  <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                      <span class="text-gray-700 text-sm">Web Dashboard</span>
+                      <span class="text-gray-400 text-xs">100%</span>
                     </div>
-                    <span class="text-gray-400 text-xs">Refreshes every 1s</span>
+                    <div class="flex gap-0.5">
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                    </div>
+                  </div>
+
+                  <!-- Database -->
+                  <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                      <span class="text-gray-700 text-sm">Database</span>
+                      <span class="text-gray-400 text-xs">99.95%</span>
+                    </div>
+                    <div class="flex gap-0.5">
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-red-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                      <div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                  <span class="text-gray-400 text-xs">90 days ago</span>
+                  <div class="flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-gray-400 text-xs">Today</span>
                   </div>
                 </div>
               </div>
@@ -819,103 +788,98 @@
               <!-- Subtle background -->
               <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
 
-              <!-- Clean Dashboard -->
+              <!-- Timeline Schedule View -->
               <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
-                <!-- Header -->
-                <div class="px-4 py-3 border-b border-gray-100">
+                <!-- Header with current time -->
+                <div class="px-4 py-3 bg-gray-50 border-b border-gray-100">
                   <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <div class="text-gray-800 text-sm font-medium">Scheduled Tasks</div>
-                        <div class="text-gray-400 text-xs">Heartbeat monitor</div>
-                      </div>
-                    </div>
-                    <span class="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-xs text-gray-600 border border-gray-200">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                      All OK
-                    </span>
+                    <span class="text-gray-500 text-xs">Heartbeat Timeline</span>
+                    <span class="text-gray-700 text-xs font-mono">Today, 14:32</span>
                   </div>
                 </div>
 
-                <!-- Content area -->
+                <!-- Timeline content -->
                 <div class="p-4">
-                  <!-- Stats row -->
-                  <div class="grid grid-cols-3 gap-3 mb-4">
-                    <div class="bg-gray-50 rounded-lg p-3 text-center">
-                      <div class="text-gray-800 text-lg font-semibold">12</div>
-                      <div class="text-gray-400 text-xs">IoT Devices</div>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg p-3 text-center">
-                      <div class="text-gray-800 text-lg font-semibold">8</div>
-                      <div class="text-gray-400 text-xs">Cron Jobs</div>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg p-3 text-center">
-                      <div class="text-gray-800 text-lg font-semibold">5</div>
-                      <div class="text-gray-400 text-xs">Backups</div>
+                  <div class="relative">
+                    <!-- Vertical timeline line -->
+                    <div class="absolute left-3 top-2 bottom-2 w-px bg-gray-200"></div>
+
+                    <!-- Timeline items -->
+                    <div class="space-y-4">
+                      <!-- Item 1 - Recent -->
+                      <div class="relative flex gap-4">
+                        <div class="w-6 h-6 rounded-full bg-emerald-100 border-2 border-emerald-500 flex items-center justify-center z-10">
+                          <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        </div>
+                        <div class="flex-1 pb-4">
+                          <div class="flex items-center justify-between">
+                            <span class="text-gray-800 text-sm font-medium">Temperature Sensor</span>
+                            <span class="text-gray-400 text-xs">5s ago</span>
+                          </div>
+                          <div class="text-gray-500 text-xs mt-0.5">Heartbeat received · IoT Device</div>
+                        </div>
+                      </div>
+
+                      <!-- Item 2 -->
+                      <div class="relative flex gap-4">
+                        <div class="w-6 h-6 rounded-full bg-emerald-100 border-2 border-emerald-500 flex items-center justify-center z-10">
+                          <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        </div>
+                        <div class="flex-1 pb-4">
+                          <div class="flex items-center justify-between">
+                            <span class="text-gray-800 text-sm font-medium">Smart Gateway</span>
+                            <span class="text-gray-400 text-xs">12s ago</span>
+                          </div>
+                          <div class="text-gray-500 text-xs mt-0.5">Heartbeat received · IoT Device</div>
+                        </div>
+                      </div>
+
+                      <!-- Item 3 -->
+                      <div class="relative flex gap-4">
+                        <div class="w-6 h-6 rounded-full bg-emerald-100 border-2 border-emerald-500 flex items-center justify-center z-10">
+                          <svg class="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                          </svg>
+                        </div>
+                        <div class="flex-1 pb-4">
+                          <div class="flex items-center justify-between">
+                            <span class="text-gray-800 text-sm font-medium">Daily Report</span>
+                            <span class="text-gray-400 text-xs">2h ago</span>
+                          </div>
+                          <div class="text-gray-500 text-xs mt-0.5">Completed successfully · Cron</div>
+                        </div>
+                      </div>
+
+                      <!-- Item 4 -->
+                      <div class="relative flex gap-4">
+                        <div class="w-6 h-6 rounded-full bg-emerald-100 border-2 border-emerald-500 flex items-center justify-center z-10">
+                          <svg class="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                          </svg>
+                        </div>
+                        <div class="flex-1">
+                          <div class="flex items-center justify-between">
+                            <span class="text-gray-800 text-sm font-medium">Database Backup</span>
+                            <span class="text-gray-400 text-xs">4h ago</span>
+                          </div>
+                          <div class="text-gray-500 text-xs mt-0.5">Completed · 2.4 GB backed up</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
+                </div>
 
-                  <!-- Job list -->
-                  <div class="space-y-2">
-                    <!-- IoT Heartbeat -->
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">Temperature Sensor</span>
-                        <span class="text-gray-400 text-xs">30s interval</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">5s ago</span>
-                    </div>
-
-                    <!-- Cron Job -->
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">Daily Report</span>
-                        <span class="text-gray-400 text-xs font-mono">0 9 * * *</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">2h ago</span>
-                    </div>
-
-                    <!-- Backup Job -->
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">Database Backup</span>
-                        <span class="text-gray-400 text-xs">Every 6h</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">4h ago</span>
-                    </div>
-
-                    <!-- Gateway -->
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="text-gray-700 text-sm">Smart Gateway</span>
-                        <span class="text-gray-400 text-xs">60s interval</span>
-                      </div>
-                      <span class="text-gray-400 text-xs">12s ago</span>
-                    </div>
-                  </div>
-
-                  <!-- Footer -->
-                  <div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                <!-- Footer -->
+                <div class="px-4 py-3 bg-gray-50 border-t border-gray-100">
+                  <div class="flex items-center justify-between text-xs">
                     <div class="flex items-center gap-3">
-                      <span class="flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        25 healthy
-                      </span>
-                      <span class="flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
-                        0 failed
-                      </span>
+                      <span class="text-gray-500">12 IoT</span>
+                      <span class="text-gray-300">·</span>
+                      <span class="text-gray-500">8 Cron</span>
+                      <span class="text-gray-300">·</span>
+                      <span class="text-gray-500">5 Backup</span>
                     </div>
-                    <span>Updated just now</span>
+                    <span class="text-emerald-600 font-medium">All healthy</span>
                   </div>
                 </div>
               </div>
