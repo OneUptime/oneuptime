@@ -18,12 +18,6 @@
   <main id="main-content">
     <!-- Hero Section -->
     <div class="relative isolate overflow-hidden bg-white">
-      <!-- Subtle background gradient -->
-      <div class="absolute inset-0 -z-10">
-        <div class="absolute inset-0 bg-gradient-to-b from-orange-50/50 via-white to-white"></div>
-        <div class="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[800px] h-[800px] rounded-full bg-orange-100/30 blur-3xl"></div>
-      </div>
-
       <div class="py-20 sm:py-28 lg:py-32">
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
           <div class="mx-auto max-w-3xl text-center">
@@ -73,8 +67,7 @@
     </div>
 
     <!-- Stats Section -->
-    <div class="relative bg-gradient-to-r from-orange-600 to-red-600 py-16">
-      <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+    <div class="relative bg-orange-600 py-16">
       <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
         <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
           <div class="text-center">
@@ -193,10 +186,6 @@
 
     <!-- Feature Block 1: Full Stack Traces -->
     <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
-      <div class="absolute inset-0 -z-10">
-        <div class="absolute top-1/4 right-0 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-orange-50 to-red-50 blur-3xl opacity-60"></div>
-      </div>
-
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
           <div class="lg:pr-8">
@@ -207,7 +196,7 @@
               <span class="text-sm font-medium text-orange-700">Stack Traces</span>
             </div>
             <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-              See exactly where and <span class="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">why errors occur</span>
+              See exactly where and <span class="text-orange-600">why errors occur</span>
             </h2>
             <p class="mt-6 text-lg leading-8 text-gray-600">
               Get complete stack traces with source code context. Navigate directly to the line of code that caused the error, with surrounding context and variable values.
@@ -249,9 +238,8 @@
             </ul>
           </div>
           <div class="relative lg:order-last">
-            <div class="absolute -inset-4 bg-gradient-to-r from-orange-500/10 via-red-500/10 to-orange-500/10 rounded-2xl blur-2xl"></div>
-            <div class="relative rounded-2xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10">
-              <img src="/img/apm-3.png" alt="Full stack trace view showing error location and context" class="rounded-xl shadow-xl">
+            <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-inset ring-gray-900/10">
+              <img src="/img/apm-3.png" alt="Full stack trace view showing error location and context" class="rounded-xl shadow-lg">
             </div>
           </div>
         </div>
@@ -259,17 +247,12 @@
     </div>
 
     <!-- Feature Block 2: Intelligent Grouping -->
-    <div class="relative bg-gradient-to-b from-white via-orange-50/30 to-white py-24 sm:py-32 overflow-hidden">
-      <div class="absolute inset-0 -z-10">
-        <div class="absolute bottom-1/4 left-0 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-red-50 to-orange-50 blur-3xl opacity-60"></div>
-      </div>
-
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
           <div class="relative lg:order-first">
-            <div class="absolute -inset-4 bg-gradient-to-r from-red-500/10 via-orange-500/10 to-red-500/10 rounded-2xl blur-2xl"></div>
-            <div class="relative rounded-2xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10">
-              <img src="/img/apm-3.png" alt="Intelligent error grouping dashboard" class="rounded-xl shadow-xl">
+            <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-inset ring-gray-900/10">
+              <img src="/img/apm-3.png" alt="Intelligent error grouping dashboard" class="rounded-xl shadow-lg">
             </div>
           </div>
           <div class="lg:pl-8">
@@ -280,7 +263,7 @@
               <span class="text-sm font-medium text-orange-700">Intelligent Grouping</span>
             </div>
             <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-              Focus on unique issues, <span class="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">not noise</span>
+              Focus on unique issues, <span class="text-orange-600">not noise</span>
             </h2>
             <p class="mt-6 text-lg leading-8 text-gray-600">
               Our intelligent deduplication algorithm groups similar errors together, even when stack traces differ slightly. See the true impact of each unique issue.
@@ -327,10 +310,6 @@
 
     <!-- Feature Block 3: AI-Powered Analysis -->
     <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
-      <div class="absolute inset-0 -z-10">
-        <div class="absolute top-1/4 right-0 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-orange-50 to-red-50 blur-3xl opacity-60"></div>
-      </div>
-
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
           <div class="lg:pr-8">
@@ -341,7 +320,7 @@
               <span class="text-sm font-medium text-orange-700">AI-Powered</span>
             </div>
             <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-              Get AI-generated <span class="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">root cause analysis</span>
+              Get AI-generated <span class="text-orange-600">root cause analysis</span>
             </h2>
             <p class="mt-6 text-lg leading-8 text-gray-600">
               Our AI analyzes error patterns, stack traces, and surrounding context to identify the root cause and suggest fixes. Spend less time debugging and more time building.
@@ -391,9 +370,8 @@
             </div>
           </div>
           <div class="relative lg:order-last">
-            <div class="absolute -inset-4 bg-gradient-to-r from-orange-500/10 via-red-500/10 to-orange-500/10 rounded-2xl blur-2xl"></div>
-            <div class="relative rounded-2xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10">
-              <img src="/img/copilot.png" alt="AI-powered root cause analysis" class="rounded-xl shadow-xl">
+            <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-inset ring-gray-900/10">
+              <img src="/img/copilot.png" alt="AI-powered root cause analysis" class="rounded-xl shadow-lg">
             </div>
           </div>
         </div>
@@ -401,17 +379,12 @@
     </div>
 
     <!-- Feature Block 4: Release Tracking -->
-    <div class="relative bg-gradient-to-b from-white via-orange-50/30 to-white py-24 sm:py-32 overflow-hidden">
-      <div class="absolute inset-0 -z-10">
-        <div class="absolute bottom-1/4 left-0 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-red-50 to-orange-50 blur-3xl opacity-60"></div>
-      </div>
-
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
           <div class="relative lg:order-first">
-            <div class="absolute -inset-4 bg-gradient-to-r from-red-500/10 via-orange-500/10 to-red-500/10 rounded-2xl blur-2xl"></div>
-            <div class="relative rounded-2xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10">
-              <img src="/img/apm-3.png" alt="Release tracking and deployment correlation" class="rounded-xl shadow-xl">
+            <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-inset ring-gray-900/10">
+              <img src="/img/apm-3.png" alt="Release tracking and deployment correlation" class="rounded-xl shadow-lg">
             </div>
           </div>
           <div class="lg:pl-8">
@@ -422,7 +395,7 @@
               <span class="text-sm font-medium text-orange-700">Release Tracking</span>
             </div>
             <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-              Know which release <span class="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">broke things</span>
+              Know which release <span class="text-orange-600">broke things</span>
             </h2>
             <p class="mt-6 text-lg leading-8 text-gray-600">
               Track errors by release version and correlate with deployments. Quickly identify regressions and roll back problematic releases with confidence.
@@ -469,11 +442,6 @@
 
     <!-- Features Grid Section -->
     <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
-      <div class="absolute inset-0 -z-10">
-        <div class="absolute top-1/4 right-0 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-orange-50 to-red-50 blur-3xl opacity-60"></div>
-        <div class="absolute bottom-1/4 left-0 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-red-50 to-orange-50 blur-3xl opacity-60"></div>
-      </div>
-
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="mx-auto max-w-2xl text-center mb-16">
           <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-50 border border-orange-100 mb-6">
@@ -483,7 +451,7 @@
             <span class="text-sm font-medium text-orange-700">More Features</span>
           </div>
           <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-            Everything you need for <span class="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">error tracking</span>
+            Everything you need for <span class="text-orange-600">error tracking</span>
           </h2>
           <p class="mt-6 text-lg leading-8 text-gray-600">
             Comprehensive exception tracking built for modern engineering teams.
@@ -494,8 +462,7 @@
           <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <!-- Feature 1 -->
             <div class="group relative">
-              <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-orange-200 hover:shadow-xl hover:shadow-orange-500/10">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-orange-200 hover:shadow-lg">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200">
                   <svg class="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
@@ -508,8 +475,7 @@
 
             <!-- Feature 2 -->
             <div class="group relative">
-              <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-red-500 to-orange-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-red-200 hover:shadow-xl hover:shadow-red-500/10">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-red-200 hover:shadow-lg">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
                   <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
@@ -522,8 +488,7 @@
 
             <!-- Feature 3 -->
             <div class="group relative">
-              <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-xl hover:shadow-amber-500/10">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
                   <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -536,8 +501,7 @@
 
             <!-- Feature 4 -->
             <div class="group relative">
-              <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-orange-200 hover:shadow-xl hover:shadow-orange-500/10">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-orange-200 hover:shadow-lg">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200">
                   <svg class="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
@@ -550,8 +514,7 @@
 
             <!-- Feature 5 -->
             <div class="group relative">
-              <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-red-500 to-amber-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-red-200 hover:shadow-xl hover:shadow-red-500/10">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-red-200 hover:shadow-lg">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
                   <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
@@ -564,8 +527,7 @@
 
             <!-- Feature 6 -->
             <div class="group relative">
-              <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-amber-500 to-red-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-xl hover:shadow-amber-500/10">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
                   <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
@@ -581,13 +543,7 @@
     </div>
 
     <!-- OpenTelemetry Section -->
-    <div class="relative bg-gradient-to-r from-gray-900 via-orange-900 to-gray-900 py-24 sm:py-32 overflow-hidden">
-      <div class="absolute inset-0 -z-10">
-        <div class="absolute top-0 left-1/4 h-[400px] w-[400px] rounded-full bg-orange-500/10 blur-3xl"></div>
-        <div class="absolute bottom-0 right-1/4 h-[400px] w-[400px] rounded-full bg-red-500/10 blur-3xl"></div>
-      </div>
-      <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-
+    <div class="relative bg-gray-900 py-24 sm:py-32 overflow-hidden">
       <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
         <div class="mx-auto max-w-2xl text-center mb-16">
           <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur border border-white/20 mb-6">
@@ -597,7 +553,7 @@
             <span class="text-sm font-medium text-white">OpenTelemetry Native</span>
           </div>
           <h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
-            Built on <span class="bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">open standards</span>
+            Built on <span class="text-orange-400">open standards</span>
           </h2>
           <p class="mt-6 text-lg leading-8 text-gray-300">
             Use OpenTelemetry to capture exceptions with full distributed trace context. No proprietary agents or vendor lock-in.
@@ -607,7 +563,6 @@
         <div class="mx-auto max-w-4xl">
           <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
             <div class="group relative">
-              <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 opacity-0 blur transition-all duration-300 group-hover:opacity-30"></div>
               <div class="relative rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-8 text-center transition-all duration-300 hover:bg-white/15">
                 <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200 mb-6">
                   <svg class="h-7 w-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -620,7 +575,6 @@
             </div>
 
             <div class="group relative">
-              <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-red-500 to-amber-500 opacity-0 blur transition-all duration-300 group-hover:opacity-30"></div>
               <div class="relative rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-8 text-center transition-all duration-300 hover:bg-white/15">
                 <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200 mb-6">
                   <svg class="h-7 w-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -633,7 +587,6 @@
             </div>
 
             <div class="group relative">
-              <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 opacity-0 blur transition-all duration-300 group-hover:opacity-30"></div>
               <div class="relative rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-8 text-center transition-all duration-300 hover:bg-white/15">
                 <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200 mb-6">
                   <svg class="h-7 w-7 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">

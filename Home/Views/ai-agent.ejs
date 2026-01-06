@@ -18,11 +18,6 @@
 
   <!-- Hero Section -->
   <div class="relative isolate overflow-hidden bg-white">
-    <!-- Subtle background gradient -->
-    <div class="absolute inset-0 -z-10">
-      <div class="absolute inset-0 bg-gradient-to-b from-pink-50/50 via-white to-white"></div>
-      <div class="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[800px] h-[800px] rounded-full bg-pink-100/30 blur-3xl"></div>
-    </div>
 
     <div class="py-20 sm:py-28 lg:py-32">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
@@ -73,8 +68,7 @@
   </div>
 
   <!-- Stats Section -->
-  <div class="relative bg-gradient-to-r from-pink-600 to-rose-600 py-16">
-    <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+  <div class="relative bg-violet-600 py-16">
     <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
       <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
         <div class="text-center">
@@ -84,7 +78,7 @@
             </svg>
           </div>
           <div class="text-2xl font-bold text-white">Automatic</div>
-          <div class="mt-1 text-sm text-pink-100">Error Fixes</div>
+          <div class="mt-1 text-sm text-violet-100">Error Fixes</div>
         </div>
         <div class="text-center">
           <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur mb-4">
@@ -93,7 +87,7 @@
             </svg>
           </div>
           <div class="text-2xl font-bold text-white">Ready PRs</div>
-          <div class="mt-1 text-sm text-pink-100">To Merge</div>
+          <div class="mt-1 text-sm text-violet-100">To Merge</div>
         </div>
         <div class="text-center">
           <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur mb-4">
@@ -102,7 +96,7 @@
             </svg>
           </div>
           <div class="text-2xl font-bold text-white">Any LLM</div>
-          <div class="mt-1 text-sm text-pink-100">Model Support</div>
+          <div class="mt-1 text-sm text-violet-100">Model Support</div>
         </div>
         <div class="text-center">
           <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur mb-4">
@@ -111,7 +105,7 @@
             </svg>
           </div>
           <div class="text-2xl font-bold text-white">Zero</div>
-          <div class="mt-1 text-sm text-pink-100">Code Storage</div>
+          <div class="mt-1 text-sm text-violet-100">Code Storage</div>
         </div>
       </div>
     </div>
@@ -193,10 +187,6 @@
 
   <!-- Features Grid Section -->
   <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
-    <div class="absolute inset-0 -z-10">
-      <div class="absolute top-1/4 right-0 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-pink-50 to-rose-50 blur-3xl opacity-60"></div>
-      <div class="absolute bottom-1/4 left-0 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-rose-50 to-fuchsia-50 blur-3xl opacity-60"></div>
-    </div>
 
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="mx-auto max-w-2xl text-center mb-16">
@@ -207,7 +197,7 @@
           <span class="text-sm font-medium text-pink-700">Capabilities</span>
         </div>
         <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-          Automatically fix issues <span class="bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">in your codebase</span>
+          Automatically fix issues <span class="text-violet-600">in your codebase</span>
         </h2>
         <p class="mt-6 text-lg leading-8 text-gray-600">
           Stop spending days debugging. AI Agent analyzes your observability data and creates pull requests with fixes.
@@ -218,8 +208,7 @@
         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <!-- Feature 1: Fix Errors -->
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-xl hover:shadow-pink-500/10">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-lg">
               <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-50 ring-1 ring-pink-200">
                 <svg class="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
@@ -227,14 +216,12 @@
               </div>
               <h3 class="mt-6 text-xl font-semibold text-gray-900">Fix Errors Automatically</h3>
               <p class="mt-4 text-gray-600 leading-relaxed">When AI Agent notices exceptions in your traces or logs, it automatically fixes the issue and creates a PR.</p>
-              <div class="absolute bottom-4 right-4 h-16 w-16 rounded-full bg-gradient-to-br from-pink-50 to-rose-50 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
             </div>
           </div>
 
           <!-- Feature 2: Performance -->
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-rose-200 hover:shadow-xl hover:shadow-rose-500/10">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-rose-200 hover:shadow-lg">
               <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200">
                 <svg class="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
@@ -242,14 +229,12 @@
               </div>
               <h3 class="mt-6 text-xl font-semibold text-gray-900">Fix Performance Issues</h3>
               <p class="mt-4 text-gray-600 leading-relaxed">Analyzes traces that take the longest to execute and creates pull requests with performance optimizations.</p>
-              <div class="absolute bottom-4 right-4 h-16 w-16 rounded-full bg-gradient-to-br from-rose-50 to-pink-50 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
             </div>
           </div>
 
           <!-- Feature 3: Database -->
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-fuchsia-500 to-rose-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-fuchsia-200 hover:shadow-xl hover:shadow-fuchsia-500/10">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-fuchsia-200 hover:shadow-lg">
               <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-fuchsia-50 ring-1 ring-fuchsia-200">
                 <svg class="h-6 w-6 text-fuchsia-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
@@ -257,14 +242,12 @@
               </div>
               <h3 class="mt-6 text-xl font-semibold text-gray-900">Fix Database Queries</h3>
               <p class="mt-4 text-gray-600 leading-relaxed">Identifies slow or inefficient database queries and optimizes them with proper indexing and query rewrites.</p>
-              <div class="absolute bottom-4 right-4 h-16 w-16 rounded-full bg-gradient-to-br from-fuchsia-50 to-rose-50 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
             </div>
           </div>
 
           <!-- Feature 4: Frontend -->
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-purple-200 hover:shadow-xl hover:shadow-purple-500/10">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-purple-200 hover:shadow-lg">
               <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 ring-1 ring-purple-200">
                 <svg class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
@@ -272,14 +255,12 @@
               </div>
               <h3 class="mt-6 text-xl font-semibold text-gray-900">Fix Frontend Issues</h3>
               <p class="mt-4 text-gray-600 leading-relaxed">Addresses frontend-specific performance problems, rendering issues, and JavaScript errors automatically.</p>
-              <div class="absolute bottom-4 right-4 h-16 w-16 rounded-full bg-gradient-to-br from-purple-50 to-pink-50 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
             </div>
           </div>
 
           <!-- Feature 5: Telemetry -->
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-pink-500 to-fuchsia-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-xl hover:shadow-pink-500/10">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-lg">
               <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
                 <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -287,14 +268,12 @@
               </div>
               <h3 class="mt-6 text-xl font-semibold text-gray-900">Add Telemetry Automatically</h3>
               <p class="mt-4 text-gray-600 leading-relaxed">Add tracing, metrics, and logs to your codebase with a single click. No manual instrumentation needed.</p>
-              <div class="absolute bottom-4 right-4 h-16 w-16 rounded-full bg-gradient-to-br from-pink-50 to-fuchsia-50 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
             </div>
           </div>
 
           <!-- Feature 6: Git Integration -->
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-rose-500 to-fuchsia-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-rose-200 hover:shadow-xl hover:shadow-rose-500/10">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-rose-200 hover:shadow-lg">
               <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
                 <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
@@ -302,14 +281,12 @@
               </div>
               <h3 class="mt-6 text-xl font-semibold text-gray-900">GitHub & GitLab Integration</h3>
               <p class="mt-4 text-gray-600 leading-relaxed">Seamlessly integrates with your existing repositories. PRs are created directly in your workflow.</p>
-              <div class="absolute bottom-4 right-4 h-16 w-16 rounded-full bg-gradient-to-br from-rose-50 to-fuchsia-50 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
             </div>
           </div>
 
           <!-- Feature 7: CI/CD -->
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-fuchsia-200 hover:shadow-xl hover:shadow-fuchsia-500/10">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-fuchsia-200 hover:shadow-lg">
               <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 ring-1 ring-slate-300">
                 <svg class="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
@@ -318,14 +295,12 @@
               </div>
               <h3 class="mt-6 text-xl font-semibold text-gray-900">CI/CD Integration</h3>
               <p class="mt-4 text-gray-600 leading-relaxed">Integrates with your existing CI/CD pipelines. Fixes are tested and validated before PR creation.</p>
-              <div class="absolute bottom-4 right-4 h-16 w-16 rounded-full bg-gradient-to-br from-fuchsia-50 to-purple-50 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
             </div>
           </div>
 
           <!-- Feature 8: Terraform -->
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-pink-500 to-purple-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-xl hover:shadow-pink-500/10">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-lg">
               <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
                 <svg class="h-6 w-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25l-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3l2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75l2.25-1.313M12 21.75V19.5m0 2.25l-2.25-1.313m0-16.875L12 2.25l2.25 1.313M21 14.25v2.25l-2.25 1.313m-13.5 0L3 16.5v-2.25" />
@@ -333,14 +308,12 @@
               </div>
               <h3 class="mt-6 text-xl font-semibold text-gray-900">Terraform Support</h3>
               <p class="mt-4 text-gray-600 leading-relaxed">Fix infrastructure issues automatically. Supports Terraform and OpenTofu for infrastructure-as-code.</p>
-              <div class="absolute bottom-4 right-4 h-16 w-16 rounded-full bg-gradient-to-br from-pink-50 to-purple-50 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
             </div>
           </div>
 
           <!-- Feature 9: Issue Tracker -->
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-rose-500 to-purple-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-rose-200 hover:shadow-xl hover:shadow-rose-500/10">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-rose-200 hover:shadow-lg">
               <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
                 <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
@@ -348,7 +321,6 @@
               </div>
               <h3 class="mt-6 text-xl font-semibold text-gray-900">Issue Tracker Integration</h3>
               <p class="mt-4 text-gray-600 leading-relaxed">Connects with Jira, Linear, and other issue trackers. Automatically links fixes to relevant issues.</p>
-              <div class="absolute bottom-4 right-4 h-16 w-16 rounded-full bg-gradient-to-br from-rose-50 to-purple-50 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
             </div>
           </div>
         </div>
@@ -357,10 +329,7 @@
   </div>
 
   <!-- LLM Provider Section -->
-  <div class="relative bg-gradient-to-b from-white via-pink-50/30 to-white py-24 sm:py-32 overflow-hidden">
-    <div class="absolute inset-0 -z-10">
-      <div class="absolute top-1/2 left-1/2 -trangray-x-1/2 -trangray-y-1/2 h-[600px] w-[600px] rounded-full bg-gradient-to-br from-pink-100/30 to-rose-100/20 blur-3xl"></div>
-    </div>
+  <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
 
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="mx-auto max-w-2xl text-center mb-16">
@@ -371,7 +340,7 @@
           <span class="text-sm font-medium text-pink-700">Flexible AI</span>
         </div>
         <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-          Use any <span class="bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">AI model</span> you want
+          Use any <span class="text-violet-600">AI model</span> you want
         </h2>
         <p class="mt-6 text-lg leading-8 text-gray-600">
           OneUptime works with any LLM provider. Self-host your AI model and keep your code completely private.
@@ -381,8 +350,7 @@
       <div class="mx-auto max-w-4xl">
         <div class="grid grid-cols-2 gap-6 sm:grid-cols-4">
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative flex flex-col items-center p-8 rounded-2xl bg-white border border-gray-200 transition-all duration-300 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/10">
+            <div class="relative flex flex-col items-center p-8 rounded-2xl bg-white border border-gray-200 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
               <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200 mb-4">
                 <svg class="h-7 w-7 text-emerald-600" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/>
@@ -394,8 +362,7 @@
           </div>
 
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative flex flex-col items-center p-8 rounded-2xl bg-white border border-gray-200 transition-all duration-300 hover:border-orange-200 hover:shadow-xl hover:shadow-orange-500/10">
+            <div class="relative flex flex-col items-center p-8 rounded-2xl bg-white border border-gray-200 transition-all duration-300 hover:border-orange-200 hover:shadow-lg">
               <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200 mb-4">
                 <svg class="h-7 w-7 text-orange-600" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
@@ -407,8 +374,7 @@
           </div>
 
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative flex flex-col items-center p-8 rounded-2xl bg-white border border-gray-200 transition-all duration-300 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/10">
+            <div class="relative flex flex-col items-center p-8 rounded-2xl bg-white border border-gray-200 transition-all duration-300 hover:border-blue-200 hover:shadow-lg">
               <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-200 mb-4">
                 <svg class="h-7 w-7 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5" />
@@ -420,8 +386,7 @@
           </div>
 
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative flex flex-col items-center p-8 rounded-2xl bg-white border border-gray-200 transition-all duration-300 hover:border-pink-200 hover:shadow-xl hover:shadow-pink-500/10">
+            <div class="relative flex flex-col items-center p-8 rounded-2xl bg-white border border-gray-200 transition-all duration-300 hover:border-pink-200 hover:shadow-lg">
               <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-pink-50 ring-1 ring-pink-200 mb-4">
                 <svg class="h-7 w-7 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z" />
@@ -437,13 +402,7 @@
   </div>
 
   <!-- Privacy Section -->
-  <div class="relative bg-gradient-to-r from-gray-900 via-pink-900 to-gray-900 py-24 sm:py-32 overflow-hidden">
-    <!-- Background decorative elements -->
-    <div class="absolute inset-0 -z-10">
-      <div class="absolute top-0 left-1/4 h-[400px] w-[400px] rounded-full bg-pink-500/10 blur-3xl"></div>
-      <div class="absolute bottom-0 right-1/4 h-[400px] w-[400px] rounded-full bg-rose-500/10 blur-3xl"></div>
-    </div>
-    <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+  <div class="relative bg-gray-900 py-24 sm:py-32 overflow-hidden">
 
     <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
       <div class="mx-auto max-w-2xl text-center mb-16">
@@ -454,7 +413,7 @@
           <span class="text-sm font-medium text-white">Privacy First</span>
         </div>
         <h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
-          We never see, store, or <span class="bg-gradient-to-r from-pink-400 to-rose-400 bg-clip-text text-transparent">train on your code</span>
+          We never see, store, or <span class="text-violet-400">train on your code</span>
         </h2>
         <p class="mt-6 text-lg leading-8 text-gray-300">
           Regardless of your plan, no part of your code is sent to or stored by us. Use your own AI provider for complete privacy.
@@ -464,7 +423,6 @@
       <div class="mx-auto max-w-4xl">
         <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 opacity-0 blur transition-all duration-300 group-hover:opacity-30"></div>
             <div class="relative rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-8 text-center transition-all duration-300 hover:bg-white/15">
               <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-pink-50 ring-1 ring-pink-200 mb-6">
                 <svg class="h-7 w-7 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -477,7 +435,6 @@
           </div>
 
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-rose-500 to-fuchsia-500 opacity-0 blur transition-all duration-300 group-hover:opacity-30"></div>
             <div class="relative rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-8 text-center transition-all duration-300 hover:bg-white/15">
               <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200 mb-6">
                 <svg class="h-7 w-7 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -490,7 +447,6 @@
           </div>
 
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-fuchsia-500 to-pink-500 opacity-0 blur transition-all duration-300 group-hover:opacity-30"></div>
             <div class="relative rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-8 text-center transition-all duration-300 hover:bg-white/15">
               <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-fuchsia-50 ring-1 ring-fuchsia-200 mb-6">
                 <svg class="h-7 w-7 text-fuchsia-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -508,10 +464,6 @@
 
   <!-- Enterprise Features -->
   <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
-    <div class="absolute inset-0 -z-10">
-      <div class="absolute top-0 right-0 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-pink-50 to-rose-50 blur-3xl opacity-60"></div>
-      <div class="absolute bottom-0 left-0 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-rose-50 to-fuchsia-50 blur-3xl opacity-60"></div>
-    </div>
 
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="mx-auto max-w-2xl text-center mb-16">
@@ -522,7 +474,7 @@
           <span class="text-sm font-medium text-pink-700">Enterprise Ready</span>
         </div>
         <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-          Advanced features <span class="bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">for teams</span>
+          Advanced features <span class="text-violet-600">for teams</span>
         </h2>
         <p class="mt-6 text-lg leading-8 text-gray-600">
           Built to scale with your organization.
@@ -532,8 +484,7 @@
       <div class="mx-auto max-w-5xl">
         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-xl hover:shadow-pink-500/10">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-lg">
               <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-50 ring-1 ring-pink-200">
                 <svg class="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -545,8 +496,7 @@
           </div>
 
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-rose-200 hover:shadow-xl hover:shadow-rose-500/10">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-rose-200 hover:shadow-lg">
               <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200">
                 <svg class="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
@@ -558,8 +508,7 @@
           </div>
 
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-fuchsia-500 to-rose-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-fuchsia-200 hover:shadow-xl hover:shadow-fuchsia-500/10">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-fuchsia-200 hover:shadow-lg">
               <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-fuchsia-50 ring-1 ring-fuchsia-200">
                 <svg class="h-6 w-6 text-fuchsia-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
@@ -571,8 +520,7 @@
           </div>
 
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-purple-200 hover:shadow-xl hover:shadow-purple-500/10">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-purple-200 hover:shadow-lg">
               <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
                 <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
@@ -584,8 +532,7 @@
           </div>
 
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-pink-500 to-fuchsia-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-xl hover:shadow-pink-500/10">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-lg">
               <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
                 <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
@@ -597,8 +544,7 @@
           </div>
 
           <div class="group relative">
-            <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-rose-500 to-purple-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-rose-200 hover:shadow-xl hover:shadow-rose-500/10">
+            <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-rose-200 hover:shadow-lg">
               <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-200">
                 <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />

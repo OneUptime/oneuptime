@@ -18,12 +18,6 @@
   <main id="main-content">
     <!-- Hero Section -->
     <div class="relative isolate overflow-hidden bg-white">
-      <!-- Subtle background gradient -->
-      <div class="absolute inset-0 -z-10">
-        <div class="absolute inset-0 bg-gradient-to-b from-amber-50/50 via-white to-white"></div>
-        <div class="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[800px] h-[800px] rounded-full bg-amber-100/30 blur-3xl"></div>
-      </div>
-
       <div class="py-20 sm:py-28 lg:py-32">
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
           <div class="mx-auto max-w-3xl text-center">
@@ -73,8 +67,7 @@
     </div>
 
     <!-- Stats Section -->
-    <div class="relative bg-gradient-to-r from-yellow-500 to-amber-500 py-16">
-      <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+    <div class="relative bg-yellow-500 py-16">
       <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
         <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
           <div class="text-center">
@@ -193,12 +186,7 @@
     </div>
 
     <!-- Why OneUptime Section -->
-    <div class="relative bg-gradient-to-b from-white via-yellow-50/30 to-white py-24 sm:py-32 overflow-hidden">
-      <div class="absolute inset-0 -z-10">
-        <div class="absolute top-0 left-1/4 h-[400px] w-[400px] rounded-full bg-gradient-to-br from-yellow-100/40 to-amber-100/30 blur-3xl"></div>
-        <div class="absolute bottom-0 right-1/4 h-[400px] w-[400px] rounded-full bg-gradient-to-br from-amber-100/40 to-yellow-100/30 blur-3xl"></div>
-      </div>
-
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <!-- Section header -->
         <div class="mx-auto max-w-2xl text-center mb-20">
@@ -209,7 +197,7 @@
             <span class="text-sm font-medium text-yellow-700">Why OneUptime Traces</span>
           </div>
           <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-            See the complete <span class="bg-gradient-to-r from-yellow-600 to-amber-600 bg-clip-text text-transparent">request journey</span>
+            See the complete <span class="text-yellow-500">request journey</span>
           </h2>
           <p class="mt-6 text-lg leading-8 text-gray-600">
             Understand how requests flow through your distributed system. Identify slow services, failed calls, and optimization opportunities with powerful trace analysis.
@@ -258,8 +246,7 @@
             </div>
             <div class="mt-12 lg:mt-0">
               <div class="relative">
-                <div class="absolute -inset-4 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 rounded-2xl blur-2xl"></div>
-                <img class="relative w-full rounded-2xl shadow-2xl ring-1 ring-gray-900/10" src="/img/apm-3.png" alt="Service dependency map">
+                <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/apm-3.png" alt="Service dependency map">
               </div>
             </div>
           </div>
@@ -268,8 +255,7 @@
           <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
             <div class="order-2 lg:order-1 mt-12 lg:mt-0">
               <div class="relative">
-                <div class="absolute -inset-4 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-2xl blur-2xl"></div>
-                <img class="relative w-full rounded-2xl shadow-2xl ring-1 ring-gray-900/10" src="/img/apm-2.png" alt="Trace latency breakdown">
+                <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/apm-2.png" alt="Trace latency breakdown">
               </div>
             </div>
             <div class="order-1 lg:order-2">
@@ -348,8 +334,7 @@
             </div>
             <div class="mt-12 lg:mt-0">
               <div class="relative">
-                <div class="absolute -inset-4 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-2xl blur-2xl"></div>
-                <img class="relative w-full rounded-2xl shadow-2xl ring-1 ring-gray-900/10" src="/img/error-exception.png" alt="Error tracking in traces">
+                <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/error-exception.png" alt="Error tracking in traces">
               </div>
             </div>
           </div>
@@ -358,8 +343,7 @@
           <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
             <div class="order-2 lg:order-1 mt-12 lg:mt-0">
               <div class="relative">
-                <div class="absolute -inset-4 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 rounded-2xl blur-2xl"></div>
-                <img class="relative w-full rounded-2xl shadow-2xl ring-1 ring-gray-900/10" src="/img/log-management.png" alt="Trace correlation">
+                <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/log-management.png" alt="Trace correlation">
               </div>
             </div>
             <div class="order-1 lg:order-2">
@@ -404,12 +388,7 @@
     </div>
 
     <!-- More Features Section -->
-    <div class="relative bg-gradient-to-b from-white via-gray-50/50 to-white py-24 sm:py-32 overflow-hidden">
-      <div class="absolute inset-0 -z-10">
-        <div class="absolute top-1/4 left-0 h-[400px] w-[400px] rounded-full bg-gradient-to-br from-yellow-100/40 to-amber-100/30 blur-3xl"></div>
-        <div class="absolute bottom-1/4 right-0 h-[400px] w-[400px] rounded-full bg-gradient-to-br from-amber-100/40 to-orange-100/30 blur-3xl"></div>
-      </div>
-
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <!-- Section header -->
         <div class="mx-auto max-w-2xl text-center">
@@ -420,7 +399,7 @@
             <span class="text-sm font-medium text-yellow-700">Advanced capabilities</span>
           </div>
           <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-            More features, <span class="bg-gradient-to-r from-yellow-600 to-amber-600 bg-clip-text text-transparent">built for you</span>
+            More features, <span class="text-yellow-500">built for you</span>
           </h2>
           <p class="mt-6 text-lg leading-8 text-gray-600">
             From sampling to retention, we've built every feature you need for comprehensive distributed tracing.
@@ -433,8 +412,7 @@
 
             <!-- Card 1: Intelligent Sampling -->
             <div class="group relative">
-              <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-yellow-200 hover:shadow-xl hover:shadow-yellow-500/10">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-yellow-200 hover:shadow-lg">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-50 ring-1 ring-yellow-200">
                   <svg class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
@@ -447,8 +425,7 @@
 
             <!-- Card 2: Powerful Search -->
             <div class="group relative">
-              <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/10">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-blue-200 hover:shadow-lg">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-200">
                   <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -461,8 +438,7 @@
 
             <!-- Card 3: OpenTelemetry Native -->
             <div class="group relative">
-              <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/10">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
                   <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
@@ -475,8 +451,7 @@
 
             <!-- Card 4: Custom Attributes -->
             <div class="group relative">
-              <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-xl hover:shadow-amber-500/10">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
                   <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
@@ -489,8 +464,7 @@
 
             <!-- Card 5: Compliance -->
             <div class="group relative">
-              <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/10">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
                   <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
@@ -503,8 +477,7 @@
 
             <!-- Card 6: Data Export -->
             <div class="group relative">
-              <div class="absolute -inset-px rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 opacity-0 blur transition-all duration-300 group-hover:opacity-20"></div>
-              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-xl hover:shadow-pink-500/10">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-lg">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-50 ring-1 ring-pink-200">
                   <svg class="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
