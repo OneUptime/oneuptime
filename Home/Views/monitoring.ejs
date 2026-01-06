@@ -310,78 +310,115 @@
         <!-- Feature 2: Private Network Monitoring -->
         <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
           <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
-            <div class="relative flex items-center justify-center py-6">
-              <!-- Private Network Monitoring Illustration -->
-              <svg class="w-full max-w-md" viewBox="0 0 400 320" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#06B6D4"/>
-                    <stop offset="100%" style="stop-color:#0891B2"/>
-                  </linearGradient>
-                  <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#22C55E"/>
-                    <stop offset="100%" style="stop-color:#16A34A"/>
-                  </linearGradient>
-                  <filter id="globeShadow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#06B6D4" flood-opacity="0.15"/>
-                  </filter>
-                  <filter id="dotGlow" x="-100%" y="-100%" width="300%" height="300%">
-                    <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#22C55E" flood-opacity="0.4"/>
-                  </filter>
-                </defs>
+            <div class="relative">
+              <!-- Decorative background elements -->
+              <div class="absolute -inset-4 bg-gradient-to-r from-cyan-500/10 via-teal-500/10 to-emerald-500/10 rounded-3xl blur-2xl"></div>
 
-                <!-- Private network cloud/shield shape -->
-                <g filter="url(#globeShadow)">
-                  <path d="M200 30 L340 90 L340 180 C340 240 280 280 200 290 C120 280 60 240 60 180 L60 90 L200 30Z" fill="white"/>
-                </g>
-                <path d="M200 30 L340 90 L340 180 C340 240 280 280 200 290 C120 280 60 240 60 180 L60 90 L200 30Z" fill="none" stroke="url(#cyanGrad)" stroke-width="2"/>
+              <!-- Light Mode Browser Window -->
+              <div class="relative bg-white rounded-2xl shadow-2xl overflow-hidden max-w-md mx-auto ring-1 ring-gray-200">
+                <!-- Browser header -->
+                <div class="bg-gray-100 px-4 py-3 flex items-center gap-3 border-b border-gray-200">
+                  <div class="flex gap-2">
+                    <div class="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#febc2e]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#28c840]"></div>
+                  </div>
+                  <div class="flex-1 flex justify-center">
+                    <div class="flex items-center gap-2 bg-white px-4 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                      <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                      </svg>
+                      <span class="text-gray-600 text-sm">internal.yourcompany.local</span>
+                    </div>
+                  </div>
+                </div>
 
-                <!-- Internal network grid -->
-                <line x1="100" y1="130" x2="300" y2="130" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="4 4"/>
-                <line x1="100" y1="170" x2="300" y2="170" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="4 4"/>
-                <line x1="100" y1="210" x2="300" y2="210" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="4 4"/>
-                <line x1="140" y1="90" x2="140" y2="250" stroke="#F3F4F6" stroke-width="1" stroke-dasharray="4 4"/>
-                <line x1="200" y1="70" x2="200" y2="270" stroke="#F3F4F6" stroke-width="1" stroke-dasharray="4 4"/>
-                <line x1="260" y1="90" x2="260" y2="250" stroke="#F3F4F6" stroke-width="1" stroke-dasharray="4 4"/>
+                <!-- Content area -->
+                <div class="p-5">
+                  <!-- Header with shield -->
+                  <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center gap-3">
+                      <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="text-gray-900 font-semibold">Private Network</div>
+                        <div class="text-gray-500 text-sm">4 services monitored</div>
+                      </div>
+                    </div>
+                    <span class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 rounded-full text-sm text-emerald-600 font-medium border border-emerald-200">
+                      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      Secure
+                    </span>
+                  </div>
 
-                <!-- Lock icon in center -->
-                <rect x="180" y="100" width="40" height="35" rx="4" fill="#ECFEFF" stroke="#06B6D4" stroke-width="2"/>
-                <path d="M190 100V90C190 82 195 75 200 75C205 75 210 82 210 90V100" fill="none" stroke="#06B6D4" stroke-width="2"/>
-                <circle cx="200" cy="115" r="4" fill="#06B6D4"/>
-                <line x1="200" y1="119" x2="200" y2="127" stroke="#06B6D4" stroke-width="2"/>
+                  <!-- Services grid -->
+                  <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                      <div class="flex items-center gap-2 mb-2">
+                        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        <span class="text-gray-900 text-sm font-medium">PostgreSQL</span>
+                      </div>
+                      <div class="text-gray-500 text-xs font-mono">10.0.1.50:5432</div>
+                      <div class="mt-2 flex items-center justify-between">
+                        <span class="text-emerald-600 text-xs font-medium">Online</span>
+                        <span class="text-gray-400 text-xs">12ms</span>
+                      </div>
+                    </div>
 
-                <!-- Internal server nodes with glow -->
-                <g filter="url(#dotGlow)">
-                  <circle cx="120" cy="150" r="10" fill="url(#greenGrad)"/>
-                  <circle cx="280" cy="150" r="10" fill="url(#greenGrad)"/>
-                  <circle cx="140" cy="200" r="10" fill="url(#greenGrad)"/>
-                  <circle cx="200" cy="180" r="10" fill="url(#greenGrad)"/>
-                  <circle cx="260" cy="200" r="10" fill="url(#greenGrad)"/>
-                </g>
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                      <div class="flex items-center gap-2 mb-2">
+                        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        <span class="text-gray-900 text-sm font-medium">Redis Cluster</span>
+                      </div>
+                      <div class="text-gray-500 text-xs font-mono">10.0.1.51:6379</div>
+                      <div class="mt-2 flex items-center justify-between">
+                        <span class="text-emerald-600 text-xs font-medium">Online</span>
+                        <span class="text-gray-400 text-xs">3ms</span>
+                      </div>
+                    </div>
 
-                <!-- Inner white dots for polish -->
-                <circle cx="120" cy="150" r="3" fill="white" opacity="0.6"/>
-                <circle cx="280" cy="150" r="3" fill="white" opacity="0.6"/>
-                <circle cx="140" cy="200" r="3" fill="white" opacity="0.6"/>
-                <circle cx="200" cy="180" r="3" fill="white" opacity="0.6"/>
-                <circle cx="260" cy="200" r="3" fill="white" opacity="0.6"/>
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                      <div class="flex items-center gap-2 mb-2">
+                        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        <span class="text-gray-900 text-sm font-medium">K8s API</span>
+                      </div>
+                      <div class="text-gray-500 text-xs font-mono">10.0.0.1:6443</div>
+                      <div class="mt-2 flex items-center justify-between">
+                        <span class="text-emerald-600 text-xs font-medium">Online</span>
+                        <span class="text-gray-400 text-xs">8ms</span>
+                      </div>
+                    </div>
 
-                <!-- VPN badge -->
-                <rect x="160" y="240" width="80" height="24" rx="12" fill="#06B6D4"/>
-                <text x="200" y="256" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="white" text-anchor="middle">PRIVATE</text>
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                      <div class="flex items-center gap-2 mb-2">
+                        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        <span class="text-gray-900 text-sm font-medium">API Gateway</span>
+                      </div>
+                      <div class="text-gray-500 text-xs font-mono">10.0.2.10:8080</div>
+                      <div class="mt-2 flex items-center justify-between">
+                        <span class="text-emerald-600 text-xs font-medium">Online</span>
+                        <span class="text-gray-400 text-xs">15ms</span>
+                      </div>
+                    </div>
+                  </div>
 
-                <!-- Stats with better typography -->
-                <g>
-                  <text x="70" y="305" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" fill="#0F172A">VPN</text>
-                  <text x="70" y="318" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748B">Ready</text>
-
-                  <text x="165" y="305" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" fill="#0F172A">K8s</text>
-                  <text x="165" y="318" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748B">Clusters</text>
-
-                  <text x="265" y="305" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" fill="#0F172A">LAN</text>
-                  <text x="265" y="318" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748B">Networks</text>
-                </g>
-              </svg>
+                  <!-- Probe badge -->
+                  <div class="bg-cyan-50 rounded-lg p-3 border border-cyan-100">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                        </svg>
+                        <span class="text-cyan-700 text-sm font-medium">Probe: prod-vpc-probe-01</span>
+                      </div>
+                      <span class="text-cyan-600 text-xs">Active</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="relative order-1 lg:order-2">
@@ -538,89 +575,165 @@
         <!-- Feature 4: User Journey Monitoring -->
         <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
           <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
-            <div class="relative flex items-center justify-center py-6">
-              <!-- User Journey Monitoring Illustration -->
-              <svg class="w-full max-w-md" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#F97316"/>
-                    <stop offset="100%" style="stop-color:#EA580C"/>
-                  </linearGradient>
-                  <filter id="stepShadow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#F97316" flood-opacity="0.15"/>
-                  </filter>
-                </defs>
+            <div class="relative">
+              <!-- Decorative background elements -->
+              <div class="absolute -inset-4 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-yellow-500/10 rounded-3xl blur-2xl"></div>
 
-                <!-- Browser frame -->
-                <g filter="url(#stepShadow)">
-                  <rect x="50" y="30" width="300" height="200" rx="12" fill="white"/>
-                </g>
-                <rect x="50" y="30" width="300" height="200" rx="12" fill="none" stroke="#E5E7EB" stroke-width="1"/>
+              <!-- Colorful Card-based Design -->
+              <div class="relative bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl shadow-2xl overflow-hidden max-w-md mx-auto ring-1 ring-orange-200/50">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-4">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="text-white font-semibold">Checkout Flow</div>
+                        <div class="text-orange-100 text-sm">User Journey Test</div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/20 backdrop-blur px-3 py-1.5 rounded-full">
+                      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      <span class="text-white text-sm font-medium">Passed</span>
+                    </div>
+                  </div>
+                </div>
 
-                <!-- Browser header -->
-                <rect x="50" y="30" width="300" height="32" rx="12" fill="#F9FAFB"/>
-                <rect x="50" y="50" width="300" height="12" fill="#F9FAFB"/>
-                <circle cx="70" cy="46" r="5" fill="#FCA5A5"/>
-                <circle cx="86" cy="46" r="5" fill="#FCD34D"/>
-                <circle cx="102" cy="46" r="5" fill="#86EFAC"/>
-                <rect x="130" y="40" width="150" height="12" rx="6" fill="#E5E7EB"/>
+                <!-- Content area -->
+                <div class="p-5">
+                  <!-- Journey flow visualization -->
+                  <div class="flex items-center justify-between mb-6">
+                    <!-- Step 1 -->
+                    <div class="flex flex-col items-center">
+                      <div class="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                      </div>
+                      <span class="text-gray-700 text-xs mt-2 font-medium">Login</span>
+                      <span class="text-orange-600 text-[10px] font-semibold">1.1s</span>
+                    </div>
 
-                <!-- Journey steps -->
-                <g>
-                  <!-- Step 1: Login -->
-                  <rect x="70" y="80" width="60" height="45" rx="6" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1"/>
-                  <rect x="78" y="88" width="30" height="4" rx="2" fill="#FDBA74"/>
-                  <rect x="78" y="96" width="44" height="3" rx="1.5" fill="#FED7AA"/>
-                  <rect x="78" y="103" width="44" height="3" rx="1.5" fill="#FED7AA"/>
-                  <rect x="78" y="112" width="24" height="8" rx="4" fill="#F97316"/>
-                  <text x="100" y="135" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#9A3412" text-anchor="middle">Login</text>
+                    <!-- Arrow -->
+                    <svg class="w-6 h-6 text-orange-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                    </svg>
 
-                  <!-- Arrow 1 -->
-                  <path d="M135 102 L155 102" stroke="#F97316" stroke-width="2" stroke-dasharray="3 2"/>
-                  <path d="M152 98 L158 102 L152 106" fill="none" stroke="#F97316" stroke-width="2"/>
+                    <!-- Step 2 -->
+                    <div class="flex flex-col items-center">
+                      <div class="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                      </div>
+                      <span class="text-gray-700 text-xs mt-2 font-medium">Browse</span>
+                      <span class="text-amber-600 text-[10px] font-semibold">0.8s</span>
+                    </div>
 
-                  <!-- Step 2: Browse -->
-                  <rect x="165" y="80" width="60" height="45" rx="6" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1"/>
-                  <rect x="173" y="88" width="20" height="20" rx="3" fill="#FED7AA"/>
-                  <rect x="198" y="88" width="20" height="20" rx="3" fill="#FED7AA"/>
-                  <rect x="173" y="112" width="44" height="4" rx="2" fill="#FDBA74"/>
-                  <text x="195" y="135" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#9A3412" text-anchor="middle">Browse</text>
+                    <!-- Arrow -->
+                    <svg class="w-6 h-6 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                    </svg>
 
-                  <!-- Arrow 2 -->
-                  <path d="M230 102 L250 102" stroke="#F97316" stroke-width="2" stroke-dasharray="3 2"/>
-                  <path d="M247 98 L253 102 L247 106" fill="none" stroke="#F97316" stroke-width="2"/>
+                    <!-- Step 3 -->
+                    <div class="flex flex-col items-center">
+                      <div class="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-500 flex items-center justify-center shadow-lg shadow-yellow-500/30">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                      </div>
+                      <span class="text-gray-700 text-xs mt-2 font-medium">Cart</span>
+                      <span class="text-yellow-600 text-[10px] font-semibold">0.4s</span>
+                    </div>
 
-                  <!-- Step 3: Checkout -->
-                  <rect x="260" y="80" width="60" height="45" rx="6" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1"/>
-                  <rect x="268" y="88" width="44" height="12" rx="3" fill="#FED7AA"/>
-                  <rect x="268" y="104" width="44" height="12" rx="3" fill="#22C55E"/>
-                  <text x="290" y="135" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#9A3412" text-anchor="middle">Checkout</text>
-                </g>
+                    <!-- Arrow -->
+                    <svg class="w-6 h-6 text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                    </svg>
 
-                <!-- Success checkmark -->
-                <circle cx="330" cy="102" r="15" fill="#22C55E"/>
-                <path d="M323 102 L328 107 L337 98" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Step 4 -->
+                    <div class="flex flex-col items-center">
+                      <div class="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                      </div>
+                      <span class="text-gray-700 text-xs mt-2 font-medium">Pay</span>
+                      <span class="text-emerald-600 text-[10px] font-semibold">1.9s</span>
+                    </div>
+                  </div>
 
-                <!-- Timeline/metrics bar -->
-                <rect x="70" y="160" width="250" height="50" rx="8" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1"/>
-                <text x="85" y="178" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#9A3412">Journey Metrics</text>
-                <text x="85" y="195" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#C2410C">Login: 1.2s</text>
-                <text x="150" y="195" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#C2410C">Browse: 0.8s</text>
-                <text x="215" y="195" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#C2410C">Checkout: 2.1s</text>
-                <text x="280" y="195" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#16A34A">Total: 4.1s</text>
+                  <!-- Step details cards -->
+                  <div class="space-y-2">
+                    <div class="bg-white rounded-xl p-3 shadow-sm border border-orange-100">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                          <div class="w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center">
+                            <span class="text-orange-600 text-xs font-bold">1</span>
+                          </div>
+                          <div>
+                            <div class="text-gray-800 text-sm font-medium">Navigate to login</div>
+                            <div class="text-gray-400 text-xs">Click "Sign In" button</div>
+                          </div>
+                        </div>
+                        <span class="text-emerald-500 text-xs font-semibold bg-emerald-50 px-2 py-1 rounded-full">320ms</span>
+                      </div>
+                    </div>
 
-                <!-- Stats -->
-                <g>
-                  <text x="90" y="265" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#0F172A">E2E</text>
-                  <text x="90" y="282" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748B">Testing</text>
+                    <div class="bg-white rounded-xl p-3 shadow-sm border border-amber-100">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                          <div class="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
+                            <span class="text-amber-600 text-xs font-bold">2</span>
+                          </div>
+                          <div>
+                            <div class="text-gray-800 text-sm font-medium">Enter credentials</div>
+                            <div class="text-gray-400 text-xs">Fill email and password</div>
+                          </div>
+                        </div>
+                        <span class="text-emerald-500 text-xs font-semibold bg-emerald-50 px-2 py-1 rounded-full">180ms</span>
+                      </div>
+                    </div>
 
-                  <text x="185" y="265" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#0F172A">UX</text>
-                  <text x="185" y="282" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748B">Flows</text>
+                    <div class="bg-white rounded-xl p-3 shadow-sm border border-yellow-100">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                          <div class="w-7 h-7 rounded-lg bg-yellow-100 flex items-center justify-center">
+                            <span class="text-yellow-600 text-xs font-bold">3</span>
+                          </div>
+                          <div>
+                            <div class="text-gray-800 text-sm font-medium">Add to cart</div>
+                            <div class="text-gray-400 text-xs">Select product and quantity</div>
+                          </div>
+                        </div>
+                        <span class="text-emerald-500 text-xs font-semibold bg-emerald-50 px-2 py-1 rounded-full">412ms</span>
+                      </div>
+                    </div>
+                  </div>
 
-                  <text x="265" y="265" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#0F172A">24/7</text>
-                  <text x="265" y="282" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748B">Checks</text>
-                </g>
-              </svg>
+                  <!-- Footer stats -->
+                  <div class="mt-4 pt-4 border-t border-orange-200/50 flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                      <div class="text-center">
+                        <div class="text-gray-800 text-lg font-bold">4.2s</div>
+                        <div class="text-gray-500 text-xs">Total</div>
+                      </div>
+                      <div class="w-px h-8 bg-orange-200"></div>
+                      <div class="text-center">
+                        <div class="text-emerald-600 text-lg font-bold">100%</div>
+                        <div class="text-gray-500 text-xs">Success</div>
+                      </div>
+                    </div>
+                    <div class="text-right text-xs text-gray-500">
+                      <div>Last run: 2 min ago</div>
+                      <div class="text-orange-500 font-medium">Every 5 minutes</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="relative order-1 lg:order-2">
@@ -708,92 +821,147 @@
             </a>
           </div>
           <div class="mt-12 lg:mt-0">
-            <div class="relative flex items-center justify-center py-6">
-              <!-- IoT, Cron & Backup Monitoring Illustration -->
-              <svg class="w-full max-w-md" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#10B981"/>
-                    <stop offset="100%" style="stop-color:#059669"/>
-                  </linearGradient>
-                  <filter id="iotShadow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#10B981" flood-opacity="0.15"/>
-                  </filter>
-                </defs>
+            <div class="relative">
+              <!-- Decorative background elements -->
+              <div class="absolute -inset-4 bg-gradient-to-r from-emerald-500/10 via-violet-500/10 to-amber-500/10 rounded-3xl blur-2xl"></div>
 
-                <!-- Central hub -->
-                <g filter="url(#iotShadow)">
-                  <circle cx="200" cy="150" r="45" fill="white"/>
-                </g>
-                <circle cx="200" cy="150" r="45" fill="none" stroke="url(#emeraldGrad)" stroke-width="2"/>
+              <!-- Clean White Dashboard with Colorful Cards -->
+              <div class="relative bg-white rounded-2xl shadow-2xl overflow-hidden max-w-md mx-auto ring-1 ring-gray-200">
+                <!-- Header -->
+                <div class="px-5 py-4 border-b border-gray-100">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="text-gray-900 font-semibold">Scheduled Tasks</div>
+                        <div class="text-gray-500 text-sm">Heartbeat Monitor</div>
+                      </div>
+                    </div>
+                    <span class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 rounded-full text-sm text-emerald-600 font-medium border border-emerald-200">
+                      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      All OK
+                    </span>
+                  </div>
+                </div>
 
-                <!-- Clock icon in center -->
-                <circle cx="200" cy="150" r="25" fill="#ECFDF5" stroke="#10B981" stroke-width="1.5"/>
-                <line x1="200" y1="150" x2="200" y2="135" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
-                <line x1="200" y1="150" x2="212" y2="155" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
-                <circle cx="200" cy="150" r="3" fill="#10B981"/>
+                <!-- Content area -->
+                <div class="p-5">
+                  <!-- Colorful stats cards -->
+                  <div class="grid grid-cols-3 gap-3 mb-5">
+                    <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-3 text-center shadow-lg shadow-emerald-500/20">
+                      <div class="text-white text-xl font-bold">12</div>
+                      <div class="text-emerald-100 text-xs">IoT Devices</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl p-3 text-center shadow-lg shadow-violet-500/20">
+                      <div class="text-white text-xl font-bold">8</div>
+                      <div class="text-violet-100 text-xs">Cron Jobs</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-3 text-center shadow-lg shadow-amber-500/20">
+                      <div class="text-white text-xl font-bold">5</div>
+                      <div class="text-amber-100 text-xs">Backups</div>
+                    </div>
+                  </div>
 
-                <!-- IoT Device 1 - Sensor -->
-                <g filter="url(#iotShadow)">
-                  <rect x="60" y="50" width="70" height="55" rx="8" fill="white"/>
-                </g>
-                <rect x="60" y="50" width="70" height="55" rx="8" fill="none" stroke="#E5E7EB" stroke-width="1"/>
-                <rect x="68" y="58" width="54" height="8" rx="4" fill="#10B981"/>
-                <circle cx="78" cy="88" r="8" fill="#ECFDF5" stroke="#10B981" stroke-width="1"/>
-                <path d="M75 88 L78 85 L81 88 L78 91 Z" fill="#10B981"/>
-                <text x="95" y="92" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#6B7280">Sensor</text>
-                <!-- Connection line -->
-                <line x1="130" y1="77" x2="160" y2="120" stroke="#10B981" stroke-width="1.5" stroke-dasharray="4 3"/>
+                  <!-- Job cards with colored left borders -->
+                  <div class="space-y-3">
+                    <!-- IoT Heartbeat -->
+                    <div class="bg-gray-50 rounded-xl p-4 border-l-4 border-emerald-500">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                          <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                            </svg>
+                          </div>
+                          <div>
+                            <div class="text-gray-800 text-sm font-semibold">Temperature Sensor</div>
+                            <div class="text-gray-500 text-xs">Heartbeat: 30s interval</div>
+                          </div>
+                        </div>
+                        <div class="text-right">
+                          <span class="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            Online
+                          </span>
+                          <div class="text-gray-400 text-xs mt-1">5s ago</div>
+                        </div>
+                      </div>
+                    </div>
 
-                <!-- Cron Job - Server -->
-                <g filter="url(#iotShadow)">
-                  <rect x="270" y="50" width="70" height="55" rx="8" fill="white"/>
-                </g>
-                <rect x="270" y="50" width="70" height="55" rx="8" fill="none" stroke="#E5E7EB" stroke-width="1"/>
-                <rect x="278" y="58" width="54" height="8" rx="4" fill="#8B5CF6"/>
-                <text x="305" y="80" font-family="ui-monospace, monospace" font-size="8" fill="#6B7280" text-anchor="middle">* * * * *</text>
-                <rect x="278" y="88" width="54" height="10" rx="3" fill="#F3E8FF"/>
-                <text x="305" y="96" font-family="system-ui, -apple-system, sans-serif" font-size="8" fill="#7C3AED" text-anchor="middle">Cron Job</text>
-                <!-- Connection line -->
-                <line x1="270" y1="77" x2="240" y2="120" stroke="#8B5CF6" stroke-width="1.5" stroke-dasharray="4 3"/>
+                    <!-- Cron Job -->
+                    <div class="bg-gray-50 rounded-xl p-4 border-l-4 border-violet-500">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                          <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                          </div>
+                          <div>
+                            <div class="text-gray-800 text-sm font-semibold">Daily Report</div>
+                            <div class="text-gray-500 text-xs font-mono">0 9 * * *</div>
+                          </div>
+                        </div>
+                        <div class="text-right">
+                          <span class="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Done
+                          </span>
+                          <div class="text-gray-400 text-xs mt-1">2h ago</div>
+                        </div>
+                      </div>
+                    </div>
 
-                <!-- Backup - Storage -->
-                <g filter="url(#iotShadow)">
-                  <rect x="60" y="195" width="70" height="55" rx="8" fill="white"/>
-                </g>
-                <rect x="60" y="195" width="70" height="55" rx="8" fill="none" stroke="#E5E7EB" stroke-width="1"/>
-                <rect x="68" y="203" width="54" height="8" rx="4" fill="#F59E0B"/>
-                <rect x="75" y="218" width="40" height="24" rx="4" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1"/>
-                <path d="M88 225 L95 232 L102 225" fill="none" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round"/>
-                <line x1="95" y1="232" x2="95" y2="236" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round"/>
-                <text x="95" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#6B7280" text-anchor="middle">Backup</text>
-                <!-- Connection line -->
-                <line x1="130" y1="222" x2="160" y2="180" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="4 3"/>
+                    <!-- Backup Job -->
+                    <div class="bg-gray-50 rounded-xl p-4 border-l-4 border-amber-500">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                          <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            </svg>
+                          </div>
+                          <div>
+                            <div class="text-gray-800 text-sm font-semibold">Database Backup</div>
+                            <div class="text-gray-500 text-xs">Every 6 hours</div>
+                          </div>
+                        </div>
+                        <div class="text-right">
+                          <span class="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Success
+                          </span>
+                          <div class="text-gray-400 text-xs mt-1">4h ago</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-                <!-- IoT Device 2 - Gateway -->
-                <g filter="url(#iotShadow)">
-                  <rect x="270" y="195" width="70" height="55" rx="8" fill="white"/>
-                </g>
-                <rect x="270" y="195" width="70" height="55" rx="8" fill="none" stroke="#E5E7EB" stroke-width="1"/>
-                <rect x="278" y="203" width="54" height="8" rx="4" fill="#06B6D4"/>
-                <circle cx="305" cy="230" r="12" fill="#ECFEFF" stroke="#06B6D4" stroke-width="1"/>
-                <circle cx="305" cy="230" r="5" fill="#06B6D4"/>
-                <path d="M295 220 A15 15 0 0 1 315 220" fill="none" stroke="#06B6D4" stroke-width="1.5"/>
-                <path d="M290 215 A22 22 0 0 1 320 215" fill="none" stroke="#06B6D4" stroke-width="1"/>
-                <text x="305" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="9" fill="#6B7280" text-anchor="middle">IoT Hub</text>
-                <!-- Connection line -->
-                <line x1="270" y1="222" x2="240" y2="180" stroke="#06B6D4" stroke-width="1.5" stroke-dasharray="4 3"/>
-
-                <!-- Pulse rings around center -->
-                <circle cx="200" cy="150" r="55" stroke="#10B981" stroke-width="1" opacity="0.2"/>
-                <circle cx="200" cy="150" r="65" stroke="#10B981" stroke-width="1" opacity="0.1"/>
-
-                <!-- Heartbeat indicator -->
-                <g transform="translate(175, 205)">
-                  <rect x="0" y="0" width="50" height="20" rx="10" fill="#ECFDF5" stroke="#10B981" stroke-width="1"/>
-                  <path d="M10 10 L15 10 L18 5 L22 15 L26 10 L30 10 L33 7 L36 13 L40 10" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </g>
-              </svg>
+                  <!-- Footer -->
+                  <div class="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                        <span class="text-gray-600 text-sm font-medium">25 healthy</span>
+                      </div>
+                      <div class="w-px h-4 bg-gray-200"></div>
+                      <div class="flex items-center gap-1.5">
+                        <span class="w-3 h-3 rounded-full bg-gray-300"></span>
+                        <span class="text-gray-500 text-sm">0 failed</span>
+                      </div>
+                    </div>
+                    <span class="text-gray-400 text-xs">Updated just now</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
