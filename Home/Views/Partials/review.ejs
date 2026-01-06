@@ -2,14 +2,24 @@
     // Default color if not provided
     const color = typeof glowColor !== 'undefined' ? glowColor : 'indigo';
 
-    // Color mappings for avatar gradients
-    const avatarGradients = {
-        'emerald': 'from-emerald-400 to-emerald-600',
-        'blue': 'from-blue-400 to-blue-600',
-        'purple': 'from-purple-400 to-purple-600',
-        'amber': 'from-amber-400 to-amber-600',
-        'rose': 'from-rose-400 to-rose-600',
-        'indigo': 'from-indigo-400 to-indigo-600'
+    // Subtle avatar backgrounds (light pastel colors)
+    const avatarBgColors = {
+        'emerald': 'bg-emerald-50',
+        'blue': 'bg-blue-50',
+        'purple': 'bg-purple-50',
+        'amber': 'bg-amber-50',
+        'rose': 'bg-rose-50',
+        'indigo': 'bg-indigo-50'
+    };
+
+    // Subtle avatar text colors (medium tones)
+    const avatarTextColors = {
+        'emerald': 'text-emerald-600',
+        'blue': 'text-blue-600',
+        'purple': 'text-purple-600',
+        'amber': 'text-amber-600',
+        'rose': 'text-rose-600',
+        'indigo': 'text-indigo-600'
     };
 
     // Color mappings for quote icon
@@ -63,7 +73,7 @@
 
     <!-- Author Section -->
     <figcaption class="mt-5 flex items-center gap-3 border-t border-gray-100 pt-5">
-        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br <%= avatarGradients[color] %> text-sm font-semibold text-white ring-2 ring-white shadow-sm">
+        <div class="flex h-9 w-9 items-center justify-center rounded-full <%= avatarBgColors[color] %> text-xs font-medium <%= avatarTextColors[color] %>">
             <%= review.name.split(' ').map(n => n[0]).slice(0, 2).join('') %>
         </div>
         <div class="flex flex-col">
