@@ -836,11 +836,7 @@
                 <!-- Original incident message -->
                 <div class="group relative">
                   <div class="flex items-start gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-500/20">
-                      <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                      </svg>
-                    </div>
+                    <img src="/img/OneUptimePNG/1.png" alt="OneUptime" class="w-10 h-10 rounded-lg flex-shrink-0 shadow-lg" />
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center gap-2">
                         <span class="font-bold text-white text-sm hover:underline cursor-pointer">OneUptime</span>
@@ -965,9 +961,11 @@
               indicator.classList.add('flex');
               countEl.textContent = replyCount + (replyCount === 1 ? ' reply' : ' replies');
               avatarsEl.innerHTML = avatars.slice(-3).map(a =>
-                `<div class="w-5 h-5 rounded-full ${a.bg} flex items-center justify-center ring-2 ring-[#1a1d21]">
-                  <span class="text-white text-[8px] font-bold">${a.initial}</span>
-                </div>`
+                a.isBot
+                  ? `<img src="/img/OneUptimePNG/1.png" alt="O" class="w-5 h-5 rounded-full ring-2 ring-[#1a1d21]" />`
+                  : `<div class="w-5 h-5 rounded-full ${a.bg} flex items-center justify-center ring-2 ring-[#1a1d21]">
+                      <span class="text-white text-[8px] font-bold">${a.initial}</span>
+                    </div>`
               ).join('');
             }
           }
@@ -987,21 +985,23 @@
             reply.className = 'flex items-start gap-2.5 pl-3 border-l-2 border-blue-500/30';
             reply.style.animation = 'fadeSlideIn 0.3s ease-out';
 
-            const avatarClass = isBot ? 'from-green-400 to-green-600' : avatar;
-            const initial = isBot ? '⚡' : name.charAt(0);
+            const avatarClass = avatar;
+            const initial = name.charAt(0);
 
             if (!isBot) {
               avatars.push({ bg: `bg-gradient-to-br ${avatar}`, initial: name.charAt(0) });
             } else {
-              avatars.push({ bg: 'bg-gradient-to-br from-green-400 to-green-600', initial: 'O' });
+              avatars.push({ bg: '', initial: 'O', isBot: true });
             }
             replyCount++;
             updateThreadIndicator();
 
+            const avatarHtml = isBot
+              ? `<img src="/img/OneUptimePNG/1.png" alt="OneUptime" class="w-8 h-8 rounded-lg flex-shrink-0 shadow-md" />`
+              : `<div class="w-8 h-8 rounded-lg bg-gradient-to-br ${avatarClass} flex items-center justify-center flex-shrink-0 shadow-md"><span class="text-white text-xs font-bold">${initial}</span></div>`;
+
             reply.innerHTML = `
-              <div class="w-8 h-8 rounded-lg bg-gradient-to-br ${avatarClass} flex items-center justify-center flex-shrink-0 shadow-md">
-                <span class="text-white text-xs font-bold">${initial}</span>
-              </div>
+              ${avatarHtml}
               <div class="flex-1 bg-[#0f1114] rounded-lg p-3 ring-1 ring-white/5">
                 <div class="flex items-center gap-2">
                   <span class="font-semibold text-white text-sm">${name}</span>
