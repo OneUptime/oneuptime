@@ -1480,7 +1480,65 @@
       </main>
       <%- include('footer') -%>
       <%- include('./Partials/video-script') -%>
-  
+
+<script>
+// Grid glow effect that follows cursor
+(function() {
+    const heroSection = document.getElementById('monitoring-hero-section');
+    const gridGlowEffect = document.getElementById('monitoring-grid-glow');
+
+    if (!heroSection || !gridGlowEffect) return;
+
+    let isHovering = false;
+    let animationFrame = null;
+    let currentX = 0;
+    let currentY = 0;
+    let targetX = 0;
+    let targetY = 0;
+
+    function lerp(start, end, factor) {
+        return start + (end - start) * factor;
+    }
+
+    function animate() {
+        if (!isHovering) return;
+
+        currentX = lerp(currentX, targetX, 0.12);
+        currentY = lerp(currentY, targetY, 0.12);
+
+        gridGlowEffect.style.setProperty('--mouse-x', currentX + 'px');
+        gridGlowEffect.style.setProperty('--mouse-y', currentY + 'px');
+
+        animationFrame = requestAnimationFrame(animate);
+    }
+
+    heroSection.addEventListener('mouseenter', function() {
+        isHovering = true;
+        gridGlowEffect.style.opacity = '1';
+        animate();
+    });
+
+    heroSection.addEventListener('mousemove', function(e) {
+        const rect = heroSection.getBoundingClientRect();
+        targetX = e.clientX - rect.left;
+        targetY = e.clientY - rect.top;
+
+        if (!isHovering) {
+            currentX = targetX;
+            currentY = targetY;
+        }
+    });
+
+    heroSection.addEventListener('mouseleave', function() {
+        isHovering = false;
+        gridGlowEffect.style.opacity = '0';
+        if (animationFrame) {
+            cancelAnimationFrame(animationFrame);
+            animationFrame = null;
+        }
+    });
+})();
+</script>
 
 </body>
 
