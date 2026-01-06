@@ -111,76 +111,100 @@
     .stat-number {
         font-variant-numeric: tabular-nums;
     }
+
+    /* Enterprise feature card styles */
+    .enterprise-feature-card {
+        position: relative;
+        z-index: 1;
+        transition: all 0.2s ease;
+    }
+    .enterprise-feature-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px -12px rgba(0,0,0,0.1);
+    }
+
+    /* Platform card hover effects */
+    .platform-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .platform-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px -15px rgba(0,0,0,0.1);
+    }
   </style>
 
   <main id="main-content">
     <!-- Hero Section -->
-    <div class="relative isolate overflow-hidden bg-white">
-      <!-- Subtle grid background -->
+    <div class="relative isolate overflow-hidden bg-white" id="enterprise-hero-section">
+      <!-- Subtle grid pattern background -->
       <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
 
-      <div class="mx-auto max-w-7xl px-6 pt-24 pb-20 sm:pt-32 sm:pb-24 lg:pt-40 lg:pb-32 lg:px-8">
-        <div class="mx-auto max-w-3xl text-center">
-          <!-- Enterprise Badge -->
-          <div class="mb-8 inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-lg">
-            <svg class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
-            </svg>
-            <span>Enterprise Grade</span>
-          </div>
+      <!-- Grid glow effect that follows cursor -->
+      <div id="enterprise-grid-glow-effect" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(16, 185, 129, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(16, 185, 129, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
 
-          <!-- Main Headline -->
-          <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-            Observability built for <br class="hidden sm:block" />
-            <span class="text-gray-500">enterprise scale</span>
-          </h1>
-
-          <!-- Subheadline -->
-          <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
-            Comprehensive monitoring, incident management, and observability platform trusted by Fortune 500 companies. SOC 2 certified, HIPAA compliant, with guaranteed 99.99% uptime SLA.
-          </p>
-
-          <!-- CTA Buttons -->
-          <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="/enterprise/demo" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-gray-900 px-8 py-3.5 text-sm font-medium text-white shadow-lg transition-all hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+      <div class="py-24 sm:py-32 lg:py-40">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Enterprise Badge -->
+            <a href="/enterprise/demo" class="group mb-8 inline-flex items-center gap-2 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100 hover:ring-gray-300">
+              <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
               </svg>
-              Schedule a Demo
+              <span>Enterprise Grade</span>
+              <span class="h-1 w-1 rounded-full bg-gray-300"></span>
+              <span>SOC 2 Certified</span>
+              <svg class="h-3.5 w-3.5 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
             </a>
-            <a href="/accounts/register" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-3.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50">
-              Start Free Trial
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-              </svg>
-            </a>
-          </div>
 
-          <!-- Trust Indicators -->
-          <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-500">
-            <div class="flex items-center gap-2">
-              <svg class="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-              </svg>
-              <span>SOC 2 Type II Certified</span>
+            <!-- Main Headline -->
+            <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
+              Observability Built for <br class="hidden sm:block" />
+              <span class="text-gray-500">Enterprise Scale</span>
+            </h1>
+
+            <!-- Subheadline -->
+            <p class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-xl mx-auto">
+              Comprehensive monitoring, incident management, and observability platform trusted by Fortune 500 companies. 99.99% uptime SLA with dedicated support.
+            </p>
+
+            <!-- CTA Buttons -->
+            <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+              <a href="/enterprise/demo"
+                class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+                Schedule a Demo
+                <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+              </a>
+              <a href="/accounts/register" class="relative z-10 w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-2.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600">
+                Start Free Trial
+              </a>
             </div>
-            <div class="flex items-center gap-2">
-              <svg class="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-              </svg>
-              <span>99.99% Uptime SLA</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <svg class="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-              </svg>
-              <span>24/7 Dedicated Support</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <svg class="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-              </svg>
-              <span>HIPAA Compliant</span>
+
+            <!-- Trust Indicators -->
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-gray-500">
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                <span>SOC 2 Type II</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                <span>99.99% SLA</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                <span>24/7 Support</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                <span>HIPAA Compliant</span>
+              </div>
             </div>
           </div>
         </div>
@@ -193,27 +217,27 @@
     <!-- Stats Section -->
     <section class="bg-white py-20 sm:py-24">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto max-w-2xl text-center mb-16">
-          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Trusted at scale</h2>
-          <p class="mt-4 text-lg text-gray-600">Enterprise teams rely on OneUptime for mission-critical observability</p>
+        <div class="mx-auto max-w-2xl text-center mb-12">
+          <p class="text-sm font-medium text-emerald-600 tracking-wide uppercase mb-4">Trusted at Scale</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Enterprise teams rely on OneUptime</h2>
         </div>
         <div class="mx-auto max-w-5xl">
-          <dl class="grid grid-cols-2 gap-8 sm:grid-cols-4">
-            <div class="flex flex-col items-center p-6 rounded-2xl bg-gray-50 border border-gray-100">
-              <dt class="text-sm font-medium text-gray-600 mb-2">Uptime SLA</dt>
+          <dl class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div class="flex flex-col items-center p-6 rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <dd class="text-4xl font-bold tracking-tight text-gray-900 stat-number">99.99%</dd>
+              <dt class="text-sm font-medium text-gray-500 mt-2">Uptime SLA</dt>
             </div>
-            <div class="flex flex-col items-center p-6 rounded-2xl bg-gray-50 border border-gray-100">
-              <dt class="text-sm font-medium text-gray-600 mb-2">Response Time</dt>
+            <div class="flex flex-col items-center p-6 rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <dd class="text-4xl font-bold tracking-tight text-gray-900 stat-number">&lt;1hr</dd>
+              <dt class="text-sm font-medium text-gray-500 mt-2">Response Time</dt>
             </div>
-            <div class="flex flex-col items-center p-6 rounded-2xl bg-gray-50 border border-gray-100">
-              <dt class="text-sm font-medium text-gray-600 mb-2">Integrations</dt>
+            <div class="flex flex-col items-center p-6 rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <dd class="text-4xl font-bold tracking-tight text-gray-900 stat-number">5,000+</dd>
+              <dt class="text-sm font-medium text-gray-500 mt-2">Integrations</dt>
             </div>
-            <div class="flex flex-col items-center p-6 rounded-2xl bg-gray-50 border border-gray-100">
-              <dt class="text-sm font-medium text-gray-600 mb-2">Global Locations</dt>
+            <div class="flex flex-col items-center p-6 rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <dd class="text-4xl font-bold tracking-tight text-gray-900 stat-number">100+</dd>
+              <dt class="text-sm font-medium text-gray-500 mt-2">Global Locations</dt>
             </div>
           </dl>
         </div>
@@ -222,28 +246,18 @@
 
     <!-- Enterprise Features Bento Grid -->
     <section class="relative bg-white py-24 sm:py-32 overflow-hidden">
-      <!-- Subtle pattern -->
-      <div class="absolute inset-0 opacity-[0.02]">
-        <svg class="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="ent-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-              <path d="M0 32V0h32" fill="none" stroke="currentColor" stroke-width="1"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#ent-grid)" />
-        </svg>
-      </div>
+      <!-- Subtle background -->
+      <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 to-white"></div>
 
-      <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="relative mx-auto max-w-6xl px-6 lg:px-8">
         <!-- Section Header -->
-        <div class="mx-auto max-w-2xl text-center mb-16">
-          <span class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide text-gray-700 uppercase bg-gray-100 rounded-full mb-6 border border-gray-200">
-            Enterprise Exclusive
-          </span>
-          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-            Everything you need, nothing you don't
+        <div class="text-center mb-16">
+          <p class="text-sm font-medium text-emerald-600 tracking-wide uppercase mb-4">Enterprise Exclusive</p>
+          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
+            Everything You Need,<br class="hidden sm:block" />
+            <span class="text-gray-500">Nothing You Don't</span>
           </h2>
-          <p class="mt-4 text-lg text-gray-600">
+          <p class="max-w-2xl mx-auto text-lg text-gray-600 leading-relaxed">
             Purpose-built features for enterprise-grade security, availability, and scale
           </p>
         </div>
@@ -252,17 +266,17 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
           <!-- Unlimited Everything - Large Card -->
-          <div class="lg:col-span-2 ent-card-wrapper ent-glow-emerald-wrapper">
-            <div class="ent-card ent-glow-emerald h-full p-8 lg:p-10 rounded-2xl bg-gray-50/50 border border-gray-200 hover:bg-white">
+          <div class="lg:col-span-2 group">
+            <div class="enterprise-feature-card h-full p-8 rounded-2xl bg-white border border-gray-200 shadow-sm">
               <div class="flex items-start justify-between mb-6">
                 <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-100 border border-emerald-200">
                   <svg class="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                   </svg>
                 </div>
-                <span class="px-3 py-1 text-xs font-medium text-emerald-700 bg-emerald-100 rounded-full">No Limits</span>
+                <span class="px-3 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200">No Limits</span>
               </div>
-              <h3 class="text-2xl font-semibold text-gray-900 mb-3">Unlimited Everything</h3>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">Unlimited Everything</h3>
               <p class="text-gray-600 mb-6">No caps on monitors, team members, alerts, or API calls. Scale without worrying about hitting limits or unexpected overages.</p>
               <div class="grid grid-cols-2 gap-3">
                 <div class="flex items-center gap-2 text-sm text-gray-600">
@@ -286,57 +300,57 @@
           </div>
 
           <!-- SSO & SAML -->
-          <div class="ent-card-wrapper ent-glow-violet-wrapper">
-            <div class="ent-card ent-glow-violet h-full p-7 rounded-2xl bg-gray-50/50 border border-gray-200 hover:bg-white">
-              <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-violet-100 border border-violet-200 mb-5">
+          <div class="group">
+            <div class="enterprise-feature-card h-full p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-violet-100 border border-violet-200 mb-4">
                 <svg class="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
                 </svg>
               </div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">Single Sign-On (SSO)</h3>
-              <p class="text-sm text-gray-600 leading-relaxed">Seamless SAML 2.0 integration with Okta, Azure AD, Google Workspace, OneLogin, and more.</p>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Single Sign-On (SSO)</h3>
+              <p class="text-sm text-gray-500">Okta, Azure AD, Google Workspace, and more.</p>
             </div>
           </div>
 
           <!-- Dedicated Engineer -->
-          <div class="ent-card-wrapper ent-glow-blue-wrapper">
-            <div class="ent-card ent-glow-blue h-full p-7 rounded-2xl bg-gray-50/50 border border-gray-200 hover:bg-white">
-              <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-blue-100 border border-blue-200 mb-5">
+          <div class="group">
+            <div class="enterprise-feature-card h-full p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 border border-blue-200 mb-4">
                 <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                 </svg>
               </div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">Dedicated Engineer</h3>
-              <p class="text-sm text-gray-600 leading-relaxed">A dedicated solutions engineer who understands your infrastructure and works with your team.</p>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Dedicated Engineer</h3>
+              <p class="text-sm text-gray-500">A solutions engineer who understands your infrastructure.</p>
             </div>
           </div>
 
           <!-- Custom Features -->
-          <div class="ent-card-wrapper ent-glow-amber-wrapper">
-            <div class="ent-card ent-glow-amber h-full p-7 rounded-2xl bg-gray-50/50 border border-gray-200 hover:bg-white">
-              <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-amber-100 border border-amber-200 mb-5">
+          <div class="group">
+            <div class="enterprise-feature-card h-full p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-amber-100 border border-amber-200 mb-4">
                 <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z" />
                 </svg>
               </div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">Custom Features</h3>
-              <p class="text-sm text-gray-600 leading-relaxed">Need something specific? We'll build custom features and integrations tailored to your needs.</p>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Custom Features</h3>
+              <p class="text-sm text-gray-500">We'll build custom features tailored to your needs.</p>
             </div>
           </div>
 
           <!-- Priority Support - Large Card -->
-          <div class="lg:col-span-2 ent-card-wrapper ent-glow-rose-wrapper">
-            <div class="ent-card ent-glow-rose h-full p-8 lg:p-10 rounded-2xl bg-gray-50/50 border border-gray-200 hover:bg-white">
+          <div class="lg:col-span-2 group">
+            <div class="enterprise-feature-card h-full p-8 rounded-2xl bg-white border border-gray-200 shadow-sm">
               <div class="flex items-start justify-between mb-6">
                 <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-rose-100 border border-rose-200">
                   <svg class="w-6 h-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
                   </svg>
                 </div>
-                <span class="px-3 py-1 text-xs font-medium text-rose-700 bg-rose-100 rounded-full">Priority</span>
+                <span class="px-3 py-1 text-xs font-medium text-rose-700 bg-rose-50 rounded-full border border-rose-200">Priority</span>
               </div>
-              <h3 class="text-2xl font-semibold text-gray-900 mb-3">1-Hour Priority Support</h3>
-              <p class="text-gray-600 mb-6">Round-the-clock priority support with guaranteed 1-hour response time. Multiple support channels including dedicated Slack/Teams channel.</p>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">1-Hour Priority Support</h3>
+              <p class="text-gray-600 mb-6">Round-the-clock priority support with guaranteed 1-hour response time. Multiple channels including dedicated Slack/Teams.</p>
               <div class="grid grid-cols-2 gap-3">
                 <div class="flex items-center gap-2 text-sm text-gray-600">
                   <svg class="h-4 w-4 text-rose-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
@@ -359,54 +373,54 @@
           </div>
 
           <!-- Data Residency -->
-          <div class="ent-card-wrapper ent-glow-cyan-wrapper">
-            <div class="ent-card ent-glow-cyan h-full p-7 rounded-2xl bg-gray-50/50 border border-gray-200 hover:bg-white">
-              <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-cyan-100 border border-cyan-200 mb-5">
+          <div class="group">
+            <div class="enterprise-feature-card h-full p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-cyan-100 border border-cyan-200 mb-4">
                 <svg class="w-5 h-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
                 </svg>
               </div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">Custom Data Residency</h3>
-              <p class="text-sm text-gray-600 leading-relaxed">Host your data in US, EU, or on-premise. Full control over data location for regulatory compliance.</p>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Custom Data Residency</h3>
+              <p class="text-sm text-gray-500">US, EU, or on-premise deployment options.</p>
             </div>
           </div>
 
           <!-- Custom Retention -->
-          <div class="ent-card-wrapper ent-glow-teal-wrapper">
-            <div class="ent-card ent-glow-teal h-full p-7 rounded-2xl bg-gray-50/50 border border-gray-200 hover:bg-white">
-              <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-teal-100 border border-teal-200 mb-5">
+          <div class="group">
+            <div class="enterprise-feature-card h-full p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-teal-100 border border-teal-200 mb-4">
                 <svg class="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                 </svg>
               </div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">Custom Data Retention</h3>
-              <p class="text-sm text-gray-600 leading-relaxed">Extended data retention periods with custom export options to meet your archival requirements.</p>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Custom Data Retention</h3>
+              <p class="text-sm text-gray-500">Extended retention with custom export options.</p>
             </div>
           </div>
 
           <!-- SLA Guarantee -->
-          <div class="ent-card-wrapper ent-glow-gray-wrapper">
-            <div class="ent-card ent-glow-gray h-full p-7 rounded-2xl bg-gray-50/50 border border-gray-200 hover:bg-white">
-              <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gray-100 border border-gray-200 mb-5">
+          <div class="group">
+            <div class="enterprise-feature-card h-full p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 mb-4">
                 <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
                 </svg>
               </div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">99.99% Uptime SLA</h3>
-              <p class="text-sm text-gray-600 leading-relaxed">Guaranteed reliability with financial-backed SLA. We monitor your monitors so you don't have to.</p>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">99.99% Uptime SLA</h3>
+              <p class="text-sm text-gray-500">Financial-backed reliability guarantee.</p>
             </div>
           </div>
 
           <!-- Flexible Contracts -->
-          <div class="ent-card-wrapper ent-glow-amber-wrapper">
-            <div class="ent-card ent-glow-amber h-full p-7 rounded-2xl bg-gray-50/50 border border-gray-200 hover:bg-white">
-              <div class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-amber-100 border border-amber-200 mb-5">
+          <div class="group">
+            <div class="enterprise-feature-card h-full p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-amber-100 border border-amber-200 mb-4">
                 <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                 </svg>
               </div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">Flexible Contracts</h3>
-              <p class="text-sm text-gray-600 leading-relaxed">Annual or multi-year contracts with custom terms. Flexible invoicing to match your procurement process.</p>
+              <h3 class="text-base font-semibold text-gray-900 mb-1">Flexible Contracts</h3>
+              <p class="text-sm text-gray-500">Custom terms to match your procurement.</p>
             </div>
           </div>
         </div>
@@ -419,105 +433,104 @@
     <!-- Platform Capabilities -->
     <section class="bg-gray-50 py-24 sm:py-32">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto max-w-2xl text-center mb-16">
-          <span class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide text-gray-700 uppercase bg-white rounded-full mb-6 border border-gray-200">
-            Complete Platform
-          </span>
-          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
-            One platform, complete visibility
+        <div class="text-center mb-16">
+          <p class="text-sm font-medium text-emerald-600 tracking-wide uppercase mb-4">Complete Platform</p>
+          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
+            One Platform,<br class="hidden sm:block" />
+            <span class="text-gray-500">Complete Visibility</span>
           </h2>
-          <p class="mt-4 text-lg text-gray-600">
+          <p class="max-w-2xl mx-auto text-lg text-gray-600 leading-relaxed">
             Everything you need to monitor, observe, and respond to incidents - all in one place
           </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- Monitoring -->
-          <a href="/product/monitoring" class="group p-6 rounded-2xl bg-white border border-gray-200 hover:border-blue-200 hover:shadow-lg transition-all">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 mb-4 group-hover:bg-blue-200 transition-colors">
+          <a href="/product/monitoring" class="platform-card p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 mb-4">
               <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-gray-900 mb-2">Monitoring</h3>
-            <p class="text-sm text-gray-600">Uptime, SSL, API, and synthetic monitoring from 100+ global locations.</p>
+            <p class="text-sm text-gray-600">Uptime, SSL, API monitoring from 100+ locations.</p>
           </a>
 
           <!-- Incident Management -->
-          <a href="/product/incident-management" class="group p-6 rounded-2xl bg-white border border-gray-200 hover:border-rose-200 hover:shadow-lg transition-all">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-rose-100 mb-4 group-hover:bg-rose-200 transition-colors">
+          <a href="/product/incident-management" class="platform-card p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-rose-100 mb-4">
               <svg class="w-6 h-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-gray-900 mb-2">Incident Management</h3>
-            <p class="text-sm text-gray-600">Detect, respond, and resolve incidents faster with automated workflows.</p>
+            <p class="text-sm text-gray-600">Detect, respond, and resolve incidents faster.</p>
           </a>
 
           <!-- On-Call -->
-          <a href="/product/on-call" class="group p-6 rounded-2xl bg-white border border-gray-200 hover:border-amber-200 hover:shadow-lg transition-all">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-amber-100 mb-4 group-hover:bg-amber-200 transition-colors">
+          <a href="/product/on-call" class="platform-card p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-amber-100 mb-4">
               <svg class="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-gray-900 mb-2">On-Call & Alerts</h3>
-            <p class="text-sm text-gray-600">Smart routing and escalation to ensure the right person responds.</p>
+            <p class="text-sm text-gray-600">Smart routing and escalation policies.</p>
           </a>
 
           <!-- Status Page -->
-          <a href="/product/status-page" class="group p-6 rounded-2xl bg-white border border-gray-200 hover:border-emerald-200 hover:shadow-lg transition-all">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-100 mb-4 group-hover:bg-emerald-200 transition-colors">
+          <a href="/product/status-page" class="platform-card p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-100 mb-4">
               <svg class="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-gray-900 mb-2">Status Page</h3>
-            <p class="text-sm text-gray-600">Keep customers informed with beautiful, customizable status pages.</p>
+            <p class="text-sm text-gray-600">Beautiful, customizable status pages.</p>
           </a>
 
           <!-- Logs Management -->
-          <a href="/product/logs-management" class="group p-6 rounded-2xl bg-white border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gray-100 mb-4 group-hover:bg-gray-200 transition-colors">
+          <a href="/product/logs-management" class="platform-card p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gray-100 mb-4">
               <svg class="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-gray-900 mb-2">Logs Management</h3>
-            <p class="text-sm text-gray-600">Centralize, search, and analyze logs at any scale with fast querying.</p>
+            <p class="text-sm text-gray-600">Centralize, search, and analyze logs at scale.</p>
           </a>
 
           <!-- Traces -->
-          <a href="/product/traces" class="group p-6 rounded-2xl bg-white border border-gray-200 hover:border-cyan-200 hover:shadow-lg transition-all">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-cyan-100 mb-4 group-hover:bg-cyan-200 transition-colors">
+          <a href="/product/traces" class="platform-card p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-cyan-100 mb-4">
               <svg class="w-6 h-6 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l3-9 4 18 3-9h4" />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-gray-900 mb-2">Traces</h3>
-            <p class="text-sm text-gray-600">End-to-end distributed tracing for performance insights.</p>
+            <p class="text-sm text-gray-600">End-to-end distributed tracing.</p>
           </a>
 
           <!-- Workflows -->
-          <a href="/product/workflows" class="group p-6 rounded-2xl bg-white border border-gray-200 hover:border-violet-200 hover:shadow-lg transition-all">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-violet-100 mb-4 group-hover:bg-violet-200 transition-colors">
+          <a href="/product/workflows" class="platform-card p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-violet-100 mb-4">
               <svg class="w-6 h-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-gray-900 mb-2">Workflows</h3>
-            <p class="text-sm text-gray-600">Automate complex processes with no-code workflow builder.</p>
+            <p class="text-sm text-gray-600">No-code automation builder.</p>
           </a>
 
           <!-- AI Agent -->
-          <a href="/product/ai-agent" class="group p-6 rounded-2xl bg-white border border-gray-200 hover:border-purple-200 hover:shadow-lg transition-all">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-purple-100 mb-4 group-hover:bg-purple-200 transition-colors">
+          <a href="/product/ai-agent" class="platform-card p-6 rounded-2xl bg-white border border-gray-200 shadow-sm">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-purple-100 mb-4">
               <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-gray-900 mb-2">AI Copilot</h3>
-            <p class="text-sm text-gray-600">AI-powered root cause analysis and automated incident resolution.</p>
+            <p class="text-sm text-gray-600">AI-powered root cause analysis.</p>
           </a>
         </div>
       </div>
@@ -526,28 +539,27 @@
     <!-- Use Cases Section -->
     <section class="bg-white py-24 sm:py-32">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto max-w-2xl text-center mb-16">
-          <span class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide text-gray-700 uppercase bg-gray-100 rounded-full mb-6 border border-gray-200">
-            Use Cases
-          </span>
-          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
-            Built for enterprises like yours
+        <div class="text-center mb-16">
+          <p class="text-sm font-medium text-emerald-600 tracking-wide uppercase mb-4">Use Cases</p>
+          <h2 class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 mb-6">
+            Built for Enterprises<br class="hidden sm:block" />
+            <span class="text-gray-500">Like Yours</span>
           </h2>
-          <p class="mt-4 text-lg text-gray-600">
+          <p class="max-w-2xl mx-auto text-lg text-gray-600 leading-relaxed">
             From regulated industries to high-growth startups, OneUptime scales with your needs
           </p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <!-- Financial Services -->
-          <div class="p-8 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200">
-            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white shadow-sm border border-gray-200 mb-6">
-              <svg class="w-7 h-7 text-gray-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="p-8 rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gray-100 mb-6">
+              <svg class="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
               </svg>
             </div>
             <h3 class="text-xl font-semibold text-gray-900 mb-3">Financial Services</h3>
-            <p class="text-gray-600 mb-4">Meet strict compliance requirements with SOC 2, PCI DSS, and custom audit controls. Real-time monitoring for trading platforms and payment systems.</p>
+            <p class="text-gray-600 mb-4">Meet strict compliance with SOC 2, PCI DSS, and custom audit controls.</p>
             <ul class="space-y-2 text-sm text-gray-600">
               <li class="flex items-center gap-2">
                 <svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
@@ -565,14 +577,14 @@
           </div>
 
           <!-- Healthcare -->
-          <div class="p-8 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200">
-            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white shadow-sm border border-gray-200 mb-6">
-              <svg class="w-7 h-7 text-gray-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="p-8 rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gray-100 mb-6">
+              <svg class="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
               </svg>
             </div>
             <h3 class="text-xl font-semibold text-gray-900 mb-3">Healthcare</h3>
-            <p class="text-gray-600 mb-4">HIPAA-compliant monitoring for healthcare applications. Ensure patient data protection while maintaining system reliability.</p>
+            <p class="text-gray-600 mb-4">HIPAA-compliant monitoring for healthcare applications.</p>
             <ul class="space-y-2 text-sm text-gray-600">
               <li class="flex items-center gap-2">
                 <svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
@@ -590,14 +602,14 @@
           </div>
 
           <!-- SaaS & Technology -->
-          <div class="p-8 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200">
-            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white shadow-sm border border-gray-200 mb-6">
-              <svg class="w-7 h-7 text-gray-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="p-8 rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gray-100 mb-6">
+              <svg class="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3m-19.5 0a4.5 4.5 0 0 1 .9-2.7L5.737 5.1a3.375 3.375 0 0 1 2.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 0 1 .9 2.7m0 0a3 3 0 0 1-3 3m0 3h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Zm-3 6h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Z" />
               </svg>
             </div>
             <h3 class="text-xl font-semibold text-gray-900 mb-3">SaaS & Technology</h3>
-            <p class="text-gray-600 mb-4">Scale your observability as your platform grows. From startup to enterprise, with the same powerful toolset.</p>
+            <p class="text-gray-600 mb-4">Scale your observability as your platform grows.</p>
             <ul class="space-y-2 text-sm text-gray-600">
               <li class="flex items-center gap-2">
                 <svg class="h-4 w-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
@@ -621,71 +633,60 @@
     <%- include('./Partials/reviews') -%>
 
     <!-- Enterprise CTA -->
-    <section class="relative py-32 sm:py-40 bg-gray-900 overflow-hidden">
-      <!-- Background pattern -->
-      <div class="absolute inset-0 opacity-10">
-        <svg class="absolute inset-0 h-full w-full" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="cta-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M0 40V0h40" fill="none" stroke="currentColor" stroke-width="1"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#cta-grid)" />
-        </svg>
-      </div>
+    <section class="relative py-32 sm:py-40 bg-white overflow-hidden" id="enterprise-cta-section">
+      <!-- Subtle grid pattern background -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#e5e5e5_1px,transparent_1px),linear-gradient(to_bottom,#e5e5e5_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_100%_80%_at_50%_50%,#000_30%,transparent_70%)]"></div>
 
-      <div class="relative mx-auto max-w-4xl px-6 lg:px-8 text-center">
-        <!-- Badge -->
-        <div class="mb-8 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm">
-          <svg class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
-          </svg>
-          <span>Enterprise Ready</span>
-        </div>
+      <!-- Grid glow effect that follows cursor -->
+      <div id="enterprise-cta-grid-glow-effect" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(16, 185, 129, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(16, 185, 129, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
 
+      <!-- Ambient glow decoration -->
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="mx-auto max-w-4xl px-6 lg:px-8 relative text-center">
         <!-- Heading -->
-        <h2 class="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-white leading-[1.1] mb-6">
-          Ready to elevate your <br class="hidden sm:block" />observability?
+        <h2 class="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1]">
+          <span class="text-gray-700 block">Enterprise-ready.</span>
+          <span class="text-gray-900 block mt-2">Built for scale.</span>
         </h2>
 
         <!-- Subtext -->
-        <p class="text-xl text-gray-300 leading-relaxed max-w-2xl mx-auto mb-10">
+        <p class="mt-6 text-lg sm:text-xl text-gray-500 leading-relaxed max-w-2xl mx-auto">
           Join thousands of enterprise teams who trust OneUptime for mission-critical observability. Get a personalized demo tailored to your needs.
         </p>
 
         <!-- Buttons -->
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a href="/enterprise/demo" class="group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-white text-gray-900 font-medium text-base hover:bg-gray-100 transition-colors">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-            </svg>
+        <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a href="/enterprise/demo"
+             class="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-lg bg-gray-900 text-white font-medium text-base shadow-lg shadow-gray-900/20 hover:bg-gray-800 hover:shadow-xl hover:shadow-gray-900/25 transition-all duration-200">
             <span>Schedule a Demo</span>
-            <svg class="w-4 h-4 group-hover:trangray-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
             </svg>
           </a>
 
-          <a href="/pricing" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-white font-medium text-base hover:bg-white/10 transition-colors border border-white/20">
+          <a href="/pricing"
+             class="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-lg bg-white text-gray-700 font-medium text-base ring-1 ring-gray-200 hover:ring-gray-300 hover:bg-gray-50 transition-all duration-200">
             <span>View Pricing</span>
           </a>
         </div>
 
-        <!-- Trust badges -->
-        <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-gray-400">
-          <div class="flex items-center gap-2">
-            <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <!-- Features list -->
+        <div class="mt-12 flex flex-wrap items-center justify-center gap-3">
+          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-sm text-gray-600 ring-1 ring-gray-100">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
             </svg>
             <span>No credit card required</span>
           </div>
-          <div class="flex items-center gap-2">
-            <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-sm text-gray-600 ring-1 ring-gray-100">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
             </svg>
             <span>14-day enterprise trial</span>
           </div>
-          <div class="flex items-center gap-2">
-            <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-sm text-gray-600 ring-1 ring-gray-100">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
             </svg>
             <span>White-glove onboarding</span>
@@ -696,6 +697,122 @@
 
   </main>
   <%- include('footer') -%>
+
+<script>
+// Hero Grid glow effect that follows cursor
+(function() {
+    const heroSection = document.getElementById('enterprise-hero-section');
+    const gridGlowEffect = document.getElementById('enterprise-grid-glow-effect');
+
+    if (!heroSection || !gridGlowEffect) return;
+
+    let isHovering = false;
+    let animationFrame = null;
+    let currentX = 0;
+    let currentY = 0;
+    let targetX = 0;
+    let targetY = 0;
+
+    function lerp(start, end, factor) {
+        return start + (end - start) * factor;
+    }
+
+    function animate() {
+        if (!isHovering) return;
+
+        currentX = lerp(currentX, targetX, 0.12);
+        currentY = lerp(currentY, targetY, 0.12);
+
+        gridGlowEffect.style.setProperty('--mouse-x', currentX + 'px');
+        gridGlowEffect.style.setProperty('--mouse-y', currentY + 'px');
+
+        animationFrame = requestAnimationFrame(animate);
+    }
+
+    heroSection.addEventListener('mouseenter', function() {
+        isHovering = true;
+        gridGlowEffect.style.opacity = '1';
+        animate();
+    });
+
+    heroSection.addEventListener('mousemove', function(e) {
+        const rect = heroSection.getBoundingClientRect();
+        targetX = e.clientX - rect.left;
+        targetY = e.clientY - rect.top;
+
+        if (!isHovering) {
+            currentX = targetX;
+            currentY = targetY;
+        }
+    });
+
+    heroSection.addEventListener('mouseleave', function() {
+        isHovering = false;
+        gridGlowEffect.style.opacity = '0';
+        if (animationFrame) {
+            cancelAnimationFrame(animationFrame);
+            animationFrame = null;
+        }
+    });
+})();
+
+// CTA Grid glow effect that follows cursor
+(function() {
+    const ctaSection = document.getElementById('enterprise-cta-section');
+    const ctaGridGlowEffect = document.getElementById('enterprise-cta-grid-glow-effect');
+
+    if (!ctaSection || !ctaGridGlowEffect) return;
+
+    let isHovering = false;
+    let animationFrame = null;
+    let currentX = 0;
+    let currentY = 0;
+    let targetX = 0;
+    let targetY = 0;
+
+    function lerp(start, end, factor) {
+        return start + (end - start) * factor;
+    }
+
+    function animate() {
+        if (!isHovering) return;
+
+        currentX = lerp(currentX, targetX, 0.12);
+        currentY = lerp(currentY, targetY, 0.12);
+
+        ctaGridGlowEffect.style.setProperty('--mouse-x', currentX + 'px');
+        ctaGridGlowEffect.style.setProperty('--mouse-y', currentY + 'px');
+
+        animationFrame = requestAnimationFrame(animate);
+    }
+
+    ctaSection.addEventListener('mouseenter', function() {
+        isHovering = true;
+        ctaGridGlowEffect.style.opacity = '1';
+        animate();
+    });
+
+    ctaSection.addEventListener('mousemove', function(e) {
+        const rect = ctaSection.getBoundingClientRect();
+        targetX = e.clientX - rect.left;
+        targetY = e.clientY - rect.top;
+
+        if (!isHovering) {
+            currentX = targetX;
+            currentY = targetY;
+        }
+    });
+
+    ctaSection.addEventListener('mouseleave', function() {
+        isHovering = false;
+        ctaGridGlowEffect.style.opacity = '0';
+        if (animationFrame) {
+            cancelAnimationFrame(animationFrame);
+            animationFrame = null;
+        }
+    });
+})();
+</script>
 
 </body>
 
