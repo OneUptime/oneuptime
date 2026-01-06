@@ -798,56 +798,169 @@
           </div>
         </div>
 
-        <!-- Illustration - Slack Notification -->
+        <!-- Illustration - Interactive Slack Notification -->
         <div class="mt-16 lg:mt-0">
-          <div class="relative">
-            <!-- Slack Notification Card -->
-            <div class="bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden max-w-md mx-auto">
-              <!-- Slack header bar -->
-              <div class="bg-[#4A154B] px-4 py-2.5 flex items-center gap-2">
-                <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z"/>
-                </svg>
-                <span class="text-white text-sm font-medium">#incidents</span>
+          <div class="relative" id="slack-demo">
+            <!-- Slack Window -->
+            <div class="bg-[#1a1d21] rounded-xl shadow-2xl overflow-hidden max-w-md mx-auto border border-gray-700">
+              <!-- Slack window header -->
+              <div class="bg-[#1a1d21] px-4 py-3 flex items-center justify-between border-b border-gray-700">
+                <div class="flex items-center gap-3">
+                  <div class="flex gap-1.5">
+                    <div class="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#febc2e]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#28c840]"></div>
+                  </div>
+                  <div class="flex items-center gap-2 ml-2">
+                    <span class="text-gray-400 text-sm font-medium">#</span>
+                    <span class="text-white text-sm font-medium">incidents</span>
+                  </div>
+                </div>
               </div>
-              <!-- Message content -->
-              <div class="p-4">
+
+              <!-- Messages area -->
+              <div class="bg-[#1a1d21] p-4 min-h-[320px]" id="slack-messages">
+                <!-- Original incident message -->
                 <div class="flex items-start gap-3">
-                  <div class="w-9 h-9 rounded bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center flex-shrink-0">
-                    <span class="text-white text-xs font-bold">O</span>
+                  <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center flex-shrink-0 shadow-md">
+                    <span class="text-white text-sm font-bold">O</span>
                   </div>
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
-                      <span class="font-bold text-gray-900 text-sm">OneUptime</span>
-                      <span class="bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded">APP</span>
-                      <span class="text-gray-400 text-xs">12:34 PM</span>
+                      <span class="font-bold text-white text-sm">OneUptime</span>
+                      <span class="bg-[#2e3136] text-gray-400 text-xs px-1.5 py-0.5 rounded">APP</span>
+                      <span class="text-gray-500 text-xs">12:34 PM</span>
                     </div>
-                    <!-- Alert block -->
-                    <div class="mt-3 border-l-4 border-red-500 bg-red-50 rounded-r p-3">
-                      <div class="flex items-center gap-2 mb-1">
-                        <span class="text-red-600 font-semibold text-sm">Incident Created</span>
+                    <!-- Incident block -->
+                    <div class="mt-2 border-l-4 border-red-500 bg-[#2b1518] rounded-r px-3 py-2.5">
+                      <p class="text-red-400 font-semibold text-sm">Incident Created</p>
+                      <p class="text-white text-sm mt-1">API Server is not responding</p>
+                      <div class="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                        <span>Monitor: API Health Check</span>
+                        <span>Severity: High</span>
                       </div>
-                      <p class="text-gray-700 text-sm font-medium">API Server is not responding</p>
-                      <p class="text-gray-500 text-xs mt-1">Response time exceeded 30s threshold</p>
                     </div>
                     <!-- Action buttons -->
-                    <div class="mt-3 flex flex-wrap gap-2">
-                      <button class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-                        View Incident
-                      </button>
-                      <button class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
+                    <div class="mt-3 flex flex-wrap gap-2" id="slack-buttons">
+                      <button onclick="slackAcknowledge()" id="btn-ack" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2e3136] border border-gray-600 rounded text-xs font-medium text-white hover:bg-[#3a3d42] hover:border-gray-500 transition-all">
                         Acknowledge
                       </button>
-                      <button class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
+                      <button onclick="slackExecuteOnCall()" id="btn-oncall" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2e3136] border border-gray-600 rounded text-xs font-medium text-white hover:bg-[#3a3d42] hover:border-gray-500 transition-all">
+                        Execute On-Call
+                      </button>
+                      <button onclick="slackResolve()" id="btn-resolve" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2e3136] border border-gray-600 rounded text-xs font-medium text-white hover:bg-[#3a3d42] hover:border-gray-500 transition-all">
                         Resolve
                       </button>
                     </div>
+
+                    <!-- Thread replies container -->
+                    <div id="slack-thread" class="mt-4 space-y-3 border-l-2 border-gray-700 pl-3 ml-1"></div>
                   </div>
                 </div>
               </div>
             </div>
+
           </div>
         </div>
+
+        <script>
+        (function() {
+          let ackClicked = false;
+          let onCallClicked = false;
+          let resolveClicked = false;
+
+          function addThreadReply(avatar, name, time, message, isBot) {
+            const thread = document.getElementById('slack-thread');
+            const reply = document.createElement('div');
+            reply.className = 'flex items-start gap-2 animate-fade-in';
+            reply.style.animation = 'fadeSlideIn 0.3s ease-out';
+
+            const avatarHtml = isBot
+              ? `<div class="w-7 h-7 rounded-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center flex-shrink-0 shadow"><span class="text-white text-xs font-bold">O</span></div>`
+              : `<div class="w-7 h-7 rounded-lg bg-gradient-to-br ${avatar} flex items-center justify-center flex-shrink-0 shadow"><span class="text-white text-xs font-bold">${name.charAt(0)}</span></div>`;
+
+            reply.innerHTML = `
+              ${avatarHtml}
+              <div class="flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-white text-xs">${name}</span>
+                  ${isBot ? '<span class="bg-[#2e3136] text-gray-400 text-[10px] px-1 py-0.5 rounded">APP</span>' : ''}
+                  <span class="text-gray-500 text-[10px]">${time}</span>
+                </div>
+                <p class="text-gray-300 text-xs mt-0.5">${message}</p>
+              </div>
+            `;
+            thread.appendChild(reply);
+            thread.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+
+          window.slackAcknowledge = function() {
+            if (ackClicked) return;
+            ackClicked = true;
+
+            const btn = document.getElementById('btn-ack');
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btn.innerHTML = '<svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Acknowledging...';
+
+            setTimeout(() => {
+              btn.innerHTML = '<svg class="w-3 h-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Acknowledged';
+              btn.classList.remove('bg-[#2e3136]', 'border-gray-600');
+              btn.classList.add('bg-green-900/30', 'border-green-700/50', 'text-green-400');
+
+              addThreadReply('from-blue-400 to-blue-600', 'Sarah Chen', '12:35 PM', 'Acknowledged this incident. Looking into it now.', false);
+
+              setTimeout(() => {
+                addThreadReply('', 'OneUptime', '12:35 PM', 'Incident acknowledged by Sarah Chen', true);
+              }, 800);
+            }, 600);
+          };
+
+          window.slackExecuteOnCall = function() {
+            if (onCallClicked) return;
+            onCallClicked = true;
+
+            const btn = document.getElementById('btn-oncall');
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btn.innerHTML = '<svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Executing...';
+
+            setTimeout(() => {
+              btn.innerHTML = '<svg class="w-3 h-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> On-Call Executed';
+              btn.classList.remove('bg-[#2e3136]', 'border-gray-600');
+              btn.classList.add('bg-blue-900/30', 'border-blue-700/50', 'text-blue-400');
+
+              addThreadReply('', 'OneUptime', '12:36 PM', 'On-call policy "Engineering Team" executed. Notifying: Mike Johnson, Sarah Chen', true);
+            }, 600);
+          };
+
+          window.slackResolve = function() {
+            if (resolveClicked) return;
+            resolveClicked = true;
+
+            const btn = document.getElementById('btn-resolve');
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btn.innerHTML = '<svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Resolving...';
+
+            setTimeout(() => {
+              btn.innerHTML = '<svg class="w-3 h-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Resolved';
+              btn.classList.remove('bg-[#2e3136]', 'border-gray-600');
+              btn.classList.add('bg-green-900/30', 'border-green-700/50', 'text-green-400');
+
+              addThreadReply('from-purple-400 to-purple-600', 'Mike Johnson', '12:41 PM', 'Fixed the connection pool issue. Deploying hotfix now.', false);
+
+              setTimeout(() => {
+                addThreadReply('', 'OneUptime', '12:42 PM', 'Incident resolved by Mike Johnson. Total downtime: 8 minutes.', true);
+              }, 800);
+            }, 600);
+          };
+        })();
+        </script>
+
+        <style>
+          @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        </style>
       </div>
     </div>
   </div>
