@@ -232,99 +232,76 @@
             </a>
           </div>
           <div class="mt-12 lg:mt-0">
-            <div class="relative flex items-center justify-center py-8">
-              <!-- Transparent Monitor Anything Illustration -->
-              <svg class="w-full max-w-md" viewBox="0 0 400 320" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- Subtle grid background -->
+            <div class="relative flex items-center justify-center py-6">
+              <!-- Polished Monitor Anything Illustration -->
+              <svg class="w-full max-w-md" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
-                  <pattern id="grid1" width="20" height="20" patternUnits="userSpaceOnUse">
-                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#E5E7EB" stroke-width="0.5" opacity="0.5"/>
-                  </pattern>
                   <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" style="stop-color:#3B82F6"/>
                     <stop offset="100%" style="stop-color:#1D4ED8"/>
                   </linearGradient>
-                  <filter id="shadow1" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#3B82F6" flood-opacity="0.15"/>
-                  </filter>
-                  <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.08"/>
+                  <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.08"/>
                   </filter>
                 </defs>
 
-                <!-- Connection lines -->
-                <g stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6 4">
-                  <line x1="200" y1="160" x2="70" y2="60"/>
-                  <line x1="200" y1="160" x2="330" y2="60"/>
-                  <line x1="200" y1="160" x2="70" y2="260"/>
-                  <line x1="200" y1="160" x2="330" y2="260"/>
-                  <line x1="200" y1="160" x2="200" y2="40"/>
-                  <line x1="200" y1="160" x2="200" y2="280"/>
+                <!-- Connection lines with gradient opacity -->
+                <g stroke="#E5E7EB" stroke-width="1.5">
+                  <line x1="200" y1="150" x2="80" y2="70" stroke-dasharray="4 3"/>
+                  <line x1="200" y1="150" x2="320" y2="70" stroke-dasharray="4 3"/>
+                  <line x1="200" y1="150" x2="80" y2="230" stroke-dasharray="4 3"/>
+                  <line x1="200" y1="150" x2="320" y2="230" stroke-dasharray="4 3"/>
                 </g>
 
-                <!-- Central hub -->
-                <g filter="url(#shadow1)">
-                  <circle cx="200" cy="160" r="44" fill="url(#blueGrad)"/>
-                  <path d="M185 160L195 170L215 150" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <!-- Central monitoring hub -->
+                <g filter="url(#softShadow)">
+                  <circle cx="200" cy="150" r="42" fill="url(#blueGrad)"/>
                 </g>
+                <path d="M184 150L194 160L216 138" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
 
-                <!-- HTTP Card -->
-                <g filter="url(#cardShadow)">
-                  <rect x="35" y="30" width="70" height="60" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
-                  <text x="70" y="67" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#374151" text-anchor="middle">HTTP</text>
+                <!-- Website/HTTP node -->
+                <g filter="url(#softShadow)">
+                  <circle cx="80" cy="70" r="32" fill="white"/>
                 </g>
+                <circle cx="80" cy="70" r="32" fill="none" stroke="#F3F4F6" stroke-width="1"/>
+                <rect x="64" y="58" width="32" height="24" rx="4" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.5"/>
+                <line x1="64" y1="66" x2="96" y2="66" stroke="#3B82F6" stroke-width="1.5"/>
+                <circle cx="68" cy="62" r="1.5" fill="#3B82F6"/>
+                <circle cx="73" cy="62" r="1.5" fill="#3B82F6"/>
+                <circle cx="78" cy="62" r="1.5" fill="#3B82F6"/>
 
-                <!-- API Card -->
-                <g filter="url(#cardShadow)">
-                  <rect x="295" y="30" width="70" height="60" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
-                  <text x="330" y="67" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#7C3AED" text-anchor="middle">API</text>
+                <!-- API node -->
+                <g filter="url(#softShadow)">
+                  <circle cx="320" cy="70" r="32" fill="white"/>
                 </g>
+                <circle cx="320" cy="70" r="32" fill="none" stroke="#F3F4F6" stroke-width="1"/>
+                <rect x="300" y="58" width="40" height="24" rx="4" fill="#F5F3FF" stroke="#8B5CF6" stroke-width="1.5"/>
+                <text x="320" y="74" font-family="ui-monospace, monospace" font-size="10" font-weight="600" fill="#7C3AED" text-anchor="middle">/api</text>
 
-                <!-- Server Card -->
-                <g filter="url(#cardShadow)">
-                  <rect x="35" y="230" width="70" height="60" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
-                  <g transform="translate(50, 245)">
-                    <rect x="0" y="0" width="40" height="8" rx="2" fill="#E0F2FE" stroke="#0EA5E9" stroke-width="1"/>
-                    <rect x="0" y="12" width="40" height="8" rx="2" fill="#E0F2FE" stroke="#0EA5E9" stroke-width="1"/>
-                    <rect x="0" y="24" width="40" height="8" rx="2" fill="#E0F2FE" stroke="#0EA5E9" stroke-width="1"/>
-                    <circle cx="6" cy="4" r="2" fill="#22C55E"/>
-                    <circle cx="6" cy="16" r="2" fill="#22C55E"/>
-                    <circle cx="6" cy="28" r="2" fill="#F59E0B"/>
-                  </g>
+                <!-- Server node -->
+                <g filter="url(#softShadow)">
+                  <circle cx="80" cy="230" r="32" fill="white"/>
                 </g>
+                <circle cx="80" cy="230" r="32" fill="none" stroke="#F3F4F6" stroke-width="1"/>
+                <rect x="62" y="214" width="36" height="8" rx="2" fill="#ECFEFF" stroke="#06B6D4" stroke-width="1"/>
+                <rect x="62" y="226" width="36" height="8" rx="2" fill="#ECFEFF" stroke="#06B6D4" stroke-width="1"/>
+                <rect x="62" y="238" width="36" height="8" rx="2" fill="#ECFEFF" stroke="#06B6D4" stroke-width="1"/>
+                <circle cx="68" cy="218" r="2" fill="#22C55E"/>
+                <circle cx="68" cy="230" r="2" fill="#22C55E"/>
+                <circle cx="68" cy="242" r="2" fill="#22C55E"/>
 
-                <!-- Database Card -->
-                <g filter="url(#cardShadow)">
-                  <rect x="295" y="230" width="70" height="60" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
-                  <g transform="translate(310, 248)">
-                    <ellipse cx="20" cy="6" rx="16" ry="5" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.5"/>
-                    <path d="M4 6v22c0 3 7 5.5 16 5.5s16-2.5 16-5.5V6" stroke="#F59E0B" stroke-width="1.5" fill="none"/>
-                    <path d="M4 14c0 3 7 5.5 16 5.5s16-2.5 16-5.5" stroke="#F59E0B" stroke-width="1.5" fill="none"/>
-                    <path d="M4 22c0 3 7 5.5 16 5.5s16-2.5 16-5.5" stroke="#F59E0B" stroke-width="1.5" fill="none"/>
-                  </g>
+                <!-- Database node -->
+                <g filter="url(#softShadow)">
+                  <circle cx="320" cy="230" r="32" fill="white"/>
                 </g>
+                <circle cx="320" cy="230" r="32" fill="none" stroke="#F3F4F6" stroke-width="1"/>
+                <ellipse cx="320" cy="218" rx="16" ry="6" fill="#FEF9C3" stroke="#EAB308" stroke-width="1.5"/>
+                <path d="M304 218v20c0 4 7 6 16 6s16-2 16-6v-20" stroke="#EAB308" stroke-width="1.5" fill="none"/>
+                <path d="M304 228c0 4 7 6 16 6s16-2 16-6" stroke="#EAB308" stroke-width="1.5" fill="none"/>
 
-                <!-- Globe Card (top) -->
-                <g filter="url(#cardShadow)">
-                  <rect x="165" y="10" width="70" height="60" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
-                  <g transform="translate(180, 22)">
-                    <circle cx="20" cy="18" r="15" fill="none" stroke="#10B981" stroke-width="1.5"/>
-                    <ellipse cx="20" cy="18" rx="6" ry="15" fill="none" stroke="#10B981" stroke-width="1"/>
-                    <line x1="5" y1="18" x2="35" y2="18" stroke="#10B981" stroke-width="1"/>
-                    <path d="M7 10c4 2 9 3 13 3s9-1 13-3" stroke="#10B981" stroke-width="1" fill="none"/>
-                    <path d="M7 26c4-2 9-3 13-3s9 1 13 3" stroke="#10B981" stroke-width="1" fill="none"/>
-                  </g>
-                </g>
-
-                <!-- TCP Card (bottom) -->
-                <g filter="url(#cardShadow)">
-                  <rect x="165" y="250" width="70" height="60" rx="12" fill="white" stroke="#E5E7EB" stroke-width="1"/>
-                  <text x="200" y="287" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#E11D48" text-anchor="middle">TCP/UDP</text>
-                </g>
-
-                <!-- Pulse rings around center -->
-                <circle cx="200" cy="160" r="56" stroke="#3B82F6" stroke-width="1" opacity="0.2"/>
-                <circle cx="200" cy="160" r="70" stroke="#3B82F6" stroke-width="1" opacity="0.1"/>
+                <!-- Pulse rings -->
+                <circle cx="200" cy="150" r="54" stroke="#3B82F6" stroke-width="1" opacity="0.15"/>
+                <circle cx="200" cy="150" r="68" stroke="#3B82F6" stroke-width="1" opacity="0.08"/>
               </svg>
             </div>
           </div>
@@ -333,74 +310,73 @@
         <!-- Feature 2: Unlimited Monitors -->
         <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
           <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
-            <div class="relative flex items-center justify-center py-8">
-              <!-- Transparent Global Monitoring Illustration -->
+            <div class="relative flex items-center justify-center py-6">
+              <!-- Polished Global Monitoring Illustration -->
               <svg class="w-full max-w-md" viewBox="0 0 400 320" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" style="stop-color:#06B6D4"/>
                     <stop offset="100%" style="stop-color:#0891B2"/>
                   </linearGradient>
-                  <filter id="globeShadow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#06B6D4" flood-opacity="0.15"/>
+                  <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#22C55E"/>
+                    <stop offset="100%" style="stop-color:#16A34A"/>
+                  </linearGradient>
+                  <filter id="globeShadow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#06B6D4" flood-opacity="0.15"/>
                   </filter>
                   <filter id="dotGlow" x="-100%" y="-100%" width="300%" height="300%">
-                    <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#22C55E" flood-opacity="0.6"/>
+                    <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#22C55E" flood-opacity="0.4"/>
                   </filter>
                 </defs>
 
-                <!-- Globe -->
+                <!-- Globe with shadow -->
                 <g filter="url(#globeShadow)">
-                  <!-- Globe circle -->
-                  <circle cx="200" cy="140" r="90" fill="white" stroke="url(#cyanGrad)" stroke-width="2"/>
+                  <circle cx="200" cy="130" r="95" fill="white"/>
+                </g>
+                <circle cx="200" cy="130" r="95" fill="none" stroke="url(#cyanGrad)" stroke-width="2"/>
 
-                  <!-- Latitude lines -->
-                  <ellipse cx="200" cy="100" rx="75" ry="18" fill="none" stroke="#E0F2FE" stroke-width="1.5"/>
-                  <line x1="110" y1="140" x2="290" y2="140" stroke="#E0F2FE" stroke-width="1.5"/>
-                  <ellipse cx="200" cy="180" rx="75" ry="18" fill="none" stroke="#E0F2FE" stroke-width="1.5"/>
+                <!-- Globe grid - elegant curved lines -->
+                <ellipse cx="200" cy="130" rx="95" ry="30" fill="none" stroke="#E5E7EB" stroke-width="1"/>
+                <ellipse cx="200" cy="90" rx="80" ry="20" fill="none" stroke="#F3F4F6" stroke-width="1"/>
+                <ellipse cx="200" cy="170" rx="80" ry="20" fill="none" stroke="#F3F4F6" stroke-width="1"/>
+                <ellipse cx="200" cy="130" rx="35" ry="95" fill="none" stroke="#E5E7EB" stroke-width="1"/>
+                <ellipse cx="200" cy="130" rx="65" ry="95" fill="none" stroke="#F3F4F6" stroke-width="1"/>
 
-                  <!-- Longitude lines -->
-                  <ellipse cx="200" cy="140" rx="30" ry="90" fill="none" stroke="#E0F2FE" stroke-width="1.5"/>
-                  <line x1="200" y1="50" x2="200" y2="230" stroke="#E0F2FE" stroke-width="1.5"/>
-
-                  <!-- Location markers with glow -->
-                  <g filter="url(#dotGlow)">
-                    <circle cx="145" cy="95" r="6" fill="#22C55E"/>
-                    <circle cx="240" cy="90" r="6" fill="#22C55E"/>
-                    <circle cx="130" cy="140" r="6" fill="#22C55E"/>
-                    <circle cx="270" cy="145" r="6" fill="#22C55E"/>
-                    <circle cx="155" cy="185" r="6" fill="#22C55E"/>
-                    <circle cx="230" cy="180" r="6" fill="#22C55E"/>
-                    <circle cx="200" cy="115" r="6" fill="#22C55E"/>
-                  </g>
-
-                  <!-- Connection arcs -->
-                  <path d="M145 95 Q 200 60 240 90" stroke="#22C55E" stroke-width="1" fill="none" opacity="0.4"/>
-                  <path d="M130 140 Q 200 120 270 145" stroke="#22C55E" stroke-width="1" fill="none" opacity="0.4"/>
-                  <path d="M155 185 Q 200 200 230 180" stroke="#22C55E" stroke-width="1" fill="none" opacity="0.4"/>
+                <!-- Location markers with glow -->
+                <g filter="url(#dotGlow)">
+                  <circle cx="140" cy="80" r="10" fill="url(#greenGrad)"/>
+                  <circle cx="250" cy="75" r="10" fill="url(#greenGrad)"/>
+                  <circle cx="120" cy="135" r="10" fill="url(#greenGrad)"/>
+                  <circle cx="275" cy="130" r="10" fill="url(#greenGrad)"/>
+                  <circle cx="150" cy="175" r="10" fill="url(#greenGrad)"/>
+                  <circle cx="240" cy="170" r="10" fill="url(#greenGrad)"/>
+                  <circle cx="200" cy="100" r="10" fill="url(#greenGrad)"/>
                 </g>
 
-                <!-- Stats cards -->
+                <!-- Inner white dots for polish -->
+                <circle cx="140" cy="80" r="3" fill="white" opacity="0.6"/>
+                <circle cx="250" cy="75" r="3" fill="white" opacity="0.6"/>
+                <circle cx="120" cy="135" r="3" fill="white" opacity="0.6"/>
+                <circle cx="275" cy="130" r="3" fill="white" opacity="0.6"/>
+                <circle cx="150" cy="175" r="3" fill="white" opacity="0.6"/>
+                <circle cx="240" cy="170" r="3" fill="white" opacity="0.6"/>
+                <circle cx="200" cy="100" r="3" fill="white" opacity="0.6"/>
+
+                <!-- Stats with better typography -->
                 <g>
-                  <!-- Monitors card -->
-                  <rect x="60" y="255" width="80" height="55" rx="10" fill="white" stroke="#E5E7EB" stroke-width="1" filter="url(#cardShadow)"/>
-                  <text x="100" y="282" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" fill="#0F172A" text-anchor="middle">∞</text>
-                  <text x="100" y="298" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748B" text-anchor="middle">Monitors</text>
+                  <text x="90" y="275" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="700" fill="#0F172A">∞</text>
+                  <text x="90" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748B">Monitors</text>
 
-                  <!-- Regions card -->
-                  <rect x="160" y="255" width="80" height="55" rx="10" fill="white" stroke="#E5E7EB" stroke-width="1" filter="url(#cardShadow)"/>
-                  <text x="200" y="282" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" fill="#0F172A" text-anchor="middle">7</text>
-                  <text x="200" y="298" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748B" text-anchor="middle">Regions</text>
+                  <text x="185" y="275" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="700" fill="#0F172A">7</text>
+                  <text x="185" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748B">Regions</text>
 
-                  <!-- Intervals card -->
-                  <rect x="260" y="255" width="80" height="55" rx="10" fill="white" stroke="#E5E7EB" stroke-width="1" filter="url(#cardShadow)"/>
-                  <text x="300" y="282" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" fill="#0F172A" text-anchor="middle">1s</text>
-                  <text x="300" y="298" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#64748B" text-anchor="middle">Intervals</text>
+                  <text x="275" y="275" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="700" fill="#0F172A">1s</text>
+                  <text x="275" y="295" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748B">Intervals</text>
                 </g>
 
-                <!-- Subtle pulse rings -->
-                <circle cx="200" cy="140" r="100" stroke="#06B6D4" stroke-width="1" opacity="0.15"/>
-                <circle cx="200" cy="140" r="115" stroke="#06B6D4" stroke-width="1" opacity="0.08"/>
+                <!-- Subtle outer ring -->
+                <circle cx="200" cy="130" r="108" stroke="#06B6D4" stroke-width="1" opacity="0.1"/>
               </svg>
             </div>
           </div>
@@ -489,73 +465,67 @@
             </a>
           </div>
           <div class="mt-12 lg:mt-0">
-            <div class="relative flex items-center justify-center py-8">
-              <!-- Transparent Real-time Status Illustration -->
-              <svg class="w-full max-w-md" viewBox="0 0 400 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <div class="relative flex items-center justify-center py-6">
+              <!-- Polished Real-time Status Illustration -->
+              <svg class="w-full max-w-md" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <linearGradient id="violetGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" style="stop-color:#8B5CF6"/>
                     <stop offset="100%" style="stop-color:#7C3AED"/>
                   </linearGradient>
-                  <filter id="statusShadow" x="-10%" y="-10%" width="120%" height="120%">
-                    <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#8B5CF6" flood-opacity="0.12"/>
-                  </filter>
-                  <filter id="cardShadow2" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#000" flood-opacity="0.06"/>
+                  <filter id="cardShadow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#8B5CF6" flood-opacity="0.1"/>
                   </filter>
                 </defs>
 
-                <!-- Status Page Card -->
-                <g filter="url(#statusShadow)">
-                  <!-- Main card background -->
-                  <rect x="60" y="20" width="280" height="250" rx="16" fill="white" stroke="#E5E7EB" stroke-width="1"/>
+                <!-- Main status card -->
+                <g filter="url(#cardShadow)">
+                  <rect x="60" y="20" width="280" height="210" rx="16" fill="white"/>
+                </g>
+                <rect x="60" y="20" width="280" height="210" rx="16" fill="none" stroke="#F3F4F6" stroke-width="1"/>
 
-                  <!-- Header -->
-                  <rect x="60" y="20" width="280" height="50" rx="16" fill="url(#violetGrad)"/>
-                  <rect x="60" y="54" width="280" height="16" fill="url(#violetGrad)"/>
-                  <circle cx="90" cy="45" r="12" fill="rgba(255,255,255,0.2)"/>
-                  <path d="M85 45L88 48L95 41" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <text x="115" y="50" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="white">System Status</text>
-                  <text x="310" y="50" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="rgba(255,255,255,0.8)" text-anchor="end">Live</text>
+                <!-- Header -->
+                <rect x="60" y="20" width="280" height="48" rx="16" fill="url(#violetGrad)"/>
+                <rect x="60" y="52" width="280" height="16" fill="url(#violetGrad)"/>
+                <circle cx="92" cy="44" r="14" fill="rgba(255,255,255,0.15)"/>
+                <path d="M88 44L91 47L96 42" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <text x="120" y="49" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="600" fill="white">All Systems Operational</text>
 
-                  <!-- Status items -->
-                  <!-- API -->
-                  <rect x="76" y="86" width="248" height="44" rx="8" fill="#F0FDF4" stroke="#BBF7D0" stroke-width="1"/>
-                  <circle cx="96" cy="108" r="5" fill="#22C55E"/>
-                  <text x="115" y="113" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#374151">API</text>
-                  <text x="308" y="113" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" fill="#16A34A" text-anchor="end">Operational</text>
+                <!-- Status rows with subtle backgrounds -->
+                <g>
+                  <!-- Row 1 -->
+                  <rect x="76" y="82" width="248" height="36" rx="8" fill="#F0FDF4"/>
+                  <circle cx="96" cy="100" r="6" fill="#22C55E"/>
+                  <text x="116" y="105" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#1F2937">API Services</text>
+                  <text x="308" y="105" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#16A34A" text-anchor="end">Operational</text>
 
-                  <!-- Dashboard -->
-                  <rect x="76" y="138" width="248" height="44" rx="8" fill="#F0FDF4" stroke="#BBF7D0" stroke-width="1"/>
-                  <circle cx="96" cy="160" r="5" fill="#22C55E"/>
-                  <text x="115" y="165" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#374151">Dashboard</text>
-                  <text x="308" y="165" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" fill="#16A34A" text-anchor="end">Operational</text>
+                  <!-- Row 2 -->
+                  <rect x="76" y="126" width="248" height="36" rx="8" fill="#F0FDF4"/>
+                  <circle cx="96" cy="144" r="6" fill="#22C55E"/>
+                  <text x="116" y="149" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#1F2937">Web Dashboard</text>
+                  <text x="308" y="149" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#16A34A" text-anchor="end">Operational</text>
 
-                  <!-- Database -->
-                  <rect x="76" y="190" width="248" height="44" rx="8" fill="#F0FDF4" stroke="#BBF7D0" stroke-width="1"/>
-                  <circle cx="96" cy="212" r="5" fill="#22C55E"/>
-                  <text x="115" y="217" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#374151">Database</text>
-                  <text x="308" y="217" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" fill="#16A34A" text-anchor="end">Operational</text>
-
-                  <!-- Footer -->
-                  <line x1="60" y1="245" x2="340" y2="245" stroke="#F3F4F6" stroke-width="1"/>
-                  <text x="76" y="262" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#9CA3AF">Updated 1s ago</text>
-                  <text x="324" y="262" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#0F172A" text-anchor="end">99.99% uptime</text>
+                  <!-- Row 3 -->
+                  <rect x="76" y="170" width="248" height="36" rx="8" fill="#F0FDF4"/>
+                  <circle cx="96" cy="188" r="6" fill="#22C55E"/>
+                  <text x="116" y="193" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500" fill="#1F2937">Database</text>
+                  <text x="308" y="193" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#16A34A" text-anchor="end">Operational</text>
                 </g>
 
-                <!-- Live indicator badge -->
-                <g filter="url(#cardShadow2)">
-                  <rect x="135" y="290" width="130" height="36" rx="18" fill="white" stroke="#DDD6FE" stroke-width="1"/>
-                  <!-- Pulsing dot -->
-                  <circle cx="158" cy="308" r="4" fill="#8B5CF6"/>
-                  <circle cx="158" cy="308" r="7" fill="#8B5CF6" opacity="0.3"/>
-                  <text x="175" y="313" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#7C3AED">1-second updates</text>
+                <!-- Footer stats -->
+                <text x="76" y="220" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#9CA3AF">Last updated: 1 second ago</text>
+                <g transform="translate(268, 208)">
+                  <rect x="0" y="0" width="56" height="22" rx="6" fill="#F0FDF4"/>
+                  <text x="28" y="15" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#16A34A" text-anchor="middle">99.99%</text>
                 </g>
 
-                <!-- Decorative elements -->
-                <circle cx="370" cy="60" r="20" stroke="#8B5CF6" stroke-width="1" opacity="0.1"/>
-                <circle cx="30" cy="160" r="15" stroke="#8B5CF6" stroke-width="1" opacity="0.1"/>
-                <circle cx="380" cy="200" r="10" stroke="#8B5CF6" stroke-width="1" opacity="0.15"/>
+                <!-- Real-time indicator pill -->
+                <g transform="translate(140, 252)">
+                  <rect x="0" y="0" width="120" height="36" rx="18" fill="white" stroke="#E9D5FF" stroke-width="1.5"/>
+                  <circle cx="24" cy="18" r="6" fill="#8B5CF6"/>
+                  <circle cx="24" cy="18" r="10" fill="#8B5CF6" opacity="0.2"/>
+                  <text x="42" y="23" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="500" fill="#7C3AED">Real-time</text>
+                </g>
               </svg>
             </div>
           </div>
