@@ -801,65 +801,149 @@
         <!-- Illustration - Interactive Slack Notification -->
         <div class="mt-16 lg:mt-0">
           <div class="relative" id="slack-demo">
+            <!-- Decorative background elements -->
+            <div class="absolute -inset-4 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10 rounded-3xl blur-2xl"></div>
+
             <!-- Slack Window -->
-            <div class="bg-[#1a1d21] rounded-xl shadow-2xl overflow-hidden max-w-md mx-auto border border-gray-700">
+            <div class="relative bg-[#1a1d21] rounded-2xl shadow-2xl overflow-hidden max-w-md mx-auto ring-1 ring-white/10">
               <!-- Slack window header -->
-              <div class="bg-[#1a1d21] px-4 py-3 flex items-center justify-between border-b border-gray-700">
+              <div class="bg-[#0f1114] px-4 py-3 flex items-center justify-between border-b border-white/5">
                 <div class="flex items-center gap-3">
-                  <div class="flex gap-1.5">
-                    <div class="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
-                    <div class="w-3 h-3 rounded-full bg-[#febc2e]"></div>
-                    <div class="w-3 h-3 rounded-full bg-[#28c840]"></div>
+                  <div class="flex gap-2">
+                    <div class="w-3 h-3 rounded-full bg-[#ff5f57] shadow-sm shadow-red-500/50"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#febc2e] shadow-sm shadow-yellow-500/50"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#28c840] shadow-sm shadow-green-500/50"></div>
                   </div>
-                  <div class="flex items-center gap-2 ml-2">
-                    <span class="text-gray-400 text-sm font-medium">#</span>
-                    <span class="text-white text-sm font-medium">incidents</span>
+                </div>
+                <div class="flex items-center gap-2 bg-[#1a1d21] px-3 py-1 rounded-md">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                  </svg>
+                  <span class="text-white text-sm font-semibold">incidents</span>
+                  <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center ring-2 ring-green-500 ring-offset-1 ring-offset-[#0f1114]">
+                    <span class="text-white text-xs font-bold">S</span>
                   </div>
                 </div>
               </div>
 
               <!-- Messages area -->
-              <div class="bg-[#1a1d21] p-4 min-h-[320px]" id="slack-messages">
+              <div class="bg-[#1a1d21] px-4 py-4" id="slack-messages">
                 <!-- Original incident message -->
-                <div class="flex items-start gap-3">
-                  <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center flex-shrink-0 shadow-md">
-                    <span class="text-white text-sm font-bold">O</span>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2">
-                      <span class="font-bold text-white text-sm">OneUptime</span>
-                      <span class="bg-[#2e3136] text-gray-400 text-xs px-1.5 py-0.5 rounded">APP</span>
-                      <span class="text-gray-500 text-xs">12:34 PM</span>
+                <div class="group relative">
+                  <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-500/20">
+                      <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                      </svg>
                     </div>
-                    <!-- Incident block -->
-                    <div class="mt-2 border-l-4 border-red-500 bg-[#2b1518] rounded-r px-3 py-2.5">
-                      <p class="text-red-400 font-semibold text-sm">Incident Created</p>
-                      <p class="text-white text-sm mt-1">API Server is not responding</p>
-                      <div class="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                        <span>Monitor: API Health Check</span>
-                        <span>Severity: High</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold text-white text-sm hover:underline cursor-pointer">OneUptime</span>
+                        <span class="bg-[#4a3f7a] text-purple-200 text-[10px] px-1.5 py-0.5 rounded font-medium">APP</span>
+                        <span class="text-gray-500 text-xs">12:34 PM</span>
+                      </div>
+
+                      <!-- Incident card -->
+                      <div class="mt-3 bg-[#0f1114] rounded-lg overflow-hidden ring-1 ring-white/5">
+                        <div class="h-1 bg-gradient-to-r from-red-500 to-orange-500"></div>
+                        <div class="p-4">
+                          <div class="flex items-start justify-between">
+                            <div>
+                              <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-medium">
+                                  <span class="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span>
+                                  Critical
+                                </span>
+                              </div>
+                              <h4 class="text-white font-semibold mt-2">API Server is not responding</h4>
+                              <p class="text-gray-400 text-sm mt-1">Response time exceeded 30s threshold</p>
+                            </div>
+                          </div>
+                          <div class="flex items-center gap-4 mt-3 pt-3 border-t border-white/5">
+                            <div class="flex items-center gap-1.5 text-xs text-gray-500">
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                              </svg>
+                              API Health Check
+                            </div>
+                            <div class="flex items-center gap-1.5 text-xs text-gray-500">
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                              </svg>
+                              Started 2m ago
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Action buttons -->
+                      <div class="mt-3 flex flex-wrap gap-2" id="slack-buttons">
+                        <button onclick="slackAcknowledge()" id="btn-ack" class="inline-flex items-center gap-2 px-3 py-2 bg-[#007a5a] hover:bg-[#148567] rounded-md text-xs font-semibold text-white transition-all shadow-lg shadow-green-900/20">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                          </svg>
+                          Acknowledge
+                        </button>
+                        <button onclick="slackExecuteOnCall()" id="btn-oncall" class="inline-flex items-center gap-2 px-3 py-2 bg-[#1264a3] hover:bg-[#1d74b8] rounded-md text-xs font-semibold text-white transition-all shadow-lg shadow-blue-900/20">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                          </svg>
+                          Execute On-Call
+                        </button>
+                        <button onclick="slackResolve()" id="btn-resolve" class="inline-flex items-center gap-2 px-3 py-2 bg-[#2e3136] hover:bg-[#3a3d42] border border-gray-600 rounded-md text-xs font-semibold text-white transition-all">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                          </svg>
+                          Resolve
+                        </button>
+                      </div>
+
+                      <!-- Reactions -->
+                      <div class="mt-3 flex items-center gap-2" id="slack-reactions">
+                        <div class="inline-flex items-center gap-1 px-2 py-1 bg-[#2e3136] rounded-full text-xs border border-gray-600 hover:border-gray-500 cursor-pointer transition-colors">
+                          <span>👀</span>
+                          <span class="text-gray-300">3</span>
+                        </div>
+                      </div>
+
+                      <!-- Thread replies container -->
+                      <div id="slack-thread" class="mt-4 space-y-3"></div>
+
+                      <!-- Thread count indicator -->
+                      <div id="thread-indicator" class="hidden mt-3 flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
+                        <div class="flex -space-x-1" id="thread-avatars"></div>
+                        <span id="thread-count"></span>
+                        <span class="text-gray-500">Last reply 1m ago</span>
                       </div>
                     </div>
-                    <!-- Action buttons -->
-                    <div class="mt-3 flex flex-wrap gap-2" id="slack-buttons">
-                      <button onclick="slackAcknowledge()" id="btn-ack" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2e3136] border border-gray-600 rounded text-xs font-medium text-white hover:bg-[#3a3d42] hover:border-gray-500 transition-all">
-                        Acknowledge
-                      </button>
-                      <button onclick="slackExecuteOnCall()" id="btn-oncall" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2e3136] border border-gray-600 rounded text-xs font-medium text-white hover:bg-[#3a3d42] hover:border-gray-500 transition-all">
-                        Execute On-Call
-                      </button>
-                      <button onclick="slackResolve()" id="btn-resolve" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2e3136] border border-gray-600 rounded text-xs font-medium text-white hover:bg-[#3a3d42] hover:border-gray-500 transition-all">
-                        Resolve
-                      </button>
-                    </div>
+                  </div>
+                </div>
+              </div>
 
-                    <!-- Thread replies container -->
-                    <div id="slack-thread" class="mt-4 space-y-3 border-l-2 border-gray-700 pl-3 ml-1"></div>
+              <!-- Message input -->
+              <div class="bg-[#1a1d21] px-4 pb-4">
+                <div class="bg-[#2e3136] rounded-lg px-4 py-3 flex items-center gap-3 ring-1 ring-white/5">
+                  <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                  </svg>
+                  <span class="text-gray-500 text-sm">Message #incidents</span>
+                  <div class="ml-auto flex items-center gap-2">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                    </svg>
                   </div>
                 </div>
               </div>
             </div>
-
           </div>
         </div>
 
@@ -868,30 +952,66 @@
           let ackClicked = false;
           let onCallClicked = false;
           let resolveClicked = false;
+          let replyCount = 0;
+          const avatars = [];
+
+          function updateThreadIndicator() {
+            const indicator = document.getElementById('thread-indicator');
+            const countEl = document.getElementById('thread-count');
+            const avatarsEl = document.getElementById('thread-avatars');
+
+            if (replyCount > 0) {
+              indicator.classList.remove('hidden');
+              indicator.classList.add('flex');
+              countEl.textContent = replyCount + (replyCount === 1 ? ' reply' : ' replies');
+              avatarsEl.innerHTML = avatars.slice(-3).map(a =>
+                `<div class="w-5 h-5 rounded-full ${a.bg} flex items-center justify-center ring-2 ring-[#1a1d21]">
+                  <span class="text-white text-[8px] font-bold">${a.initial}</span>
+                </div>`
+              ).join('');
+            }
+          }
+
+          function addReaction(emoji) {
+            const reactions = document.getElementById('slack-reactions');
+            const newReaction = document.createElement('div');
+            newReaction.className = 'inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 rounded-full text-xs border border-blue-500/50 cursor-pointer transition-colors animate-bounce-in';
+            newReaction.innerHTML = `<span>${emoji}</span><span class="text-blue-300">1</span>`;
+            newReaction.style.animation = 'bounceIn 0.3s ease-out';
+            reactions.appendChild(newReaction);
+          }
 
           function addThreadReply(avatar, name, time, message, isBot) {
             const thread = document.getElementById('slack-thread');
             const reply = document.createElement('div');
-            reply.className = 'flex items-start gap-2 animate-fade-in';
+            reply.className = 'flex items-start gap-2.5 pl-3 border-l-2 border-blue-500/30';
             reply.style.animation = 'fadeSlideIn 0.3s ease-out';
 
-            const avatarHtml = isBot
-              ? `<div class="w-7 h-7 rounded-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center flex-shrink-0 shadow"><span class="text-white text-xs font-bold">O</span></div>`
-              : `<div class="w-7 h-7 rounded-lg bg-gradient-to-br ${avatar} flex items-center justify-center flex-shrink-0 shadow"><span class="text-white text-xs font-bold">${name.charAt(0)}</span></div>`;
+            const avatarClass = isBot ? 'from-green-400 to-green-600' : avatar;
+            const initial = isBot ? '⚡' : name.charAt(0);
+
+            if (!isBot) {
+              avatars.push({ bg: `bg-gradient-to-br ${avatar}`, initial: name.charAt(0) });
+            } else {
+              avatars.push({ bg: 'bg-gradient-to-br from-green-400 to-green-600', initial: 'O' });
+            }
+            replyCount++;
+            updateThreadIndicator();
 
             reply.innerHTML = `
-              ${avatarHtml}
-              <div class="flex-1">
+              <div class="w-8 h-8 rounded-lg bg-gradient-to-br ${avatarClass} flex items-center justify-center flex-shrink-0 shadow-md">
+                <span class="text-white text-xs font-bold">${initial}</span>
+              </div>
+              <div class="flex-1 bg-[#0f1114] rounded-lg p-3 ring-1 ring-white/5">
                 <div class="flex items-center gap-2">
-                  <span class="font-semibold text-white text-xs">${name}</span>
-                  ${isBot ? '<span class="bg-[#2e3136] text-gray-400 text-[10px] px-1 py-0.5 rounded">APP</span>' : ''}
-                  <span class="text-gray-500 text-[10px]">${time}</span>
+                  <span class="font-semibold text-white text-sm">${name}</span>
+                  ${isBot ? '<span class="bg-[#4a3f7a] text-purple-200 text-[9px] px-1 py-0.5 rounded font-medium">APP</span>' : ''}
+                  <span class="text-gray-500 text-[11px]">${time}</span>
                 </div>
-                <p class="text-gray-300 text-xs mt-0.5">${message}</p>
+                <p class="text-gray-300 text-sm mt-1 leading-relaxed">${message}</p>
               </div>
             `;
             thread.appendChild(reply);
-            thread.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }
 
           window.slackAcknowledge = function() {
@@ -899,20 +1019,22 @@
             ackClicked = true;
 
             const btn = document.getElementById('btn-ack');
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
-            btn.innerHTML = '<svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Acknowledging...';
+            btn.disabled = true;
+            btn.classList.add('opacity-70');
+            btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><span>Acknowledging...</span>';
 
             setTimeout(() => {
-              btn.innerHTML = '<svg class="w-3 h-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Acknowledged';
-              btn.classList.remove('bg-[#2e3136]', 'border-gray-600');
-              btn.classList.add('bg-green-900/30', 'border-green-700/50', 'text-green-400');
+              btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Acknowledged</span>';
+              btn.classList.remove('bg-[#007a5a]', 'hover:bg-[#148567]', 'shadow-green-900/20');
+              btn.classList.add('bg-[#2e3136]', 'border', 'border-green-500/50', 'text-green-400');
 
-              addThreadReply('from-blue-400 to-blue-600', 'Sarah Chen', '12:35 PM', 'Acknowledged this incident. Looking into it now.', false);
+              addReaction('👍');
+              addThreadReply('from-blue-400 to-blue-600', 'Sarah Chen', '12:35 PM', 'Acknowledged! Looking into this now. Checking the API gateway logs.', false);
 
               setTimeout(() => {
-                addThreadReply('', 'OneUptime', '12:35 PM', 'Incident acknowledged by Sarah Chen', true);
-              }, 800);
-            }, 600);
+                addThreadReply('from-green-400 to-green-600', 'OneUptime', '12:35 PM', '✅ Incident acknowledged by <strong class="text-white">Sarah Chen</strong>', true);
+              }, 1000);
+            }, 800);
           };
 
           window.slackExecuteOnCall = function() {
@@ -920,16 +1042,18 @@
             onCallClicked = true;
 
             const btn = document.getElementById('btn-oncall');
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
-            btn.innerHTML = '<svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Executing...';
+            btn.disabled = true;
+            btn.classList.add('opacity-70');
+            btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><span>Paging...</span>';
 
             setTimeout(() => {
-              btn.innerHTML = '<svg class="w-3 h-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> On-Call Executed';
-              btn.classList.remove('bg-[#2e3136]', 'border-gray-600');
-              btn.classList.add('bg-blue-900/30', 'border-blue-700/50', 'text-blue-400');
+              btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Team Paged</span>';
+              btn.classList.remove('bg-[#1264a3]', 'hover:bg-[#1d74b8]', 'shadow-blue-900/20');
+              btn.classList.add('bg-[#2e3136]', 'border', 'border-blue-500/50', 'text-blue-400');
 
-              addThreadReply('', 'OneUptime', '12:36 PM', 'On-call policy "Engineering Team" executed. Notifying: Mike Johnson, Sarah Chen', true);
-            }, 600);
+              addReaction('🚨');
+              addThreadReply('from-green-400 to-green-600', 'OneUptime', '12:36 PM', '📟 On-call policy <strong class="text-white">"Engineering Team"</strong> executed<br/><span class="text-gray-400">→ Notifying: Mike Johnson (primary), Sarah Chen (secondary)</span>', true);
+            }, 800);
           };
 
           window.slackResolve = function() {
@@ -937,28 +1061,35 @@
             resolveClicked = true;
 
             const btn = document.getElementById('btn-resolve');
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
-            btn.innerHTML = '<svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Resolving...';
+            btn.disabled = true;
+            btn.classList.add('opacity-70');
+            btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><span>Resolving...</span>';
 
             setTimeout(() => {
-              btn.innerHTML = '<svg class="w-3 h-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Resolved';
-              btn.classList.remove('bg-[#2e3136]', 'border-gray-600');
-              btn.classList.add('bg-green-900/30', 'border-green-700/50', 'text-green-400');
+              btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Resolved</span>';
+              btn.classList.remove('bg-[#2e3136]', 'border-gray-600', 'hover:bg-[#3a3d42]');
+              btn.classList.add('bg-green-600/20', 'border', 'border-green-500/50', 'text-green-400');
 
-              addThreadReply('from-purple-400 to-purple-600', 'Mike Johnson', '12:41 PM', 'Fixed the connection pool issue. Deploying hotfix now.', false);
+              addReaction('🎉');
+              addThreadReply('from-purple-400 to-purple-600', 'Mike Johnson', '12:41 PM', 'Found it! Connection pool was exhausted due to a leaked connection in the auth service. Deployed hotfix v2.3.1 🚀', false);
 
               setTimeout(() => {
-                addThreadReply('', 'OneUptime', '12:42 PM', 'Incident resolved by Mike Johnson. Total downtime: 8 minutes.', true);
-              }, 800);
-            }, 600);
+                addThreadReply('from-green-400 to-green-600', 'OneUptime', '12:42 PM', '🎉 Incident resolved by <strong class="text-white">Mike Johnson</strong><br/><span class="text-gray-400">Total downtime: 8 minutes • MTTR: 8m</span>', true);
+              }, 1000);
+            }, 800);
           };
         })();
         </script>
 
         <style>
           @keyframes fadeSlideIn {
-            from { opacity: 0; transform: translateY(8px); }
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes bounceIn {
+            0% { opacity: 0; transform: scale(0.8); }
+            50% { transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
           }
         </style>
       </div>
