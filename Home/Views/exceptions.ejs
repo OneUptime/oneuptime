@@ -146,153 +146,154 @@
       </div>
     </div>
 
-    <!-- Feature Block 1: Full Stack Traces -->
-    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+    <!-- Why OneUptime Section -->
+    <div class="relative overflow-hidden bg-white py-24 sm:py-32">
+
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
-          <div class="lg:pr-8">
-            <div class="inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-1.5 text-sm font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20 mb-6">
-              <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
-              </svg>
-              <span class="text-sm font-medium text-orange-700">Stack Traces</span>
-            </div>
-            <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-              See exactly where and <span class="text-orange-600">why errors occur</span>
-            </h2>
-            <p class="mt-6 text-lg leading-8 text-gray-600">
-              Get complete stack traces with source code context. Navigate directly to the line of code that caused the error, with surrounding context and variable values.
-            </p>
-            <ul class="mt-8 space-y-4">
-              <li class="flex items-start gap-4">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
-                  <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <div>
-                  <div class="font-semibold text-gray-900">Source maps support</div>
-                  <div class="text-gray-600">Automatically decode minified JavaScript and TypeScript</div>
-                </div>
-              </li>
-              <li class="flex items-start gap-4">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
-                  <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <div>
-                  <div class="font-semibold text-gray-900">Context variables</div>
-                  <div class="text-gray-600">See local variables and function arguments at crash time</div>
-                </div>
-              </li>
-              <li class="flex items-start gap-4">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
-                  <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <div>
-                  <div class="font-semibold text-gray-900">Multi-language support</div>
-                  <div class="text-gray-600">JavaScript, Python, Go, Java, Ruby, .NET, and more</div>
-                </div>
-              </li>
-            </ul>
+        <!-- Section Header -->
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-1.5 text-sm font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20 mb-6">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            Why OneUptime
           </div>
-          <div class="relative lg:order-last">
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            Exception tracking built for modern teams
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Catch, track, and resolve errors before your users notice them. Get complete visibility into every exception across your entire stack.
+          </p>
+        </div>
+
+        <!-- Feature Blocks -->
+        <div class="space-y-24 lg:space-y-32">
+          <!-- Feature 1: Full Stack Traces -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
             <div class="relative">
-              <!-- Subtle background -->
-              <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
-
-              <!-- Stack Trace Viewer -->
-              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
-                <!-- Browser header -->
-                <div class="bg-gray-900 px-4 py-2.5 flex items-center gap-3">
-                  <div class="flex gap-1.5">
-                    <div class="w-2.5 h-2.5 rounded-full bg-red-500"></div>
-                    <div class="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
-                    <div class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
-                  </div>
-                  <div class="flex-1 text-center">
-                    <span class="text-gray-400 text-xs font-mono">Stack Trace</span>
-                  </div>
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 ring-1 ring-orange-200">
+                  <svg class="h-7 w-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
                 </div>
+                <span class="text-sm font-semibold text-orange-600 uppercase tracking-wide">Stack Traces</span>
+              </div>
+              <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">See exactly where and why errors occur</h3>
+              <p class="text-lg text-gray-600 mb-6">
+                Get complete stack traces with source code context. Navigate directly to the line of code that caused the error, with surrounding context and variable values.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-start gap-3">
+                  <svg class="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span class="text-gray-600">Source maps support - decode minified JavaScript and TypeScript</span>
+                </li>
+                <li class="flex items-start gap-3">
+                  <svg class="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span class="text-gray-600">Context variables - see local variables and function arguments</span>
+                </li>
+                <li class="flex items-start gap-3">
+                  <svg class="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span class="text-gray-600">Multi-language support - JavaScript, Python, Go, Java, Ruby, .NET</span>
+                </li>
+              </ul>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <!-- Subtle background -->
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
 
-                <!-- Stack trace content -->
-                <div class="p-4 bg-gray-50">
-                  <!-- Error header -->
-                  <div class="flex items-center gap-2 mb-3 p-2 bg-red-50 rounded-lg border border-red-200">
-                    <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <span class="text-red-700 text-xs font-medium">TypeError: Cannot read property 'id' of undefined</span>
-                  </div>
-
-                  <!-- Stack frames -->
-                  <div class="space-y-1 font-mono text-xs">
-                    <!-- Frame 1 - highlighted -->
-                    <div class="p-2 bg-rose-100 rounded border-l-2 border-rose-500">
-                      <div class="flex items-center gap-2">
-                        <span class="text-rose-600 font-medium">at</span>
-                        <span class="text-gray-800">getUser</span>
-                        <span class="text-gray-400">(</span>
-                        <span class="text-rose-600">user.service.ts:42</span>
-                        <span class="text-gray-400">)</span>
-                      </div>
-                      <!-- Code preview -->
-                      <div class="mt-2 p-2 bg-white rounded text-[10px] border border-gray-200">
-                        <div class="text-gray-400">41 |  const user = await db.findUser(id);</div>
-                        <div class="text-rose-600 bg-rose-50 -mx-2 px-2">42 |  return user.id; // Error here</div>
-                        <div class="text-gray-400">43 |}</div>
-                      </div>
+                <!-- Stack Trace Viewer -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <!-- Browser header -->
+                  <div class="bg-gray-900 px-4 py-2.5 flex items-center gap-3">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
                     </div>
-
-                    <!-- Frame 2 -->
-                    <div class="p-2 bg-white rounded border border-gray-100">
-                      <div class="flex items-center gap-2">
-                        <span class="text-gray-500">at</span>
-                        <span class="text-gray-700">handleRequest</span>
-                        <span class="text-gray-400">(api.controller.ts:128)</span>
-                      </div>
-                    </div>
-
-                    <!-- Frame 3 -->
-                    <div class="p-2 bg-white rounded border border-gray-100">
-                      <div class="flex items-center gap-2">
-                        <span class="text-gray-500">at</span>
-                        <span class="text-gray-700">processMiddleware</span>
-                        <span class="text-gray-400">(middleware.ts:56)</span>
-                      </div>
-                    </div>
-
-                    <!-- Frame 4 -->
-                    <div class="p-2 bg-white rounded border border-gray-100 opacity-60">
-                      <div class="flex items-center gap-2">
-                        <span class="text-gray-500">at</span>
-                        <span class="text-gray-700">Layer.handle</span>
-                        <span class="text-gray-400">(express/router.js:174)</span>
-                      </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-gray-400 text-xs font-mono">Stack Trace</span>
                     </div>
                   </div>
 
-                  <!-- Footer -->
-                  <div class="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between text-xs text-gray-400">
-                    <span>Node.js v18.17.0</span>
-                    <span class="text-rose-500 font-medium">4 frames</span>
+                  <!-- Stack trace content -->
+                  <div class="p-4 bg-gray-50">
+                    <!-- Error header -->
+                    <div class="flex items-center gap-2 mb-3 p-2 bg-red-50 rounded-lg border border-red-200">
+                      <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span class="text-red-700 text-xs font-medium">TypeError: Cannot read property 'id' of undefined</span>
+                    </div>
+
+                    <!-- Stack frames -->
+                    <div class="space-y-1 font-mono text-xs">
+                      <!-- Frame 1 - highlighted -->
+                      <div class="p-2 bg-rose-100 rounded border-l-2 border-rose-500">
+                        <div class="flex items-center gap-2">
+                          <span class="text-rose-600 font-medium">at</span>
+                          <span class="text-gray-800">getUser</span>
+                          <span class="text-gray-400">(</span>
+                          <span class="text-rose-600">user.service.ts:42</span>
+                          <span class="text-gray-400">)</span>
+                        </div>
+                        <!-- Code preview -->
+                        <div class="mt-2 p-2 bg-white rounded text-[10px] border border-gray-200">
+                          <div class="text-gray-400">41 |  const user = await db.findUser(id);</div>
+                          <div class="text-rose-600 bg-rose-50 -mx-2 px-2">42 |  return user.id; // Error here</div>
+                          <div class="text-gray-400">43 |}</div>
+                        </div>
+                      </div>
+
+                      <!-- Frame 2 -->
+                      <div class="p-2 bg-white rounded border border-gray-100">
+                        <div class="flex items-center gap-2">
+                          <span class="text-gray-500">at</span>
+                          <span class="text-gray-700">handleRequest</span>
+                          <span class="text-gray-400">(api.controller.ts:128)</span>
+                        </div>
+                      </div>
+
+                      <!-- Frame 3 -->
+                      <div class="p-2 bg-white rounded border border-gray-100">
+                        <div class="flex items-center gap-2">
+                          <span class="text-gray-500">at</span>
+                          <span class="text-gray-700">processMiddleware</span>
+                          <span class="text-gray-400">(middleware.ts:56)</span>
+                        </div>
+                      </div>
+
+                      <!-- Frame 4 -->
+                      <div class="p-2 bg-white rounded border border-gray-100 opacity-60">
+                        <div class="flex items-center gap-2">
+                          <span class="text-gray-500">at</span>
+                          <span class="text-gray-700">Layer.handle</span>
+                          <span class="text-gray-400">(express/router.js:174)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between text-xs text-gray-400">
+                      <span>Node.js v18.17.0</span>
+                      <span class="text-rose-500 font-medium">4 frames</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Feature Block 2: Intelligent Grouping -->
-    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
-      <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
-          <div class="relative lg:order-first">
+          <!-- Feature 2: Intelligent Grouping -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="mt-12 lg:mt-0 lg:order-first">
             <div class="relative">
               <!-- Subtle background -->
               <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
@@ -388,123 +389,89 @@
                 </div>
               </div>
             </div>
-          </div>
-          <div class="lg:pl-8">
-            <div class="inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-1.5 text-sm font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20 mb-6">
-              <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-              <span class="text-sm font-medium text-orange-700">Intelligent Grouping</span>
             </div>
-            <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-              Focus on unique issues, <span class="text-orange-600">not noise</span>
-            </h2>
-            <p class="mt-6 text-lg leading-8 text-gray-600">
-              Our intelligent deduplication algorithm groups similar errors together, even when stack traces differ slightly. See the true impact of each unique issue.
-            </p>
-            <ul class="mt-8 space-y-4">
-              <li class="flex items-start gap-4">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
-                  <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <div>
-                  <div class="font-semibold text-gray-900">Fingerprint-based grouping</div>
-                  <div class="text-gray-600">Smart algorithms identify the same error across different contexts</div>
-                </div>
-              </li>
-              <li class="flex items-start gap-4">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
-                  <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <div>
-                  <div class="font-semibold text-gray-900">Impact metrics</div>
-                  <div class="text-gray-600">See how many users and sessions are affected by each error</div>
-                </div>
-              </li>
-              <li class="flex items-start gap-4">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
-                  <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <div>
-                  <div class="font-semibold text-gray-900">Custom grouping rules</div>
-                  <div class="text-gray-600">Define your own rules for how errors should be grouped</div>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Feature Block 3: AI-Powered Analysis -->
-    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
-      <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
-          <div class="lg:pr-8">
-            <div class="inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-1.5 text-sm font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20 mb-6">
-              <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-              <span class="text-sm font-medium text-orange-700">AI-Powered</span>
-            </div>
-            <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-              Get AI-generated <span class="text-orange-600">root cause analysis</span>
-            </h2>
-            <p class="mt-6 text-lg leading-8 text-gray-600">
-              Our AI analyzes error patterns, stack traces, and surrounding context to identify the root cause and suggest fixes. Spend less time debugging and more time building.
-            </p>
-            <ul class="mt-8 space-y-4">
-              <li class="flex items-start gap-4">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
-                  <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <div>
-                  <div class="font-semibold text-gray-900">Automated root cause</div>
-                  <div class="text-gray-600">AI identifies the underlying cause, not just the symptom</div>
-                </div>
-              </li>
-              <li class="flex items-start gap-4">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
-                  <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <div>
-                  <div class="font-semibold text-gray-900">Fix suggestions</div>
-                  <div class="text-gray-600">Get code suggestions to resolve errors quickly</div>
-                </div>
-              </li>
-              <li class="flex items-start gap-4">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
-                  <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <div>
-                  <div class="font-semibold text-gray-900">Auto-fix with PRs</div>
-                  <div class="text-gray-600">Enable AI Agent to create pull requests with fixes</div>
-                </div>
-              </li>
-            </ul>
-            <div class="mt-8">
-              <a href="/product/ai-agent" class="inline-flex items-center gap-2 text-orange-600 font-semibold hover:text-orange-700 transition-colors">
-                Learn about AI Agent
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </a>
-            </div>
-          </div>
-          <div class="relative lg:order-last">
             <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 ring-1 ring-orange-200">
+                  <svg class="h-7 w-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-orange-600 uppercase tracking-wide">Intelligent Grouping</span>
+              </div>
+              <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Focus on unique issues, not noise</h3>
+              <p class="text-lg text-gray-600 mb-6">
+                Our intelligent deduplication algorithm groups similar errors together, even when stack traces differ slightly. See the true impact of each unique issue.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-start gap-3">
+                  <svg class="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span class="text-gray-600">Fingerprint-based grouping - identify same error across contexts</span>
+                </li>
+                <li class="flex items-start gap-3">
+                  <svg class="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span class="text-gray-600">Impact metrics - see affected users and sessions</span>
+                </li>
+                <li class="flex items-start gap-3">
+                  <svg class="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span class="text-gray-600">Custom grouping rules - define your own error grouping</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Feature 3: AI-Powered Analysis -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 ring-1 ring-orange-200">
+                  <svg class="h-7 w-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-orange-600 uppercase tracking-wide">AI-Powered</span>
+              </div>
+              <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Get AI-generated root cause analysis</h3>
+              <p class="text-lg text-gray-600 mb-6">
+                Our AI analyzes error patterns, stack traces, and surrounding context to identify the root cause and suggest fixes. Spend less time debugging and more time building.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-start gap-3">
+                  <svg class="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span class="text-gray-600">Automated root cause - AI identifies the underlying cause</span>
+                </li>
+                <li class="flex items-start gap-3">
+                  <svg class="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span class="text-gray-600">Fix suggestions - get code suggestions to resolve errors</span>
+                </li>
+                <li class="flex items-start gap-3">
+                  <svg class="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span class="text-gray-600">Auto-fix with PRs - AI Agent creates pull requests</span>
+                </li>
+              </ul>
+              <div class="mt-8">
+                <a href="/product/ai-agent" class="inline-flex items-center gap-2 text-orange-600 font-semibold hover:text-orange-700 transition-colors">
+                  Learn about AI Agent
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
               <!-- Subtle background -->
               <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
 
@@ -585,16 +552,12 @@
                 </div>
               </div>
             </div>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Feature Block 4: Release Tracking -->
-    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
-      <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
-          <div class="relative lg:order-first">
+          <!-- Feature 4: Release Tracking -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="mt-12 lg:mt-0 lg:order-first">
             <div class="relative">
               <!-- Subtle background -->
               <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
@@ -695,55 +658,41 @@
                 </div>
               </div>
             </div>
-          </div>
-          <div class="lg:pl-8">
-            <div class="inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-1.5 text-sm font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20 mb-6">
-              <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
-              <span class="text-sm font-medium text-orange-700">Release Tracking</span>
             </div>
-            <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-              Know which release <span class="text-orange-600">broke things</span>
-            </h2>
-            <p class="mt-6 text-lg leading-8 text-gray-600">
-              Track errors by release version and correlate with deployments. Quickly identify regressions and roll back problematic releases with confidence.
-            </p>
-            <ul class="mt-8 space-y-4">
-              <li class="flex items-start gap-4">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
-                  <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 ring-1 ring-orange-200">
+                  <svg class="h-7 w-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                   </svg>
                 </div>
-                <div>
-                  <div class="font-semibold text-gray-900">Version correlation</div>
-                  <div class="text-gray-600">See which version introduced each error</div>
-                </div>
-              </li>
-              <li class="flex items-start gap-4">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
-                  <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <span class="text-sm font-semibold text-orange-600 uppercase tracking-wide">Release Tracking</span>
+              </div>
+              <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Know which release broke things</h3>
+              <p class="text-lg text-gray-600 mb-6">
+                Track errors by release version and correlate with deployments. Quickly identify regressions and roll back problematic releases with confidence.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-start gap-3">
+                  <svg class="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                </div>
-                <div>
-                  <div class="font-semibold text-gray-900">Regression detection</div>
-                  <div class="text-gray-600">Automatically detect when fixed errors resurface</div>
-                </div>
-              </li>
-              <li class="flex items-start gap-4">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-200">
-                  <svg class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <span class="text-gray-600">Version correlation - see which version introduced each error</span>
+                </li>
+                <li class="flex items-start gap-3">
+                  <svg class="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                </div>
-                <div>
-                  <div class="font-semibold text-gray-900">Deploy markers</div>
-                  <div class="text-gray-600">See deployments overlaid on error trends</div>
-                </div>
-              </li>
-            </ul>
+                  <span class="text-gray-600">Regression detection - detect when fixed errors resurface</span>
+                </li>
+                <li class="flex items-start gap-3">
+                  <svg class="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span class="text-gray-600">Deploy markers - see deployments overlaid on error trends</span>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
