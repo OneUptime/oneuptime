@@ -892,132 +892,374 @@
       <%- include('./Partials/security') -%>
 
   <!-- Team Notifications Section -->
-  <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+  <div class="relative overflow-hidden bg-white py-24 sm:py-32">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
-      <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
-        <div class="lg:pr-8">
-          <div class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-1.5 text-sm font-medium text-sky-700 ring-1 ring-inset ring-sky-600/20 mb-6">
-            <svg class="h-4 w-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <span class="text-sm font-medium text-sky-700">Workflow Notifications</span>
-          </div>
-          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-            Stay informed with <span class="text-sky-600">real-time alerts</span>
+      <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+        <!-- Content -->
+        <div class="relative">
+          <p class="text-sm font-medium text-sky-600 uppercase tracking-wide mb-3">Team Notifications</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Workflow alerts where your team already works
           </h2>
-          <p class="mt-6 text-lg leading-8 text-gray-600">
-            Get notified when workflows complete, fail, or need attention. Integrate with Slack, Microsoft Teams, email, or any channel your team uses.
+          <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+            Get instant notifications in Slack and Microsoft Teams when workflows complete, fail, or need attention. No context switching required.
           </p>
-          <ul class="mt-8 space-y-4">
-            <li class="flex items-start gap-4">
-              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200">
-                <svg class="h-4 w-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+
+          <!-- Integration cards -->
+          <div class="mt-10 space-y-3">
+            <!-- Slack -->
+            <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                  <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/>
+                  <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/>
+                  <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z" fill="#2EB67D"/>
+                  <path d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#ECB22E"/>
                 </svg>
               </div>
-              <div>
-                <div class="font-semibold text-gray-900">Execution status</div>
-                <div class="text-gray-600">Know instantly when workflows succeed or fail</div>
+              <div class="flex-1">
+                <h3 class="text-sm font-semibold text-gray-900">Slack</h3>
+                <p class="text-sm text-gray-500">Instant alerts with interactive actions</p>
               </div>
-            </li>
-            <li class="flex items-start gap-4">
-              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200">
-                <svg class="h-4 w-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </div>
+
+            <!-- Microsoft Teams -->
+            <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                  <path d="M20.16 7.8h-4.736c.103.317.159.654.159 1.005v7.029a3.588 3.588 0 01-3.583 3.583h-4.8v.777c0 .998.81 1.806 1.806 1.806h8.339l2.869 1.912a.452.452 0 00.703-.376V21.2h.646c.997 0 1.806-.809 1.806-1.806v-9.788A1.806 1.806 0 0020.16 7.8z" fill="#5059C9"/>
+                  <circle cx="18.5" cy="4.5" r="2.5" fill="#5059C9"/>
+                  <path d="M13.5 6H3.806A1.806 1.806 0 002 7.806v9.388c0 .997.81 1.806 1.806 1.806h2.611v3.336a.452.452 0 00.703.376L10.5 20h3a3.5 3.5 0 003.5-3.5v-7A3.5 3.5 0 0013.5 6z" fill="#7B83EB"/>
+                  <circle cx="10" cy="3" r="3" fill="#7B83EB"/>
+                  <path d="M6 11h6M6 14h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
               </div>
-              <div>
-                <div class="font-semibold text-gray-900">Error details</div>
-                <div class="text-gray-600">Get error logs and stack traces in your alerts</div>
+              <div class="flex-1">
+                <h3 class="text-sm font-semibold text-gray-900">Microsoft Teams</h3>
+                <p class="text-sm text-gray-500">Native adaptive cards integration</p>
               </div>
-            </li>
-            <li class="flex items-start gap-4">
-              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200">
-                <svg class="h-4 w-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div>
-                <div class="font-semibold text-gray-900">Custom triggers</div>
-                <div class="text-gray-600">Send notifications from any step in your workflow</div>
-              </div>
-            </li>
-          </ul>
+            </div>
+          </div>
+
+          <!-- Features list -->
+          <div class="mt-8 grid grid-cols-2 gap-4">
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+              <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Success notifications
+            </div>
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+              <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Failure alerts
+            </div>
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+              <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Error details
+            </div>
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+              <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Action buttons
+            </div>
+          </div>
         </div>
-        <div class="relative lg:order-last">
-          <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-inset ring-gray-900/10">
-            <!-- Slack-like notification demo -->
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-              <div class="bg-[#4A154B] px-4 py-3 flex items-center gap-3">
-                <div class="flex items-center gap-2">
-                  <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+
+        <!-- Illustration - Interactive Slack Notification -->
+        <div class="mt-16 lg:mt-0">
+          <div class="relative" id="workflows-slack-demo">
+            <!-- Decorative background elements -->
+            <div class="absolute -inset-4 bg-gradient-to-r from-sky-500/10 via-purple-500/10 to-pink-500/10 rounded-3xl blur-2xl"></div>
+
+            <!-- Slack Window -->
+            <div class="relative bg-[#1a1d21] rounded-2xl shadow-2xl overflow-hidden max-w-md mx-auto ring-1 ring-white/10">
+              <!-- Slack window header -->
+              <div class="bg-[#0f1114] px-4 py-3 flex items-center justify-between border-b border-white/5">
+                <div class="flex items-center gap-3">
+                  <div class="flex gap-2">
+                    <div class="w-3 h-3 rounded-full bg-[#ff5f57] shadow-sm shadow-red-500/50"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#febc2e] shadow-sm shadow-yellow-500/50"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#28c840] shadow-sm shadow-green-500/50"></div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 bg-[#1a1d21] px-3 py-1 rounded-md">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
                   </svg>
-                  <span class="text-white font-bold text-lg">Slack</span>
+                  <span class="text-white text-sm font-semibold">workflows</span>
+                  <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-full bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center ring-2 ring-green-500 ring-offset-1 ring-offset-[#0f1114]">
+                    <span class="text-white text-xs font-bold">D</span>
+                  </div>
                 </div>
               </div>
-              <div class="p-4 space-y-4">
-                <div class="flex items-start gap-3 animate-fadeInSlack" style="animation-delay: 0.2s;">
-                  <div class="h-10 w-10 rounded-lg bg-sky-600 flex items-center justify-center flex-shrink-0">
-                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-baseline gap-2">
-                      <span class="font-bold text-gray-900">OneUptime</span>
-                      <span class="text-xs text-gray-500">2:34 PM</span>
-                    </div>
-                    <div class="mt-1 text-sm text-gray-700">
-                      <div class="bg-emerald-50 border-l-4 border-emerald-500 p-3 rounded-r-lg">
-                        <p class="font-medium text-emerald-800">Workflow completed successfully</p>
-                        <p class="text-emerald-600 text-xs mt-1">Deploy to Production • 47 steps • 2m 34s</p>
+
+              <!-- Messages area -->
+              <div class="bg-[#1a1d21] px-4 py-4" id="workflows-slack-messages">
+                <!-- Original workflow message -->
+                <div class="group relative">
+                  <div class="flex items-start gap-3">
+                    <img src="/img/OneUptimePNG/1.png" alt="OneUptime" class="w-10 h-10 rounded-lg flex-shrink-0 shadow-lg" />
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold text-white text-sm hover:underline cursor-pointer">OneUptime</span>
+                        <span class="bg-[#4a3f7a] text-purple-200 text-[10px] px-1.5 py-0.5 rounded font-medium">APP</span>
+                        <span class="text-gray-500 text-xs">3:45 PM</span>
+                      </div>
+
+                      <!-- Workflow card -->
+                      <div class="mt-3 bg-[#0f1114] rounded-lg overflow-hidden ring-1 ring-white/5">
+                        <div class="h-1 bg-gradient-to-r from-rose-500 to-orange-500"></div>
+                        <div class="p-4">
+                          <div class="flex items-start justify-between">
+                            <div>
+                              <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 text-xs font-medium">
+                                  <span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse"></span>
+                                  Failed
+                                </span>
+                              </div>
+                              <h4 class="text-white font-semibold mt-2">Database Backup failed at step 3</h4>
+                              <p class="text-gray-400 text-sm mt-1">Connection timeout after 30 seconds</p>
+                            </div>
+                          </div>
+                          <div class="flex items-center gap-4 mt-3 pt-3 border-t border-white/5">
+                            <div class="flex items-center gap-1.5 text-xs text-gray-500">
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                              </svg>
+                              Daily Backup Workflow
+                            </div>
+                            <div class="flex items-center gap-1.5 text-xs text-gray-500">
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                              </svg>
+                              Failed 2m ago
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Action buttons -->
+                      <div class="mt-3 flex flex-wrap gap-2" id="workflows-slack-buttons">
+                        <button onclick="workflowsRetry()" id="workflows-btn-retry" class="inline-flex items-center gap-2 px-3 py-2 bg-[#007a5a] hover:bg-[#148567] rounded-md text-xs font-semibold text-white transition-all shadow-lg shadow-green-900/20">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                          </svg>
+                          Retry Workflow
+                        </button>
+                        <button onclick="workflowsViewLogs()" id="workflows-btn-logs" class="inline-flex items-center gap-2 px-3 py-2 bg-[#1264a3] hover:bg-[#1d74b8] rounded-md text-xs font-semibold text-white transition-all shadow-lg shadow-blue-900/20">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          </svg>
+                          View Logs
+                        </button>
+                        <button onclick="workflowsDisable()" id="workflows-btn-disable" class="inline-flex items-center gap-2 px-3 py-2 bg-[#2e3136] hover:bg-[#3a3d42] border border-gray-600 rounded-md text-xs font-semibold text-white transition-all">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                          </svg>
+                          Disable
+                        </button>
+                      </div>
+
+                      <!-- Reactions -->
+                      <div class="mt-3 flex items-center gap-2" id="workflows-slack-reactions">
+                        <div class="inline-flex items-center gap-1 px-2 py-1 bg-[#2e3136] rounded-full text-xs border border-gray-600 hover:border-gray-500 cursor-pointer transition-colors">
+                          <span>👀</span>
+                          <span class="text-gray-300">2</span>
+                        </div>
+                      </div>
+
+                      <!-- Thread replies container -->
+                      <div id="workflows-slack-thread" class="mt-4 space-y-3"></div>
+
+                      <!-- Thread count indicator -->
+                      <div id="workflows-thread-indicator" class="hidden mt-3 flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
+                        <div class="flex -space-x-1" id="workflows-thread-avatars"></div>
+                        <span id="workflows-thread-count"></span>
+                        <span class="text-gray-500">Last reply 1m ago</span>
                       </div>
                     </div>
                   </div>
                 </div>
-                <div class="flex items-start gap-3 animate-fadeInSlack" style="animation-delay: 0.6s;">
-                  <div class="h-10 w-10 rounded-lg bg-sky-600 flex items-center justify-center flex-shrink-0">
-                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </div>
+
+              <!-- Message input -->
+              <div class="bg-[#1a1d21] px-4 pb-4">
+                <div class="bg-[#2e3136] rounded-lg px-4 py-3 flex items-center gap-3 ring-1 ring-white/5">
+                  <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                  </svg>
+                  <span class="text-gray-500 text-sm">Message #workflows</span>
+                  <div class="ml-auto flex items-center gap-2">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-baseline gap-2">
-                      <span class="font-bold text-gray-900">OneUptime</span>
-                      <span class="text-xs text-gray-500">2:35 PM</span>
-                    </div>
-                    <div class="mt-1 text-sm text-gray-700">
-                      <div class="bg-rose-50 border-l-4 border-rose-500 p-3 rounded-r-lg">
-                        <p class="font-medium text-rose-800">Workflow failed at step 12</p>
-                        <p class="text-rose-600 text-xs mt-1">Backup Database • API timeout error</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="flex items-start gap-3 animate-fadeInSlack" style="animation-delay: 1.0s;">
-                  <div class="h-10 w-10 rounded-lg bg-sky-600 flex items-center justify-center flex-shrink-0">
-                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
                     </svg>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-baseline gap-2">
-                      <span class="font-bold text-gray-900">OneUptime</span>
-                      <span class="text-xs text-gray-500">2:36 PM</span>
-                    </div>
-                    <div class="mt-1 text-sm text-gray-700">
-                      <div class="bg-sky-50 border-l-4 border-sky-500 p-3 rounded-r-lg">
-                        <p class="font-medium text-sky-800">Scheduled workflow starting</p>
-                        <p class="text-sky-600 text-xs mt-1">Daily Report Generation • 12 steps</p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        <script>
+        (function() {
+          let workflowsRetryClicked = false;
+          let workflowsLogsClicked = false;
+          let workflowsDisableClicked = false;
+          let workflowsReplyCount = 0;
+          const workflowsAvatars = [];
+
+          function updateWorkflowsThreadIndicator() {
+            const indicator = document.getElementById('workflows-thread-indicator');
+            const countEl = document.getElementById('workflows-thread-count');
+            const avatarsEl = document.getElementById('workflows-thread-avatars');
+
+            if (workflowsReplyCount > 0) {
+              indicator.classList.remove('hidden');
+              indicator.classList.add('flex');
+              countEl.textContent = workflowsReplyCount + (workflowsReplyCount === 1 ? ' reply' : ' replies');
+              avatarsEl.innerHTML = workflowsAvatars.slice(-3).map(a =>
+                a.isBot
+                  ? `<img src="/img/OneUptimePNG/1.png" alt="O" class="w-5 h-5 rounded-full ring-2 ring-[#1a1d21]" />`
+                  : `<div class="w-5 h-5 rounded-full ${a.bg} flex items-center justify-center ring-2 ring-[#1a1d21]">
+                      <span class="text-white text-[8px] font-bold">${a.initial}</span>
+                    </div>`
+              ).join('');
+            }
+          }
+
+          function addWorkflowsReaction(emoji) {
+            const reactions = document.getElementById('workflows-slack-reactions');
+            const newReaction = document.createElement('div');
+            newReaction.className = 'inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 rounded-full text-xs border border-blue-500/50 cursor-pointer transition-colors';
+            newReaction.innerHTML = `<span>${emoji}</span><span class="text-blue-300">1</span>`;
+            newReaction.style.animation = 'bounceIn 0.3s ease-out';
+            reactions.appendChild(newReaction);
+          }
+
+          function addWorkflowsThreadReply(avatar, name, time, message, isBot) {
+            const thread = document.getElementById('workflows-slack-thread');
+            const reply = document.createElement('div');
+            reply.className = 'flex items-start gap-2.5 pl-3 border-l-2 border-blue-500/30';
+            reply.style.animation = 'fadeSlideIn 0.3s ease-out';
+
+            const avatarClass = avatar;
+            const initial = name.charAt(0);
+
+            if (!isBot) {
+              workflowsAvatars.push({ bg: `bg-gradient-to-br ${avatar}`, initial: name.charAt(0) });
+            } else {
+              workflowsAvatars.push({ bg: '', initial: 'O', isBot: true });
+            }
+            workflowsReplyCount++;
+            updateWorkflowsThreadIndicator();
+
+            const avatarHtml = isBot
+              ? `<img src="/img/OneUptimePNG/1.png" alt="OneUptime" class="w-8 h-8 rounded-lg flex-shrink-0 shadow-md" />`
+              : `<div class="w-8 h-8 rounded-lg bg-gradient-to-br ${avatarClass} flex items-center justify-center flex-shrink-0 shadow-md"><span class="text-white text-xs font-bold">${initial}</span></div>`;
+
+            reply.innerHTML = `
+              ${avatarHtml}
+              <div class="flex-1 bg-[#0f1114] rounded-lg p-3 ring-1 ring-white/5">
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-white text-sm">${name}</span>
+                  ${isBot ? '<span class="bg-[#4a3f7a] text-purple-200 text-[9px] px-1 py-0.5 rounded font-medium">APP</span>' : ''}
+                  <span class="text-gray-500 text-[11px]">${time}</span>
+                </div>
+                <p class="text-gray-300 text-sm mt-1 leading-relaxed">${message}</p>
+              </div>
+            `;
+            thread.appendChild(reply);
+          }
+
+          window.workflowsRetry = function() {
+            if (workflowsRetryClicked) return;
+            workflowsRetryClicked = true;
+
+            const btn = document.getElementById('workflows-btn-retry');
+            btn.disabled = true;
+            btn.classList.add('opacity-70');
+            btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><span>Retrying...</span>';
+
+            setTimeout(() => {
+              btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Triggered</span>';
+              btn.classList.remove('bg-[#007a5a]', 'hover:bg-[#148567]', 'shadow-green-900/20');
+              btn.classList.add('bg-[#2e3136]', 'border', 'border-green-500/50', 'text-green-400');
+
+              addWorkflowsReaction('🔄');
+              addWorkflowsThreadReply('from-sky-400 to-sky-600', 'DevOps Bot', '3:46 PM', 'Workflow retry initiated. Re-running from step 3...', false);
+
+              setTimeout(() => {
+                addWorkflowsThreadReply('from-green-400 to-green-600', 'OneUptime', '3:48 PM', '✅ Workflow completed successfully!<br/><span class="text-gray-400">Database Backup • 5 steps • 1m 23s</span>', true);
+                addWorkflowsReaction('🎉');
+              }, 1500);
+            }, 800);
+          };
+
+          window.workflowsViewLogs = function() {
+            if (workflowsLogsClicked) return;
+            workflowsLogsClicked = true;
+
+            const btn = document.getElementById('workflows-btn-logs');
+            btn.disabled = true;
+            btn.classList.add('opacity-70');
+            btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><span>Loading...</span>';
+
+            setTimeout(() => {
+              btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Logs Shared</span>';
+              btn.classList.remove('bg-[#1264a3]', 'hover:bg-[#1d74b8]', 'shadow-blue-900/20');
+              btn.classList.add('bg-[#2e3136]', 'border', 'border-blue-500/50', 'text-blue-400');
+
+              addWorkflowsReaction('📋');
+              addWorkflowsThreadReply('from-green-400 to-green-600', 'OneUptime', '3:47 PM', '📜 <strong class="text-white">Workflow Logs</strong><br/><span class="text-gray-400">Step 1: Connect to DB ✓<br/>Step 2: Create snapshot ✓<br/>Step 3: Upload to S3 ✗ (timeout)</span>', true);
+            }, 800);
+          };
+
+          window.workflowsDisable = function() {
+            if (workflowsDisableClicked) return;
+            workflowsDisableClicked = true;
+
+            const btn = document.getElementById('workflows-btn-disable');
+            btn.disabled = true;
+            btn.classList.add('opacity-70');
+            btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><span>Disabling...</span>';
+
+            setTimeout(() => {
+              btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Disabled</span>';
+              btn.classList.remove('bg-[#2e3136]', 'border-gray-600', 'hover:bg-[#3a3d42]');
+              btn.classList.add('bg-amber-600/20', 'border', 'border-amber-500/50', 'text-amber-400');
+
+              addWorkflowsReaction('⏸️');
+              addWorkflowsThreadReply('from-amber-400 to-amber-600', 'System', '3:47 PM', '⚠️ Workflow <strong class="text-white">Daily Backup</strong> has been disabled. Re-enable from the dashboard when ready.', false);
+            }, 800);
+          };
+        })();
+        </script>
+
+        <style>
+          @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes bounceIn {
+            0% { opacity: 0; transform: scale(0.8); }
+            50% { transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+          }
+        </style>
       </div>
     </div>
   </div>
