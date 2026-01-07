@@ -73,30 +73,6 @@
     </div>
   </div>
 
-  <!-- Stats Section -->
-  <div class="bg-gray-50 py-16 sm:py-20">
-    <div class="mx-auto max-w-5xl px-6 lg:px-8">
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-        <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-          <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">&lt;5s</div>
-          <div class="text-sm text-gray-500">Detection Time</div>
-        </div>
-        <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-          <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">73%</div>
-          <div class="text-sm text-gray-500">Faster MTTR</div>
-        </div>
-        <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-          <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">∞</div>
-          <div class="text-sm text-gray-500">Team Members</div>
-        </div>
-        <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-          <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">Instant</div>
-          <div class="text-sm text-gray-500">Alerts</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <%- include('logo-roll') -%>
 
   <!-- How It Works Section -->
@@ -237,23 +213,53 @@
           </div>
           <div class="mt-12 lg:mt-0">
             <div class="relative">
-              <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-gray-200/80 shadow-lg">
-                <img src="/img/incidents.png" alt="Incident dashboard" class="rounded-xl w-full">
-              </div>
-              <!-- Floating card -->
-              <div class="absolute -bottom-6 -left-6 hidden lg:block">
-                <div class="bg-white rounded-xl shadow-xl p-4 ring-1 ring-gray-100">
-                  <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100">
-                      <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Incident Alert Card -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Header -->
+                <div class="bg-red-50 px-4 py-3 border-b border-red-100">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                      <span class="text-red-800 text-sm font-medium">New Incident Detected</span>
                     </div>
-                    <div>
-                      <div class="text-xs text-gray-500">Detection Time</div>
-                      <div class="text-lg font-bold text-gray-900">&lt;5 sec</div>
+                    <span class="text-red-600 text-xs">Just now</span>
+                  </div>
+                </div>
+
+                <!-- Content -->
+                <div class="p-4">
+                  <div class="flex items-center gap-2 mb-3">
+                    <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">P1 - Critical</span>
+                    <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">API</span>
+                  </div>
+                  <h4 class="text-gray-900 font-semibold mb-2">API Response Time Exceeded Threshold</h4>
+                  <p class="text-gray-600 text-sm mb-4">Response time increased from 120ms to 3500ms in the last 2 minutes.</p>
+
+                  <!-- Alert details -->
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <span class="text-gray-500 text-xs">Monitor</span>
+                      <span class="text-gray-700 text-xs font-medium">api.example.com/health</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <span class="text-gray-500 text-xs">Triggered by</span>
+                      <span class="text-gray-700 text-xs font-medium">Response Time &gt; 2000ms</span>
                     </div>
                   </div>
+                </div>
+
+                <!-- Footer with action -->
+                <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-full bg-rose-100 flex items-center justify-center">
+                      <span class="text-xs font-medium text-rose-600">JD</span>
+                    </div>
+                    <span class="text-xs text-gray-500">Assigned to John Doe</span>
+                  </div>
+                  <span class="px-2 py-1 bg-red-600 text-white rounded text-xs font-medium">Acknowledge</span>
                 </div>
               </div>
             </div>
@@ -264,26 +270,81 @@
         <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
           <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
             <div class="relative">
-              <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-gray-200/80 shadow-lg">
-                <img src="/img/incident-severity.png" alt="Incident severity" class="rounded-xl w-full">
-              </div>
-              <!-- Floating card -->
-              <div class="absolute -bottom-6 -right-6 hidden lg:block">
-                <div class="bg-white rounded-xl shadow-xl p-4 ring-1 ring-gray-100">
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center gap-2">
-                      <span class="h-2 w-2 rounded-full bg-red-500"></span>
-                      <span class="text-xs font-medium text-gray-600">P1 - Critical</span>
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Severity Levels Card -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Header -->
+                <div class="bg-gray-50 px-4 py-3 border-b border-gray-100">
+                  <div class="flex items-center justify-between">
+                    <span class="text-gray-800 text-sm font-medium">Incident Severity Levels</span>
+                    <span class="text-gray-400 text-xs">Customizable</span>
+                  </div>
+                </div>
+
+                <!-- Severity list -->
+                <div class="p-4 space-y-3">
+                  <!-- P1 Critical -->
+                  <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+                    <div class="flex items-center gap-3">
+                      <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                      <div>
+                        <div class="text-gray-900 text-sm font-medium">P1 - Critical</div>
+                        <div class="text-gray-500 text-xs">Service completely down</div>
+                      </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                      <span class="h-2 w-2 rounded-full bg-orange-500"></span>
-                      <span class="text-xs font-medium text-gray-600">P2 - High</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="h-2 w-2 rounded-full bg-amber-500"></span>
-                      <span class="text-xs font-medium text-gray-600">P3 - Medium</span>
+                    <div class="text-right">
+                      <div class="text-red-600 text-xs font-medium">5 min SLA</div>
                     </div>
                   </div>
+
+                  <!-- P2 High -->
+                  <div class="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-100">
+                    <div class="flex items-center gap-3">
+                      <div class="w-3 h-3 rounded-full bg-orange-500"></div>
+                      <div>
+                        <div class="text-gray-900 text-sm font-medium">P2 - High</div>
+                        <div class="text-gray-500 text-xs">Major functionality impaired</div>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-orange-600 text-xs font-medium">15 min SLA</div>
+                    </div>
+                  </div>
+
+                  <!-- P3 Medium -->
+                  <div class="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
+                    <div class="flex items-center gap-3">
+                      <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                      <div>
+                        <div class="text-gray-900 text-sm font-medium">P3 - Medium</div>
+                        <div class="text-gray-500 text-xs">Degraded performance</div>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-amber-600 text-xs font-medium">1 hour SLA</div>
+                    </div>
+                  </div>
+
+                  <!-- P4 Low -->
+                  <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="w-3 h-3 rounded-full bg-gray-400"></div>
+                      <div>
+                        <div class="text-gray-900 text-sm font-medium">P4 - Low</div>
+                        <div class="text-gray-500 text-xs">Minor issues</div>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-gray-500 text-xs font-medium">24 hour SLA</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 text-center">
+                  <span class="text-gray-400 text-xs">+ Add custom severity level</span>
                 </div>
               </div>
             </div>
@@ -374,28 +435,75 @@
           </div>
           <div class="mt-12 lg:mt-0">
             <div class="relative">
-              <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-gray-200/80 shadow-lg">
-                <img src="/img/incident-state.png" alt="Incident states" class="rounded-xl w-full">
-              </div>
-              <!-- Floating card -->
-              <div class="absolute -top-6 -right-6 hidden lg:block">
-                <div class="bg-white rounded-xl shadow-xl p-4 ring-1 ring-gray-100">
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center gap-2 text-xs">
-                      <span class="h-2 w-2 rounded-full bg-red-500"></span>
-                      <span class="text-gray-600">Identified</span>
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Incident State Flow Card -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Header -->
+                <div class="bg-violet-50 px-4 py-3 border-b border-violet-100">
+                  <div class="flex items-center justify-between">
+                    <span class="text-violet-800 text-sm font-medium">Incident State Flow</span>
+                    <span class="px-2 py-0.5 bg-violet-100 text-violet-600 rounded text-xs">Customizable</span>
+                  </div>
+                </div>
+
+                <!-- State flow -->
+                <div class="p-4">
+                  <div class="space-y-3">
+                    <!-- Identified -->
+                    <div class="flex items-center gap-3">
+                      <div class="flex flex-col items-center">
+                        <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                          <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        </div>
+                        <div class="w-0.5 h-6 bg-gray-200"></div>
+                      </div>
+                      <div class="flex-1 p-3 bg-red-50 rounded-lg border border-red-100">
+                        <div class="text-gray-900 text-sm font-medium">Identified</div>
+                        <div class="text-gray-500 text-xs">Issue detected and confirmed</div>
+                      </div>
                     </div>
-                    <div class="flex items-center gap-2 text-xs">
-                      <span class="h-2 w-2 rounded-full bg-amber-500"></span>
-                      <span class="text-gray-600">Investigating</span>
+
+                    <!-- Investigating -->
+                    <div class="flex items-center gap-3">
+                      <div class="flex flex-col items-center">
+                        <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
+                          <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                        </div>
+                        <div class="w-0.5 h-6 bg-gray-200"></div>
+                      </div>
+                      <div class="flex-1 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                        <div class="text-gray-900 text-sm font-medium">Investigating</div>
+                        <div class="text-gray-500 text-xs">Team is analyzing root cause</div>
+                      </div>
                     </div>
-                    <div class="flex items-center gap-2 text-xs">
-                      <span class="h-2 w-2 rounded-full bg-blue-500"></span>
-                      <span class="text-gray-600">Monitoring</span>
+
+                    <!-- Monitoring -->
+                    <div class="flex items-center gap-3">
+                      <div class="flex flex-col items-center">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                          <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                        </div>
+                        <div class="w-0.5 h-6 bg-gray-200"></div>
+                      </div>
+                      <div class="flex-1 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <div class="text-gray-900 text-sm font-medium">Monitoring</div>
+                        <div class="text-gray-500 text-xs">Fix deployed, verifying stability</div>
+                      </div>
                     </div>
-                    <div class="flex items-center gap-2 text-xs">
-                      <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-                      <span class="text-gray-600">Resolved</span>
+
+                    <!-- Resolved -->
+                    <div class="flex items-center gap-3">
+                      <div class="flex flex-col items-center">
+                        <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                          <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                        </div>
+                      </div>
+                      <div class="flex-1 p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                        <div class="text-gray-900 text-sm font-medium">Resolved</div>
+                        <div class="text-gray-500 text-xs">Incident fully resolved</div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -408,19 +516,78 @@
         <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
           <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
             <div class="relative">
-              <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-gray-200/80 shadow-lg">
-                <img src="/img/incident-report.png" alt="Incident report" class="rounded-xl w-full">
-              </div>
-              <!-- Floating card -->
-              <div class="absolute -bottom-6 -right-6 hidden lg:block">
-                <div class="bg-white rounded-xl shadow-xl p-4 ring-1 ring-gray-100 max-w-[180px]">
-                  <div class="flex items-center gap-2 mb-2">
-                    <svg class="h-4 w-4 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span class="text-sm font-medium text-gray-700">Postmortem</span>
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Postmortem Report Card -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Header -->
+                <div class="bg-cyan-50 px-4 py-3 border-b border-cyan-100">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <svg class="h-4 w-4 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span class="text-cyan-800 text-sm font-medium">Postmortem Report</span>
+                    </div>
+                    <span class="px-2 py-0.5 bg-emerald-100 text-emerald-600 rounded text-xs">Resolved</span>
                   </div>
-                  <p class="text-xs text-gray-500">Root cause analysis & action items documented</p>
+                </div>
+
+                <!-- Content -->
+                <div class="p-4">
+                  <h4 class="text-gray-900 font-semibold mb-2">API Latency Incident - Jan 5</h4>
+
+                  <!-- Summary -->
+                  <div class="mb-4">
+                    <div class="text-gray-500 text-xs uppercase tracking-wide mb-1">Summary</div>
+                    <p class="text-gray-600 text-sm">Database connection pool exhaustion caused 45-minute API degradation.</p>
+                  </div>
+
+                  <!-- Timeline -->
+                  <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <div class="flex justify-between text-xs mb-2">
+                      <span class="text-gray-500">Duration</span>
+                      <span class="text-gray-700 font-medium">45 minutes</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                      <span class="text-gray-500">Impact</span>
+                      <span class="text-gray-700 font-medium">2,340 affected requests</span>
+                    </div>
+                  </div>
+
+                  <!-- Root Cause -->
+                  <div class="mb-4">
+                    <div class="text-gray-500 text-xs uppercase tracking-wide mb-1">Root Cause</div>
+                    <p class="text-gray-600 text-sm">Connection pool size was undersized for traffic spike.</p>
+                  </div>
+
+                  <!-- Action Items -->
+                  <div>
+                    <div class="text-gray-500 text-xs uppercase tracking-wide mb-2">Action Items</div>
+                    <div class="space-y-2">
+                      <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 rounded border-2 border-emerald-500 flex items-center justify-center">
+                          <svg class="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                          </svg>
+                        </div>
+                        <span class="text-gray-600 text-xs">Increase connection pool size</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 rounded border-2 border-emerald-500 flex items-center justify-center">
+                          <svg class="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                          </svg>
+                        </div>
+                        <span class="text-gray-600 text-xs">Add connection pool metrics</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 rounded border-2 border-gray-300"></div>
+                        <span class="text-gray-600 text-xs">Set up auto-scaling for pool</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

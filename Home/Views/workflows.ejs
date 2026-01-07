@@ -74,30 +74,6 @@
 
   <%- include('logo-roll') -%>
 
-  <!-- Stats Section -->
-  <div class="bg-gray-50 py-16 sm:py-20">
-    <div class="mx-auto max-w-5xl px-6 lg:px-8">
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-        <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-          <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">5000+</div>
-          <div class="text-sm text-gray-500">Integrations</div>
-        </div>
-        <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-          <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">∞</div>
-          <div class="text-sm text-gray-500">Workflows</div>
-        </div>
-        <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-          <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">No-Code</div>
-          <div class="text-sm text-gray-500">Builder</div>
-        </div>
-        <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-          <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">Secure</div>
-          <div class="text-sm text-gray-500">Secrets</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- How It Works Section -->
   <div class="relative bg-gray-50 py-24 sm:py-32">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
@@ -232,7 +208,125 @@
           </div>
           <div class="mt-12 lg:mt-0">
             <div class="relative">
-              <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/workflow-builder.png" alt="Workflow builder">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-violet-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Workflow Builder Diagram -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Header -->
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  </div>
+                  <span class="text-gray-500 text-xs">Workflow Builder</span>
+                </div>
+
+                <!-- Workflow Canvas -->
+                <div class="p-6 bg-gray-50/50">
+                  <div class="flex flex-col items-center gap-3">
+                    <!-- Trigger Node -->
+                    <div class="relative">
+                      <div class="bg-violet-600 text-white px-4 py-3 rounded-xl shadow-md flex items-center gap-2 min-w-[160px]">
+                        <div class="w-8 h-8 rounded-lg bg-violet-500 flex items-center justify-center">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="text-xs font-semibold">Trigger</div>
+                          <div class="text-[10px] text-violet-200">On Incident Created</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Connector Line -->
+                    <div class="w-0.5 h-6 bg-gray-300"></div>
+
+                    <!-- Condition Node -->
+                    <div class="relative">
+                      <div class="bg-white border-2 border-amber-400 px-4 py-3 rounded-xl shadow-md flex items-center gap-2 min-w-[160px]">
+                        <div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                          <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="text-xs font-semibold text-gray-800">Condition</div>
+                          <div class="text-[10px] text-gray-500">If severity = Critical</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Connector Lines (Split) -->
+                    <div class="flex items-start justify-center gap-12">
+                      <div class="flex flex-col items-center">
+                        <div class="w-0.5 h-4 bg-gray-300"></div>
+                        <div class="text-[9px] text-emerald-600 font-medium mb-1">Yes</div>
+                      </div>
+                      <div class="flex flex-col items-center">
+                        <div class="w-0.5 h-4 bg-gray-300"></div>
+                        <div class="text-[9px] text-gray-400 font-medium mb-1">No</div>
+                      </div>
+                    </div>
+
+                    <!-- Action Nodes -->
+                    <div class="flex items-start justify-center gap-4">
+                      <!-- Slack Action -->
+                      <div class="bg-white border border-gray-200 px-3 py-2.5 rounded-lg shadow-sm flex items-center gap-2">
+                        <div class="w-6 h-6 rounded bg-[#4A154B] flex items-center justify-center">
+                          <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="text-[10px] font-medium text-gray-800">Send Slack</div>
+                          <div class="text-[9px] text-gray-400">#incidents</div>
+                        </div>
+                      </div>
+
+                      <!-- Log Action -->
+                      <div class="bg-white border border-gray-200 px-3 py-2.5 rounded-lg shadow-sm flex items-center gap-2 opacity-50">
+                        <div class="w-6 h-6 rounded bg-gray-100 flex items-center justify-center">
+                          <svg class="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="text-[10px] font-medium text-gray-500">Log Event</div>
+                          <div class="text-[9px] text-gray-400">Info level</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Final Connector -->
+                    <div class="w-0.5 h-4 bg-gray-300 -mt-1 ml-[-60px]"></div>
+
+                    <!-- Email Action -->
+                    <div class="bg-white border border-gray-200 px-3 py-2.5 rounded-lg shadow-sm flex items-center gap-2 -mt-1 ml-[-60px]">
+                      <div class="w-6 h-6 rounded bg-violet-100 flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="text-[10px] font-medium text-gray-800">Send Email</div>
+                        <div class="text-[9px] text-gray-400">On-call team</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="px-4 py-2.5 bg-white border-t border-gray-100 flex items-center justify-between">
+                  <span class="text-gray-400 text-xs">Incident Response Workflow</span>
+                  <span class="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 rounded text-[10px] text-emerald-600 border border-emerald-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    Active
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -241,7 +335,114 @@
         <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
           <div class="order-2 lg:order-1 mt-12 lg:mt-0">
             <div class="relative">
-              <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/workflow-logs.png" alt="Workflow logs">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-violet-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Workflow Logs Panel -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Header -->
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between border-b border-gray-100">
+                  <div class="flex items-center gap-2">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <span class="text-gray-500 text-xs">Workflow Logs</span>
+                  </div>
+                  <span class="text-gray-400 text-xs">Today</span>
+                </div>
+
+                <!-- Logs List -->
+                <div class="p-4 space-y-2">
+                  <!-- Success Log -->
+                  <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-800">Deploy Notification</span>
+                        <span class="text-xs text-gray-400">2m ago</span>
+                      </div>
+                      <div class="text-xs text-gray-500 mt-0.5">Completed in 1.2s - 4 steps executed</div>
+                    </div>
+                  </div>
+
+                  <!-- Error Log -->
+                  <div class="flex items-start gap-3 p-3 bg-rose-50 rounded-lg border border-rose-100">
+                    <div class="w-6 h-6 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg class="w-3.5 h-3.5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-rose-800">Backup Database</span>
+                        <span class="text-xs text-rose-400">15m ago</span>
+                      </div>
+                      <div class="text-xs text-rose-600 mt-0.5">Failed at step 3 - Connection timeout</div>
+                    </div>
+                  </div>
+
+                  <!-- Success Log -->
+                  <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-800">Incident Alert</span>
+                        <span class="text-xs text-gray-400">32m ago</span>
+                      </div>
+                      <div class="text-xs text-gray-500 mt-0.5">Completed in 0.8s - 6 steps executed</div>
+                    </div>
+                  </div>
+
+                  <!-- Running Log -->
+                  <div class="flex items-start gap-3 p-3 bg-violet-50 rounded-lg border border-violet-100">
+                    <div class="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg class="w-3.5 h-3.5 text-violet-600 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-violet-800">Sync User Data</span>
+                        <span class="text-xs text-violet-400">Running...</span>
+                      </div>
+                      <div class="text-xs text-violet-600 mt-0.5">Step 2 of 5 - Processing records</div>
+                    </div>
+                  </div>
+
+                  <!-- Success Log -->
+                  <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-800">Daily Report</span>
+                        <span class="text-xs text-gray-400">1h ago</span>
+                      </div>
+                      <div class="text-xs text-gray-500 mt-0.5">Completed in 3.4s - 8 steps executed</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="px-4 py-2.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                  <span class="text-gray-400 text-xs">Showing 5 of 127 executions</span>
+                  <span class="text-violet-600 text-xs font-medium">View all</span>
+                </div>
+              </div>
             </div>
           </div>
           <div class="order-1 lg:order-2">
@@ -320,7 +521,120 @@
           </div>
           <div class="mt-12 lg:mt-0">
             <div class="relative">
-              <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/workflow-variables.png" alt="Workflow variables">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-violet-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Variables Panel -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Header -->
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between border-b border-gray-100">
+                  <div class="flex items-center gap-2">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <span class="text-gray-500 text-xs">Workflow Variables</span>
+                  </div>
+                  <button class="text-violet-600 text-xs font-medium flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add
+                  </button>
+                </div>
+
+                <!-- Variables List -->
+                <div class="p-4 space-y-3">
+                  <!-- Variable 1 - Secret -->
+                  <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded bg-violet-100 flex items-center justify-center">
+                          <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-800">SLACK_WEBHOOK_URL</span>
+                      </div>
+                      <span class="px-2 py-0.5 bg-violet-100 text-violet-700 text-[10px] font-medium rounded">Secret</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white rounded border border-gray-200 px-3 py-2">
+                      <span class="text-gray-400 text-xs font-mono tracking-wider">************************</span>
+                      <svg class="w-3.5 h-3.5 text-gray-400 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- Variable 2 - API Key -->
+                  <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded bg-amber-100 flex items-center justify-center">
+                          <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                          </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-800">API_KEY</span>
+                      </div>
+                      <span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-medium rounded">Secret</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white rounded border border-gray-200 px-3 py-2">
+                      <span class="text-gray-400 text-xs font-mono tracking-wider">sk-*****************</span>
+                      <svg class="w-3.5 h-3.5 text-gray-400 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- Variable 3 - Environment -->
+                  <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded bg-emerald-100 flex items-center justify-center">
+                          <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                          </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-800">ENVIRONMENT</span>
+                      </div>
+                      <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-medium rounded">Variable</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white rounded border border-gray-200 px-3 py-2">
+                      <span class="text-gray-700 text-xs font-mono">production</span>
+                    </div>
+                  </div>
+
+                  <!-- Variable 4 - Team Email -->
+                  <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded bg-sky-100 flex items-center justify-center">
+                          <svg class="w-3.5 h-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-800">TEAM_EMAIL</span>
+                      </div>
+                      <span class="px-2 py-0.5 bg-sky-100 text-sky-700 text-[10px] font-medium rounded">Variable</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white rounded border border-gray-200 px-3 py-2">
+                      <span class="text-gray-700 text-xs font-mono">oncall@company.com</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="px-4 py-2.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    <span class="text-gray-500 text-xs">Encrypted at rest & in transit</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -329,7 +643,103 @@
         <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
           <div class="order-2 lg:order-1 mt-12 lg:mt-0">
             <div class="relative">
-              <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/workflow-custom-code.png" alt="Custom code in workflows">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-violet-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Code Editor Mockup -->
+              <div class="relative bg-gray-900 rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-700">
+                <!-- Editor Header -->
+                <div class="bg-gray-800 px-4 py-2.5 flex items-center justify-between border-b border-gray-700">
+                  <div class="flex items-center gap-3">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                    </div>
+                    <span class="text-gray-400 text-xs">custom-action.js</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 bg-violet-600/20 text-violet-400 text-[10px] font-medium rounded">JavaScript</span>
+                  </div>
+                </div>
+
+                <!-- Code Content -->
+                <div class="p-4 font-mono text-xs leading-relaxed overflow-x-auto">
+                  <div class="flex">
+                    <div class="text-gray-600 select-none pr-4 text-right" style="min-width: 2rem;">1</div>
+                    <div><span class="text-violet-400">async</span> <span class="text-sky-400">function</span> <span class="text-yellow-300">execute</span><span class="text-gray-300">(</span><span class="text-orange-300">context</span><span class="text-gray-300">) {</span></div>
+                  </div>
+                  <div class="flex">
+                    <div class="text-gray-600 select-none pr-4 text-right" style="min-width: 2rem;">2</div>
+                    <div><span class="text-gray-500">  // Get incident data from trigger</span></div>
+                  </div>
+                  <div class="flex">
+                    <div class="text-gray-600 select-none pr-4 text-right" style="min-width: 2rem;">3</div>
+                    <div><span class="text-gray-300">  </span><span class="text-violet-400">const</span> <span class="text-gray-300">{ incident } = context.</span><span class="text-sky-300">data</span><span class="text-gray-300">;</span></div>
+                  </div>
+                  <div class="flex">
+                    <div class="text-gray-600 select-none pr-4 text-right" style="min-width: 2rem;">4</div>
+                    <div></div>
+                  </div>
+                  <div class="flex">
+                    <div class="text-gray-600 select-none pr-4 text-right" style="min-width: 2rem;">5</div>
+                    <div><span class="text-gray-500">  // Send notification to Slack</span></div>
+                  </div>
+                  <div class="flex">
+                    <div class="text-gray-600 select-none pr-4 text-right" style="min-width: 2rem;">6</div>
+                    <div><span class="text-gray-300">  </span><span class="text-violet-400">await</span> <span class="text-yellow-300">fetch</span><span class="text-gray-300">(</span><span class="text-emerald-400">process.env.SLACK_URL</span><span class="text-gray-300">, {</span></div>
+                  </div>
+                  <div class="flex">
+                    <div class="text-gray-600 select-none pr-4 text-right" style="min-width: 2rem;">7</div>
+                    <div><span class="text-gray-300">    method: </span><span class="text-emerald-400">'POST'</span><span class="text-gray-300">,</span></div>
+                  </div>
+                  <div class="flex">
+                    <div class="text-gray-600 select-none pr-4 text-right" style="min-width: 2rem;">8</div>
+                    <div><span class="text-gray-300">    body: </span><span class="text-sky-400">JSON</span><span class="text-gray-300">.</span><span class="text-yellow-300">stringify</span><span class="text-gray-300">({</span></div>
+                  </div>
+                  <div class="flex">
+                    <div class="text-gray-600 select-none pr-4 text-right" style="min-width: 2rem;">9</div>
+                    <div><span class="text-gray-300">      text: </span><span class="text-emerald-400">`Alert: </span><span class="text-orange-300">${incident.title}</span><span class="text-emerald-400">`</span></div>
+                  </div>
+                  <div class="flex">
+                    <div class="text-gray-600 select-none pr-4 text-right" style="min-width: 2rem;">10</div>
+                    <div><span class="text-gray-300">    })</span></div>
+                  </div>
+                  <div class="flex">
+                    <div class="text-gray-600 select-none pr-4 text-right" style="min-width: 2rem;">11</div>
+                    <div><span class="text-gray-300">  });</span></div>
+                  </div>
+                  <div class="flex">
+                    <div class="text-gray-600 select-none pr-4 text-right" style="min-width: 2rem;">12</div>
+                    <div></div>
+                  </div>
+                  <div class="flex">
+                    <div class="text-gray-600 select-none pr-4 text-right" style="min-width: 2rem;">13</div>
+                    <div><span class="text-gray-300">  </span><span class="text-violet-400">return</span><span class="text-gray-300"> { success: </span><span class="text-orange-400">true</span><span class="text-gray-300"> };</span></div>
+                  </div>
+                  <div class="flex">
+                    <div class="text-gray-600 select-none pr-4 text-right" style="min-width: 2rem;">14</div>
+                    <div><span class="text-gray-300">}</span></div>
+                  </div>
+                </div>
+
+                <!-- Editor Footer -->
+                <div class="bg-gray-800 px-4 py-2 border-t border-gray-700 flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <span class="text-gray-500 text-[10px]">Ln 9, Col 24</span>
+                    <span class="text-gray-600">|</span>
+                    <span class="text-gray-500 text-[10px]">UTF-8</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="flex items-center gap-1 px-2 py-0.5 bg-emerald-600/20 rounded text-[10px] text-emerald-400">
+                      <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Valid
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="order-1 lg:order-2">

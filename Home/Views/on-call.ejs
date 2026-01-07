@@ -71,30 +71,6 @@
       </div>
     </div>
   </div>
-  <!-- Stats Section -->
-  <div class="bg-gray-50 py-16 sm:py-20">
-    <div class="mx-auto max-w-5xl px-6 lg:px-8">
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-        <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-          <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">5+</div>
-          <div class="text-sm text-gray-500">Alert Channels</div>
-        </div>
-        <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-          <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">&lt;30s</div>
-          <div class="text-sm text-gray-500">Alert Delivery</div>
-        </div>
-        <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-          <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">∞</div>
-          <div class="text-sm text-gray-500">Escalation Rules</div>
-        </div>
-        <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-          <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">24/7</div>
-          <div class="text-sm text-gray-500">Rotation Schedules</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <%- include('logo-roll') -%>
 
   <!-- How It Works Section -->
@@ -234,8 +210,104 @@
           </div>
           <div class="mt-12 lg:mt-0">
             <div class="relative">
-              <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-gray-200/80 shadow-lg">
-                <img src="/img/on-call-policies.png" alt="On-call policies" class="rounded-xl w-full">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-orange-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Calendar-style Rotation Schedule -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Header -->
+                <div class="bg-orange-50 px-4 py-3 border-b border-orange-100">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <svg class="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span class="text-gray-800 text-sm font-semibold">On-Call Schedule</span>
+                    </div>
+                    <span class="text-xs text-gray-500">January 2024</span>
+                  </div>
+                </div>
+
+                <!-- Week days header -->
+                <div class="grid grid-cols-7 gap-px bg-gray-100 text-center text-xs text-gray-500 py-2">
+                  <div>Mon</div>
+                  <div>Tue</div>
+                  <div>Wed</div>
+                  <div>Thu</div>
+                  <div>Fri</div>
+                  <div>Sat</div>
+                  <div>Sun</div>
+                </div>
+
+                <!-- Calendar grid -->
+                <div class="p-3">
+                  <div class="grid grid-cols-7 gap-1">
+                    <!-- Week 1 -->
+                    <div class="aspect-square flex items-center justify-center text-xs text-gray-400 bg-gray-50 rounded">1</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-gray-400 bg-gray-50 rounded">2</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-gray-400 bg-gray-50 rounded">3</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-gray-400 bg-gray-50 rounded">4</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-gray-400 bg-gray-50 rounded">5</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-gray-400 bg-gray-50 rounded">6</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-gray-400 bg-gray-50 rounded">7</div>
+                    <!-- Week 2 - Team A (orange) -->
+                    <div class="aspect-square flex items-center justify-center text-xs text-white bg-orange-500 rounded font-medium">8</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-white bg-orange-500 rounded font-medium">9</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-white bg-orange-500 rounded font-medium">10</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-white bg-orange-500 rounded font-medium">11</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-white bg-orange-500 rounded font-medium">12</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-white bg-orange-500 rounded font-medium">13</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-white bg-orange-500 rounded font-medium">14</div>
+                    <!-- Week 3 - Team B (amber) -->
+                    <div class="aspect-square flex items-center justify-center text-xs text-white bg-amber-500 rounded font-medium">15</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-white bg-amber-500 rounded font-medium">16</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-white bg-amber-500 rounded font-medium">17</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-white bg-amber-500 rounded font-medium">18</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-white bg-amber-500 rounded font-medium">19</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-white bg-amber-500 rounded font-medium">20</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-white bg-amber-500 rounded font-medium">21</div>
+                    <!-- Week 4 - Team C (yellow) -->
+                    <div class="aspect-square flex items-center justify-center text-xs text-gray-800 bg-yellow-400 rounded font-medium">22</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-gray-800 bg-yellow-400 rounded font-medium">23</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-gray-800 bg-yellow-400 rounded font-medium">24</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-gray-800 bg-yellow-400 rounded font-medium">25</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-gray-800 bg-yellow-400 rounded font-medium">26</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-gray-800 bg-yellow-400 rounded font-medium">27</div>
+                    <div class="aspect-square flex items-center justify-center text-xs text-gray-800 bg-yellow-400 rounded font-medium">28</div>
+                  </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="px-4 pb-4">
+                  <div class="flex items-center justify-center gap-4 text-xs">
+                    <div class="flex items-center gap-1.5">
+                      <div class="w-3 h-3 rounded bg-orange-500"></div>
+                      <span class="text-gray-600">Team Alpha</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <div class="w-3 h-3 rounded bg-amber-500"></div>
+                      <span class="text-gray-600">Team Beta</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <div class="w-3 h-3 rounded bg-yellow-400"></div>
+                      <span class="text-gray-600">Team Gamma</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Current on-call footer -->
+                <div class="bg-orange-50 px-4 py-3 border-t border-orange-100">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-medium">JD</div>
+                      <div>
+                        <div class="text-gray-800 text-xs font-medium">John Doe</div>
+                        <div class="text-gray-500 text-[10px]">Currently on-call</div>
+                      </div>
+                    </div>
+                    <span class="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full font-medium">Team Alpha</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -245,8 +317,97 @@
         <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
           <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
             <div class="relative">
-              <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-gray-200/80 shadow-lg">
-                <img src="/img/on-call-policies-logs.png" alt="Alert logs" class="rounded-xl w-full">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-amber-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Alert Log Timeline -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Header -->
+                <div class="bg-amber-50 px-4 py-3 border-b border-amber-100">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span class="text-gray-800 text-sm font-semibold">Alert Timeline</span>
+                    </div>
+                    <span class="text-xs text-gray-500">Last 24 hours</span>
+                  </div>
+                </div>
+
+                <!-- Alert log entries -->
+                <div class="p-4 space-y-3">
+                  <!-- Alert 1 - Acknowledged -->
+                  <div class="flex gap-3">
+                    <div class="flex flex-col items-center">
+                      <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <div class="w-px h-full bg-gray-200 mt-2"></div>
+                    </div>
+                    <div class="flex-1 pb-4">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-800">Alert Acknowledged</span>
+                        <span class="text-xs text-gray-400">2 min ago</span>
+                      </div>
+                      <p class="text-xs text-gray-500 mt-1">John Doe acknowledged via SMS</p>
+                      <div class="mt-2 px-2 py-1.5 bg-gray-50 rounded text-xs text-gray-600">
+                        Response time: <span class="font-medium text-emerald-600">47 seconds</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Alert 2 - Sent -->
+                  <div class="flex gap-3">
+                    <div class="flex flex-col items-center">
+                      <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                      </div>
+                      <div class="w-px h-full bg-gray-200 mt-2"></div>
+                    </div>
+                    <div class="flex-1 pb-4">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-800">SMS Alert Sent</span>
+                        <span class="text-xs text-gray-400">3 min ago</span>
+                      </div>
+                      <p class="text-xs text-gray-500 mt-1">Sent to John Doe (+1 555-0123)</p>
+                      <div class="mt-2 flex gap-2">
+                        <span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded">SMS</span>
+                        <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">Delivered</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Alert 3 - Triggered -->
+                  <div class="flex gap-3">
+                    <div class="flex flex-col items-center">
+                      <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div class="flex-1">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-800">Incident Triggered</span>
+                        <span class="text-xs text-gray-400">3 min ago</span>
+                      </div>
+                      <p class="text-xs text-gray-500 mt-1">Database connection timeout</p>
+                      <div class="mt-2 px-2 py-1.5 bg-red-50 rounded text-xs text-red-700 border border-red-100">
+                        Severity: Critical - API Service Down
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bg-gray-50 px-4 py-2 border-t border-gray-100 text-center">
+                  <span class="text-xs text-gray-500">View full alert history</span>
+                </div>
               </div>
             </div>
           </div>
@@ -336,8 +497,107 @@
           </div>
           <div class="mt-12 lg:mt-0">
             <div class="relative">
-              <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-gray-200/80 shadow-lg">
-                <img src="/img/on-call-policy-escalation-rules.png" alt="Escalation rules" class="rounded-xl w-full">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-orange-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Escalation Chain Visualization -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Header -->
+                <div class="bg-orange-50 px-4 py-3 border-b border-orange-100">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <svg class="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
+                      </svg>
+                      <span class="text-gray-800 text-sm font-semibold">Escalation Policy</span>
+                    </div>
+                    <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">Active</span>
+                  </div>
+                </div>
+
+                <!-- Escalation chain -->
+                <div class="p-4">
+                  <!-- Level 1 -->
+                  <div class="flex items-start gap-3">
+                    <div class="flex flex-col items-center">
+                      <div class="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-bold">1</div>
+                      <div class="w-0.5 h-12 bg-orange-200 mt-2"></div>
+                    </div>
+                    <div class="flex-1 pb-4">
+                      <div class="bg-orange-50 rounded-lg p-3 border border-orange-100">
+                        <div class="flex items-center justify-between mb-2">
+                          <span class="text-sm font-medium text-gray-800">Primary On-Call</span>
+                          <span class="text-xs text-orange-600">Immediate</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <div class="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs">JD</div>
+                          <span class="text-xs text-gray-600">John Doe</span>
+                        </div>
+                        <div class="mt-2 flex gap-1">
+                          <span class="px-1.5 py-0.5 bg-white text-gray-500 text-[10px] rounded border border-gray-200">SMS</span>
+                          <span class="px-1.5 py-0.5 bg-white text-gray-500 text-[10px] rounded border border-gray-200">Call</span>
+                          <span class="px-1.5 py-0.5 bg-white text-gray-500 text-[10px] rounded border border-gray-200">Push</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Level 2 -->
+                  <div class="flex items-start gap-3">
+                    <div class="flex flex-col items-center">
+                      <div class="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold">2</div>
+                      <div class="w-0.5 h-12 bg-amber-200 mt-2"></div>
+                    </div>
+                    <div class="flex-1 pb-4">
+                      <div class="bg-amber-50 rounded-lg p-3 border border-amber-100">
+                        <div class="flex items-center justify-between mb-2">
+                          <span class="text-sm font-medium text-gray-800">Secondary On-Call</span>
+                          <span class="text-xs text-amber-600">After 5 min</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <div class="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs">SM</div>
+                          <span class="text-xs text-gray-600">Sarah Miller</span>
+                        </div>
+                        <div class="mt-2 flex gap-1">
+                          <span class="px-1.5 py-0.5 bg-white text-gray-500 text-[10px] rounded border border-gray-200">SMS</span>
+                          <span class="px-1.5 py-0.5 bg-white text-gray-500 text-[10px] rounded border border-gray-200">Email</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Level 3 -->
+                  <div class="flex items-start gap-3">
+                    <div class="flex flex-col items-center">
+                      <div class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-xs font-bold">3</div>
+                    </div>
+                    <div class="flex-1">
+                      <div class="bg-red-50 rounded-lg p-3 border border-red-100">
+                        <div class="flex items-center justify-between mb-2">
+                          <span class="text-sm font-medium text-gray-800">Engineering Manager</span>
+                          <span class="text-xs text-red-600">After 15 min</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <div class="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center text-white text-xs">MJ</div>
+                          <span class="text-xs text-gray-600">Mike Johnson</span>
+                        </div>
+                        <div class="mt-2 flex gap-1">
+                          <span class="px-1.5 py-0.5 bg-white text-gray-500 text-[10px] rounded border border-gray-200">Call</span>
+                          <span class="px-1.5 py-0.5 bg-white text-gray-500 text-[10px] rounded border border-gray-200">SMS</span>
+                          <span class="px-1.5 py-0.5 bg-white text-gray-500 text-[10px] rounded border border-gray-200">Slack</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bg-gray-50 px-4 py-2 border-t border-gray-100">
+                  <div class="flex items-center justify-between text-xs text-gray-500">
+                    <span>Repeat cycle: 3 times</span>
+                    <span>Auto-resolve: 30 min</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -347,8 +607,111 @@
         <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
           <div class="relative order-2 lg:order-1 mt-12 lg:mt-0">
             <div class="relative">
-              <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-gray-200/80 shadow-lg">
-                <img src="/img/call-sms-notifications.png" alt="Multi-channel notifications" class="rounded-xl w-full">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-amber-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Multi-channel Notification Cards -->
+              <div class="relative max-w-md mx-auto space-y-3">
+                <!-- Phone Call Card -->
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-4 transform hover:-translate-y-1 transition-transform">
+                  <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+                      <svg class="w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <span class="font-semibold text-gray-800">Phone Call</span>
+                        <span class="flex items-center gap-1 text-xs text-emerald-600">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                          Calling...
+                        </span>
+                      </div>
+                      <p class="text-sm text-gray-500 mt-1">Calling John Doe at +1 (555) 123-4567</p>
+                      <div class="mt-2 flex gap-2">
+                        <span class="px-2 py-1 bg-orange-50 text-orange-700 text-xs rounded-lg font-medium">Critical Alert</span>
+                        <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg">Auto-retry: 3x</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- SMS Card -->
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-4 transform hover:-translate-y-1 transition-transform">
+                  <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                      <svg class="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                      </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <span class="font-semibold text-gray-800">SMS</span>
+                        <span class="flex items-center gap-1 text-xs text-emerald-600">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                          Delivered
+                        </span>
+                      </div>
+                      <p class="text-sm text-gray-500 mt-1 truncate">[OneUptime] Alert: Database connection timeout on prod-db-01</p>
+                      <div class="mt-2 text-xs text-gray-400">Sent 12 seconds ago</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Email Card -->
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-4 transform hover:-translate-y-1 transition-transform">
+                  <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                      <svg class="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <span class="font-semibold text-gray-800">Email</span>
+                        <span class="flex items-center gap-1 text-xs text-emerald-600">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                          Sent
+                        </span>
+                      </div>
+                      <p class="text-sm text-gray-500 mt-1">john.doe@company.com</p>
+                      <div class="mt-2 bg-gray-50 rounded p-2 text-xs text-gray-600 border border-gray-100">
+                        <span class="font-medium">Subject:</span> [Critical] Database connection timeout
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Push Notification Card -->
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-4 transform hover:-translate-y-1 transition-transform">
+                  <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+                      <svg class="w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between">
+                        <span class="font-semibold text-gray-800">Push Notification</span>
+                        <span class="flex items-center gap-1 text-xs text-amber-600">
+                          <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                          Pending
+                        </span>
+                      </div>
+                      <p class="text-sm text-gray-500 mt-1">Mobile app & browser notifications</p>
+                      <div class="mt-2 flex gap-2">
+                        <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg">iOS</span>
+                        <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg">Android</span>
+                        <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg">Web</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

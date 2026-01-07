@@ -72,30 +72,6 @@
       </div>
     </div>
 
-    <!-- Stats Section -->
-    <div class="bg-gray-50 py-16 sm:py-20">
-      <div class="mx-auto max-w-5xl px-6 lg:px-8">
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">Sub-ms</div>
-            <div class="text-sm text-gray-500">Span Precision</div>
-          </div>
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">Full</div>
-            <div class="text-sm text-gray-500">Context Propagation</div>
-          </div>
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">3-in-1</div>
-            <div class="text-sm text-gray-500">Logs & Metrics</div>
-          </div>
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">Auto</div>
-            <div class="text-sm text-gray-500">Service Maps</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <%- include('logo-roll') -%>
 
     <!-- How It Works Section -->
@@ -232,7 +208,107 @@
             </div>
             <div class="mt-12 lg:mt-0">
               <div class="relative">
-                <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/apm-3.png" alt="Service dependency map">
+                <!-- Subtle background -->
+                <div class="absolute -inset-4 bg-cyan-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Service Map Visual -->
+                <div class="relative bg-white rounded-2xl border border-gray-200 shadow-lg p-6">
+                  <!-- Browser mockup header -->
+                  <div class="flex items-center gap-2 pb-4 border-b border-gray-100 mb-6">
+                    <div class="flex gap-1.5">
+                      <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                      <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                      <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                    </div>
+                    <div class="flex-1 mx-4">
+                      <div class="bg-gray-100 rounded-md px-3 py-1.5 text-xs text-gray-500 text-center">Service Dependency Map</div>
+                    </div>
+                  </div>
+
+                  <!-- Service nodes with connections -->
+                  <div class="relative h-64">
+                    <!-- Connection lines (SVG) -->
+                    <svg class="absolute inset-0 w-full h-full" viewBox="0 0 400 220">
+                      <!-- API Gateway to Services -->
+                      <path d="M200 30 L100 100" stroke="#06b6d4" stroke-width="2" fill="none" stroke-dasharray="4,2" class="animate-pulse"/>
+                      <path d="M200 30 L300 100" stroke="#06b6d4" stroke-width="2" fill="none" stroke-dasharray="4,2" class="animate-pulse"/>
+                      <path d="M200 30 L200 100" stroke="#06b6d4" stroke-width="2" fill="none" stroke-dasharray="4,2" class="animate-pulse"/>
+                      <!-- Services to Database -->
+                      <path d="M100 130 L150 190" stroke="#06b6d4" stroke-width="2" fill="none" stroke-dasharray="4,2"/>
+                      <path d="M200 130 L200 190" stroke="#06b6d4" stroke-width="2" fill="none" stroke-dasharray="4,2"/>
+                      <path d="M300 130 L250 190" stroke="#06b6d4" stroke-width="2" fill="none" stroke-dasharray="4,2"/>
+                    </svg>
+
+                    <!-- API Gateway Node (Top) -->
+                    <div class="absolute left-1/2 top-0 -translate-x-1/2">
+                      <div class="bg-cyan-500 text-white rounded-lg px-4 py-2 text-xs font-medium shadow-lg shadow-cyan-500/30">
+                        API Gateway
+                      </div>
+                    </div>
+
+                    <!-- Service Nodes (Middle Row) -->
+                    <div class="absolute left-[15%] top-[35%]">
+                      <div class="bg-white border-2 border-cyan-300 rounded-lg px-3 py-2 text-xs font-medium text-gray-700 shadow-md">
+                        <div class="flex items-center gap-2">
+                          <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                          User Service
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="absolute left-1/2 top-[35%] -translate-x-1/2">
+                      <div class="bg-white border-2 border-cyan-300 rounded-lg px-3 py-2 text-xs font-medium text-gray-700 shadow-md">
+                        <div class="flex items-center gap-2">
+                          <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                          Order Service
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="absolute right-[15%] top-[35%]">
+                      <div class="bg-white border-2 border-cyan-300 rounded-lg px-3 py-2 text-xs font-medium text-gray-700 shadow-md">
+                        <div class="flex items-center gap-2">
+                          <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                          Payment Service
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Database Nodes (Bottom Row) -->
+                    <div class="absolute left-[25%] bottom-2">
+                      <div class="bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 text-xs font-medium text-gray-600">
+                        <div class="flex items-center gap-2">
+                          <svg class="w-3 h-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+                          </svg>
+                          Users DB
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="absolute left-1/2 bottom-2 -translate-x-1/2">
+                      <div class="bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 text-xs font-medium text-gray-600">
+                        <div class="flex items-center gap-2">
+                          <svg class="w-3 h-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+                          </svg>
+                          Orders DB
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="absolute right-[25%] bottom-2">
+                      <div class="bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 text-xs font-medium text-gray-600">
+                        <div class="flex items-center gap-2">
+                          <svg class="w-3 h-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+                          </svg>
+                          Redis Cache
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -241,7 +317,92 @@
           <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
             <div class="order-2 lg:order-1 mt-12 lg:mt-0">
               <div class="relative">
-                <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/apm-2.png" alt="Trace latency breakdown">
+                <!-- Subtle background -->
+                <div class="absolute -inset-4 bg-teal-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Waterfall Trace View -->
+                <div class="relative bg-white rounded-2xl border border-gray-200 shadow-lg p-6">
+                  <!-- Browser mockup header -->
+                  <div class="flex items-center gap-2 pb-4 border-b border-gray-100 mb-4">
+                    <div class="flex gap-1.5">
+                      <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                      <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                      <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                    </div>
+                    <div class="flex-1 mx-4">
+                      <div class="bg-gray-100 rounded-md px-3 py-1.5 text-xs text-gray-500 text-center">Trace Waterfall - GET /api/orders</div>
+                    </div>
+                  </div>
+
+                  <!-- Timeline header -->
+                  <div class="flex items-center justify-between text-xs text-gray-400 mb-3 px-2">
+                    <span>0ms</span>
+                    <span>100ms</span>
+                    <span>200ms</span>
+                    <span>300ms</span>
+                    <span>400ms</span>
+                  </div>
+
+                  <!-- Trace spans -->
+                  <div class="space-y-2">
+                    <!-- Parent span -->
+                    <div class="flex items-center gap-3">
+                      <div class="w-24 text-xs text-gray-600 truncate font-medium">api-gateway</div>
+                      <div class="flex-1 h-6 bg-gray-100 rounded relative">
+                        <div class="absolute left-0 top-0 h-full bg-cyan-500 rounded" style="width: 100%"></div>
+                        <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-white font-medium">385ms</span>
+                      </div>
+                    </div>
+
+                    <!-- Child span 1 -->
+                    <div class="flex items-center gap-3 pl-4">
+                      <div class="w-20 text-xs text-gray-600 truncate">auth-service</div>
+                      <div class="flex-1 h-5 bg-gray-100 rounded relative">
+                        <div class="absolute left-[2%] top-0 h-full bg-teal-400 rounded" style="width: 15%"></div>
+                        <span class="absolute left-[5%] top-1/2 -translate-y-1/2 text-[10px] text-white font-medium">45ms</span>
+                      </div>
+                    </div>
+
+                    <!-- Child span 2 -->
+                    <div class="flex items-center gap-3 pl-4">
+                      <div class="w-20 text-xs text-gray-600 truncate">order-service</div>
+                      <div class="flex-1 h-5 bg-gray-100 rounded relative">
+                        <div class="absolute left-[18%] top-0 h-full bg-cyan-400 rounded" style="width: 55%"></div>
+                        <span class="absolute left-[35%] top-1/2 -translate-y-1/2 text-[10px] text-white font-medium">210ms</span>
+                      </div>
+                    </div>
+
+                    <!-- Grandchild span -->
+                    <div class="flex items-center gap-3 pl-8">
+                      <div class="w-16 text-xs text-gray-500 truncate">db-query</div>
+                      <div class="flex-1 h-4 bg-gray-100 rounded relative">
+                        <div class="absolute left-[25%] top-0 h-full bg-amber-400 rounded" style="width: 35%"></div>
+                        <span class="absolute left-[35%] top-1/2 -translate-y-1/2 text-[10px] text-gray-700 font-medium">142ms</span>
+                      </div>
+                    </div>
+
+                    <!-- Child span 3 -->
+                    <div class="flex items-center gap-3 pl-4">
+                      <div class="w-20 text-xs text-gray-600 truncate">payment-svc</div>
+                      <div class="flex-1 h-5 bg-gray-100 rounded relative">
+                        <div class="absolute left-[75%] top-0 h-full bg-teal-500 rounded" style="width: 20%"></div>
+                        <span class="absolute left-[78%] top-1/2 -translate-y-1/2 text-[10px] text-white font-medium">78ms</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Summary footer -->
+                  <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-4">
+                      <span class="text-gray-500">Total: <span class="font-medium text-gray-700">385ms</span></span>
+                      <span class="text-gray-500">Spans: <span class="font-medium text-gray-700">5</span></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                      <span class="text-gray-500">Success</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="order-1 lg:order-2">
@@ -320,7 +481,87 @@
             </div>
             <div class="mt-12 lg:mt-0">
               <div class="relative">
-                <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/error-exception.png" alt="Error tracking in traces">
+                <!-- Subtle background -->
+                <div class="absolute -inset-4 bg-red-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Error Spans in Trace View -->
+                <div class="relative bg-white rounded-2xl border border-gray-200 shadow-lg p-6">
+                  <!-- Browser mockup header -->
+                  <div class="flex items-center gap-2 pb-4 border-b border-gray-100 mb-4">
+                    <div class="flex gap-1.5">
+                      <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                      <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                      <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                    </div>
+                    <div class="flex-1 mx-4">
+                      <div class="bg-gray-100 rounded-md px-3 py-1.5 text-xs text-gray-500 text-center">Error Trace - POST /api/checkout</div>
+                    </div>
+                  </div>
+
+                  <!-- Error trace spans -->
+                  <div class="space-y-2 mb-4">
+                    <!-- Parent span -->
+                    <div class="flex items-center gap-3">
+                      <div class="w-24 text-xs text-gray-600 truncate font-medium">checkout-svc</div>
+                      <div class="flex-1 h-6 bg-gray-100 rounded relative">
+                        <div class="absolute left-0 top-0 h-full bg-cyan-500 rounded" style="width: 100%"></div>
+                      </div>
+                    </div>
+
+                    <!-- Child span - OK -->
+                    <div class="flex items-center gap-3 pl-4">
+                      <div class="w-20 text-xs text-gray-600 truncate">cart-service</div>
+                      <div class="flex-1 h-5 bg-gray-100 rounded relative">
+                        <div class="absolute left-[2%] top-0 h-full bg-teal-400 rounded" style="width: 20%"></div>
+                      </div>
+                    </div>
+
+                    <!-- Child span - ERROR -->
+                    <div class="flex items-center gap-3 pl-4">
+                      <div class="w-20 text-xs text-red-600 truncate font-medium">payment-svc</div>
+                      <div class="flex-1 h-5 bg-gray-100 rounded relative">
+                        <div class="absolute left-[25%] top-0 h-full bg-red-500 rounded border-2 border-red-600" style="width: 45%"></div>
+                        <div class="absolute left-[27%] top-1/2 -translate-y-1/2 flex items-center gap-1">
+                          <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                          </svg>
+                          <span class="text-[10px] text-white font-medium">ERROR</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Grandchild span - ERROR source -->
+                    <div class="flex items-center gap-3 pl-8">
+                      <div class="w-16 text-xs text-red-500 truncate">stripe-api</div>
+                      <div class="flex-1 h-4 bg-gray-100 rounded relative">
+                        <div class="absolute left-[30%] top-0 h-full bg-red-400 rounded" style="width: 35%"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Error details panel -->
+                  <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <div class="flex items-center gap-2 mb-2">
+                      <svg class="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                      </svg>
+                      <span class="text-xs font-semibold text-red-800">PaymentDeclinedException</span>
+                    </div>
+                    <div class="text-[11px] text-red-700 font-mono bg-red-100 rounded px-2 py-1.5">
+                      Card declined: insufficient funds<br/>
+                      <span class="text-red-500">at StripeClient.charge() line 142</span>
+                    </div>
+                  </div>
+
+                  <!-- Summary footer -->
+                  <div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                    <span class="text-gray-500">Trace ID: <span class="font-mono text-gray-600">a1b2c3d4</span></span>
+                    <div class="flex items-center gap-2">
+                      <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                      <span class="text-red-600 font-medium">Failed</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -329,7 +570,90 @@
           <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
             <div class="order-2 lg:order-1 mt-12 lg:mt-0">
               <div class="relative">
-                <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/log-management.png" alt="Trace correlation">
+                <!-- Subtle background -->
+                <div class="absolute -inset-4 bg-indigo-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Correlated Logs and Traces View -->
+                <div class="relative bg-white rounded-2xl border border-gray-200 shadow-lg p-6">
+                  <!-- Browser mockup header -->
+                  <div class="flex items-center gap-2 pb-4 border-b border-gray-100 mb-4">
+                    <div class="flex gap-1.5">
+                      <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                      <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                      <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                    </div>
+                    <div class="flex-1 mx-4">
+                      <div class="bg-gray-100 rounded-md px-3 py-1.5 text-xs text-gray-500 text-center">Trace & Log Correlation</div>
+                    </div>
+                  </div>
+
+                  <!-- Split view: Trace on left, Logs on right -->
+                  <div class="grid grid-cols-2 gap-4">
+                    <!-- Trace panel -->
+                    <div class="bg-gray-50 rounded-lg p-3">
+                      <div class="flex items-center gap-2 mb-3">
+                        <div class="w-5 h-5 rounded bg-cyan-500 flex items-center justify-center">
+                          <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                          </svg>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-700">Trace Spans</span>
+                      </div>
+                      <div class="space-y-1.5">
+                        <div class="flex items-center gap-2">
+                          <div class="w-16 text-[10px] text-gray-500 truncate">api-gateway</div>
+                          <div class="flex-1 h-3 bg-gray-200 rounded">
+                            <div class="h-full bg-cyan-500 rounded" style="width: 100%"></div>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-2 pl-2">
+                          <div class="w-14 text-[10px] text-gray-500 truncate">user-svc</div>
+                          <div class="flex-1 h-2.5 bg-gray-200 rounded">
+                            <div class="h-full bg-teal-400 rounded" style="width: 40%; margin-left: 5%"></div>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-2 pl-2">
+                          <div class="w-14 text-[10px] text-cyan-600 font-medium truncate">order-svc</div>
+                          <div class="flex-1 h-2.5 bg-gray-200 rounded relative">
+                            <div class="h-full bg-cyan-400 rounded border border-cyan-600" style="width: 50%; margin-left: 45%"></div>
+                            <div class="absolute right-1 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Logs panel -->
+                    <div class="bg-gray-900 rounded-lg p-3">
+                      <div class="flex items-center gap-2 mb-3">
+                        <div class="w-5 h-5 rounded bg-indigo-500 flex items-center justify-center">
+                          <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          </svg>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-300">Correlated Logs</span>
+                      </div>
+                      <div class="space-y-1 font-mono text-[9px]">
+                        <div class="text-gray-400"><span class="text-gray-500">10:42:01</span> <span class="text-green-400">INFO</span> Request received</div>
+                        <div class="text-gray-400"><span class="text-gray-500">10:42:01</span> <span class="text-green-400">INFO</span> Auth validated</div>
+                        <div class="bg-indigo-900/50 rounded px-1 py-0.5 text-indigo-300 border-l-2 border-indigo-500"><span class="text-gray-500">10:42:02</span> <span class="text-cyan-400">DEBUG</span> Order created #1234</div>
+                        <div class="bg-indigo-900/50 rounded px-1 py-0.5 text-indigo-300 border-l-2 border-indigo-500"><span class="text-gray-500">10:42:02</span> <span class="text-cyan-400">DEBUG</span> Inventory checked</div>
+                        <div class="text-gray-400"><span class="text-gray-500">10:42:03</span> <span class="text-green-400">INFO</span> Response sent</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Correlation indicator -->
+                  <div class="mt-4 pt-3 border-t border-gray-100">
+                    <div class="flex items-center justify-center gap-3">
+                      <div class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 rounded-full">
+                        <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                        </svg>
+                        <span class="text-[10px] font-medium text-indigo-700">Trace ID: a1b2c3d4 linked to 5 logs</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="order-1 lg:order-2">

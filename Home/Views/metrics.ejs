@@ -72,30 +72,6 @@
       </div>
     </div>
 
-    <!-- Stats Section -->
-    <div class="bg-gray-50 py-16 sm:py-20">
-      <div class="mx-auto max-w-5xl px-6 lg:px-8">
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">1M+</div>
-            <div class="text-sm text-gray-500">Data Points / Sec</div>
-          </div>
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">&lt;50ms</div>
-            <div class="text-sm text-gray-500">Query Latency</div>
-          </div>
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">PromQL</div>
-            <div class="text-sm text-gray-500">Compatible</div>
-          </div>
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">Custom</div>
-            <div class="text-sm text-gray-500">Retention</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <%- include('logo-roll') -%>
 
     <!-- How It Works Section -->
@@ -232,8 +208,85 @@
               </a>
             </div>
             <div class="mt-12 lg:mt-0">
-              <div class="relative bg-gray-100 rounded-2xl p-4">
-                <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/apm-3.png" alt="Metrics ingestion from multiple sources">
+              <div class="relative">
+                <!-- Subtle background -->
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Grid of Metric Source Cards -->
+                <div class="relative max-w-md mx-auto">
+                  <div class="grid grid-cols-3 gap-3">
+                    <!-- Prometheus -->
+                    <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
+                      <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center mx-auto mb-2">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                      </div>
+                      <div class="text-gray-700 text-xs font-medium">Prometheus</div>
+                      <div class="text-gray-400 text-[10px]">Native</div>
+                    </div>
+
+                    <!-- OpenTelemetry -->
+                    <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
+                      <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center mx-auto mb-2">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25"/>
+                        </svg>
+                      </div>
+                      <div class="text-gray-700 text-xs font-medium">OTel</div>
+                      <div class="text-gray-400 text-[10px]">SDK</div>
+                    </div>
+
+                    <!-- StatsD -->
+                    <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
+                      <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center mx-auto mb-2">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/>
+                        </svg>
+                      </div>
+                      <div class="text-gray-700 text-xs font-medium">StatsD</div>
+                      <div class="text-gray-400 text-[10px]">UDP</div>
+                    </div>
+
+                    <!-- Graphite -->
+                    <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
+                      <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center mx-auto mb-2">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                        </svg>
+                      </div>
+                      <div class="text-gray-700 text-xs font-medium">Graphite</div>
+                      <div class="text-gray-400 text-[10px]">Carbon</div>
+                    </div>
+
+                    <!-- InfluxDB -->
+                    <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
+                      <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center mx-auto mb-2">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+                        </svg>
+                      </div>
+                      <div class="text-gray-700 text-xs font-medium">InfluxDB</div>
+                      <div class="text-gray-400 text-[10px]">Line Protocol</div>
+                    </div>
+
+                    <!-- Custom -->
+                    <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
+                      <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center mx-auto mb-2">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                      </div>
+                      <div class="text-gray-700 text-xs font-medium">Custom</div>
+                      <div class="text-gray-400 text-[10px]">REST API</div>
+                    </div>
+                  </div>
+
+                  <!-- Footer label -->
+                  <div class="mt-4 text-center text-xs text-gray-400">
+                    + AWS CloudWatch, Datadog, and more integrations
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -241,8 +294,85 @@
           <!-- Feature 2: PromQL & Custom Queries -->
           <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
             <div class="order-2 lg:order-1 mt-12 lg:mt-0">
-              <div class="relative bg-gray-100 rounded-2xl p-4">
-                <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/apm-2.png" alt="PromQL query interface">
+              <div class="relative">
+                <!-- Subtle background -->
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Query Builder Browser Window -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <!-- Browser header -->
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Query Builder</span>
+                    </div>
+                  </div>
+
+                  <!-- Content area -->
+                  <div class="p-4">
+                    <!-- Query input -->
+                    <div class="mb-4">
+                      <label class="text-xs text-gray-500 mb-1.5 block">PromQL Query</label>
+                      <div class="bg-gray-900 rounded-lg p-3 font-mono text-sm">
+                        <span class="text-emerald-400">sum</span><span class="text-gray-300">(</span><span class="text-amber-400">rate</span><span class="text-gray-300">(</span><span class="text-sky-400">http_requests_total</span><span class="text-gray-300">{</span><span class="text-purple-400">status</span><span class="text-gray-300">=~</span><span class="text-orange-300">"5.."</span><span class="text-gray-300">}[</span><span class="text-emerald-300">5m</span><span class="text-gray-300">]))</span> <span class="text-emerald-400">by</span> <span class="text-gray-300">(</span><span class="text-purple-400">service</span><span class="text-gray-300">)</span>
+                      </div>
+                    </div>
+
+                    <!-- Time range selector -->
+                    <div class="flex items-center gap-2 mb-4">
+                      <div class="flex-1 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
+                        <div class="text-[10px] text-gray-400 mb-0.5">Time Range</div>
+                        <div class="text-xs text-gray-700 font-medium">Last 24 hours</div>
+                      </div>
+                      <div class="flex-1 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
+                        <div class="text-[10px] text-gray-400 mb-0.5">Step</div>
+                        <div class="text-xs text-gray-700 font-medium">1 minute</div>
+                      </div>
+                      <button class="bg-emerald-600 text-white px-3 py-2.5 rounded-lg text-xs font-medium flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Run
+                      </button>
+                    </div>
+
+                    <!-- Results preview -->
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                      <div class="bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between">
+                        <span class="text-xs text-gray-600 font-medium">Results</span>
+                        <span class="text-[10px] text-gray-400">3 series</span>
+                      </div>
+                      <div class="p-3 space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                          <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span class="text-gray-600 font-mono">api-gateway</span>
+                          </div>
+                          <span class="text-gray-900 font-medium">142.3 req/s</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs">
+                          <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                            <span class="text-gray-600 font-mono">auth-service</span>
+                          </div>
+                          <span class="text-gray-900 font-medium">89.7 req/s</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs">
+                          <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                            <span class="text-gray-600 font-mono">user-service</span>
+                          </div>
+                          <span class="text-gray-900 font-medium">56.1 req/s</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="order-1 lg:order-2">
@@ -320,8 +450,98 @@
               </a>
             </div>
             <div class="mt-12 lg:mt-0">
-              <div class="relative bg-gray-100 rounded-2xl p-4">
-                <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/dashboard.png" alt="Custom metrics dashboard">
+              <div class="relative">
+                <!-- Subtle background -->
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Dashboard Widgets Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <!-- Browser header -->
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Production Dashboard</span>
+                    </div>
+                  </div>
+
+                  <!-- Dashboard content -->
+                  <div class="p-4">
+                    <!-- Stats row -->
+                    <div class="grid grid-cols-3 gap-2 mb-4">
+                      <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
+                        <div class="text-[10px] text-emerald-600 mb-1">Requests/sec</div>
+                        <div class="text-lg font-semibold text-emerald-700">2.4k</div>
+                        <div class="flex items-center gap-1 text-[10px] text-emerald-600">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                          </svg>
+                          +12%
+                        </div>
+                      </div>
+                      <div class="bg-sky-50 rounded-lg p-3 border border-sky-100">
+                        <div class="text-[10px] text-sky-600 mb-1">Latency P99</div>
+                        <div class="text-lg font-semibold text-sky-700">45ms</div>
+                        <div class="flex items-center gap-1 text-[10px] text-sky-600">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                          </svg>
+                          -8ms
+                        </div>
+                      </div>
+                      <div class="bg-amber-50 rounded-lg p-3 border border-amber-100">
+                        <div class="text-[10px] text-amber-600 mb-1">Error Rate</div>
+                        <div class="text-lg font-semibold text-amber-700">0.02%</div>
+                        <div class="flex items-center gap-1 text-[10px] text-emerald-600">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                          </svg>
+                          OK
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Chart area -->
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200 mb-3">
+                      <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs text-gray-600 font-medium">Request Throughput</span>
+                        <span class="text-[10px] text-gray-400">Last 1 hour</span>
+                      </div>
+                      <!-- SVG Chart -->
+                      <svg viewBox="0 0 200 60" class="w-full h-16">
+                        <defs>
+                          <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.3"/>
+                            <stop offset="100%" style="stop-color:#10b981;stop-opacity:0"/>
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,45 L15,40 L30,42 L45,35 L60,30 L75,32 L90,25 L105,20 L120,22 L135,18 L150,15 L165,12 L180,10 L195,8 L200,8 L200,60 L0,60 Z" fill="url(#chartGradient)"/>
+                        <path d="M0,45 L15,40 L30,42 L45,35 L60,30 L75,32 L90,25 L105,20 L120,22 L135,18 L150,15 L165,12 L180,10 L195,8" fill="none" stroke="#10b981" stroke-width="2"/>
+                      </svg>
+                    </div>
+
+                    <!-- Services list -->
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-2">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          <span class="text-gray-700 text-xs">api-server</span>
+                        </div>
+                        <span class="text-gray-400 text-[10px]">CPU 23%</span>
+                      </div>
+                      <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-2">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          <span class="text-gray-700 text-xs">postgres</span>
+                        </div>
+                        <span class="text-gray-400 text-[10px]">Mem 67%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -329,8 +549,112 @@
           <!-- Feature 4: Smart Alerting -->
           <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
             <div class="order-2 lg:order-1 mt-12 lg:mt-0">
-              <div class="relative bg-gray-100 rounded-2xl p-4">
-                <img class="relative w-full rounded-2xl shadow-lg ring-1 ring-gray-900/10" src="/img/incident-report.png" alt="Metrics alerting configuration">
+              <div class="relative">
+                <!-- Subtle background -->
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Alert Configuration Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <!-- Browser header -->
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Alert Configuration</span>
+                    </div>
+                  </div>
+
+                  <!-- Content area -->
+                  <div class="p-4">
+                    <!-- Alert header -->
+                    <div class="flex items-center justify-between mb-4">
+                      <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                          <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="text-gray-800 text-sm font-medium">CPU Usage Alert</div>
+                          <div class="text-gray-400 text-xs">Production Servers</div>
+                        </div>
+                      </div>
+                      <span class="flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded text-xs text-emerald-600 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Active
+                      </span>
+                    </div>
+
+                    <!-- Threshold visualization -->
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200 mb-4">
+                      <div class="text-[10px] text-gray-500 mb-2">Threshold Configuration</div>
+                      <div class="relative h-12">
+                        <!-- Background bar -->
+                        <div class="absolute inset-y-0 left-0 right-0 bg-gray-200 rounded-full"></div>
+                        <!-- Warning zone -->
+                        <div class="absolute inset-y-0 left-[70%] right-[10%] bg-amber-300 rounded-l-full"></div>
+                        <!-- Critical zone -->
+                        <div class="absolute inset-y-0 left-[90%] right-0 bg-red-400 rounded-r-full"></div>
+                        <!-- Current value indicator -->
+                        <div class="absolute top-1/2 left-[65%] -translate-y-1/2 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white shadow-md"></div>
+                        <!-- Labels -->
+                        <div class="absolute -bottom-5 left-[70%] text-[9px] text-amber-600 font-medium">70%</div>
+                        <div class="absolute -bottom-5 left-[90%] text-[9px] text-red-600 font-medium">90%</div>
+                        <div class="absolute -top-5 left-[65%] text-[9px] text-emerald-600 font-medium">Current: 65%</div>
+                      </div>
+                    </div>
+
+                    <!-- Alert conditions -->
+                    <div class="space-y-2 mb-4">
+                      <div class="flex items-center justify-between p-2.5 bg-amber-50 rounded-lg border border-amber-200">
+                        <div class="flex items-center gap-2">
+                          <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                          </svg>
+                          <span class="text-amber-700 text-xs font-medium">Warning</span>
+                        </div>
+                        <span class="text-amber-600 text-xs font-mono">&gt; 70% for 5m</span>
+                      </div>
+                      <div class="flex items-center justify-between p-2.5 bg-red-50 rounded-lg border border-red-200">
+                        <div class="flex items-center gap-2">
+                          <svg class="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                          </svg>
+                          <span class="text-red-700 text-xs font-medium">Critical</span>
+                        </div>
+                        <span class="text-red-600 text-xs font-mono">&gt; 90% for 2m</span>
+                      </div>
+                    </div>
+
+                    <!-- Notification channels -->
+                    <div class="border-t border-gray-100 pt-3">
+                      <div class="text-[10px] text-gray-500 mb-2">Notify via</div>
+                      <div class="flex items-center gap-2">
+                        <span class="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-xs text-gray-600">
+                          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z"/>
+                          </svg>
+                          Slack
+                        </span>
+                        <span class="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-xs text-gray-600">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                          </svg>
+                          Email
+                        </span>
+                        <span class="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-xs text-gray-600">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                          </svg>
+                          PagerDuty
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="order-1 lg:order-2">

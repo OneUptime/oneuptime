@@ -72,30 +72,6 @@
       </div>
     </div>
 
-    <!-- Stats Section -->
-    <div class="bg-gray-50 py-16 sm:py-20">
-      <div class="mx-auto max-w-5xl px-6 lg:px-8">
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">Full</div>
-            <div class="text-sm text-gray-500">Stack Traces</div>
-          </div>
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">Smart</div>
-            <div class="text-sm text-gray-500">Grouping</div>
-          </div>
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">AI</div>
-            <div class="text-sm text-gray-500">Analysis</div>
-          </div>
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">Instant</div>
-            <div class="text-sm text-gray-500">Alerts</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <%- include('logo-roll') -%>
 
     <!-- How It Works -->
@@ -224,8 +200,88 @@
             </ul>
           </div>
           <div class="relative lg:order-last">
-            <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-inset ring-gray-900/10">
-              <img src="/img/apm-3.png" alt="Full stack trace view showing error location and context" class="rounded-xl shadow-lg">
+            <div class="relative">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-rose-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Stack Trace Viewer -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Browser header -->
+                <div class="bg-gray-900 px-4 py-2.5 flex items-center gap-3">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                  </div>
+                  <div class="flex-1 text-center">
+                    <span class="text-gray-400 text-xs font-mono">Stack Trace</span>
+                  </div>
+                </div>
+
+                <!-- Stack trace content -->
+                <div class="p-4 bg-gray-50">
+                  <!-- Error header -->
+                  <div class="flex items-center gap-2 mb-3 p-2 bg-red-50 rounded-lg border border-red-200">
+                    <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span class="text-red-700 text-xs font-medium">TypeError: Cannot read property 'id' of undefined</span>
+                  </div>
+
+                  <!-- Stack frames -->
+                  <div class="space-y-1 font-mono text-xs">
+                    <!-- Frame 1 - highlighted -->
+                    <div class="p-2 bg-rose-100 rounded border-l-2 border-rose-500">
+                      <div class="flex items-center gap-2">
+                        <span class="text-rose-600 font-medium">at</span>
+                        <span class="text-gray-800">getUser</span>
+                        <span class="text-gray-400">(</span>
+                        <span class="text-rose-600">user.service.ts:42</span>
+                        <span class="text-gray-400">)</span>
+                      </div>
+                      <!-- Code preview -->
+                      <div class="mt-2 p-2 bg-white rounded text-[10px] border border-gray-200">
+                        <div class="text-gray-400">41 |  const user = await db.findUser(id);</div>
+                        <div class="text-rose-600 bg-rose-50 -mx-2 px-2">42 |  return user.id; // Error here</div>
+                        <div class="text-gray-400">43 |}</div>
+                      </div>
+                    </div>
+
+                    <!-- Frame 2 -->
+                    <div class="p-2 bg-white rounded border border-gray-100">
+                      <div class="flex items-center gap-2">
+                        <span class="text-gray-500">at</span>
+                        <span class="text-gray-700">handleRequest</span>
+                        <span class="text-gray-400">(api.controller.ts:128)</span>
+                      </div>
+                    </div>
+
+                    <!-- Frame 3 -->
+                    <div class="p-2 bg-white rounded border border-gray-100">
+                      <div class="flex items-center gap-2">
+                        <span class="text-gray-500">at</span>
+                        <span class="text-gray-700">processMiddleware</span>
+                        <span class="text-gray-400">(middleware.ts:56)</span>
+                      </div>
+                    </div>
+
+                    <!-- Frame 4 -->
+                    <div class="p-2 bg-white rounded border border-gray-100 opacity-60">
+                      <div class="flex items-center gap-2">
+                        <span class="text-gray-500">at</span>
+                        <span class="text-gray-700">Layer.handle</span>
+                        <span class="text-gray-400">(express/router.js:174)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Footer -->
+                  <div class="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between text-xs text-gray-400">
+                    <span>Node.js v18.17.0</span>
+                    <span class="text-rose-500 font-medium">4 frames</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -237,8 +293,100 @@
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
           <div class="relative lg:order-first">
-            <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-inset ring-gray-900/10">
-              <img src="/img/apm-3.png" alt="Intelligent error grouping dashboard" class="rounded-xl shadow-lg">
+            <div class="relative">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-rose-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Error Grouping Dashboard -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Browser header -->
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  </div>
+                  <div class="flex-1 text-center">
+                    <span class="text-gray-500 text-xs">Error Groups</span>
+                  </div>
+                </div>
+
+                <!-- Content area -->
+                <div class="p-4">
+                  <!-- Header with stats -->
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="text-sm font-medium text-gray-700">Grouped Errors</div>
+                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                      <span class="text-rose-600 font-medium">3 unique</span>
+                      <span class="text-gray-300">|</span>
+                      <span>847 total</span>
+                    </div>
+                  </div>
+
+                  <!-- Error groups list -->
+                  <div class="space-y-2">
+                    <!-- Error group 1 -->
+                    <div class="p-3 bg-rose-50 rounded-lg border border-rose-200">
+                      <div class="flex items-start justify-between">
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-2 mb-1">
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-rose-100 text-rose-700">TypeError</span>
+                            <span class="text-[10px] text-gray-400">user.service.ts</span>
+                          </div>
+                          <div class="text-xs text-gray-700 font-medium truncate">Cannot read property 'id' of undefined</div>
+                          <div class="text-[10px] text-gray-400 mt-1">First seen 2h ago</div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1">
+                          <span class="inline-flex items-center justify-center min-w-[32px] px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500 text-white">423</span>
+                          <span class="text-[10px] text-gray-400">12 users</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Error group 2 -->
+                    <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-start justify-between">
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-2 mb-1">
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">NetworkError</span>
+                            <span class="text-[10px] text-gray-400">api.client.ts</span>
+                          </div>
+                          <div class="text-xs text-gray-700 font-medium truncate">Request timeout after 30000ms</div>
+                          <div class="text-[10px] text-gray-400 mt-1">First seen 1d ago</div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1">
+                          <span class="inline-flex items-center justify-center min-w-[32px] px-2 py-0.5 rounded-full text-xs font-bold bg-gray-400 text-white">312</span>
+                          <span class="text-[10px] text-gray-400">8 users</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Error group 3 -->
+                    <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-start justify-between">
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-2 mb-1">
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700">ReferenceError</span>
+                            <span class="text-[10px] text-gray-400">checkout.ts</span>
+                          </div>
+                          <div class="text-xs text-gray-700 font-medium truncate">cart is not defined</div>
+                          <div class="text-[10px] text-gray-400 mt-1">First seen 3d ago</div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1">
+                          <span class="inline-flex items-center justify-center min-w-[32px] px-2 py-0.5 rounded-full text-xs font-bold bg-gray-400 text-white">112</span>
+                          <span class="text-[10px] text-gray-400">5 users</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Footer -->
+                  <div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                    <span>Fingerprint-based grouping</span>
+                    <span class="text-rose-500 font-medium">View all</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="lg:pl-8">
@@ -356,8 +504,86 @@
             </div>
           </div>
           <div class="relative lg:order-last">
-            <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-inset ring-gray-900/10">
-              <img src="/img/copilot.png" alt="AI-powered root cause analysis" class="rounded-xl shadow-lg">
+            <div class="relative">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-rose-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- AI Analysis Card -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-rose-500 to-rose-600 px-4 py-3 flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-white font-medium text-sm">AI Root Cause Analysis</div>
+                    <div class="text-white/70 text-xs">Powered by OneUptime AI</div>
+                  </div>
+                </div>
+
+                <!-- Content area -->
+                <div class="p-4">
+                  <!-- Error being analyzed -->
+                  <div class="mb-4 p-2 bg-red-50 rounded-lg border border-red-200">
+                    <div class="flex items-center gap-2">
+                      <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span class="text-red-700 text-xs font-medium">TypeError: Cannot read property 'id'</span>
+                    </div>
+                  </div>
+
+                  <!-- Analysis sections -->
+                  <div class="space-y-3">
+                    <!-- Root Cause -->
+                    <div class="p-3 bg-rose-50 rounded-lg border border-rose-200">
+                      <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-4 h-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <span class="text-xs font-semibold text-rose-700">Root Cause</span>
+                      </div>
+                      <p class="text-xs text-gray-700 leading-relaxed">The <code class="bg-rose-100 px-1 rounded text-rose-700">findUser()</code> function returns null when user is not found, but the code assumes it always returns a user object.</p>
+                    </div>
+
+                    <!-- Suggested Fix -->
+                    <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                      <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="text-xs font-semibold text-emerald-700">Suggested Fix</span>
+                      </div>
+                      <div class="bg-white rounded p-2 font-mono text-[10px] border border-emerald-100">
+                        <div class="text-gray-500">// Add null check before accessing</div>
+                        <div class="text-gray-700">if (!user) throw new UserNotFoundError();</div>
+                        <div class="text-gray-700">return user.id;</div>
+                      </div>
+                    </div>
+
+                    <!-- Impact -->
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                        <span class="text-xs text-gray-600">Impact: High</span>
+                      </div>
+                      <span class="text-xs text-gray-500">423 occurrences</span>
+                    </div>
+                  </div>
+
+                  <!-- Action button -->
+                  <div class="mt-4 flex items-center gap-2">
+                    <button class="flex-1 px-3 py-2 bg-rose-500 text-white text-xs font-medium rounded-lg hover:bg-rose-600 transition-colors">
+                      Create Fix PR
+                    </button>
+                    <button class="px-3 py-2 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 transition-colors">
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -369,8 +595,105 @@
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
           <div class="relative lg:order-first">
-            <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-inset ring-gray-900/10">
-              <img src="/img/apm-3.png" alt="Release tracking and deployment correlation" class="rounded-xl shadow-lg">
+            <div class="relative">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-rose-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Release Tracking Dashboard -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Browser header -->
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  </div>
+                  <div class="flex-1 text-center">
+                    <span class="text-gray-500 text-xs">Releases</span>
+                  </div>
+                </div>
+
+                <!-- Content area -->
+                <div class="p-4">
+                  <!-- Header -->
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="text-sm font-medium text-gray-700">Release History</div>
+                    <span class="text-xs text-gray-400">Last 7 days</span>
+                  </div>
+
+                  <!-- Release cards -->
+                  <div class="space-y-3">
+                    <!-- Release 1 - Current with error spike -->
+                    <div class="p-3 bg-rose-50 rounded-lg border border-rose-200">
+                      <div class="flex items-start justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-rose-500 text-white">Current</span>
+                          <span class="text-xs font-mono text-gray-700 font-medium">v2.4.1</span>
+                        </div>
+                        <span class="text-[10px] text-gray-400">2h ago</span>
+                      </div>
+                      <div class="flex items-center gap-2 text-xs text-gray-600 mb-2">
+                        <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>john@company.com</span>
+                      </div>
+                      <div class="flex items-center gap-2 p-2 bg-white rounded border border-rose-200">
+                        <svg class="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                        <span class="text-xs text-rose-600 font-medium">+423 new errors since deploy</span>
+                      </div>
+                    </div>
+
+                    <!-- Release 2 - Stable -->
+                    <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-start justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-700">Stable</span>
+                          <span class="text-xs font-mono text-gray-700 font-medium">v2.4.0</span>
+                        </div>
+                        <span class="text-[10px] text-gray-400">3d ago</span>
+                      </div>
+                      <div class="flex items-center gap-2 text-xs text-gray-600 mb-2">
+                        <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>jane@company.com</span>
+                      </div>
+                      <div class="flex items-center gap-2 p-2 bg-white rounded border border-gray-200">
+                        <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="text-xs text-emerald-600 font-medium">0 new errors during release</span>
+                      </div>
+                    </div>
+
+                    <!-- Release 3 - Fixed -->
+                    <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-start justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-200 text-gray-600">Fixed</span>
+                          <span class="text-xs font-mono text-gray-700 font-medium">v2.3.9</span>
+                        </div>
+                        <span class="text-[10px] text-gray-400">5d ago</span>
+                      </div>
+                      <div class="flex items-center gap-2 text-xs text-gray-500">
+                        <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Resolved 2 regressions</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Footer -->
+                  <div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                    <span>Auto-tracked from CI/CD</span>
+                    <span class="text-rose-500 font-medium">Rollback?</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="lg:pl-8">

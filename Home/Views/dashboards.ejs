@@ -72,30 +72,6 @@
       </div>
     </div>
 
-    <!-- Stats Section -->
-    <div class="bg-gray-50 py-16 sm:py-20">
-      <div class="mx-auto max-w-5xl px-6 lg:px-8">
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">Visual</div>
-            <div class="text-sm text-gray-500">Drag & Drop</div>
-          </div>
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">20+</div>
-            <div class="text-sm text-gray-500">Widget Types</div>
-          </div>
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">Real-time</div>
-            <div class="text-sm text-gray-500">Updates</div>
-          </div>
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">Share</div>
-            <div class="text-sm text-gray-500">With Anyone</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <%- include('logo-roll') -%>
 
     <!-- How It Works -->
@@ -224,8 +200,126 @@
             </ul>
           </div>
           <div class="relative lg:order-last">
-            <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-inset ring-gray-900/10">
-              <img src="/img/apm-3.png" alt="Drag and drop dashboard builder interface" class="rounded-xl shadow-lg">
+            <div class="relative">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-blue-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Dashboard Grid Builder -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Browser header -->
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between border-b border-gray-100">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500">Edit Mode</span>
+                    <div class="w-8 h-4 bg-blue-500 rounded-full relative">
+                      <div class="absolute right-0.5 top-0.5 w-3 h-3 bg-white rounded-full"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Dashboard grid content -->
+                <div class="p-4 bg-gray-50">
+                  <!-- Toolbar -->
+                  <div class="flex items-center gap-2 mb-3 pb-3 border-b border-gray-200">
+                    <div class="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded text-xs text-blue-600 border border-blue-200">
+                      <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Add Widget
+                    </div>
+                    <div class="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-xs text-gray-600">
+                      <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+                      </svg>
+                      Layout
+                    </div>
+                  </div>
+
+                  <!-- Grid layout -->
+                  <div class="grid grid-cols-4 gap-2">
+                    <!-- Large chart widget -->
+                    <div class="col-span-2 row-span-2 bg-white rounded-lg border-2 border-dashed border-blue-300 p-3 min-h-[100px] flex flex-col">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-medium text-gray-700">Request Rate</span>
+                        <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                        </svg>
+                      </div>
+                      <!-- Mini chart SVG -->
+                      <svg class="w-full flex-1" viewBox="0 0 100 40" preserveAspectRatio="none">
+                        <path d="M0 35 Q25 20, 50 25 T100 15" fill="none" stroke="#3b82f6" stroke-width="2"/>
+                        <path d="M0 35 Q25 20, 50 25 T100 15 L100 40 L0 40 Z" fill="url(#blueGrad)" opacity="0.2"/>
+                        <defs>
+                          <linearGradient id="blueGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.3" />
+                            <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                    </div>
+
+                    <!-- Small stat widget -->
+                    <div class="bg-white rounded-lg border-2 border-dashed border-gray-200 p-2 flex flex-col items-center justify-center">
+                      <span class="text-lg font-bold text-gray-800">99.9%</span>
+                      <span class="text-[10px] text-gray-500">Uptime</span>
+                    </div>
+
+                    <!-- Small stat widget -->
+                    <div class="bg-white rounded-lg border-2 border-dashed border-gray-200 p-2 flex flex-col items-center justify-center">
+                      <span class="text-lg font-bold text-blue-600">142ms</span>
+                      <span class="text-[10px] text-gray-500">Avg Latency</span>
+                    </div>
+
+                    <!-- Small gauge widget -->
+                    <div class="bg-white rounded-lg border-2 border-dashed border-gray-200 p-2 flex flex-col items-center justify-center">
+                      <svg class="w-8 h-8" viewBox="0 0 36 36">
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e5e7eb" stroke-width="3"/>
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#22c55e" stroke-width="3" stroke-dasharray="75, 100"/>
+                      </svg>
+                      <span class="text-[10px] text-gray-500">CPU</span>
+                    </div>
+
+                    <!-- Small list widget -->
+                    <div class="bg-white rounded-lg border-2 border-dashed border-gray-200 p-2">
+                      <div class="space-y-1">
+                        <div class="flex items-center gap-1">
+                          <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                          <span class="text-[9px] text-gray-600 truncate">api-prod</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                          <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                          <span class="text-[9px] text-gray-600 truncate">web-app</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Wide bar chart -->
+                    <div class="col-span-2 bg-white rounded-lg border-2 border-dashed border-gray-200 p-2">
+                      <div class="flex items-end justify-around h-8 gap-1">
+                        <div class="w-3 bg-blue-200 rounded-t" style="height: 60%"></div>
+                        <div class="w-3 bg-blue-300 rounded-t" style="height: 80%"></div>
+                        <div class="w-3 bg-blue-400 rounded-t" style="height: 45%"></div>
+                        <div class="w-3 bg-blue-500 rounded-t" style="height: 90%"></div>
+                        <div class="w-3 bg-blue-600 rounded-t" style="height: 70%"></div>
+                      </div>
+                    </div>
+
+                    <!-- Empty placeholder -->
+                    <div class="col-span-2 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 p-3 flex items-center justify-center">
+                      <div class="text-center">
+                        <svg class="w-5 h-5 text-gray-400 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        <span class="text-[10px] text-gray-400">Drop widget here</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -237,8 +331,152 @@
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
           <div class="relative lg:order-first">
-            <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-inset ring-gray-900/10">
-              <img src="/img/apm-3.png" alt="Rich visualization options" class="rounded-xl shadow-lg">
+            <div class="relative">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-blue-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Chart Type Cards Grid -->
+              <div class="relative max-w-md mx-auto">
+                <div class="grid grid-cols-3 gap-3">
+                  <!-- Line Chart -->
+                  <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                    <div class="w-full h-12 mb-3 flex items-end">
+                      <svg class="w-full h-full" viewBox="0 0 60 30" preserveAspectRatio="none">
+                        <path d="M0 25 L15 18 L30 22 L45 10 L60 15" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="15" cy="18" r="2" fill="#3b82f6"/>
+                        <circle cx="30" cy="22" r="2" fill="#3b82f6"/>
+                        <circle cx="45" cy="10" r="2" fill="#3b82f6"/>
+                      </svg>
+                    </div>
+                    <div class="text-gray-700 text-xs font-medium text-center">Line Chart</div>
+                  </div>
+
+                  <!-- Bar Chart -->
+                  <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                    <div class="w-full h-12 mb-3 flex items-end justify-around gap-1">
+                      <div class="w-2 bg-blue-300 rounded-t" style="height: 50%"></div>
+                      <div class="w-2 bg-blue-400 rounded-t" style="height: 80%"></div>
+                      <div class="w-2 bg-blue-500 rounded-t" style="height: 60%"></div>
+                      <div class="w-2 bg-blue-600 rounded-t" style="height: 90%"></div>
+                      <div class="w-2 bg-blue-500 rounded-t" style="height: 70%"></div>
+                    </div>
+                    <div class="text-gray-700 text-xs font-medium text-center">Bar Chart</div>
+                  </div>
+
+                  <!-- Area Chart -->
+                  <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                    <div class="w-full h-12 mb-3">
+                      <svg class="w-full h-full" viewBox="0 0 60 30" preserveAspectRatio="none">
+                        <path d="M0 28 Q15 20, 30 22 T60 12 L60 30 L0 30 Z" fill="url(#areaGrad)" opacity="0.6"/>
+                        <path d="M0 28 Q15 20, 30 22 T60 12" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+                        <defs>
+                          <linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.4" />
+                            <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0.1" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                    </div>
+                    <div class="text-gray-700 text-xs font-medium text-center">Area Chart</div>
+                  </div>
+
+                  <!-- Gauge -->
+                  <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                    <div class="w-full h-12 mb-3 flex items-center justify-center">
+                      <svg class="w-10 h-10" viewBox="0 0 36 36">
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e5e7eb" stroke-width="3"/>
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#3b82f6" stroke-width="3" stroke-dasharray="72, 100"/>
+                        <text x="18" y="21" text-anchor="middle" class="text-[8px] fill-gray-600 font-medium">72%</text>
+                      </svg>
+                    </div>
+                    <div class="text-gray-700 text-xs font-medium text-center">Gauge</div>
+                  </div>
+
+                  <!-- Pie Chart -->
+                  <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                    <div class="w-full h-12 mb-3 flex items-center justify-center">
+                      <svg class="w-10 h-10" viewBox="0 0 32 32">
+                        <circle cx="16" cy="16" r="12" fill="#dbeafe"/>
+                        <path d="M16 4 A12 12 0 0 1 28 16 L16 16 Z" fill="#3b82f6"/>
+                        <path d="M28 16 A12 12 0 0 1 16 28 L16 16 Z" fill="#60a5fa"/>
+                        <path d="M16 28 A12 12 0 0 1 4 16 L16 16 Z" fill="#93c5fd"/>
+                      </svg>
+                    </div>
+                    <div class="text-gray-700 text-xs font-medium text-center">Pie Chart</div>
+                  </div>
+
+                  <!-- Stat Card -->
+                  <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                    <div class="w-full h-12 mb-3 flex flex-col items-center justify-center">
+                      <span class="text-xl font-bold text-blue-600">1.2K</span>
+                      <span class="text-[9px] text-green-500 flex items-center gap-0.5">
+                        <svg class="w-2 h-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                        </svg>
+                        12%
+                      </span>
+                    </div>
+                    <div class="text-gray-700 text-xs font-medium text-center">Stat Card</div>
+                  </div>
+
+                  <!-- Table -->
+                  <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                    <div class="w-full h-12 mb-3 flex flex-col justify-center gap-1">
+                      <div class="h-2 bg-gray-200 rounded w-full"></div>
+                      <div class="h-1.5 bg-blue-100 rounded w-full"></div>
+                      <div class="h-1.5 bg-blue-50 rounded w-full"></div>
+                      <div class="h-1.5 bg-blue-100 rounded w-full"></div>
+                    </div>
+                    <div class="text-gray-700 text-xs font-medium text-center">Table</div>
+                  </div>
+
+                  <!-- Heatmap -->
+                  <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                    <div class="w-full h-12 mb-3 grid grid-cols-5 grid-rows-3 gap-0.5">
+                      <div class="bg-blue-100 rounded-sm"></div>
+                      <div class="bg-blue-300 rounded-sm"></div>
+                      <div class="bg-blue-200 rounded-sm"></div>
+                      <div class="bg-blue-500 rounded-sm"></div>
+                      <div class="bg-blue-100 rounded-sm"></div>
+                      <div class="bg-blue-400 rounded-sm"></div>
+                      <div class="bg-blue-200 rounded-sm"></div>
+                      <div class="bg-blue-600 rounded-sm"></div>
+                      <div class="bg-blue-300 rounded-sm"></div>
+                      <div class="bg-blue-100 rounded-sm"></div>
+                      <div class="bg-blue-200 rounded-sm"></div>
+                      <div class="bg-blue-500 rounded-sm"></div>
+                      <div class="bg-blue-300 rounded-sm"></div>
+                      <div class="bg-blue-400 rounded-sm"></div>
+                      <div class="bg-blue-200 rounded-sm"></div>
+                    </div>
+                    <div class="text-gray-700 text-xs font-medium text-center">Heatmap</div>
+                  </div>
+
+                  <!-- Log Stream -->
+                  <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                    <div class="w-full h-12 mb-3 flex flex-col justify-center gap-0.5 font-mono">
+                      <div class="flex items-center gap-1">
+                        <span class="w-1 h-1 rounded-full bg-green-500"></span>
+                        <span class="text-[7px] text-gray-500 truncate">INFO: OK</span>
+                      </div>
+                      <div class="flex items-center gap-1">
+                        <span class="w-1 h-1 rounded-full bg-yellow-500"></span>
+                        <span class="text-[7px] text-gray-500 truncate">WARN: slow</span>
+                      </div>
+                      <div class="flex items-center gap-1">
+                        <span class="w-1 h-1 rounded-full bg-green-500"></span>
+                        <span class="text-[7px] text-gray-500 truncate">INFO: done</span>
+                      </div>
+                    </div>
+                    <div class="text-gray-700 text-xs font-medium text-center">Log Stream</div>
+                  </div>
+                </div>
+
+                <!-- Footer label -->
+                <div class="mt-4 text-center text-xs text-gray-400">
+                  + Scatter plots, sparklines, status grids & more
+                </div>
+              </div>
             </div>
           </div>
           <div class="lg:pl-8">
@@ -348,8 +586,139 @@
             </ul>
           </div>
           <div class="relative lg:order-last">
-            <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-inset ring-gray-900/10">
-              <img src="/img/apm-3.png" alt="Multiple data sources on one dashboard" class="rounded-xl shadow-lg">
+            <div class="relative">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-blue-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Data Sources Connection UI -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Browser header -->
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  </div>
+                  <span class="text-xs text-gray-500">Data Sources</span>
+                </div>
+
+                <!-- Content area -->
+                <div class="p-4">
+                  <!-- Header -->
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="text-gray-800 text-sm font-medium">Connected Sources</div>
+                    <span class="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded text-xs text-blue-600 border border-blue-200">
+                      <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Add Source
+                    </span>
+                  </div>
+
+                  <!-- Data source cards -->
+                  <div class="space-y-2">
+                    <!-- Metrics -->
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="text-gray-700 text-sm font-medium">Metrics</div>
+                          <div class="text-gray-400 text-xs">OpenTelemetry</div>
+                        </div>
+                      </div>
+                      <span class="flex items-center gap-1 text-xs text-green-600">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        Active
+                      </span>
+                    </div>
+
+                    <!-- Logs -->
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                          <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="text-gray-700 text-sm font-medium">Logs</div>
+                          <div class="text-gray-400 text-xs">Log Management</div>
+                        </div>
+                      </div>
+                      <span class="flex items-center gap-1 text-xs text-green-600">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        Active
+                      </span>
+                    </div>
+
+                    <!-- Traces -->
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                          <svg class="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="text-gray-700 text-sm font-medium">Traces</div>
+                          <div class="text-gray-400 text-xs">Distributed Tracing</div>
+                        </div>
+                      </div>
+                      <span class="flex items-center gap-1 text-xs text-green-600">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        Active
+                      </span>
+                    </div>
+
+                    <!-- Status Page -->
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                          <svg class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="text-gray-700 text-sm font-medium">Status</div>
+                          <div class="text-gray-400 text-xs">Status Page Data</div>
+                        </div>
+                      </div>
+                      <span class="flex items-center gap-1 text-xs text-green-600">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        Active
+                      </span>
+                    </div>
+
+                    <!-- Monitors -->
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                          <svg class="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="text-gray-700 text-sm font-medium">Monitors</div>
+                          <div class="text-gray-400 text-xs">Uptime & Health</div>
+                        </div>
+                      </div>
+                      <span class="flex items-center gap-1 text-xs text-green-600">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        Active
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Footer -->
+                  <div class="mt-3 pt-3 border-t border-gray-100 text-center text-xs text-gray-400">
+                    All data unified in one dashboard
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -361,8 +730,104 @@
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
           <div class="relative lg:order-first">
-            <div class="relative rounded-2xl bg-gray-100 p-2 ring-1 ring-inset ring-gray-900/10">
-              <img src="/img/apm-3.png" alt="Dashboard sharing and collaboration" class="rounded-xl shadow-lg">
+            <div class="relative">
+              <!-- Subtle background -->
+              <div class="absolute -inset-4 bg-blue-100/50 rounded-3xl blur-2xl"></div>
+
+              <!-- Sharing & Permissions UI -->
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <!-- Browser header -->
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  </div>
+                  <span class="text-xs text-gray-500">Share Dashboard</span>
+                </div>
+
+                <!-- Content area -->
+                <div class="p-4">
+                  <!-- Share link section -->
+                  <div class="mb-4">
+                    <div class="text-gray-800 text-sm font-medium mb-2">Share Link</div>
+                    <div class="flex items-center gap-2">
+                      <div class="flex-1 bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-500 font-mono truncate border border-gray-200">
+                        https://oneuptime.com/dash/prod-overview
+                      </div>
+                      <button class="px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700">
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Access control -->
+                  <div class="mb-4">
+                    <div class="text-gray-800 text-sm font-medium mb-2">Access Control</div>
+                    <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                      <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      <span class="text-xs text-gray-600">Team members only</span>
+                      <svg class="w-3 h-3 text-gray-400 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- Team members with access -->
+                  <div class="mb-4">
+                    <div class="text-gray-800 text-sm font-medium mb-2">People with access</div>
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-2">
+                          <div class="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">JD</div>
+                          <div>
+                            <div class="text-gray-700 text-xs font-medium">John Doe</div>
+                            <div class="text-gray-400 text-[10px]">john@company.com</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200">Owner</span>
+                      </div>
+
+                      <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-2">
+                          <div class="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-medium">SA</div>
+                          <div>
+                            <div class="text-gray-700 text-xs font-medium">Sarah Adams</div>
+                            <div class="text-gray-400 text-[10px]">sarah@company.com</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200">Edit</span>
+                      </div>
+
+                      <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-2">
+                          <div class="w-7 h-7 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs font-medium">MK</div>
+                          <div>
+                            <div class="text-gray-700 text-xs font-medium">Mike Kim</div>
+                            <div class="text-gray-400 text-[10px]">mike@company.com</div>
+                          </div>
+                        </div>
+                        <span class="text-xs text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200">View</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- TV Mode toggle -->
+                  <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
+                    <div class="flex items-center gap-2">
+                      <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <span class="text-xs font-medium text-blue-700">TV Mode</span>
+                    </div>
+                    <div class="w-8 h-4 bg-blue-500 rounded-full relative">
+                      <div class="absolute right-0.5 top-0.5 w-3 h-3 bg-white rounded-full"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="lg:pl-8">

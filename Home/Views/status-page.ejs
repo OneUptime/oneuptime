@@ -77,30 +77,6 @@
         </div>
       </div>
 
-      <!-- Stats Section -->
-    <div class="bg-gray-50 py-16 sm:py-20">
-      <div class="mx-auto max-w-5xl px-6 lg:px-8">
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">99.99%</div>
-            <div class="text-sm text-gray-500">Uptime SLA</div>
-          </div>
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">∞</div>
-            <div class="text-sm text-gray-500">Status Pages</div>
-          </div>
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">∞</div>
-            <div class="text-sm text-gray-500">Subscribers</div>
-          </div>
-          <div class="text-center p-6 sm:p-8 rounded-2xl bg-white border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-300">
-            <div class="text-3xl sm:text-4xl font-semibold text-gray-900 mb-1">Free</div>
-            <div class="text-sm text-gray-500">SSL Certificates</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <%- include('logo-roll') -%>
 
     <!-- How It Works Section -->
@@ -250,10 +226,93 @@
                 </div>
               </div>
 
-              <!-- Image -->
+              <!-- Custom Visual -->
               <div class="mt-12 lg:mt-0 relative">
-                <div class="relative rounded-2xl bg-gray-100 p-2 shadow-lg ring-1 ring-gray-200/60">
-                  <img class="w-full rounded-xl" src="/img/status-pages.png" alt="Status Pages Dashboard">
+                <div class="relative">
+                  <!-- Subtle background -->
+                  <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                  <!-- Status Page Grid -->
+                  <div class="relative max-w-md mx-auto">
+                    <div class="grid grid-cols-2 gap-3">
+                      <!-- Public Status Page -->
+                      <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                        <div class="flex items-center gap-2 mb-3">
+                          <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                          <span class="text-xs font-medium text-gray-500">PUBLIC</span>
+                        </div>
+                        <div class="text-gray-800 text-sm font-medium mb-1">API Services</div>
+                        <div class="text-gray-400 text-xs">status.api.com</div>
+                        <div class="mt-3 flex items-center gap-1">
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                        </div>
+                      </div>
+
+                      <!-- Private Status Page -->
+                      <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                        <div class="flex items-center gap-2 mb-3">
+                          <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                          </svg>
+                          <span class="text-xs font-medium text-gray-500">PRIVATE</span>
+                        </div>
+                        <div class="text-gray-800 text-sm font-medium mb-1">Internal Tools</div>
+                        <div class="text-gray-400 text-xs">internal.ops.com</div>
+                        <div class="mt-3 flex items-center gap-1">
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-amber-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                        </div>
+                      </div>
+
+                      <!-- Customer Status Page -->
+                      <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                        <div class="flex items-center gap-2 mb-3">
+                          <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                          <span class="text-xs font-medium text-gray-500">PUBLIC</span>
+                        </div>
+                        <div class="text-gray-800 text-sm font-medium mb-1">Platform Status</div>
+                        <div class="text-gray-400 text-xs">status.yourapp.io</div>
+                        <div class="mt-3 flex items-center gap-1">
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                        </div>
+                      </div>
+
+                      <!-- Enterprise Status Page -->
+                      <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                        <div class="flex items-center gap-2 mb-3">
+                          <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                          </svg>
+                          <span class="text-xs font-medium text-gray-500">PRIVATE</span>
+                        </div>
+                        <div class="text-gray-800 text-sm font-medium mb-1">Enterprise Ops</div>
+                        <div class="text-gray-400 text-xs">ops.enterprise.net</div>
+                        <div class="mt-3 flex items-center gap-1">
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                          <div class="h-1.5 w-3 rounded-full bg-emerald-500"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Footer label -->
+                    <div class="mt-4 text-center text-xs text-gray-400">
+                      + Unlimited status pages, custom domains & more
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -262,10 +321,91 @@
           <!-- Feature 2: Unlimited Subscribers -->
           <div class="relative mb-24 lg:mb-32">
             <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
-              <!-- Image (left on desktop) -->
+              <!-- Custom Visual (left on desktop) -->
               <div class="order-2 lg:order-1 mt-12 lg:mt-0 relative">
-                <div class="relative rounded-2xl bg-gray-100 p-2 shadow-lg ring-1 ring-gray-200/60">
-                  <img class="w-full rounded-xl" src="/img/subscribers.png" alt="Subscriber Management">
+                <div class="relative">
+                  <!-- Subtle background -->
+                  <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                  <!-- Subscriber Notifications Browser Window -->
+                  <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                    <!-- Browser header -->
+                    <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                      <div class="flex gap-1.5">
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      </div>
+                    </div>
+
+                    <!-- Content area -->
+                    <div class="p-4">
+                      <!-- Header -->
+                      <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                          <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                          </div>
+                          <div>
+                            <div class="text-gray-800 text-sm font-medium">Notifications Sent</div>
+                            <div class="text-gray-400 text-xs">Last 24 hours</div>
+                          </div>
+                        </div>
+                        <span class="px-2 py-1 bg-emerald-50 rounded text-xs text-emerald-600 font-medium">12,847</span>
+                      </div>
+
+                      <!-- Notification channels -->
+                      <div class="space-y-2">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                            <span class="text-gray-700 text-sm">Email</span>
+                          </div>
+                          <span class="text-gray-500 text-xs">8,234 sent</span>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
+                            <span class="text-gray-700 text-sm">SMS</span>
+                          </div>
+                          <span class="text-gray-500 text-xs">2,156 sent</span>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-[#4A154B]" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z"/>
+                            </svg>
+                            <span class="text-gray-700 text-sm">Slack</span>
+                          </div>
+                          <span class="text-gray-500 text-xs">1,892 sent</span>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                            </svg>
+                            <span class="text-gray-700 text-sm">Webhooks</span>
+                          </div>
+                          <span class="text-gray-500 text-xs">565 sent</span>
+                        </div>
+                      </div>
+
+                      <!-- Footer -->
+                      <div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                        <span>Total subscribers: 45,230</span>
+                        <span class="text-emerald-500">100% delivered</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -386,10 +526,75 @@
                 </div>
               </div>
 
-              <!-- Image -->
+              <!-- Custom Visual -->
               <div class="mt-12 lg:mt-0 relative">
-                <div class="relative rounded-2xl bg-gray-100 p-2 shadow-lg ring-1 ring-gray-200/60">
-                  <img class="w-full rounded-xl" src="/img/branding.png" alt="Branding Customization">
+                <div class="relative">
+                  <!-- Subtle background -->
+                  <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                  <!-- Branded Status Page Preview -->
+                  <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                    <!-- Browser header -->
+                    <div class="bg-violet-600 px-4 py-2.5 flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-2.5 h-2.5 rounded-full bg-white/30"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-white/30"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-white/30"></div>
+                      </div>
+                      <div class="flex-1 text-center">
+                        <span class="text-white/80 text-xs">status.yourcompany.com</span>
+                      </div>
+                    </div>
+
+                    <!-- Page header with branding -->
+                    <div class="bg-violet-600 px-6 py-6">
+                      <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center">
+                          <svg class="w-6 h-6 text-violet-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="text-white font-semibold">YourCompany</div>
+                          <div class="text-white/60 text-xs">System Status</div>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+                        <span class="text-white text-sm">All Systems Operational</span>
+                      </div>
+                    </div>
+
+                    <!-- Status items -->
+                    <div class="p-4 space-y-2">
+                      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span class="text-gray-700 text-sm">API</span>
+                        <span class="flex items-center gap-1.5 text-emerald-600 text-xs font-medium">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          Operational
+                        </span>
+                      </div>
+                      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span class="text-gray-700 text-sm">Dashboard</span>
+                        <span class="flex items-center gap-1.5 text-emerald-600 text-xs font-medium">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          Operational
+                        </span>
+                      </div>
+                      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span class="text-gray-700 text-sm">Database</span>
+                        <span class="flex items-center gap-1.5 text-emerald-600 text-xs font-medium">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          Operational
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="px-4 py-3 border-t border-gray-100 text-center">
+                      <span class="text-gray-400 text-xs">Powered by OneUptime</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -398,10 +603,70 @@
           <!-- Feature 4: Incident Communication -->
           <div class="relative">
             <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
-              <!-- Image (left on desktop) -->
+              <!-- Custom Visual (left on desktop) -->
               <div class="order-2 lg:order-1 mt-12 lg:mt-0 relative">
-                <div class="relative rounded-2xl bg-gray-100 p-2 shadow-lg ring-1 ring-gray-200/60">
-                  <img class="w-full rounded-xl" src="/img/incident-report.png" alt="Incident Communication">
+                <div class="relative">
+                  <!-- Subtle background -->
+                  <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                  <!-- Incident Update Card -->
+                  <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                    <!-- Header -->
+                    <div class="bg-amber-50 px-4 py-3 border-b border-amber-100">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                          <div class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
+                          <span class="text-amber-800 text-sm font-medium">Active Incident</span>
+                        </div>
+                        <span class="text-amber-600 text-xs">Updated 2m ago</span>
+                      </div>
+                    </div>
+
+                    <!-- Incident details -->
+                    <div class="p-4">
+                      <h4 class="text-gray-900 font-semibold mb-2">API Latency Degradation</h4>
+                      <p class="text-gray-600 text-sm mb-4">We are investigating elevated response times affecting the API.</p>
+
+                      <!-- Timeline -->
+                      <div class="space-y-3">
+                        <div class="flex gap-3">
+                          <div class="flex flex-col items-center">
+                            <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                            <div class="flex-1 w-px bg-gray-200"></div>
+                          </div>
+                          <div class="pb-3">
+                            <div class="flex items-center gap-2 mb-0.5">
+                              <span class="text-xs font-medium text-gray-900">Investigating</span>
+                              <span class="text-xs text-gray-400">14:32 UTC</span>
+                            </div>
+                            <p class="text-xs text-gray-500">Root cause identified as database connection pool exhaustion.</p>
+                          </div>
+                        </div>
+
+                        <div class="flex gap-3">
+                          <div class="flex flex-col items-center">
+                            <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center gap-2 mb-0.5">
+                              <span class="text-xs font-medium text-gray-900">Identified</span>
+                              <span class="text-xs text-gray-400">14:15 UTC</span>
+                            </div>
+                            <p class="text-xs text-gray-500">Monitoring detected elevated p99 latency.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Affected services -->
+                    <div class="px-4 py-3 bg-gray-50 border-t border-gray-100">
+                      <div class="text-xs text-gray-500 mb-2">Affected Services</div>
+                      <div class="flex gap-2">
+                        <span class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">API</span>
+                        <span class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">Dashboard</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
