@@ -34,6 +34,10 @@ import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import Typeof from "../../../Types/Typeof";
 import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
+import URL from "../../../Types/API/URL";
+import IP from "../../../Types/IP/IP";
+import Hostname from "../../../Types/API/Hostname";
+import Port from "../../../Types/Port";
 
 export default class MonitorCriteriaEvaluator {
   public static async processMonitorStep(input: {
@@ -650,6 +654,45 @@ ${contextBlock}
     }
 
     try {
+      // Handle primitive types directly
+      if (typeof value === "string") {
+        return value.trim();
+      }
+
+      if (typeof value === "number" || typeof value === "boolean") {
+        return String(value);
+      }
+
+      // Handle class instances with custom toString method (like URL, IP, Hostname)
+      if (
+        value instanceof URL ||
+        value instanceof IP ||
+        value instanceof Hostname ||
+        value instanceof Port
+      ) {
+        return value.toString().trim();
+      }
+
+      /*
+       * Handle JSON representations of URL, IP, Hostname, Port (e.g., { _type: "URL", value: "https://..." })
+       * This can happen when the value wasn't properly deserialized from JSON
+       */
+      if (typeof value === "object" && value !== null && "_type" in value) {
+        const typedValue: { _type: string; value?: unknown } = value as {
+          _type: string;
+          value?: unknown;
+        };
+        if (
+          (typedValue._type === "URL" ||
+            typedValue._type === "IP" ||
+            typedValue._type === "Hostname" ||
+            typedValue._type === "Port") &&
+          typeof typedValue.value === "string"
+        ) {
+          return typedValue.value.trim();
+        }
+      }
+
       return String(value).trim();
     } catch (err) {
       logger.error(err);
