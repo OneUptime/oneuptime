@@ -883,61 +883,105 @@
 
         <!-- Slack Demo -->
         <div class="mt-12 lg:mt-0 relative">
-          <div class="rounded-2xl bg-white shadow-xl ring-1 ring-gray-200 overflow-hidden">
-            <!-- Slack Header -->
-            <div class="bg-[#3F0F40] px-4 py-3 flex items-center gap-3">
+          <!-- Decorative gradient background -->
+          <div class="absolute -inset-4 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 rounded-3xl blur-2xl"></div>
+
+          <div class="relative rounded-2xl bg-[#1a1d21] shadow-2xl ring-1 ring-white/10 overflow-hidden">
+            <!-- Slack Window Header -->
+            <div class="bg-[#0f1114] px-4 py-3 flex items-center justify-between border-b border-white/5">
               <div class="flex items-center gap-2">
-                <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <div class="flex gap-1.5">
+                  <div class="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
+                  <div class="w-3 h-3 rounded-full bg-[#febc2e]"></div>
+                  <div class="w-3 h-3 rounded-full bg-[#28c840]"></div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-white/60" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
                 </svg>
-                <span class="text-white font-semibold text-sm">Slack</span>
+                <span class="text-white/60 text-sm font-medium">#log-alerts</span>
               </div>
-              <div class="flex-1 text-center">
-                <span class="text-white/70 text-sm">#log-alerts</span>
+              <div class="w-16"></div>
+            </div>
+
+            <!-- Slack Messages Area -->
+            <div class="p-4 space-y-4 min-h-[320px]" id="logs-slack-messages">
+              <!-- Main Alert Message -->
+              <div class="flex gap-3" style="animation: fadeSlideIn 0.5s ease-out forwards;">
+                <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+                  <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-baseline gap-2">
+                    <span class="font-bold text-white text-sm">OneUptime Logs</span>
+                    <span class="text-xs text-white/40">4:12 PM</span>
+                  </div>
+                  <!-- Alert Card -->
+                  <div class="mt-2 rounded-lg bg-[#0f1114] border border-white/10 overflow-hidden">
+                    <div class="p-3 border-l-4 border-red-500">
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400 ring-1 ring-red-500/30">ERROR</span>
+                        <span class="text-white/40 text-xs">Pattern Match Alert</span>
+                      </div>
+                      <p class="text-white font-semibold">OutOfMemoryError detected</p>
+                      <div class="mt-2 flex items-center gap-4 text-xs text-white/50">
+                        <span class="flex items-center gap-1">
+                          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                          </svg>
+                          api-server
+                        </span>
+                        <span class="flex items-center gap-1">
+                          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                          </svg>
+                          847 in 5 min
+                        </span>
+                      </div>
+                      <!-- Action Buttons -->
+                      <div class="mt-3 flex gap-2">
+                        <button id="logs-acknowledge-btn" class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                          Acknowledge
+                        </button>
+                        <button id="logs-investigate-btn" class="px-3 py-1.5 rounded text-xs font-semibold bg-amber-600 text-white hover:bg-amber-700 transition-colors">
+                          View Logs
+                        </button>
+                        <button id="logs-resolve-btn" class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                          Create Incident
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Reactions -->
+                  <div class="mt-2 flex items-center gap-1">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                      <span>👀</span>
+                      <span class="text-white/60">2</span>
+                    </span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                      <span>🔥</span>
+                      <span class="text-white/60">1</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Thread Replies Container -->
+              <div id="logs-thread-container" class="ml-12 space-y-3 hidden">
+                <!-- Thread replies will be dynamically added here -->
               </div>
             </div>
 
-            <!-- Slack Messages -->
-            <div class="p-4 space-y-4 bg-white">
-              <!-- Message 1 -->
-              <div class="flex gap-3 slack-message-1" style="opacity: 0; animation: fadeInSlack 0.5s ease-out 0.5s forwards;">
-                <div class="h-9 w-9 rounded bg-amber-500 flex items-center justify-center flex-shrink-0">
-                  <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-baseline gap-2">
-                    <span class="font-semibold text-gray-900 text-sm">OneUptime Logs</span>
-                    <span class="text-xs text-gray-500">4:12 PM</span>
-                  </div>
-                  <div class="mt-1 p-3 rounded-lg bg-red-50 border-l-4 border-red-500">
-                    <div class="flex items-center gap-2 mb-1">
-                      <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">ERROR</span>
-                    </div>
-                    <p class="text-sm text-gray-700 font-medium">OutOfMemoryError detected</p>
-                    <p class="text-xs text-gray-500 mt-1">api-server | 847 occurrences in last 5 min</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Message 2 -->
-              <div class="flex gap-3 slack-message-2" style="opacity: 0; animation: fadeInSlack 0.5s ease-out 1.5s forwards;">
-                <div class="h-9 w-9 rounded bg-amber-500 flex items-center justify-center flex-shrink-0">
-                  <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-baseline gap-2">
-                    <span class="font-semibold text-gray-900 text-sm">OneUptime Logs</span>
-                    <span class="text-xs text-gray-500">4:12 PM</span>
-                  </div>
-                  <div class="mt-1 p-3 rounded-lg bg-amber-50 border-l-4 border-amber-500">
-                    <p class="text-sm text-gray-700 font-medium">Incident created automatically</p>
-                    <p class="text-xs text-gray-500 mt-1">On-call team has been notified</p>
-                  </div>
-                </div>
+            <!-- Message Input Area -->
+            <div class="px-4 py-3 border-t border-white/5">
+              <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0f1114] border border-white/10">
+                <svg class="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <span class="text-white/30 text-sm">Message #log-alerts</span>
               </div>
             </div>
           </div>
@@ -946,15 +990,15 @@
     </div>
   </div>
 
-          <%- include('./Partials/enterprise-ready') -%>
-          <%- include('features-table') -%>
-            <%- include('cta') -%>
-            </main>
-              <%- include('footer') -%>
-                <%- include('./Partials/video-script') -%>
+  <%- include('./Partials/enterprise-ready') -%>
+  <%- include('features-table') -%>
+  <%- include('cta') -%>
+  </main>
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
 
   <style>
-    @keyframes fadeInSlack {
+    @keyframes fadeSlideIn {
       from {
         opacity: 0;
         transform: translateY(10px);
@@ -962,6 +1006,22 @@
       to {
         opacity: 1;
         transform: translateY(0);
+      }
+    }
+    @keyframes bounceIn {
+      0% {
+        opacity: 0;
+        transform: scale(0.3);
+      }
+      50% {
+        transform: scale(1.05);
+      }
+      70% {
+        transform: scale(0.9);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
       }
     }
   </style>
@@ -985,6 +1045,78 @@
 
         heroSection.addEventListener('mouseleave', () => {
           gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+
+    // Slack demo interactivity for logs page
+    (function() {
+      const threadContainer = document.getElementById('logs-thread-container');
+      const acknowledgeBtn = document.getElementById('logs-acknowledge-btn');
+      const investigateBtn = document.getElementById('logs-investigate-btn');
+      const resolveBtn = document.getElementById('logs-resolve-btn');
+
+      const teamAvatars = [
+        { name: 'Sarah Chen', color: 'from-blue-500 to-cyan-500', initial: 'S' },
+        { name: 'Mike Rodriguez', color: 'from-green-500 to-emerald-500', initial: 'M' },
+        { name: 'Alex Kim', color: 'from-orange-500 to-amber-500', initial: 'A' }
+      ];
+
+      let currentAvatarIndex = 0;
+      let repliesAdded = 0;
+
+      function getNextAvatar() {
+        const avatar = teamAvatars[currentAvatarIndex];
+        currentAvatarIndex = (currentAvatarIndex + 1) % teamAvatars.length;
+        return avatar;
+      }
+
+      function addThreadReply(message, isAction = false) {
+        if (repliesAdded >= 3) return;
+
+        threadContainer.classList.remove('hidden');
+        const avatar = getNextAvatar();
+
+        const replyHtml = `
+          <div class="flex gap-3 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20" style="animation: bounceIn 0.4s ease-out forwards;">
+            <div class="h-8 w-8 rounded-lg bg-gradient-to-br ${avatar.color} flex items-center justify-center flex-shrink-0 text-white text-xs font-bold shadow-lg">
+              ${avatar.initial}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-baseline gap-2">
+                <span class="font-semibold text-white text-sm">${avatar.name}</span>
+                <span class="text-xs text-white/40">just now</span>
+              </div>
+              <p class="text-sm text-white/80 mt-0.5">${message}</p>
+            </div>
+          </div>
+        `;
+
+        threadContainer.insertAdjacentHTML('beforeend', replyHtml);
+        repliesAdded++;
+      }
+
+      if (acknowledgeBtn) {
+        acknowledgeBtn.addEventListener('click', () => {
+          acknowledgeBtn.disabled = true;
+          acknowledgeBtn.classList.add('opacity-50');
+          addThreadReply('Acknowledged. Looking into the memory spike now. 📋');
+        });
+      }
+
+      if (investigateBtn) {
+        investigateBtn.addEventListener('click', () => {
+          investigateBtn.disabled = true;
+          investigateBtn.classList.add('opacity-50');
+          addThreadReply('Found the root cause in the logs - a memory leak in the cache layer. Deploying hotfix. 🔍');
+        });
+      }
+
+      if (resolveBtn) {
+        resolveBtn.addEventListener('click', () => {
+          resolveBtn.disabled = true;
+          resolveBtn.classList.add('opacity-50');
+          addThreadReply('Incident INC-2847 created and assigned to the API team. ✅');
         });
       }
     })();

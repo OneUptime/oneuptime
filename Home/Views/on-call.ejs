@@ -923,65 +923,285 @@
         </div>
 
         <!-- Slack Demo -->
-        <div class="mt-12 lg:mt-0 relative">
-          <div class="rounded-2xl bg-white shadow-xl ring-1 ring-gray-200 overflow-hidden">
-            <!-- Slack Header -->
-            <div class="bg-[#3F0F40] px-4 py-3 flex items-center gap-3">
-              <div class="flex items-center gap-2">
-                <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
-                </svg>
-                <span class="text-white font-semibold text-sm">Slack</span>
+        <div class="relative" id="oncall-slack-demo">
+          <!-- Decorative background elements -->
+          <div class="absolute -inset-4 bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-teal-500/10 rounded-3xl blur-2xl"></div>
+
+          <!-- Slack Window -->
+          <div class="relative bg-[#1a1d21] rounded-2xl shadow-2xl overflow-hidden max-w-md mx-auto ring-1 ring-white/10">
+            <!-- Slack window header -->
+            <div class="bg-[#0f1114] px-4 py-3 flex items-center justify-between border-b border-white/5">
+              <div class="flex items-center gap-3">
+                <div class="flex gap-2">
+                  <div class="w-3 h-3 rounded-full bg-[#ff5f57] shadow-sm shadow-red-500/50"></div>
+                  <div class="w-3 h-3 rounded-full bg-[#febc2e] shadow-sm shadow-yellow-500/50"></div>
+                  <div class="w-3 h-3 rounded-full bg-[#28c840] shadow-sm shadow-green-500/50"></div>
+                </div>
               </div>
-              <div class="flex-1 text-center">
-                <span class="text-white/70 text-sm">#on-call-alerts</span>
+              <div class="flex items-center gap-2 bg-[#1a1d21] px-3 py-1 rounded-md">
+                <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                </svg>
+                <span class="text-white text-sm font-semibold">on-call</span>
+                <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center ring-2 ring-green-500 ring-offset-1 ring-offset-[#0f1114]">
+                  <span class="text-white text-xs font-bold">O</span>
+                </div>
               </div>
             </div>
 
-            <!-- Slack Messages -->
-            <div class="p-4 space-y-4 bg-white">
-              <!-- Message 1 -->
-              <div class="flex gap-3 slack-message-1" style="opacity: 0; animation: fadeInSlack 0.5s ease-out 0.5s forwards;">
-                <div class="h-9 w-9 rounded bg-emerald-500 flex items-center justify-center flex-shrink-0">
-                  <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-baseline gap-2">
-                    <span class="font-semibold text-gray-900 text-sm">OneUptime Alert</span>
-                    <span class="text-xs text-gray-500">3:42 PM</span>
-                  </div>
-                  <div class="mt-1 p-3 rounded-lg bg-red-50 border-l-4 border-red-500">
-                    <div class="flex items-center gap-2 mb-1">
-                      <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">CRITICAL</span>
+            <!-- Messages area -->
+            <div class="bg-[#1a1d21] px-4 py-4" id="oncall-slack-messages">
+              <!-- Original on-call alert message -->
+              <div class="group relative">
+                <div class="flex items-start gap-3">
+                  <img src="/img/OneUptimePNG/1.png" alt="OneUptime" class="w-10 h-10 rounded-lg flex-shrink-0 shadow-lg" />
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="font-bold text-white text-sm hover:underline cursor-pointer">OneUptime</span>
+                      <span class="bg-[#4a3f7a] text-purple-200 text-[10px] px-1.5 py-0.5 rounded font-medium">APP</span>
+                      <span class="text-gray-500 text-xs">3:42 PM</span>
                     </div>
-                    <p class="text-sm text-gray-700 font-medium">Database connection timeout</p>
-                    <p class="text-xs text-gray-500 mt-1">On-call: @john.doe - Reply with "ack" to acknowledge</p>
+
+                    <!-- On-call alert card -->
+                    <div class="mt-3 bg-[#0f1114] rounded-lg overflow-hidden ring-1 ring-white/5">
+                      <div class="h-1 bg-gradient-to-r from-red-500 to-orange-500"></div>
+                      <div class="p-4">
+                        <div class="flex items-start justify-between">
+                          <div>
+                            <div class="flex items-center gap-2">
+                              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs font-medium">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span>
+                                Critical Alert
+                              </span>
+                            </div>
+                            <h4 class="text-white font-semibold mt-2">Database connection timeout</h4>
+                            <p class="text-gray-400 text-sm mt-1">Primary DB not responding to health checks</p>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-4 mt-3 pt-3 border-t border-white/5">
+                          <div class="flex items-center gap-1.5 text-xs text-gray-500">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                            On-call: John Doe
+                          </div>
+                          <div class="flex items-center gap-1.5 text-xs text-gray-500">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Escalates in 5m
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="mt-3 flex flex-wrap gap-2" id="oncall-slack-buttons">
+                      <button onclick="oncallAcknowledge()" id="oncall-btn-ack" class="inline-flex items-center gap-2 px-3 py-2 bg-[#007a5a] hover:bg-[#148567] rounded-md text-xs font-semibold text-white transition-all shadow-lg shadow-green-900/20">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Acknowledge
+                      </button>
+                      <button onclick="oncallEscalate()" id="oncall-btn-escalate" class="inline-flex items-center gap-2 px-3 py-2 bg-[#1264a3] hover:bg-[#1d74b8] rounded-md text-xs font-semibold text-white transition-all shadow-lg shadow-blue-900/20">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                        Escalate
+                      </button>
+                      <button onclick="oncallResolve()" id="oncall-btn-resolve" class="inline-flex items-center gap-2 px-3 py-2 bg-[#2e3136] hover:bg-[#3a3d42] border border-gray-600 rounded-md text-xs font-semibold text-white transition-all">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Resolve
+                      </button>
+                    </div>
+
+                    <!-- Reactions -->
+                    <div class="mt-3 flex items-center gap-2" id="oncall-slack-reactions">
+                      <div class="inline-flex items-center gap-1 px-2 py-1 bg-[#2e3136] rounded-full text-xs border border-gray-600 hover:border-gray-500 cursor-pointer transition-colors">
+                        <span>👀</span>
+                        <span class="text-gray-300">2</span>
+                      </div>
+                    </div>
+
+                    <!-- Thread replies container -->
+                    <div id="oncall-slack-thread" class="mt-4 space-y-3"></div>
+
+                    <!-- Thread count indicator -->
+                    <div id="oncall-thread-indicator" class="hidden mt-3 flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
+                      <div class="flex -space-x-1" id="oncall-thread-avatars"></div>
+                      <span id="oncall-thread-count"></span>
+                      <span class="text-gray-500">Last reply 1m ago</span>
+                    </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <!-- Message 2 -->
-              <div class="flex gap-3 slack-message-2" style="opacity: 0; animation: fadeInSlack 0.5s ease-out 1.5s forwards;">
-                <div class="h-9 w-9 rounded bg-gray-200 flex items-center justify-center flex-shrink-0 text-gray-600 font-semibold text-sm">
-                  JD
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-baseline gap-2">
-                    <span class="font-semibold text-gray-900 text-sm">John Doe</span>
-                    <span class="text-xs text-gray-500">3:43 PM</span>
-                  </div>
-                  <div class="mt-1 p-3 rounded-lg bg-emerald-50 border-l-4 border-emerald-500">
-                    <p class="text-sm text-gray-700">ack - Investigating now</p>
-                    <p class="text-xs text-emerald-600 mt-1 font-medium">Alert acknowledged in 47 seconds</p>
-                  </div>
+            <!-- Message input -->
+            <div class="bg-[#1a1d21] px-4 pb-4">
+              <div class="bg-[#2e3136] rounded-lg px-4 py-3 flex items-center gap-3 ring-1 ring-white/5">
+                <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                <span class="text-gray-500 text-sm">Message #on-call</span>
+                <div class="ml-auto flex items-center gap-2">
+                  <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                  </svg>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <script>
+      (function() {
+        let oncallAckClicked = false;
+        let oncallEscalateClicked = false;
+        let oncallResolveClicked = false;
+        let oncallReplyCount = 0;
+        const oncallAvatars = [];
+
+        function updateOncallThreadIndicator() {
+          const indicator = document.getElementById('oncall-thread-indicator');
+          const countEl = document.getElementById('oncall-thread-count');
+          const avatarsEl = document.getElementById('oncall-thread-avatars');
+
+          if (oncallReplyCount > 0) {
+            indicator.classList.remove('hidden');
+            indicator.classList.add('flex');
+            countEl.textContent = oncallReplyCount + (oncallReplyCount === 1 ? ' reply' : ' replies');
+            avatarsEl.innerHTML = oncallAvatars.slice(-3).map(a =>
+              a.isBot
+                ? `<img src="/img/OneUptimePNG/1.png" alt="O" class="w-5 h-5 rounded-full ring-2 ring-[#1a1d21]" />`
+                : `<div class="w-5 h-5 rounded-full ${a.bg} flex items-center justify-center ring-2 ring-[#1a1d21]">
+                    <span class="text-white text-[8px] font-bold">${a.initial}</span>
+                  </div>`
+            ).join('');
+          }
+        }
+
+        function addOncallReaction(emoji) {
+          const reactions = document.getElementById('oncall-slack-reactions');
+          const newReaction = document.createElement('div');
+          newReaction.className = 'inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 rounded-full text-xs border border-blue-500/50 cursor-pointer transition-colors animate-bounce-in';
+          newReaction.innerHTML = `<span>${emoji}</span><span class="text-blue-300">1</span>`;
+          newReaction.style.animation = 'bounceIn 0.3s ease-out';
+          reactions.appendChild(newReaction);
+        }
+
+        function addOncallThreadReply(avatar, name, time, message, isBot) {
+          const thread = document.getElementById('oncall-slack-thread');
+          const reply = document.createElement('div');
+          reply.className = 'flex items-start gap-2.5 pl-3 border-l-2 border-emerald-500/30';
+          reply.style.animation = 'fadeSlideIn 0.3s ease-out';
+
+          const avatarClass = avatar;
+          const initial = name.charAt(0);
+
+          if (!isBot) {
+            oncallAvatars.push({ bg: `bg-gradient-to-br ${avatar}`, initial: name.charAt(0) });
+          } else {
+            oncallAvatars.push({ bg: '', initial: 'O', isBot: true });
+          }
+          oncallReplyCount++;
+          updateOncallThreadIndicator();
+
+          const avatarHtml = isBot
+            ? `<img src="/img/OneUptimePNG/1.png" alt="OneUptime" class="w-8 h-8 rounded-lg flex-shrink-0 shadow-md" />`
+            : `<div class="w-8 h-8 rounded-lg bg-gradient-to-br ${avatarClass} flex items-center justify-center flex-shrink-0 shadow-md"><span class="text-white text-xs font-bold">${initial}</span></div>`;
+
+          reply.innerHTML = `
+            ${avatarHtml}
+            <div class="flex-1 bg-[#0f1114] rounded-lg p-3 ring-1 ring-white/5">
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-white text-sm">${name}</span>
+                ${isBot ? '<span class="bg-[#4a3f7a] text-purple-200 text-[9px] px-1 py-0.5 rounded font-medium">APP</span>' : ''}
+                <span class="text-gray-500 text-[11px]">${time}</span>
+              </div>
+              <p class="text-gray-300 text-sm mt-1 leading-relaxed">${message}</p>
+            </div>
+          `;
+          thread.appendChild(reply);
+        }
+
+        window.oncallAcknowledge = function() {
+          if (oncallAckClicked) return;
+          oncallAckClicked = true;
+
+          const btn = document.getElementById('oncall-btn-ack');
+          btn.disabled = true;
+          btn.classList.add('opacity-70');
+          btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><span>Acknowledging...</span>';
+
+          setTimeout(() => {
+            btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Acknowledged</span>';
+            btn.classList.remove('bg-[#007a5a]', 'hover:bg-[#148567]', 'shadow-green-900/20');
+            btn.classList.add('bg-[#2e3136]', 'border', 'border-green-500/50', 'text-green-400');
+
+            addOncallReaction('👍');
+            addOncallThreadReply('from-blue-400 to-blue-600', 'John Doe', '3:42 PM', 'Got it! Investigating the database connection issues now.', false);
+
+            setTimeout(() => {
+              addOncallThreadReply('from-green-400 to-green-600', 'OneUptime', '3:42 PM', '✅ Alert acknowledged by <strong class="text-white">John Doe</strong> in <strong class="text-emerald-400">47 seconds</strong>', true);
+            }, 1000);
+          }, 800);
+        };
+
+        window.oncallEscalate = function() {
+          if (oncallEscalateClicked) return;
+          oncallEscalateClicked = true;
+
+          const btn = document.getElementById('oncall-btn-escalate');
+          btn.disabled = true;
+          btn.classList.add('opacity-70');
+          btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><span>Escalating...</span>';
+
+          setTimeout(() => {
+            btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Escalated</span>';
+            btn.classList.remove('bg-[#1264a3]', 'hover:bg-[#1d74b8]', 'shadow-blue-900/20');
+            btn.classList.add('bg-[#2e3136]', 'border', 'border-blue-500/50', 'text-blue-400');
+
+            addOncallReaction('🚨');
+            addOncallThreadReply('from-green-400 to-green-600', 'OneUptime', '3:44 PM', '📟 Escalated to <strong class="text-white">Level 2 - Database Team</strong><br/><span class="text-gray-400">→ Paging: Sarah Chen (DBA), Mike Johnson (Infra Lead)</span>', true);
+          }, 800);
+        };
+
+        window.oncallResolve = function() {
+          if (oncallResolveClicked) return;
+          oncallResolveClicked = true;
+
+          const btn = document.getElementById('oncall-btn-resolve');
+          btn.disabled = true;
+          btn.classList.add('opacity-70');
+          btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><span>Resolving...</span>';
+
+          setTimeout(() => {
+            btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Resolved</span>';
+            btn.classList.remove('bg-[#2e3136]', 'border-gray-600', 'hover:bg-[#3a3d42]');
+            btn.classList.add('bg-green-600/20', 'border', 'border-green-500/50', 'text-green-400');
+
+            addOncallReaction('🎉');
+            addOncallThreadReply('from-blue-400 to-blue-600', 'John Doe', '3:51 PM', 'Fixed! The connection pool was maxed out. Restarted the connection handler and increased pool size.', false);
+
+            setTimeout(() => {
+              addOncallThreadReply('from-green-400 to-green-600', 'OneUptime', '3:51 PM', '🎉 Alert resolved by <strong class="text-white">John Doe</strong><br/><span class="text-gray-400">Time to resolve: 9 minutes • On-call response: 47s</span>', true);
+            }, 1000);
+          }, 800);
+        };
+      })();
+      </script>
     </div>
   </div>
 
@@ -993,15 +1213,14 @@
       <%- include('./Partials/video-script') -%>
 
   <style>
-    @keyframes fadeInSlack {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes bounceIn {
+      0% { opacity: 0; transform: scale(0.8); }
+      50% { transform: scale(1.1); }
+      100% { opacity: 1; transform: scale(1); }
     }
   </style>
 

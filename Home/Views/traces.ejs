@@ -859,67 +859,281 @@
           </div>
 
           <!-- Slack Demo -->
-          <div class="mt-12 lg:mt-0 relative">
-            <div class="rounded-2xl bg-white shadow-xl ring-1 ring-gray-200 overflow-hidden">
-              <!-- Slack Header -->
-              <div class="bg-[#3F0F40] px-4 py-3 flex items-center gap-3">
-                <div class="flex items-center gap-2">
-                  <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
-                  </svg>
-                  <span class="text-white font-semibold text-sm">Slack</span>
+          <div class="relative" id="traces-slack-demo">
+            <!-- Decorative background elements -->
+            <div class="absolute -inset-4 bg-gradient-to-r from-yellow-500/10 via-amber-500/10 to-orange-500/10 rounded-3xl blur-2xl"></div>
+
+            <!-- Slack Window -->
+            <div class="relative bg-[#1a1d21] rounded-2xl shadow-2xl overflow-hidden max-w-md mx-auto ring-1 ring-white/10">
+              <!-- Slack window header -->
+              <div class="bg-[#0f1114] px-4 py-3 flex items-center justify-between border-b border-white/5">
+                <div class="flex items-center gap-3">
+                  <div class="flex gap-2">
+                    <div class="w-3 h-3 rounded-full bg-[#ff5f57] shadow-sm shadow-red-500/50"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#febc2e] shadow-sm shadow-yellow-500/50"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#28c840] shadow-sm shadow-green-500/50"></div>
+                  </div>
                 </div>
-                <div class="flex-1 text-center">
-                  <span class="text-white/70 text-sm">#trace-alerts</span>
+                <div class="flex items-center gap-2 bg-[#1a1d21] px-3 py-1 rounded-md">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                  </svg>
+                  <span class="text-white text-sm font-semibold">traces</span>
+                  <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center ring-2 ring-green-500 ring-offset-1 ring-offset-[#0f1114]">
+                    <span class="text-white text-xs font-bold">T</span>
+                  </div>
                 </div>
               </div>
 
-              <!-- Slack Messages -->
-              <div class="p-4 space-y-4 bg-white">
-                <!-- Message 1 -->
-                <div class="flex gap-3 slack-message-1" style="opacity: 0; animation: fadeInSlack 0.5s ease-out 0.5s forwards;">
-                  <div class="h-9 w-9 rounded bg-yellow-500 flex items-center justify-center flex-shrink-0">
-                    <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-baseline gap-2">
-                      <span class="font-semibold text-gray-900 text-sm">OneUptime Traces</span>
-                      <span class="text-xs text-gray-500">11:42 AM</span>
-                    </div>
-                    <div class="mt-1 p-3 rounded-lg bg-amber-50 border-l-4 border-amber-500">
-                      <div class="flex items-center gap-2 mb-1">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">SLOW TRACE</span>
+              <!-- Messages area -->
+              <div class="bg-[#1a1d21] px-4 py-4" id="traces-slack-messages">
+                <!-- Original trace alert message -->
+                <div class="group relative">
+                  <div class="flex items-start gap-3">
+                    <img src="/img/OneUptimePNG/1.png" alt="OneUptime" class="w-10 h-10 rounded-lg flex-shrink-0 shadow-lg" />
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold text-white text-sm hover:underline cursor-pointer">OneUptime</span>
+                        <span class="bg-[#4a3f7a] text-purple-200 text-[10px] px-1.5 py-0.5 rounded font-medium">APP</span>
+                        <span class="text-gray-500 text-xs">11:42 AM</span>
                       </div>
-                      <p class="text-sm text-gray-700 font-medium">GET /api/orders p99 latency: 4.2s</p>
-                      <p class="text-xs text-gray-500 mt-1">Threshold: 2s | order-service</p>
+
+                      <!-- Trace alert card -->
+                      <div class="mt-3 bg-[#0f1114] rounded-lg overflow-hidden ring-1 ring-white/5">
+                        <div class="h-1 bg-gradient-to-r from-yellow-500 to-amber-500"></div>
+                        <div class="p-4">
+                          <div class="flex items-start justify-between">
+                            <div>
+                              <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-medium">
+                                  <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                                  Slow Trace
+                                </span>
+                              </div>
+                              <h4 class="text-white font-semibold mt-2 font-mono text-sm">GET /api/orders</h4>
+                              <p class="text-gray-400 text-sm mt-1">p99 latency: 4.2s (threshold: 2s)</p>
+                            </div>
+                          </div>
+                          <div class="flex items-center gap-4 mt-3 pt-3 border-t border-white/5">
+                            <div class="flex items-center gap-1.5 text-xs text-gray-500">
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                              </svg>
+                              order-service
+                            </div>
+                            <div class="flex items-center gap-1.5 text-xs text-gray-500">
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                              </svg>
+                              Detected 2m ago
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Action buttons -->
+                      <div class="mt-3 flex flex-wrap gap-2" id="traces-slack-buttons">
+                        <button onclick="tracesInvestigate()" id="traces-btn-investigate" class="inline-flex items-center gap-2 px-3 py-2 bg-[#007a5a] hover:bg-[#148567] rounded-md text-xs font-semibold text-white transition-all shadow-lg shadow-green-900/20">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                          </svg>
+                          Investigate
+                        </button>
+                        <button onclick="tracesCreateIncident()" id="traces-btn-incident" class="inline-flex items-center gap-2 px-3 py-2 bg-[#1264a3] hover:bg-[#1d74b8] rounded-md text-xs font-semibold text-white transition-all shadow-lg shadow-blue-900/20">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                          </svg>
+                          Create Incident
+                        </button>
+                        <button onclick="tracesResolve()" id="traces-btn-resolve" class="inline-flex items-center gap-2 px-3 py-2 bg-[#2e3136] hover:bg-[#3a3d42] border border-gray-600 rounded-md text-xs font-semibold text-white transition-all">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                          </svg>
+                          Resolve
+                        </button>
+                      </div>
+
+                      <!-- Reactions -->
+                      <div class="mt-3 flex items-center gap-2" id="traces-slack-reactions">
+                        <div class="inline-flex items-center gap-1 px-2 py-1 bg-[#2e3136] rounded-full text-xs border border-gray-600 hover:border-gray-500 cursor-pointer transition-colors">
+                          <span>👀</span>
+                          <span class="text-gray-300">2</span>
+                        </div>
+                      </div>
+
+                      <!-- Thread replies container -->
+                      <div id="traces-slack-thread" class="mt-4 space-y-3"></div>
+
+                      <!-- Thread count indicator -->
+                      <div id="traces-thread-indicator" class="hidden mt-3 flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
+                        <div class="flex -space-x-1" id="traces-thread-avatars"></div>
+                        <span id="traces-thread-count"></span>
+                        <span class="text-gray-500">Last reply 1m ago</span>
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <!-- Message 2 -->
-                <div class="flex gap-3 slack-message-2" style="opacity: 0; animation: fadeInSlack 0.5s ease-out 1.5s forwards;">
-                  <div class="h-9 w-9 rounded bg-yellow-500 flex items-center justify-center flex-shrink-0">
-                    <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+              <!-- Message input -->
+              <div class="bg-[#1a1d21] px-4 pb-4">
+                <div class="bg-[#2e3136] rounded-lg px-4 py-3 flex items-center gap-3 ring-1 ring-white/5">
+                  <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                  </svg>
+                  <span class="text-gray-500 text-sm">Message #traces</span>
+                  <div class="ml-auto flex items-center gap-2">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-baseline gap-2">
-                      <span class="font-semibold text-gray-900 text-sm">OneUptime Traces</span>
-                      <span class="text-xs text-gray-500">11:42 AM</span>
-                    </div>
-                    <div class="mt-1 p-3 rounded-lg bg-yellow-50 border-l-4 border-yellow-500">
-                      <p class="text-sm text-gray-700 font-medium">Root cause: db-service slow query</p>
-                      <p class="text-xs text-gray-500 mt-1">SELECT * FROM orders WHERE... (3.8s)</p>
-                    </div>
+                    <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                    </svg>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        <script>
+        (function() {
+          let tracesInvestigateClicked = false;
+          let tracesIncidentClicked = false;
+          let tracesResolveClicked = false;
+          let tracesReplyCount = 0;
+          const tracesAvatars = [];
+
+          function updateTracesThreadIndicator() {
+            const indicator = document.getElementById('traces-thread-indicator');
+            const countEl = document.getElementById('traces-thread-count');
+            const avatarsEl = document.getElementById('traces-thread-avatars');
+
+            if (tracesReplyCount > 0) {
+              indicator.classList.remove('hidden');
+              indicator.classList.add('flex');
+              countEl.textContent = tracesReplyCount + (tracesReplyCount === 1 ? ' reply' : ' replies');
+              avatarsEl.innerHTML = tracesAvatars.slice(-3).map(a =>
+                a.isBot
+                  ? `<img src="/img/OneUptimePNG/1.png" alt="O" class="w-5 h-5 rounded-full ring-2 ring-[#1a1d21]" />`
+                  : `<div class="w-5 h-5 rounded-full ${a.bg} flex items-center justify-center ring-2 ring-[#1a1d21]">
+                      <span class="text-white text-[8px] font-bold">${a.initial}</span>
+                    </div>`
+              ).join('');
+            }
+          }
+
+          function addTracesReaction(emoji) {
+            const reactions = document.getElementById('traces-slack-reactions');
+            const newReaction = document.createElement('div');
+            newReaction.className = 'inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 rounded-full text-xs border border-blue-500/50 cursor-pointer transition-colors animate-bounce-in';
+            newReaction.innerHTML = `<span>${emoji}</span><span class="text-blue-300">1</span>`;
+            newReaction.style.animation = 'bounceIn 0.3s ease-out';
+            reactions.appendChild(newReaction);
+          }
+
+          function addTracesThreadReply(avatar, name, time, message, isBot) {
+            const thread = document.getElementById('traces-slack-thread');
+            const reply = document.createElement('div');
+            reply.className = 'flex items-start gap-2.5 pl-3 border-l-2 border-yellow-500/30';
+            reply.style.animation = 'fadeSlideIn 0.3s ease-out';
+
+            const avatarClass = avatar;
+            const initial = name.charAt(0);
+
+            if (!isBot) {
+              tracesAvatars.push({ bg: `bg-gradient-to-br ${avatar}`, initial: name.charAt(0) });
+            } else {
+              tracesAvatars.push({ bg: '', initial: 'O', isBot: true });
+            }
+            tracesReplyCount++;
+            updateTracesThreadIndicator();
+
+            const avatarHtml = isBot
+              ? `<img src="/img/OneUptimePNG/1.png" alt="OneUptime" class="w-8 h-8 rounded-lg flex-shrink-0 shadow-md" />`
+              : `<div class="w-8 h-8 rounded-lg bg-gradient-to-br ${avatarClass} flex items-center justify-center flex-shrink-0 shadow-md"><span class="text-white text-xs font-bold">${initial}</span></div>`;
+
+            reply.innerHTML = `
+              ${avatarHtml}
+              <div class="flex-1 bg-[#0f1114] rounded-lg p-3 ring-1 ring-white/5">
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-white text-sm">${name}</span>
+                  ${isBot ? '<span class="bg-[#4a3f7a] text-purple-200 text-[9px] px-1 py-0.5 rounded font-medium">APP</span>' : ''}
+                  <span class="text-gray-500 text-[11px]">${time}</span>
+                </div>
+                <p class="text-gray-300 text-sm mt-1 leading-relaxed">${message}</p>
+              </div>
+            `;
+            thread.appendChild(reply);
+          }
+
+          window.tracesInvestigate = function() {
+            if (tracesInvestigateClicked) return;
+            tracesInvestigateClicked = true;
+
+            const btn = document.getElementById('traces-btn-investigate');
+            btn.disabled = true;
+            btn.classList.add('opacity-70');
+            btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><span>Analyzing...</span>';
+
+            setTimeout(() => {
+              btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Investigated</span>';
+              btn.classList.remove('bg-[#007a5a]', 'hover:bg-[#148567]', 'shadow-green-900/20');
+              btn.classList.add('bg-[#2e3136]', 'border', 'border-green-500/50', 'text-green-400');
+
+              addTracesReaction('🔍');
+              addTracesThreadReply('from-yellow-400 to-yellow-600', 'OneUptime AI', '11:42 AM', '🔍 <strong class="text-white">Root cause identified:</strong><br/><span class="text-gray-400">db-service: Slow query detected<br/><code class="text-amber-400">SELECT * FROM orders WHERE...</code> (3.8s)<br/>→ Missing index on <code class="text-amber-400">customer_id</code> column</span>', true);
+            }, 800);
+          };
+
+          window.tracesCreateIncident = function() {
+            if (tracesIncidentClicked) return;
+            tracesIncidentClicked = true;
+
+            const btn = document.getElementById('traces-btn-incident');
+            btn.disabled = true;
+            btn.classList.add('opacity-70');
+            btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><span>Creating...</span>';
+
+            setTimeout(() => {
+              btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Created</span>';
+              btn.classList.remove('bg-[#1264a3]', 'hover:bg-[#1d74b8]', 'shadow-blue-900/20');
+              btn.classList.add('bg-[#2e3136]', 'border', 'border-blue-500/50', 'text-blue-400');
+
+              addTracesReaction('🚨');
+              addTracesThreadReply('from-green-400 to-green-600', 'OneUptime', '11:44 AM', '🎫 Incident <strong class="text-white">INC-2847</strong> created<br/><span class="text-gray-400">→ Linked trace: trace-8f3a2b1c<br/>→ Assigned to: Backend Team</span>', true);
+            }, 800);
+          };
+
+          window.tracesResolve = function() {
+            if (tracesResolveClicked) return;
+            tracesResolveClicked = true;
+
+            const btn = document.getElementById('traces-btn-resolve');
+            btn.disabled = true;
+            btn.classList.add('opacity-70');
+            btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><span>Resolving...</span>';
+
+            setTimeout(() => {
+              btn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Resolved</span>';
+              btn.classList.remove('bg-[#2e3136]', 'border-gray-600', 'hover:bg-[#3a3d42]');
+              btn.classList.add('bg-green-600/20', 'border', 'border-green-500/50', 'text-green-400');
+
+              addTracesReaction('🎉');
+              addTracesThreadReply('from-amber-400 to-amber-600', 'David Kim', '11:58 AM', 'Added index on customer_id column. Query now runs in 45ms. Deploying migration.', false);
+
+              setTimeout(() => {
+                addTracesThreadReply('from-green-400 to-green-600', 'OneUptime', '11:58 AM', '✅ Latency alert resolved<br/><span class="text-gray-400">p99 latency back to normal: 180ms</span>', true);
+              }, 1000);
+            }, 800);
+          };
+        })();
+        </script>
       </div>
     </div>
 
@@ -932,15 +1146,14 @@
   <%- include('./Partials/video-script') -%>
 
   <style>
-    @keyframes fadeInSlack {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes bounceIn {
+      0% { opacity: 0; transform: scale(0.8); }
+      50% { transform: scale(1.1); }
+      100% { opacity: 1; transform: scale(1); }
     }
   </style>
 
