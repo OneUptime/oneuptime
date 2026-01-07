@@ -952,6 +952,7 @@ const HomeFeatureSet: FeatureSet = {
           "/enterprise/demo",
           res.locals["homeUrl"] as string,
         );
+        const { reviewsList1, reviewsList2, reviewsList3 } = Reviews;
         res.render(`${ViewsPath}/demo`, {
           support: false,
           enableGoogleTagManager: IsBillingEnabled,
@@ -960,6 +961,9 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: true,
           requestDemoCta: false,
           seo,
+          reviewsList1,
+          reviewsList2,
+          reviewsList3,
         });
       },
     );
