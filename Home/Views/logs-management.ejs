@@ -827,58 +827,82 @@
   </div>
 
   <!-- Team Notifications Section -->
-  <div class="bg-gray-50 py-24 sm:py-32">
+  <div class="relative overflow-hidden bg-white py-24 sm:py-32">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+        <!-- Content -->
         <div class="relative">
-          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 border border-amber-100 mb-6">
-            <svg class="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <span class="text-sm font-medium text-amber-700">Log Alerts</span>
-          </div>
-          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Get alerted <span class="text-amber-600">in real-time</span>
+          <p class="text-sm font-medium text-amber-600 uppercase tracking-wide mb-3">Team Notifications</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Alerts delivered where your team already works
           </h2>
-          <p class="mt-6 text-lg text-gray-600">
-            Create alerts based on log patterns and anomalies. Get notified through Slack, email, SMS, or any webhook when critical logs appear.
+          <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+            Get instant log notifications in Slack and Microsoft Teams. Acknowledge alerts, view logs, and create incidents without context switching.
           </p>
 
-          <ul class="mt-8 space-y-4">
-            <li class="flex items-start gap-4">
-              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-amber-200">
-                <svg class="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          <!-- Integration cards -->
+          <div class="mt-10 space-y-3">
+            <!-- Slack -->
+            <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                  <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/>
+                  <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/>
+                  <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z" fill="#2EB67D"/>
+                  <path d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#ECB22E"/>
                 </svg>
               </div>
-              <div>
-                <div class="font-semibold text-gray-900">Pattern-based alerts</div>
-                <div class="text-gray-600">Trigger alerts when specific log patterns are detected</div>
+              <div class="flex-1">
+                <h3 class="text-sm font-semibold text-gray-900">Slack</h3>
+                <p class="text-sm text-gray-500">Interactive log alert actions</p>
               </div>
-            </li>
-            <li class="flex items-start gap-4">
-              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-amber-200">
-                <svg class="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </div>
+
+            <!-- Microsoft Teams -->
+            <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                  <path d="M20.16 7.8h-4.736c.103.317.159.654.159 1.005v7.029a3.588 3.588 0 01-3.583 3.583h-4.8v.777c0 .998.81 1.806 1.806 1.806h8.339l2.869 1.912a.452.452 0 00.703-.376V21.2h.646c.997 0 1.806-.809 1.806-1.806v-9.788A1.806 1.806 0 0020.16 7.8z" fill="#5059C9"/>
+                  <circle cx="18.5" cy="4.5" r="2.5" fill="#5059C9"/>
+                  <path d="M13.5 6H3.806A1.806 1.806 0 002 7.806v9.388c0 .997.81 1.806 1.806 1.806h2.611v3.336a.452.452 0 00.703.376L10.5 20h3a3.5 3.5 0 003.5-3.5v-7A3.5 3.5 0 0013.5 6z" fill="#7B83EB"/>
+                  <circle cx="10" cy="3" r="3" fill="#7B83EB"/>
+                  <path d="M6 11h6M6 14h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
               </div>
-              <div>
-                <div class="font-semibold text-gray-900">Anomaly detection</div>
-                <div class="text-gray-600">AI-powered detection of unusual log activity</div>
+              <div class="flex-1">
+                <h3 class="text-sm font-semibold text-gray-900">Microsoft Teams</h3>
+                <p class="text-sm text-gray-500">Native adaptive cards integration</p>
               </div>
-            </li>
-            <li class="flex items-start gap-4">
-              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-amber-200">
-                <svg class="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div>
-                <div class="font-semibold text-gray-900">Incident creation</div>
-                <div class="text-gray-600">Automatically create incidents from critical log events</div>
-              </div>
-            </li>
-          </ul>
+            </div>
+          </div>
+
+          <!-- Features list -->
+          <div class="mt-8 grid grid-cols-2 gap-4">
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+              <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Real-time delivery
+            </div>
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+              <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Pattern matching
+            </div>
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+              <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Rich formatting
+            </div>
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+              <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Action buttons
+            </div>
+          </div>
         </div>
 
         <!-- Slack Demo -->
