@@ -50,6 +50,7 @@ interface ProbeAgreementResult {
   totalActiveProbes: number;
   agreedCriteriaId: string | null;
   agreedRootCause: string | null;
+  agreedProbeNames: Array<string>;
 }
 
 export default class MonitorResourceUtil {
@@ -566,6 +567,16 @@ export default class MonitorResourceUtil {
         ? probeAgreementResult.agreedCriteriaId
         : undefined;
       response.rootCause = probeAgreementResult.agreedRootCause;
+
+      // Add probe names in agreement to the root cause
+      if (
+        response.rootCause &&
+        probeAgreementResult.agreedProbeNames.length > 0
+      ) {
+        response.rootCause += `
+**Probes in Agreement**: ${probeAgreementResult.agreedProbeNames.join(", ")}
+`;
+      }
     }
 
     if (response.criteriaMetId && response.rootCause) {
@@ -829,6 +840,7 @@ export default class MonitorResourceUtil {
           lastMonitoringLog: true,
           probe: {
             connectionStatus: true,
+            name: true,
           },
         },
         limit: LIMIT_PER_PROJECT,
@@ -861,6 +873,7 @@ export default class MonitorResourceUtil {
         totalActiveProbes: 0,
         agreedCriteriaId: currentCriteriaMetId,
         agreedRootCause: currentRootCause,
+        agreedProbeNames: [],
       };
     }
 
@@ -876,11 +889,11 @@ export default class MonitorResourceUtil {
     /*
      * Count how many probes agree on each criteria result
      * Key: criteriaId or "none" for no criteria met
-     * Value: { count, rootCause }
+     * Value: { count, rootCause, probeNames }
      */
     const criteriaAgreements: Map<
       string,
-      { count: number; rootCause: string | null }
+      { count: number; rootCause: string | null; probeNames: Array<string> }
     > = new Map();
 
     const stepId: string = monitorStep.id.toString();
@@ -921,15 +934,21 @@ export default class MonitorResourceUtil {
 
       // Record the result
       const criteriaKey: string = evaluatedResponse.criteriaMetId || "none";
-      const existing: { count: number; rootCause: string | null } | undefined =
-        criteriaAgreements.get(criteriaKey);
+      const existing:
+        | { count: number; rootCause: string | null; probeNames: Array<string> }
+        | undefined = criteriaAgreements.get(criteriaKey);
+
+      // Get probe name for this monitor probe
+      const probeName: string = monitorProbe.probe?.name || "Unknown Probe";
 
       if (existing) {
         existing.count += 1;
+        existing.probeNames.push(probeName);
       } else {
         criteriaAgreements.set(criteriaKey, {
           count: 1,
           rootCause: evaluatedResponse.rootCause,
+          probeNames: [probeName],
         });
       }
     }
@@ -938,12 +957,14 @@ export default class MonitorResourceUtil {
     let maxCount: number = 0;
     let winningCriteriaId: string | null = null;
     let winningRootCause: string | null = null;
+    let winningProbeNames: Array<string> = [];
 
     for (const [criteriaId, data] of criteriaAgreements) {
       if (data.count > maxCount) {
         maxCount = data.count;
         winningCriteriaId = criteriaId === "none" ? null : criteriaId;
         winningRootCause = data.rootCause;
+        winningProbeNames = data.probeNames;
       }
     }
 
@@ -961,6 +982,7 @@ export default class MonitorResourceUtil {
       totalActiveProbes: activeProbes.length,
       agreedCriteriaId: hasAgreement ? winningCriteriaId : null,
       agreedRootCause: hasAgreement ? winningRootCause : null,
+      agreedProbeNames: hasAgreement ? winningProbeNames : [],
     };
   }
 }
