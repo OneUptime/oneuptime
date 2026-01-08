@@ -1,5 +1,6 @@
 import DatabaseService from "./DatabaseService";
 import EmailServer from "../../Types/Email/EmailServer";
+import SMTPAuthenticationType from "../../Types/Email/SMTPAuthenticationType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/ProjectSmtpConfig";
 
@@ -27,13 +28,45 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Project SMTP config port is not set");
     }
 
-    if (!projectSmtpConfig.username) {
-      throw new BadDataException("Project SMTP config username is not set");
-    }
+    // Get auth type, default to UsernamePassword for backward compatibility
+    const authType: SMTPAuthenticationType =
+      projectSmtpConfig.authType || SMTPAuthenticationType.UsernamePassword;
 
-    if (!projectSmtpConfig.password) {
-      throw new BadDataException("Project SMTP config password is not set");
+    // Validate based on auth type
+    if (authType === SMTPAuthenticationType.UsernamePassword) {
+      if (!projectSmtpConfig.username) {
+        throw new BadDataException("Project SMTP config username is not set");
+      }
+
+      if (!projectSmtpConfig.password) {
+        throw new BadDataException("Project SMTP config password is not set");
+      }
+    } else if (authType === SMTPAuthenticationType.OAuth) {
+      if (!projectSmtpConfig.username) {
+        throw new BadDataException(
+          "Project SMTP config username (email address) is not set for OAuth",
+        );
+      }
+
+      if (!projectSmtpConfig.clientId) {
+        throw new BadDataException(
+          "Project SMTP config OAuth Client ID is not set",
+        );
+      }
+
+      if (!projectSmtpConfig.clientSecret) {
+        throw new BadDataException(
+          "Project SMTP config OAuth Client Secret is not set",
+        );
+      }
+
+      if (!projectSmtpConfig.tenantId) {
+        throw new BadDataException(
+          "Project SMTP config OAuth Tenant ID is not set",
+        );
+      }
     }
+    // For SMTPAuthenticationType.None, no credentials are required
 
     if (!projectSmtpConfig.fromEmail) {
       throw new BadDataException("Project SMTP config from email is not set");
@@ -52,6 +85,10 @@ export class Service extends DatabaseService<Model> {
       fromEmail: projectSmtpConfig.fromEmail,
       fromName: projectSmtpConfig.fromName,
       secure: Boolean(projectSmtpConfig.secure),
+      authType: authType,
+      clientId: projectSmtpConfig.clientId,
+      clientSecret: projectSmtpConfig.clientSecret,
+      tenantId: projectSmtpConfig.tenantId,
     };
   }
 }

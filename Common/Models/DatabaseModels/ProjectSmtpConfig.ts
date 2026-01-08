@@ -17,6 +17,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import Email from "../../Types/Email";
+import SMTPAuthenticationType from "../../Types/Email/SMTPAuthenticationType";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -561,4 +562,139 @@ export default class ProjectSmtpConfig extends BaseModel {
     default: true,
   })
   public secure?: boolean = undefined;
+
+  // OAuth 2.0 Configuration Fields
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "Authentication Type",
+    description:
+      "The type of authentication to use for this SMTP server. Options: Username and Password, OAuth, or None.",
+    defaultValue: SMTPAuthenticationType.UsernamePassword,
+    example: "Username and Password",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: SMTPAuthenticationType.UsernamePassword,
+  })
+  public authType?: SMTPAuthenticationType = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "OAuth Client ID",
+    description:
+      "The Client ID from your Microsoft Entra (Azure AD) application registration. Required for OAuth authentication with Microsoft 365.",
+    example: "12345678-1234-1234-1234-123456789012",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public clientId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Password,
+    title: "OAuth Client Secret",
+    description:
+      "The Client Secret from your Microsoft Entra (Azure AD) application registration. Required for OAuth authentication with Microsoft 365.",
+    example: "your-client-secret",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Password,
+    length: ColumnLength.Password,
+  })
+  public clientSecret?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "OAuth Tenant ID",
+    description:
+      "The Tenant ID (Directory ID) from your Microsoft Entra (Azure AD). Required for OAuth authentication with Microsoft 365.",
+    example: "12345678-1234-1234-1234-123456789012",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public tenantId?: string = undefined;
 }

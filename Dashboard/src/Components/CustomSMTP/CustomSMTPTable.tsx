@@ -2,6 +2,7 @@ import EmptyResponseData from "Common/Types/API/EmptyResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -14,6 +15,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { NOTIFICATION_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import React, {
@@ -86,6 +88,13 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             id: "authentication",
           },
           {
+            title: "OAuth (Microsoft 365)",
+            id: "oauth-info",
+            showIf: (values: JSONObject): boolean => {
+              return values["authType"] === SMTPAuthenticationType.OAuth;
+            },
+          },
+          {
             title: "Email",
             id: "email-info",
           },
@@ -129,6 +138,8 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.Hostname,
             required: true,
             placeholder: "smtp.server.com",
+            description:
+              "For Microsoft 365, use smtp.office365.com",
             disableSpellCheck: true,
           },
           {
@@ -140,6 +151,8 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.Port,
             required: true,
             placeholder: "587",
+            description:
+              "For Microsoft 365, use port 587",
           },
           {
             field: {
@@ -148,17 +161,33 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             title: "Use SSL / TLS",
             stepId: "server-info",
             fieldType: FormFieldSchemaType.Toggle,
-            description: "Make email communication secure?",
+            description: "Make email communication secure? Enable for port 587 with Microsoft 365.",
+          },
+          {
+            field: {
+              authType: true,
+            },
+            title: "Authentication Type",
+            stepId: "authentication",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions:
+              DropdownUtil.getDropdownOptionsFromEnum(SMTPAuthenticationType),
+            required: true,
+            defaultValue: SMTPAuthenticationType.UsernamePassword,
+            description:
+              "Select the authentication method. Use OAuth for Microsoft 365.",
           },
           {
             field: {
               username: true,
             },
-            title: "Username",
+            title: "Username / Email",
             stepId: "authentication",
             fieldType: FormFieldSchemaType.Text,
             required: false,
-            placeholder: "emailuser",
+            placeholder: "emailuser@company.com",
+            description:
+              "For OAuth with Microsoft 365, this should be the email address you want to send from.",
             disableSpellCheck: true,
           },
           {
@@ -170,7 +199,63 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.EncryptedText,
             required: false,
             placeholder: "Password",
+            description:
+              "Required for Username and Password authentication. Not used for OAuth.",
             disableSpellCheck: true,
+            showIf: (values: JSONObject): boolean => {
+              return (
+                values["authType"] === SMTPAuthenticationType.UsernamePassword ||
+                !values["authType"]
+              );
+            },
+          },
+          {
+            field: {
+              clientId: true,
+            },
+            title: "OAuth Client ID",
+            stepId: "oauth-info",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "12345678-1234-1234-1234-123456789012",
+            description:
+              "The Application (Client) ID from your Microsoft Entra (Azure AD) app registration.",
+            disableSpellCheck: true,
+            showIf: (values: JSONObject): boolean => {
+              return values["authType"] === SMTPAuthenticationType.OAuth;
+            },
+          },
+          {
+            field: {
+              clientSecret: true,
+            },
+            title: "OAuth Client Secret",
+            stepId: "oauth-info",
+            fieldType: FormFieldSchemaType.EncryptedText,
+            required: true,
+            placeholder: "Client secret value",
+            description:
+              "The client secret from your Microsoft Entra (Azure AD) app registration.",
+            disableSpellCheck: true,
+            showIf: (values: JSONObject): boolean => {
+              return values["authType"] === SMTPAuthenticationType.OAuth;
+            },
+          },
+          {
+            field: {
+              tenantId: true,
+            },
+            title: "OAuth Tenant ID",
+            stepId: "oauth-info",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "12345678-1234-1234-1234-123456789012",
+            description:
+              "The Directory (Tenant) ID from your Microsoft Entra (Azure AD). Found in App Registration > Overview.",
+            disableSpellCheck: true,
+            showIf: (values: JSONObject): boolean => {
+              return values["authType"] === SMTPAuthenticationType.OAuth;
+            },
           },
           {
             field: {
@@ -247,6 +332,14 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             },
             title: "Server Host",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              authType: true,
+            },
+            title: "Auth Type",
+            type: FieldType.Text,
+            noValueMessage: "Username/Password",
           },
         ]}
       />
