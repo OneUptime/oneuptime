@@ -98,8 +98,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS] as Route,
       ),
-      icon: IconProp.Alert,
-      iconColor: "red",
+      icon: IconProp.Bug,
+      iconColor: "orange",
     },
     {
       title: "Service Catalog",

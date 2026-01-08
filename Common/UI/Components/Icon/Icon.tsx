@@ -1319,6 +1319,17 @@ const Icon: FunctionComponent<ComponentProps> = ({
         />
       </>,
     );
+  } else if (icon === IconProp.Bug) {
+    // Bug icon for exceptions - matching home page
+    return getSvgWrapper(
+      <>
+        <ellipse cx="12" cy="14" rx="5" ry="6" />
+        <path
+          strokeLinecap="round"
+          d="M9 8.5C9 6.5 10.5 5 12 5s3 1.5 3 3.5M4 11l3 1m10-1 3 1M4 17l3-1m10 1 3-1M12 8v12M9 14h6"
+        />
+      </>,
+    );
   }
 
   return <></>;
