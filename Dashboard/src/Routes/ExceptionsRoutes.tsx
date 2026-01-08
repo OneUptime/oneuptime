@@ -91,23 +91,24 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
+      </PageRoute>
 
+      {/* Exception View - separate from main layout */}
+      <PageRoute
+        path={ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW] || ""}
+        element={<ExceptionViewLayout {...props} />}
+      >
         <PageRoute
-          path={ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW] || ""}
-          element={<ExceptionViewLayout {...props} />}
-        >
-          <PageRoute
-            index
-            element={
-              <Suspense fallback={Loader}>
-                <ExceptionView
-                  {...props}
-                  pageRoute={RouteMap[PageMap.EXCEPTIONS_VIEW] as Route}
-                />
-              </Suspense>
-            }
-          />
-        </PageRoute>
+          index
+          element={
+            <Suspense fallback={Loader}>
+              <ExceptionView
+                {...props}
+                pageRoute={RouteMap[PageMap.EXCEPTIONS_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
       </PageRoute>
     </Routes>
   );

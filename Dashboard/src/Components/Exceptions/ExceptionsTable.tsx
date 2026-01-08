@@ -36,7 +36,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   let viewRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.TELEMETRY_EXCEPTIONS_ROOT]!,
+    RouteMap[PageMap.EXCEPTIONS_VIEW]!,
   );
 
   if (props.telemetryServiceId) {
