@@ -1,0 +1,8 @@
+{
+  "enabled_providers": [
+    "anthropic"
+  ],
+  "model": "anthropic/claude-opus-4-5",
+  "small_model": "anthropic/claude-haiku-4-20250514",
+  "$schema": "https://opencode.ai/config.json"
+}

@@ -75,6 +75,15 @@ export default class CodeRepositoryUtil {
 
   @CaptureSpan()
   public static async pullChanges(data: { repoPath: string }): Promise<void> {
+    // Add the repository to safe.directory to avoid "dubious ownership" errors
+    // This is needed when running in containers where the repo may be owned by a different user
+    await this.runGitCommand(data.repoPath, [
+      "config",
+      "--global",
+      "--add",
+      "safe.directory",
+      path.resolve(data.repoPath),
+    ]);
     await this.runGitCommand(data.repoPath, ["pull"]);
   }
 
