@@ -33,6 +33,10 @@ export default class OpenCodeAgent implements CodeAgent {
   private currentProcess: ChildProcess | null = null;
   private aborted: boolean = false;
 
+  // Track original opencode.json content for restoration
+  private originalOpenCodeConfig: string | null = null;
+  private openCodeConfigPath: string | null = null;
+
   // Default timeout: 30 minutes
   private static readonly DEFAULT_TIMEOUT_MS: number = 30 * 60 * 1000;
 
@@ -99,6 +103,9 @@ export default class OpenCodeAgent implements CodeAgent {
         task.workingDirectory,
       );
 
+      // Restore or delete opencode.json before returning
+      await this.restoreOpenCodeConfig();
+
       await this.log(
         `OpenCode completed. ${modifiedFiles.length} files modified.`,
       );
@@ -113,6 +120,9 @@ export default class OpenCodeAgent implements CodeAgent {
     } catch (error) {
       const errorMessage: string =
         error instanceof Error ? error.message : String(error);
+
+      // Restore or delete opencode.json on error
+      await this.restoreOpenCodeConfig();
 
       await this.log(`OpenCode execution failed: ${errorMessage}`);
       logs.push(`Error: ${errorMessage}`);
@@ -170,6 +180,17 @@ export default class OpenCodeAgent implements CodeAgent {
     }
 
     const configPath: string = path.join(workingDirectory, "opencode.json");
+    this.openCodeConfigPath = configPath;
+
+    // Check if opencode.json already exists and backup its content
+    try {
+      const existingContent: string = await LocalFile.read(configPath);
+      this.originalOpenCodeConfig = existingContent;
+      await this.log("Backed up existing opencode.json from repository");
+    } catch {
+      // File doesn't exist, which is the normal case
+      this.originalOpenCodeConfig = null;
+    }
 
     const openCodeConfig: OpenCodeConfig = {
       model: this.getModelString(),
@@ -186,6 +207,35 @@ export default class OpenCodeAgent implements CodeAgent {
     await LocalFile.write(configPath, JSON.stringify(openCodeConfig, null, 2));
 
     await this.log(`Created OpenCode config at ${configPath}`);
+  }
+
+  // Restore or delete opencode.json after execution
+  private async restoreOpenCodeConfig(): Promise<void> {
+    if (!this.openCodeConfigPath) {
+      return;
+    }
+
+    try {
+      if (this.originalOpenCodeConfig !== null) {
+        // Restore the original file content
+        await LocalFile.write(
+          this.openCodeConfigPath,
+          this.originalOpenCodeConfig,
+        );
+        await this.log("Restored original opencode.json from repository");
+      } else {
+        // Delete the file we created
+        await LocalFile.deleteFile(this.openCodeConfigPath);
+        await this.log("Deleted generated opencode.json config file");
+      }
+    } catch (error) {
+      // Log but don't throw - cleanup failure shouldn't fail the task
+      logger.warn(`Failed to restore/delete opencode.json: ${error}`);
+    }
+
+    // Reset the tracking variables
+    this.openCodeConfigPath = null;
+    this.originalOpenCodeConfig = null;
   }
 
   // Get the model string in OpenCode format (provider/model)
