@@ -34,7 +34,7 @@ In the "Permissions & events" section, configure the following permissions:
 
 | Permission | Access Level | Purpose |
 |------------|--------------|---------|
-| Contents | Read | Read repository files and code |
+| Contents | Read & Write | Read repository files, push branches (required for AI Agent) |
 | Pull requests | Read & Write | Create and manage pull requests |
 | Issues | Read & Write | Read and comment on issues |
 | Commit statuses | Read | Check build/CI status |

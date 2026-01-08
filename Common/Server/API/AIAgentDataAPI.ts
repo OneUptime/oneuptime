@@ -458,10 +458,18 @@ export default class AIAgentDataAPI {
             );
           }
 
-          // Generate GitHub installation access token
+          // Generate GitHub installation access token with write permissions
+          // Required for AI Agent to push branches and create pull requests
           const tokenData: GitHubInstallationToken =
             await GitHubUtil.getInstallationAccessToken(
               codeRepository.gitHubAppInstallationId,
+              {
+                permissions: {
+                  contents: "write", // Required for pushing branches
+                  pull_requests: "write", // Required for creating PRs
+                  metadata: "read", // Required for reading repository metadata
+                },
+              },
             );
 
           const repositoryUrl: string = `https://github.com/${codeRepository.organizationName}/${codeRepository.repositoryName}.git`;

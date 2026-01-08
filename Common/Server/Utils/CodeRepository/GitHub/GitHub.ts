@@ -335,11 +335,20 @@ export default class GitHubUtil extends HostedCodeRepository {
   /**
    * Gets an installation access token for a GitHub App installation
    * @param installationId - The GitHub App installation ID
+   * @param options - Optional configuration for the token
+   * @param options.permissions - Specific permissions to request for the token
    * @returns Installation token and expiration date
    */
   @CaptureSpan()
   public static async getInstallationAccessToken(
     installationId: string,
+    options?: {
+      permissions?: {
+        contents?: "read" | "write";
+        pull_requests?: "read" | "write";
+        metadata?: "read";
+      };
+    },
   ): Promise<GitHubInstallationToken> {
     const jwt: string = GitHubUtil.generateAppJWT();
 
@@ -347,10 +356,17 @@ export default class GitHubUtil extends HostedCodeRepository {
       `https://api.github.com/app/installations/${installationId}/access_tokens`,
     );
 
+    // Build request data with optional permissions
+    const requestData: JSONObject = {};
+
+    if (options?.permissions) {
+      requestData["permissions"] = options.permissions;
+    }
+
     const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
       {
         url: url,
-        data: {},
+        data: requestData,
         headers: {
           Authorization: `Bearer ${jwt}`,
           Accept: "application/vnd.github+json",
@@ -360,6 +376,22 @@ export default class GitHubUtil extends HostedCodeRepository {
     );
 
     if (result instanceof HTTPErrorResponse) {
+      // Check if this is a permission error and provide helpful message
+      const errorMessage: string =
+        (result.data as JSONObject)?.["message"]?.toString() || "";
+
+      if (
+        errorMessage.includes("permissions") ||
+        result.statusCode === 403 ||
+        result.statusCode === 422
+      ) {
+        logger.error(
+          `GitHub App permission error: ${errorMessage}. ` +
+            `Please ensure the GitHub App is configured with the required permissions ` +
+            `(contents: write, pull_requests: write, metadata: read) in the GitHub App settings.`,
+        );
+      }
+
       throw result;
     }
 
