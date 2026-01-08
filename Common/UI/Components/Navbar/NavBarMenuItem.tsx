@@ -116,7 +116,7 @@ const NavBarMenuItem: FunctionComponent<ComponentProps> = (
       <Link
         onClick={props.onClick}
         to={props.route}
-        className={`group flex items-center gap-3 rounded-lg p-2.5 transition-colors ${colors.hoverBg}`}
+        className={`group flex items-start gap-3 rounded-lg p-2.5 transition-colors ${colors.hoverBg}`}
       >
         <div
           className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${colors.bg} ring-1 ${colors.ring} ${colors.hoverRing} transition-all`}
