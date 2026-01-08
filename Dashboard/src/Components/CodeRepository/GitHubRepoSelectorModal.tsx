@@ -36,6 +36,7 @@ export interface ComponentProps {
   installationId: string;
   onClose: () => void;
   onSuccess: () => void;
+  onInstallationExpired?: () => void; // Called when the GitHub App installation is no longer valid
 }
 
 const GitHubRepoSelectorModal: FunctionComponent<ComponentProps> = (
@@ -72,7 +73,21 @@ const GitHubRepoSelectorModal: FunctionComponent<ComponentProps> = (
         [];
       setRepositories(repos);
     } catch (e: unknown) {
-      setError(API.getFriendlyErrorMessage(e as Exception));
+      const errorMessage: string = API.getFriendlyErrorMessage(e as Exception);
+
+      // Check if this is an installation not found error (app was uninstalled from GitHub)
+      if (
+        errorMessage.includes("installation not found") ||
+        errorMessage.includes("reinstall")
+      ) {
+        // Notify parent that installation has expired so it can prompt re-installation
+        if (props.onInstallationExpired) {
+          props.onInstallationExpired();
+          return;
+        }
+      }
+
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

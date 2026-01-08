@@ -11,6 +11,7 @@ import { DashboardClientUrl, GitHubAppName } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import GitHubUtil, {
   GitHubRepository,
+  GitHubInstallationNotFoundError,
 } from "../Utils/CodeRepository/GitHub/GitHub";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
 import ProjectService from "../Services/ProjectService";
@@ -181,8 +182,18 @@ export default class GitHubAPI {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
+          const projectId: string | undefined =
+            req.params["projectId"]?.toString();
           const installationId: string | undefined =
             req.params["installationId"]?.toString();
+
+          if (!projectId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Project ID is required"),
+            );
+          }
 
           if (!installationId) {
             return Response.sendErrorResponse(
@@ -201,6 +212,40 @@ export default class GitHubAPI {
         } catch (error) {
           logger.error("GitHub List Repositories Error:");
           logger.error(error);
+
+          // Handle stale installation ID - clear it from the project and return specific error
+          if (error instanceof GitHubInstallationNotFoundError) {
+            const projectId: string | undefined =
+              req.params["projectId"]?.toString();
+
+            if (projectId) {
+              try {
+                // Clear the stale installation ID from the project
+                await ProjectService.updateOneById({
+                  id: new ObjectID(projectId),
+                  data: {
+                    gitHubAppInstallationId: null as unknown as string,
+                  },
+                  props: {
+                    isRoot: true,
+                  },
+                });
+
+                logger.info(
+                  `Cleared stale GitHub App installation ID from project ${projectId}`,
+                );
+              } catch (clearError) {
+                logger.error(
+                  "Failed to clear stale installation ID from project:",
+                );
+                logger.error(clearError);
+              }
+            }
+
+            // Return the specific error so the frontend knows to prompt reinstallation
+            return Response.sendErrorResponse(req, res, error);
+          }
+
           return Response.sendErrorResponse(
             req,
             res,
@@ -348,6 +393,63 @@ export default class GitHubAPI {
           }
 
           logger.debug(`Received GitHub webhook event: ${event}`);
+
+          // Handle installation events - specifically when the app is uninstalled
+          if (event === "installation") {
+            const action: string | undefined = (req.body as JSONObject)?.[
+              "action"
+            ]?.toString();
+            const installationId: string | undefined = (
+              (req.body as JSONObject)?.["installation"] as JSONObject
+            )?.["id"]?.toString();
+
+            if (action === "deleted" && installationId) {
+              logger.info(
+                `GitHub App installation ${installationId} was deleted. Clearing from database...`,
+              );
+
+              try {
+                // Clear the installation ID from any projects that have it
+                await ProjectService.updateBy({
+                  query: {
+                    gitHubAppInstallationId: installationId,
+                  },
+                  data: {
+                    gitHubAppInstallationId: null as unknown as string,
+                  },
+                  limit: 1000,
+                  skip: 0,
+                  props: {
+                    isRoot: true,
+                  },
+                });
+
+                // Also clear from any code repositories that have this installation ID
+                await CodeRepositoryService.updateBy({
+                  query: {
+                    gitHubAppInstallationId: installationId,
+                  },
+                  data: {
+                    gitHubAppInstallationId: null as unknown as string,
+                  },
+                  limit: 10000,
+                  skip: 0,
+                  props: {
+                    isRoot: true,
+                  },
+                });
+
+                logger.info(
+                  `Successfully cleared GitHub App installation ${installationId} from database`,
+                );
+              } catch (clearError) {
+                logger.error(
+                  `Failed to clear GitHub App installation ${installationId} from database:`,
+                );
+                logger.error(clearError);
+              }
+            }
+          }
 
           /*
            * Handle different webhook events here

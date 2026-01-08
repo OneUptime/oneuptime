@@ -125,6 +125,26 @@ const CodeRepositoryPage: FunctionComponent<
     setRefreshToggle(Date.now().toString());
   };
 
+  /**
+   * Called when the GitHub App installation is no longer valid (e.g., uninstalled from GitHub).
+   * This clears the stale installation ID and redirects the user to GitHub for a fresh installation.
+   */
+  const handleInstallationExpired: () => void = (): void => {
+    // Close the modal
+    setShowGitHubModal(false);
+    setGitHubInstallationId(null);
+
+    // Clear the stale project installation ID (backend already cleared it from the database)
+    setProjectInstallationId(null);
+
+    // Redirect to GitHub for a fresh installation
+    if (projectId) {
+      const userId: ObjectID = UserUtil.getUserId();
+      const installUrl: string = `${HOME_URL.toString()}/api/github/auth/install?projectId=${projectId.toString()}&userId=${userId.toString()}`;
+      window.location.href = installUrl;
+    }
+  };
+
   // Read GitHub App Name fresh on each render to avoid module initialization timing issues
   const gitHubAppName: string | null = env("GITHUB_APP_NAME") || null;
   const isGitHubAppConfigured: boolean = Boolean(gitHubAppName);
@@ -365,6 +385,7 @@ const CodeRepositoryPage: FunctionComponent<
           installationId={gitHubInstallationId}
           onClose={handleGitHubModalClose}
           onSuccess={handleRepoConnected}
+          onInstallationExpired={handleInstallationExpired}
         />
       )}
 

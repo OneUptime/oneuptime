@@ -18,6 +18,17 @@ import {
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import * as crypto from "crypto";
 
+/**
+ * Error thrown when a GitHub App installation is no longer valid (e.g., uninstalled from GitHub)
+ */
+export class GitHubInstallationNotFoundError extends BadDataException {
+  public constructor() {
+    super(
+      "GitHub App installation not found. The app may have been uninstalled from GitHub. Please reconnect with GitHub to reinstall the app.",
+    );
+  }
+}
+
 export interface GitHubRepository {
   id: number;
   name: string;
@@ -379,6 +390,15 @@ export default class GitHubUtil extends HostedCodeRepository {
       // Check if this is a permission error and provide helpful message
       const errorMessage: string =
         (result.data as JSONObject)?.["message"]?.toString() || "";
+
+      // Check if the installation is not found (404) - this means the app was uninstalled from GitHub
+      if (result.statusCode === 404) {
+        logger.error(
+          `GitHub App installation not found (ID: ${installationId}). ` +
+            `The app may have been uninstalled from GitHub. User needs to reinstall the app.`,
+        );
+        throw new GitHubInstallationNotFoundError();
+      }
 
       if (
         errorMessage.includes("permissions") ||
