@@ -14,9 +14,7 @@ const ExceptionViewLayout: FunctionComponent<
 
   if (path.endsWith("exceptions")) {
     Navigation.navigate(
-      RouteUtil.populateRouteParams(
-        RouteMap[PageMap.EXCEPTIONS_UNRESOLVED]!,
-      ),
+      RouteUtil.populateRouteParams(RouteMap[PageMap.EXCEPTIONS_UNRESOLVED]!),
     );
 
     return <></>;

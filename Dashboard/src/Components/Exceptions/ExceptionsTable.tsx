@@ -11,7 +11,6 @@ import TelemetryExceptionElement from "./ExceptionElement";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../Utils/PageMap";
-import User from "Common/Models/DatabaseModels/User";
 import {
   BulkActionFailed,
   BulkActionOnClickProps,
@@ -403,7 +402,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
             },
             title: "Marked As Archived At",
             type: FieldType.Date,
-          }
+          },
         ]}
         selectMoreFields={{
           isResolved: true,
