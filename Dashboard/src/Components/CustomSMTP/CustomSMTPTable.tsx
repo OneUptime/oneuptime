@@ -10,6 +10,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -88,9 +89,9 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             id: "authentication",
           },
           {
-            title: "OAuth (Microsoft 365)",
+            title: "OAuth Settings",
             id: "oauth-info",
-            showIf: (values: JSONObject): boolean => {
+            showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
               return values["authType"] === SMTPAuthenticationType.OAuth;
             },
           },
@@ -139,7 +140,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             required: true,
             placeholder: "smtp.server.com",
             description:
-              "For Microsoft 365, use smtp.office365.com",
+              "SMTP server hostname. Examples: smtp.office365.com (Microsoft 365), smtp.gmail.com (Google)",
             disableSpellCheck: true,
           },
           {
@@ -152,7 +153,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             required: true,
             placeholder: "587",
             description:
-              "For Microsoft 365, use port 587",
+              "SMTP port. Common ports: 587 (STARTTLS), 465 (SSL/TLS)",
           },
           {
             field: {
@@ -161,7 +162,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             title: "Use SSL / TLS",
             stepId: "server-info",
             fieldType: FormFieldSchemaType.Toggle,
-            description: "Make email communication secure? Enable for port 587 with Microsoft 365.",
+            description: "Enable secure email communication. Recommended for most providers.",
           },
           {
             field: {
@@ -175,7 +176,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             required: true,
             defaultValue: SMTPAuthenticationType.UsernamePassword,
             description:
-              "Select the authentication method. Use OAuth for Microsoft 365.",
+              "Select the authentication method. Use OAuth for providers like Microsoft 365, Google Workspace, etc.",
           },
           {
             field: {
@@ -187,7 +188,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             required: false,
             placeholder: "emailuser@company.com",
             description:
-              "For OAuth with Microsoft 365, this should be the email address you want to send from.",
+              "For OAuth, this should be the email address you want to send from.",
             disableSpellCheck: true,
           },
           {
@@ -202,7 +203,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             description:
               "Required for Username and Password authentication. Not used for OAuth.",
             disableSpellCheck: true,
-            showIf: (values: JSONObject): boolean => {
+            showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
               return (
                 values["authType"] === SMTPAuthenticationType.UsernamePassword ||
                 !values["authType"]
@@ -219,9 +220,9 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             required: true,
             placeholder: "12345678-1234-1234-1234-123456789012",
             description:
-              "The Application (Client) ID from your Microsoft Entra (Azure AD) app registration.",
+              "The Application (Client) ID from your OAuth provider (e.g., Microsoft Entra, Google Cloud Console).",
             disableSpellCheck: true,
-            showIf: (values: JSONObject): boolean => {
+            showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
               return values["authType"] === SMTPAuthenticationType.OAuth;
             },
           },
@@ -235,25 +236,41 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             required: true,
             placeholder: "Client secret value",
             description:
-              "The client secret from your Microsoft Entra (Azure AD) app registration.",
+              "The client secret from your OAuth application registration.",
             disableSpellCheck: true,
-            showIf: (values: JSONObject): boolean => {
+            showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
               return values["authType"] === SMTPAuthenticationType.OAuth;
             },
           },
           {
             field: {
-              tenantId: true,
+              tokenUrl: true,
             },
-            title: "OAuth Tenant ID",
+            title: "OAuth Token URL",
+            stepId: "oauth-info",
+            fieldType: FormFieldSchemaType.URL,
+            required: true,
+            placeholder: "https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token",
+            description:
+              "The OAuth token endpoint URL. For Microsoft 365: https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token. For Google: https://oauth2.googleapis.com/token",
+            disableSpellCheck: true,
+            showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
+              return values["authType"] === SMTPAuthenticationType.OAuth;
+            },
+          },
+          {
+            field: {
+              scope: true,
+            },
+            title: "OAuth Scope",
             stepId: "oauth-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "12345678-1234-1234-1234-123456789012",
+            placeholder: "https://outlook.office365.com/.default",
             description:
-              "The Directory (Tenant) ID from your Microsoft Entra (Azure AD). Found in App Registration > Overview.",
+              "The OAuth scope(s) required for SMTP access. For Microsoft 365: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
             disableSpellCheck: true,
-            showIf: (values: JSONObject): boolean => {
+            showIf: (values: FormValues<ProjectSmtpConfig>): boolean => {
               return values["authType"] === SMTPAuthenticationType.OAuth;
             },
           },

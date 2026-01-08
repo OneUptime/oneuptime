@@ -623,7 +623,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     type: TableColumnType.ShortText,
     title: "OAuth Client ID",
     description:
-      "The Client ID from your Microsoft Entra (Azure AD) application registration. Required for OAuth authentication with Microsoft 365.",
+      "The Client ID from your OAuth application registration. Required for OAuth authentication.",
     example: "12345678-1234-1234-1234-123456789012",
   })
   @Column({
@@ -655,7 +655,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     type: TableColumnType.Password,
     title: "OAuth Client Secret",
     description:
-      "The Client Secret from your Microsoft Entra (Azure AD) application registration. Required for OAuth authentication with Microsoft 365.",
+      "The Client Secret from your OAuth application registration. Required for OAuth authentication.",
     example: "your-client-secret",
   })
   @Column({
@@ -685,16 +685,49 @@ export default class ProjectSmtpConfig extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
-    title: "OAuth Tenant ID",
+    type: TableColumnType.LongURL,
+    title: "OAuth Token URL",
     description:
-      "The Tenant ID (Directory ID) from your Microsoft Entra (Azure AD). Required for OAuth authentication with Microsoft 365.",
-    example: "12345678-1234-1234-1234-123456789012",
+      "The OAuth token endpoint URL. For Microsoft 365: https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token. For Google: https://oauth2.googleapis.com/token",
+    example: "https://login.microsoftonline.com/your-tenant-id/oauth2/v2.0/token",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongURL,
+    length: ColumnLength.LongText,
   })
-  public tenantId?: string = undefined;
+  public tokenUrl?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectSMTPConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectSMTPConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectSMTPConfig,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "OAuth Scope",
+    description:
+      "The OAuth scope(s) required for SMTP access. For Microsoft 365: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
+    example: "https://outlook.office365.com/.default",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public scope?: string = undefined;
 }

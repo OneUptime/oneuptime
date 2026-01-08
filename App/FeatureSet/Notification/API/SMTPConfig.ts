@@ -7,6 +7,7 @@ import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import URL from "Common/Types/API/URL";
 import ProjectSMTPConfigService from "Common/Server/Services/ProjectSmtpConfigService";
 import Express, {
   ExpressRequest,
@@ -49,7 +50,8 @@ router.post(
             authType: true,
             clientId: true,
             clientSecret: true,
-            tenantId: true,
+            tokenUrl: true,
+            scope: true,
           },
         });
 
@@ -98,7 +100,8 @@ router.post(
         authType: authType,
         clientId: config.clientId,
         clientSecret: config.clientSecret,
-        tenantId: config.tenantId,
+        tokenUrl: config.tokenUrl ? URL.fromString(config.tokenUrl) : undefined,
+        scope: config.scope,
       };
 
       try {
@@ -113,7 +116,7 @@ router.post(
         // Provide more specific error messages based on auth type
         if (authType === SMTPAuthenticationType.OAuth) {
           throw new BadDataException(
-            "Cannot send email with OAuth authentication. Please verify: 1) Your Client ID, Client Secret, and Tenant ID are correct, 2) The application has SMTP.SendAsApp permission in Microsoft Entra, 3) Admin consent has been granted, 4) The service principal is registered in Exchange Online. Error: " +
+            "Cannot send email with OAuth authentication. Please verify: 1) Your Client ID, Client Secret, Token URL, and Scope are correct, 2) Your OAuth application has the required permissions, 3) Admin consent has been granted if required by your provider. Error: " +
               (err instanceof Error ? err.message : String(err)),
           );
         }

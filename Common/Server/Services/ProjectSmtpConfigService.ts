@@ -2,6 +2,7 @@ import DatabaseService from "./DatabaseService";
 import EmailServer from "../../Types/Email/EmailServer";
 import SMTPAuthenticationType from "../../Types/Email/SMTPAuthenticationType";
 import BadDataException from "../../Types/Exception/BadDataException";
+import URL from "../../Types/API/URL";
 import Model from "../../Models/DatabaseModels/ProjectSmtpConfig";
 
 export class Service extends DatabaseService<Model> {
@@ -60,9 +61,15 @@ export class Service extends DatabaseService<Model> {
         );
       }
 
-      if (!projectSmtpConfig.tenantId) {
+      if (!projectSmtpConfig.tokenUrl) {
         throw new BadDataException(
-          "Project SMTP config OAuth Tenant ID is not set",
+          "Project SMTP config OAuth Token URL is not set",
+        );
+      }
+
+      if (!projectSmtpConfig.scope) {
+        throw new BadDataException(
+          "Project SMTP config OAuth Scope is not set",
         );
       }
     }
@@ -88,7 +95,10 @@ export class Service extends DatabaseService<Model> {
       authType: authType,
       clientId: projectSmtpConfig.clientId,
       clientSecret: projectSmtpConfig.clientSecret,
-      tenantId: projectSmtpConfig.tenantId,
+      tokenUrl: projectSmtpConfig.tokenUrl
+        ? URL.fromString(projectSmtpConfig.tokenUrl)
+        : undefined,
+      scope: projectSmtpConfig.scope,
     };
   }
 }

@@ -4,7 +4,7 @@ import {
   getGlobalSMTPConfig,
   getSendgridConfig,
 } from "../Config";
-import Microsoft365OAuthService from "./Microsoft365OAuthService";
+import SMTPOAuthService from "./SMTPOAuthService";
 import SendgridMail, { MailDataRequired } from "@sendgrid/mail";
 import Hostname from "Common/Types/API/Hostname";
 import OneUptimeDate from "Common/Types/Date";
@@ -121,10 +121,11 @@ class TransporterPool {
     if (
       !emailServer.clientId ||
       !emailServer.clientSecret ||
-      !emailServer.tenantId
+      !emailServer.tokenUrl ||
+      !emailServer.scope
     ) {
       throw new BadDataException(
-        "OAuth configuration is incomplete. Please provide Client ID, Client Secret, and Tenant ID.",
+        "OAuth configuration is incomplete. Please provide Client ID, Client Secret, Token URL, and Scope.",
       );
     }
 
@@ -134,20 +135,21 @@ class TransporterPool {
       );
     }
 
-    // Get the access token from Microsoft 365
-    const accessToken: string = await Microsoft365OAuthService.getAccessToken({
+    // Get the access token using the generic OAuth service
+    const accessToken: string = await SMTPOAuthService.getAccessToken({
       clientId: emailServer.clientId,
       clientSecret: emailServer.clientSecret,
-      tenantId: emailServer.tenantId,
+      tokenUrl: emailServer.tokenUrl,
+      scope: emailServer.scope,
     });
 
     // Create the XOAUTH2 token
-    const xoauth2Token: string = Microsoft365OAuthService.createXOAuth2Token(
+    const xoauth2Token: string = SMTPOAuthService.createXOAuth2Token(
       emailServer.username,
       accessToken,
     );
 
-    logger.debug("Creating OAuth transporter for Microsoft 365");
+    logger.debug("Creating OAuth transporter for SMTP");
 
     return nodemailer.createTransport({
       host: emailServer.host.toString(),
