@@ -397,9 +397,11 @@ export const StatusPageApiClientUrl: URL = new URL(
   new Route(StatusPageApiRoute.toString()),
 );
 
-// Internal URL for server-to-server communication (uses internal Docker hostname)
-// Note: The internal path is /api/status-page (not /status-page-api) because
-// /status-page-api is the external route that Nginx rewrites to /api/status-page
+/*
+ *Internal URL for server-to-server communication (uses internal Docker hostname)
+ *Note: The internal path is /api/status-page (not /status-page-api) because
+ * /status-page-api is the external route that Nginx rewrites to /api/status-page
+ */
 export const StatusPageApiInternalUrl: URL = URL.fromString(
   AppApiClientUrl.toString(),
 ).addRoute(new Route("/status-page"));
