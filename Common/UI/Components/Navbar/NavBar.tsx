@@ -29,6 +29,7 @@ export interface MoreMenuItem {
   description: string;
   route: Route;
   icon: IconProp;
+  iconColor?: string; // Tailwind color class like "bg-blue-500"
 }
 
 export interface ComponentProps {
@@ -277,7 +278,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
               {isMoreMenuVisible &&
                 (props.moreMenuFooter ? (
                   <NavBarMenu footer={props.moreMenuFooter}>
-                    {props.moreMenuItems.map((item: any) => {
+                    {props.moreMenuItems.map((item: MoreMenuItem) => {
                       return (
                         <NavBarMenuItem
                           key={item.title}
@@ -285,6 +286,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
                           description={item.description}
                           route={item.route}
                           icon={item.icon}
+                          iconColor={item.iconColor}
                           onClick={forceHideMoreMenu}
                         />
                       );
@@ -292,7 +294,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
                   </NavBarMenu>
                 ) : (
                   <NavBarMenu>
-                    {props.moreMenuItems.map((item: any) => {
+                    {props.moreMenuItems.map((item: MoreMenuItem) => {
                       return (
                         <NavBarMenuItem
                           key={item.title}
@@ -300,6 +302,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
                           description={item.description}
                           route={item.route}
                           icon={item.icon}
+                          iconColor={item.iconColor}
                           onClick={forceHideMoreMenu}
                         />
                       );

@@ -81,62 +81,68 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     },
   ];
 
-  // Build the "More" menu items
+  // Build the "More" menu items - colors match home page product menu
   const moreMenuItems: MoreMenuItem[] = [
     {
       title: "AI Agent",
-      description:
-        "Manage tasks assigned to AI agents for automated operations.",
+      description: "Auto-fix issues with AI-powered PRs.",
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.AI_AGENT_TASKS] as Route,
       ),
-      icon: IconProp.Bolt,
+      icon: IconProp.Brain,
+      iconColor: "violet",
     },
     {
       title: "Service Catalog",
-      description: "Manage your services and their dependencies.",
+      description: "Manage services and dependencies.",
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.SERVICE_CATALOG] as Route,
       ),
       icon: IconProp.SquareStack,
+      iconColor: "blue",
     },
     {
       title: "Code Repositories",
-      description: "Connect and manage your GitHub and GitLab repositories.",
+      description: "GitHub and GitLab integrations.",
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.CODE_REPOSITORY] as Route,
       ),
       icon: IconProp.Code,
+      iconColor: "gray",
     },
     {
       title: "Scheduled Maintenance",
-      description: "Manage your scheduled maintenance events.",
+      description: "Plan and manage maintenance.",
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
       ),
       icon: IconProp.Clock,
+      iconColor: "amber",
     },
     {
       title: "On-Call Duty",
-      description: "Manage your on-call schedules, escalations and more.",
+      description: "Smart routing & escalations.",
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.ON_CALL_DUTY] as Route,
       ),
       icon: IconProp.Call,
+      iconColor: "stone",
     },
     {
       title: "Workflows",
-      description: "Integrate OneUptime with the rest of your ecosystem.",
+      description: "No-code automation builder.",
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.WORKFLOWS] as Route,
       ),
       icon: IconProp.Workflow,
+      iconColor: "sky",
     },
     {
       title: "Project Settings",
-      description: "Review or manage settings related to this project here.",
+      description: "Configure your project.",
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
       icon: IconProp.Settings,
+      iconColor: "slate",
     },
   ];
 
