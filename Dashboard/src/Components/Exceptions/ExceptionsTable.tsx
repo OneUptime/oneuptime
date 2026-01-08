@@ -35,18 +35,9 @@ export interface ComponentProps {
 const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  let viewRoute: Route = RouteUtil.populateRouteParams(
+  const viewRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.EXCEPTIONS_VIEW_ROOT]!,
   );
-
-  if (props.telemetryServiceId) {
-    viewRoute = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS]!,
-      {
-        modelId: props.telemetryServiceId,
-      },
-    );
-  }
 
   return (
     <Fragment>
