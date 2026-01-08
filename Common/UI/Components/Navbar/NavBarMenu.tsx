@@ -11,7 +11,6 @@ export interface MenuSection {
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
-  sections?: MenuSection[];
   footer?: {
     title: string;
     description: string;

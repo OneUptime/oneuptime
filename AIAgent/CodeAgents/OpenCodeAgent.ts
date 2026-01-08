@@ -364,8 +364,10 @@ export default class OpenCodeAgent implements CodeAgent {
           }
         }
 
-        // Use CLI mode flags to ensure output goes to stdout/stderr instead of TUI
-        // Pass prompt via stdin using "-" to avoid command line argument issues with long prompts
+        /*
+         * Use CLI mode flags to ensure output goes to stdout/stderr instead of TUI
+         * Pass prompt via stdin using "-" to avoid command line argument issues with long prompts
+         */
         const args: Array<string> = [
           "run",
           "--print-logs",

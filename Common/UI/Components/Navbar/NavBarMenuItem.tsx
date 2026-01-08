@@ -22,7 +22,7 @@ const NavBarMenuItem: FunctionComponent<ComponentProps> = (
   // Map color names to their respective Tailwind classes
   const colorClasses: Record<
     string,
-    { Please makbg: string; ring: string; hoverBg: string; hoverRing: string }
+    { bg: string; ring: string; hoverBg: string; hoverRing: string }
   > = {
     purple: {
       bg: "bg-purple-50",
@@ -71,18 +71,6 @@ const NavBarMenuItem: FunctionComponent<ComponentProps> = (
       ring: "ring-indigo-200",
       hoverBg: "hover:bg-indigo-50",
       hoverRing: "group-hover:ring-indigo-300",
-    },
-    stone: {
-      bg: "bg-stone-50",
-      ring: "ring-stone-200",
-      hoverBg: "hover:bg-stone-50",
-      hoverRing: "group-hover:ring-stone-300",
-    },
-    sky: {
-      bg: "bg-sky-50",
-      ring: "ring-sky-200",
-      hoverBg: "hover:bg-sky-50",
-      hoverRing: "group-hover:ring-sky-300",
     },
     rose: {
       bg: "bg-rose-50",
