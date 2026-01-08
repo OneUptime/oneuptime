@@ -62,10 +62,10 @@ const NavBarMenu: FunctionComponent<ComponentProps> = (
               openInNewTab={true}
               className="group flex items-center gap-3 rounded-lg p-2.5 -m-2 transition-colors hover:bg-gray-100"
             >
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200 group-hover:bg-indigo-100 group-hover:ring-indigo-300 transition-all">
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 ring-1 ring-gray-200 group-hover:bg-gray-200 group-hover:ring-gray-300 transition-all">
                 <Icon
-                  icon={IconProp.ExternalLink}
-                  className="h-4 w-4 text-indigo-600"
+                  icon={IconProp.GitHub}
+                  className="h-5 w-5 text-gray-700"
                 />
               </div>
               <div className="flex-1 min-w-0">

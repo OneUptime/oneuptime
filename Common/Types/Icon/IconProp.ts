@@ -142,6 +142,7 @@ enum IconProp {
   WhatsApp = "WhatsApp",
   Brain = "Brain",
   FlowDiagram = "FlowDiagram",
+  GitHub = "GitHub",
 }
 
 export default IconProp;
