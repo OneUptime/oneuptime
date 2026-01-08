@@ -134,7 +134,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.WORKFLOWS] as Route,
       ),
-      icon: IconProp.Workflow,
+      icon: IconProp.FlowDiagram,
       iconColor: "sky",
     },
     {

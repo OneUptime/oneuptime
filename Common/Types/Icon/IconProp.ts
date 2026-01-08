@@ -141,6 +141,7 @@ enum IconProp {
   ExclaimationCircle = "ExclaimationCircle",
   WhatsApp = "WhatsApp",
   Brain = "Brain",
+  FlowDiagram = "FlowDiagram",
 }
 
 export default IconProp;
