@@ -401,21 +401,6 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              markedAsResolvedByUser: true,
-            },
-            title: "Marked As Resolved At",
-            type: FieldType.EntityArray,
-            filterEntityType: User,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
               isArchived: true,
             },
             title: "Archived",
@@ -427,22 +412,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
             },
             title: "Marked As Archived At",
             type: FieldType.Date,
-          },
-          {
-            field: {
-              markedAsArchivedByUser: true,
-            },
-            title: "Marked As Archived At",
-            type: FieldType.EntityArray,
-            filterEntityType: User,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
+          }
         ]}
         selectMoreFields={{
           isResolved: true,
