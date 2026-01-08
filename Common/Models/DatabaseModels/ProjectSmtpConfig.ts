@@ -694,7 +694,6 @@ export default class ProjectSmtpConfig extends BaseModel {
   @Column({
     nullable: true,
     type: ColumnType.LongURL,
-    length: ColumnLength.LongText,
   })
   public tokenUrl?: string = undefined;
 
