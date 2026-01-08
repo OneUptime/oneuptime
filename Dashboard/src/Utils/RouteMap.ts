@@ -118,6 +118,7 @@ export const ExceptionsRoutePath: Dictionary<string> = {
   [PageMap.EXCEPTIONS_UNRESOLVED]: "unresolved",
   [PageMap.EXCEPTIONS_RESOLVED]: "resolved",
   [PageMap.EXCEPTIONS_ARCHIVED]: "archived",
+  [PageMap.EXCEPTIONS_VIEW_ROOT]: "",
   [PageMap.EXCEPTIONS_VIEW]: `${RouteParams.ModelID}`,
 };
 
@@ -2181,6 +2182,10 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/exceptions/${
       ExceptionsRoutePath[PageMap.EXCEPTIONS_ARCHIVED]
     }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions`,
   ),
 
   [PageMap.EXCEPTIONS_VIEW]: new Route(
