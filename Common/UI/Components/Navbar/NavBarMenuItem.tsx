@@ -84,6 +84,24 @@ const NavBarMenuItem: FunctionComponent<ComponentProps> = (
       hoverBg: "hover:bg-violet-50",
       hoverRing: "group-hover:ring-violet-300",
     },
+    orange: {
+      bg: "bg-orange-50",
+      ring: "ring-orange-200",
+      hoverBg: "hover:bg-orange-50",
+      hoverRing: "group-hover:ring-orange-300",
+    },
+    stone: {
+      bg: "bg-stone-100",
+      ring: "ring-stone-300",
+      hoverBg: "hover:bg-stone-50",
+      hoverRing: "group-hover:ring-stone-400",
+    },
+    sky: {
+      bg: "bg-sky-50",
+      ring: "ring-sky-200",
+      hoverBg: "hover:bg-sky-50",
+      hoverRing: "group-hover:ring-sky-300",
+    },
   };
 
   const colors: {

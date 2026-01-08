@@ -178,6 +178,11 @@ const AIAgentTasksRoutes: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Routes/AIAgentTasksRoutes");
 });
+const ExceptionsRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/ExceptionsRoutes");
+});
 const PageNotFound: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
@@ -608,6 +613,13 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.AI_AGENT_TASKS_ROOT]?.toString() || ""}
             element={<AIAgentTasksRoutes {...commonPageProps} />}
+          />
+
+          {/** Exceptions */}
+
+          <PageRoute
+            path={RouteMap[PageMap.EXCEPTIONS_ROOT]?.toString() || ""}
+            element={<ExceptionsRoutes {...commonPageProps} />}
           />
 
           {/* 👇️ only match this when no other routes match */}

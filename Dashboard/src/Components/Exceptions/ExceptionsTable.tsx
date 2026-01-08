@@ -11,7 +11,6 @@ import TelemetryExceptionElement from "./ExceptionElement";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../Utils/PageMap";
-import User from "Common/Models/DatabaseModels/User";
 import {
   BulkActionFailed,
   BulkActionOnClickProps,
@@ -35,18 +34,9 @@ export interface ComponentProps {
 const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  let viewRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.TELEMETRY_EXCEPTIONS_ROOT]!,
+  const viewRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.EXCEPTIONS_VIEW_ROOT]!,
   );
-
-  if (props.telemetryServiceId) {
-    viewRoute = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS]!,
-      {
-        modelId: props.telemetryServiceId,
-      },
-    );
-  }
 
   return (
     <Fragment>
@@ -401,21 +391,6 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              markedAsResolvedByUser: true,
-            },
-            title: "Marked As Resolved At",
-            type: FieldType.EntityArray,
-            filterEntityType: User,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
               isArchived: true,
             },
             title: "Archived",
@@ -427,21 +402,6 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
             },
             title: "Marked As Archived At",
             type: FieldType.Date,
-          },
-          {
-            field: {
-              markedAsArchivedByUser: true,
-            },
-            title: "Marked As Archived At",
-            type: FieldType.EntityArray,
-            filterEntityType: User,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
           },
         ]}
         selectMoreFields={{

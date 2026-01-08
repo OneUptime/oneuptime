@@ -1,10 +1,10 @@
 import Navigation from "Common/UI/Utils/Navigation";
-import ExceptionExplorer from "../../../../Components/Exceptions/ExceptionExplorer";
-import PageComponentProps from "../../../PageComponentProps";
+import ExceptionExplorer from "../../../Components/Exceptions/ExceptionExplorer";
+import PageComponentProps from "../../PageComponentProps";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 
-const TelemetryMetricViewPage: FunctionComponent<
+const ExceptionViewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const exceptionId: string = Navigation.getLastParamAsString(0);
@@ -16,4 +16,4 @@ const TelemetryMetricViewPage: FunctionComponent<
   );
 };
 
-export default TelemetryMetricViewPage;
+export default ExceptionViewPage;

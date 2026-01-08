@@ -78,10 +78,6 @@ export const TelemetryRoutePath: Dictionary<string> = {
   [PageMap.TELEMETRY_LOGS]: "logs",
   [PageMap.TELEMETRY_TRACES]: "traces",
   [PageMap.TELEMETRY_METRICS]: "metrics",
-  [PageMap.TELEMETRY_EXCEPTIONS]: "exceptions/unresolved",
-  [PageMap.TELEMETRY_EXCEPTIONS_RESOLVED]: "exceptions/resolved",
-  [PageMap.TELEMETRY_EXCEPTIONS_UNRESOLVED]: "exceptions/unresolved",
-  [PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED]: "exceptions/archived",
   [PageMap.TELEMETRY_SERVICES_VIEW_ROOT]: "services",
 
   [PageMap.TELEMETRY_METRIC_ROOT]: `metric`,
@@ -90,27 +86,26 @@ export const TelemetryRoutePath: Dictionary<string> = {
   [PageMap.TELEMETRY_TRACE_ROOT]: `traces/view`,
   [PageMap.TELEMETRY_TRACE_VIEW]: `traces/view/${RouteParams.ModelID}`, // modelID is spanId
 
-  [PageMap.TELEMETRY_EXCEPTIONS_ROOT]: `exceptions`,
-  [PageMap.TELEMETRY_EXCEPTIONS_VIEW]: `exceptions/${RouteParams.ModelID}`,
-
   [PageMap.TELEMETRY_LOG_ROOT]: `logs`,
 
   [PageMap.TELEMETRY_SERVICES_VIEW]: `services/${RouteParams.ModelID}`,
   [PageMap.TELEMETRY_SERVICES_VIEW_DELETE]: `services/${RouteParams.ModelID}/delete`,
   [PageMap.TELEMETRY_SERVICES_VIEW_LOGS]: `services/${RouteParams.ModelID}/logs`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTION]: `services/${RouteParams.ModelID}/exceptions/${RouteParams.SubModelID}`,
   [PageMap.TELEMETRY_SERVICES_VIEW_TRACES]: `services/${RouteParams.ModelID}/traces`,
   [PageMap.TELEMETRY_SERVICES_VIEW_TRACE]: `services/${RouteParams.ModelID}/traces/${RouteParams.SubModelID}`,
   [PageMap.TELEMETRY_SERVICES_VIEW_METRICS]: `services/${RouteParams.ModelID}/metrics`,
   [PageMap.TELEMETRY_SERVICES_VIEW_METRIC]: `services/${RouteParams.ModelID}/metrics/view`,
   [PageMap.TELEMETRY_SERVICES_VIEW_SETTINGS]: `services/${RouteParams.ModelID}/settings`,
   [PageMap.TELEMETRY_SERVICES_VIEW_DOCUMENTATION]: `services/${RouteParams.ModelID}/documentation`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS]: `services/${RouteParams.ModelID}/exceptions`,
+};
 
-  // service exceptions.
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED]: `services/${RouteParams.ModelID}/exceptions/archived`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED]: `services/${RouteParams.ModelID}/exceptions/unresolved`,
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED]: `services/${RouteParams.ModelID}/exceptions/resolved`,
+export const ExceptionsRoutePath: Dictionary<string> = {
+  [PageMap.EXCEPTIONS]: "unresolved",
+  [PageMap.EXCEPTIONS_UNRESOLVED]: "unresolved",
+  [PageMap.EXCEPTIONS_RESOLVED]: "resolved",
+  [PageMap.EXCEPTIONS_ARCHIVED]: "archived",
+  [PageMap.EXCEPTIONS_VIEW_ROOT]: "",
+  [PageMap.EXCEPTIONS_VIEW]: `${RouteParams.ModelID}`,
 };
 
 export const DashboardsRoutePath: Dictionary<string> = {
@@ -1442,68 +1437,9 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.TELEMETRY_EXCEPTIONS_ROOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_ROOT]
-    }`,
-  ),
-
   [PageMap.TELEMETRY_TRACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/${
       TelemetryRoutePath[PageMap.TELEMETRY_TRACES]
-    }`,
-  ),
-
-  // Exceptions
-
-  [PageMap.TELEMETRY_EXCEPTIONS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_EXCEPTIONS_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_VIEW]
-    }`,
-  ),
-
-  // Exceptions - Unresolved, Resolved, Archived.
-  [PageMap.TELEMETRY_EXCEPTIONS_UNRESOLVED]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_UNRESOLVED]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_EXCEPTIONS_RESOLVED]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_RESOLVED]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED]
-    }`,
-  ),
-
-  // Service Exceptions - Unresolved, Resolved, Archived.
-
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_UNRESOLVED]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_ARCHIVED]
     }`,
   ),
 
@@ -1553,19 +1489,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TELEMETRY_SERVICES_VIEW_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/telemetry/${
       TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_LOGS]
-    }`,
-  ),
-
-  // view exceptions.
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS]
-    }`,
-  ),
-
-  [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTION]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/telemetry/${
-      TelemetryRoutePath[PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTION]
     }`,
   ),
 
@@ -2143,6 +2066,45 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.AI_AGENT_TASK_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
       AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_DELETE]
+    }`,
+  ),
+
+  // Exceptions (standalone menu item)
+  [PageMap.EXCEPTIONS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/*`,
+  ),
+
+  [PageMap.EXCEPTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_UNRESOLVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_UNRESOLVED]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_RESOLVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_RESOLVED]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW]
     }`,
   ),
 };

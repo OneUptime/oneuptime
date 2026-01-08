@@ -1,9 +1,9 @@
-import PageComponentProps from "../../PageComponentProps";
+import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
-import ExceptionsTable from "../../../Components/Exceptions/ExceptionsTable";
+import ExceptionsTable from "../../Components/Exceptions/ExceptionsTable";
 
-const Services: FunctionComponent<PageComponentProps> = (
+const ResolvedExceptionsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const disableTelemetryForThisProject: boolean =
@@ -18,13 +18,13 @@ const Services: FunctionComponent<PageComponentProps> = (
   return (
     <ExceptionsTable
       query={{
-        isResolved: false,
+        isResolved: true,
         isArchived: false,
       }}
-      title="Unresolved Exceptions"
-      description="All the exceptions that have not been resolved."
+      title="Resolved Exceptions"
+      description="All the exceptions that have been resolved."
     />
   );
 };
 
-export default Services;
+export default ResolvedExceptionsPage;
