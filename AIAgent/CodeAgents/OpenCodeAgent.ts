@@ -315,6 +315,7 @@ export default class OpenCodeAgent implements CodeAgent {
         }
 
         // Use CLI mode flags to ensure output goes to stdout/stderr instead of TUI
+        // Pass prompt via stdin using "-" to avoid command line argument issues with long prompts
         const args: Array<string> = [
           "run",
           "--print-logs",
@@ -322,15 +323,11 @@ export default class OpenCodeAgent implements CodeAgent {
           "DEBUG",
           "--format",
           "default",
-          prompt,
+          "-", // Read prompt from stdin
         ];
 
         logger.debug(
-          `Running: opencode ${args
-            .map((a: string) => {
-              return a.includes(" ") ? `"${a.substring(0, 50)}..."` : a;
-            })
-            .join(" ")}`,
+          `Running: opencode ${args.join(" ")} (prompt via stdin, ${prompt.length} chars)`,
         );
 
         const child: ChildProcess = spawn("opencode", args, {
@@ -340,6 +337,12 @@ export default class OpenCodeAgent implements CodeAgent {
         });
 
         this.currentProcess = child;
+
+        // Write prompt to stdin and close it
+        if (child.stdin) {
+          child.stdin.write(prompt);
+          child.stdin.end();
+        }
 
         let stdout: string = "";
         let stderr: string = "";
