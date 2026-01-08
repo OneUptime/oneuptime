@@ -1,6 +1,6 @@
 import { ExpressRequest } from "Common/Server/Utils/Express";
 import API from "Common/Utils/API";
-import { StatusPageApiClientUrl } from "Common/Server/EnvironmentConfig";
+import { StatusPageApiInternalUrl } from "Common/Server/EnvironmentConfig";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -65,7 +65,7 @@ export const getStatusPageData: (
       );
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get({
-          url: URL.fromString(StatusPageApiClientUrl.toString()).addRoute(
+          url: URL.fromString(StatusPageApiInternalUrl.toString()).addRoute(
             `/seo/${statusPageIdOrDomain}`,
           ),
         });

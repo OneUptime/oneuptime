@@ -2,7 +2,7 @@ import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import API from "Common/Utils/API";
 import {
   HttpProtocol,
-  StatusPageApiClientUrl,
+  StatusPageApiInternalUrl,
 } from "Common/Server/EnvironmentConfig";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -39,7 +39,7 @@ export const handleRSS: (
     // Fetch incidents
     const incidentsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
-        url: URL.fromString(StatusPageApiClientUrl.toString()).addRoute(
+        url: URL.fromString(StatusPageApiInternalUrl.toString()).addRoute(
           `/incidents/${statusPageId}`,
         ),
         data: {},
@@ -51,7 +51,7 @@ export const handleRSS: (
     // Fetch announcements
     const announcementsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
-        url: URL.fromString(StatusPageApiClientUrl.toString()).addRoute(
+        url: URL.fromString(StatusPageApiInternalUrl.toString()).addRoute(
           `/announcements/${statusPageId}`,
         ),
         data: {},
@@ -63,7 +63,7 @@ export const handleRSS: (
     // Fetch scheduled maintenance
     const scheduledResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
-        url: URL.fromString(StatusPageApiClientUrl.toString()).addRoute(
+        url: URL.fromString(StatusPageApiInternalUrl.toString()).addRoute(
           `/scheduled-maintenance-events/${statusPageId}`,
         ),
         data: {},

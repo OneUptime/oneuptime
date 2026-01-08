@@ -397,6 +397,13 @@ export const StatusPageApiClientUrl: URL = new URL(
   new Route(StatusPageApiRoute.toString()),
 );
 
+// Internal URL for server-to-server communication (uses internal Docker hostname)
+export const StatusPageApiInternalUrl: URL = new URL(
+  Protocol.HTTP,
+  AppApiHostname.toString(),
+  new Route(StatusPageApiRoute.toString()),
+);
+
 export const DashboardClientUrl: URL = new URL(
   HttpProtocol,
   Host,
