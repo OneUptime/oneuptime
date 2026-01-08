@@ -11,3 +11,4 @@ export * from "./ServiceCatalogBreadcrumbs";
 export * from "./CodeRepositoryBreadcrumbs";
 export * from "./DashboardBreadCrumbs";
 export * from "./AIAgentTasksBreadcrumbs";
+export * from "./ExceptionsBreadcrumbs";

@@ -2,7 +2,6 @@ import Loader from "../Components/Loader/Loader";
 import ComponentProps from "../Pages/PageComponentProps";
 import TelemetryServiceViewLayout from "../Pages/Telemetry/Services/View/Layout";
 import TelemetryMetricLayout from "../Pages/Telemetry/Metrics/View/Layout";
-import TelemetryExceptionViewLayout from "../Pages/Telemetry/Exceptions/View/Layout";
 import TelemetryTraceLayout from "../Pages/Telemetry/Traces/View/Layout";
 import TelemetryViewLayout from "../Pages/Telemetry/Layout";
 import PageMap from "../Utils/PageMap";
@@ -46,34 +45,10 @@ const TelemetryTraces: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Telemetry/Traces");
   });
 
-const TelemetryExceptionsUnresolved: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Telemetry/Exceptions/Unresolved");
-});
-
-const TelemetryExceptionsResolved: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Telemetry/Exceptions/Resolved");
-});
-
 const TelemetryServiceViewException: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/Telemetry/Services/View/Exceptions/View/Index");
-});
-
-const TelemetryExceptionsArchived: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Telemetry/Exceptions/Archived");
-});
-
-const TelemetryViewException: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Telemetry/Exceptions/View/Index");
 });
 
 const TelemetryMetrics: LazyExoticComponent<FunctionComponent<ComponentProps>> =
@@ -213,54 +188,6 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        {/** Exceptions - Unresolved, Resolved, Archived */}
-
-        <PageRoute
-          path={
-            TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_UNRESOLVED] || ""
-          }
-          element={
-            <Suspense fallback={Loader}>
-              <TelemetryExceptionsUnresolved
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.TELEMETRY_EXCEPTIONS_UNRESOLVED] as Route
-                }
-              />
-            </Suspense>
-          }
-        />
-
-        <PageRoute
-          path={TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_RESOLVED] || ""}
-          element={
-            <Suspense fallback={Loader}>
-              <TelemetryExceptionsResolved
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.TELEMETRY_EXCEPTIONS_RESOLVED] as Route
-                }
-              />
-            </Suspense>
-          }
-        />
-
-        <PageRoute
-          path={TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED] || ""}
-          element={
-            <Suspense fallback={Loader}>
-              <TelemetryExceptionsArchived
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED] as Route
-                }
-              />
-            </Suspense>
-          }
-        />
-
-        {/** ----  */}
-
         <PageRoute
           path={TelemetryRoutePath[PageMap.TELEMETRY_SERVICES] || ""}
           element={
@@ -311,37 +238,6 @@ const TelemetryRoutes: FunctionComponent<ComponentProps> = (
               <TelemetryViewMetric
                 {...props}
                 pageRoute={RouteMap[PageMap.TELEMETRY_METRIC_VIEW] as Route}
-              />
-            </Suspense>
-          }
-        />
-      </PageRoute>
-
-      {/** Exception View */}
-
-      <PageRoute
-        path={TelemetryRoutePath[PageMap.TELEMETRY_EXCEPTIONS_ROOT] || ""}
-        element={<TelemetryExceptionViewLayout {...props} />}
-      >
-        <PageRoute
-          index
-          element={
-            <Suspense fallback={Loader}>
-              <TelemetryExceptionsUnresolved
-                {...props}
-                pageRoute={RouteMap[PageMap.TELEMETRY_EXCEPTIONS_ROOT] as Route}
-              />
-            </Suspense>
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.TELEMETRY_EXCEPTIONS_VIEW)}
-          element={
-            <Suspense fallback={Loader}>
-              <TelemetryViewException
-                {...props}
-                pageRoute={RouteMap[PageMap.TELEMETRY_EXCEPTIONS_VIEW] as Route}
               />
             </Suspense>
           }

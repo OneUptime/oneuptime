@@ -113,6 +113,14 @@ export const TelemetryRoutePath: Dictionary<string> = {
   [PageMap.TELEMETRY_SERVICES_VIEW_EXCEPTIONS_RESOLVED]: `services/${RouteParams.ModelID}/exceptions/resolved`,
 };
 
+export const ExceptionsRoutePath: Dictionary<string> = {
+  [PageMap.EXCEPTIONS]: "unresolved",
+  [PageMap.EXCEPTIONS_UNRESOLVED]: "unresolved",
+  [PageMap.EXCEPTIONS_RESOLVED]: "resolved",
+  [PageMap.EXCEPTIONS_ARCHIVED]: "archived",
+  [PageMap.EXCEPTIONS_VIEW]: `${RouteParams.ModelID}`,
+};
+
 export const DashboardsRoutePath: Dictionary<string> = {
   [PageMap.DASHBOARD_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.DASHBOARD_VIEW_OVERVIEW]: `${RouteParams.ModelID}/overview`,
@@ -2143,6 +2151,41 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.AI_AGENT_TASK_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ai-agent-tasks/${
       AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_DELETE]
+    }`,
+  ),
+
+  // Exceptions (standalone menu item)
+  [PageMap.EXCEPTIONS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/*`,
+  ),
+
+  [PageMap.EXCEPTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_UNRESOLVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_UNRESOLVED]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_RESOLVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_RESOLVED]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.EXCEPTIONS_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/exceptions/${
+      ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW]
     }`,
   ),
 };
