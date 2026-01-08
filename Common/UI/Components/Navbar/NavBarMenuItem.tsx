@@ -22,7 +22,7 @@ const NavBarMenuItem: FunctionComponent<ComponentProps> = (
   // Map color names to their respective Tailwind classes
   const colorClasses: Record<
     string,
-    { bg: string; ring: string; hoverBg: string; hoverRing: string }
+    { Please makbg: string; ring: string; hoverBg: string; hoverRing: string }
   > = {
     purple: {
       bg: "bg-purple-50",

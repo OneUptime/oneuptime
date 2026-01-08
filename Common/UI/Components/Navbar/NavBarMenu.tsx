@@ -68,7 +68,7 @@ const NavBarMenu: FunctionComponent<ComponentProps> = (
                   className="h-5 w-5 text-gray-700"
                 />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 text-left">
                 <p className="text-sm font-medium text-gray-900">
                   {props.footer.title}
                 </p>
