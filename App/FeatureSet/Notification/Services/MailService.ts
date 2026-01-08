@@ -143,36 +143,21 @@ class TransporterPool {
       scope: emailServer.scope,
     });
 
-    // Create the XOAUTH2 token
-    const xoauth2Token: string = SMTPOAuthService.createXOAuth2Token(
-      emailServer.username,
-      accessToken,
-    );
-
     logger.debug("Creating OAuth transporter for SMTP");
+    logger.debug(`OAuth token obtained for user: ${emailServer.username}`);
 
+    // Use nodemailer's built-in XOAUTH2 support
     return nodemailer.createTransport({
       host: emailServer.host.toString(),
       port: portNumber,
       secure: secureConnection,
       requireTLS,
       tls: tlsOptions,
+      authMethod: "XOAUTH2",
       auth: {
-        type: "custom",
-        method: "XOAUTH2",
+        type: "OAuth2",
         user: emailServer.username,
         accessToken: accessToken,
-        // For nodemailer, we can pass the pre-built token
-        credentials: {
-          user: emailServer.username,
-          accessToken: accessToken,
-        },
-      },
-      customAuth: {
-        XOAUTH2: (ctx: any) => {
-          // Custom XOAUTH2 authentication handler
-          ctx.sendCommand("AUTH XOAUTH2 " + xoauth2Token);
-        },
       },
       connectionTimeout: options.timeout || 60000,
     } as nodemailer.TransportOptions);
