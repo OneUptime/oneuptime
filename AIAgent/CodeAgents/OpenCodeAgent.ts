@@ -314,7 +314,16 @@ export default class OpenCodeAgent implements CodeAgent {
           }
         }
 
-        const args: Array<string> = ["run", prompt];
+        // Use CLI mode flags to ensure output goes to stdout/stderr instead of TUI
+        const args: Array<string> = [
+          "run",
+          "--print-logs",
+          "--log-level",
+          "DEBUG",
+          "--format",
+          "default",
+          prompt,
+        ];
 
         logger.debug(
           `Running: opencode ${args
