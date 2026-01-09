@@ -29,13 +29,16 @@ export interface MoreMenuItem {
   description: string;
   route: Route;
   icon: IconProp;
-  iconColor?: string; // Tailwind color class like "bg-blue-500"
+  iconColor?: string; // Tailwind color name like "blue", "purple", "amber"
+  category?: string; // Category for grouping items (e.g., "Essentials", "Observability")
+  activeRoute?: Route | undefined; // Route to check for active state
 }
 
 export interface ComponentProps {
   items?: NavItem[];
   rightElement?: NavItem;
   moreMenuItems?: MoreMenuItem[];
+  moreMenuTitle?: string; // Title for the more menu (default: "More")
   moreMenuFooter?: {
     title: string;
     description: string;
@@ -265,53 +268,81 @@ const Navbar: FunctionComponent<ComponentProps> = (
           );
         })}
 
-        {/* More menu for desktop */}
-        {props.moreMenuItems && props.moreMenuItems.length > 0 && (
-          <NavBarItem
-            title="More"
-            icon={IconProp.More}
-            onMouseLeave={hideMoreMenu}
-            onMouseOver={showMoreMenu}
-            onClick={showMoreMenu}
-          >
-            <div onMouseOver={showMoreMenu} onMouseLeave={hideMoreMenu}>
-              {isMoreMenuVisible &&
-                (props.moreMenuFooter ? (
-                  <NavBarMenu footer={props.moreMenuFooter}>
-                    {props.moreMenuItems.map((item: MoreMenuItem) => {
-                      return (
-                        <NavBarMenuItem
-                          key={item.title}
-                          title={item.title}
-                          description={item.description}
-                          route={item.route}
-                          icon={item.icon}
-                          iconColor={item.iconColor}
-                          onClick={forceHideMoreMenu}
-                        />
-                      );
-                    })}
-                  </NavBarMenu>
-                ) : (
-                  <NavBarMenu>
-                    {props.moreMenuItems.map((item: MoreMenuItem) => {
-                      return (
-                        <NavBarMenuItem
-                          key={item.title}
-                          title={item.title}
-                          description={item.description}
-                          route={item.route}
-                          icon={item.icon}
-                          iconColor={item.iconColor}
-                          onClick={forceHideMoreMenu}
-                        />
-                      );
-                    })}
-                  </NavBarMenu>
-                ))}
-            </div>
-          </NavBarItem>
-        )}
+        {/* Products menu for desktop - shows active product if one is selected */}
+        {props.moreMenuItems && props.moreMenuItems.length > 0 && (() => {
+          // Find active item in more menu items
+          const activeMoreItem: MoreMenuItem | undefined = props.moreMenuItems.find((item: MoreMenuItem) => {
+            const routeToCheck: Route = item.activeRoute || item.route;
+            return Navigation.isStartWith(routeToCheck);
+          });
+
+          // Group items by category
+          const categories: Map<string, MoreMenuItem[]> = new Map();
+          props.moreMenuItems.forEach((item: MoreMenuItem) => {
+            const cat: string = item.category || "Other";
+            if (!categories.has(cat)) {
+              categories.set(cat, []);
+            }
+            categories.get(cat)!.push(item);
+          });
+
+          // Convert to sections array for NavBarMenu
+          const sections: Array<{ title: string; items: Array<ReactElement> }> = [];
+          categories.forEach((items: MoreMenuItem[], category: string) => {
+            sections.push({
+              title: category,
+              items: items.map((item: MoreMenuItem) => {
+                return (
+                  <NavBarMenuItem
+                    key={item.title}
+                    title={item.title}
+                    description={item.description}
+                    route={item.route}
+                    icon={item.icon}
+                    iconColor={item.iconColor}
+                    onClick={forceHideMoreMenu}
+                  />
+                );
+              }),
+            });
+          });
+
+          const menuTitle: string = props.moreMenuTitle || "Products";
+
+          return (
+            <>
+              {/* Show active product as a separate nav item */}
+              {activeMoreItem && (
+                <NavBarItem
+                  id={`active-product-${activeMoreItem.title.toLowerCase().replace(/\s+/g, "-")}`}
+                  title={activeMoreItem.title}
+                  icon={activeMoreItem.icon}
+                  route={activeMoreItem.route}
+                  activeRoute={activeMoreItem.activeRoute || activeMoreItem.route}
+                  exact={false}
+                />
+              )}
+
+              {/* Products dropdown menu */}
+              <NavBarItem
+                title={menuTitle}
+                icon={IconProp.Squares}
+                onMouseLeave={hideMoreMenu}
+                onMouseOver={showMoreMenu}
+                onClick={showMoreMenu}
+              >
+                <div onMouseOver={showMoreMenu} onMouseLeave={hideMoreMenu}>
+                  {isMoreMenuVisible && (
+                    <NavBarMenu 
+                      sections={sections}
+                      footer={props.moreMenuFooter}
+                    />
+                  )}
+                </div>
+              </NavBarItem>
+            </>
+          );
+        })()}
       </div>
 
       {props.rightElement && (

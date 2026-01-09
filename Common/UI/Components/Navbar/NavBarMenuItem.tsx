@@ -102,6 +102,18 @@ const NavBarMenuItem: FunctionComponent<ComponentProps> = (
       hoverBg: "hover:bg-sky-50",
       hoverRing: "group-hover:ring-sky-300",
     },
+    emerald: {
+      bg: "bg-emerald-50",
+      ring: "ring-emerald-200",
+      hoverBg: "hover:bg-emerald-50",
+      hoverRing: "group-hover:ring-emerald-300",
+    },
+    cyan: {
+      bg: "bg-cyan-50",
+      ring: "ring-cyan-200",
+      hoverBg: "hover:bg-cyan-50",
+      hoverRing: "group-hover:ring-cyan-300",
+    },
   };
 
   const colors: {
