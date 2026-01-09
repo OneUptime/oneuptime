@@ -12,11 +12,13 @@ export interface MenuSection {
 export interface ComponentProps {
   children?: ReactElement | Array<ReactElement>;
   sections?: MenuSection[];
-  footer?: {
-    title: string;
-    description: string;
-    link: URL;
-  };
+  footer?:
+    | {
+        title: string;
+        description: string;
+        link: URL;
+      }
+    | undefined;
 }
 
 const NavBarMenu: FunctionComponent<ComponentProps> = (
