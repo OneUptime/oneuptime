@@ -48,12 +48,6 @@ const ServiceViewAlerts: LazyExoticComponent<
   return import("../Pages/Service/View/Alerts");
 });
 
-const ServiceViewTelemetryServices: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Service/View/TelemetryServices");
-});
-
 const ServiceViewLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Service/View/Logs");
@@ -202,22 +196,6 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
               <ServiceViewIncidents
                 {...props}
                 pageRoute={RouteMap[PageMap.SERVICE_VIEW_INCIDENTS] as Route}
-              />
-            </Suspense>
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.SERVICE_VIEW_TELEMETRY_SERVICES,
-          )}
-          element={
-            <Suspense fallback={Loader}>
-              <ServiceViewTelemetryServices
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.SERVICE_VIEW_TELEMETRY_SERVICES] as Route
-                }
               />
             </Suspense>
           }

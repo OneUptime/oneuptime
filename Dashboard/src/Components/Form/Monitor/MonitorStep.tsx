@@ -43,7 +43,7 @@ import React, {
 } from "react";
 import LogMonitorStepForm from "./LogMonitor/LogMonitorStepFrom";
 import TraceMonitorStepForm from "./TraceMonitor/TraceMonitorStepForm";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -100,8 +100,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     setShowSyntheticMonitorAdvancedOptions,
   ] = useState<boolean>(false);
 
-  const [telemetryServices, setTelemetryServices] = useState<
-    Array<TelemetryService>
+  const [telemetryServices, setServices] = useState<
+    Array<Service>
   >([]);
   const [attributeKeys, setAttributeKeys] = useState<Array<string>>([]);
   const [error, setError] = useState<string>("");
@@ -151,11 +151,11 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const fetchTelemetryServices: PromiseVoidFunction =
+  const fetchServices: PromiseVoidFunction =
     async (): Promise<void> => {
-      const telemetryServicesResult: ListResult<TelemetryService> =
-        await ModelAPI.getList<TelemetryService>({
-          modelType: TelemetryService,
+      const telemetryServicesResult: ListResult<Service> =
+        await ModelAPI.getList<Service>({
+          modelType: Service,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
           },
@@ -174,15 +174,15 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         throw telemetryServicesResult;
       }
 
-      setTelemetryServices(telemetryServicesResult.data);
+      setServices(telemetryServicesResult.data);
     };
 
-  const fetchTelemetryServicesAndAttributes: PromiseVoidFunction =
+  const fetchServicesAndAttributes: PromiseVoidFunction =
     async (): Promise<void> => {
       setIsLoading(true);
       setError("");
       try {
-        await fetchTelemetryServices();
+        await fetchServices();
 
         if (props.monitorType === MonitorType.Logs) {
           await fetchLogAttributes();
@@ -201,7 +201,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     };
 
   useEffect(() => {
-    fetchTelemetryServicesAndAttributes().catch((err: Error) => {
+    fetchServicesAndAttributes().catch((err: Error) => {
       setError(API.getFriendlyErrorMessage(err as Error));
     });
   }, [props.monitorType]);

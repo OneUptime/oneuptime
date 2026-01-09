@@ -23,7 +23,7 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import MetricsQueueService from "./Queue/MetricsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import { TELEMETRY_METRIC_FLUSH_BATCH_SIZE } from "../Config";
@@ -206,15 +206,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                       metricNameServiceNameMap[metricName]!.description =
                         metricDescription;
                       metricNameServiceNameMap[metricName]!.unit = metricUnit;
-                      metricNameServiceNameMap[metricName]!.telemetryServices =
-                        [];
+                      metricNameServiceNameMap[metricName]!.services = [];
                     }
 
                     if (
-                      metricNameServiceNameMap[
-                        metricName
-                      ]!.telemetryServices!.filter(
-                        (service: TelemetryService) => {
+                      metricNameServiceNameMap[metricName]!.services!.filter(
+                        (service: Service) => {
                           return (
                             service.id?.toString() ===
                             serviceMetadata.serviceId!.toString()
@@ -222,12 +219,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         },
                       ).length === 0
                     ) {
-                      const telemetryService: TelemetryService =
-                        new TelemetryService();
-                      telemetryService.id = serviceMetadata.serviceId!;
-                      metricNameServiceNameMap[
-                        metricName
-                      ]!.telemetryServices!.push(telemetryService);
+                      const newService: Service = new Service();
+                      newService.id = serviceMetadata.serviceId!;
+                      metricNameServiceNameMap[metricName]!.services!.push(
+                        newService,
+                      );
                     }
                   }
 

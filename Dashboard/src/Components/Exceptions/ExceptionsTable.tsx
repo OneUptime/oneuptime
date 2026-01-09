@@ -25,7 +25,7 @@ import OneUptimeDate from "Common/Types/Date";
 import UserUtil from "Common/UI/Utils/User";
 
 export interface ComponentProps {
-  telemetryServiceId?: ObjectID | undefined;
+  serviceId?: ObjectID | undefined;
   query: Query<TelemetryException>;
   title: string;
   description: string;
@@ -59,8 +59,8 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
         }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
-          telemetryServiceId: props.telemetryServiceId
-            ? props.telemetryServiceId
+          serviceId: props.serviceId
+            ? props.serviceId
             : undefined,
           ...props.query,
         }}
@@ -430,7 +430,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              telemetryService: {
+              service: {
                 name: true,
                 serviceColor: true,
               },
@@ -438,14 +438,14 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
             title: "Service",
             type: FieldType.Entity,
             getElement: (exception: TelemetryException) => {
-              if (!exception.telemetryService) {
+              if (!exception.service) {
                 // this should never happen.
                 return <div>Unknown</div>;
               }
 
               return (
                 <TelemetryServiceElement
-                  telemetryService={exception.telemetryService!}
+                  telemetryService={exception.service!}
                 />
               );
             },

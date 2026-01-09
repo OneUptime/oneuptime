@@ -1,6 +1,6 @@
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Log from "../../../../Models/AnalyticsModels/Log";
-import TelemetryService from "../../../../Models/DatabaseModels/TelemetryService";
+import Service from "../../../../Models/DatabaseModels/Service";
 import Dictionary from "../../../../Types/Dictionary";
 import OneUptimeDate from "../../../../Types/Date";
 import CopyTextButton from "../../CopyTextButton/CopyTextButton";
@@ -13,7 +13,7 @@ import IconProp from "../../../../Types/Icon/IconProp";
 
 export interface LogsTableProps {
   logs: Array<Log>;
-  serviceMap: Dictionary<TelemetryService>;
+  serviceMap: Dictionary<Service>;
   isLoading: boolean;
   emptyMessage?: string | undefined;
   onRowClick: (log: Log, rowId: string) => void;
@@ -151,7 +151,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
             {props.logs.map((log: Log, index: number) => {
               const rowId: string = resolveLogIdentifier(log, index);
               const serviceId: string = log.serviceId?.toString() || "";
-              const service: TelemetryService | undefined =
+              const service: Service | undefined =
                 props.serviceMap[serviceId];
               const serviceName: string =
                 service?.name || serviceId || "Unknown";

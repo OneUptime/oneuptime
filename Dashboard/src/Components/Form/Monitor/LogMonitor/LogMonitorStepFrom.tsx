@@ -1,5 +1,5 @@
 import MonitorStepLogMonitor from "Common/Types/Monitor/MonitorStepLogMonitor";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import React, { FunctionComponent, ReactElement } from "react";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import LogSeverity from "Common/Types/Log/LogSeverity";
@@ -16,7 +16,7 @@ export interface ComponentProps {
     monitorStepLogMonitor: MonitorStepLogMonitor,
   ) => void;
   attributeKeys: Array<string>;
-  telemetryServices: Array<TelemetryService>;
+  telemetryServices: Array<Service>;
 }
 
 const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
@@ -137,7 +137,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
             },
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownOptions: props.telemetryServices.map(
-              (telemetryService: TelemetryService) => {
+              (telemetryService: Service) => {
                 return {
                   label: telemetryService.name!,
                   value: telemetryService.id?.toString() || "",

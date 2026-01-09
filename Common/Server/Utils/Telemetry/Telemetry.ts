@@ -3,7 +3,7 @@ import ObjectID from "../../../Types/ObjectID";
 import CaptureSpan from "./CaptureSpan";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import MetricTypeService from "../../Services/MetricTypeService";
-import TelemetryService from "../../../Models/DatabaseModels/TelemetryService";
+import Service from "../../../Models/DatabaseModels/Service";
 import Dictionary from "../../../Types/Dictionary";
 
 export type AttributeType = string | number | boolean | null;
@@ -22,7 +22,7 @@ export default class TelemetryUtil {
           name: metricName,
         },
         select: {
-          telemetryServices: true,
+          services: true,
           name: true,
           description: true,
           unit: true,
@@ -35,19 +35,19 @@ export default class TelemetryUtil {
       const metricTypeInMap: MetricType =
         data.metricNameServiceNameMap[metricName]!;
 
-      // check if telemetry services are same as the ones in the map
-      const telemetryServicesInMap: Array<ObjectID> =
-        metricTypeInMap?.telemetryServices?.map((service: TelemetryService) => {
+      // check if services are same as the ones in the map
+      const servicesInMap: Array<ObjectID> =
+        metricTypeInMap?.services?.map((service: Service) => {
           return service.id!;
         }) || [];
 
       if (metricType) {
-        if (!metricType.telemetryServices) {
-          metricType.telemetryServices = [];
+        if (!metricType.services) {
+          metricType.services = [];
         }
 
-        const telemetryServiceIds: Array<ObjectID> =
-          metricType.telemetryServices!.map((service: TelemetryService) => {
+        const serviceIds: Array<ObjectID> =
+          metricType.services!.map((service: Service) => {
             return service.id!;
           });
 
@@ -65,19 +65,19 @@ export default class TelemetryUtil {
           metricType.unit = metricTypeInMap.unit || "";
         }
 
-        // check if telemetry services are same
+        // check if services are same
 
-        for (const telemetryServiceId of telemetryServicesInMap) {
+        for (const serviceId of servicesInMap) {
           if (
-            telemetryServiceIds.filter((serviceId: ObjectID) => {
-              return serviceId.toString() === telemetryServiceId.toString();
+            serviceIds.filter((existingServiceId: ObjectID) => {
+              return existingServiceId.toString() === serviceId.toString();
             }).length === 0
           ) {
             isSame = false;
             // add the service id to the list
-            const telemetryService: TelemetryService = new TelemetryService();
-            telemetryService.id = telemetryServiceId;
-            metricType.telemetryServices!.push(telemetryService);
+            const service: Service = new Service();
+            service.id = serviceId;
+            metricType.services!.push(service);
           }
         }
 
@@ -88,7 +88,7 @@ export default class TelemetryUtil {
           await MetricTypeService.updateOneById({
             id: metricType.id!,
             data: {
-              telemetryServices: metricType.telemetryServices || [],
+              services: metricType.services || [],
               description: metricTypeInMap.description || "",
               unit: metricTypeInMap.unit || "",
             },
@@ -104,12 +104,12 @@ export default class TelemetryUtil {
         metricType.description = metricTypeInMap.description || "";
         metricType.unit = metricTypeInMap.unit || "";
         metricType.projectId = data.projectId;
-        metricType.telemetryServices = [];
+        metricType.services = [];
 
-        for (const telemetryServiceId of telemetryServicesInMap) {
-          const telemetryService: TelemetryService = new TelemetryService();
-          telemetryService.id = telemetryServiceId;
-          metricType.telemetryServices!.push(telemetryService);
+        for (const serviceId of servicesInMap) {
+          const service: Service = new Service();
+          service.id = serviceId;
+          metricType.services!.push(service);
         }
 
         // save metric type

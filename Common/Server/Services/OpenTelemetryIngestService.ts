@@ -4,8 +4,8 @@ import ObjectID from "../../Types/ObjectID";
 import Metric, {
   AggregationTemporality,
 } from "../../Models/AnalyticsModels/Metric";
-import TelemetryService from "../../Models/DatabaseModels/TelemetryService";
-import TelemetryServiceService from "../../Server/Services/TelemetryServiceService";
+import Service from "../../Models/DatabaseModels/Service";
+import ServiceService from "../../Server/Services/ServiceService";
 import { DEFAULT_RETENTION_IN_DAYS } from "../../Models/DatabaseModels/TelemetryUsageBilling";
 import TelemetryUtil from "../../Server/Utils/Telemetry/Telemetry";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -30,37 +30,35 @@ export default class OTelIngestService {
     serviceId: ObjectID;
     dataRententionInDays: number;
   }> {
-    const service: TelemetryService | null =
-      await TelemetryServiceService.findOneBy({
-        query: {
-          projectId: data.projectId,
-          name: data.serviceName,
-        },
-        select: {
-          _id: true,
-          retainTelemetryDataForDays: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    const service: Service | null = await ServiceService.findOneBy({
+      query: {
+        projectId: data.projectId,
+        name: data.serviceName,
+      },
+      select: {
+        _id: true,
+        retainTelemetryDataForDays: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
     if (!service) {
       // create service
 
-      const newService: TelemetryService = new TelemetryService();
+      const newService: Service = new Service();
       newService.projectId = data.projectId;
       newService.name = data.serviceName;
       newService.description = data.serviceName;
       newService.retainTelemetryDataForDays = DEFAULT_RETENTION_IN_DAYS;
 
-      const createdService: TelemetryService =
-        await TelemetryServiceService.create({
-          data: newService,
-          props: {
-            isRoot: true,
-          },
-        });
+      const createdService: Service = await ServiceService.create({
+        data: newService,
+        props: {
+          isRoot: true,
+        },
+      });
 
       return {
         serviceId: createdService.id!,

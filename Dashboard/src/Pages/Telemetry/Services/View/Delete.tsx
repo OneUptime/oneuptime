@@ -5,7 +5,7 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import Navigation from "Common/UI/Utils/Navigation";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ServiceDelete: FunctionComponent<
@@ -16,7 +16,7 @@ const ServiceDelete: FunctionComponent<
   return (
     <Fragment>
       <ModelDelete
-        modelType={TelemetryService}
+        modelType={Service}
         modelId={modelId}
         onDeleteSuccess={() => {
           Navigation.navigate(

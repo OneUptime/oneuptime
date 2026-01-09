@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import Log from "../../../../Models/AnalyticsModels/Log";
-import TelemetryService from "../../../../Models/DatabaseModels/TelemetryService";
+import Service from "../../../../Models/DatabaseModels/Service";
 import Dictionary from "../../../../Types/Dictionary";
 import Route from "../../../../Types/API/Route";
 import URL from "../../../../Types/API/URL";
@@ -14,7 +14,7 @@ import SeverityBadge from "./SeverityBadge";
 
 export interface LogDetailsPanelProps {
   log: Log;
-  serviceMap: Dictionary<TelemetryService>;
+  serviceMap: Dictionary<Service>;
   onClose?: () => void;
   getTraceRoute?:
     | ((traceId: string, log: Log) => Route | URL | undefined)
@@ -69,7 +69,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
 ): ReactElement => {
   const variant: "floating" | "embedded" = props.variant || "floating";
   const serviceId: string = props.log.serviceId?.toString() || "";
-  const service: TelemetryService | undefined = props.serviceMap[serviceId];
+  const service: Service | undefined = props.serviceMap[serviceId];
   const serviceName: string = service?.name || serviceId || "Unknown service";
   const serviceColor: string =
     (service?.serviceColor && service?.serviceColor.toString()) || "#64748b";

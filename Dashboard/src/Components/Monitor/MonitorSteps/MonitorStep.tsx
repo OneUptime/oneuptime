@@ -19,7 +19,7 @@ import React, {
 } from "react";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import { JSONObject } from "Common/Types/JSON";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
@@ -30,7 +30,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import API from "Common/UI/Utils/API/API";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import OneUptimeDate from "Common/Types/Date";
-import TelemetryServicesElement from "../../TelemetryService/TelemetryServiceElements";
+import ServicesElement from "../../Service/ServiceElements";
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import ObjectID from "Common/Types/ObjectID";
 import SpanUtil from "../../../Utils/SpanUtil";
@@ -49,7 +49,7 @@ export interface LogMonitorStepView {
   body: string | undefined;
   severityTexts: Array<string> | undefined;
   attributes: JSONObject | undefined;
-  telemetryServices: Array<TelemetryService> | undefined;
+  telemetryServices: Array<Service> | undefined;
   lastXSecondsOfLogs: number | undefined;
 }
 
@@ -57,7 +57,7 @@ export interface TraceMonitorStepView {
   spanName: string | undefined;
   spanStatuses: Array<SpanStatus> | undefined;
   attributes: JSONObject | undefined;
-  telemetryServices: Array<TelemetryService> | undefined;
+  telemetryServices: Array<Service> | undefined;
   lastXSecondsOfSpans: number | undefined;
 }
 
@@ -66,8 +66,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
-  const [telemetryServices, setTelemetryServices] = useState<
-    Array<TelemetryService> | undefined
+  const [telemetryServices, setServices] = useState<
+    Array<Service> | undefined
   >(undefined);
 
   // this field is used for most monitor types
@@ -91,7 +91,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     lastXSecondsOfLogs: undefined,
   };
 
-  const fetchTelemetryServices: PromiseVoidFunction =
+  const fetchServices: PromiseVoidFunction =
     async (): Promise<void> => {
       let telemetryServiceIds: Array<ObjectID> = [];
 
@@ -113,9 +113,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           props.monitorStep.data?.traceMonitor?.telemetryServiceIds || [];
       }
 
-      const telemetryServicesResult: ListResult<TelemetryService> =
-        await ModelAPI.getList<TelemetryService>({
-          modelType: TelemetryService,
+      const telemetryServicesResult: ListResult<Service> =
+        await ModelAPI.getList<Service>({
+          modelType: Service,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
             _id: new Includes(telemetryServiceIds),
@@ -136,7 +136,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         throw telemetryServicesResult;
       }
 
-      setTelemetryServices(telemetryServicesResult.data);
+      setServices(telemetryServicesResult.data);
     };
 
   const loadComponent: PromiseVoidFunction = async (): Promise<void> => {
@@ -146,7 +146,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         props.monitorType === MonitorType.Logs ||
         props.monitorType === MonitorType.Traces
       ) {
-        await fetchTelemetryServices();
+        await fetchServices();
       }
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Error));
@@ -385,7 +385,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         placeholder: "No telemetry services entered",
         getElement: (): ReactElement => {
           return (
-            <TelemetryServicesElement telemetryServices={telemetryServices} />
+            <ServicesElement telemetryServices={telemetryServices} />
           );
         },
       });
@@ -484,7 +484,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         placeholder: "No telemetry services entered",
         getElement: (): ReactElement => {
           return (
-            <TelemetryServicesElement telemetryServices={telemetryServices} />
+            <ServicesElement telemetryServices={telemetryServices} />
           );
         },
       });

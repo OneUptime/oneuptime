@@ -2,7 +2,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -12,18 +12,18 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import TelemetryServicesElement from "../TelemetryService/TelemetryServiceElements";
+import ServicesElement from "../Service/ServiceElements";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 
 export interface ComponentProps {
-  telemetryServiceIds?: Array<ObjectID> | undefined;
+  serviceIds?: Array<ObjectID> | undefined;
 }
 
 const MetricsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const telemetryServiceFilterIds: Array<ObjectID> =
-    props.telemetryServiceIds || [];
+  const serviceFilterIds: Array<ObjectID> =
+    props.serviceIds || [];
 
   return (
     <Fragment>
@@ -59,19 +59,19 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
 
           const metricAttributes: Record<string, string> = {};
 
-          if (telemetryServiceFilterIds.length === 1) {
-            const telemetryServiceId: ObjectID | undefined =
-              telemetryServiceFilterIds[0];
+          if (serviceFilterIds.length === 1) {
+            const serviceId: ObjectID | undefined =
+              serviceFilterIds[0];
 
             const serviceIdString: string | undefined =
-              telemetryServiceId?.toString();
+              serviceId?.toString();
 
             if (serviceIdString) {
               metricAttributes["oneuptime.service.id"] = serviceIdString;
 
-              const matchingService: TelemetryService | undefined = (
-                item.telemetryServices || []
-              ).find((service: TelemetryService) => {
+              const matchingService: Service | undefined = (
+                item.services || []
+              ).find((service: Service) => {
                 return service._id?.toString() === serviceIdString;
               });
 
@@ -102,13 +102,13 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
         }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
-          telemetryServices:
-            telemetryServiceFilterIds.length > 0
-              ? new Includes(telemetryServiceFilterIds)
+          services:
+            serviceFilterIds.length > 0
+              ? new Includes(serviceFilterIds)
               : undefined,
         }}
         selectMoreFields={{
-          telemetryServices: {
+          services: {
             _id: true,
             name: true,
             serviceColor: true,
@@ -128,13 +128,13 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              telemetryServices: {
+              services: {
                 name: true,
               },
             },
-            title: "Telemetry Service",
+            title: "Service",
             type: FieldType.EntityArray,
-            filterEntityType: TelemetryService,
+            filterEntityType: Service,
             filterQuery: {
               projectId: ProjectUtil.getCurrentProjectId()!,
             },
@@ -154,18 +154,18 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              telemetryServices: {
+              services: {
                 name: true,
                 _id: true,
                 serviceColor: true,
               },
             },
-            title: "Telemetry Services",
+            title: "Services",
             type: FieldType.Element,
             getElement: (item: MetricType): ReactElement => {
               return (
-                <TelemetryServicesElement
-                  telemetryServices={item.telemetryServices || []}
+                <ServicesElement
+                  telemetryServices={item.services || []}
                 />
               );
             },

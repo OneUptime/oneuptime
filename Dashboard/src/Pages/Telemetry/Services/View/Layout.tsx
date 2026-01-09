@@ -5,11 +5,11 @@ import SideMenu from "./SideMenu";
 import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import Navigation from "Common/UI/Utils/Navigation";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
-const TelemetryServiceViewLayout: FunctionComponent<
+const ServiceViewLayout: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const { id } = useParams();
@@ -18,7 +18,7 @@ const TelemetryServiceViewLayout: FunctionComponent<
   return (
     <ModelPage
       title="Service"
-      modelType={TelemetryService}
+      modelType={Service}
       modelId={modelId}
       modelNameField="name"
       breadcrumbLinks={getTelemetryBreadcrumbs(path)}
@@ -29,4 +29,4 @@ const TelemetryServiceViewLayout: FunctionComponent<
   );
 };
 
-export default TelemetryServiceViewLayout;
+export default ServiceViewLayout;

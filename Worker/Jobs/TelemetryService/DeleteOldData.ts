@@ -7,10 +7,10 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import LogService from "Common/Server/Services/LogService";
 import MetricService from "Common/Server/Services/MetricService";
 import SpanService from "Common/Server/Services/SpanService";
-import TelemetryServiceService from "Common/Server/Services/TelemetryServiceService";
+import ServiceService from "Common/Server/Services/ServiceService";
 import logger from "Common/Server/Utils/Logger";
 import QueryHelper from "Common/Server/Types/AnalyticsDatabase/QueryHelper";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import Project from "Common/Models/DatabaseModels/Project";
 import { ServiceType } from "Common/Models/AnalyticsModels/Metric";
 
@@ -47,24 +47,23 @@ RunCron(
             continue;
           }
 
-          const telemetryServices: Array<TelemetryService> =
-            await TelemetryServiceService.findBy({
-              query: {
-                projectId: project.id,
-              },
-              limit: LIMIT_MAX,
-              skip: 0,
-              select: {
-                retainTelemetryDataForDays: true,
-                projectId: true,
-                _id: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
+          const services: Array<Service> = await ServiceService.findBy({
+            query: {
+              projectId: project.id,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            select: {
+              retainTelemetryDataForDays: true,
+              projectId: true,
+              _id: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
 
-          for (const service of telemetryServices) {
+          for (const service of services) {
             try {
               if (!service || !service.id) {
                 continue;

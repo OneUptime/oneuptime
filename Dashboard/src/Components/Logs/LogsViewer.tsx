@@ -23,7 +23,7 @@ import Route from "Common/Types/API/Route";
 
 export interface ComponentProps {
   id: string;
-  telemetryServiceIds?: Array<ObjectID> | undefined;
+  serviceIds?: Array<ObjectID> | undefined;
   enableRealtime?: boolean;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
@@ -41,8 +41,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const refreshQuery: RefreshQueryFunction = (): Query<Log> => {
     const query: Query<Log> = {};
 
-    if (props.telemetryServiceIds && props.telemetryServiceIds.length > 0) {
-      query.serviceId = new Includes(props.telemetryServiceIds);
+    if (props.serviceIds && props.serviceIds.length > 0) {
+      query.serviceId = new Includes(props.serviceIds);
     }
 
     if (props.traceIds && props.traceIds.length > 0) {
@@ -87,7 +87,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     setFilterOptions(refreshQuery());
     setPage(1);
   }, [
-    props.telemetryServiceIds,
+    props.serviceIds,
     props.traceIds,
     props.spanIds,
     props.logQuery,

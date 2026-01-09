@@ -91,7 +91,6 @@ import ServiceOwnerTeamService from "./ServiceOwnerTeamService";
 import ServiceOwnerUserService from "./ServiceOwnerUserService";
 import ServiceService from "./ServiceService";
 import ServiceMonitorService from "./ServiceMonitorService";
-import ServiceTelemetryServiceService from "./ServiceTelemetryServiceService";
 import ServiceCodeRepositoryService from "./ServiceCodeRepositoryService";
 import ShortLinkService from "./ShortLinkService";
 // SMS Log Service
@@ -123,7 +122,6 @@ import TeamPermissionService from "./TeamPermissionService";
 import TeamComplianceSettingService from "./TeamComplianceSettingService";
 // Team
 import TeamService from "./TeamService";
-import TelemetryServiceService from "./TelemetryServiceService";
 import UsageBillingService from "./TelemetryUsageBillingService";
 import UserCallService from "./UserCallService";
 import UserEmailService from "./UserEmailService";
@@ -315,8 +313,6 @@ const services: Array<BaseService> = [
   MonitorGroupOwnerUserService,
   MonitorGroupOwnerTeamService,
 
-  TelemetryServiceService,
-
   // On Call Duty Policy Schedule
   OnCallDutyPolicyScheduleService,
   OnCallDutyPolicyScheduleLayerUserService,
@@ -331,7 +327,6 @@ const services: Array<BaseService> = [
   ServiceOwnerUserService,
   ServiceDependencyService,
   ServiceMonitorService,
-  ServiceTelemetryServiceService,
   ServiceCodeRepositoryService,
 
   TelemetryExceptionService,

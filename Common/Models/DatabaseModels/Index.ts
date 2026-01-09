@@ -138,7 +138,6 @@ import Team from "./Team";
 import TeamMember from "./TeamMember";
 import TeamPermission from "./TeamPermission";
 import TeamComplianceSetting from "./TeamComplianceSetting";
-import TelemetryService from "./TelemetryService";
 import UsageBilling from "./TelemetryUsageBilling";
 import User from "./User";
 import UserSession from "./UserSession";
@@ -159,7 +158,6 @@ import WorkflowLog from "./WorkflowLog";
 import WorkflowVariables from "./WorkflowVariable";
 import ServiceDependency from "./ServiceDependency";
 import ServiceMonitor from "./ServiceMonitor";
-import ServiceTelemetryService from "./ServiceTelemetryService";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserWebAuthn from "./UserWebAuthn";
@@ -354,8 +352,6 @@ const AllModelTypes: Array<{
   MonitorGroupOwnerUser,
   MonitorGroupResource,
 
-  TelemetryService,
-
   OnCallDutyPolicySchedule,
   OnCallDutyPolicyScheduleLayer,
   OnCallDutyPolicyScheduleLayerUser,
@@ -377,7 +373,6 @@ const AllModelTypes: Array<{
   ServiceOwnerUser,
   ServiceDependency,
   ServiceMonitor,
-  ServiceTelemetryService,
   ServiceCodeRepository,
 
   // Code Repository
