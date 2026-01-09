@@ -205,7 +205,12 @@ export default class AIAgentTask extends BaseModel {
   public description?: string = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectAIAgentTask,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -242,7 +247,12 @@ export default class AIAgentTask extends BaseModel {
   public aiAgent?: AIAgent = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectAIAgentTask,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
