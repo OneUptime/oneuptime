@@ -33,7 +33,7 @@ const NavBarMenu: FunctionComponent<ComponentProps> = (
     );
 
     return (
-      <div className="absolute left-1/2 z-10 mt-8 w-screen max-w-5xl -translate-x-1/2 transform px-2 sm:px-0">
+      <div className="absolute left-0 z-10 mt-8 w-screen max-w-5xl transform px-2 sm:px-0">
         <div className="overflow-hidden rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5 bg-white">
           {/* Sections */}
           <div className="p-6">

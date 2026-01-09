@@ -311,35 +311,48 @@ const Navbar: FunctionComponent<ComponentProps> = (
 
           return (
             <>
-              {/* Show active product as a separate nav item */}
+              {/* Show active product - clicking opens the products menu */}
               {activeMoreItem && (
                 <NavBarItem
                   id={`active-product-${activeMoreItem.title.toLowerCase().replace(/\s+/g, "-")}`}
                   title={activeMoreItem.title}
                   icon={activeMoreItem.icon}
-                  route={activeMoreItem.route}
                   activeRoute={activeMoreItem.activeRoute || activeMoreItem.route}
                   exact={false}
-                />
+                  onMouseLeave={hideMoreMenu}
+                  onMouseOver={showMoreMenu}
+                  onClick={showMoreMenu}
+                >
+                  <div onMouseOver={showMoreMenu} onMouseLeave={hideMoreMenu}>
+                    {isMoreMenuVisible && (
+                      <NavBarMenu 
+                        sections={sections}
+                        footer={props.moreMenuFooter}
+                      />
+                    )}
+                  </div>
+                </NavBarItem>
               )}
 
-              {/* Products dropdown menu */}
-              <NavBarItem
-                title={menuTitle}
-                icon={IconProp.Squares}
-                onMouseLeave={hideMoreMenu}
-                onMouseOver={showMoreMenu}
-                onClick={showMoreMenu}
-              >
-                <div onMouseOver={showMoreMenu} onMouseLeave={hideMoreMenu}>
-                  {isMoreMenuVisible && (
-                    <NavBarMenu 
-                      sections={sections}
-                      footer={props.moreMenuFooter}
-                    />
-                  )}
-                </div>
-              </NavBarItem>
+              {/* Products dropdown menu - only show when no active product */}
+              {!activeMoreItem && (
+                <NavBarItem
+                  title={menuTitle}
+                  icon={IconProp.Squares}
+                  onMouseLeave={hideMoreMenu}
+                  onMouseOver={showMoreMenu}
+                  onClick={showMoreMenu}
+                >
+                  <div onMouseOver={showMoreMenu} onMouseLeave={hideMoreMenu}>
+                    {isMoreMenuVisible && (
+                      <NavBarMenu 
+                        sections={sections}
+                        footer={props.moreMenuFooter}
+                      />
+                    )}
+                  </div>
+                </NavBarItem>
+              )}
             </>
           );
         })()}
