@@ -2,11 +2,9 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import ServiceElement from "../../Components/Service/ServiceElement";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
-import TechStack from "Common/Types/Service/TechStack";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -58,15 +56,19 @@ const ServicesPage: FunctionComponent<
         },
         {
           field: {
-            techStack: true,
+            labels: true,
           },
-          title: "Tech Stack",
+          title: "Labels",
           description:
-            "Tech stack used in the service. This will help other developers understand the service better.",
+            "Labels help you categorize and organize your services.",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          required: true,
-          placeholder: "Tech Stack",
-          dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(TechStack),
+          required: false,
+          placeholder: "Labels",
+          dropdownModal: {
+            type: Label,
+            labelField: "name",
+            valueField: "_id",
+          },
         },
       ]}
       showRefreshButton={true}
