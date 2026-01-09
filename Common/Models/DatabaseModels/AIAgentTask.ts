@@ -532,7 +532,12 @@ export default class AIAgentTask extends BaseModel {
   public createdByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectAIAgentTask,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
