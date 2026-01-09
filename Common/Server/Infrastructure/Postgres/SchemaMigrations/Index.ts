@@ -214,6 +214,7 @@ import { MigrationName1766923324521 } from "./1766923324521-MigrationName";
 import { AddGitHubAppInstallationIdToProject1766958924188 } from "./1766958924188-AddGitHubAppInstallationIdToProject";
 import { MigrationName1767009661768 } from "./1767009661768-MigrationName";
 import { RenameServiceCatalogToService1767966850199 } from "./1767966850199-RenameServiceCatalogToService";
+import { MigrationName1767979055522 } from "./1767979055522-MigrationName";
 
 export default [
   InitialMigration,
@@ -432,4 +433,5 @@ export default [
   AddGitHubAppInstallationIdToProject1766958924188,
   MigrationName1767009661768,
   RenameServiceCatalogToService1767966850199,
+  MigrationName1767979055522
 ];
