@@ -25,7 +25,7 @@ interface ExceptionResponse {
   fingerprint: string;
 }
 
-interface TelemetryServiceResponse {
+interface ServiceResponse {
   id: string;
   name: string;
   description: string;
@@ -33,7 +33,7 @@ interface TelemetryServiceResponse {
 
 interface ExceptionDetailsResponse {
   exception: ExceptionResponse;
-  telemetryService: TelemetryServiceResponse | null;
+  service: ServiceResponse | null;
   message?: string;
 }
 
@@ -89,7 +89,7 @@ export interface ExceptionDetails {
     exceptionType: string;
     fingerprint: string;
   };
-  telemetryService: {
+  service: {
     id: string;
     name: string;
     description: string;
@@ -223,19 +223,19 @@ export default class BackendAPI {
         exceptionType: data.exception.exceptionType,
         fingerprint: data.exception.fingerprint,
       },
-      telemetryService: data.telemetryService
+      service: data.service
         ? {
-            id: data.telemetryService.id,
-            name: data.telemetryService.name,
-            description: data.telemetryService.description,
+            id: data.service.id,
+            name: data.service.name,
+            description: data.service.description,
           }
         : null,
     };
   }
 
-  // Get code repositories linked to a telemetry service
+  // Get code repositories linked to a service
   public async getCodeRepositories(
-    telemetryServiceId: string,
+    serviceId: string,
   ): Promise<Array<CodeRepositoryInfo>> {
     const url: URL = URL.fromURL(this.baseUrl).addRoute(
       "/api/ai-agent-data/get-code-repositories",
@@ -245,7 +245,7 @@ export default class BackendAPI {
       url,
       data: {
         ...AIAgentAPIRequest.getDefaultRequestBody(),
-        telemetryServiceId: telemetryServiceId,
+        serviceId: serviceId,
       },
     });
 
@@ -261,7 +261,7 @@ export default class BackendAPI {
       response.data as unknown as CodeRepositoriesResponse;
 
     logger.debug(
-      `Got ${data.repositories.length} code repositories for telemetry service ${telemetryServiceId}`,
+      `Got ${data.repositories.length} code repositories for service ${serviceId}`,
     );
 
     return data.repositories.map((repo: CodeRepositoryResponse) => {

@@ -6,7 +6,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ServiceDelete: FunctionComponent<
@@ -17,7 +17,7 @@ const ServiceDelete: FunctionComponent<
   return (
     <Fragment>
       {/* Service View  */}
-      <CardModelDetail<TelemetryService>
+      <CardModelDetail<Service>
         name="Service Details"
         formSteps={[
           {
@@ -78,7 +78,7 @@ const ServiceDelete: FunctionComponent<
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
-          modelType: TelemetryService,
+          modelType: Service,
           id: "model-detail-services",
           fields: [
             {
@@ -103,7 +103,7 @@ const ServiceDelete: FunctionComponent<
               },
               title: "Labels",
               fieldType: FieldType.Element,
-              getElement: (item: TelemetryService): ReactElement => {
+              getElement: (item: Service): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
               },
             },

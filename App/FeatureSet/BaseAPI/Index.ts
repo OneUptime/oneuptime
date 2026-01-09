@@ -264,11 +264,6 @@ import ServiceMonitorService, {
   Service as ServiceMonitorServiceType,
 } from "Common/Server/Services/ServiceMonitorService";
 
-import ServiceTelemetryService from "Common/Models/DatabaseModels/ServiceTelemetryService";
-import ServiceTelemetryServiceService, {
-  Service as ServiceTelemetryServiceServiceType,
-} from "Common/Server/Services/ServiceTelemetryServiceService";
-
 import ServiceCodeRepository from "Common/Models/DatabaseModels/ServiceCodeRepository";
 import ServiceCodeRepositoryService, {
   Service as ServiceCodeRepositoryServiceType,
@@ -329,9 +324,6 @@ import TeamComplianceSettingService, {
 import TeamService, {
   Service as TeamServiceType,
 } from "Common/Server/Services/TeamService";
-import TelemetryServiceService, {
-  Service as TelemetryServiceServiceType,
-} from "Common/Server/Services/TelemetryServiceService";
 import TelemetryUsageBillingService, {
   Service as TelemetryUsageBillingServiceType,
 } from "Common/Server/Services/TelemetryUsageBillingService";
@@ -472,7 +464,6 @@ import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
@@ -1014,14 +1005,6 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceTelemetryService, ServiceTelemetryServiceServiceType>(
-        ServiceTelemetryService,
-        ServiceTelemetryServiceService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<ServiceCodeRepository, ServiceCodeRepositoryServiceType>(
         ServiceCodeRepository,
         ServiceCodeRepositoryService,
@@ -1228,14 +1211,6 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<Workflow, WorkflowServiceType>(
         Workflow,
         WorkflowService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TelemetryService, TelemetryServiceServiceType>(
-        TelemetryService,
-        TelemetryServiceService,
       ).getRouter(),
     );
 

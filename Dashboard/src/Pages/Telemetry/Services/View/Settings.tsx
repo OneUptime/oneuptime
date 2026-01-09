@@ -4,7 +4,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const ServiceDelete: FunctionComponent<
@@ -37,7 +37,7 @@ const ServiceDelete: FunctionComponent<
           },
         ]}
         modelDetailProps={{
-          modelType: TelemetryService,
+          modelType: Service,
           id: "model-detail-project",
           fields: [
             {
@@ -75,7 +75,7 @@ const ServiceDelete: FunctionComponent<
           },
         ]}
         modelDetailProps={{
-          modelType: TelemetryService,
+          modelType: Service,
           id: "model-detail-project",
           fields: [
             {

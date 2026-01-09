@@ -1,5 +1,5 @@
 import SpanUtil, { DivisibilityFactor } from "../../Utils/SpanUtil";
-import TelemetryServiceElement from "../TelemetryService/TelemetryServiceElement";
+import ServiceElement from "../Service/ServiceElement";
 import SpanStatusElement from "./SpanStatusElement";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import CodeType from "Common/Types/Code/CodeType";
@@ -29,7 +29,7 @@ import Span, {
   SpanEvent,
   SpanEventType,
 } from "Common/Models/AnalyticsModels/Span";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import { JSONObject } from "Common/Types/JSON";
 import Text from "Common/Types/Text";
@@ -43,7 +43,7 @@ export interface ComponentProps {
   openTelemetrySpanId: string;
   traceStartTimeInUnixNano: number;
   onClose: () => void;
-  telemetryService: TelemetryService;
+  telemetryService: Service;
   divisibilityFactor: DivisibilityFactor;
 }
 
@@ -596,8 +596,8 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
             fieldType: FieldType.Element,
             getElement: () => {
               return (
-                <TelemetryServiceElement
-                  telemetryService={telemetryService}
+                <ServiceElement
+                  service={telemetryService}
                   onNavigateComplete={() => {
                     onClose();
                   }}

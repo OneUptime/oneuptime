@@ -1,7 +1,7 @@
 import DashboardLogsViewer from "../Logs/LogsViewer";
 import SpanStatusElement from "../Span/SpanStatusElement";
 import SpanViewer from "../Span/SpanViewer";
-import TelemetryServiceElement from "..//TelemetryService/TelemetryServiceElement";
+import ServiceElement from "..//Service/ServiceElement";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SpanUtil, {
   DivisibilityFactor,
@@ -30,7 +30,7 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Select from "Common/Types/BaseDatabase/Select";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const INITIAL_SPAN_FETCH_SIZE: number = 500;
@@ -53,9 +53,7 @@ type GetBarTooltipFunction = (data: BarTooltipFunctionProps) => ReactElement;
 const TraceExplorer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [telemetryServices, setTelemetryServices] = React.useState<
-    TelemetryService[]
-  >([]);
+  const [telemetryServices, setServices] = React.useState<Service[]>([]);
 
   const [selectedSpans, setSelectedSpans] = React.useState<string[]>([]);
 
@@ -106,16 +104,16 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     [],
   );
 
-  const fetchTelemetryServices: PromiseVoidFunction =
+  const fetchServices: PromiseVoidFunction =
     React.useCallback(async (): Promise<void> => {
-      const telemetryServicesResult: ListResult<TelemetryService> =
-        await ModelAPI.getList<TelemetryService>({
+      const telemetryServicesResult: ListResult<Service> =
+        await ModelAPI.getList<Service>({
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
-          modelType: TelemetryService,
+          modelType: Service,
           sort: {
             name: SortOrder.Ascending,
           },
@@ -126,7 +124,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           },
         });
 
-      setTelemetryServices(telemetryServicesResult.data);
+      setServices(telemetryServicesResult.data);
     }, []);
 
   type FetchSpansParams = {
@@ -243,7 +241,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
       try {
         await Promise.all([
-          fetchTelemetryServices(),
+          fetchServices(),
           fetchSpans({
             limit: INITIAL_SPAN_FETCH_SIZE,
             skip: 0,
@@ -253,7 +251,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       } catch (err) {
         setError(API.getFriendlyMessage(err));
       }
-    }, [fetchTelemetryServices, fetchSpans]);
+    }, [fetchServices, fetchSpans]);
 
   const getBarTooltip: GetBarTooltipFunction = (
     data: BarTooltipFunctionProps,
@@ -397,21 +395,21 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   };
 
   type GetRowDescriptionFunction = (data: {
-    telemetryService: TelemetryService;
+    telemetryService: Service;
     span: Span;
   }) => ReactElement;
 
   const getRowDescription: GetRowDescriptionFunction = (data: {
-    telemetryService: TelemetryService;
+    telemetryService: Service;
     span: Span;
   }): ReactElement => {
     const { telemetryService } = data;
 
     return (
       <div className="flex space-x-5">
-        <TelemetryServiceElement
-          telemetryService={telemetryService}
-          telemetryServiceNameClassName="mt-0.5"
+        <ServiceElement
+          service={telemetryService}
+          serviceNameClassName="mt-0.5"
         />
       </div>
     );
@@ -433,10 +431,11 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       return [];
     }
 
-    const telemetryService: TelemetryService | undefined =
-      telemetryServices.find((service: TelemetryService) => {
+    const telemetryService: Service | undefined = telemetryServices.find(
+      (service: Service) => {
         return service._id?.toString() === rootSpan.serviceId?.toString();
-      });
+      },
+    );
 
     const rootRow: GanttChartRow = {
       rowInfo: {
@@ -600,7 +599,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
    * Derived values for summary / filtering
    * Services involved in this trace only
    */
-  const servicesInTrace: TelemetryService[] = React.useMemo(() => {
+  const servicesInTrace: Service[] = React.useMemo(() => {
     if (spans.length === 0) {
       return [];
     }
@@ -613,7 +612,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           return s.serviceId!.toString();
         }),
     );
-    return telemetryServices.filter((svc: TelemetryService) => {
+    return telemetryServices.filter((svc: Service) => {
       return serviceIdsInTrace.has(svc._id!.toString());
     });
   }, [telemetryServices, spans]);
@@ -643,7 +642,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       return;
     }
     const validIds: Set<string> = new Set(
-      servicesInTrace.map((s: TelemetryService) => {
+      servicesInTrace.map((s: Service) => {
         return s._id!.toString();
       }),
     );
@@ -810,10 +809,11 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
      */
     if (allRows.length === 1 && displaySpans.length > 10) {
       allRows = displaySpans.map((span: Span) => {
-        const telemetryService: TelemetryService | undefined =
-          telemetryServices.find((service: TelemetryService) => {
+        const telemetryService: Service | undefined = telemetryServices.find(
+          (service: Service) => {
             return service._id?.toString() === span.serviceId?.toString();
-          });
+          },
+        );
         return {
           rowInfo: {
             id: ObjectID.generate().toString(),
@@ -909,7 +909,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
-      {servicesInTrace.map((service: TelemetryService) => {
+      {servicesInTrace.map((service: Service) => {
         const id: string = service._id!.toString();
         const isSelected: boolean = selectedServiceIds.includes(id);
         const counts: { total: number; error: number } | undefined =
@@ -1278,7 +1278,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                 setSelectedSpans([]);
               }}
               telemetryService={
-                telemetryServices.find((service: TelemetryService) => {
+                telemetryServices.find((service: Service) => {
                   const selectedSpan: Span | undefined = spans.find(
                     (span: Span) => {
                       return span.spanId?.toString() === selectedSpans[0]!;

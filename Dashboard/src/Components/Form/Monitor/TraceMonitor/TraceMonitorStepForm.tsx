@@ -1,7 +1,7 @@
 import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import React, { FunctionComponent, ReactElement } from "react";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -17,7 +17,7 @@ export interface ComponentProps {
     monitorStepTraceMonitor: MonitorStepTraceMonitor,
   ) => void;
   attributeKeys: Array<string>;
-  telemetryServices: Array<TelemetryService>;
+  telemetryServices: Array<Service>;
 }
 
 const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
@@ -136,7 +136,7 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
             },
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownOptions: props.telemetryServices.map(
-              (telemetryService: TelemetryService) => {
+              (telemetryService: Service) => {
                 return {
                   label: telemetryService.name!,
                   value: telemetryService.id?.toString() || "",

@@ -11,7 +11,7 @@ import ObjectID from "../../Types/ObjectID";
 import Model, {
   DEFAULT_RETENTION_IN_DAYS,
 } from "../../Models/DatabaseModels/TelemetryUsageBilling";
-import TelemetryServiceService from "./TelemetryServiceService";
+import ServiceService from "./ServiceService";
 import SpanService from "./SpanService";
 import LogService from "./LogService";
 import MetricService from "./MetricService";
@@ -20,7 +20,7 @@ import AnalyticsQueryHelper from "../Types/AnalyticsDatabase/QueryHelper";
 import DiskSize from "../../Types/DiskSize";
 import logger from "../Utils/Logger";
 import PositiveNumber from "../../Types/PositiveNumber";
-import TelemetryServiceModel from "../../Models/DatabaseModels/TelemetryService";
+import ServiceModel from "../../Models/DatabaseModels/Service";
 import {
   AverageSpanRowSizeInBytes,
   AverageLogRowSizeInBytes,
@@ -97,28 +97,27 @@ export class Service extends DatabaseService<Model> {
     const startOfDay: Date = OneUptimeDate.getStartOfDay(usageDate);
     const endOfDay: Date = OneUptimeDate.getEndOfDay(usageDate);
 
-    const telemetryServices: Array<TelemetryServiceModel> =
-      await TelemetryServiceService.findBy({
-        query: {
-          projectId: data.projectId,
-        },
-        select: {
-          _id: true,
-          retainTelemetryDataForDays: true,
-        },
-        skip: 0,
-        limit: LIMIT_MAX,
-        props: {
-          isRoot: true,
-        },
-      });
+    const services: Array<ServiceModel> = await ServiceService.findBy({
+      query: {
+        projectId: data.projectId,
+      },
+      select: {
+        _id: true,
+        retainTelemetryDataForDays: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+      },
+    });
 
-    if (!telemetryServices || telemetryServices.length === 0) {
+    if (!services || services.length === 0) {
       return;
     }
 
-    for (const telemetryService of telemetryServices) {
-      if (!telemetryService?.id) {
+    for (const service of services) {
+      if (!service?.id) {
         continue;
       }
 
@@ -126,7 +125,7 @@ export class Service extends DatabaseService<Model> {
         query: {
           projectId: data.projectId,
           productType: data.productType,
-          telemetryServiceId: telemetryService.id,
+          serviceId: service.id,
           day: usageDayString,
         },
         select: {
@@ -148,7 +147,7 @@ export class Service extends DatabaseService<Model> {
           const spanCount: PositiveNumber = await SpanService.countBy({
             query: {
               projectId: data.projectId,
-              serviceId: telemetryService.id,
+              serviceId: service.id,
               startTime: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
             },
             skip: 0,
@@ -162,7 +161,7 @@ export class Service extends DatabaseService<Model> {
             await ExceptionInstanceService.countBy({
               query: {
                 projectId: data.projectId,
-                serviceId: telemetryService.id,
+                serviceId: service.id,
                 time: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
               },
               skip: 0,
@@ -186,7 +185,7 @@ export class Service extends DatabaseService<Model> {
           const count: PositiveNumber = await LogService.countBy({
             query: {
               projectId: data.projectId,
-              serviceId: telemetryService.id,
+              serviceId: service.id,
               time: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
             },
             skip: 0,
@@ -207,7 +206,7 @@ export class Service extends DatabaseService<Model> {
           const count: PositiveNumber = await MetricService.countBy({
             query: {
               projectId: data.projectId,
-              serviceId: telemetryService.id,
+              serviceId: service.id,
               time: AnalyticsQueryHelper.inBetween(startOfDay, endOfDay),
             },
             skip: 0,
@@ -227,7 +226,7 @@ export class Service extends DatabaseService<Model> {
         }
       } catch (error) {
         logger.error(
-          `Failed to compute telemetry usage for service ${telemetryService.id?.toString()}:`,
+          `Failed to compute telemetry usage for service ${service.id?.toString()}:`,
         );
         logger.error(error as Error);
         continue;
@@ -244,13 +243,12 @@ export class Service extends DatabaseService<Model> {
       }
 
       const dataRetentionInDays: number =
-        telemetryService.retainTelemetryDataForDays ||
-        DEFAULT_RETENTION_IN_DAYS;
+        service.retainTelemetryDataForDays || DEFAULT_RETENTION_IN_DAYS;
 
       await this.updateUsageBilling({
         projectId: data.projectId,
         productType: data.productType,
-        telemetryServiceId: telemetryService.id,
+        serviceId: service.id,
         dataIngestedInGB: estimatedGigabytes,
         retentionInDays: dataRetentionInDays,
         usageDate: usageDate,
@@ -262,7 +260,7 @@ export class Service extends DatabaseService<Model> {
   public async updateUsageBilling(data: {
     projectId: ObjectID;
     productType: ProductType;
-    telemetryServiceId: ObjectID;
+    serviceId: ObjectID;
     dataIngestedInGB: number;
     retentionInDays: number;
     usageDate?: Date;
@@ -298,7 +296,7 @@ export class Service extends DatabaseService<Model> {
       query: {
         projectId: data.projectId,
         productType: data.productType,
-        telemetryServiceId: data.telemetryServiceId,
+        serviceId: data.serviceId,
         isReportedToBillingProvider: false,
         day: usageDayString,
       },
@@ -347,7 +345,7 @@ export class Service extends DatabaseService<Model> {
       usageBilling.projectId = data.projectId;
       usageBilling.productType = data.productType;
       usageBilling.dataIngestedInGB = new Decimal(data.dataIngestedInGB);
-      usageBilling.telemetryServiceId = data.telemetryServiceId;
+      usageBilling.serviceId = data.serviceId;
       usageBilling.retainTelemetryDataForDays = data.retentionInDays;
       usageBilling.isReportedToBillingProvider = false;
       usageBilling.createdAt = usageDate;

@@ -27,7 +27,7 @@ import {
   ManyToOne,
 } from "typeorm";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
-import TelemetryService from "./TelemetryService";
+import Service from "./Service";
 
 @EnableDocumentation()
 @TenantColumn("projectId")
@@ -133,20 +133,20 @@ export default class MetricType extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.EntityArray,
-    modelType: TelemetryService,
-    title: "Telemetry Services",
+    modelType: Service,
+    title: "Services",
     description: "List of services this metric is related to",
   })
   @ManyToMany(
     () => {
-      return TelemetryService;
+      return Service;
     },
     { eager: false },
   )
   @JoinTable({
-    name: "MetricTypeTelemetryService",
+    name: "MetricTypeService",
     inverseJoinColumn: {
-      name: "telemetryServiceId",
+      name: "serviceId",
       referencedColumnName: "_id",
     },
     joinColumn: {
@@ -154,7 +154,7 @@ export default class MetricType extends BaseModel {
       referencedColumnName: "_id",
     },
   })
-  public telemetryServices?: Array<TelemetryService> = undefined;
+  public services?: Array<Service> = undefined;
 
   @ColumnAccessControl({
     create: [

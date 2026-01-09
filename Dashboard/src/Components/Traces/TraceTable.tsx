@@ -32,9 +32,9 @@ import Query from "Common/Types/BaseDatabase/Query";
 import SpanUtil from "../../Utils/SpanUtil";
 import TraceElement from "./TraceElement";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import Service from "Common/Models/DatabaseModels/Service";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import TelemetryServiceElement from "../TelemetryService/TelemetryServiceElement";
+import ServiceElement from "../Service/ServiceElement";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
@@ -65,9 +65,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     props.spanQuery || null,
   );
 
-  const [telemetryServices, setTelemetryServices] = React.useState<
-    Array<TelemetryService>
-  >([]);
+  const [telemetryServices, setServices] = React.useState<Array<Service>>([]);
 
   const [areAdvancedFiltersVisible, setAreAdvancedFiltersVisible] =
     useState<boolean>(false);
@@ -143,36 +141,35 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     }
   }, [props.spanQuery]);
 
-  const loadTelemetryServices: PromiseVoidFunction =
-    async (): Promise<void> => {
-      try {
-        setIsPageLoading(true);
-        setPageError("");
+  const loadServices: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      setIsPageLoading(true);
+      setPageError("");
 
-        const telemetryServicesResponse: ListResult<TelemetryService> =
-          await ModelAPI.getList({
-            modelType: TelemetryService,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            select: {
-              serviceColor: true,
-              name: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            sort: {
-              name: SortOrder.Ascending,
-            },
-          });
+      const telemetryServicesResponse: ListResult<Service> =
+        await ModelAPI.getList({
+          modelType: Service,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+          select: {
+            serviceColor: true,
+            name: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
 
-        setTelemetryServices(telemetryServicesResponse.data || []);
-      } catch (err) {
-        setPageError(API.getFriendlyErrorMessage(err as Error));
-      } finally {
-        setIsPageLoading(false);
-      }
-    };
+      setServices(telemetryServicesResponse.data || []);
+    } catch (err) {
+      setPageError(API.getFriendlyErrorMessage(err as Error));
+    } finally {
+      setIsPageLoading(false);
+    }
+  };
 
   const loadAttributes: PromiseVoidFunction = async (): Promise<void> => {
     if (attributesLoading || attributesLoaded) {
@@ -213,7 +210,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    loadTelemetryServices().catch((err: Error) => {
+    loadServices().catch((err: Error) => {
       setPageError(API.getFriendlyErrorMessage(err as Error));
     });
   }, []);
@@ -255,7 +252,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
           <ErrorMessage
             message={`We couldn't load telemetry services. ${pageError}`}
             onRefreshClick={() => {
-              void loadTelemetryServices();
+              void loadServices();
             }}
           />
         </div>
@@ -318,7 +315,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
               },
               type: FieldType.MultiSelectDropdown,
               filterDropdownOptions: telemetryServices.map(
-                (service: TelemetryService) => {
+                (service: Service) => {
                   return {
                     label: service.name!,
                     value: service.id!.toString(),
@@ -425,8 +422,8 @@ const TraceTable: FunctionComponent<ComponentProps> = (
               title: "Service",
               type: FieldType.Element,
               getElement: (span: Span): ReactElement => {
-                const telemetryService: TelemetryService | undefined =
-                  telemetryServices.find((service: TelemetryService) => {
+                const telemetryService: Service | undefined =
+                  telemetryServices.find((service: Service) => {
                     return (
                       service.id?.toString() === span.serviceId?.toString()
                     );
@@ -438,9 +435,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
 
                 return (
                   <Fragment>
-                    <TelemetryServiceElement
-                      telemetryService={telemetryService}
-                    />
+                    <ServiceElement service={telemetryService} />
                   </Fragment>
                 );
               },

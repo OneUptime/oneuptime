@@ -3,11 +3,9 @@ import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
-import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import Color from "../../Types/Color";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
-import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -38,12 +36,6 @@ import {
 @AccessControlColumn("labels")
 @EnableDocumentation()
 @TenantColumn("projectId")
-@TableBillingAccessControl({
-  create: PlanType.Growth,
-  read: PlanType.Growth,
-  update: PlanType.Growth,
-  delete: PlanType.Growth,
-})
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -519,4 +511,38 @@ export default class Service extends BaseModel {
     type: ColumnType.JSON,
   })
   public techStack?: Array<TechStack> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateService,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ProjectMember,
+      Permission.ReadService,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditService,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Retain Telemetry Data For Days",
+    description: "Number of days to retain telemetry data for this service.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    unique: false,
+    default: 15,
+  })
+  public retainTelemetryDataForDays?: number = undefined;
 }
