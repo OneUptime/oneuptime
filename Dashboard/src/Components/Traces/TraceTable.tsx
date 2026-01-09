@@ -65,9 +65,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     props.spanQuery || null,
   );
 
-  const [telemetryServices, setServices] = React.useState<
-    Array<Service>
-  >([]);
+  const [telemetryServices, setServices] = React.useState<Array<Service>>([]);
 
   const [areAdvancedFiltersVisible, setAreAdvancedFiltersVisible] =
     useState<boolean>(false);
@@ -143,36 +141,35 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     }
   }, [props.spanQuery]);
 
-  const loadServices: PromiseVoidFunction =
-    async (): Promise<void> => {
-      try {
-        setIsPageLoading(true);
-        setPageError("");
+  const loadServices: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      setIsPageLoading(true);
+      setPageError("");
 
-        const telemetryServicesResponse: ListResult<Service> =
-          await ModelAPI.getList({
-            modelType: Service,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            select: {
-              serviceColor: true,
-              name: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            sort: {
-              name: SortOrder.Ascending,
-            },
-          });
+      const telemetryServicesResponse: ListResult<Service> =
+        await ModelAPI.getList({
+          modelType: Service,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+          select: {
+            serviceColor: true,
+            name: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
 
-        setServices(telemetryServicesResponse.data || []);
-      } catch (err) {
-        setPageError(API.getFriendlyErrorMessage(err as Error));
-      } finally {
-        setIsPageLoading(false);
-      }
-    };
+      setServices(telemetryServicesResponse.data || []);
+    } catch (err) {
+      setPageError(API.getFriendlyErrorMessage(err as Error));
+    } finally {
+      setIsPageLoading(false);
+    }
+  };
 
   const loadAttributes: PromiseVoidFunction = async (): Promise<void> => {
     if (attributesLoading || attributesLoaded) {
@@ -438,9 +435,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
 
                 return (
                   <Fragment>
-                    <ServiceElement
-                      service={telemetryService}
-                    />
+                    <ServiceElement service={telemetryService} />
                   </Fragment>
                 );
               },

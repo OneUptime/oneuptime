@@ -66,9 +66,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
-  const [telemetryServices, setServices] = useState<
-    Array<Service> | undefined
-  >(undefined);
+  const [telemetryServices, setServices] = useState<Array<Service> | undefined>(
+    undefined,
+  );
 
   // this field is used for most monitor types
   let fields: Array<Field<MonitorStepType>> = [];
@@ -91,53 +91,52 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     lastXSecondsOfLogs: undefined,
   };
 
-  const fetchServices: PromiseVoidFunction =
-    async (): Promise<void> => {
-      let telemetryServiceIds: Array<ObjectID> = [];
+  const fetchServices: PromiseVoidFunction = async (): Promise<void> => {
+    let telemetryServiceIds: Array<ObjectID> = [];
 
-      // if the monitor is a log monitor
-      if (
-        props.monitorStep.data?.logMonitor &&
-        props.monitorType === MonitorType.Logs
-      ) {
-        telemetryServiceIds =
-          props.monitorStep.data?.logMonitor?.telemetryServiceIds || [];
-      }
+    // if the monitor is a log monitor
+    if (
+      props.monitorStep.data?.logMonitor &&
+      props.monitorType === MonitorType.Logs
+    ) {
+      telemetryServiceIds =
+        props.monitorStep.data?.logMonitor?.telemetryServiceIds || [];
+    }
 
-      // if the monitor is a trace monitor
-      if (
-        props.monitorStep.data?.traceMonitor &&
-        props.monitorType === MonitorType.Traces
-      ) {
-        telemetryServiceIds =
-          props.monitorStep.data?.traceMonitor?.telemetryServiceIds || [];
-      }
+    // if the monitor is a trace monitor
+    if (
+      props.monitorStep.data?.traceMonitor &&
+      props.monitorType === MonitorType.Traces
+    ) {
+      telemetryServiceIds =
+        props.monitorStep.data?.traceMonitor?.telemetryServiceIds || [];
+    }
 
-      const telemetryServicesResult: ListResult<Service> =
-        await ModelAPI.getList<Service>({
-          modelType: Service,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-            _id: new Includes(telemetryServiceIds),
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-            serviceColor: true,
-          },
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
+    const telemetryServicesResult: ListResult<Service> =
+      await ModelAPI.getList<Service>({
+        modelType: Service,
+        query: {
+          projectId: ProjectUtil.getCurrentProjectId()!,
+          _id: new Includes(telemetryServiceIds),
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          _id: true,
+          name: true,
+          serviceColor: true,
+        },
+        sort: {
+          name: SortOrder.Ascending,
+        },
+      });
 
-      if (telemetryServicesResult instanceof HTTPErrorResponse) {
-        throw telemetryServicesResult;
-      }
+    if (telemetryServicesResult instanceof HTTPErrorResponse) {
+      throw telemetryServicesResult;
+    }
 
-      setServices(telemetryServicesResult.data);
-    };
+    setServices(telemetryServicesResult.data);
+  };
 
   const loadComponent: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -384,9 +383,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         fieldType: FieldType.Element,
         placeholder: "No telemetry services entered",
         getElement: (): ReactElement => {
-          return (
-            <ServicesElement services={telemetryServices} />
-          );
+          return <ServicesElement services={telemetryServices} />;
         },
       });
     }
@@ -483,9 +480,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         fieldType: FieldType.Element,
         placeholder: "No telemetry services entered",
         getElement: (): ReactElement => {
-          return (
-            <ServicesElement services={telemetryServices} />
-          );
+          return <ServicesElement services={telemetryServices} />;
         },
       });
     }

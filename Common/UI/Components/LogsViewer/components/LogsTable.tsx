@@ -151,8 +151,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
             {props.logs.map((log: Log, index: number) => {
               const rowId: string = resolveLogIdentifier(log, index);
               const serviceId: string = log.serviceId?.toString() || "";
-              const service: Service | undefined =
-                props.serviceMap[serviceId];
+              const service: Service | undefined = props.serviceMap[serviceId];
               const serviceName: string =
                 service?.name || serviceId || "Unknown";
               const serviceColor: string =

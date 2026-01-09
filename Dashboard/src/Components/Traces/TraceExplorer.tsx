@@ -53,9 +53,7 @@ type GetBarTooltipFunction = (data: BarTooltipFunctionProps) => ReactElement;
 const TraceExplorer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [telemetryServices, setServices] = React.useState<
-    Service[]
-  >([]);
+  const [telemetryServices, setServices] = React.useState<Service[]>([]);
 
   const [selectedSpans, setSelectedSpans] = React.useState<string[]>([]);
 
@@ -433,10 +431,11 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       return [];
     }
 
-    const telemetryService: Service | undefined =
-      telemetryServices.find((service: Service) => {
+    const telemetryService: Service | undefined = telemetryServices.find(
+      (service: Service) => {
         return service._id?.toString() === rootSpan.serviceId?.toString();
-      });
+      },
+    );
 
     const rootRow: GanttChartRow = {
       rowInfo: {
@@ -810,10 +809,11 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
      */
     if (allRows.length === 1 && displaySpans.length > 10) {
       allRows = displaySpans.map((span: Span) => {
-        const telemetryService: Service | undefined =
-          telemetryServices.find((service: Service) => {
+        const telemetryService: Service | undefined = telemetryServices.find(
+          (service: Service) => {
             return service._id?.toString() === span.serviceId?.toString();
-          });
+          },
+        );
         return {
           rowInfo: {
             id: ObjectID.generate().toString(),

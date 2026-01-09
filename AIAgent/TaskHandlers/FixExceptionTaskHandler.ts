@@ -74,25 +74,17 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
         await context.backendAPI.getExceptionDetails(metadata.exceptionId);
 
       if (!exceptionDetails.service) {
-        await this.log(
-          context,
-          "No service linked to this exception",
-          "error",
-        );
-        return this.createFailureResult(
-          "No service linked to this exception",
-          { isError: true },
-        );
+        await this.log(context, "No service linked to this exception", "error");
+        return this.createFailureResult("No service linked to this exception", {
+          isError: true,
+        });
       }
 
       await this.log(
         context,
         `Exception: ${exceptionDetails.exception.message.substring(0, 100)}...`,
       );
-      await this.log(
-        context,
-        `Service: ${exceptionDetails.service.name}`,
-      );
+      await this.log(context, `Service: ${exceptionDetails.service.name}`);
 
       // Step 3: Get linked code repositories
       await this.log(context, "Finding linked code repositories...");

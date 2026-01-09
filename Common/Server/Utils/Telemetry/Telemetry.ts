@@ -46,10 +46,11 @@ export default class TelemetryUtil {
           metricType.services = [];
         }
 
-        const serviceIds: Array<ObjectID> =
-          metricType.services!.map((service: Service) => {
+        const serviceIds: Array<ObjectID> = metricType.services!.map(
+          (service: Service) => {
             return service.id!;
-          });
+          },
+        );
 
         let isSame: boolean = true;
 

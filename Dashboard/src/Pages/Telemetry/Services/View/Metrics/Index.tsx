@@ -20,8 +20,7 @@ const MetricsTablePage: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [service, setService] =
-    useState<Service | null>(null);
+  const [service, setService] = useState<Service | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
@@ -31,33 +30,31 @@ const MetricsTablePage: FunctionComponent<
     });
   }, []);
 
-  const fetchService: PromiseVoidFunction =
-    async (): Promise<void> => {
-      try {
-        setIsLoading(true);
+  const fetchService: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      setIsLoading(true);
 
-        const service: Service | null =
-          await ModelAPI.getItem({
-            modelType: Service,
-            id: modelId,
-            select: {
-              name: true,
-            },
-          });
+      const service: Service | null = await ModelAPI.getItem({
+        modelType: Service,
+        id: modelId,
+        select: {
+          name: true,
+        },
+      });
 
-        if (!service) {
-          setIsLoading(false);
-          setError("Service not found.");
-          return;
-        }
-
-        setService(service);
+      if (!service) {
         setIsLoading(false);
-      } catch (err) {
-        setIsLoading(false);
-        setError(API.getFriendlyMessage(err));
+        setError("Service not found.");
+        return;
       }
-    };
+
+      setService(service);
+      setIsLoading(false);
+    } catch (err) {
+      setIsLoading(false);
+      setError(API.getFriendlyMessage(err));
+    }
+  };
 
   if (error) {
     return <ErrorMessage message={error} />;

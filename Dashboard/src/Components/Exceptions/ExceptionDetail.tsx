@@ -103,9 +103,7 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
       description: "The service that this exception was received from.",
       fieldType: FieldType.Element,
       getElement: () => {
-        return (
-          <ServiceElement service={props.telemetryService!} />
-        );
+        return <ServiceElement service={props.telemetryService!} />;
       },
     });
   }

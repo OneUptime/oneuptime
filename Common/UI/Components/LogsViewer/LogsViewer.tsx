@@ -99,9 +99,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
   const [pageError, setPageError] = useState<string>("");
 
-  const [serviceMap, setServiceMap] = useState<Dictionary<Service>>(
-    {},
-  );
+  const [serviceMap, setServiceMap] = useState<Dictionary<Service>>({});
 
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
 
@@ -243,20 +241,19 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         setIsPageLoading(true);
         setPageError("");
 
-        const telemetryServices: ListResult<Service> =
-          await ModelAPI.getList({
-            modelType: Service,
-            query: {},
-            select: {
-              name: true,
-              serviceColor: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            sort: {
-              name: SortOrder.Ascending,
-            },
-          });
+        const telemetryServices: ListResult<Service> = await ModelAPI.getList({
+          modelType: Service,
+          query: {},
+          select: {
+            name: true,
+            serviceColor: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
         const services: Dictionary<Service> = {};
 
         telemetryServices.data.forEach((service: Service) => {

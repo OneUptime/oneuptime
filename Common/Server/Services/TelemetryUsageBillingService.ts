@@ -97,21 +97,20 @@ export class Service extends DatabaseService<Model> {
     const startOfDay: Date = OneUptimeDate.getStartOfDay(usageDate);
     const endOfDay: Date = OneUptimeDate.getEndOfDay(usageDate);
 
-    const services: Array<ServiceModel> =
-      await ServiceService.findBy({
-        query: {
-          projectId: data.projectId,
-        },
-        select: {
-          _id: true,
-          retainTelemetryDataForDays: true,
-        },
-        skip: 0,
-        limit: LIMIT_MAX,
-        props: {
-          isRoot: true,
-        },
-      });
+    const services: Array<ServiceModel> = await ServiceService.findBy({
+      query: {
+        projectId: data.projectId,
+      },
+      select: {
+        _id: true,
+        retainTelemetryDataForDays: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+      },
+    });
 
     if (!services || services.length === 0) {
       return;
@@ -244,8 +243,7 @@ export class Service extends DatabaseService<Model> {
       }
 
       const dataRetentionInDays: number =
-        service.retainTelemetryDataForDays ||
-        DEFAULT_RETENTION_IN_DAYS;
+        service.retainTelemetryDataForDays || DEFAULT_RETENTION_IN_DAYS;
 
       await this.updateUsageBilling({
         projectId: data.projectId,

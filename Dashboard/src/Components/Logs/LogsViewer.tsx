@@ -86,12 +86,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     setFilterOptions(refreshQuery());
     setPage(1);
-  }, [
-    props.serviceIds,
-    props.traceIds,
-    props.spanIds,
-    props.logQuery,
-  ]);
+  }, [props.serviceIds, props.traceIds, props.spanIds, props.logQuery]);
 
   const select: Select<Log> = React.useMemo(() => {
     return {

@@ -22,8 +22,7 @@ export interface ComponentProps {
 const MetricsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const serviceFilterIds: Array<ObjectID> =
-    props.serviceIds || [];
+  const serviceFilterIds: Array<ObjectID> = props.serviceIds || [];
 
   return (
     <Fragment>
@@ -60,11 +59,9 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
           const metricAttributes: Record<string, string> = {};
 
           if (serviceFilterIds.length === 1) {
-            const serviceId: ObjectID | undefined =
-              serviceFilterIds[0];
+            const serviceId: ObjectID | undefined = serviceFilterIds[0];
 
-            const serviceIdString: string | undefined =
-              serviceId?.toString();
+            const serviceIdString: string | undefined = serviceId?.toString();
 
             if (serviceIdString) {
               metricAttributes["oneuptime.service.id"] = serviceIdString;
@@ -163,11 +160,7 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
             title: "Services",
             type: FieldType.Element,
             getElement: (item: MetricType): ReactElement => {
-              return (
-                <ServicesElement
-                  services={item.services || []}
-                />
-              );
+              return <ServicesElement services={item.services || []} />;
             },
           },
         ]}

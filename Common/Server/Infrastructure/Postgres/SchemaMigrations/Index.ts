@@ -435,5 +435,5 @@ export default [
   MigrationName1767009661768,
   RenameServiceCatalogToService1767966850199,
   MigrationName1767979055522,
-  MigrationName1767979448478
+  MigrationName1767979448478,
 ];

@@ -100,9 +100,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     setShowSyntheticMonitorAdvancedOptions,
   ] = useState<boolean>(false);
 
-  const [telemetryServices, setServices] = useState<
-    Array<Service>
-  >([]);
+  const [telemetryServices, setServices] = useState<Array<Service>>([]);
   const [attributeKeys, setAttributeKeys] = useState<Array<string>>([]);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -151,31 +149,30 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const fetchServices: PromiseVoidFunction =
-    async (): Promise<void> => {
-      const telemetryServicesResult: ListResult<Service> =
-        await ModelAPI.getList<Service>({
-          modelType: Service,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-          },
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
+  const fetchServices: PromiseVoidFunction = async (): Promise<void> => {
+    const telemetryServicesResult: ListResult<Service> =
+      await ModelAPI.getList<Service>({
+        modelType: Service,
+        query: {
+          projectId: ProjectUtil.getCurrentProjectId()!,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          _id: true,
+          name: true,
+        },
+        sort: {
+          name: SortOrder.Ascending,
+        },
+      });
 
-      if (telemetryServicesResult instanceof HTTPErrorResponse) {
-        throw telemetryServicesResult;
-      }
+    if (telemetryServicesResult instanceof HTTPErrorResponse) {
+      throw telemetryServicesResult;
+    }
 
-      setServices(telemetryServicesResult.data);
-    };
+    setServices(telemetryServicesResult.data);
+  };
 
   const fetchServicesAndAttributes: PromiseVoidFunction =
     async (): Promise<void> => {

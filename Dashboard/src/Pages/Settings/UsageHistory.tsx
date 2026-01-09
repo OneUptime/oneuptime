@@ -117,13 +117,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             title: "Service",
             type: FieldType.Element,
             getElement: (item: TelemetryUsageBilling) => {
-              return (
-                <ServiceElement
-                  service={
-                    item["service"] as Service
-                  }
-                />
-              );
+              return <ServiceElement service={item["service"] as Service} />;
             },
           },
           {
