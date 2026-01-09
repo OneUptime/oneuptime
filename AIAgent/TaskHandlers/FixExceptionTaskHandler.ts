@@ -33,7 +33,7 @@ import {
 // Metadata structure for Fix Exception tasks
 export interface FixExceptionMetadata extends TaskMetadata {
   exceptionId: string;
-  telemetryServiceId?: string;
+  serviceId?: string;
   stackTrace?: string;
   errorMessage?: string;
 }

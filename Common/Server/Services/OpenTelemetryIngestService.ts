@@ -78,8 +78,8 @@ export default class OTelIngestService {
     datapoint: JSONObject;
     aggregationTemporality: OtelAggregationTemporality;
     isMonotonic: boolean | undefined;
-    telemetryServiceId: ObjectID;
-    telemetryServiceName: string;
+    serviceId: ObjectID;
+    serviceName: string;
   }): Metric {
     const { dbMetric, datapoint, aggregationTemporality, isMonotonic } = data;
 
@@ -162,8 +162,8 @@ export default class OTelIngestService {
 
       newDbMetric.attributes = {
         ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-          serviceId: data.telemetryServiceId,
-          serviceName: data.telemetryServiceName,
+          serviceId: data.serviceId,
+          serviceName: data.serviceName,
         }),
         ...TelemetryUtil.getAttributes({
           items: (datapoint["attributes"] as JSONArray) || [],
