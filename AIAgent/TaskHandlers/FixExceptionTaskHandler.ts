@@ -73,14 +73,14 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
       const exceptionDetails: ExceptionDetails =
         await context.backendAPI.getExceptionDetails(metadata.exceptionId);
 
-      if (!exceptionDetails.telemetryService) {
+      if (!exceptionDetails.service) {
         await this.log(
           context,
-          "No telemetry service linked to this exception",
+          "No service linked to this exception",
           "error",
         );
         return this.createFailureResult(
-          "No telemetry service linked to this exception",
+          "No service linked to this exception",
           { isError: true },
         );
       }
@@ -91,14 +91,14 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
       );
       await this.log(
         context,
-        `Service: ${exceptionDetails.telemetryService.name}`,
+        `Service: ${exceptionDetails.service.name}`,
       );
 
       // Step 3: Get linked code repositories
       await this.log(context, "Finding linked code repositories...");
       const repositories: Array<CodeRepositoryInfo> =
         await context.backendAPI.getCodeRepositories(
-          exceptionDetails.telemetryService.id,
+          exceptionDetails.service.id,
         );
 
       if (repositories.length === 0) {
@@ -351,7 +351,7 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
       exceptionMessage: exceptionDetails.exception.message,
       exceptionType: exceptionDetails.exception.exceptionType,
       stackTrace: exceptionDetails.exception.stackTrace,
-      serviceName: exceptionDetails.telemetryService?.name || "Unknown Service",
+      serviceName: exceptionDetails.service?.name || "Unknown Service",
       summary: agentResult.summary,
     });
 
