@@ -24,22 +24,43 @@ const NavBarMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   // If sections are provided, render categorized menu
   if (props.sections && props.sections.length > 0) {
+    // Separate Settings section from other sections
+    const mainSections: MenuSection[] = props.sections.filter(
+      (section: MenuSection) => section.title !== "Settings",
+    );
+    const settingsSection: MenuSection | undefined = props.sections.find(
+      (section: MenuSection) => section.title === "Settings",
+    );
+
     return (
-      <div className="absolute left-1/2 z-10 mt-8 w-screen max-w-4xl -translate-x-1/2 transform px-2 sm:px-0">
+      <div className="absolute left-1/2 z-10 mt-8 w-screen max-w-5xl -translate-x-1/2 transform px-2 sm:px-0">
         <div className="overflow-hidden rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5 bg-white">
           {/* Sections */}
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {props.sections.map((section: MenuSection, index: number) => {
-                return (
-                  <div key={index} className="space-y-3">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 px-2.5">
-                      {section.title}
-                    </h3>
-                    <div className="space-y-1">{section.items}</div>
-                  </div>
-                );
-              })}
+            <div className="flex gap-6">
+              {/* Main sections grid */}
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
+                {mainSections.map((section: MenuSection, index: number) => {
+                  return (
+                    <div key={index} className="space-y-3">
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 px-2.5 text-left">
+                        {section.title}
+                      </h3>
+                      <div className="space-y-1">{section.items}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Settings section on the side */}
+              {settingsSection && (
+                <div className="border-l border-gray-100 pl-6 space-y-3 min-w-[200px]">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 px-2.5 text-left">
+                    {settingsSection.title}
+                  </h3>
+                  <div className="space-y-1">{settingsSection.items}</div>
+                </div>
+              )}
             </div>
           </div>
 
