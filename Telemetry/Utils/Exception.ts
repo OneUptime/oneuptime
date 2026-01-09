@@ -240,7 +240,7 @@ export default class ExceptionUtil {
         query: {
           fingerprint: fingerprint,
           projectId: exception.projectId,
-          telemetryServiceId: exception.serviceId,
+          serviceId: exception.serviceId,
         },
         select: {
           _id: true,
@@ -275,7 +275,7 @@ export default class ExceptionUtil {
       const newExceptionStatus: TelemetryException = new TelemetryException();
       newExceptionStatus.fingerprint = exception.fingerprint;
       newExceptionStatus.projectId = exception.projectId;
-      newExceptionStatus.telemetryServiceId = exception.serviceId;
+      newExceptionStatus.serviceId = exception.serviceId;
       newExceptionStatus.lastSeenAt = OneUptimeDate.now();
       newExceptionStatus.firstSeenAt = OneUptimeDate.now();
       newExceptionStatus.occuranceCount = 1;
