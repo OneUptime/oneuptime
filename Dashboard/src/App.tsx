@@ -63,10 +63,20 @@ const OngoingScheduledEvents: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Pages/Home/OngoingScheduledMaintenance");
 });
-const TelemetryRoutes: React.LazyExoticComponent<
+const LogsRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
-  return import("./Routes/TelemetryRoutes");
+  return import("./Routes/LogsRoutes");
+});
+const MetricsRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/MetricsRoutes");
+});
+const TracesRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/TracesRoutes");
 });
 const MonitorsRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
@@ -427,10 +437,22 @@ const App: () => JSX.Element = () => {
               />
             }
           />
-          {/* Telemetry */}
+          {/* Logs */}
           <PageRoute
-            path={RouteMap[PageMap.TELEMETRY_ROOT]?.toString() || ""}
-            element={<TelemetryRoutes {...commonPageProps} />}
+            path={RouteMap[PageMap.LOGS_ROOT]?.toString() || ""}
+            element={<LogsRoutes {...commonPageProps} />}
+          />
+
+          {/* Metrics */}
+          <PageRoute
+            path={RouteMap[PageMap.METRICS_ROOT]?.toString() || ""}
+            element={<MetricsRoutes {...commonPageProps} />}
+          />
+
+          {/* Traces */}
+          <PageRoute
+            path={RouteMap[PageMap.TRACES_ROOT]?.toString() || ""}
+            element={<TracesRoutes {...commonPageProps} />}
           />
 
           {/* Monitors */}

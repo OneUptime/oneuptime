@@ -192,7 +192,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
           }
 
           return RouteUtil.populateRouteParams(
-            RouteMap[PageMap.TELEMETRY_TRACE_VIEW]!,
+            RouteMap[PageMap.TRACE_VIEW]!,
             {
               modelId: traceId,
             },
@@ -206,7 +206,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
           }
 
           const route: Route = RouteUtil.populateRouteParams(
-            RouteMap[PageMap.TELEMETRY_TRACE_VIEW]!,
+            RouteMap[PageMap.TRACE_VIEW]!,
             {
               modelId: traceId,
             },

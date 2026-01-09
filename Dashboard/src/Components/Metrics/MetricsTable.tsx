@@ -46,7 +46,7 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
         }}
         onViewPage={async (item: MetricType) => {
           const route: Route = RouteUtil.populateRouteParams(
-            RouteMap[PageMap.TELEMETRY_METRIC_VIEW]!,
+            RouteMap[PageMap.METRIC_VIEW]!,
           );
 
           const currentUrl: URL = Navigation.getCurrentURL();

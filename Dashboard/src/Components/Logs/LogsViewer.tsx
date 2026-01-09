@@ -318,7 +318,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           }
 
           return RouteUtil.populateRouteParams(
-            RouteMap[PageMap.TELEMETRY_TRACE_VIEW]!,
+            RouteMap[PageMap.TRACE_VIEW]!,
             {
               modelId: traceId,
             },
@@ -332,7 +332,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           }
 
           const route: Route = RouteUtil.populateRouteParams(
-            RouteMap[PageMap.TELEMETRY_TRACE_VIEW]!,
+            RouteMap[PageMap.TRACE_VIEW]!,
             {
               modelId: traceId,
             },

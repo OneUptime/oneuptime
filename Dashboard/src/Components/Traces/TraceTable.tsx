@@ -229,12 +229,12 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     SpanUtil.getSpanKindDropdownOptions();
 
   let viewRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.TELEMETRY_TRACE_ROOT]!,
+    RouteMap[PageMap.TRACE_VIEW]!,
   );
 
   if (modelId) {
     viewRoute = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.TELEMETRY_SERVICES_VIEW_TRACES]!,
+      RouteMap[PageMap.SERVICE_VIEW_TRACES]!,
       {
         modelId: modelId,
       },
