@@ -64,9 +64,7 @@ const ServiceTelemetryServices: FunctionComponent<
 
         const telemetryServiceIds: ObjectID[] =
           serviceTelemetryServices.data.map(
-            (
-              serviceTelemetryService: ServiceTelemetryService,
-            ) => {
+            (serviceTelemetryService: ServiceTelemetryService) => {
               return serviceTelemetryService.telemetryServiceId!;
             },
           );

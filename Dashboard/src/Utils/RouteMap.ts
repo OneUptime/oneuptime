@@ -864,9 +864,7 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/service/*`,
   ),
 
-  [PageMap.SERVICES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service`,
-  ),
+  [PageMap.SERVICES]: new Route(`/dashboard/${RouteParams.ProjectID}/service`),
 
   // Root-level Service pages
   [PageMap.SERVICE_DEPENDENCY_GRAPH]: new Route(

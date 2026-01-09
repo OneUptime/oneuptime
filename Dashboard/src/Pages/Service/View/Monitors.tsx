@@ -204,8 +204,7 @@ const ServiceMonitors: FunctionComponent<
           }}
           onBeforeCreate={(serviceMonitor: ServiceMonitor) => {
             serviceMonitor.serviceId = modelId;
-            serviceMonitor.projectId =
-              ProjectUtil.getCurrentProjectId()!;
+            serviceMonitor.projectId = ProjectUtil.getCurrentProjectId()!;
             return Promise.resolve(serviceMonitor);
           }}
           formProps={{

@@ -3,14 +3,9 @@ import { BuildBreadcrumbLinksByTitles } from "./Helper";
 import Dictionary from "Common/Types/Dictionary";
 import Link from "Common/Types/Link";
 
-export function getServiceBreadcrumbs(
-  path: string,
-): Array<Link> | undefined {
+export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
-    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICES, [
-      "Project",
-      "Services",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICES, ["Project", "Services"]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_DEPENDENCY_GRAPH, [
       "Project",
       "Services",
@@ -81,14 +76,18 @@ export function getServiceBreadcrumbs(
       "View Service",
       "Metrics",
     ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.SERVICE_VIEW_TELEMETRY_SERVICES,
-      ["Project", "Services", "View Service", "Telemetry"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.SERVICE_VIEW_CODE_REPOSITORIES,
-      ["Project", "Services", "View Service", "Code Repositories"],
-    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_TELEMETRY_SERVICES, [
+      "Project",
+      "Services",
+      "View Service",
+      "Telemetry",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_CODE_REPOSITORIES, [
+      "Project",
+      "Services",
+      "View Service",
+      "Code Repositories",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

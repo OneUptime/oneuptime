@@ -165,8 +165,7 @@ export default class ServiceCodeRepository extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Service,
     title: "Service",
-    description:
-      "Relation to Service Resource in which this object belongs",
+    description: "Relation to Service Resource in which this object belongs",
     example: "f6a7b8c9-d0e1-2345-fa67-bc89de012345",
   })
   @ManyToOne(
@@ -204,8 +203,7 @@ export default class ServiceCodeRepository extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Service ID",
-    description:
-      "ID of your OneUptime Service in which this object belongs",
+    description: "ID of your OneUptime Service in which this object belongs",
     example: "f6a7b8c9-d0e1-2345-fa67-bc89de012345",
   })
   @Column({

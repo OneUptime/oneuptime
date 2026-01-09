@@ -37,9 +37,7 @@ const ServiceOwners: FunctionComponent<
           serviceId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
-        onBeforeCreate={(
-          item: ServiceOwnerTeam,
-        ): Promise<ServiceOwnerTeam> => {
+        onBeforeCreate={(item: ServiceOwnerTeam): Promise<ServiceOwnerTeam> => {
           item.serviceId = modelId;
           item.projectId = ProjectUtil.getCurrentProjectId()!;
           return Promise.resolve(item);
@@ -135,9 +133,7 @@ const ServiceOwners: FunctionComponent<
           serviceId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
-        onBeforeCreate={(
-          item: ServiceOwnerUser,
-        ): Promise<ServiceOwnerUser> => {
+        onBeforeCreate={(item: ServiceOwnerUser): Promise<ServiceOwnerUser> => {
           item.serviceId = modelId;
           item.projectId = ProjectUtil.getCurrentProjectId()!;
           return Promise.resolve(item);

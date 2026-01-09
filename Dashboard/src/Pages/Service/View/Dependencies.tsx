@@ -96,11 +96,7 @@ const ServiceDependencies: FunctionComponent<
                 throw new BadDataException("Dependency not found");
               }
 
-              return (
-                <ServiceElement
-                  service={item["dependencyService"]}
-                />
-              );
+              return <ServiceElement service={item["dependencyService"]} />;
             },
           },
         ]}

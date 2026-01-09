@@ -11,19 +11,18 @@ export default class MigrateServiceLanguageToTechStack extends DataMigrationBase
 
   public override async migrate(): Promise<void> {
     // get all the services with serviceLanguage to migrate to techStack.
-    const services: Array<Service> =
-      await ServiceService.findBy({
-        query: {},
-        select: {
-          _id: true,
-          serviceLanguage: true,
-        },
-        skip: 0,
-        limit: LIMIT_MAX,
-        props: {
-          isRoot: true,
-        },
-      });
+    const services: Array<Service> = await ServiceService.findBy({
+      query: {},
+      select: {
+        _id: true,
+        serviceLanguage: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+      },
+    });
 
     for (const service of services) {
       const techStack: Array<TechStack> = [];

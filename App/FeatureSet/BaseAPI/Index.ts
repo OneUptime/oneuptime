@@ -987,10 +987,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
+      new BaseAPI<ServiceDependency, ServiceDependencyServiceType>(
         ServiceDependency,
-        ServiceDependencyServiceType
-      >(ServiceDependency, ServiceDependencyService).getRouter(),
+        ServiceDependencyService,
+      ).getRouter(),
     );
 
     app.use(
@@ -1014,10 +1014,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        ServiceTelemetryService,
-        ServiceTelemetryServiceServiceType
-      >(
+      new BaseAPI<ServiceTelemetryService, ServiceTelemetryServiceServiceType>(
         ServiceTelemetryService,
         ServiceTelemetryServiceService,
       ).getRouter(),
@@ -1025,10 +1022,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        ServiceCodeRepository,
-        ServiceCodeRepositoryServiceType
-      >(
+      new BaseAPI<ServiceCodeRepository, ServiceCodeRepositoryServiceType>(
         ServiceCodeRepository,
         ServiceCodeRepositoryService,
       ).getRouter(),

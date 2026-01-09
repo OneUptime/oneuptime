@@ -169,8 +169,7 @@ export default class ServiceDependency extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Service,
     title: "Service",
-    description:
-      "Relation to Service Resource in which this object belongs",
+    description: "Relation to Service Resource in which this object belongs",
     example: "f6a7b8c9-d0e1-2345-fa67-bc89de012345",
   })
   @ManyToOne(
@@ -209,8 +208,7 @@ export default class ServiceDependency extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Service ID",
-    description:
-      "ID of your OneUptime Service in which this object belongs",
+    description: "ID of your OneUptime Service in which this object belongs",
     example: "f6a7b8c9-d0e1-2345-fa67-bc89de012345",
   })
   @Column({
@@ -241,8 +239,7 @@ export default class ServiceDependency extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Service,
     title: "Dependency Service",
-    description:
-      "Relation to Service Resource in which this object belongs",
+    description: "Relation to Service Resource in which this object belongs",
     example: "a7b8c9d0-e1f2-3456-ab78-cd90ef123456",
   })
   @ManyToOne(
@@ -281,8 +278,7 @@ export default class ServiceDependency extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Dependency Service ID",
-    description:
-      "ID of your OneUptime Service in which this object belongs",
+    description: "ID of your OneUptime Service in which this object belongs",
     example: "a7b8c9d0-e1f2-3456-ab78-cd90ef123456",
   })
   @Column({

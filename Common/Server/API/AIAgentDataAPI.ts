@@ -281,14 +281,13 @@ export default class AIAgentDataAPI {
           }
 
           // Extract service IDs
-          const serviceIds: Array<ObjectID> =
-            serviceTelemetryServices
-              .filter((s: ServiceTelemetryService) => {
-                return s.serviceId;
-              })
-              .map((s: ServiceTelemetryService) => {
-                return s.serviceId as ObjectID;
-              });
+          const serviceIds: Array<ObjectID> = serviceTelemetryServices
+            .filter((s: ServiceTelemetryService) => {
+              return s.serviceId;
+            })
+            .map((s: ServiceTelemetryService) => {
+              return s.serviceId as ObjectID;
+            });
 
           // Step 2: Find CodeRepositories linked to these Services
           const repositories: Array<{

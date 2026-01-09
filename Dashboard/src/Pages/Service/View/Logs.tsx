@@ -18,9 +18,7 @@ import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 
-const ServiceLogs: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const ServiceLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [telemetryServiceIds, setTelemetryServiceIds] =

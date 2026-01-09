@@ -104,9 +104,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     {
       title: "Services",
       description: "Manage services and dependencies.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SERVICES] as Route,
-      ),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICES] as Route),
       icon: IconProp.SquareStack,
       iconColor: "blue",
     },

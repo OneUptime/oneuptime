@@ -3492,24 +3492,21 @@ export class PermissionHelper {
       {
         permission: Permission.DeleteService,
         title: "Delete Service",
-        description:
-          "This permission can delete Service of this project.",
+        description: "This permission can delete Service of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
       },
       {
         permission: Permission.EditService,
         title: "Edit Service",
-        description:
-          "This permission can edit Service of this project.",
+        description: "This permission can edit Service of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
       },
       {
         permission: Permission.ReadService,
         title: "Read Service",
-        description:
-          "This permission can read Service of this project.",
+        description: "This permission can read Service of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
       },

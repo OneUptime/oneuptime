@@ -32,12 +32,9 @@ export class Service extends DatabaseService<Model> {
     const serviceId: string | ObjectID | undefined =
       createBy.data.serviceId || createBy.data.service?._id;
     const dependencyServiceId: string | ObjectID | undefined =
-      createBy.data.dependencyServiceId ||
-      createBy.data.dependencyService?._id;
+      createBy.data.dependencyServiceId || createBy.data.dependencyService?._id;
 
-    if (
-      serviceId?.toString() === dependencyServiceId?.toString()
-    ) {
+    if (serviceId?.toString() === dependencyServiceId?.toString()) {
       throw new BadDataException("Service cannot depend on itself.");
     }
 

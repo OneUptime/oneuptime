@@ -20,9 +20,9 @@ const ServiceDependencyGraphPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const [services, setServices] = useState<Array<Service>>([]);
-  const [dependencies, setDependencies] = useState<
-    Array<ServiceDependency>
-  >([]);
+  const [dependencies, setDependencies] = useState<Array<ServiceDependency>>(
+    [],
+  );
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 

@@ -68,9 +68,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Telemetry Services",
             to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.SERVICE_VIEW_TELEMETRY_SERVICES
-              ] as Route,
+              RouteMap[PageMap.SERVICE_VIEW_TELEMETRY_SERVICES] as Route,
               { modelId: props.modelId },
             ),
           }}

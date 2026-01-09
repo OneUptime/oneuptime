@@ -12,9 +12,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import TechStackView from "../../../Components/TechStack/TechStackView";
 
-const ServiceView: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (

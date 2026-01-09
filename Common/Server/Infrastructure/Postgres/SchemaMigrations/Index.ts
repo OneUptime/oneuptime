@@ -431,5 +431,5 @@ export default [
   MigrationName1766923324521,
   AddGitHubAppInstallationIdToProject1766958924188,
   MigrationName1767009661768,
-  RenameServiceCatalogToService1767966850199
+  RenameServiceCatalogToService1767966850199,
 ];
