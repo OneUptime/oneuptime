@@ -15,12 +15,9 @@ const TraceElement: FunctionComponent<ComponentProps> = (
       {props.traceId ? (
         <div className={`hover:underline`}>
           <AppLink
-            to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TELEMETRY_TRACE_VIEW]!,
-              {
-                modelId: props.traceId,
-              },
-            )}
+            to={RouteUtil.populateRouteParams(RouteMap[PageMap.TRACE_VIEW]!, {
+              modelId: props.traceId,
+            })}
           >
             <p>{props.traceId}</p>
           </AppLink>

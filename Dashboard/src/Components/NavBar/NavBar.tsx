@@ -98,14 +98,30 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     },
     // Observability
     {
-      title: "Telemetry",
-      description: "Logs, metrics, and traces.",
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.TELEMETRY] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.TELEMETRY],
-      icon: IconProp.Cube,
+      title: "Logs",
+      description: "Search and analyze logs.",
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
+      activeRoute: RouteMap[PageMap.LOGS],
+      icon: IconProp.Logs,
       iconColor: "purple",
+      category: "Observability",
+    },
+    {
+      title: "Metrics",
+      description: "Monitor system metrics.",
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
+      activeRoute: RouteMap[PageMap.METRICS],
+      icon: IconProp.ChartBar,
+      iconColor: "green",
+      category: "Observability",
+    },
+    {
+      title: "Traces",
+      description: "Distributed tracing analysis.",
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
+      activeRoute: RouteMap[PageMap.TRACES],
+      icon: IconProp.RectangleStack,
+      iconColor: "blue",
       category: "Observability",
     },
     {

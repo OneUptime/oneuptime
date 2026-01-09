@@ -40,7 +40,7 @@ const TelemetryServiceElement: FunctionComponent<ComponentProps> = (
         onNavigateComplete={props.onNavigateComplete}
         className="hover:underline"
         to={RouteUtil.populateRouteParams(
-          RouteMap[PageMap.TELEMETRY_SERVICES_VIEW] as Route,
+          RouteMap[PageMap.SERVICE_VIEW] as Route,
           {
             modelId: new ObjectID(props.telemetryService._id as string),
           },

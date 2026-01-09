@@ -1,9 +1,9 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
-import TelemetryServiceTable from "../../Components/TelemetryService/TelemetryServiceTable";
+import TraceTable from "../../Components/Traces/TraceTable";
 
-const Services: FunctionComponent<PageComponentProps> = (
+const TracesPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const disableTelemetryForThisProject: boolean =
@@ -15,7 +15,7 @@ const Services: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <TelemetryServiceTable />;
+  return <TraceTable />;
 };
 
-export default Services;
+export default TracesPage;

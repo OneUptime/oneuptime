@@ -1,9 +1,11 @@
-import PageComponentProps from "../../../PageComponentProps";
+import PageComponentProps from "../../PageComponentProps";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
-import TraceExplorer from "../../../../Components/Traces/TraceExplorer";
+import TraceExplorer from "../../../Components/Traces/TraceExplorer";
 
-const TraceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const TraceViewPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const traceId: string = Navigation.getLastParamAsString(0);
   const spanIdQuery: string | null = Navigation.getQueryStringByName("spanId");
 
@@ -23,4 +25,4 @@ const TraceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   );
 };
 
-export default TraceView;
+export default TraceViewPage;

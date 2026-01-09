@@ -1,9 +1,9 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
-import DashboardLogsViewer from "../../Components/Logs/LogsViewer";
+import MetricsTable from "../../Components/Metrics/MetricsTable";
 
-const Services: FunctionComponent<PageComponentProps> = (
+const MetricsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const disableTelemetryForThisProject: boolean =
@@ -15,15 +15,7 @@ const Services: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return (
-    <DashboardLogsViewer
-      showFilters={true}
-      serviceIds={[]}
-      limit={100} // Limit the number of logs to 100 by default
-      enableRealtime={true}
-      id="logs"
-    />
-  );
+  return <MetricsTable />;
 };
 
-export default Services;
+export default MetricsPage;

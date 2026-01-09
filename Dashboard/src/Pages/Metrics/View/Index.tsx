@@ -1,8 +1,8 @@
-import MetricExplorer from "../../../../Components/Metrics/MetricExplorer";
-import PageComponentProps from "../../../PageComponentProps";
+import MetricExplorer from "../../../Components/Metrics/MetricExplorer";
+import PageComponentProps from "../../PageComponentProps";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const TelemetryMetricViewPage: FunctionComponent<
+const MetricViewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   return (
@@ -14,4 +14,4 @@ const TelemetryMetricViewPage: FunctionComponent<
   );
 };
 
-export default TelemetryMetricViewPage;
+export default MetricViewPage;

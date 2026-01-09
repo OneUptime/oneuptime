@@ -1,9 +1,9 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
-import ComingSoon from "Common/UI/Components/ComingSoon/ComingSoon";
+import DashboardLogsViewer from "../../Components/Logs/LogsViewer";
 
-const Services: FunctionComponent<PageComponentProps> = (
+const LogsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const disableTelemetryForThisProject: boolean =
@@ -15,7 +15,15 @@ const Services: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <ComingSoon />;
+  return (
+    <DashboardLogsViewer
+      showFilters={true}
+      serviceIds={[]}
+      limit={100}
+      enableRealtime={true}
+      id="logs"
+    />
+  );
 };
 
-export default Services;
+export default LogsPage;
