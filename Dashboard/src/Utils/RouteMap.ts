@@ -1367,9 +1367,7 @@ const RouteMap: Dictionary<Route> = {
   ),
 
   // Logs Product Routes
-  [PageMap.LOGS_ROOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/logs/*`,
-  ),
+  [PageMap.LOGS_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/logs/*`),
 
   [PageMap.LOGS]: new Route(`/dashboard/${RouteParams.ProjectID}/logs`),
 

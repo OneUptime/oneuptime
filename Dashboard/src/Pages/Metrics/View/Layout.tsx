@@ -11,7 +11,10 @@ const MetricsViewLayout: FunctionComponent<
 > = (): ReactElement => {
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
   return (
-    <Page title="Metrics Explorer" breadcrumbLinks={getMetricsBreadcrumbs(path)}>
+    <Page
+      title="Metrics Explorer"
+      breadcrumbLinks={getMetricsBreadcrumbs(path)}
+    >
       <Outlet />
     </Page>
   );

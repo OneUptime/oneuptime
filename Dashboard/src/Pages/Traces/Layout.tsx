@@ -7,7 +7,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
 
-const TracesLayout: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const TracesLayout: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
 
   return (
