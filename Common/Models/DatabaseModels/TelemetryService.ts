@@ -412,7 +412,7 @@ export default class TelemetryService extends BaseModel {
     { eager: false },
   )
   @JoinTable({
-    name: "ServiceLabel",
+    name: "TelemetryServiceLabel",
     inverseJoinColumn: {
       name: "labelId",
       referencedColumnName: "_id",

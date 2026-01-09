@@ -7,8 +7,15 @@ export class RenameServiceCatalogToService1767966850199
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     /*
+     * Step 0: Rename existing ServiceLabel (TelemetryService ↔ Label) to TelemetryServiceLabel
+     * This frees up the "ServiceLabel" name for use by Service (formerly ServiceCatalog)
+     */
+    await queryRunner.query(
+      `ALTER TABLE "ServiceLabel" RENAME TO "TelemetryServiceLabel"`,
+    );
+
+    /*
      * Step 1: Rename columns in dependent tables first (before renaming the main table)
-     * This is done first because foreign key constraints reference the column names
      */
 
     // Rename serviceCatalogId to serviceId in ServiceCatalogMonitor
@@ -51,9 +58,12 @@ export class RenameServiceCatalogToService1767966850199
 
     /*
      * Step 2: Rename tables
-     * Rename main ServiceCatalog table to Service
      */
-    await queryRunner.query(`ALTER TABLE "ServiceCatalog" RENAME TO "Service"`);
+
+    // Rename main ServiceCatalog table to Service
+    await queryRunner.query(
+      `ALTER TABLE "ServiceCatalog" RENAME TO "Service"`,
+    );
 
     // Rename ServiceCatalogMonitor to ServiceMonitor
     await queryRunner.query(
@@ -121,7 +131,9 @@ export class RenameServiceCatalogToService1767966850199
       `ALTER TABLE "ServiceMonitor" RENAME TO "ServiceCatalogMonitor"`,
     );
 
-    await queryRunner.query(`ALTER TABLE "Service" RENAME TO "ServiceCatalog"`);
+    await queryRunner.query(
+      `ALTER TABLE "Service" RENAME TO "ServiceCatalog"`,
+    );
 
     // Step 2: Rename columns back to original names
     await queryRunner.query(
@@ -153,6 +165,11 @@ export class RenameServiceCatalogToService1767966850199
 
     await queryRunner.query(
       `ALTER TABLE "ServiceCatalogMonitor" RENAME COLUMN "serviceId" TO "serviceCatalogId"`,
+    );
+
+    // Step 3: Rename TelemetryServiceLabel back to ServiceLabel
+    await queryRunner.query(
+      `ALTER TABLE "TelemetryServiceLabel" RENAME TO "ServiceLabel"`,
     );
   }
 }
