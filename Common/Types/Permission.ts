@@ -244,15 +244,15 @@ enum Permission {
   EditStatusPageOwnerUser = "EditStatusPageOwnerUser",
   ReadStatusPageOwnerUser = "ReadStatusPageOwnerUser",
 
-  CreateServiceCatalogOwnerTeam = "CreateServiceCatalogOwnerTeam",
-  DeleteServiceCatalogOwnerTeam = "DeleteServiceCatalogOwnerTeam",
-  EditServiceCatalogOwnerTeam = "EditServiceCatalogOwnerTeam",
-  ReadServiceCatalogOwnerTeam = "ReadServiceCatalogOwnerTeam",
+  CreateServiceOwnerTeam = "CreateServiceOwnerTeam",
+  DeleteServiceOwnerTeam = "DeleteServiceOwnerTeam",
+  EditServiceOwnerTeam = "EditServiceOwnerTeam",
+  ReadServiceOwnerTeam = "ReadServiceOwnerTeam",
 
-  CreateServiceCatalogOwnerUser = "CreateServiceCatalogOwner",
-  DeleteServiceCatalogOwnerUser = "DeleteServiceCatalogOwnerUser",
-  EditServiceCatalogOwnerUser = "EditServiceCatalogOwnerUser",
-  ReadServiceCatalogOwnerUser = "ReadServiceCatalogOwnerUser",
+  CreateServiceOwnerUser = "CreateServiceOwnerUser",
+  DeleteServiceOwnerUser = "DeleteServiceOwnerUser",
+  EditServiceOwnerUser = "EditServiceOwnerUser",
+  ReadServiceOwnerUser = "ReadServiceOwnerUser",
 
   CreateMonitorOwnerTeam = "CreateMonitorOwnerTeam",
   DeleteMonitorOwnerTeam = "DeleteMonitorOwnerTeam",
@@ -620,30 +620,30 @@ enum Permission {
   DeleteAlertSeverity = "DeleteAlertSeverity",
   ReadAlertSeverity = "ReadAlertSeverity",
 
-  CreateServiceCatalog = "CreateServiceCatalog",
-  DeleteServiceCatalog = "DeleteServiceCatalog",
-  EditServiceCatalog = "EditServiceCatalog",
-  ReadServiceCatalog = "ReadServiceCatalog",
+  CreateService = "CreateService",
+  DeleteService = "DeleteService",
+  EditService = "EditService",
+  ReadService = "ReadService",
 
-  CreateServiceCatlogDependency = "CreateServiceCatlogDependency",
-  DeleteServiceCatlogDependency = "DeleteServiceCatlogDependency",
-  EditServiceCatlogDependency = "EditServiceCatlogDependency",
-  ReadServiceCatlogDependency = "ReadServiceCatlogDependency",
+  CreateServiceDependency = "CreateServiceDependency",
+  DeleteServiceDependency = "DeleteServiceDependency",
+  EditServiceDependency = "EditServiceDependency",
+  ReadServiceDependency = "ReadServiceDependency",
 
-  CreateServiceCatalogMonitor = "CreateServiceCatalogMonitor",
-  DeleteServiceCatalogMonitor = "DeleteServiceCatalogMonitor",
-  EditServiceCatalogMonitor = "EditServiceCatalogMonitor",
-  ReadServiceCatalogMonitor = "ReadServiceCatalogMonitor",
+  CreateServiceMonitor = "CreateServiceMonitor",
+  DeleteServiceMonitor = "DeleteServiceMonitor",
+  EditServiceMonitor = "EditServiceMonitor",
+  ReadServiceMonitor = "ReadServiceMonitor",
 
-  CreateServiceCatalogTelemetryService = "CreateServiceCatalogTelemetryService",
-  DeleteServiceCatalogTelemetryService = "DeleteServiceCatalogTelemetryService",
-  EditServiceCatalogTelemetryService = "EditServiceCatalogTelemetryService",
-  ReadServiceCatalogTelemetryService = "ReadServiceCatalogTelemetryService",
+  CreateServiceTelemetryService = "CreateServiceTelemetryService",
+  DeleteServiceTelemetryService = "DeleteServiceTelemetryService",
+  EditServiceTelemetryService = "EditServiceTelemetryService",
+  ReadServiceTelemetryService = "ReadServiceTelemetryService",
 
-  CreateServiceCatalogCodeRepository = "CreateServiceCatalogCodeRepository",
-  DeleteServiceCatalogCodeRepository = "DeleteServiceCatalogCodeRepository",
-  EditServiceCatalogCodeRepository = "EditServiceCatalogCodeRepository",
-  ReadServiceCatalogCodeRepository = "ReadServiceCatalogCodeRepository",
+  CreateServiceCodeRepository = "CreateServiceCodeRepository",
+  DeleteServiceCodeRepository = "DeleteServiceCodeRepository",
+  EditServiceCodeRepository = "EditServiceCodeRepository",
+  ReadServiceCodeRepository = "ReadServiceCodeRepository",
 
   // Code Repository
   CreateCodeRepository = "CreateCodeRepository",
@@ -3483,165 +3483,162 @@ export class PermissionHelper {
       },
 
       {
-        permission: Permission.CreateServiceCatalog,
-        title: "Create Service Catalog",
-        description: "This permission can create Service Catalog this project.",
+        permission: Permission.CreateService,
+        title: "Create Service",
+        description: "This permission can create Service in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
       },
       {
-        permission: Permission.DeleteServiceCatalog,
-        title: "Delete Service Catalog",
-        description:
-          "This permission can delete Service Catalog of this project.",
+        permission: Permission.DeleteService,
+        title: "Delete Service",
+        description: "This permission can delete Service of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
       },
       {
-        permission: Permission.EditServiceCatalog,
-        title: "Edit Service Catalog",
-        description:
-          "This permission can edit Service Catalog of this project.",
+        permission: Permission.EditService,
+        title: "Edit Service",
+        description: "This permission can edit Service of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
       },
       {
-        permission: Permission.ReadServiceCatalog,
-        title: "Read Service Catalog",
-        description:
-          "This permission can read Service Catalog of this project.",
+        permission: Permission.ReadService,
+        title: "Read Service",
+        description: "This permission can read Service of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
       },
 
       {
-        permission: Permission.CreateServiceCatlogDependency,
-        title: "Create Service Catalog Dependency",
+        permission: Permission.CreateServiceDependency,
+        title: "Create Service Dependency",
         description:
-          "This permission can create Service Catalog Dependencies this project.",
+          "This permission can create Service Dependencies in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.DeleteServiceCatlogDependency,
-        title: "Delete Service Catalog Dependency",
+        permission: Permission.DeleteServiceDependency,
+        title: "Delete Service Dependency",
         description:
-          "This permission can delete Service Catalog Dependencies of this project.",
+          "This permission can delete Service Dependencies of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.EditServiceCatlogDependency,
-        title: "Edit Service Catalog Dependency",
+        permission: Permission.EditServiceDependency,
+        title: "Edit Service Dependency",
         description:
-          "This permission can edit Service Catalog Dependencies of this project.",
+          "This permission can edit Service Dependencies of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.ReadServiceCatlogDependency,
-        title: "Read Service Catalog Dependency",
+        permission: Permission.ReadServiceDependency,
+        title: "Read Service Dependency",
         description:
-          "This permission can read Service Catalog Dependencies of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-      },
-
-      {
-        permission: Permission.CreateServiceCatalogMonitor,
-        title: "Create Service Catalog Monitor",
-        description:
-          "This permission can create Service Catalog Monitor this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-      },
-      {
-        permission: Permission.DeleteServiceCatalogMonitor,
-        title: "Delete Service Catalog Monitor",
-        description:
-          "This permission can delete Service Catalog Monitor of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-      },
-      {
-        permission: Permission.EditServiceCatalogMonitor,
-        title: "Edit Service Catalog Monitor",
-        description:
-          "This permission can edit Service Catalog Monitor of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-      },
-      {
-        permission: Permission.ReadServiceCatalogMonitor,
-        title: "Read Service Catalog Monitor",
-        description:
-          "This permission can read Service Catalog Monitor of this project.",
+          "This permission can read Service Dependencies of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
 
       {
-        permission: Permission.CreateServiceCatalogTelemetryService,
-        title: "Create Service Catalog Telemetry Service",
+        permission: Permission.CreateServiceMonitor,
+        title: "Create Service Monitor",
         description:
-          "This permission can create Service Catalog Telemetry Service this project.",
+          "This permission can create Service Monitor in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.DeleteServiceCatalogTelemetryService,
-        title: "Delete Service Catalog Telemetry Service",
+        permission: Permission.DeleteServiceMonitor,
+        title: "Delete Service Monitor",
         description:
-          "This permission can delete Service Catalog Telemetry Service of this project.",
+          "This permission can delete Service Monitor of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.EditServiceCatalogTelemetryService,
-        title: "Edit Service Catalog Telemetry Service",
+        permission: Permission.EditServiceMonitor,
+        title: "Edit Service Monitor",
         description:
-          "This permission can edit Service Catalog Telemetry Service of this project.",
+          "This permission can edit Service Monitor of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.ReadServiceCatalogTelemetryService,
-        title: "Read Service Catalog Telemetry Service",
+        permission: Permission.ReadServiceMonitor,
+        title: "Read Service Monitor",
         description:
-          "This permission can read Service Catalog Telemetry Service of this project.",
+          "This permission can read Service Monitor of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
 
       {
-        permission: Permission.CreateServiceCatalogCodeRepository,
-        title: "Create Service Catalog Code Repository",
+        permission: Permission.CreateServiceTelemetryService,
+        title: "Create Service Telemetry Service",
         description:
-          "This permission can create Service Catalog Code Repository in this project.",
+          "This permission can create Service Telemetry Service in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.DeleteServiceCatalogCodeRepository,
-        title: "Delete Service Catalog Code Repository",
+        permission: Permission.DeleteServiceTelemetryService,
+        title: "Delete Service Telemetry Service",
         description:
-          "This permission can delete Service Catalog Code Repository of this project.",
+          "This permission can delete Service Telemetry Service of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.EditServiceCatalogCodeRepository,
-        title: "Edit Service Catalog Code Repository",
+        permission: Permission.EditServiceTelemetryService,
+        title: "Edit Service Telemetry Service",
         description:
-          "This permission can edit Service Catalog Code Repository of this project.",
+          "This permission can edit Service Telemetry Service of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.ReadServiceCatalogCodeRepository,
-        title: "Read Service Catalog Code Repository",
+        permission: Permission.ReadServiceTelemetryService,
+        title: "Read Service Telemetry Service",
         description:
-          "This permission can read Service Catalog Code Repository of this project.",
+          "This permission can read Service Telemetry Service of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateServiceCodeRepository,
+        title: "Create Service Code Repository",
+        description:
+          "This permission can create Service Code Repository in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteServiceCodeRepository,
+        title: "Delete Service Code Repository",
+        description:
+          "This permission can delete Service Code Repository of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditServiceCodeRepository,
+        title: "Edit Service Code Repository",
+        description:
+          "This permission can edit Service Code Repository of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadServiceCodeRepository,
+        title: "Read Service Code Repository",
+        description:
+          "This permission can read Service Code Repository of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -4209,67 +4206,67 @@ export class PermissionHelper {
       },
 
       {
-        permission: Permission.CreateServiceCatalogOwnerTeam,
-        title: "Create Service Catalog Team Owner",
+        permission: Permission.CreateServiceOwnerTeam,
+        title: "Create Service Team Owner",
         description:
-          "This permission can create Service Catalog Team Owner this project.",
+          "This permission can create Service Team Owner in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.DeleteServiceCatalogOwnerTeam,
-        title: "Delete Service Catalog Team Owner",
+        permission: Permission.DeleteServiceOwnerTeam,
+        title: "Delete Service Team Owner",
         description:
-          "This permission can delete Service Catalog Team Owner of this project.",
+          "This permission can delete Service Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.EditServiceCatalogOwnerTeam,
-        title: "Edit Service Catalog Team Owner",
+        permission: Permission.EditServiceOwnerTeam,
+        title: "Edit Service Team Owner",
         description:
-          "This permission can edit Service Catalog Team Owner of this project.",
+          "This permission can edit Service Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.ReadServiceCatalogOwnerTeam,
-        title: "Read Service Catalog Team Owner",
+        permission: Permission.ReadServiceOwnerTeam,
+        title: "Read Service Team Owner",
         description:
-          "This permission can read Service Catalog Team Owner of this project.",
+          "This permission can read Service Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
 
       {
-        permission: Permission.CreateServiceCatalogOwnerUser,
-        title: "Create Service Catalog User Owner",
+        permission: Permission.CreateServiceOwnerUser,
+        title: "Create Service User Owner",
         description:
-          "This permission can create Service Catalog User Owner this project.",
+          "This permission can create Service User Owner in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.DeleteServiceCatalogOwnerUser,
-        title: "Delete Service Catalog User Owner",
+        permission: Permission.DeleteServiceOwnerUser,
+        title: "Delete Service User Owner",
         description:
-          "This permission can delete Service Catalog User Owner of this project.",
+          "This permission can delete Service User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.EditServiceCatalogOwnerUser,
-        title: "Edit Service Catalog User Owner",
+        permission: Permission.EditServiceOwnerUser,
+        title: "Edit Service User Owner",
         description:
-          "This permission can edit Service Catalog User Owner of this project.",
+          "This permission can edit Service User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.ReadServiceCatalogOwnerUser,
-        title: "Read Service Catalog User Owner",
+        permission: Permission.ReadServiceOwnerUser,
+        title: "Read Service User Owner",
         description:
-          "This permission can read Service Catalog User Owner of this project.",
+          "This permission can read Service User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

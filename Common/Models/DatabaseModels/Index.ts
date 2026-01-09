@@ -101,10 +101,10 @@ import ScheduledMaintenanceOwnerUser from "./ScheduledMaintenanceOwnerUser";
 import ScheduledMaintenancePublicNote from "./ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceState from "./ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "./ScheduledMaintenanceStateTimeline";
-import ServiceCatalog from "./ServiceCatalog";
-import ServiceCatalogOwnerTeam from "./ServiceCatalogOwnerTeam";
-import ServiceCatalogOwnerUser from "./ServiceCatalogOwnerUser";
-import ServiceCatalogCodeRepository from "./ServiceCatalogCodeRepository";
+import Service from "./Service";
+import ServiceOwnerTeam from "./ServiceOwnerTeam";
+import ServiceOwnerUser from "./ServiceOwnerUser";
+import ServiceCodeRepository from "./ServiceCodeRepository";
 import CodeRepository from "./CodeRepository";
 // Short link.
 import ShortLink from "./ShortLink";
@@ -157,9 +157,9 @@ import UserSms from "./UserSMS";
 import Workflow from "./Workflow";
 import WorkflowLog from "./WorkflowLog";
 import WorkflowVariables from "./WorkflowVariable";
-import ServiceCatalogDependency from "./ServiceCatalogDependency";
-import ServiceCatalogMonitor from "./ServiceCatalogMonitor";
-import ServiceCatalogTelemetryService from "./ServiceCatalogTelemetryService";
+import ServiceDependency from "./ServiceDependency";
+import ServiceMonitor from "./ServiceMonitor";
+import ServiceTelemetryService from "./ServiceTelemetryService";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserWebAuthn from "./UserWebAuthn";
@@ -372,13 +372,13 @@ const AllModelTypes: Array<{
 
   AcmeChallenge,
 
-  ServiceCatalog,
-  ServiceCatalogOwnerTeam,
-  ServiceCatalogOwnerUser,
-  ServiceCatalogDependency,
-  ServiceCatalogMonitor,
-  ServiceCatalogTelemetryService,
-  ServiceCatalogCodeRepository,
+  Service,
+  ServiceOwnerTeam,
+  ServiceOwnerUser,
+  ServiceDependency,
+  ServiceMonitor,
+  ServiceTelemetryService,
+  ServiceCodeRepository,
 
   // Code Repository
   CodeRepository,

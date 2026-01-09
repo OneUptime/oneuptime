@@ -27,7 +27,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-const ServiceCatalogMonitors: FunctionComponent<
+const MonitorGroupMonitors: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -142,7 +142,7 @@ const ServiceCatalogMonitors: FunctionComponent<
           onSubmit={async () => {
             try {
               setIsUnassignLoading(true);
-              // get ServiceCatalogMonitorId
+              // get MonitorGroupMonitorId
               const monitorGroupMonitor: ListResult<MonitorGroupResource> =
                 await ModelAPI.getList<MonitorGroupResource>({
                   modelType: MonitorGroupResource,
@@ -210,14 +210,14 @@ const ServiceCatalogMonitors: FunctionComponent<
           formProps={{
             name: "Assign Monitor",
             modelType: MonitorGroupResource,
-            id: "create-service-catalog-monitor",
+            id: "create-monitor-group-resource",
             fields: [
               {
                 field: {
                   monitor: true,
                 },
                 title: "Select Monitor",
-                description: "Select monitor to assign to this service.",
+                description: "Select monitor to assign to this group.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownModal: {
                   type: Monitor,
@@ -238,4 +238,4 @@ const ServiceCatalogMonitors: FunctionComponent<
   );
 };
 
-export default ServiceCatalogMonitors;
+export default MonitorGroupMonitors;

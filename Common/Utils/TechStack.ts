@@ -1,4 +1,4 @@
-import TechStack from "../Types/ServiceCatalog/TechStack";
+import TechStack from "../Types/Service/TechStack";
 
 export default class ServiceLanguageUtil {
   public static getLanguageByFileExtension(data: {

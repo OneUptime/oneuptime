@@ -1,5 +1,5 @@
 import PageMap from "../../../../Utils/PageMap";
-import RouteMap from "../../../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 import PageComponentProps from "../../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -19,7 +19,12 @@ const ServiceDelete: FunctionComponent<
         modelType={TelemetryService}
         modelId={modelId}
         onDeleteSuccess={() => {
-          Navigation.navigate(RouteMap[PageMap.TELEMETRY_SERVICES] as Route);
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TELEMETRY_SERVICES] as Route,
+              { modelId },
+            ),
+          );
         }}
       />
     </Fragment>

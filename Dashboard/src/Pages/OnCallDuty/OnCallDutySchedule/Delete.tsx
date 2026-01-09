@@ -1,5 +1,5 @@
 import PageMap from "../../../Utils/PageMap";
-import RouteMap from "../../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -19,7 +19,12 @@ const OnCallScheduleDelete: FunctionComponent<
         modelType={OnCallDutySchedule}
         modelId={modelId}
         onDeleteSuccess={() => {
-          Navigation.navigate(RouteMap[PageMap.ON_CALL_DUTY] as Route);
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY] as Route,
+              { modelId },
+            ),
+          );
         }}
       />
     </Fragment>

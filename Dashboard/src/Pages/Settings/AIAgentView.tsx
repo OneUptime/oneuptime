@@ -3,7 +3,7 @@ import UserElement from "../../Components/User/User";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import ProjectUser from "../../Utils/ProjectUser";
-import RouteMap from "../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -453,7 +453,12 @@ const AIAgentView: FunctionComponent<PageComponentProps> = (
         modelType={AIAgent}
         modelId={modelId}
         onDeleteSuccess={() => {
-          Navigation.navigate(RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route);
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
+              { modelId },
+            ),
+          );
         }}
       />
     </Fragment>

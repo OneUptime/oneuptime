@@ -1,8 +1,8 @@
 import DataMigrationBase from "./DataMigrationBase";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import TechStack from "Common/Types/ServiceCatalog/TechStack";
-import ServiceCatalogService from "Common/Server/Services/ServiceCatalogService";
-import ServiceCatalog from "Common/Models/DatabaseModels/ServiceCatalog";
+import TechStack from "Common/Types/Service/TechStack";
+import ServiceService from "Common/Server/Services/ServiceService";
+import Service from "Common/Models/DatabaseModels/Service";
 
 export default class MigrateServiceLanguageToTechStack extends DataMigrationBase {
   public constructor() {
@@ -10,30 +10,29 @@ export default class MigrateServiceLanguageToTechStack extends DataMigrationBase
   }
 
   public override async migrate(): Promise<void> {
-    // get all the users with email isVerified true.
-    const serviceCatalogs: Array<ServiceCatalog> =
-      await ServiceCatalogService.findBy({
-        query: {},
-        select: {
-          _id: true,
-          serviceLanguage: true,
-        },
-        skip: 0,
-        limit: LIMIT_MAX,
-        props: {
-          isRoot: true,
-        },
-      });
+    // get all the services with serviceLanguage to migrate to techStack.
+    const services: Array<Service> = await ServiceService.findBy({
+      query: {},
+      select: {
+        _id: true,
+        serviceLanguage: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+      },
+    });
 
-    for (const serviceCatalog of serviceCatalogs) {
+    for (const service of services) {
       const techStack: Array<TechStack> = [];
-      if (serviceCatalog.serviceLanguage) {
-        techStack.push(serviceCatalog.serviceLanguage);
+      if (service.serviceLanguage) {
+        techStack.push(service.serviceLanguage);
       }
 
-      // update the service catalog with tech stack.
-      await ServiceCatalogService.updateOneById({
-        id: serviceCatalog.id!,
+      // update the service with tech stack.
+      await ServiceService.updateOneById({
+        id: service.id!,
         data: {
           techStack: techStack,
         },

@@ -1,8 +1,8 @@
 import AIAgentService from "../Services/AIAgentService";
 import LlmProviderService from "../Services/LlmProviderService";
 import TelemetryExceptionService from "../Services/TelemetryExceptionService";
-import ServiceCatalogTelemetryServiceService from "../Services/ServiceCatalogTelemetryServiceService";
-import ServiceCatalogCodeRepositoryService from "../Services/ServiceCatalogCodeRepositoryService";
+import ServiceTelemetryServiceService from "../Services/ServiceTelemetryServiceService";
+import ServiceCodeRepositoryService from "../Services/ServiceCodeRepositoryService";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
 import AIAgentTaskPullRequestService from "../Services/AIAgentTaskPullRequestService";
 import AIAgentTaskService from "../Services/AIAgentTaskService";
@@ -16,8 +16,8 @@ import Response from "../Utils/Response";
 import AIAgent from "../../Models/DatabaseModels/AIAgent";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import TelemetryException from "../../Models/DatabaseModels/TelemetryException";
-import ServiceCatalogTelemetryService from "../../Models/DatabaseModels/ServiceCatalogTelemetryService";
-import ServiceCatalogCodeRepository from "../../Models/DatabaseModels/ServiceCatalogCodeRepository";
+import ServiceTelemetryService from "../../Models/DatabaseModels/ServiceTelemetryService";
+import ServiceCodeRepository from "../../Models/DatabaseModels/ServiceCodeRepository";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIAgentTask from "../../Models/DatabaseModels/AIAgentTask";
@@ -220,7 +220,7 @@ export default class AIAgentDataAPI {
       },
     );
 
-    // Get code repositories linked to a telemetry service via ServiceCatalog
+    // Get code repositories linked to a telemetry service via Service
     this.router.post(
       "/ai-agent-data/get-code-repositories",
       async (
@@ -255,14 +255,14 @@ export default class AIAgentDataAPI {
             data["telemetryServiceId"] as string,
           );
 
-          // Step 1: Find ServiceCatalogs linked to this TelemetryService
-          const serviceCatalogTelemetryServices: Array<ServiceCatalogTelemetryService> =
-            await ServiceCatalogTelemetryServiceService.findBy({
+          // Step 1: Find Services linked to this TelemetryService
+          const serviceTelemetryServices: Array<ServiceTelemetryService> =
+            await ServiceTelemetryServiceService.findBy({
               query: {
                 telemetryServiceId: telemetryServiceId,
               },
               select: {
-                serviceCatalogId: true,
+                serviceId: true,
               },
               skip: 0,
               limit: LIMIT_MAX,
@@ -271,26 +271,25 @@ export default class AIAgentDataAPI {
               },
             });
 
-          if (serviceCatalogTelemetryServices.length === 0) {
+          if (serviceTelemetryServices.length === 0) {
             logger.debug(
-              `No service catalogs found for telemetry service ${telemetryServiceId.toString()}`,
+              `No services found for telemetry service ${telemetryServiceId.toString()}`,
             );
             return Response.sendJsonObjectResponse(req, res, {
               repositories: [],
             });
           }
 
-          // Extract service catalog IDs
-          const serviceCatalogIds: Array<ObjectID> =
-            serviceCatalogTelemetryServices
-              .filter((s: ServiceCatalogTelemetryService) => {
-                return s.serviceCatalogId;
-              })
-              .map((s: ServiceCatalogTelemetryService) => {
-                return s.serviceCatalogId as ObjectID;
-              });
+          // Extract service IDs
+          const serviceIds: Array<ObjectID> = serviceTelemetryServices
+            .filter((s: ServiceTelemetryService) => {
+              return s.serviceId;
+            })
+            .map((s: ServiceTelemetryService) => {
+              return s.serviceId as ObjectID;
+            });
 
-          // Step 2: Find CodeRepositories linked to these ServiceCatalogs
+          // Step 2: Find CodeRepositories linked to these Services
           const repositories: Array<{
             id: string;
             name: string;
@@ -302,11 +301,11 @@ export default class AIAgentDataAPI {
             gitHubAppInstallationId: string | null;
           }> = [];
 
-          for (const serviceCatalogId of serviceCatalogIds) {
-            const serviceCatalogCodeRepositories: Array<ServiceCatalogCodeRepository> =
-              await ServiceCatalogCodeRepositoryService.findBy({
+          for (const serviceId of serviceIds) {
+            const serviceCodeRepositories: Array<ServiceCodeRepository> =
+              await ServiceCodeRepositoryService.findBy({
                 query: {
-                  serviceCatalogId: serviceCatalogId,
+                  serviceId: serviceId,
                 },
                 select: {
                   codeRepositoryId: true,
@@ -328,7 +327,7 @@ export default class AIAgentDataAPI {
                 },
               });
 
-            for (const scr of serviceCatalogCodeRepositories) {
+            for (const scr of serviceCodeRepositories) {
               if (scr.codeRepository) {
                 // Check if we already have this repository
                 const existingRepo: boolean = repositories.some(

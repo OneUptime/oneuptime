@@ -87,12 +87,12 @@ import ScheduledMaintenancePublicNoteService from "./ScheduledMaintenancePublicN
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "./ScheduledMaintenanceStateService";
 import ScheduledMaintenanceStateTimelineService from "./ScheduledMaintenanceStateTimelineService";
-import ServiceCatalogOwnerTeamService from "./ServiceCatalogOwnerTeamService";
-import ServiceCatalogOwnerUserService from "./ServiceCatalogOwnerUserService";
-import ServiceCatalogService from "./ServiceCatalogService";
-import ServiceCatalogMonitorService from "./ServiceCatalogMonitorService";
-import ServiceCatalogTelemetryServiceService from "./ServiceCatalogTelemetryServiceService";
-import ServiceCatalogCodeRepositoryService from "./ServiceCatalogCodeRepositoryService";
+import ServiceOwnerTeamService from "./ServiceOwnerTeamService";
+import ServiceOwnerUserService from "./ServiceOwnerUserService";
+import ServiceService from "./ServiceService";
+import ServiceMonitorService from "./ServiceMonitorService";
+import ServiceTelemetryServiceService from "./ServiceTelemetryServiceService";
+import ServiceCodeRepositoryService from "./ServiceCodeRepositoryService";
 import ShortLinkService from "./ShortLinkService";
 // SMS Log Service
 import SmsLogService from "./SmsLogService";
@@ -142,7 +142,7 @@ import WorkflowLogService from "./WorkflowLogService";
 import WorkflowService from "./WorkflowService";
 import WorkflowVariablesService from "./WorkflowVariableService";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import ServiceCatalogDependencyService from "./ServiceCatalogDependencyService";
+import ServiceDependencyService from "./ServiceDependencyService";
 import TelemetryExceptionService from "./TelemetryExceptionService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import ScheduledMaintenanceTemplateService from "./ScheduledMaintenanceTemplateService";
@@ -326,13 +326,13 @@ const services: Array<BaseService> = [
   UsageBillingService,
   ProjectCallSMSConfigService,
 
-  ServiceCatalogService,
-  ServiceCatalogOwnerTeamService,
-  ServiceCatalogOwnerUserService,
-  ServiceCatalogDependencyService,
-  ServiceCatalogMonitorService,
-  ServiceCatalogTelemetryServiceService,
-  ServiceCatalogCodeRepositoryService,
+  ServiceService,
+  ServiceOwnerTeamService,
+  ServiceOwnerUserService,
+  ServiceDependencyService,
+  ServiceMonitorService,
+  ServiceTelemetryServiceService,
+  ServiceCodeRepositoryService,
 
   TelemetryExceptionService,
 
