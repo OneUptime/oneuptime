@@ -26,10 +26,14 @@ const NavBarMenu: FunctionComponent<ComponentProps> = (
   if (props.sections && props.sections.length > 0) {
     // Separate Settings section from other sections
     const mainSections: MenuSection[] = props.sections.filter(
-      (section: MenuSection) => section.title !== "Settings",
+      (section: MenuSection) => {
+        return section.title !== "Settings";
+      },
     );
     const settingsSection: MenuSection | undefined = props.sections.find(
-      (section: MenuSection) => section.title === "Settings",
+      (section: MenuSection) => {
+        return section.title === "Settings";
+      },
     );
 
     return (

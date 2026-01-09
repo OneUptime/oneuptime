@@ -253,10 +253,12 @@ const Navbar: FunctionComponent<ComponentProps> = (
     "bg-white flex text-center items-center lg:py-2 hidden md:flex";
 
   // Find active item in more menu items (needed for breadcrumb)
-  const activeMoreItem: MoreMenuItem | undefined = props.moreMenuItems?.find((item: MoreMenuItem) => {
-    const routeToCheck: Route = item.activeRoute || item.route;
-    return Navigation.isStartWith(routeToCheck);
-  });
+  const activeMoreItem: MoreMenuItem | undefined = props.moreMenuItems?.find(
+    (item: MoreMenuItem) => {
+      const routeToCheck: Route = item.activeRoute || item.route;
+      return Navigation.isStartWith(routeToCheck);
+    },
+  );
 
   // Group items by category for the menu
   const categories: Map<string, MoreMenuItem[]> = new Map();
@@ -290,11 +292,17 @@ const Navbar: FunctionComponent<ComponentProps> = (
   });
 
   // Find Home item from navItems
-  const homeItem: NavItem | undefined = props.items.find((item: NavItem) => item.title === "Home");
-  const otherNavItems: NavItem[] = props.items.filter((item: NavItem) => item.title !== "Home");
+  const homeItem: NavItem | undefined = props.items.find((item: NavItem) => {
+    return item.title === "Home";
+  });
+  const otherNavItems: NavItem[] = props.items.filter((item: NavItem) => {
+    return item.title !== "Home";
+  });
 
   return (
-    <nav className={props.rightElement ? `flex justify-between items-center` : ""}>
+    <nav
+      className={props.rightElement ? `flex justify-between items-center` : ""}
+    >
       <div data-testid="nav-children" className={className}>
         {/* Combined Home > Product breadcrumb */}
         <div className="flex items-center">
@@ -325,12 +333,19 @@ const Navbar: FunctionComponent<ComponentProps> = (
                   onMouseOver={showMoreMenu}
                   className="bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
                 >
-                  <Icon icon={activeMoreItem.icon} className="mr-1.5 h-4 w-4" thick={ThickProp.Thick} />
+                  <Icon
+                    icon={activeMoreItem.icon}
+                    className="mr-1.5 h-4 w-4"
+                    thick={ThickProp.Thick}
+                  />
                   <span>{activeMoreItem.title}</span>
-                  <Icon icon={IconProp.ChevronDown} className="ml-1.5 h-3 w-3 text-gray-500" />
+                  <Icon
+                    icon={IconProp.ChevronDown}
+                    className="ml-1.5 h-3 w-3 text-gray-500"
+                  />
                 </button>
                 {isMoreMenuVisible && (
-                  <NavBarMenu 
+                  <NavBarMenu
                     sections={sections}
                     footer={props.moreMenuFooter}
                   />
@@ -340,32 +355,41 @@ const Navbar: FunctionComponent<ComponentProps> = (
           )}
 
           {/* Show Products button when no product is selected */}
-          {!activeMoreItem && props.moreMenuItems && props.moreMenuItems.length > 0 && (
-            <>
-              <span className="text-gray-400 mx-1">/</span>
-              <div
-                onMouseOver={showMoreMenu}
-                onMouseLeave={hideMoreMenu}
-                className="relative"
-              >
-                <button
-                  onClick={showMoreMenu}
+          {!activeMoreItem &&
+            props.moreMenuItems &&
+            props.moreMenuItems.length > 0 && (
+              <>
+                <span className="text-gray-400 mx-1">/</span>
+                <div
                   onMouseOver={showMoreMenu}
-                  className="text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
+                  onMouseLeave={hideMoreMenu}
+                  className="relative"
                 >
-                  <Icon icon={IconProp.Squares} className="mr-1.5 h-4 w-4" thick={ThickProp.Thick} />
-                  <span>{props.moreMenuTitle || "Products"}</span>
-                  <Icon icon={IconProp.ChevronDown} className="ml-1.5 h-3 w-3 text-gray-400" />
-                </button>
-                {isMoreMenuVisible && (
-                  <NavBarMenu 
-                    sections={sections}
-                    footer={props.moreMenuFooter}
-                  />
-                )}
-              </div>
-            </>
-          )}
+                  <button
+                    onClick={showMoreMenu}
+                    onMouseOver={showMoreMenu}
+                    className="text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
+                  >
+                    <Icon
+                      icon={IconProp.Squares}
+                      className="mr-1.5 h-4 w-4"
+                      thick={ThickProp.Thick}
+                    />
+                    <span>{props.moreMenuTitle || "Products"}</span>
+                    <Icon
+                      icon={IconProp.ChevronDown}
+                      className="ml-1.5 h-3 w-3 text-gray-400"
+                    />
+                  </button>
+                  {isMoreMenuVisible && (
+                    <NavBarMenu
+                      sections={sections}
+                      footer={props.moreMenuFooter}
+                    />
+                  )}
+                </div>
+              </>
+            )}
         </div>
 
         {/* Other nav items */}
