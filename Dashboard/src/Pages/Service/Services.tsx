@@ -59,8 +59,7 @@ const ServicesPage: FunctionComponent<
             labels: true,
           },
           title: "Labels",
-          description:
-            "Labels help you categorize and organize your services.",
+          description: "Labels help you categorize and organize your services.",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           required: false,
           placeholder: "Labels",

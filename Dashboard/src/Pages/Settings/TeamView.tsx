@@ -629,7 +629,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         modelType={Team}
         modelId={Navigation.getLastParamAsObjectID()}
         onDeleteSuccess={() => {
-          Navigation.navigate(RouteMap[PageMap.SETTINGS_TEAMS] as Route);
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_TEAMS] as Route,
+            ),
+          );
         }}
       />
     </Fragment>

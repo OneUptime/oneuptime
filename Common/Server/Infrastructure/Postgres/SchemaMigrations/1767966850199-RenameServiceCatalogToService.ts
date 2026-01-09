@@ -61,9 +61,7 @@ export class RenameServiceCatalogToService1767966850199
      */
 
     // Rename main ServiceCatalog table to Service
-    await queryRunner.query(
-      `ALTER TABLE "ServiceCatalog" RENAME TO "Service"`,
-    );
+    await queryRunner.query(`ALTER TABLE "ServiceCatalog" RENAME TO "Service"`);
 
     // Rename ServiceCatalogMonitor to ServiceMonitor
     await queryRunner.query(
@@ -131,9 +129,7 @@ export class RenameServiceCatalogToService1767966850199
       `ALTER TABLE "ServiceMonitor" RENAME TO "ServiceCatalogMonitor"`,
     );
 
-    await queryRunner.query(
-      `ALTER TABLE "Service" RENAME TO "ServiceCatalog"`,
-    );
+    await queryRunner.query(`ALTER TABLE "Service" RENAME TO "ServiceCatalog"`);
 
     // Step 2: Rename columns back to original names
     await queryRunner.query(
